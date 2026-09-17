@@ -1,0 +1,10 @@
+openapi: 3.0.3
+info:
+  title: Labbit HTTP API
+  version: 0.0.0
+  description: >-
+    Machine-readable SSOT for the Labbit HTTP API contract.
+    Endpoints and schemas will be added as they are finalized from the approved specification.
+paths: {}
+components:
+  schemas: {}

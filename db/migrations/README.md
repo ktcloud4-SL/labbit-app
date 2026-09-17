@@ -121,14 +121,20 @@ PostgreSQL에는 `terminal_sessions`와 `live_sessions`의 **최소 lifecycle me
 
 ## Application에서 추가로 검증할 의미
 
-DB constraint만으로 자연스럽게 표현하기 어려운 다음 의미는 Application이 검증합니다.
+DB constraint만으로 자연스럽게 표현하기 어렵거나, 중복 컬럼을 추가해 DB 제약으로 만들기보다 도메인 서비스에서 확인하는 편이 더 단순한 의미는 Application이 검증합니다.
 
 - `lab_specs.workspace_role`이 실제 `lab_spec_vm_roles.role` 중 하나인지
 - `workspace_instance_index < vm_count`인지
+- 한 LabSpec에서 사용하는 Image/Flavor mapping이 실행에 사용할 동일한 ProviderConnection 경계와 호환되는지
 - LabExecution의 instructor가 대상 Class의 현재 `INSTRUCTOR` Membership인지
 - Provision 대상 User들이 요청 시점의 해당 Class `STUDENT` Membership인지
+- `participant_role = INSTRUCTOR`인 LabInstance의 User가 해당 LabExecution의 `instructor_user_id`와 일치하는지
+- `operation_items.lab_instance_id`가 parent Operation의 대상 LabExecution/Mutation 범위에 실제로 속하는지
+- `provider_resources.created_by_operation_item_id`가 같은 LabInstance/generation의 실행 item인지
 - `terminal_sessions.provider_resource_id`가 실제 Terminal 대상 `SERVER` resource type인지
 - Live source TerminalSession이 해당 Class Instructor의 유효한 Session인지
+
+이 검증은 단순 UI 검증으로 대체하지 않고 서버의 domain/application layer에서 Transaction 경계 안팎에 맞춰 수행합니다.
 
 ## Migration 운영 규칙
 

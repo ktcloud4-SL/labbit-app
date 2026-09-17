@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labbit.local/contracts/realtime/terminal-live.schema.json",
+  "title": "Labbit Terminal/Live WSS Contract",
+  "description": "Machine-readable SSOT for the Browser Terminal/Live WebSocket contract. Framing, messages, errors, and close semantics will be added as they are finalized from the approved specification.",
+  "type": "object",
+  "additionalProperties": true
+}

@@ -1,8 +1,294 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://labbit.local/contracts/realtime/terminal-live.schema.json",
-  "title": "Labbit Terminal/Live WSS Contract",
-  "description": "Machine-readable SSOT for the Browser Terminal/Live WebSocket contract. Framing, messages, errors, and close semantics will be added as they are finalized from the approved specification.",
-  "type": "object",
-  "additionalProperties": true
+  "title": "Labbit Browser Terminal/Live WSS Contract v0.1",
+  "description": "Browser와 SaaS Terminal/Live Relay 사이의 JSON Text control frame 계약입니다. 실제 PTY INPUT/OUTPUT은 WebSocket Binary frame의 raw byte stream이며 framing/auth/close 규칙은 같은 디렉터리 README.md가 원본입니다.",
+  "oneOf": [
+    { "$ref": "#/$defs/TerminalAttachMessage" },
+    { "$ref": "#/$defs/TerminalAttachedMessage" },
+    { "$ref": "#/$defs/TerminalResizeMessage" },
+    { "$ref": "#/$defs/TerminalSessionEndedMessage" },
+    { "$ref": "#/$defs/LiveSubscribeMessage" },
+    { "$ref": "#/$defs/LiveSubscribedMessage" },
+    { "$ref": "#/$defs/LiveEndedMessage" },
+    { "$ref": "#/$defs/ErrorMessage" }
+  ],
+  "$defs": {
+    "ResourceId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Labbit 내부의 opaque 리소스 식별자입니다."
+    },
+    "MessageId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "한 번의 JSON control frame을 식별하는 opaque ID입니다. Binary PTY chunk에는 사용하지 않습니다."
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "TraceParent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "W3C Trace Context의 traceparent 값입니다. Binary PTY content에는 붙이지 않습니다."
+    },
+    "TraceState": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "description": "W3C Trace Context의 tracestate 값입니다."
+    },
+    "BaseEnvelope": {
+      "type": "object",
+      "required": ["type", "messageId", "sentAt", "payload"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "JSON control message 종류입니다."
+        },
+        "messageId": {
+          "$ref": "#/$defs/MessageId"
+        },
+        "sentAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "replyToMessageId": {
+          "$ref": "#/$defs/MessageId",
+          "description": "응답 메시지가 원본 요청을 가리킬 때 사용합니다."
+        },
+        "requestId": {
+          "$ref": "#/$defs/ResourceId",
+          "description": "세션 생성·연결 같은 control event의 원본 HTTP 요청과 연결 가능한 경우 전달합니다."
+        },
+        "terminalSessionId": {
+          "$ref": "#/$defs/ResourceId"
+        },
+        "liveSessionId": {
+          "$ref": "#/$defs/ResourceId"
+        },
+        "traceparent": {
+          "$ref": "#/$defs/TraceParent"
+        },
+        "tracestate": {
+          "$ref": "#/$defs/TraceState"
+        },
+        "payload": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "description": "v1 control envelope입니다. 호환 가능한 optional field 추가는 허용하며 수신자는 사용하지 않는 optional field를 무시할 수 있어야 합니다."
+    },
+    "TerminalAttachPayload": {
+      "type": "object",
+      "required": ["sessionToken", "cols", "rows"],
+      "properties": {
+        "sessionToken": {
+          "type": "string",
+          "minLength": 1,
+          "writeOnly": true,
+          "description": "특정 TerminalSession과 사용자에 scope된 opaque attach token입니다. URL query나 로그에 기록하지 않습니다."
+        },
+        "cols": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "현재 Browser terminal의 column 수입니다."
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "현재 Browser terminal의 row 수입니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "TerminalAttachedPayload": {
+      "type": "object",
+      "required": ["resumed", "historyAvailable"],
+      "properties": {
+        "resumed": {
+          "type": "boolean",
+          "description": "기존 TerminalSession/PTY에 재접속한 경우 true입니다."
+        },
+        "historyAvailable": {
+          "const": false,
+          "description": "Labbit v0.1은 과거 Terminal OUTPUT replay/history를 제공하지 않습니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "TerminalResizePayload": {
+      "type": "object",
+      "required": ["cols", "rows"],
+      "properties": {
+        "cols": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "SessionEndedPayload": {
+      "type": "object",
+      "required": ["reason"],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "세션 종료 원인입니다. 알려진 값으로 PTY_EXITED, SESSION_CLOSED, SESSION_EXPIRED, LAB_RESET, LAB_CLEANUP, SOURCE_TERMINAL_ENDED, SERVICE_RESTARTING 등이 있으며 향후 값이 추가될 수 있습니다."
+        },
+        "exitCode": {
+          "type": "integer",
+          "description": "실제 Shell/PTY가 종료된 경우 알려진 프로세스 exit code입니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "LiveSubscribePayload": {
+      "type": "object",
+      "description": "Live subscription은 Browser 로그인 세션과 현재 Class STUDENT Membership, active LiveSession을 서버가 다시 검증합니다. Terminal Session Token을 사용하지 않습니다.",
+      "additionalProperties": true
+    },
+    "LiveSubscribedPayload": {
+      "type": "object",
+      "required": ["historyAvailable"],
+      "properties": {
+        "historyAvailable": {
+          "const": false,
+          "description": "Live late join/reconnect에서 과거 OUTPUT을 제공하지 않습니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "ErrorPayload": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "AUTH_REQUIRED, INVALID_SESSION_TOKEN, FORBIDDEN, SESSION_NOT_FOUND, SESSION_EXPIRED, CONNECTOR_UNAVAILABLE, PROTOCOL_ERROR, SLOW_CONSUMER, LAB_MUTATION, SERVICE_RESTARTING 같은 안정적인 오류 코드입니다. 새 code가 추가될 수 있습니다."
+        },
+        "message": {
+          "type": "string",
+          "description": "민감정보와 Terminal/Live 본문을 포함하지 않는 사용자/운영용 요약입니다."
+        },
+        "fatal": {
+          "type": "boolean",
+          "description": "true이면 ERROR 전송 후 현재 WebSocket 연결을 종료할 수 있습니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "TerminalAttachMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "terminalSessionId", "payload"],
+          "properties": {
+            "type": { "const": "TERMINAL_ATTACH" },
+            "payload": { "$ref": "#/$defs/TerminalAttachPayload" }
+          }
+        }
+      ]
+    },
+    "TerminalAttachedMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "terminalSessionId", "replyToMessageId", "payload"],
+          "properties": {
+            "type": { "const": "TERMINAL_ATTACHED" },
+            "payload": { "$ref": "#/$defs/TerminalAttachedPayload" }
+          }
+        }
+      ]
+    },
+    "TerminalResizeMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "terminalSessionId", "payload"],
+          "properties": {
+            "type": { "const": "TERMINAL_RESIZE" },
+            "payload": { "$ref": "#/$defs/TerminalResizePayload" }
+          }
+        }
+      ]
+    },
+    "TerminalSessionEndedMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "terminalSessionId", "payload"],
+          "properties": {
+            "type": { "const": "TERMINAL_SESSION_ENDED" },
+            "payload": { "$ref": "#/$defs/SessionEndedPayload" }
+          }
+        }
+      ]
+    },
+    "LiveSubscribeMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "liveSessionId", "payload"],
+          "properties": {
+            "type": { "const": "LIVE_SUBSCRIBE" },
+            "payload": { "$ref": "#/$defs/LiveSubscribePayload" }
+          }
+        }
+      ]
+    },
+    "LiveSubscribedMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "liveSessionId", "replyToMessageId", "payload"],
+          "properties": {
+            "type": { "const": "LIVE_SUBSCRIBED" },
+            "payload": { "$ref": "#/$defs/LiveSubscribedPayload" }
+          }
+        }
+      ]
+    },
+    "LiveEndedMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "liveSessionId", "payload"],
+          "properties": {
+            "type": { "const": "LIVE_ENDED" },
+            "payload": { "$ref": "#/$defs/SessionEndedPayload" }
+          }
+        }
+      ]
+    },
+    "ErrorMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "ERROR" },
+            "payload": { "$ref": "#/$defs/ErrorPayload" }
+          }
+        }
+      ]
+    }
+  }
 }

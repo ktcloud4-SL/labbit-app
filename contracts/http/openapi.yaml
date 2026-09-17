@@ -1,10 +1,991 @@
-openapi: 3.0.3
+openapi: 3.1.2
 info:
   title: Labbit HTTP API
-  version: 0.0.0
-  description: >-
-    Machine-readable SSOT for the Labbit HTTP API contract.
-    Endpoints and schemas will be added as they are finalized from the approved specification.
-paths: {}
+  version: 0.1.0
+  description: |
+    Machine-readable SSOT for the Labbit Browser-to-SaaS HTTP contract.
+
+    This contract exposes stable product resources and intentionally hides internal
+    execution technology such as PostgreSQL polling, SQS/Kafka, Valkey, Istio,
+    Kubernetes workload boundaries, and future service decomposition.
+
+    Compatibility rules:
+    - Breaking HTTP changes require a new major API path.
+    - Additive response fields may be introduced within v1; clients must ignore fields they do not use.
+    - Resource identifiers are opaque strings.
+    - Long-running Provider mutations are represented by Operation resources.
+    - Error `code`, Operation `stage`, and lifecycle status values are extensible strings.
+servers:
+  - url: /api/v1
+
+tags:
+  - name: Auth
+  - name: Classes
+  - name: LabSpecs
+  - name: LabExecutions
+  - name: LabInstances
+  - name: Operations
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in with a pre-created local account
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '204':
+          description: Authentication succeeded and a session cookie was issued.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/SessionSetCookie'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: End the current session
+      operationId: logout
+      responses:
+        '204':
+          description: Session ended. The server clears the session cookie.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/SessionClearCookie'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /me:
+    get:
+      tags: [Auth]
+      summary: Get the current authenticated user context
+      operationId: getMe
+      responses:
+        '200':
+          description: Current user and organization context.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /classes:
+    get:
+      tags: [Classes]
+      summary: List classes accessible to the current user
+      operationId: listClasses
+      responses:
+        '200':
+          description: Accessible classes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /classes/{classId}:
+    get:
+      tags: [Classes]
+      summary: Get a class and the caller's current class context
+      operationId: getClass
+      parameters:
+        - $ref: '#/components/parameters/ClassId'
+      responses:
+        '200':
+          description: Class detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /classes/{classId}/memberships:
+    get:
+      tags: [Classes]
+      summary: List class memberships visible to the caller
+      operationId: listClassMemberships
+      description: |
+        Used by instructor flows that need to confirm users associated with a class.
+        Authorization is enforced from Organization and ClassMembership relationships.
+      parameters:
+        - $ref: '#/components/parameters/ClassId'
+      responses:
+        '200':
+          description: Class memberships visible to the caller.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassMembershipList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /lab-specs:
+    get:
+      tags: [LabSpecs]
+      summary: List LabSpecs visible to the current user
+      operationId: listLabSpecs
+      responses:
+        '200':
+          description: LabSpecs visible to the current user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabSpecList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [LabSpecs]
+      summary: Create a LabSpec without provisioning resources
+      operationId: createLabSpec
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LabSpecWrite'
+      responses:
+        '201':
+          description: LabSpec created. No OpenStack resources are provisioned.
+          headers:
+            Location:
+              description: Relative URL of the created LabSpec.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabSpec'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /lab-specs/{labSpecId}:
+    get:
+      tags: [LabSpecs]
+      summary: Get a LabSpec
+      operationId: getLabSpec
+      parameters:
+        - $ref: '#/components/parameters/LabSpecId'
+      responses:
+        '200':
+          description: LabSpec detail.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabSpec'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [LabSpecs]
+      summary: Replace the editable definition of an owned LabSpec
+      operationId: updateLabSpec
+      description: |
+        LabSpec updates affect only future LabExecutions. Existing LabExecutions and
+        Reset continue to use their creation-time resolved snapshot.
+      parameters:
+        - $ref: '#/components/parameters/LabSpecId'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LabSpecWrite'
+      responses:
+        '200':
+          description: LabSpec updated.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabSpec'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /classes/{classId}/lab-executions:
+    post:
+      tags: [LabExecutions]
+      summary: Start a new LabExecution for a class
+      operationId: createLabExecution
+      description: |
+        Accepts a long-running Provision request and freezes the execution target set
+        at acceptance time as required by D-10.
+
+        The exact product rule for choosing eligible target students is not broadened
+        by this v0.1 HTTP contract. v0.1 does not expose arbitrary subset selection.
+        A later additive request field can be introduced if the product adopts explicit
+        target selection.
+
+        The server persists product/Operation state before asynchronous Provider work.
+        Internal delivery may later use polling, SQS, Kafka, or another mechanism
+        without changing this HTTP contract.
+      parameters:
+        - $ref: '#/components/parameters/ClassId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLabExecutionRequest'
+      responses:
+        '200':
+          description: |
+            Idempotent replay returned an already-known Operation/result for the same
+            semantic request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationAccepted'
+        '202':
+          description: Provision request accepted for asynchronous execution.
+          headers:
+            Location:
+              $ref: '#/components/headers/OperationLocation'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /lab-executions/{labExecutionId}:
+    get:
+      tags: [LabExecutions]
+      summary: Get a LabExecution
+      operationId: getLabExecution
+      parameters:
+        - $ref: '#/components/parameters/LabExecutionId'
+      responses:
+        '200':
+          description: LabExecution detail and its fixed target/LabInstance set.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabExecution'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /lab-executions/{labExecutionId}/cleanup:
+    post:
+      tags: [LabExecutions]
+      summary: Clean up the resources of a LabExecution
+      operationId: cleanupLabExecution
+      description: |
+        Cleans up Terminal/Live state and Provider resources associated with this
+        LabExecution. It does not delete the Class, LabSpec, or historical execution record.
+      parameters:
+        - $ref: '#/components/parameters/LabExecutionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Idempotent replay returned an already-known Operation/result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationAccepted'
+        '202':
+          description: Cleanup request accepted for asynchronous execution.
+          headers:
+            Location:
+              $ref: '#/components/headers/OperationLocation'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationAccepted'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /lab-instances/{labInstanceId}:
+    get:
+      tags: [LabInstances]
+      summary: Get a LabInstance
+      operationId: getLabInstance
+      parameters:
+        - $ref: '#/components/parameters/LabInstanceId'
+      responses:
+        '200':
+          description: LabInstance detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabInstance'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /lab-instances/{labInstanceId}/reset:
+    post:
+      tags: [LabInstances]
+      summary: Reset a LabInstance from its immutable creation snapshot
+      operationId: resetLabInstance
+      description: |
+        The LabInstance ID is preserved and generation increases when reset advances.
+        The server performs D-19 preflight before destructive deletion.
+      parameters:
+        - $ref: '#/components/parameters/LabInstanceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Idempotent replay returned an already-known Operation/result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationAccepted'
+        '202':
+          description: Reset request accepted for asynchronous execution.
+          headers:
+            Location:
+              $ref: '#/components/headers/OperationLocation'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationAccepted'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /operations/{operationId}:
+    get:
+      tags: [Operations]
+      summary: Get a durable asynchronous Operation
+      operationId: getOperation
+      description: |
+        Operation is the stable HTTP-visible abstraction for long-running Provider work.
+        Queue/Broker technology is intentionally not exposed.
+      parameters:
+        - $ref: '#/components/parameters/OperationId'
+      responses:
+        '200':
+          description: Operation detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Operation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
-  schemas: {}
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-labbit-session
+      description: |
+        Opaque browser session identifier issued by the Labbit backend.
+        Production cookie attributes: Secure, HttpOnly, SameSite=Lax, Path=/,
+        with no Domain attribute. Session storage is an internal implementation detail
+        and may move from PostgreSQL to another store without changing this contract.
+        Cookie authentication does not remove the server's CSRF/origin-validation
+        responsibility for unsafe methods.
+
+  parameters:
+    ClassId:
+      name: classId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/ResourceId'
+    LabSpecId:
+      name: labSpecId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/ResourceId'
+    LabExecutionId:
+      name: labExecutionId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/ResourceId'
+    LabInstanceId:
+      name: labInstanceId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/ResourceId'
+    OperationId:
+      name: operationId
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/ResourceId'
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Opaque client-generated key for one semantic mutation request.
+        Reusing the same key for the same semantic request returns the existing
+        Operation/result. Reusing it for a different target or payload is a conflict.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: Opaque ETag returned by the latest successful LabSpec read/write.
+      schema:
+        type: string
+
+  headers:
+    SessionSetCookie:
+      description: Issues `__Host-labbit-session` using the security attributes defined by this contract.
+      schema:
+        type: string
+    SessionClearCookie:
+      description: Clears `__Host-labbit-session`.
+      schema:
+        type: string
+    ETag:
+      description: Opaque entity version used for conditional updates.
+      schema:
+        type: string
+    OperationLocation:
+      description: Relative URL of the Operation resource.
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: Request syntax or shape is invalid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Unauthorized:
+      description: Authentication is missing, invalid, or expired.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Forbidden:
+      description: The authenticated user is not authorized for this resource/action.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    NotFound:
+      description: The requested resource does not exist or is not visible to the caller.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Conflict:
+      description: |
+        Resource state conflicts with the requested mutation, including an active
+        LabExecution, an active conflicting mutation, or Idempotency-Key reuse with
+        different semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    PreconditionFailed:
+      description: The If-Match precondition did not match the current entity version.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    UnprocessableEntity:
+      description: The request is syntactically valid but violates semantic validation.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    ServiceUnavailable:
+      description: A required dependency such as the Connector or Provider is temporarily unavailable.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+  schemas:
+    ResourceId:
+      type: string
+      minLength: 1
+      description: Opaque Labbit resource identifier.
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      additionalProperties: false
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+          writeOnly: true
+
+    Me:
+      type: object
+      required: [id, username, organization, organizationRole]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+        username:
+          type: string
+        organization:
+          $ref: '#/components/schemas/OrganizationSummary'
+        organizationRole:
+          $ref: '#/components/schemas/OrganizationRole'
+
+    OrganizationSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+        name:
+          type: string
+
+    OrganizationRole:
+      type: string
+      enum: [ADMIN, MEMBER]
+
+    ClassRole:
+      type: string
+      enum: [INSTRUCTOR, STUDENT]
+
+    ClassSummary:
+      type: object
+      required: [id, name, myRole]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+        name:
+          type: string
+        myRole:
+          $ref: '#/components/schemas/ClassRole'
+        activeLabExecution:
+          $ref: '#/components/schemas/LabExecutionSummary'
+
+    ClassDetail:
+      type: object
+      required: [id, name, myRole]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+        name:
+          type: string
+        myRole:
+          $ref: '#/components/schemas/ClassRole'
+        activeLabExecution:
+          $ref: '#/components/schemas/LabExecutionSummary'
+        myLabInstance:
+          $ref: '#/components/schemas/LabInstanceSummary'
+
+    ClassList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClassSummary'
+        nextCursor:
+          type: string
+          description: Omitted when there is no next page. v0.1 may always omit this field.
+
+    ClassMembership:
+      type: object
+      required: [userId, username, role]
+      properties:
+        userId:
+          $ref: '#/components/schemas/ResourceId'
+        username:
+          type: string
+        role:
+          $ref: '#/components/schemas/ClassRole'
+
+    ClassMembershipList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClassMembership'
+        nextCursor:
+          type: string
+          description: Omitted when there is no next page. v0.1 may always omit this field.
+
+    LabSpecSummary:
+      type: object
+      required: [id, name, ownerUserId]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+        name:
+          type: string
+        description:
+          type: string
+        ownerUserId:
+          $ref: '#/components/schemas/ResourceId'
+
+    LabSpec:
+      allOf:
+        - $ref: '#/components/schemas/LabSpecSummary'
+        - type: object
+          required: [vms, workspaceVm, internetOutbound]
+          properties:
+            vms:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/VmRoleSpec'
+            workspaceVm:
+              $ref: '#/components/schemas/WorkspaceVmSelector'
+            internetOutbound:
+              type: boolean
+            startupScript:
+              type: string
+              description: Optional user-authored startup script. Secrets must not be embedded.
+
+    LabSpecWrite:
+      type: object
+      required: [name, vms, workspaceVm, internetOutbound]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        vms:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/VmRoleSpec'
+        workspaceVm:
+          $ref: '#/components/schemas/WorkspaceVmSelector'
+        internetOutbound:
+          type: boolean
+        startupScript:
+          type: string
+          description: Optional user-authored startup script. Secrets must not be embedded.
+
+    VmRoleSpec:
+      type: object
+      required: [role, imageRef, sizeRef, count]
+      additionalProperties: false
+      properties:
+        role:
+          type: string
+          minLength: 1
+          description: Logical VM role within the LabSpec, for example control or worker.
+        name:
+          type: string
+          description: Optional human-readable VM role name.
+        imageRef:
+          type: string
+          minLength: 1
+          description: Logical image selection reference, not a Provider credential.
+        sizeRef:
+          type: string
+          minLength: 1
+          description: Logical size/flavor selection reference.
+        count:
+          type: integer
+          minimum: 1
+
+    WorkspaceVmSelector:
+      type: object
+      required: [role, instanceIndex]
+      additionalProperties: false
+      properties:
+        role:
+          type: string
+          minLength: 1
+          description: Must reference a role declared in `vms`.
+        instanceIndex:
+          type: integer
+          minimum: 0
+          description: Zero-based instance index within the selected role's `count`.
+
+    LabSpecList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabSpecSummary'
+        nextCursor:
+          type: string
+          description: Omitted when there is no next page. v0.1 may always omit this field.
+
+    CreateLabExecutionRequest:
+      type: object
+      required: [labSpecId]
+      additionalProperties: false
+      properties:
+        labSpecId:
+          $ref: '#/components/schemas/ResourceId'
+
+    LabExecutionSummary:
+      type: object
+      required: [id, status]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+        status:
+          $ref: '#/components/schemas/LabExecutionStatus'
+
+    LabExecution:
+      type: object
+      required:
+        - id
+        - classId
+        - labSpecId
+        - instructorUserId
+        - targetUserIds
+        - status
+        - labInstances
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+        classId:
+          $ref: '#/components/schemas/ResourceId'
+        labSpecId:
+          $ref: '#/components/schemas/ResourceId'
+        instructorUserId:
+          $ref: '#/components/schemas/ResourceId'
+        targetUserIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceId'
+          description: Fixed student target set captured when the LabExecution starts.
+        status:
+          $ref: '#/components/schemas/LabExecutionStatus'
+        labInstances:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabInstanceSummary'
+
+    LabExecutionStatus:
+      type: string
+      description: |
+        Coarse LabExecution lifecycle value. Current implementations may use values
+        such as PROVISIONING, ACTIVE, CLEANING_UP, COMPLETED, or ERROR.
+        Consumers must handle unknown future values.
+
+    LabInstanceSummary:
+      type: object
+      required: [id, userId, status, generation]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+        userId:
+          $ref: '#/components/schemas/ResourceId'
+        status:
+          $ref: '#/components/schemas/LabInstanceStatus'
+        generation:
+          type: integer
+          minimum: 1
+
+    LabInstance:
+      allOf:
+        - $ref: '#/components/schemas/LabInstanceSummary'
+        - type: object
+          required: [labExecutionId]
+          properties:
+            labExecutionId:
+              $ref: '#/components/schemas/ResourceId'
+
+    LabInstanceStatus:
+      type: string
+      description: |
+        Coarse environment lifecycle value. Current product states include PENDING,
+        PROVISIONING, READY, ERROR, and DELETING. Consumers must handle unknown future values.
+
+    OperationAccepted:
+      type: object
+      required: [operationId, target]
+      properties:
+        operationId:
+          $ref: '#/components/schemas/ResourceId'
+        target:
+          $ref: '#/components/schemas/ResourceRef'
+
+    Operation:
+      type: object
+      required: [id, type, status, target, createdAt, updatedAt]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+        type:
+          $ref: '#/components/schemas/OperationType'
+        status:
+          $ref: '#/components/schemas/OperationStatus'
+        stage:
+          type: string
+          description: |
+            Extensible implementation-independent progress stage for UI/observability.
+            Clients must not use this field as the sole source of business correctness.
+        target:
+          $ref: '#/components/schemas/ResourceRef'
+        error:
+          $ref: '#/components/schemas/OperationError'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+
+    OperationType:
+      type: string
+      description: |
+        Current values include PROVISION, RESET, and CLEANUP.
+        Consumers must handle unknown future operation types.
+
+    OperationStatus:
+      type: string
+      description: |
+        Stable coarse execution status. Current values are PENDING, RUNNING,
+        RECONCILING, SUCCEEDED, and FAILED. Consumers must handle unknown future values.
+
+    OperationError:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          description: Stable machine-readable error code for the failed Operation.
+        message:
+          type: string
+          description: Sanitized summary. Never includes credentials or raw Provider payloads.
+
+    ResourceRef:
+      type: object
+      required: [type, id]
+      properties:
+        type:
+          type: string
+          description: Resource type such as LAB_EXECUTION or LAB_INSTANCE.
+        id:
+          $ref: '#/components/schemas/ResourceId'
+
+    ProblemDetails:
+      type: object
+      required: [type, title, status, code, requestId]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: Problem type identifier.
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+          description: Human-readable explanation. Clients must not parse this field for control flow.
+        instance:
+          type: string
+          format: uri-reference
+        code:
+          type: string
+          description: Extensible Labbit machine-readable error code.
+        requestId:
+          type: string
+          description: Correlation identifier safe to show to users/support.
+
+security:
+  - sessionCookie: []

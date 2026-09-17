@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labbit.local/contracts/connector/terminal-control.schema.json",
+  "title": "Labbit Connector Terminal Session Control Contract v0.1",
+  "description": "기존 Connector persistent Control WSS 위에서 TerminalSession lifecycle을 전달하는 추가 JSON 메시지 계약입니다. PTY INPUT/OUTPUT byte stream은 이 Schema가 아니라 terminal-data.schema.json 경계에서 전달합니다.",
+  "oneOf": [
+    { "$ref": "#/$defs/TerminalOpenMessage" },
+    { "$ref": "#/$defs/TerminalOpenResultMessage" },
+    { "$ref": "#/$defs/TerminalCloseMessage" },
+    { "$ref": "#/$defs/TerminalEndedMessage" }
+  ],
+  "$defs": {
+    "ResourceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "MessageId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "SafeError": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "안정적인 기계 판독 오류 코드입니다."
+        },
+        "message": {
+          "type": "string",
+          "description": "Credential, Token, Terminal 본문, Provider raw payload를 포함하지 않는 안전한 설명입니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "BaseEnvelope": {
+      "type": "object",
+      "required": ["type", "messageId", "sentAt", "terminalSessionId", "labInstanceId", "generation", "payload"],
+      "properties": {
+        "type": { "type": "string" },
+        "messageId": { "$ref": "#/$defs/MessageId" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "replyToMessageId": { "$ref": "#/$defs/MessageId" },
+        "requestId": { "$ref": "#/$defs/ResourceId" },
+        "operationId": {
+          "$ref": "#/$defs/ResourceId",
+          "description": "Reset/Cleanup처럼 Operation 때문에 세션을 종료하는 경우 상관관계에 사용할 수 있습니다."
+        },
+        "terminalSessionId": { "$ref": "#/$defs/ResourceId" },
+        "labInstanceId": { "$ref": "#/$defs/ResourceId" },
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "traceparent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "tracestate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "payload": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "TerminalOpenPayload": {
+      "type": "object",
+      "required": ["targetVmKey", "providerServerId", "cols", "rows"],
+      "properties": {
+        "targetVmKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "CreationSnapshot/ProviderResource에서 현재 generation의 대상 VM을 식별하는 논리 키입니다."
+        },
+        "providerServerId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "현재 generation에서 대상 VM을 가리키는 OpenStack Server ID입니다. Connector는 실제 Provider 상태와 관리 주소를 확인할 수 있습니다."
+        },
+        "cols": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": true,
+      "description": "SaaS가 권한 검증을 완료한 뒤 Connector에게 전달하는 resolved Terminal target입니다. Browser Cookie/Password/Terminal Session Token은 포함하지 않습니다."
+    },
+    "TerminalOpenResultPayload": {
+      "type": "object",
+      "required": ["outcome"],
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": ["SUCCEEDED", "FAILED"],
+          "description": "SUCCEEDED는 동일 TerminalSession의 PTY가 준비되고 Connector Terminal Data WSS attach가 성립했음을 의미합니다."
+        },
+        "error": { "$ref": "#/$defs/SafeError" }
+      },
+      "additionalProperties": true
+    },
+    "TerminalClosePayload": {
+      "type": "object",
+      "required": ["reason"],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "SESSION_CLOSED, SESSION_EXPIRED, LAB_RESET, LAB_CLEANUP 등 종료 원인입니다. 새 값이 추가될 수 있습니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "TerminalEndedPayload": {
+      "type": "object",
+      "required": ["reason"],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "PTY_EXITED, SSH_DISCONNECTED, SESSION_CLOSED, LAB_RESET, LAB_CLEANUP 등 실제 종료 원인입니다."
+        },
+        "exitCode": {
+          "type": "integer"
+        },
+        "error": { "$ref": "#/$defs/SafeError" }
+      },
+      "additionalProperties": true
+    },
+    "TerminalOpenMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "TERMINAL_OPEN" },
+            "payload": { "$ref": "#/$defs/TerminalOpenPayload" }
+          }
+        }
+      ],
+      "description": "SaaS → Connector. 같은 active terminalSessionId에 대한 중복 OPEN은 새 PTY를 만들지 않고 기존 세션 상태를 재사용해야 합니다."
+    },
+    "TerminalOpenResultMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "replyToMessageId", "payload"],
+          "properties": {
+            "type": { "const": "TERMINAL_OPEN_RESULT" },
+            "payload": { "$ref": "#/$defs/TerminalOpenResultPayload" }
+          }
+        }
+      ]
+    },
+    "TerminalCloseMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "TERMINAL_CLOSE" },
+            "payload": { "$ref": "#/$defs/TerminalClosePayload" }
+          }
+        }
+      ],
+      "description": "SaaS → Connector. 반복 CLOSE는 안전하게 같은 terminal state를 유지하는 idempotent lifecycle command로 처리합니다."
+    },
+    "TerminalEndedMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "TERMINAL_ENDED" },
+            "payload": { "$ref": "#/$defs/TerminalEndedPayload" }
+          }
+        }
+      ],
+      "description": "Connector → SaaS. PTY/SSH/명시적 lifecycle 종료를 중앙에 알립니다."
+    }
+  }
+}

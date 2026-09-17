@@ -1,12 +1,14 @@
-# PostgreSQL Physical Schema SSOT
+# PostgreSQL Physical Schema Draft v0.1
 
-이 디렉터리의 명시적 SQL Migration 파일(`*.sql`)이 **Labbit PostgreSQL Physical Schema의 SSOT**입니다.
+이 디렉터리의 SQL Migration 파일(`*.sql`)은 **Labbit PostgreSQL Physical Schema의 현재 구현 초안**입니다.
 
-Confluence는 도메인 의미와 결정 이유를 관리하고, 실제 Table/Column/PK/FK/Unique/Index/Check/Trigger는 이 디렉터리가 원본입니다.
+Confluence는 Domain/Data 의미·ownership·결정 이유를 관리하고, 실제 개발 단계에서 사용할 Table/Column/PK/FK/Unique/Index/Check/Trigger 초안은 이 디렉터리에서 관리합니다.
 
-## 현재 v0.1 Migration
+> 현재 상태는 **설계 초안**입니다. 아직 공용 개발 PostgreSQL에 baseline으로 적용·검증한 상태가 아니므로, 백엔드 개발 시작 시 pgx Query와 실제 Migration apply 결과에 따라 `000001`~`000005`를 재정리할 수 있습니다. 최초 공용 개발 DB에 baseline이 적용된 이후에는 기존 Migration을 수정하지 않고 새 번호 Migration을 추가합니다.
 
-적용 순서는 파일 번호 순서입니다.
+## 현재 v0.1 Draft Migration
+
+적용 예정 순서는 파일 번호 순서입니다.
 
 1. `000001_identity_and_class.sql`
    - `organizations`
@@ -35,6 +37,20 @@ Confluence는 도메인 의미와 결정 이유를 관리하고, 실제 Table/Co
    - `terminal_sessions`
    - `live_sessions`
 
+## 확정된 Domain/Data 모델과의 관계
+
+Physical Schema 초안은 다음 논리 모델과 불변조건을 구현하기 위한 시작점입니다.
+
+- Organization은 User/Class/Connector/ProviderConnection의 tenant 경계입니다.
+- User의 Organization 관리 권한과 ClassMembership의 INSTRUCTOR/STUDENT 역할은 분리합니다.
+- LabSpec은 편집 가능한 정의이고 LabExecution은 한 번의 실제 실행입니다.
+- LabExecution은 하나의 immutable resolved CreationSnapshot과 여러 LabInstance를 가집니다.
+- Operation은 사용자 요청 단위이고 OperationItem은 LabInstance별 Provider mutation 실행 단위입니다.
+- ProviderResource는 LabInstance generation별 실제 OpenStack resource 이력을 보존합니다.
+- TerminalSession/LiveSession은 lifecycle metadata만 영속하고 Terminal/Live 본문은 저장하지 않습니다.
+
+이 논리 관계가 바뀌는 경우 Confluence Domain/Data 모델을 먼저 갱신하고, 단순 Column/Index 변경은 Git Migration에서만 관리합니다.
+
 ## 설계 원칙
 
 ### 관계형 코어
@@ -45,7 +61,7 @@ Organization/User/Class/Membership/LabSpec/LabExecution/LabInstance/Operation/Pr
 
 ### ID
 
-Physical Schema의 제품 식별자는 `uuid`를 사용합니다. UUID 생성은 Application/Bootstrap 책임이며 DB extension이나 `gen_random_uuid()` default에 의존하지 않습니다.
+Physical Schema 초안의 제품 식별자는 `uuid`를 사용합니다. UUID 생성은 Application/Bootstrap 책임이며 DB extension이나 `gen_random_uuid()` default에 의존하지 않습니다.
 
 HTTP/WSS에서는 계속 opaque string ID로 취급하므로 Physical ID 생성 방식이 외부 계약으로 노출되지 않습니다.
 
@@ -63,7 +79,7 @@ MVP에서는 PostgreSQL RLS를 필수로 도입하지 않습니다. Application 
 - Terminal attach token 원문은 저장하지 않고 `terminal_sessions.attach_token_hash`만 저장합니다.
 - OpenStack Credential/Keystone Token은 중앙 PostgreSQL에 저장하지 않습니다.
 
-## DB가 직접 보장하는 핵심 불변조건
+## DB 초안에 반영한 핵심 불변조건
 
 - 동일 `(class_id, user_id)` ClassMembership 중복 금지
 - ClassMembership의 Organization과 User/Class Organization 일치
@@ -76,13 +92,13 @@ MVP에서는 PostgreSQL RLS를 필수로 도입하지 않습니다. Application 
 - Class당 active `LiveSession` 최대 1개
 - `CreationSnapshot` UPDATE 금지
 
-Application은 Unique violation을 정상적인 경쟁 조건 결과로 처리해야 합니다. 예를 들어 두 Replica가 동시에 같은 Class에 Execution을 만들면 partial unique index가 마지막 방어선이며, loser는 제품 계약에 맞는 Conflict로 변환합니다.
+이 제약들은 개발 단계에서 실제 PostgreSQL과 동시 요청 Integration Test로 검증해야 합니다. Unique violation은 정상적인 경쟁 조건 결과로 처리하고 제품 계약의 Conflict로 변환합니다.
 
 ## LabSpec과 CreationSnapshot
 
 `lab_specs`는 현재 편집 가능한 정의입니다. `revision`은 HTTP `ETag/If-Match` 구현에 사용할 수 있는 명시적 revision이며 PostgreSQL 내부 `xmin`을 외부 계약으로 사용하지 않습니다.
 
-LabSpec의 Image/Size는 `provider_image_mappings` / `provider_flavor_mappings`의 논리 ID를 참조합니다. LabExecution 시작 시 현재 mapping을 실제 Provider ID와 사양으로 resolve한 뒤 `creation_snapshots.snapshot` JSONB에 고정합니다.
+LabSpec의 Image/Size는 `provider_image_mappings` / `provider_flavor_mappings`의 논리 ID를 참조합니다. LabExecution 시작 시 현재 mapping을 실제 Provider ID와 사양으로 resolve한 뒤 `creation_snapshots.snapshot` JSONB에 고정하는 방향입니다.
 
 `creation_snapshots`는 실행당 하나이며 생성 후 UPDATE하지 않습니다. Reset은 최신 LabSpec/Mapping을 다시 읽지 않고 Snapshot을 사용합니다.
 
@@ -107,7 +123,7 @@ DB에 없는 Provider 리소스를 발견했다고 바로 `provider_resources`�
 
 ## Terminal / Live
 
-PostgreSQL에는 `terminal_sessions`와 `live_sessions`의 **최소 lifecycle metadata만** 저장합니다.
+PostgreSQL에는 `terminal_sessions`와 `live_sessions`의 **최소 lifecycle metadata만** 저장하는 초안을 둡니다.
 
 저장하지 않는 것:
 
@@ -136,11 +152,21 @@ DB constraint만으로 자연스럽게 표현하기 어렵거나, 중복 컬럼�
 
 이 검증은 단순 UI 검증으로 대체하지 않고 서버의 domain/application layer에서 Transaction 경계 안팎에 맞춰 수행합니다.
 
+## 개발 시작 시 검증 순서
+
+1. 로컬/공용 개발 PostgreSQL에 draft Migration을 처음부터 적용합니다.
+2. FK/Unique/Check/partial unique index가 예상한 경쟁 조건을 실제로 막는지 검증합니다.
+3. pgx repository/query를 작성하면서 불필요하거나 누락된 Column/Index를 조정합니다.
+4. `FOR UPDATE SKIP LOCKED` Worker claim과 lease/reconciliation 흐름을 Integration Test로 검증합니다.
+5. Reset generation/ProviderResource 이력과 Terminal/Live lifecycle을 실제 API/WSS 구현과 맞춥니다.
+6. baseline이 팀 공용 개발 DB에 적용된 시점을 기준으로 이후 Migration을 append-only로 전환합니다.
+
 ## Migration 운영 규칙
 
 - Application startup AutoMigration은 사용하지 않습니다.
 - 배포 전에 별도 Migration 단계에서 한 번 실행합니다.
-- 적용된 Migration 파일을 수정하지 않고 변경은 새 번호의 SQL 파일로 추가합니다.
+- **현재 draft baseline이 아직 공용 개발 DB에 적용되기 전에는 초기 파일 재정리가 가능합니다.**
+- **baseline 적용 이후에는 기존 Migration을 수정하지 않고 변경은 새 번호의 SQL 파일로 추가합니다.**
 - Organization/User/Class/ClassMembership 같은 운영 Bootstrap 데이터는 Schema Migration에 `INSERT`하지 않습니다. Trusted operator Bootstrap command가 별도로 생성합니다.
 - Migration runner/rollback mechanism의 구체 도구는 Runtime/Platform 계약에서 정합니다.
 - 되돌리기 어려운 파괴적 Schema 변경은 D-22 기준으로 수업 외 유지보수 창과 Application 호환성을 먼저 검증합니다.

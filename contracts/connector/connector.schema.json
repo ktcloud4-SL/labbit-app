@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labbit.local/contracts/connector/connector.schema.json",
+  "title": "Labbit Connector WSS Contract",
+  "description": "Machine-readable SSOT for the SaaS ↔ Connector WebSocket contract. Message envelopes and payloads will be added as they are finalized from the approved specification.",
+  "type": "object",
+  "additionalProperties": true
+}

@@ -1,8 +1,1027 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://labbit.local/contracts/connector/connector.schema.json",
-  "title": "Labbit Connector WSS Contract",
-  "description": "Machine-readable SSOT for the SaaS ↔ Connector WebSocket contract. Message envelopes and payloads will be added as they are finalized from the approved specification.",
-  "type": "object",
-  "additionalProperties": true
+  "title": "Labbit Connector Control WSS Contract v0.1",
+  "description": "Labbit SaaS와 고객 환경 Connector 사이의 Control WebSocket 메시지 계약입니다. Terminal/Live/Preview 데이터 본문은 이 계약에 포함하지 않습니다.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/HelloMessage"
+    },
+    {
+      "$ref": "#/$defs/HelloAckMessage"
+    },
+    {
+      "$ref": "#/$defs/HeartbeatMessage"
+    },
+    {
+      "$ref": "#/$defs/ProviderRequestMessage"
+    },
+    {
+      "$ref": "#/$defs/ProviderResponseMessage"
+    },
+    {
+      "$ref": "#/$defs/OperationCommandMessage"
+    },
+    {
+      "$ref": "#/$defs/OperationAckMessage"
+    },
+    {
+      "$ref": "#/$defs/OperationProgressMessage"
+    },
+    {
+      "$ref": "#/$defs/OperationResultMessage"
+    },
+    {
+      "$ref": "#/$defs/ReconcileRequestMessage"
+    },
+    {
+      "$ref": "#/$defs/ReconcileResultMessage"
+    },
+    {
+      "$ref": "#/$defs/ErrorMessage"
+    }
+  ],
+  "$defs": {
+    "ResourceId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Labbit 내부의 opaque 리소스 식별자입니다."
+    },
+    "MessageId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "한 번의 WebSocket 메시지를 식별하는 opaque ID입니다. Operation ID와 역할이 다릅니다."
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "TraceParent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "W3C Trace Context의 traceparent 값입니다."
+    },
+    "TraceState": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "description": "W3C Trace Context의 tracestate 값입니다."
+    },
+    "BaseEnvelope": {
+      "type": "object",
+      "required": [
+        "type",
+        "messageId",
+        "sentAt",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "메시지 종류입니다. 각 메시지 스키마에서 고정합니다."
+        },
+        "messageId": {
+          "$ref": "#/$defs/MessageId"
+        },
+        "sentAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "replyToMessageId": {
+          "$ref": "#/$defs/MessageId",
+          "description": "요청/응답 관계가 있을 때 원본 messageId를 가리킵니다."
+        },
+        "requestId": {
+          "$ref": "#/$defs/ResourceId",
+          "description": "원본 HTTP 요청과 연결 가능한 경우 전달하는 request ID입니다."
+        },
+        "operationId": {
+          "$ref": "#/$defs/ResourceId",
+          "description": "Provision/Reset/Cleanup 전체 비동기 작업을 연결하는 durable correlation key입니다."
+        },
+        "labInstanceId": {
+          "$ref": "#/$defs/ResourceId",
+          "description": "메시지가 특정 LabInstance에 속하는 경우 전달합니다."
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "LabInstance의 Provider Resource 세대입니다."
+        },
+        "traceparent": {
+          "$ref": "#/$defs/TraceParent"
+        },
+        "tracestate": {
+          "$ref": "#/$defs/TraceState"
+        },
+        "payload": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "description": "v1 공통 Envelope입니다. 알 수 없는 선택 필드는 무시할 수 있도록 허용하지만, 기존 필드의 의미와 타입은 변경하지 않습니다."
+    },
+    "SafeError": {
+      "type": "object",
+      "required": [
+        "code"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "안정적인 기계 판독용 오류 코드입니다. 새 code가 추가될 수 있습니다."
+        },
+        "message": {
+          "type": "string",
+          "description": "민감정보를 제거한 운영용 요약입니다. Credential, Token, Authorization, Provider raw payload를 포함하지 않습니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "HelloPayload": {
+      "type": "object",
+      "required": [
+        "connectorVersion",
+        "runtimeId",
+        "startedAt"
+      ],
+      "properties": {
+        "connectorVersion": {
+          "type": "string",
+          "minLength": 1,
+          "description": "실행 중인 Connector 애플리케이션 버전입니다."
+        },
+        "runtimeId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "현재 Connector 프로세스 부팅/실행 인스턴스를 구분하는 ID입니다. Connector identity 자체는 인증된 연결에서 결정합니다."
+        },
+        "startedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          },
+          "description": "선택 기능의 지원 여부를 협상하기 위한 확장 가능 capability 목록입니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "HelloAckPayload": {
+      "type": "object",
+      "required": [
+        "serverTime",
+        "heartbeatIntervalSeconds",
+        "offlineTimeoutSeconds"
+      ],
+      "properties": {
+        "serverTime": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "heartbeatIntervalSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Connector가 application heartbeat를 보낼 주기입니다. 현재 기본값은 15초입니다."
+        },
+        "offlineTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "SaaS가 heartbeat 미수신으로 OFFLINE 판단하기까지의 시간입니다. 현재 기본값은 45초입니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "HeartbeatPayload": {
+      "type": "object",
+      "required": [
+        "observedAt"
+      ],
+      "properties": {
+        "observedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ProviderRequestPayload": {
+      "type": "object",
+      "required": [
+        "requestType",
+        "providerConnectionId"
+      ],
+      "properties": {
+        "requestType": {
+          "type": "string",
+          "enum": [
+            "VALIDATE_CONNECTION",
+            "LIST_IMAGES",
+            "LIST_FLAVORS"
+          ],
+          "description": "기관 관리 화면에서 필요한 Provider 조회 종류입니다."
+        },
+        "providerConnectionId": {
+          "$ref": "#/$defs/ResourceId"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ProviderImage": {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "const": "IMAGE"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "OpenStack Glance Image UUID입니다."
+        },
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "description": "Provider가 반환한 정규화된 상태 값입니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "ProviderFlavor": {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "name",
+        "vcpus",
+        "ramMiB",
+        "diskGiB"
+      ],
+      "properties": {
+        "kind": {
+          "const": "FLAVOR"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "OpenStack Flavor ID입니다."
+        },
+        "name": {
+          "type": "string"
+        },
+        "vcpus": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ramMiB": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "diskGiB": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "ProviderResponsePayload": {
+      "type": "object",
+      "required": [
+        "requestType",
+        "outcome"
+      ],
+      "properties": {
+        "requestType": {
+          "type": "string",
+          "enum": [
+            "VALIDATE_CONNECTION",
+            "LIST_IMAGES",
+            "LIST_FLAVORS"
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "SUCCEEDED",
+            "FAILED"
+          ]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ProviderImage"
+              },
+              {
+                "$ref": "#/$defs/ProviderFlavor"
+              }
+            ]
+          }
+        },
+        "error": {
+          "$ref": "#/$defs/SafeError"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ResolvedFlavorSpec": {
+      "type": "object",
+      "required": [
+        "vcpus",
+        "ramMiB",
+        "diskGiB"
+      ],
+      "properties": {
+        "vcpus": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ramMiB": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "diskGiB": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "ResolvedVmSpec": {
+      "type": "object",
+      "required": [
+        "vmKey",
+        "role",
+        "instanceIndex",
+        "imageId",
+        "flavorId",
+        "flavorSpec"
+      ],
+      "properties": {
+        "vmKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "CreationSnapshot 내부에서 VM을 안정적으로 참조하는 논리 키입니다."
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instanceIndex": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "imageId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "생성 시점에 resolve된 실제 Glance Image UUID입니다."
+        },
+        "flavorId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "생성 시점에 resolve된 실제 Flavor ID입니다."
+        },
+        "flavorSpec": {
+          "$ref": "#/$defs/ResolvedFlavorSpec"
+        }
+      },
+      "additionalProperties": true
+    },
+    "StartupScriptSnapshot": {
+      "type": "object",
+      "required": [
+        "content",
+        "sha256"
+      ],
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "생성 직전에 확정된 Startup Script 본문입니다. Secret 원문을 포함하면 안 됩니다."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$",
+          "description": "Startup Script 본문의 SHA-256 hex digest입니다."
+        }
+      },
+      "additionalProperties": false
+    },
+    "CreationSnapshot": {
+      "type": "object",
+      "required": [
+        "providerConnectionId",
+        "vms",
+        "workspaceVmKey",
+        "internetOutbound"
+      ],
+      "properties": {
+        "providerConnectionId": {
+          "$ref": "#/$defs/ResourceId"
+        },
+        "vms": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ResolvedVmSpec"
+          }
+        },
+        "workspaceVmKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Editor/Preview 기준 VM의 vmKey입니다."
+        },
+        "internetOutbound": {
+          "type": "boolean",
+          "description": "생성 당시 resolve된 Internet outbound 정책입니다."
+        },
+        "startupScript": {
+          "$ref": "#/$defs/StartupScriptSnapshot"
+        }
+      },
+      "additionalProperties": true,
+      "description": "D-19의 immutable resolved CreationSnapshot 중 Connector 실행에 필요한 부분입니다. 최신 LabSpec을 다시 해석하지 않습니다."
+    },
+    "ProviderResourceRef": {
+      "type": "object",
+      "required": [
+        "resourceType",
+        "providerId",
+        "generation"
+      ],
+      "properties": {
+        "resourceType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "SERVER, NETWORK, SUBNET, ROUTER, PORT 등 확장 가능한 Provider 리소스 종류입니다."
+        },
+        "providerId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "실제 OpenStack 리소스 ID입니다."
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "logicalName": {
+          "type": "string",
+          "description": "VM key 등 제품 측 논리 식별이 필요한 경우 사용합니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "ProviderResourceResult": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ProviderResourceRef"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "observedState": {
+              "type": "string",
+              "description": "Connector가 Provider에서 관측한 정규화 상태입니다."
+            }
+          }
+        }
+      ]
+    },
+    "OperationCommandPayload": {
+      "type": "object",
+      "required": [
+        "mutationType"
+      ],
+      "properties": {
+        "mutationType": {
+          "type": "string",
+          "enum": [
+            "PROVISION",
+            "RESET",
+            "CLEANUP"
+          ]
+        },
+        "creationSnapshot": {
+          "$ref": "#/$defs/CreationSnapshot"
+        },
+        "providerResources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProviderResourceRef"
+          },
+          "description": "Cleanup 또는 기존 generation 정리에 사용할 제품이 추적 중인 Provider 리소스 목록입니다."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mutationType": {
+                "const": "PROVISION"
+              }
+            },
+            "required": [
+              "mutationType"
+            ]
+          },
+          "then": {
+            "required": [
+              "creationSnapshot"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mutationType": {
+                "const": "RESET"
+              }
+            },
+            "required": [
+              "mutationType"
+            ]
+          },
+          "then": {
+            "required": [
+              "creationSnapshot"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mutationType": {
+                "const": "CLEANUP"
+              }
+            },
+            "required": [
+              "mutationType"
+            ]
+          },
+          "then": {
+            "required": [
+              "providerResources"
+            ]
+          }
+        }
+      ],
+      "additionalProperties": true,
+      "description": "한 메시지는 하나의 LabInstance mutation만 지시합니다."
+    },
+    "OperationAckPayload": {
+      "type": "object",
+      "required": [
+        "accepted"
+      ],
+      "properties": {
+        "accepted": {
+          "type": "boolean",
+          "description": "명령을 수신하고 처리 대상으로 받아들였는지 여부입니다. Provider 작업 성공을 의미하지 않습니다."
+        },
+        "error": {
+          "$ref": "#/$defs/SafeError"
+        }
+      },
+      "additionalProperties": true
+    },
+    "OperationProgressPayload": {
+      "type": "object",
+      "required": [
+        "stage"
+      ],
+      "properties": {
+        "stage": {
+          "type": "string",
+          "minLength": 1,
+          "description": "CREATE_NETWORK, CREATE_VM, RUN_STARTUP, VERIFY_SSH 같은 확장 가능한 진행 단계입니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "OperationResultPayload": {
+      "type": "object",
+      "required": [
+        "outcome",
+        "providerResources"
+      ],
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "SUCCEEDED",
+            "FAILED",
+            "UNKNOWN"
+          ],
+          "description": "UNKNOWN은 Provider side effect가 실제 발생했는지 현재 확정할 수 없어 Reconciliation이 필요한 상태입니다."
+        },
+        "providerResources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProviderResourceResult"
+          },
+          "description": "작업 과정에서 생성·관측·삭제한 Provider 리소스의 최소 식별/상태 정보입니다."
+        },
+        "error": {
+          "$ref": "#/$defs/SafeError"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ReconcileRequestPayload": {
+      "type": "object",
+      "required": [
+        "knownResources"
+      ],
+      "properties": {
+        "knownResources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProviderResourceRef"
+          },
+          "description": "PostgreSQL ProviderResource에 기록되어 있어 실제 존재/상태를 대조할 리소스입니다."
+        },
+        "discoverCandidates": {
+          "type": "boolean",
+          "default": true,
+          "description": "Labbit metadata/tag로 고아 후보 리소스를 함께 탐색할지 여부입니다. 발견 결과만으로 제품 소유관계를 자동 확정하지 않습니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "ResourceObservation": {
+      "type": "object",
+      "required": [
+        "resourceType",
+        "providerId",
+        "exists",
+        "source"
+      ],
+      "properties": {
+        "resourceType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "providerId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "exists": {
+          "type": "boolean"
+        },
+        "observedState": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "KNOWN_RESOURCE",
+            "DISCOVERED_CANDIDATE"
+          ],
+          "description": "KNOWN_RESOURCE는 DB에 알려진 리소스 대조, DISCOVERED_CANDIDATE는 Provider에서 추가 발견한 고아 후보를 의미합니다."
+        },
+        "logicalName": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ReconcileResultPayload": {
+      "type": "object",
+      "required": [
+        "observations"
+      ],
+      "properties": {
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResourceObservation"
+          }
+        },
+        "error": {
+          "$ref": "#/$defs/SafeError"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ProtocolErrorPayload": {
+      "type": "object",
+      "required": [
+        "code"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "UNSUPPORTED_MESSAGE_TYPE, INVALID_MESSAGE, UNSUPPORTED_COMMAND 등 protocol/control 오류 코드입니다."
+        },
+        "message": {
+          "type": "string",
+          "description": "민감정보가 제거된 설명입니다."
+        },
+        "fatal": {
+          "type": "boolean",
+          "description": "true이면 ERROR 전송 후 연결을 종료할 수 있습니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "HelloMessage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseEnvelope"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "payload"
+          ],
+          "properties": {
+            "type": {
+              "const": "HELLO"
+            },
+            "payload": {
+              "$ref": "#/$defs/HelloPayload"
+            }
+          }
+        }
+      ]
+    },
+    "HelloAckMessage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseEnvelope"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "payload",
+            "replyToMessageId"
+          ],
+          "properties": {
+            "type": {
+              "const": "HELLO_ACK"
+            },
+            "payload": {
+              "$ref": "#/$defs/HelloAckPayload"
+            }
+          }
+        }
+      ]
+    },
+    "HeartbeatMessage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseEnvelope"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "payload"
+          ],
+          "properties": {
+            "type": {
+              "const": "HEARTBEAT"
+            },
+            "payload": {
+              "$ref": "#/$defs/HeartbeatPayload"
+            }
+          }
+        }
+      ]
+    },
+    "ProviderRequestMessage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseEnvelope"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "payload"
+          ],
+          "properties": {
+            "type": {
+              "const": "PROVIDER_REQUEST"
+            },
+            "payload": {
+              "$ref": "#/$defs/ProviderRequestPayload"
+            }
+          }
+        }
+      ]
+    },
+    "ProviderResponseMessage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseEnvelope"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "payload",
+            "replyToMessageId"
+          ],
+          "properties": {
+            "type": {
+              "const": "PROVIDER_RESPONSE"
+            },
+            "payload": {
+              "$ref": "#/$defs/ProviderResponsePayload"
+            }
+          }
+        }
+      ]
+    },
+    "OperationCommandMessage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseEnvelope"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "payload",
+            "operationId",
+            "labInstanceId",
+            "generation"
+          ],
+          "properties": {
+            "type": {
+              "const": "OPERATION_COMMAND"
+            },
+            "payload": {
+              "$ref": "#/$defs/OperationCommandPayload"
+            }
+          }
+        }
+      ]
+    },
+    "OperationAckMessage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseEnvelope"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "payload",
+            "replyToMessageId",
+            "operationId",
+            "labInstanceId",
+            "generation"
+          ],
+          "properties": {
+            "type": {
+              "const": "OPERATION_ACK"
+            },
+            "payload": {
+              "$ref": "#/$defs/OperationAckPayload"
+            }
+          }
+        }
+      ]
+    },
+    "OperationProgressMessage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseEnvelope"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "payload",
+            "operationId",
+            "labInstanceId",
+            "generation"
+          ],
+          "properties": {
+            "type": {
+              "const": "OPERATION_PROGRESS"
+            },
+            "payload": {
+              "$ref": "#/$defs/OperationProgressPayload"
+            }
+          }
+        }
+      ]
+    },
+    "OperationResultMessage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseEnvelope"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "payload",
+            "operationId",
+            "labInstanceId",
+            "generation"
+          ],
+          "properties": {
+            "type": {
+              "const": "OPERATION_RESULT"
+            },
+            "payload": {
+              "$ref": "#/$defs/OperationResultPayload"
+            }
+          }
+        }
+      ]
+    },
+    "ReconcileRequestMessage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseEnvelope"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "payload",
+            "operationId",
+            "labInstanceId",
+            "generation"
+          ],
+          "properties": {
+            "type": {
+              "const": "RECONCILE_REQUEST"
+            },
+            "payload": {
+              "$ref": "#/$defs/ReconcileRequestPayload"
+            }
+          }
+        }
+      ]
+    },
+    "ReconcileResultMessage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseEnvelope"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "payload",
+            "replyToMessageId",
+            "operationId",
+            "labInstanceId",
+            "generation"
+          ],
+          "properties": {
+            "type": {
+              "const": "RECONCILE_RESULT"
+            },
+            "payload": {
+              "$ref": "#/$defs/ReconcileResultPayload"
+            }
+          }
+        }
+      ]
+    },
+    "ErrorMessage": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseEnvelope"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "payload"
+          ],
+          "properties": {
+            "type": {
+              "const": "ERROR"
+            },
+            "payload": {
+              "$ref": "#/$defs/ProtocolErrorPayload"
+            }
+          }
+        }
+      ]
+    }
+  }
 }

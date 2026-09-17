@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labbit.local/contracts/connector/terminal-data.schema.json",
+  "title": "Labbit Connector Terminal Data WSS Contract v0.1",
+  "description": "SaaS Terminal/Live Relay와 고객 환경 Connector 사이의 Terminal Data WebSocket JSON control frame 계약입니다. 실제 PTY INPUT/OUTPUT은 WebSocket Binary frame의 raw byte stream으로 전달하며 Live fan-out은 중앙 Relay에서 수행합니다.",
+  "oneOf": [
+    { "$ref": "#/$defs/TerminalDataAttachMessage" },
+    { "$ref": "#/$defs/TerminalDataAttachedMessage" },
+    { "$ref": "#/$defs/TerminalDataResizeMessage" },
+    { "$ref": "#/$defs/TerminalDataCloseMessage" },
+    { "$ref": "#/$defs/TerminalDataEndedMessage" },
+    { "$ref": "#/$defs/ErrorMessage" }
+  ],
+  "$defs": {
+    "ResourceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "MessageId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "SafeError": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "description": "민감정보와 Terminal 본문을 포함하지 않는 안전한 설명입니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "BaseEnvelope": {
+      "type": "object",
+      "required": ["type", "messageId", "sentAt", "terminalSessionId", "labInstanceId", "generation", "payload"],
+      "properties": {
+        "type": { "type": "string" },
+        "messageId": { "$ref": "#/$defs/MessageId" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "replyToMessageId": { "$ref": "#/$defs/MessageId" },
+        "terminalSessionId": { "$ref": "#/$defs/ResourceId" },
+        "labInstanceId": { "$ref": "#/$defs/ResourceId" },
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "traceparent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "tracestate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "payload": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "AttachPayload": {
+      "type": "object",
+      "required": ["runtimeId"],
+      "properties": {
+        "runtimeId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "현재 Connector 프로세스 실행 인스턴스 ID입니다. Connector identity는 WSS Upgrade의 Connector Credential에서 결정합니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "AttachedPayload": {
+      "type": "object",
+      "required": ["resumed", "historyAvailable"],
+      "properties": {
+        "resumed": {
+          "type": "boolean",
+          "description": "기존 TerminalSession PTY의 data transport를 다시 연결한 경우 true입니다."
+        },
+        "historyAvailable": {
+          "const": false,
+          "description": "Data WSS 재접속 전 OUTPUT replay를 제공하지 않습니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "ResizePayload": {
+      "type": "object",
+      "required": ["cols", "rows"],
+      "properties": {
+        "cols": { "type": "integer", "minimum": 1 },
+        "rows": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "ClosePayload": {
+      "type": "object",
+      "required": ["reason"],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "SESSION_CLOSED, SESSION_EXPIRED, LAB_RESET, LAB_CLEANUP, SERVICE_RESTARTING 등 종료 원인입니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "EndedPayload": {
+      "type": "object",
+      "required": ["reason"],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "PTY_EXITED, SSH_DISCONNECTED, SESSION_CLOSED 등 Connector가 관측한 종료 원인입니다."
+        },
+        "exitCode": { "type": "integer" },
+        "error": { "$ref": "#/$defs/SafeError" }
+      },
+      "additionalProperties": true
+    },
+    "ErrorPayload": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "INVALID_SESSION, FORBIDDEN, STALE_GENERATION, PROTOCOL_ERROR, INTERNAL_ERROR 등 확장 가능한 오류 코드입니다."
+        },
+        "message": {
+          "type": "string"
+        },
+        "fatal": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "TerminalDataAttachMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "TERMINAL_DATA_ATTACH" },
+            "payload": { "$ref": "#/$defs/AttachPayload" }
+          }
+        }
+      ],
+      "description": "Connector → Relay. WSS Upgrade 인증 후 첫 application message로 현재 TerminalSession data channel을 bind합니다."
+    },
+    "TerminalDataAttachedMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "replyToMessageId", "payload"],
+          "properties": {
+            "type": { "const": "TERMINAL_DATA_ATTACHED" },
+            "payload": { "$ref": "#/$defs/AttachedPayload" }
+          }
+        }
+      ]
+    },
+    "TerminalDataResizeMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "TERMINAL_DATA_RESIZE" },
+            "payload": { "$ref": "#/$defs/ResizePayload" }
+          }
+        }
+      ],
+      "description": "Relay → Connector. Browser의 현재 terminal size를 PTY에 반영합니다."
+    },
+    "TerminalDataCloseMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "TERMINAL_DATA_CLOSE" },
+            "payload": { "$ref": "#/$defs/ClosePayload" }
+          }
+        }
+      ],
+      "description": "Relay → Connector. 제품 lifecycle상 PTY/TerminalSession 종료를 요구합니다. 단순 Browser WSS detach는 이 메시지로 PTY를 즉시 종료하지 않습니다."
+    },
+    "TerminalDataEndedMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "TERMINAL_DATA_ENDED" },
+            "payload": { "$ref": "#/$defs/EndedPayload" }
+          }
+        }
+      ],
+      "description": "Connector → Relay. PTY 또는 SSH channel 종료를 알립니다."
+    },
+    "ErrorMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "ERROR" },
+            "payload": { "$ref": "#/$defs/ErrorPayload" }
+          }
+        }
+      ]
+    }
+  }
+}

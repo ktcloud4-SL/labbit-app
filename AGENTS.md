@@ -1,34 +1,34 @@
-# Labbit Agent Instructions
+# Labbit AI 에이전트 지침
 
-This file contains repository-wide instructions for Codex and other AI coding agents.
+이 파일은 Codex를 포함한 AI 코딩 에이전트가 저장소 전체에서 따라야 할 공통 지침을 정의합니다.
 
-## Working conventions
+## 작업 원칙
 
-- Follow `CONTRIBUTING.md` for branch, commit, PR, and merge conventions.
-- Keep changes scoped to the Jira item or the explicit task.
-- Do not duplicate product or architecture decisions in code comments or ad-hoc docs when an existing SSOT already owns them.
-- Read the applicable contract before changing a producer or consumer.
+- 브랜치, Commit, PR, Merge 규칙은 `CONTRIBUTING.md`를 따릅니다.
+- 변경 범위는 Jira 작업 또는 명시된 작업 목적에 집중합니다.
+- 기존 SSOT가 관리하는 제품·아키텍처 결정을 코드 주석이나 임의 문서에 중복 정의하지 않습니다.
+- producer 또는 consumer를 변경하기 전에 적용되는 계약을 먼저 확인합니다.
 
-## Repository SSOT
+## 저장소 SSOT
 
 - HTTP API: `contracts/http/openapi.yaml`
-- SaaS ↔ Connector protocol: `contracts/connector/`
-- Browser Terminal/Live protocol: `contracts/realtime/`
-- PostgreSQL physical schema: `db/migrations/`
-- Application runtime contract: `runtime/`
+- SaaS ↔ Connector 프로토콜: `contracts/connector/`
+- Browser Terminal/Live 프로토콜: `contracts/realtime/`
+- PostgreSQL Physical Schema: `db/migrations/`
+- Application Runtime Contract: `runtime/`
 
-Implementation must not silently invent fields, states, protocol behavior, or runtime semantics that contradict the applicable SSOT. If the contract itself must change, update the contract explicitly and consider all affected producers and consumers.
+구현은 적용되는 SSOT와 모순되는 field, state, protocol behavior, runtime semantics를 임의로 만들지 않습니다. 계약 자체가 변경되어야 한다면 계약을 명시적으로 수정하고 영향을 받는 producer와 consumer를 함께 확인합니다.
 
-## Validation
+## 검증
 
-Use the narrowest relevant checks while iterating, then run the repository-level validation before marking substantial work complete.
+작업 중에는 변경 범위에 맞는 최소 검증을 사용하고, 의미 있는 작업을 완료하기 전에는 저장소 전체 기본 검증을 실행합니다.
 
 ```bash
 make setup
 make test
 ```
 
-Relevant targets are also available individually:
+필요한 검증은 개별 target으로도 실행할 수 있습니다.
 
 ```bash
 make go-test
@@ -39,39 +39,39 @@ make web-test
 make web-build
 ```
 
-Contract changes must also remain parseable by the `Contracts / validate` GitHub Actions check.
+계약 변경은 GitHub Actions의 `Contracts / validate` 검증에서도 파싱 가능해야 합니다.
 
 ## Code Review Rules
 
-Focus review comments on correctness, contract drift, security, data integrity, and operational safety. Do not report formatting, lint, type-check, or other issues already reliably enforced by CI unless they reveal a behavioral defect.
+리뷰는 correctness, contract drift, security, data integrity, operational safety에 집중합니다. CI가 안정적으로 강제하는 formatting, lint, type-check 문제는 behavioral defect를 드러내는 경우가 아니라면 중복 지적하지 않습니다.
 
-### Contract boundaries
+### 계약 경계
 
-- Flag implementation or consumer behavior that diverges from the applicable Git SSOT.
-- Flag changes that introduce undocumented API fields, states, protocol messages, or semantics without updating the owning contract.
-- When a contract changes, check the affected producer and consumer sides instead of reviewing the contract file in isolation.
+- 적용되는 Git SSOT와 다른 구현 또는 consumer 동작을 지적합니다.
+- owning contract를 수정하지 않은 채 문서화되지 않은 API field, state, protocol message, semantics를 추가하는 변경을 지적합니다.
+- 계약이 변경되면 계약 파일만 보지 않고 영향을 받는 producer와 consumer를 함께 확인합니다.
 
-### Durable operations and provider reconciliation
+### Durable Operation과 Provider Reconciliation
 
-- Provision, Reset, and Cleanup are durable asynchronous Operations. Flag changes that turn them into request-lifetime synchronous work or bypass the existing Operation/idempotency model.
-- If a Provider operation has an unknown outcome, reconciliation must happen before blindly repeating the same Create/Delete operation.
+- Provision, Reset, Cleanup은 durable asynchronous Operation입니다. request lifetime 안에서 동기 작업으로 바꾸거나 기존 Operation/idempotency model을 우회하는 변경을 지적합니다.
+- Provider 작업 결과가 불명확하면 같은 Create/Delete를 무작정 반복하기 전에 Reconciliation을 수행해야 합니다.
 
-### Reset reproducibility
+### Reset 재현성
 
-- Reset must reproduce the instance from its immutable CreationSnapshot/generation baseline. Flag code that rebuilds an existing instance from the current mutable LabSpec.
+- Reset은 해당 LabInstance generation의 immutable CreationSnapshot을 기준으로 재현해야 합니다. 기존 인스턴스를 현재의 mutable LabSpec으로 다시 만드는 코드를 지적합니다.
 
-### Terminal and Live
+### Terminal과 Live
 
-- Do not persist terminal input/output, transcripts, or Live subscriber queue contents. Persistence is limited to the required lifecycle metadata.
-- Preserve the control/data separation for Terminal/Live traffic.
-- Live access is read-only; flag changes that allow Live viewers to write to the terminal session.
+- Terminal input/output, transcript, Live subscriber queue 내용은 저장하지 않습니다. 필요한 lifecycle metadata만 영속합니다.
+- Terminal/Live traffic의 control/data 분리를 유지합니다.
+- Live는 read-only입니다. Live viewer가 TerminalSession에 write할 수 있게 만드는 변경을 지적합니다.
 
-### Sensitive data and logging
+### 민감정보와 Logging
 
-- Flag credentials, secrets, passwords, session secrets, Connector credentials, or raw Provider-sensitive payloads being committed, logged, or exposed through APIs.
-- Logs should preserve useful correlation without leaking sensitive values.
+- Credential, Secret, Password, Session Secret, Connector Credential, 민감한 Provider raw payload를 commit·log·API로 노출하는 변경을 지적합니다.
+- Log는 민감한 값을 노출하지 않으면서 필요한 correlation 정보를 유지해야 합니다.
 
-### Runtime boundaries
+### Runtime 경계
 
-- Keep application-facing contracts independent from internal infrastructure choices where the existing runtime contract requires that boundary.
-- Flag changes that leak implementation-specific infrastructure details into external HTTP/WSS contracts without an explicit contract decision.
+- 기존 Runtime Contract가 요구하는 범위에서는 application-facing contract를 내부 infrastructure 구현 선택과 분리합니다.
+- 명시적인 contract decision 없이 구현 세부 infrastructure 정보를 외부 HTTP/WSS 계약에 노출하는 변경을 지적합니다.

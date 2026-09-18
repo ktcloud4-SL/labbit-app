@@ -3,14 +3,14 @@ kind: "LabbitRuntimeContract"
 
 scope:
   repository: "rabbit-app"
-  purpose: "Application-to-platform runtime boundary"
+  purpose: "애플리케이션과 플랫폼 사이의 Runtime 경계"
   excludes:
-    - "Kubernetes Deployment/Pod count"
-    - "Replica/HPA values"
-    - "ALB/NLB/WAF/Ingress/Gateway implementation"
+    - "Kubernetes Deployment/Pod 개수"
+    - "Replica/HPA 값"
+    - "ALB/NLB/WAF/Ingress/Gateway 구현"
     - "Istio namespace/service policy"
-    - "SQS/Kafka/Valkey/KEDA adoption"
-    - "environment-specific IaC"
+    - "SQS/Kafka/Valkey/KEDA 도입 여부"
+    - "환경별 IaC"
 
 artifacts:
   saas:
@@ -21,16 +21,15 @@ artifacts:
       - realtime
       - preview
     note: >-
-      Logical roles have different responsibilities and lifecycles, but v0.1 does not
-      require one process or one Kubernetes workload per role. One executable may run
-      multiple roles; the platform may split workloads later without changing external
-      HTTP/WSS contracts.
+      logical role마다 책임과 lifecycle은 다르지만, v0.1은 role별로 하나의 process 또는
+      Kubernetes workload를 요구하지 않습니다. 하나의 executable이 여러 role을 실행할 수 있으며,
+      플랫폼은 외부 HTTP/WSS 계약을 변경하지 않고 추후 workload를 분리할 수 있습니다.
   connector:
     executable: "labbit-connector"
     inbound_public_listener: false
     note: >-
-      The Connector runs in the customer environment and initiates outbound WSS/TLS
-      connections to the SaaS. It does not require a public inbound port.
+      Connector는 고객 환경에서 실행되며 SaaS로 outbound WSS/TLS 연결을 먼저 시작합니다.
+      Public inbound port는 필요하지 않습니다.
   frontend:
     type: "static-spa"
     server_process_required: false
@@ -43,12 +42,12 @@ saas:
       default: ":8080"
       purpose:
         - "HTTP API"
-        - "Browser WebSocket upgrades"
-        - "Connector WebSocket upgrades"
-        - "Preview HTTP/WSS when the preview role is co-located"
+        - "Browser WebSocket Upgrade"
+        - "Connector WebSocket Upgrade"
+        - "preview role이 co-located인 경우 Preview HTTP/WSS"
       public_exposure: >-
-        The container listener is not itself the public contract. The platform exposes
-        approved routes through the HTTPS/WSS 443 public entry boundary.
+        container listener 자체는 public contract가 아닙니다. 플랫폼은 HTTPS/WSS 443
+        public entry 경계를 통해 승인된 route만 노출합니다.
     admin:
       env: "LABBIT_ADMIN_ADDR"
       default: ":9090"
@@ -58,22 +57,22 @@ saas:
           path: "/livez"
           success_status: 200
           semantics: >-
-            Process liveness only. Do not fail liveness because PostgreSQL, a Connector,
-            or OpenStack is temporarily unavailable.
+            process 자체의 liveness만 나타냅니다. PostgreSQL, Connector 또는 OpenStack의
+            일시적 장애 때문에 liveness를 실패시키지 않습니다.
         readiness:
           path: "/readyz"
           success_status: 200
           failure_status: 503
           semantics: >-
-            The process completed startup and every enabled role can safely accept new work.
-            API/worker roles require usable PostgreSQL connectivity and compatible schema.
-            Readiness must not depend on every customer Connector or OpenStack being online.
+            process startup이 완료되고 활성화된 모든 role이 새 작업을 안전하게 받을 수 있어야 합니다.
+            API/worker role은 사용 가능한 PostgreSQL 연결과 호환되는 schema를 요구합니다.
+            모든 고객 Connector 또는 OpenStack이 online이어야 readiness가 성공하는 구조로 만들지 않습니다.
         metrics:
           path: "/metrics"
           format: "Prometheus text exposition"
           semantics: >-
-            Operational metrics only. High-cardinality resource/request/session identifiers
-            are forbidden as metric labels.
+            운영 metric만 노출합니다. high-cardinality resource/request/session 식별자는
+            metric label로 사용할 수 없습니다.
 
   config:
     LABBIT_RUNTIME_ROLES:
@@ -107,65 +106,65 @@ saas:
     LABBIT_DATABASE_DSN:
       required: false
       secret: true
-      note: "Local development escape hatch. Never log the value."
+      note: "Local development용 escape hatch입니다. 값을 log에 기록하지 않습니다."
     LABBIT_DATABASE_DSN_FILE:
       required_in_production: true
       secret: false
       note: >-
-        Preferred production input. The referenced file contains the PostgreSQL DSN
-        supplied by the platform secret-injection mechanism. If both DSN inputs are set,
-        the file form takes precedence.
+        Production에서 우선 사용하는 입력입니다. 참조된 파일에는 플랫폼의 Secret injection
+        mechanism이 제공한 PostgreSQL DSN이 들어 있습니다. 두 DSN 입력이 모두 설정되면
+        file form을 우선합니다.
     LABBIT_SHUTDOWN_GRACE:
       required_in_production: true
       secret: false
       format: "Go duration"
       note: >-
-        Platform-validated graceful shutdown budget. v0.1 intentionally does not set a
-        normative number; it must be coordinated with terminationGracePeriodSeconds and
-        connection draining after integration tests.
+        플랫폼 검증을 거친 graceful shutdown budget입니다. v0.1에서는 normative 값을
+        고정하지 않으며 integration test 이후 terminationGracePeriodSeconds와 connection
+        draining 설정을 함께 조정해야 합니다.
 
   database:
     startup_migration: false
     migration_source: "db/migrations/*.sql"
     migration_execution: >-
-      A separate platform/CI migration step runs before application rollout. Application
-      replicas must never race to auto-migrate on startup.
+      application rollout 전에 별도의 platform/CI migration step을 실행합니다.
+      Application replica들이 startup 시 서로 경쟁하며 AutoMigration을 실행해서는 안 됩니다.
     compatibility: >-
-      The process must fail startup/readiness when the database schema is outside the
-      application version's supported compatibility range.
+      database schema가 해당 application version이 지원하는 compatibility 범위를 벗어나면
+      process는 startup/readiness에 실패해야 합니다.
 
   shutdown:
     signals:
       - SIGTERM
       - SIGINT
     common_sequence:
-      - "Mark readiness false."
-      - "Stop accepting new work for terminating roles."
-      - "Drain or finish already accepted work within LABBIT_SHUTDOWN_GRACE."
-      - "Exit after persisting the safest known durable state."
+      - "readiness를 false로 전환합니다."
+      - "종료 중인 role이 새 작업을 받지 않도록 중단합니다."
+      - "이미 수락한 작업은 LABBIT_SHUTDOWN_GRACE 안에서 drain하거나 완료합니다."
+      - "가장 안전하게 확인된 durable state를 영속한 뒤 종료합니다."
     api:
       rules:
-        - "Reject new Provider mutation registration once draining starts."
-        - "Allow bounded in-flight HTTP requests to finish when safe."
+        - "draining이 시작된 뒤에는 새 Provider mutation 등록을 거부합니다."
+        - "안전한 경우 bounded in-flight HTTP request가 완료되도록 허용합니다."
     worker:
       rules:
-        - "Stop claiming new PENDING operation_items."
-        - "Do not keep a PostgreSQL transaction open during Connector/OpenStack calls."
-        - "Persist known results before exit when possible."
+        - "새 PENDING operation_item을 claim하지 않습니다."
+        - "Connector/OpenStack 호출 중 PostgreSQL transaction을 열어 둔 채 유지하지 않습니다."
+        - "가능하면 종료 전에 확인된 결과를 영속합니다."
         - >-
-          If a Provider result is unknown at shutdown/restart, reconcile actual OpenStack
-          state before any retry. Lease expiry alone never authorizes blind replay.
+          shutdown/restart 시 Provider 결과가 불명확하면 retry 전에 실제 OpenStack state를
+          Reconcile합니다. lease expiry만으로 blind replay를 허용하지 않습니다.
     realtime:
       rules:
-        - "Stop accepting new WebSocket upgrades on the terminating instance."
-        - "Drain existing Browser/Connector real-time connections within the shutdown budget."
+        - "종료 중인 instance에서 새 WebSocket Upgrade를 받지 않습니다."
+        - "shutdown budget 안에서 기존 Browser/Connector realtime connection을 drain합니다."
         - >-
-          Central connection draining is separate from the Connector-owned 60-second PTY
-          grace after an abnormal Browser disconnect.
+          중앙 connection draining은 Browser 비정상 단절 후 Connector가 소유하는
+          60초 PTY grace와 별개입니다.
     preview:
       rules:
-        - "Stop accepting new preview connections/sessions on the terminating instance."
-        - "Drain active proxy connections within the shutdown budget when possible."
+        - "종료 중인 instance에서 새 Preview connection/session을 받지 않습니다."
+        - "가능하면 shutdown budget 안에서 active proxy connection을 drain합니다."
 
   observability:
     logs:
@@ -197,15 +196,15 @@ saas:
         - error_code
         - duration_ms
       forbidden_content:
-        - "OpenStack credentials or Keystone tokens"
-        - "Connector credential plaintext"
-        - "Authorization headers"
-        - "user password plaintext"
-        - "browser/session/terminal token plaintext"
-        - "raw provider payloads containing secrets"
+        - "OpenStack Credential 또는 Keystone Token"
+        - "Connector Credential 원문"
+        - "Authorization header"
+        - "사용자 Password 원문"
+        - "Browser/Session/Terminal Token 원문"
+        - "Secret을 포함한 Provider raw payload"
         - "Terminal INPUT/OUTPUT"
         - "Live OUTPUT"
-        - "workspace file body/source code"
+        - "workspace file 본문/source code"
     tracing:
       propagation: "W3C Trace Context"
       dedicated_trace_backend_required: false
@@ -213,8 +212,8 @@ saas:
       examples:
         - "HTTP request count/latency/5xx"
         - "Operation stage/result/duration"
-        - "Connector ONLINE/OFFLINE and heartbeat health"
-        - "current WebSocket connection counts"
+        - "Connector ONLINE/OFFLINE 및 heartbeat health"
+        - "현재 WebSocket connection 수"
       allowed_label_examples:
         - service
         - component
@@ -243,20 +242,20 @@ connector:
     LABBIT_SAAS_BASE_URL:
       required: true
       secret: false
-      note: "HTTPS base URL; WSS endpoints are derived from the Git Connector contract."
+      note: "HTTPS base URL입니다. WSS endpoint는 Git Connector Contract를 기준으로 파생합니다."
     LABBIT_CONNECTOR_ID:
       required: true
       secret: false
     LABBIT_CONNECTOR_CREDENTIAL_FILE:
       required: true
       secret: false
-      note: "File contains Connector credential plaintext and must remain in the customer secret boundary."
+      note: "파일에는 Connector Credential 원문이 들어 있으며 고객 환경 Secret 경계 안에 유지해야 합니다."
     LABBIT_PROVIDER_CONFIG_FILE:
       required: true
       secret: false
       note: >-
-        Path to customer-local provider configuration. The file may contain OpenStack
-        credentials; its contents must never be sent to the central SaaS or logs.
+        고객 환경에만 존재하는 Provider 설정 파일 경로입니다. 파일에 OpenStack Credential이
+        포함될 수 있으며, 내용은 중앙 SaaS나 log로 보내지 않습니다.
     LABBIT_LOG_LEVEL:
       required: false
       secret: false
@@ -264,44 +263,42 @@ connector:
   heartbeat:
     interval: "15s"
     saas_offline_after: "45s"
-    note: "Values come from the Connector wire decision and remain configurable."
+    note: "값은 Connector wire decision에서 정의하며 configurable하게 유지합니다."
   observability:
     log_format: "JSON object per line"
     central_raw_log_shipping_required: false
     central_raw_metric_shipping_required: false
     note: >-
-      The SaaS centrally observes metadata it already receives over Control WSS.
-      Connector raw logs/metrics remain local in MVP and use the same correlation IDs
-      for manual cross-checking.
+      SaaS는 Control WSS를 통해 이미 수신하는 metadata를 중앙에서 관측합니다.
+      Connector raw log/metric은 MVP에서는 로컬에 유지하고 동일한 correlation ID를 사용해
+      필요할 때 수동으로 교차 확인합니다.
 
 frontend:
   runtime:
     output: "Vite static production build"
     server_side_rendering_required: false
     rules:
-      - "No secret may be embedded in frontend build/runtime configuration."
-      - "Environment-specific public URLs/configuration may be supplied by the platform."
-      - "HTTP/WSS behavior follows Git OpenAPI and realtime contracts, not deployment topology."
+      - "Frontend build/runtime 설정에 Secret을 포함하지 않습니다."
+      - "환경별 public URL/configuration은 플랫폼이 제공할 수 있습니다."
+      - "HTTP/WSS 동작은 deployment topology가 아니라 Git OpenAPI와 realtime contract를 따릅니다."
 
 platform_responsibilities:
-  - "Build immutable application/container artifacts and identify versions."
-  - "Inject secret and non-secret configuration without committing secret values to Git."
-  - "Map approved public HTTPS/WSS 443 routes to application listeners."
-  - "Keep the admin listener private to the cluster/operations boundary."
-  - "Configure Kubernetes probes from /livez and /readyz."
-  - "Scrape /metrics without exposing it publicly."
-  - "Set replica/HPA/workload boundaries in Helm/IaC after role-specific validation."
-  - "Coordinate LABBIT_SHUTDOWN_GRACE with connection draining and terminationGracePeriodSeconds."
-  - "Run SQL migrations as a separate deployment/CI step."
-  - "Collect stdout/stderr JSON logs with the D-23/D-25 sensitive-data rules."
-  - "Manage RDS connectivity, backup/restore, DR, DNS/TLS, and deployment rollback."
+  - "immutable application/container artifact를 build하고 version을 식별합니다."
+  - "Secret 값을 Git에 commit하지 않고 secret/non-secret configuration을 주입합니다."
+  - "승인된 public HTTPS/WSS 443 route를 application listener에 연결합니다."
+  - "admin listener를 cluster/operations 경계 안에 비공개로 유지합니다."
+  - "/livez와 /readyz를 기준으로 Kubernetes probe를 구성합니다."
+  - "/metrics를 public에 노출하지 않고 scrape합니다."
+  - "role별 검증 후 Helm/IaC에서 replica/HPA/workload 경계를 결정합니다."
+  - "LABBIT_SHUTDOWN_GRACE를 connection draining 및 terminationGracePeriodSeconds와 조정합니다."
+  - "SQL migration을 별도의 deployment/CI step으로 실행합니다."
+  - "D-23/D-25 민감정보 규칙에 따라 stdout/stderr JSON log를 수집합니다."
+  - "RDS connectivity, backup/restore, DR, DNS/TLS, deployment rollback을 관리합니다."
 
 non_guarantees:
   - >-
-    This contract does not claim that the application, Kubernetes deployment, database
-    migration, graceful shutdown, or multi-replica routing has already been implemented
-    or validated.
+    이 contract는 application, Kubernetes deployment, database migration,
+    graceful shutdown 또는 multi-replica routing이 이미 구현·검증되었다고 주장하지 않습니다.
   - >-
-    Values intentionally left to platform/integration validation (for example shutdown
-    duration, replica counts, HPA thresholds, load-balancer timeouts) are not API
-    compatibility guarantees.
+    shutdown duration, replica count, HPA threshold, load-balancer timeout처럼 platform/integration
+    validation에 맡긴 값은 API compatibility guarantee가 아닙니다.

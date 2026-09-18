@@ -1,15 +1,71 @@
-import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { type ReactNode } from 'react'
+import {
+  createBrowserRouter,
+  Navigate,
+  useLocation,
+  type RouteObject,
+} from 'react-router-dom'
 
+import { ClassDetailPage } from '../pages/ClassDetailPage'
 import { ClassListPage } from '../pages/ClassListPage'
 import { LabPage } from '../pages/LabPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
+import { HttpError } from '../shared/api/httpClient'
+import { useLabbitApi } from '../shared/api/LabbitApiProvider'
+import { labbitQueryKeys } from '../shared/api/labbitApi'
+import { ErrorState } from '../shared/ui/ErrorState'
+import { LoadingState } from '../shared/ui/LoadingState'
+
+function RequireAuth({ children }: { children: ReactNode }) {
+  const api = useLabbitApi()
+  const location = useLocation()
+  const meQuery = useQuery({
+    queryKey: labbitQueryKeys.me,
+    queryFn: () => api.getMe(),
+    retry: false,
+  })
+
+  if (meQuery.isPending) {
+    return (
+      <main className="app-page">
+        <LoadingState label="로그인 상태를 확인하는 중..." />
+      </main>
+    )
+  }
+
+  if (meQuery.error instanceof HttpError && meQuery.error.status === 401) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+      />
+    )
+  }
+
+  if (meQuery.error) {
+    return (
+      <main className="app-page">
+        <ErrorState message="로그인 상태를 확인하지 못했습니다." />
+      </main>
+    )
+  }
+
+  return children
+}
+
+function protectedRoute(element: ReactNode) {
+  return <RequireAuth>{element}</RequireAuth>
+}
 
 export const appRoutes: RouteObject[] = [
   { path: '/', element: <Navigate to="/classes" replace /> },
   { path: '/login', element: <LoginPage /> },
-  { path: '/classes', element: <ClassListPage /> },
-  { path: '/classes/:classId/lab', element: <LabPage /> },
+  { path: '/classes', element: protectedRoute(<ClassListPage />) },
+  { path: '/classes/:classId', element: protectedRoute(<ClassDetailPage />) },
+  { path: '/classes/:classId/lab', element: protectedRoute(<LabPage />) },
   { path: '*', element: <NotFoundPage /> },
 ]
 

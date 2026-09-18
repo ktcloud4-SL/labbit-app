@@ -1,11 +1,7 @@
 name: Web
 
 on:
-  pull_request:
-    paths:
-      - "web/**"
-      - "Makefile"
-      - ".github/workflows/web.yml"
+  pull_request: {}
   push:
     branches: [main]
     paths:

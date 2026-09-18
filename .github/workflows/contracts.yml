@@ -1,12 +1,7 @@
 name: Contracts
 
 on:
-  pull_request:
-    paths:
-      - "contracts/**"
-      - "runtime/**"
-      - "db/migrations/**"
-      - ".github/workflows/contracts.yml"
+  pull_request: {}
   push:
     branches: [main]
     paths:

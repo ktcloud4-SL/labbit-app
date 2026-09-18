@@ -7,6 +7,13 @@ import type {
 } from './contracts'
 import { request } from './httpClient'
 
+export const labbitQueryKeys = {
+  me: ['me'] as const,
+  classes: ['classes'] as const,
+  classDetail: (classId: string) => ['classes', classId] as const,
+  classMemberships: (classId: string) => ['classes', classId, 'memberships'] as const,
+}
+
 export interface LabbitApi {
   login(credentials: LoginRequest): Promise<void>
   logout(): Promise<void>

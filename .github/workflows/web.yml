@@ -4,17 +4,20 @@ on:
   pull_request:
     paths:
       - "web/**"
+      - "Makefile"
       - ".github/workflows/web.yml"
   push:
     branches: [main]
     paths:
       - "web/**"
+      - "Makefile"
+      - ".github/workflows/web.yml"
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  quality:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -25,13 +28,37 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "web/package-lock.json"
 
-      # package-lock.json은 첫 실제 의존성 설치 후 commit하고 npm ci로 전환한다.
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Dev server smoke
+        shell: bash
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/labbit-vite.log 2>&1 &
+          vite_pid=$!
+          trap 'kill "$vite_pid" 2>/dev/null || true' EXIT
+
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:5173/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          cat /tmp/labbit-vite.log
+          exit 1
 
       - name: Type check
         run: npm run typecheck
 
-      - name: Build
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      - name: Production build
         run: npm run build

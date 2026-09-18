@@ -1,14 +1,14 @@
 GO ?= go
 NPM ?= npm
 
-.PHONY: setup test go-test go-vet web-install web-build web-typecheck server connector web
+.PHONY: setup test go-test go-vet web-install web-typecheck web-lint web-test web-build server connector web
 
 # 개발 시작 전에 필요한 최소 의존성을 설치한다.
 setup: web-install
 	$(GO) mod download
 
 # 저장소 전체의 기본 검증 진입점이다.
-test: go-test go-vet web-typecheck web-build
+test: go-test go-vet web-typecheck web-lint web-test web-build
 
 go-test:
 	$(GO) test ./...
@@ -17,10 +17,16 @@ go-vet:
 	$(GO) vet ./...
 
 web-install:
-	cd web && $(NPM) install
+	cd web && $(NPM) ci
 
 web-typecheck:
 	cd web && $(NPM) run typecheck
+
+web-lint:
+	cd web && $(NPM) run lint
+
+web-test:
+	cd web && $(NPM) run test
 
 web-build:
 	cd web && $(NPM) run build

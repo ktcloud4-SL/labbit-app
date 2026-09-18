@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { HttpError } from './httpClient'
 import { httpLabbitApi } from './labbitApi'
 import {
   mockCredentials,
@@ -71,7 +70,7 @@ describe('mockLabbitApi', () => {
   })
 
   it('로그인 전 /me 요청은 401로 거절한다', async () => {
-    await expect(mockLabbitApi.getMe()).rejects.toMatchObject<HttpError>({
+    await expect(mockLabbitApi.getMe()).rejects.toMatchObject({
       status: 401,
     })
   })
@@ -85,7 +84,7 @@ describe('mockLabbitApi', () => {
   it('존재하지 않는 Class는 404로 처리한다', async () => {
     await mockLabbitApi.login(mockCredentials)
 
-    await expect(mockLabbitApi.getClass('missing-class')).rejects.toMatchObject<HttpError>({
+    await expect(mockLabbitApi.getClass('missing-class')).rejects.toMatchObject({
       status: 404,
     })
   })

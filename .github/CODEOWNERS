@@ -1,12 +1,2 @@
-# 현재 GitHub에서 실제 권한을 확인한 repository admin을 기본 owner로 둔다.
-# Backend/Frontend/Connector/Platform Team slug가 생성·확인되면 역할별 경로로 세분화한다.
+# Labbit의 모든 코드 변경은 개발 리더가 최종 리뷰한다.
 * @imcherry5778
-
-# 세분화 원칙
-# - contracts/http: Backend producer + Frontend consumer
-# - contracts/connector: Backend + Connector
-# - contracts/realtime: Backend + Frontend
-# - db: Backend
-# - runtime: Backend + Connector + Platform
-# - web: Frontend
-# 존재하지 않는 GitHub Team slug는 임의로 추가하지 않는다.

@@ -10,7 +10,7 @@
 - Connector Terminal Data WSS: `contracts/connector/terminal-data.schema.json`
 - Browser Terminal/Live WSS: `contracts/realtime/README.md` + `contracts/realtime/terminal-live.schema.json`
 - PostgreSQL Physical Schema 초안: `db/migrations/*.sql` + `db/migrations/README.md`
-- Application Runtime Contract 시작점: `runtime/README.md`
+- Application Runtime Contract: `runtime/contract.yaml` + `runtime/README.md`
 
 실제 Kubernetes/AWS 배포 설정은 별도 Platform/GitOps 경계에서 Helm/IaC/GitOps로 관리하고, 애플리케이션 계약에 Istio·SQS/Kafka·Valkey·KEDA 같은 내부 인프라 구현을 노출하지 않습니다.
 
@@ -23,7 +23,7 @@
 - **Domain/Data Model 확정** — Organization/User/Class/LabSpec/LabExecution/LabInstance/Operation/OperationItem/ProviderResource/TerminalSession/LiveSession의 핵심 관계와 ownership, 주요 불변조건을 확정.
 - **PostgreSQL Physical Schema Draft v0.1 작성됨** — 위 논리 모델을 구현하기 위한 5개 SQL Migration 초안. 아직 실제 개발 PostgreSQL 적용·pgx Query·Migration runner·통합 검증 전이며, 최초 공용 개발 DB 적용 전까지 구현 피드백에 따라 정리할 수 있음.
 - **HTTP 후속 범위** — Organization/Provider 관리, File, Preview, Terminal/Live Session 생성·종료 control API, Session TTL/회전·구체 CSRF 방어.
-- **Runtime Contract** — 후속 계약 설계에서 구체화.
+- **Runtime Contract v0.1 정의됨** — SaaS logical roles, application/admin listener, Runtime config/Secret boundary, liveness/readiness/metrics, separate DB migration, role-aware graceful shutdown, JSON log/W3C correlation/low-cardinality metrics, Connector outbound runtime boundary.
 
 HTTP의 장시간 Provision/Reset/Cleanup은 durable `Operation`으로 노출하고 `Idempotency-Key`로 중복 요청을 제어합니다. DB 초안에서는 Browser가 보는 `operations`와 LabInstance별 실행 단위 `operation_items`를 분리하고, LabInstance당 active Mutation 최대 1개를 partial unique index로 표현합니다. 결과가 불명확한 Provider 작업은 동일 Create/Delete를 자동 반복하지 않고 Reconciliation을 먼저 수행합니다.
 

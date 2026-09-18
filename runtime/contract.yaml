@@ -1,0 +1,307 @@
+version: "0.1.0"
+kind: "LabbitRuntimeContract"
+
+scope:
+  repository: "rabbit-app"
+  purpose: "Application-to-platform runtime boundary"
+  excludes:
+    - "Kubernetes Deployment/Pod count"
+    - "Replica/HPA values"
+    - "ALB/NLB/WAF/Ingress/Gateway implementation"
+    - "Istio namespace/service policy"
+    - "SQS/Kafka/Valkey/KEDA adoption"
+    - "environment-specific IaC"
+
+artifacts:
+  saas:
+    executable: "labbit-server"
+    logical_roles:
+      - api
+      - worker
+      - realtime
+      - preview
+    note: >-
+      Logical roles have different responsibilities and lifecycles, but v0.1 does not
+      require one process or one Kubernetes workload per role. One executable may run
+      multiple roles; the platform may split workloads later without changing external
+      HTTP/WSS contracts.
+  connector:
+    executable: "labbit-connector"
+    inbound_public_listener: false
+    note: >-
+      The Connector runs in the customer environment and initiates outbound WSS/TLS
+      connections to the SaaS. It does not require a public inbound port.
+  frontend:
+    type: "static-spa"
+    server_process_required: false
+    secret_runtime_config_allowed: false
+
+saas:
+  listeners:
+    application:
+      env: "LABBIT_HTTP_ADDR"
+      default: ":8080"
+      purpose:
+        - "HTTP API"
+        - "Browser WebSocket upgrades"
+        - "Connector WebSocket upgrades"
+        - "Preview HTTP/WSS when the preview role is co-located"
+      public_exposure: >-
+        The container listener is not itself the public contract. The platform exposes
+        approved routes through the HTTPS/WSS 443 public entry boundary.
+    admin:
+      env: "LABBIT_ADMIN_ADDR"
+      default: ":9090"
+      public_exposure: false
+      endpoints:
+        liveness:
+          path: "/livez"
+          success_status: 200
+          semantics: >-
+            Process liveness only. Do not fail liveness because PostgreSQL, a Connector,
+            or OpenStack is temporarily unavailable.
+        readiness:
+          path: "/readyz"
+          success_status: 200
+          failure_status: 503
+          semantics: >-
+            The process completed startup and every enabled role can safely accept new work.
+            API/worker roles require usable PostgreSQL connectivity and compatible schema.
+            Readiness must not depend on every customer Connector or OpenStack being online.
+        metrics:
+          path: "/metrics"
+          format: "Prometheus text exposition"
+          semantics: >-
+            Operational metrics only. High-cardinality resource/request/session identifiers
+            are forbidden as metric labels.
+
+  config:
+    LABBIT_RUNTIME_ROLES:
+      required: true
+      secret: false
+      format: "comma-separated"
+      allowed:
+        - api
+        - worker
+        - realtime
+        - preview
+    LABBIT_ENVIRONMENT:
+      required: true
+      secret: false
+      examples:
+        - development
+        - staging
+        - production
+    LABBIT_HTTP_ADDR:
+      required: false
+      secret: false
+      default: ":8080"
+    LABBIT_ADMIN_ADDR:
+      required: false
+      secret: false
+      default: ":9090"
+    LABBIT_LOG_LEVEL:
+      required: false
+      secret: false
+      default: "info"
+    LABBIT_DATABASE_DSN:
+      required: false
+      secret: true
+      note: "Local development escape hatch. Never log the value."
+    LABBIT_DATABASE_DSN_FILE:
+      required_in_production: true
+      secret: false
+      note: >-
+        Preferred production input. The referenced file contains the PostgreSQL DSN
+        supplied by the platform secret-injection mechanism. If both DSN inputs are set,
+        the file form takes precedence.
+    LABBIT_SHUTDOWN_GRACE:
+      required_in_production: true
+      secret: false
+      format: "Go duration"
+      note: >-
+        Platform-validated graceful shutdown budget. v0.1 intentionally does not set a
+        normative number; it must be coordinated with terminationGracePeriodSeconds and
+        connection draining after integration tests.
+
+  database:
+    startup_migration: false
+    migration_source: "db/migrations/*.sql"
+    migration_execution: >-
+      A separate platform/CI migration step runs before application rollout. Application
+      replicas must never race to auto-migrate on startup.
+    compatibility: >-
+      The process must fail startup/readiness when the database schema is outside the
+      application version's supported compatibility range.
+
+  shutdown:
+    signals:
+      - SIGTERM
+      - SIGINT
+    common_sequence:
+      - "Mark readiness false."
+      - "Stop accepting new work for terminating roles."
+      - "Drain or finish already accepted work within LABBIT_SHUTDOWN_GRACE."
+      - "Exit after persisting the safest known durable state."
+    api:
+      rules:
+        - "Reject new Provider mutation registration once draining starts."
+        - "Allow bounded in-flight HTTP requests to finish when safe."
+    worker:
+      rules:
+        - "Stop claiming new PENDING operation_items."
+        - "Do not keep a PostgreSQL transaction open during Connector/OpenStack calls."
+        - "Persist known results before exit when possible."
+        - >-
+          If a Provider result is unknown at shutdown/restart, reconcile actual OpenStack
+          state before any retry. Lease expiry alone never authorizes blind replay.
+    realtime:
+      rules:
+        - "Stop accepting new WebSocket upgrades on the terminating instance."
+        - "Drain existing Browser/Connector real-time connections within the shutdown budget."
+        - >-
+          Central connection draining is separate from the Connector-owned 60-second PTY
+          grace after an abnormal Browser disconnect.
+    preview:
+      rules:
+        - "Stop accepting new preview connections/sessions on the terminating instance."
+        - "Drain active proxy connections within the shutdown budget when possible."
+
+  observability:
+    logs:
+      format: "JSON object per line"
+      destinations:
+        - stdout
+        - stderr
+      required_base_fields:
+        - timestamp
+        - level
+        - message
+        - service
+        - component
+        - version
+        - environment
+      correlation_fields_when_known:
+        - trace_id
+        - request_id
+        - operation_id
+        - lab_instance_id
+        - connector_id
+        - terminal_session_id
+        - live_session_id
+        - preview_session_id
+      operation_fields_when_known:
+        - operation_type
+        - stage
+        - status
+        - error_code
+        - duration_ms
+      forbidden_content:
+        - "OpenStack credentials or Keystone tokens"
+        - "Connector credential plaintext"
+        - "Authorization headers"
+        - "user password plaintext"
+        - "browser/session/terminal token plaintext"
+        - "raw provider payloads containing secrets"
+        - "Terminal INPUT/OUTPUT"
+        - "Live OUTPUT"
+        - "workspace file body/source code"
+    tracing:
+      propagation: "W3C Trace Context"
+      dedicated_trace_backend_required: false
+    metrics:
+      examples:
+        - "HTTP request count/latency/5xx"
+        - "Operation stage/result/duration"
+        - "Connector ONLINE/OFFLINE and heartbeat health"
+        - "current WebSocket connection counts"
+      allowed_label_examples:
+        - service
+        - component
+        - operation_type
+        - stage
+        - result
+        - environment
+      forbidden_label_examples:
+        - trace_id
+        - request_id
+        - operation_id
+        - lab_instance_id
+        - connector_id
+        - terminal_session_id
+        - live_session_id
+        - preview_session_id
+
+connector:
+  network:
+    outbound_only_to_saas: true
+    public_saas_port: 443
+    transport: "WSS/TLS"
+    control_path: "/connector/v1/control"
+    subprotocol: "labbit.connector.v1"
+  config:
+    LABBIT_SAAS_BASE_URL:
+      required: true
+      secret: false
+      note: "HTTPS base URL; WSS endpoints are derived from the Git Connector contract."
+    LABBIT_CONNECTOR_ID:
+      required: true
+      secret: false
+    LABBIT_CONNECTOR_CREDENTIAL_FILE:
+      required: true
+      secret: false
+      note: "File contains Connector credential plaintext and must remain in the customer secret boundary."
+    LABBIT_PROVIDER_CONFIG_FILE:
+      required: true
+      secret: false
+      note: >-
+        Path to customer-local provider configuration. The file may contain OpenStack
+        credentials; its contents must never be sent to the central SaaS or logs.
+    LABBIT_LOG_LEVEL:
+      required: false
+      secret: false
+      default: "info"
+  heartbeat:
+    interval: "15s"
+    saas_offline_after: "45s"
+    note: "Values come from the Connector wire decision and remain configurable."
+  observability:
+    log_format: "JSON object per line"
+    central_raw_log_shipping_required: false
+    central_raw_metric_shipping_required: false
+    note: >-
+      The SaaS centrally observes metadata it already receives over Control WSS.
+      Connector raw logs/metrics remain local in MVP and use the same correlation IDs
+      for manual cross-checking.
+
+frontend:
+  runtime:
+    output: "Vite static production build"
+    server_side_rendering_required: false
+    rules:
+      - "No secret may be embedded in frontend build/runtime configuration."
+      - "Environment-specific public URLs/configuration may be supplied by the platform."
+      - "HTTP/WSS behavior follows Git OpenAPI and realtime contracts, not deployment topology."
+
+platform_responsibilities:
+  - "Build immutable application/container artifacts and identify versions."
+  - "Inject secret and non-secret configuration without committing secret values to Git."
+  - "Map approved public HTTPS/WSS 443 routes to application listeners."
+  - "Keep the admin listener private to the cluster/operations boundary."
+  - "Configure Kubernetes probes from /livez and /readyz."
+  - "Scrape /metrics without exposing it publicly."
+  - "Set replica/HPA/workload boundaries in Helm/IaC after role-specific validation."
+  - "Coordinate LABBIT_SHUTDOWN_GRACE with connection draining and terminationGracePeriodSeconds."
+  - "Run SQL migrations as a separate deployment/CI step."
+  - "Collect stdout/stderr JSON logs with the D-23/D-25 sensitive-data rules."
+  - "Manage RDS connectivity, backup/restore, DR, DNS/TLS, and deployment rollback."
+
+non_guarantees:
+  - >-
+    This contract does not claim that the application, Kubernetes deployment, database
+    migration, graceful shutdown, or multi-replica routing has already been implemented
+    or validated.
+  - >-
+    Values intentionally left to platform/integration validation (for example shutdown
+    duration, replica counts, HPA thresholds, load-balancer timeouts) are not API
+    compatibility guarantees.

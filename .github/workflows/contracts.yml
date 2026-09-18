@@ -1,0 +1,62 @@
+name: Contracts
+
+on:
+  pull_request:
+    paths:
+      - "contracts/**"
+      - "runtime/**"
+      - "db/migrations/**"
+      - ".github/workflows/contracts.yml"
+  push:
+    branches: [main]
+    paths:
+      - "contracts/**"
+      - "runtime/**"
+      - "db/migrations/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install YAML parser
+        run: python -m pip install --disable-pip-version-check PyYAML==6.0.3
+
+      - name: Parse contract files
+        shell: bash
+        run: |
+          python <<'PY'
+          import json
+          from pathlib import Path
+
+          import yaml
+
+          # OpenAPI/Runtime YAML은 최소한 파싱 가능한 문서인지 확인한다.
+          for path in [Path("contracts/http/openapi.yaml"), Path("runtime/contract.yaml")]:
+              with path.open("r", encoding="utf-8") as file:
+                  value = yaml.safe_load(file)
+              if not isinstance(value, dict):
+                  raise SystemExit(f"{path}: 최상위 YAML 값이 object가 아닙니다")
+
+          # 모든 JSON Schema 파일이 유효한 JSON 문서인지 확인한다.
+          for path in sorted(Path("contracts").rglob("*.json")):
+              with path.open("r", encoding="utf-8") as file:
+                  value = json.load(file)
+              if not isinstance(value, dict):
+                  raise SystemExit(f"{path}: 최상위 JSON 값이 object가 아닙니다")
+
+          # Migration 파일 이름의 순서가 중복되지 않는지만 skeleton 단계에서 확인한다.
+          migrations = sorted(Path("db/migrations").glob("[0-9]*_*.sql"))
+          prefixes = [path.name.split("_", 1)[0] for path in migrations]
+          if len(prefixes) != len(set(prefixes)):
+              raise SystemExit("db/migrations: migration 번호가 중복되었습니다")
+
+          print("contract files: parse OK")
+          PY

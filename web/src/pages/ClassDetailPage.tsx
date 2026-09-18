@@ -11,16 +11,16 @@ export function ClassDetailPage() {
   const api = useLabbitApi()
   const location = useLocation()
   const { classId } = useParams()
-  const decodedClassId = classId ? decodeURIComponent(classId) : ''
+  const resolvedClassId = classId ?? ''
 
   const classQuery = useQuery({
-    queryKey: labbitQueryKeys.classDetail(decodedClassId),
-    queryFn: () => api.getClass(decodedClassId),
-    enabled: Boolean(decodedClassId),
+    queryKey: labbitQueryKeys.classDetail(resolvedClassId),
+    queryFn: () => api.getClass(resolvedClassId),
+    enabled: Boolean(resolvedClassId),
     retry: false,
   })
 
-  if (!decodedClassId) {
+  if (!resolvedClassId) {
     return (
       <main className="app-page">
         <ErrorState message="Class ID가 없습니다." />

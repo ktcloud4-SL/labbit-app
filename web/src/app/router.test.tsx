@@ -114,6 +114,19 @@ describe('Auth·Class routing', () => {
     expect(screen.getByText('Kubernetes Basic')).toBeInTheDocument()
   })
 
+  it('Class 목록이 비어 있으면 Empty 상태를 렌더링한다', async () => {
+    renderRoute(
+      '/classes',
+      createApi({
+        listClasses: async () => ({ items: [] }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: '참여 중인 수업이 없습니다.' }),
+    ).toBeInTheDocument()
+  })
+
   it('Class 상세 route에서 현재 사용자 컨텍스트를 렌더링한다', async () => {
     renderRoute('/classes/class-kubernetes-basic')
 
@@ -122,6 +135,32 @@ describe('Auth·Class routing', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('INSTRUCTOR')).toBeInTheDocument()
     expect(screen.getByText('READY')).toBeInTheDocument()
+  })
+
+  it('Class 상세 403은 권한 없음 상태로 표시한다', async () => {
+    renderRoute(
+      '/classes/forbidden-class',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(403)
+        },
+      }),
+    )
+
+    expect(await screen.findByText('이 수업을 볼 권한이 없습니다.')).toBeInTheDocument()
+  })
+
+  it('Class 상세 404는 찾을 수 없음 상태로 표시한다', async () => {
+    renderRoute(
+      '/classes/missing-class',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(404)
+        },
+      }),
+    )
+
+    expect(await screen.findByText('수업을 찾을 수 없습니다.')).toBeInTheDocument()
   })
 
   it('Lab placeholder route와 classId를 보호 route 안에서 렌더링한다', async () => {

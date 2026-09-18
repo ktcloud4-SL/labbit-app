@@ -102,9 +102,12 @@ ci
 
 ## CODEOWNERS
 
-현재 저장소에서 확인 가능한 관리자 계정만 기본 CODEOWNER로 지정합니다. Backend/Frontend/Connector/Platform GitHub Team slug가 실제로 생성·확인되면 역할별 경로 ownership을 세분화합니다.
+Labbit의 모든 코드 변경은 개발 리더가 최종 리뷰합니다.
 
-팀 slug가 확정되기 전에는 존재하지 않는 Team 이름을 CODEOWNERS에 임의로 적지 않습니다.
+- 기본 CODEOWNER는 개발 리더입니다.
+- Backend, Frontend, Connector, Contract, DB, Runtime을 포함한 모든 변경에 동일한 리뷰 정책을 적용합니다.
+- 영역 담당자의 peer review는 선택적으로 추가할 수 있지만, 최종 merge 승인 책임은 개발 리더가 가집니다.
+- 개발 리더 본인의 PR은 Repository Ruleset에서 사람 approval만 예외 처리하고, PR 생성·CI·미해결 conversation 확인은 동일하게 적용합니다.
 
 ## 로컬 확인
 

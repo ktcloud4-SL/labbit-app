@@ -2,17 +2,18 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
+	"github.com/ktcloud4-SL/rabbit-app/internal/observability"
 	"github.com/ktcloud4-SL/rabbit-app/internal/server/app"
 )
 
 func main() {
 	if err := run(); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "labbit-server 종료: %v\n", err)
+		logStartupFailure(err)
 		os.Exit(1)
 	}
 }
@@ -28,4 +29,21 @@ func run() error {
 	defer stop()
 
 	return app.Run(ctx, cfg)
+}
+
+func logStartupFailure(err error) {
+	environment := strings.TrimSpace(os.Getenv("LABBIT_ENVIRONMENT"))
+	if environment == "" {
+		// 환경 설정 자체가 실패한 경우에도 Runtime Contract의 필수 필드를 유지한다.
+		environment = "unknown"
+	}
+
+	logger := observability.NewJSONLoggerTo(
+		os.Stderr,
+		"labbit-server",
+		"bootstrap",
+		environment,
+		os.Getenv("LABBIT_LOG_LEVEL"),
+	)
+	logger.Error("Labbit 서버 시작 실패", "error", err.Error())
 }

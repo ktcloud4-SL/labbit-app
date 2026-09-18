@@ -34,3 +34,36 @@ Terminal/Live는 Control과 Data를 분리합니다. Browser-facing Terminal/Liv
 내부 작업 전달이 PostgreSQL polling에서 SQS/Kafka 등으로 바뀌거나 Connector Control connection owner가 API/전용 workload/registry 구조로 바뀌어도 Browser HTTP, 외부 WSS 계약, durable Operation/ProviderResource 모델을 유지하는 것을 원칙으로 합니다.
 
 현재 Git 계약과 SQL 초안의 존재는 기능 구현·배포·검증 완료를 뜻하지 않습니다. 실제 백엔드 개발 시작 시 PostgreSQL에 초안을 적용하고 pgx repository/query, Migration runner, Worker claim, Integration/복구 테스트를 통해 검증합니다. 최초 공용 개발 DB에 적용된 baseline 이후에는 기존 Migration을 수정하지 않고 새 번호 Migration을 추가합니다.
+
+
+## 개발 스켈레톤
+
+개발 시작 전 최소 실행 골격만 제공합니다. 기능 package는 Jira Story가 시작될 때 필요한 만큼 추가합니다.
+
+```text
+cmd/
+├─ labbit-server/       # 중앙 SaaS 실행 진입점
+└─ labbit-connector/    # 고객 환경 Connector 실행 진입점
+
+internal/
+├─ server/app/          # Runtime role·listener·graceful shutdown bootstrap
+├─ connector/app/       # Connector process lifecycle bootstrap
+└─ observability/       # 공통 JSON logging bootstrap
+
+web/                    # React + TypeScript + Vite 정적 SPA
+```
+
+로컬 기본 확인:
+
+```bash
+make setup
+make test
+
+make server
+make connector
+make web
+```
+
+`labbit-server`는 현재 Runtime Contract의 application/admin listener와 `/livez`, `/readyz`, `/metrics` 골격만 제공합니다. Auth/Class/LabSpec/Operation, DB repository, Connector Control/Provider/SSH, Terminal/Live 같은 실제 기능 구현 완료를 의미하지 않습니다.
+
+Git/PR 규칙은 [CONTRIBUTING.md](./CONTRIBUTING.md)를 따릅니다. Commit/PR 제목은 **영어 prefix + 한글 description** 형식을 사용하고, merge는 **3-way merge 기반 Create a merge commit**을 기본으로 합니다.

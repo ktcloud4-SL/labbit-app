@@ -75,6 +75,17 @@ describe('mockLabbitApi', () => {
     })
   })
 
+  it('잘못된 Mock 로그인 정보는 401로 거절한다', async () => {
+    await expect(
+      mockLabbitApi.login({
+        username: mockCredentials.username,
+        password: 'wrong-password',
+      }),
+    ).rejects.toMatchObject({
+      status: 401,
+    })
+  })
+
   it('Mock 계정 로그인 후 /me를 반환한다', async () => {
     await mockLabbitApi.login(mockCredentials)
 

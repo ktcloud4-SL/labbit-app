@@ -8,7 +8,7 @@ import { labbitQueryKeys } from '../shared/api/labbitApi'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
-const terminalStatuses = new Set(['SUCCEEDED', 'FAILED'])
+const activeStatuses = new Set(['PENDING', 'RUNNING', 'RECONCILING'])
 
 function statusLabel(status: string) {
   switch (status) {
@@ -48,7 +48,7 @@ export function OperationPage() {
     retry: false,
     refetchInterval: (query) => {
       const status = query.state.data?.status
-      return status && terminalStatuses.has(status) ? false : 2000
+      return status && activeStatuses.has(status) ? 2000 : false
     },
   })
 

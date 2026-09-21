@@ -95,6 +95,14 @@ export function LabExecutionPage() {
     )
   }
 
+  if (classQuery.error instanceof HttpError && classQuery.error.status === 403) {
+    return (
+      <main className="app-page">
+        <ErrorState message="이 Class를 운영할 권한이 없습니다." />
+      </main>
+    )
+  }
+
   if (
     executionQuery.error ||
     classQuery.error ||

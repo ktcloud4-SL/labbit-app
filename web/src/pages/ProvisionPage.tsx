@@ -234,6 +234,8 @@ export function ProvisionPage() {
   }
 
   const mutationError = provisionMutation.error
+  const conflictError =
+    mutationError instanceof HttpError && mutationError.status === 409
   const errorMessage =
     mutationError instanceof HttpError && mutationError.status === 403
       ? '현재 계정에는 이 Class의 Provision 권한이 없습니다. 권한이 변경되었을 수 있습니다.'
@@ -392,7 +394,7 @@ export function ProvisionPage() {
             <button
               className="primary-button"
               type="button"
-              disabled={provisionMutation.isPending}
+              disabled={provisionMutation.isPending || conflictError}
               onClick={() => provisionMutation.mutate(confirmation)}
             >
               {provisionMutation.isPending ? '요청 중...' : 'Provision 시작'}

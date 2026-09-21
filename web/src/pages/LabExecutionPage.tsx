@@ -350,7 +350,7 @@ export function LabExecutionPage() {
             <button
               className="secondary-button"
               type="button"
-              disabled={mutation.isPending || conflictError}
+              disabled={mutation.isPending}
               onClick={() => {
                 mutation.reset()
                 setPendingAction(null)
@@ -361,7 +361,7 @@ export function LabExecutionPage() {
             <button
               className="primary-button"
               type="button"
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || conflictError}
               onClick={() => {
                 if (pendingAction) {
                   mutation.mutate(pendingAction)

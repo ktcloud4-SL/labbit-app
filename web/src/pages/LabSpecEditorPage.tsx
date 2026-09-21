@@ -471,7 +471,16 @@ export function LabSpecEditorPage() {
     (saveMutation.error instanceof HttpError && saveMutation.error.status === 401)
 
   if (authError) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: `${location.pathname}${location.search}`,
+          reason: 'sessionExpired',
+        }}
+      />
+    )
   }
 
   if (!isNew && labSpecQuery.error instanceof HttpError && labSpecQuery.error.status === 403) {

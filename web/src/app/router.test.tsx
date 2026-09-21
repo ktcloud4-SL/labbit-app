@@ -505,13 +505,82 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByText('ERROR')).toBeInTheDocument()
   })
 
-  it('Lab placeholder route와 classId를 보호 route 안에서 렌더링한다', async () => {
-    renderRoute('/classes/demo/lab')
+  it('READY LabInstance만 직접 Workspace URL 진입을 허용한다', async () => {
+    renderRoute('/classes/class-kubernetes-basic/lab')
 
     expect(
-      await screen.findByRole('heading', { name: 'Lab Workspace' }),
+      await screen.findByRole('heading', { name: 'Kubernetes Basic' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('Class: demo')).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: 'Lab Workspace Shell' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('File Tree')).toBeInTheDocument()
+    expect(screen.getByText('Editor')).toBeInTheDocument()
+    expect(screen.getByText('Preview')).toBeInTheDocument()
+    expect(screen.getByText('Terminal / Live')).toBeInTheDocument()
+  })
+
+  it('직접 Workspace URL에서도 PROVISIONING 상태는 진입을 막는다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          myLabInstance: {
+            ...classDetailFixture.myLabInstance!,
+            status: 'PROVISIONING',
+          },
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByText('실습 환경을 준비하고 있습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('직접 Workspace URL에서도 ERROR 상태는 진입을 막는다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          myLabInstance: {
+            ...classDetailFixture.myLabInstance!,
+            status: 'ERROR',
+          },
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByText(
+        '실습 환경에 오류가 있어 Workspace를 열 수 없습니다.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('직접 Workspace URL의 Class 403을 권한 없음으로 닫는다', async () => {
+    renderRoute(
+      '/classes/forbidden/lab',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(403)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText(
+        '이 Class의 Workspace에 접근할 권한이 없습니다.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('정의되지 않은 경로는 Not Found 화면을 렌더링한다', () => {

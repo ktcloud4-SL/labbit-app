@@ -73,6 +73,7 @@ export function ClassDetailPage() {
   const classDetail = classQuery.data
   const labInstanceStatus = classDetail.myLabInstance?.status
   const isWorkspaceReady = labInstanceStatus === 'READY'
+  const isInstructor = classDetail.myRole === 'INSTRUCTOR'
 
   return (
     <main className="app-page">
@@ -85,7 +86,7 @@ export function ClassDetailPage() {
           <h1>{classDetail.name}</h1>
           <p className="muted">현재 사용자 기준의 Class 컨텍스트입니다.</p>
         </div>
-        {classDetail.myRole === 'INSTRUCTOR' && (
+        {isInstructor && (
           <Link className="secondary-link header-action" to="/lab-specs">
             실습 정의 관리
           </Link>
@@ -107,11 +108,34 @@ export function ClassDetailPage() {
         </article>
       </section>
 
-      {isWorkspaceReady && (
-        <Link className="primary-link inline-link" to={`/classes/${encodeURIComponent(classDetail.id)}/lab`}>
-          Lab Workspace 열기
-        </Link>
-      )}
+      <div className="action-row">
+        {isInstructor && !classDetail.activeLabExecution && (
+          <Link
+            className="primary-link inline-link"
+            to={`/classes/${encodeURIComponent(classDetail.id)}/provision`}
+          >
+            새 환경 생성
+          </Link>
+        )}
+
+        {isInstructor && classDetail.activeLabExecution && (
+          <Link
+            className="secondary-link"
+            to={`/lab-executions/${encodeURIComponent(classDetail.activeLabExecution.id)}`}
+          >
+            현재 실습 운영 보기
+          </Link>
+        )}
+
+        {isWorkspaceReady && (
+          <Link
+            className="primary-link inline-link"
+            to={`/classes/${encodeURIComponent(classDetail.id)}/lab`}
+          >
+            Lab Workspace 열기
+          </Link>
+        )}
+      </div>
 
       {classDetail.myLabInstance && !isWorkspaceReady && (
         <p className="muted">

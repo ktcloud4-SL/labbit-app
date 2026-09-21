@@ -137,6 +137,51 @@ describe('httpLabbitApi', () => {
     expect(new Headers(init.headers).get('If-Match')).toBe('"lab-spec-v2"')
     expect(init.body).toBe(JSON.stringify(labSpecWrite))
   })
+
+  it('Provision 요청에 Idempotency-Key와 선택 학생을 전달한다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          operationId: 'operation-1',
+          target: {
+            type: 'LAB_EXECUTION',
+            id: 'execution-1',
+          },
+        }),
+        {
+          status: 202,
+          headers: {
+            'content-type': 'application/json',
+          },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpLabbitApi.createLabExecution(
+      'class/demo',
+      {
+        labSpecId: 'lab-spec-1',
+        targetStudentIds: ['user-a', 'user-b'],
+      },
+      'idem-test-1',
+    )
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/classes/class%2Fdemo/lab-executions',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({
+          labSpecId: 'lab-spec-1',
+          targetStudentIds: ['user-a', 'user-b'],
+        }),
+      }),
+    )
+
+    const init = fetchMock.mock.calls[0][1] as RequestInit
+    expect(new Headers(init.headers).get('Idempotency-Key')).toBe('idem-test-1')
+  })
 })
 
 describe('mockLabbitApi', () => {

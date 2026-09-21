@@ -2,7 +2,13 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { ClassDetail, LabSpec, Me } from '../shared/api/contracts'
+import type {
+  ClassDetail,
+  LabExecution,
+  LabSpec,
+  Me,
+  Operation,
+} from '../shared/api/contracts'
 import { HttpError } from '../shared/api/httpClient'
 import type { LabbitApi } from '../shared/api/labbitApi'
 import { AppProviders } from './providers/AppProviders'
@@ -34,8 +40,44 @@ const classDetailFixture: ClassDetail = {
   },
 }
 
-const labSpecFixture: LabSpec = {
-  id: 'lab-spec-kubernetes-basic',
+const labExecutionFixture: LabExecution = {
+  id: 'execution-kubernetes-basic',
+  classId: 'class-kubernetes-basic',
+  labSpecId: 'lab-spec-kubernetes-basic',
+  instructorUserId: meFixture.id,
+  targetUserIds: ['user-student-a'],
+  status: 'ACTIVE',
+  labInstances: [
+    {
+      id: 'lab-instance-heechul',
+      userId: meFixture.id,
+      status: 'READY',
+      generation: 1,
+    },
+    {
+      id: 'lab-instance-student-a',
+      userId: 'user-student-a',
+      status: 'ERROR',
+      generation: 1,
+    },
+  ],
+}
+
+const operationFixture: Operation = {
+  id: 'operation-provision-1',
+  type: 'PROVISION',
+  status: 'SUCCEEDED',
+  stage: 'READY',
+  target: {
+    type: 'LAB_EXECUTION',
+    id: labExecutionFixture.id,
+  },
+  createdAt: '2026-09-21T00:00:00Z',
+  updatedAt: '2026-09-21T00:01:00Z',
+  finishedAt: '2026-09-21T00:01:00Z',
+}
+
+const labSpecFixture: LabSpec = {  id: 'lab-spec-kubernetes-basic',
   name: 'Kubernetes Basic Lab',
   description: 'Multi-VM LabSpec',
   ownerUserId: meFixture.id,
@@ -98,6 +140,12 @@ function createApi(overrides: Partial<LabbitApi> = {}): LabbitApi {
       },
       etag: '"lab-spec-v2"',
     }),
+    createLabExecution: async () => ({
+      operationId: operationFixture.id,
+      target: operationFixture.target,
+    }),
+    getLabExecution: async () => labExecutionFixture,
+    getOperation: async () => operationFixture,
     ...overrides,
   }
 }
@@ -328,6 +376,133 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       screen.queryByRole('button', { name: 'LabSpec 저장' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('활성 LabExecution이 있으면 중복 Provision을 막고 현재 실행을 안내한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/provision',
+      createApi({
+        listClassMemberships: async () => ({
+          items: [
+            {
+              userId: 'user-student-a',
+              username: 'student-a',
+              role: 'STUDENT',
+            },
+          ],
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByText('이미 활성 LabExecution이 있습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: '현재 실습 운영 보기' }),
+    ).toBeInTheDocument()
+  })
+
+  it('LabSpec과 학생을 확인한 뒤 Provision Operation을 시작한다', async () => {
+    const createLabExecution = vi.fn(async () => ({
+      operationId: 'operation-new',
+      target: {
+        type: 'LAB_EXECUTION',
+        id: 'execution-new',
+      },
+    }))
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/provision',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          activeLabExecution: undefined,
+          myLabInstance: undefined,
+        }),
+        listClassMemberships: async () => ({
+          items: [
+            {
+              userId: 'user-student-a',
+              username: 'student-a',
+              role: 'STUDENT',
+            },
+          ],
+        }),
+        createLabExecution,
+        getOperation: async () => ({
+          ...operationFixture,
+          id: 'operation-new',
+          target: {
+            type: 'LAB_EXECUTION',
+            id: 'execution-new',
+          },
+        }),
+      }),
+    )
+
+    await screen.findByRole('heading', {
+      name: 'Kubernetes Basic · 새 환경 생성',
+    })
+
+    fireEvent.change(screen.getByLabelText('LabSpec'), {
+      target: { value: labSpecFixture.id },
+    })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: '생성 내용 확인' }))
+    expect(
+      await screen.findByRole('heading', { name: 'Provision 시작 전 확인' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Provision 시작' }))
+
+    expect(
+      await screen.findByRole('heading', { name: '완료' }),
+    ).toBeInTheDocument()
+    expect(createLabExecution).toHaveBeenCalledWith(
+      classDetailFixture.id,
+      {
+        labSpecId: labSpecFixture.id,
+        targetStudentIds: ['user-student-a'],
+      },
+      expect.any(String),
+    )
+  })
+
+  it('Operation RECONCILING을 중복 재실행이 아닌 Provider 확인 상태로 표시한다', async () => {
+    renderRoute(
+      '/operations/operation-reconciling',
+      createApi({
+        getOperation: async () => ({
+          ...operationFixture,
+          id: 'operation-reconciling',
+          status: 'RECONCILING',
+          stage: 'VERIFY_PROVIDER_STATE',
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', {
+        name: '실제 Provider 상태 확인 중',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '같은 작업을 다시 실행하지 않고 Provider의 실제 상태를 확인하고 있습니다.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('LabExecution의 학생별 부분 실패를 개별 상태로 표시한다', async () => {
+    renderRoute('/lab-executions/execution-kubernetes-basic')
+
+    expect(
+      await screen.findByRole('heading', { name: '실습 운영 상태' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('일부 LabInstance에 오류가 있습니다.'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('ERROR')).toBeInTheDocument()
   })
 
   it('Lab placeholder route와 classId를 보호 route 안에서 렌더링한다', async () => {

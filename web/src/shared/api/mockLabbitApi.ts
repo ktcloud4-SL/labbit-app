@@ -4,9 +4,11 @@ import type {
   ClassMembershipList,
   LabSpec,
   LabSpecList,
+  LabExecution,
   LabSpecWrite,
   LoginRequest,
   Me,
+  Operation,
 } from './contracts'
 import { HttpError } from './httpClient'
 import type { LabbitApi } from './labbitApi'
@@ -38,6 +40,11 @@ export const mockClasses: ClassList = {
       },
     },
     {
+      id: 'class-docker-basic',
+      name: 'Docker Basic',
+      myRole: 'INSTRUCTOR',
+    },
+    {
       id: 'class-linux-networking',
       name: 'Linux Networking',
       myRole: 'STUDENT',
@@ -61,6 +68,11 @@ const mockClassDetails: Record<string, ClassDetail> = {
       generation: 1,
     },
   },
+  'class-docker-basic': {
+    id: 'class-docker-basic',
+    name: 'Docker Basic',
+    myRole: 'INSTRUCTOR',
+  },
   'class-linux-networking': {
     id: 'class-linux-networking',
     name: 'Linux Networking',
@@ -69,6 +81,25 @@ const mockClassDetails: Record<string, ClassDetail> = {
 }
 
 const mockMemberships: Record<string, ClassMembershipList> = {
+  'class-docker-basic': {
+    items: [
+      {
+        userId: mockMe.id,
+        username: mockMe.username,
+        role: 'INSTRUCTOR',
+      },
+      {
+        userId: 'user-student-a',
+        username: 'student-a',
+        role: 'STUDENT',
+      },
+      {
+        userId: 'user-student-b',
+        username: 'student-b',
+        role: 'STUDENT',
+      },
+    ],
+  },
   'class-kubernetes-basic': {
     items: [
       {
@@ -140,10 +171,45 @@ const initialLabSpecs: LabSpec[] = [
   },
 ]
 
+const initialLabExecutions: LabExecution[] = [
+  {
+    id: 'execution-kubernetes-basic',
+    classId: 'class-kubernetes-basic',
+    labSpecId: 'lab-spec-kubernetes-basic',
+    instructorUserId: mockMe.id,
+    targetUserIds: ['user-student-a', 'user-student-b'],
+    status: 'ACTIVE',
+    labInstances: [
+      {
+        id: 'lab-instance-heechul',
+        userId: mockMe.id,
+        status: 'READY',
+        generation: 1,
+      },
+      {
+        id: 'lab-instance-student-a',
+        userId: 'user-student-a',
+        status: 'READY',
+        generation: 1,
+      },
+      {
+        id: 'lab-instance-student-b',
+        userId: 'user-student-b',
+        status: 'ERROR',
+        generation: 1,
+      },
+    ],
+  },
+]
+
 let signedIn = false
 let labSpecs: LabSpec[] = []
 let labSpecVersions = new Map<string, number>()
 let nextLabSpecId = 1
+let labExecutions: LabExecution[] = []
+let operations = new Map<string, Operation>()
+let operationReads = new Map<string, number>()
+let nextExecutionId = 1
 
 function cloneLabSpec(labSpec: LabSpec): LabSpec {
   return {
@@ -161,6 +227,14 @@ function resetMockData() {
   labSpecs = initialLabSpecs.map(cloneLabSpec)
   labSpecVersions = new Map(initialLabSpecs.map((labSpec) => [labSpec.id, 1]))
   nextLabSpecId = 1
+  labExecutions = initialLabExecutions.map((execution) => ({
+    ...execution,
+    targetUserIds: [...execution.targetUserIds],
+    labInstances: execution.labInstances.map((instance) => ({ ...instance })),
+  }))
+  operations = new Map()
+  operationReads = new Map()
+  nextExecutionId = 1
 }
 
 resetMockData()
@@ -302,6 +376,146 @@ export const mockLabbitApi: LabbitApi = {
     return {
       labSpec: cloneLabSpec(updated),
       etag: currentEtag(labSpecId),
+    }
+  },
+
+  async createLabExecution(classId, input) {
+    requireSession()
+
+    const classDetail = mockClassDetails[classId]
+    if (!classDetail) {
+      throw new HttpError(404)
+    }
+    if (classDetail.myRole !== 'INSTRUCTOR') {
+      throw new HttpError(403)
+    }
+    if (classDetail.activeLabExecution) {
+      throw new HttpError(409)
+    }
+
+    const students = new Set(
+      (mockMemberships[classId]?.items ?? [])
+        .filter((membership) => membership.role === 'STUDENT')
+        .map((membership) => membership.userId),
+    )
+
+    if (
+      input.targetStudentIds.length === 0 ||
+      input.targetStudentIds.some((userId) => !students.has(userId))
+    ) {
+      throw new HttpError(422)
+    }
+
+    const executionId = `execution-created-${nextExecutionId++}`
+    const operationId = `operation-provision-${executionId}`
+    const labInstances = [
+      {
+        id: `lab-instance-${executionId}-instructor`,
+        userId: mockMe.id,
+        status: 'PROVISIONING',
+        generation: 1,
+      },
+      ...input.targetStudentIds.map((userId) => ({
+        id: `lab-instance-${executionId}-${userId}`,
+        userId,
+        status: 'PROVISIONING',
+        generation: 1,
+      })),
+    ]
+
+    const execution: LabExecution = {
+      id: executionId,
+      classId,
+      labSpecId: input.labSpecId,
+      instructorUserId: mockMe.id,
+      targetUserIds: [...input.targetStudentIds],
+      status: 'PROVISIONING',
+      labInstances,
+    }
+
+    labExecutions.push(execution)
+    classDetail.activeLabExecution = {
+      id: executionId,
+      status: 'PROVISIONING',
+    }
+
+    const now = new Date().toISOString()
+    operations.set(operationId, {
+      id: operationId,
+      type: 'PROVISION',
+      status: 'RUNNING',
+      stage: 'PROVISIONING',
+      target: {
+        type: 'LAB_EXECUTION',
+        id: executionId,
+      },
+      createdAt: now,
+      updatedAt: now,
+      startedAt: now,
+    })
+    operationReads.set(operationId, 0)
+
+    return {
+      operationId,
+      target: {
+        type: 'LAB_EXECUTION',
+        id: executionId,
+      },
+    }
+  },
+
+  async getLabExecution(labExecutionId) {
+    requireSession()
+
+    const execution = labExecutions.find((item) => item.id === labExecutionId)
+    if (!execution) {
+      throw new HttpError(404)
+    }
+
+    return {
+      ...execution,
+      targetUserIds: [...execution.targetUserIds],
+      labInstances: execution.labInstances.map((instance) => ({ ...instance })),
+    }
+  },
+
+  async getOperation(operationId) {
+    requireSession()
+
+    const operation = operations.get(operationId)
+    if (!operation) {
+      throw new HttpError(404)
+    }
+
+    const reads = (operationReads.get(operationId) ?? 0) + 1
+    operationReads.set(operationId, reads)
+
+    if (reads >= 2 && operation.status === 'RUNNING') {
+      operation.status = 'SUCCEEDED'
+      operation.stage = 'READY'
+      operation.updatedAt = new Date().toISOString()
+      operation.finishedAt = operation.updatedAt
+
+      const execution = labExecutions.find(
+        (item) => item.id === operation.target.id,
+      )
+      if (execution) {
+        execution.status = 'ACTIVE'
+        execution.labInstances = execution.labInstances.map((instance) => ({
+          ...instance,
+          status: 'READY',
+        }))
+        const classDetail = mockClassDetails[execution.classId]
+        if (classDetail?.activeLabExecution) {
+          classDetail.activeLabExecution.status = 'ACTIVE'
+        }
+      }
+    }
+
+    return {
+      ...operation,
+      target: { ...operation.target },
+      error: operation.error ? { ...operation.error } : undefined,
     }
   },
 }

@@ -438,3 +438,138 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.selection-list {
+  display: grid;
+  gap: 10px;
+}
+
+.selection-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e5e8ef;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fafbfc;
+  cursor: pointer;
+}
+
+.selection-row input {
+  width: 18px;
+  height: 18px;
+}
+
+.selection-row span {
+  display: grid;
+  gap: 3px;
+}
+
+.selection-row small {
+  color: #7d8492;
+}
+
+.compact-empty {
+  padding: 20px;
+}
+
+.confirmation-card {
+  display: grid;
+  gap: 18px;
+  border: 1px solid #e5e8ef;
+  border-radius: 14px;
+  padding: 24px;
+  background: #fff;
+}
+
+.confirmation-card h2 {
+  margin: 0;
+}
+
+.summary-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  border: 1px solid #eceef4;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.summary-list > div {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 16px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eceef4;
+}
+
+.summary-list > div:last-child {
+  border-bottom: 0;
+}
+
+.summary-list dt {
+  color: #6f7685;
+  font-weight: 800;
+}
+
+.summary-list dd {
+  margin: 0;
+}
+
+.operation-status {
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: #eceafe;
+  color: #554dbb;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.operation-grid {
+  margin-top: 18px;
+}
+
+.status-table {
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid #e5e8ef;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.status-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 0.7fr;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 16px;
+  border-bottom: 1px solid #eceef4;
+}
+
+.status-row:last-child {
+  border-bottom: 0;
+}
+
+.status-header {
+  background: #f7f8fb;
+  color: #6f7685;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 720px) {
+  .summary-list > div,
+  .status-row {
+    grid-template-columns: 1fr;
+  }
+}

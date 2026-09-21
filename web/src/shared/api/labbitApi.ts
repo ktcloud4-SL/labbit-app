@@ -2,11 +2,15 @@ import type {
   ClassDetail,
   ClassList,
   ClassMembershipList,
+  CreateLabExecutionRequest,
+  LabExecution,
   LabSpec,
   LabSpecList,
   LabSpecWrite,
   LoginRequest,
   Me,
+  Operation,
+  OperationAccepted,
   VersionedLabSpec,
 } from './contracts'
 import { request, requestWithMetadata } from './httpClient'
@@ -18,6 +22,9 @@ export const labbitQueryKeys = {
   classMemberships: (classId: string) => ['classes', classId, 'memberships'] as const,
   labSpecs: ['lab-specs'] as const,
   labSpec: (labSpecId: string) => ['lab-specs', labSpecId] as const,
+  labExecution: (labExecutionId: string) =>
+    ['lab-executions', labExecutionId] as const,
+  operation: (operationId: string) => ['operations', operationId] as const,
 }
 
 export interface LabbitApi {
@@ -35,6 +42,13 @@ export interface LabbitApi {
     input: LabSpecWrite,
     etag: string,
   ): Promise<VersionedLabSpec>
+  createLabExecution(
+    classId: string,
+    input: CreateLabExecutionRequest,
+    idempotencyKey: string,
+  ): Promise<OperationAccepted>
+  getLabExecution(labExecutionId: string): Promise<LabExecution>
+  getOperation(operationId: string): Promise<Operation>
 }
 
 export const httpLabbitApi: LabbitApi = {
@@ -107,5 +121,28 @@ export const httpLabbitApi: LabbitApi = {
       labSpec: response.data,
       etag: response.headers.get('etag') ?? undefined,
     }
+  },
+
+  createLabExecution(classId, input, idempotencyKey) {
+    return request<OperationAccepted>(
+      `/classes/${encodeURIComponent(classId)}/lab-executions`,
+      {
+        method: 'POST',
+        headers: {
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: JSON.stringify(input),
+      },
+    )
+  },
+
+  getLabExecution(labExecutionId) {
+    return request<LabExecution>(
+      `/lab-executions/${encodeURIComponent(labExecutionId)}`,
+    )
+  },
+
+  getOperation(operationId) {
+    return request<Operation>(`/operations/${encodeURIComponent(operationId)}`)
   },
 }

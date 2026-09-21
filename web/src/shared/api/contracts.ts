@@ -108,3 +108,46 @@ export interface VersionedLabSpec {
   labSpec: LabSpec
   etag?: string
 }
+
+export interface CreateLabExecutionRequest {
+  labSpecId: ResourceId
+  targetStudentIds: ResourceId[]
+}
+
+export interface LabExecution {
+  id: ResourceId
+  classId: ResourceId
+  labSpecId: ResourceId
+  instructorUserId: ResourceId
+  targetUserIds: ResourceId[]
+  status: string
+  labInstances: LabInstanceSummary[]
+}
+
+export interface ResourceRef {
+  type: string
+  id: ResourceId
+}
+
+export interface OperationAccepted {
+  operationId: ResourceId
+  target: ResourceRef
+}
+
+export interface OperationError {
+  code: string
+  message?: string
+}
+
+export interface Operation {
+  id: ResourceId
+  type: string
+  status: string
+  stage?: string
+  target: ResourceRef
+  error?: OperationError
+  createdAt: string
+  updatedAt: string
+  startedAt?: string
+  finishedAt?: string
+}

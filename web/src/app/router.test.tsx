@@ -926,6 +926,30 @@ describe('Auth·Class·LabSpec routing', () => {
     )
   })
 
+  it('Cleanup 422는 Reset 재현 오류 문구로 표시하지 않는다', async () => {
+    renderRoute(
+      '/lab-executions/execution-kubernetes-basic',
+      createApi({
+        cleanupLabExecution: async () => {
+          throw new HttpError(422)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', { name: '실습 운영 상태' })
+    fireEvent.click(screen.getByRole('button', { name: 'Class Cleanup' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cleanup 시작' }))
+
+    expect(
+      await screen.findByText(
+        '현재 LabExecution 상태에서는 Cleanup을 시작할 수 없습니다. 상태와 진행 중인 작업을 확인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/Reset 재현 조건/),
+    ).not.toBeInTheDocument()
+  })
+
   it('READY LabInstance만 직접 Workspace URL 진입을 허용한다', async () => {
     renderRoute('/classes/class-kubernetes-basic/lab')
 

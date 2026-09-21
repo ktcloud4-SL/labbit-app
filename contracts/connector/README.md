@@ -66,6 +66,17 @@ connector.schema.json
 
 Terminal Data WSS는 별도 `terminal-data.schema.json`을 사용합니다.
 
+### JSON Text application message 크기 제한
+
+Control WSS와 Terminal lifecycle/Data WSS의 **JSON Text application message는 WebSocket fragmentation 재조립 후 최대 1 MiB(1,048,576 bytes)** 입니다. 이 제한은 JSON decode, Schema validation, 선택 Trace metadata 정상화보다 먼저 적용합니다.
+
+- 수신 구현은 read limit을 먼저 설정해 최대 크기를 넘는 JSON Text message 전체를 메모리에 무제한 적재하지 않습니다.
+- 1 MiB를 넘으면 해당 message를 파싱하거나 `traceparent`/`tracestate`를 제거해 계속 처리하지 않고 WebSocket close code **1009 (Message Too Big)** 로 연결을 종료할 수 있습니다. 별도 `ERROR` frame 전송은 요구하지 않습니다.
+- Schema의 `traceparent` 512자 / `tracestate` 1024자 제한은 이 전체 message guard를 통과한 뒤 적용되는 field 수준 검증입니다.
+- Terminal PTY Binary byte stream은 이 JSON Text 한도의 대상이 아닙니다. Binary transport도 구현에서 bounded read/write를 사용하지만 별도 application payload 한도는 부하 테스트와 Runtime에서 검증합니다.
+
+이 한도를 넘는 정상 control payload가 필요해지면 v1 구현마다 임의 값을 키우지 않고 Connector 계약을 먼저 변경합니다.
+
 ## 4. Control 연결 수명
 
 연결이 성립되면 Connector가 `HELLO`를 보내고 SaaS가 `HELLO_ACK`로 현재 heartbeat 설정을 전달합니다.
@@ -238,7 +249,7 @@ Context는 **connection 전역이 아니라 명령/작업별**로 관리합니�
 
 `traceparent`/`tracestate`는 기존 Schema에서 **optional을 유지**합니다. 다음 규칙은 producer가 올바른 값을 전송해야 한다는 요구를 완화하지 않으며, consumer가 관측 오류를 업무 실패로 확대하지 않기 위한 처리 규칙입니다.
 
-1. 인증, 전체 frame 크기 한도와 JSON 구조 검사를 먼저 적용합니다. 비정상 JSON, 인증 실패, 필수 업무 field 오류는 기존 방식으로 거부합니다.
+1. 인증 후 위의 **1 MiB JSON Text application message 한도**를 JSON decode·Trace field 정상화보다 먼저 적용합니다. 초과 message는 1009로 종료하며 비정상 JSON, 인증 실패, 필수 업무 field 오류는 기존 방식으로 거부합니다.
 2. Schema validation/강타입 decoding 전에 선택 Trace field만 정상화할 수 있어야 합니다. 값의 타입·길이·W3C 유효성이 잘못되면 그 관측 field를 제거한 뒤 나머지 업무 Envelope를 정상 검증합니다. 기존 field 길이 제한을 늘리거나 payload 전체를 검증에서 제외하지 않습니다.
 3. `traceparent`가 없거나 유효하지 않으면 `tracestate`도 사용하지 않습니다. `traceparent`는 유효하고 `tracestate`만 잘못됐으면 `tracestate`만 폐기합니다. W3C 유효성은 표준 propagator/parser로 확인합니다.
 4. Trace 문제만으로 `OPERATION_ACK` 거절, `OPERATION_RESULT=FAILED`, WSS 종료 또는 Provider retry를 발생시키지 않습니다. 잘못된 값 원문은 로그에 복사하지 않고 안전한 진단만 남깁니다.
@@ -328,7 +339,7 @@ Terminal Data WSS의 Session 종료 의미는 `terminal-data.schema.json`과 Bro
 - Credential/Token/Authorization/Provider raw payload/Terminal 본문이 메시지·로그에 남지 않습니다.
 - 각 JSON Schema 정상/비정상 message validation이 동작합니다.
 - 명령별 유효한 Trace Context가 ACK/PROGRESS/RESULT에 유지되고 병렬 item/다른 generation과 섞이지 않습니다.
-- Context 없음/잘못된 타입·길이·W3C 값, 잘못된 tracestate만 존재하는 경우에도 정상 업무 Envelope는 처리됩니다. 인증·업무 필드 오류는 계속 거부합니다.
+- 1 MiB 이하의 message에서 Context 없음/잘못된 타입·길이·W3C 값, 잘못된 tracestate만 존재하는 경우에도 정상 업무 Envelope는 처리됩니다. 전체 JSON Text message 한도 초과, 인증·업무 필드 오류는 계속 거부합니다.
 - 미샘플링 Context도 유지하고, Context 유실/재접속을 mutation retry로 처리하지 않습니다.
 - Connector가 중앙 OTLP 연결을 만들지 않고, PTY Binary frame에 Trace metadata를 추가하지 않습니다.
 

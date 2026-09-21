@@ -224,7 +224,7 @@ export function LabExecutionPage() {
                 {isInstructor &&
                   !rowIsInstructor &&
                   execution.status === 'ACTIVE' &&
-                  labInstance.status === 'READY' && (
+                  (labInstance.status === 'READY' || labInstance.status === 'ERROR') && (
                     <>
                       {' · '}
                       <button
@@ -244,15 +244,7 @@ export function LabExecutionPage() {
                       </button>
                     </>
                   )}
-                {isInstructor &&
-                  !rowIsInstructor &&
-                  execution.status === 'ACTIVE' &&
-                  labInstance.status === 'ERROR' && (
-                    <>
-                      {' · '}
-                      <span className="muted">Cleanup 필요</span>
-                    </>
-                  )}
+
               </span>
             </div>
           )

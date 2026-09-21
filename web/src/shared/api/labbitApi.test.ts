@@ -326,6 +326,52 @@ describe('mockLabbitApi', () => {
     expect(detail.myLabInstance).toBeUndefined()
   })
 
+  it('Mock Cleanup 후 Class 목록과 상세의 active execution 상태가 함께 갱신된다', async () => {
+    await mockLabbitApi.login(mockCredentials)
+
+    const accepted = await mockLabbitApi.cleanupLabExecution(
+      'execution-kubernetes-basic',
+      'idem-cleanup-list-sync',
+    )
+
+    await mockLabbitApi.getOperation(accepted.operationId)
+    await mockLabbitApi.getOperation(accepted.operationId)
+
+    const list = await mockLabbitApi.listClasses()
+    const summary = list.items.find(
+      (classItem) => classItem.id === 'class-kubernetes-basic',
+    )
+    const detail = await mockLabbitApi.getClass('class-kubernetes-basic')
+
+    expect(summary?.activeLabExecution).toBeUndefined()
+    expect(detail.activeLabExecution).toBeUndefined()
+  })
+
+  it('Mock session reset은 변경된 Class 상태를 초기 fixture로 복원한다', async () => {
+    await mockLabbitApi.login(mockCredentials)
+
+    const accepted = await mockLabbitApi.cleanupLabExecution(
+      'execution-kubernetes-basic',
+      'idem-cleanup-reset-state',
+    )
+    await mockLabbitApi.getOperation(accepted.operationId)
+    await mockLabbitApi.getOperation(accepted.operationId)
+
+    resetMockApiSession()
+    await mockLabbitApi.login(mockCredentials)
+
+    const detail = await mockLabbitApi.getClass('class-kubernetes-basic')
+    expect(detail.activeLabExecution).toMatchObject({
+      id: 'execution-kubernetes-basic',
+      status: 'ACTIVE',
+    })
+    expect(detail.myLabInstance).toMatchObject({
+      id: 'lab-instance-heechul',
+      status: 'READY',
+      generation: 1,
+    })
+  })
+
   it('Mock LabSpec 수정은 stale ETag를 412로 거절한다', async () => {
     await mockLabbitApi.login(mockCredentials)
 

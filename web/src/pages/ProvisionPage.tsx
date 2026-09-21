@@ -36,15 +36,20 @@ export function ProvisionPage() {
     enabled: Boolean(resolvedClassId),
     retry: false,
   })
+  const canLoadProvisionInputs =
+    classQuery.data?.myRole === 'INSTRUCTOR' &&
+    !classQuery.data.activeLabExecution
+
   const membershipsQuery = useQuery({
     queryKey: labbitQueryKeys.classMemberships(resolvedClassId),
     queryFn: () => api.listClassMemberships(resolvedClassId),
-    enabled: Boolean(resolvedClassId),
+    enabled: Boolean(resolvedClassId && canLoadProvisionInputs),
     retry: false,
   })
   const labSpecsQuery = useQuery({
     queryKey: labbitQueryKeys.labSpecs,
     queryFn: () => api.listLabSpecs(),
+    enabled: canLoadProvisionInputs,
     retry: false,
   })
 
@@ -73,16 +78,15 @@ export function ProvisionPage() {
     )
   }
 
-  if (classQuery.isPending || membershipsQuery.isPending || labSpecsQuery.isPending) {
+  if (classQuery.isPending) {
     return (
       <main className="app-page">
-        <LoadingState label="Provision 정보를 준비하는 중..." />
+        <LoadingState label="Class 권한을 확인하는 중..." />
       </main>
     )
   }
 
-  const queryErrors = [classQuery.error, membershipsQuery.error, labSpecsQuery.error]
-  if (queryErrors.some((error) => error instanceof HttpError && error.status === 401)) {
+  if (classQuery.error instanceof HttpError && classQuery.error.status === 401) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
 
@@ -97,17 +101,21 @@ export function ProvisionPage() {
     )
   }
 
-  if (
-    classQuery.error ||
-    membershipsQuery.error ||
-    labSpecsQuery.error ||
-    !classQuery.data ||
-    !membershipsQuery.data ||
-    !labSpecsQuery.data
-  ) {
+  if (classQuery.error instanceof HttpError && classQuery.error.status === 404) {
     return (
       <main className="app-page">
-        <ErrorState message="Provision에 필요한 정보를 불러오지 못했습니다." />
+        <ErrorState message="Class를 찾을 수 없습니다." />
+        <Link className="secondary-link" to="/classes">
+          수업 목록으로 돌아가기
+        </Link>
+      </main>
+    )
+  }
+
+  if (classQuery.error || !classQuery.data) {
+    return (
+      <main className="app-page">
+        <ErrorState message="Class 정보를 불러오지 못했습니다." />
       </main>
     )
   }
@@ -147,6 +155,32 @@ export function ProvisionPage() {
             현재 실습 운영 보기
           </Link>
         </section>
+      </main>
+    )
+  }
+
+  if (membershipsQuery.isPending || labSpecsQuery.isPending) {
+    return (
+      <main className="app-page">
+        <LoadingState label="Provision 정보를 준비하는 중..." />
+      </main>
+    )
+  }
+
+  const inputErrors = [membershipsQuery.error, labSpecsQuery.error]
+  if (inputErrors.some((error) => error instanceof HttpError && error.status === 401)) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  }
+
+  if (
+    membershipsQuery.error ||
+    labSpecsQuery.error ||
+    !membershipsQuery.data ||
+    !labSpecsQuery.data
+  ) {
+    return (
+      <main className="app-page">
+        <ErrorState message="Provision에 필요한 정보를 불러오지 못했습니다." />
       </main>
     )
   }

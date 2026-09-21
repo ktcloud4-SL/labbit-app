@@ -154,6 +154,34 @@ saas:
       note: >-
         첫 통합 전에 개발·운영이 SDK exporter와 Collector receiver가 같은 protocol을
         사용하도록 선택·검증합니다. 이 계약은 모든 SDK 환경변수가 자동 적용된다고 보장하지 않습니다.
+    OTEL_EXPORTER_OTLP_TRACES_HEADERS:
+      required: false
+      secret: true
+      format: "OpenTelemetry OTLP header list"
+      note: >-
+        Collector가 bearer/API-key 등 application-layer header 인증을 요구할 때 플랫폼이
+        Secret으로 주입합니다. 값 원문은 로그·진단·Confluence/Git에 기록하지 않습니다.
+    OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE:
+      required: false
+      secret: false
+      format: "PEM CA certificate file path"
+      note: >-
+        Collector TLS가 시스템 기본 trust store에 없는 CA를 사용할 때 플랫폼이 PEM CA 파일을
+        mount하고 이 경로를 주입합니다. 인증서 본문을 환경변수 값으로 넣지 않습니다.
+    OTEL_EXPORTER_OTLP_TRACES_CLIENT_CERTIFICATE:
+      required: false
+      secret: false
+      format: "PEM client certificate file path"
+      note: >-
+        Collector가 mTLS client certificate를 요구할 때 플랫폼이 certificate 파일을 mount하고
+        이 경로를 주입합니다.
+    OTEL_EXPORTER_OTLP_TRACES_CLIENT_KEY:
+      required: false
+      secret: false
+      format: "PEM client private key file path"
+      note: >-
+        Collector가 mTLS를 요구할 때 플랫폼이 Secret으로 private key 파일을 mount하고
+        이 경로를 주입합니다. 파일 내용은 로그·진단에 기록하지 않습니다.
 
   database:
     startup_migration: false
@@ -361,7 +389,7 @@ platform_responsibilities:
   - "LABBIT_SHUTDOWN_GRACE를 connection draining 및 terminationGracePeriodSeconds와 조정합니다."
   - "SQL migration을 별도의 deployment/CI step으로 실행합니다."
   - "D-23/D-25 민감정보 규칙에 따라 stdout/stderr JSON log를 수집합니다."
-  - "SaaS에만 OTLP endpoint/protocol과 필요한 TLS·인증을 주입하고 Collector·Trace 저장/조회 경로를 운영합니다."
+  - "SaaS에만 OTLP endpoint/protocol과 필요한 header·CA·mTLS certificate/key 입력을 Secret/file mount로 주입하고 Collector·Trace 저장/조회 경로를 운영합니다."
   - "Trace 수집 검증 환경에서 otlp export를 활성화하고 Sampling·보존·비용·Log correlation을 개발팀과 검증합니다."
   - "RDS connectivity, backup/restore, DR, DNS/TLS, deployment rollback을 관리합니다."
 

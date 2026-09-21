@@ -192,6 +192,11 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
     ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 로그인이 필요합니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('Login → /me → Class 목록 Flow를 수행한다', async () => {
@@ -221,6 +226,43 @@ describe('Auth·Class·LabSpec routing', () => {
     })
     expect(getMe).toHaveBeenCalled()
     expect(screen.getByText('Kubernetes Basic')).toBeInTheDocument()
+    expect(screen.getByText('heechul')).toBeInTheDocument()
+    expect(screen.getByText('SamsungLions Org')).toBeInTheDocument()
+  })
+
+  it('App Shell에서 로그아웃하면 Login으로 돌아가고 사용자 cache를 비운다', async () => {
+    const logout = vi.fn(async () => {})
+
+    renderRoute('/classes', createApi({ logout }))
+
+    await screen.findByRole('heading', { name: '수업' })
+    fireEvent.click(screen.getByRole('button', { name: '로그아웃' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('로그아웃했습니다.')).toBeInTheDocument()
+    expect(logout).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('SamsungLions Org')).not.toBeInTheDocument()
+  })
+
+  it('이미 만료된 세션의 logout 401도 안전하게 Login으로 종료한다', async () => {
+    renderRoute(
+      '/classes',
+      createApi({
+        logout: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', { name: '수업' })
+    fireEvent.click(screen.getByRole('button', { name: '로그아웃' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('로그아웃했습니다.')).toBeInTheDocument()
   })
 
   it('Class 목록이 비어 있으면 Empty 상태를 렌더링한다', async () => {

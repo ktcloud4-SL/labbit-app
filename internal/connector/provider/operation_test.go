@@ -71,6 +71,45 @@ func TestDispatchOperationPreservesUnknownWithoutRetry(t *testing.T) {
 	}
 }
 
+func TestDispatchOperationKeepsRawProviderErrorsOffTheResult(t *testing.T) {
+	calls := 0
+	mock := &MockProvider{ProvisionFunc: func(_ context.Context, _ ProvisionRequest) (OperationResult, error) {
+		calls++
+		return OperationResult{ProviderResources: []ResourceResult{{ResourceRef: ResourceRef{
+			ResourceType: "SERVER", ProviderID: "possibly-created", Generation: 1,
+		}}}}, errors.New("raw provider response must remain local")
+	}}
+	result, err := DispatchOperation(context.Background(), mock, OperationCommand{
+		Correlation:      Correlation{OperationID: "operation-7", LabInstanceID: "lab-instance-7", Generation: 1},
+		MutationType:     MutationProvision,
+		CreationSnapshot: &CreationSnapshot{},
+	})
+	if err != nil || calls != 1 || result.Outcome != OutcomeUnknown || result.Error != nil {
+		t.Fatalf("unclassified error result = %+v, err = %v, calls = %d", result, err, calls)
+	}
+	if len(result.ProviderResources) != 1 || result.ProviderResources[0].ProviderID != "possibly-created" {
+		t.Fatalf("partial resource identifiers were lost: %+v", result.ProviderResources)
+	}
+}
+
+func TestDispatchOperationPreservesKnownFailure(t *testing.T) {
+	mock := &MockProvider{ProvisionFunc: func(_ context.Context, _ ProvisionRequest) (OperationResult, error) {
+		return OperationResult{
+			Outcome:           OutcomeFailed,
+			ProviderResources: []ResourceResult{},
+			Error:             &SafeError{Code: "MOCK_PREFLIGHT_FAILED", Message: "Preflight failed"},
+		}, nil
+	}}
+	result, err := DispatchOperation(context.Background(), mock, OperationCommand{
+		Correlation:      Correlation{OperationID: "operation-8", LabInstanceID: "lab-instance-8", Generation: 1},
+		MutationType:     MutationProvision,
+		CreationSnapshot: &CreationSnapshot{},
+	})
+	if err != nil || result.Outcome != OutcomeFailed || result.Error == nil || result.Error.Code != "MOCK_PREFLIGHT_FAILED" {
+		t.Fatalf("classified failure result = %+v, %v", result, err)
+	}
+}
+
 func TestDispatchOperationKeepsOriginalSnapshotAndResources(t *testing.T) {
 	snapshot := &CreationSnapshot{
 		VMs:           []VMSpec{{VMKey: "workspace", ImageID: "image-1"}},

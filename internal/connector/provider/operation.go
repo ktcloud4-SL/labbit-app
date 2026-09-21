@@ -24,8 +24,9 @@ type OperationCommand struct {
 	ProviderResources []ResourceRef
 }
 
-// DispatchOperation routes one mutation to one Provider call. It does not retry or
-// decide whether a Provider error means FAILED or UNKNOWN.
+// DispatchOperation routes one mutation to one Provider call without retrying.
+// Its own errors occur before any Provider call; an unclassified Provider error
+// becomes UNKNOWN without exposing the raw error to Control.
 func DispatchOperation(ctx context.Context, p Provider, command OperationCommand) (OperationResult, error) {
 	if command.OperationID == "" || command.LabInstanceID == "" || command.Generation < 1 {
 		return OperationResult{}, ErrInvalidCommand
@@ -39,30 +40,45 @@ func DispatchOperation(ctx context.Context, p Provider, command OperationCommand
 		if command.CreationSnapshot == nil {
 			return OperationResult{}, ErrInvalidCommand
 		}
-		return p.Provision(ctx, ProvisionRequest{
+		result, err := p.Provision(ctx, ProvisionRequest{
 			Correlation:      command.Correlation,
 			CreationSnapshot: cloneSnapshot(*command.CreationSnapshot),
 		})
+		return safeOperationResult(result, err), nil
 	case MutationReset:
 		if command.CreationSnapshot == nil {
 			return OperationResult{}, ErrInvalidCommand
 		}
-		return p.Reset(ctx, ResetRequest{
+		result, err := p.Reset(ctx, ResetRequest{
 			Correlation:       command.Correlation,
 			CreationSnapshot:  cloneSnapshot(*command.CreationSnapshot),
 			ProviderResources: cloneResources(command.ProviderResources),
 		})
+		return safeOperationResult(result, err), nil
 	case MutationCleanup:
 		if command.ProviderResources == nil {
 			return OperationResult{}, ErrInvalidCommand
 		}
-		return p.Cleanup(ctx, CleanupRequest{
+		result, err := p.Cleanup(ctx, CleanupRequest{
 			Correlation:       command.Correlation,
 			ProviderResources: cloneResources(command.ProviderResources),
 		})
+		return safeOperationResult(result, err), nil
 	default:
 		return OperationResult{}, ErrInvalidCommand
 	}
+}
+
+func safeOperationResult(result OperationResult, err error) OperationResult {
+	if err != nil || (result.Outcome != OutcomeSucceeded && result.Outcome != OutcomeFailed && result.Outcome != OutcomeUnknown) {
+		resources := make([]ResourceResult, len(result.ProviderResources))
+		copy(resources, result.ProviderResources)
+		return OperationResult{Outcome: OutcomeUnknown, ProviderResources: resources}
+	}
+	if result.ProviderResources == nil {
+		result.ProviderResources = []ResourceResult{}
+	}
+	return result
 }
 
 func cloneSnapshot(snapshot CreationSnapshot) CreationSnapshot {

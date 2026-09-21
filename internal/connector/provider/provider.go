@@ -109,13 +109,14 @@ type CleanupRequest struct {
 
 type ReconcileRequest struct {
 	Correlation
-	KnownResources     []ResourceRef
+	KnownResources []ResourceRef
 	// DiscoverCandidates is the effective value after applying the wire default of true.
 	DiscoverCandidates bool
 }
 
 // Provider is the boundary called by Control; implementations own Provider API calls.
-// A returned error is internal and must not be forwarded as a wire error or blindly retried.
+// Known failures belong in OperationResult with a classified outcome and SafeError.
+// An unclassified Go error is internal; DispatchOperation converts it to UNKNOWN.
 type Provider interface {
 	Provision(context.Context, ProvisionRequest) (OperationResult, error)
 	Reset(context.Context, ResetRequest) (OperationResult, error)

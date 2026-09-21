@@ -497,6 +497,25 @@ describe('Auth·Class·LabSpec routing', () => {
     ).toBeInTheDocument()
   })
 
+  it('알 수 없는 Operation 상태는 fallback 문구로 표시한다', async () => {
+    renderRoute(
+      '/operations/operation-future-status',
+      createApi({
+        getOperation: async () => ({
+          ...operationFixture,
+          id: 'operation-future-status',
+          status: 'WAITING_PROVIDER',
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', {
+        name: '상태 확인 필요 · WAITING_PROVIDER',
+      }),
+    ).toBeInTheDocument()
+  })
+
   it('Operation RECONCILING을 중복 재실행이 아닌 Provider 확인 상태로 표시한다', async () => {
     renderRoute(
       '/operations/operation-reconciling',
@@ -694,6 +713,54 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('직접 Workspace URL에서 DELETING 상태는 정리 중으로 안내한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          myLabInstance: {
+            ...classDetailFixture.myLabInstance!,
+            status: 'DELETING',
+          },
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByText('실습 환경을 정리하고 있습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('직접 Workspace URL의 알 수 없는 상태는 임의 해석 없이 fallback 처리한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          myLabInstance: {
+            ...classDetailFixture.myLabInstance!,
+            status: 'PAUSED',
+          },
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByText(
+        '현재 LabInstance 상태에서는 Workspace를 열 수 없습니다.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '알 수 없는 상태(PAUSED)를 임의로 해석하지 않고 최신 상태를 확인합니다.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('직접 Workspace URL의 Class 403을 권한 없음으로 닫는다', async () => {

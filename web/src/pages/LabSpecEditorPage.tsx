@@ -450,6 +450,11 @@ export function LabSpecEditorPage() {
         result.result,
       )
     },
+    onError: (error) => {
+      if (error instanceof HttpError && error.status === 401) {
+        queryClient.removeQueries({ queryKey: labbitQueryKeys.me })
+      }
+    },
   })
 
   if (meQuery.isPending || (!isNew && labSpecQuery.isPending)) {

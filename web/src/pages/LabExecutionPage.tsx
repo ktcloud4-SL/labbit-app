@@ -213,26 +213,38 @@ export function LabExecutionPage() {
               <strong>{labInstance.status}</strong>
               <span>
                 {labInstance.generation}
-                {isInstructor && !rowIsInstructor && execution.status === 'ACTIVE' && (
-                  <>
-                    {' · '}
-                    <button
-                      className="text-button danger-text"
-                      type="button"
-                      onClick={() => {
-                        mutation.reset()
-                        setPendingAction({
-                          type: 'RESET',
-                          labInstanceId: labInstance.id,
-                          username,
-                          idempotencyKey: createIdempotencyKey(),
-                        })
-                      }}
-                    >
-                      Reset
-                    </button>
-                  </>
-                )}
+                {isInstructor &&
+                  !rowIsInstructor &&
+                  execution.status === 'ACTIVE' &&
+                  labInstance.status === 'READY' && (
+                    <>
+                      {' · '}
+                      <button
+                        className="text-button danger-text"
+                        type="button"
+                        onClick={() => {
+                          mutation.reset()
+                          setPendingAction({
+                            type: 'RESET',
+                            labInstanceId: labInstance.id,
+                            username,
+                            idempotencyKey: createIdempotencyKey(),
+                          })
+                        }}
+                      >
+                        Reset
+                      </button>
+                    </>
+                  )}
+                {isInstructor &&
+                  !rowIsInstructor &&
+                  execution.status === 'ACTIVE' &&
+                  labInstance.status === 'ERROR' && (
+                    <>
+                      {' · '}
+                      <span className="muted">Cleanup 필요</span>
+                    </>
+                  )}
               </span>
             </div>
           )

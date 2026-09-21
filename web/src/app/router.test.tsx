@@ -353,6 +353,42 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(updateLabSpec).toHaveBeenCalled()
   })
 
+  it('LabSpec VM Role 중복을 저장 전에 차단한다', async () => {
+    const createLabSpec = vi.fn(async (input) => ({
+      id: 'lab-spec-created',
+      ownerUserId: meFixture.id,
+      ...input,
+    }))
+
+    renderRoute('/lab-specs/new', createApi({ createLabSpec }))
+
+    await screen.findByRole('heading', { name: '새 LabSpec' })
+    fireEvent.change(screen.getByLabelText('이름'), {
+      target: { value: 'Duplicate Role Lab' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'VM Role 추가' }))
+
+    const roleInputs = screen.getAllByLabelText('Role')
+    const imageInputs = screen.getAllByLabelText('Image 참조')
+    const sizeInputs = screen.getAllByLabelText('Size 참조')
+
+    fireEvent.change(roleInputs[0], { target: { value: 'control' } })
+    fireEvent.change(roleInputs[1], { target: { value: ' control ' } })
+    fireEvent.change(imageInputs[0], { target: { value: 'ubuntu-24.04' } })
+    fireEvent.change(imageInputs[1], { target: { value: 'ubuntu-24.04' } })
+    fireEvent.change(sizeInputs[0], { target: { value: 'medium' } })
+    fireEvent.change(sizeInputs[1], { target: { value: 'medium' } })
+    fireEvent.change(screen.getByLabelText('Workspace VM'), {
+      target: { value: 'control:0' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'LabSpec 저장' }))
+
+    expect(
+      await screen.findByText('VM Role은 LabSpec 안에서 중복될 수 없습니다.'),
+    ).toBeInTheDocument()
+    expect(createLabSpec).not.toHaveBeenCalled()
+  })
+
   it('다른 owner의 LabSpec은 읽기 전용으로 표시한다', async () => {
     renderRoute(
       '/lab-specs/lab-spec-other',

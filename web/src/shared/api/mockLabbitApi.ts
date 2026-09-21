@@ -587,7 +587,7 @@ export const mockLabbitApi: LabbitApi = {
 
     if (reads >= 2 && operation.status === 'RUNNING') {
       operation.status = 'SUCCEEDED'
-      operation.stage = 'READY'
+      operation.stage = operation.type === 'CLEANUP' ? 'COMPLETED' : 'READY'
       operation.updatedAt = new Date().toISOString()
       operation.finishedAt = operation.updatedAt
 

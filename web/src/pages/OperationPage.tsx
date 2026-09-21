@@ -76,7 +76,11 @@ export function OperationPage() {
   }
 
   if (operationQuery.error instanceof HttpError && operationQuery.error.status === 401) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return <Navigate
+      to="/login"
+      replace
+      state={{ from: `${location.pathname}${location.search}`, reason: 'sessionExpired' }}
+    />
   }
 
   if (operationQuery.error instanceof HttpError && operationQuery.error.status === 403) {

@@ -531,6 +531,14 @@ describe('Auth·Class·LabSpec routing', () => {
     renderRoute(
       '/lab-executions/execution-kubernetes-basic',
       createApi({
+        getLabExecution: async () => ({
+          ...labExecutionFixture,
+          labInstances: labExecutionFixture.labInstances.map((instance) =>
+            instance.id === 'lab-instance-student-a'
+              ? { ...instance, status: 'READY' }
+              : instance,
+          ),
+        }),
         listClassMemberships: async () => ({
           items: [
             {
@@ -565,6 +573,14 @@ describe('Auth·Class·LabSpec routing', () => {
       'lab-instance-student-a',
       expect.any(String),
     )
+  })
+
+  it('ERROR 학생 LabInstance에는 Reset 대신 Cleanup 필요를 안내한다', async () => {
+    renderRoute('/lab-executions/execution-kubernetes-basic')
+
+    await screen.findByRole('heading', { name: '실습 운영 상태' })
+    expect(screen.queryByRole('button', { name: 'Reset' })).not.toBeInTheDocument()
+    expect(screen.getByText('Cleanup 필요')).toBeInTheDocument()
   })
 
   it('강사는 LabExecution Cleanup을 확인한 뒤 Operation을 시작한다', async () => {

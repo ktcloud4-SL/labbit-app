@@ -139,6 +139,14 @@ export function OperationPage() {
           <p className="muted">
             새 상태가 추가되었을 수 있으므로 성공·실패를 임의로 판단하지 않으며 자동 polling도 중단합니다.
           </p>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={operationQuery.isFetching}
+            onClick={() => void operationQuery.refetch()}
+          >
+            {operationQuery.isFetching ? '상태 확인 중...' : '상태 다시 확인'}
+          </button>
         </section>
       )}
 

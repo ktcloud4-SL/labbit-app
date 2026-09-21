@@ -86,7 +86,11 @@ export function ProvisionPage() {
     )
   }
 
-  if (classQuery.error instanceof HttpError && classQuery.error.status === 401) {
+  if (
+    (classQuery.error instanceof HttpError && classQuery.error.status === 401) ||
+    (provisionMutation.error instanceof HttpError &&
+      provisionMutation.error.status === 401)
+  ) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
 
@@ -221,8 +225,10 @@ export function ProvisionPage() {
 
   const mutationError = provisionMutation.error
   const errorMessage =
-    mutationError instanceof HttpError && mutationError.status === 409
-      ? '활성 LabExecution 또는 다른 변경 작업과 충돌했습니다. 현재 상태를 다시 확인해 주세요.'
+    mutationError instanceof HttpError && mutationError.status === 403
+      ? '현재 계정에는 이 Class의 Provision 권한이 없습니다. 권한이 변경되었을 수 있습니다.'
+      : mutationError instanceof HttpError && mutationError.status === 409
+        ? '활성 LabExecution 또는 다른 변경 작업과 충돌했습니다. 현재 상태를 다시 확인해 주세요.'
       : mutationError instanceof HttpError && mutationError.status === 422
         ? '선택한 LabSpec 또는 학생 대상이 현재 Class 규칙과 맞지 않습니다.'
         : mutationError instanceof HttpError && mutationError.status === 503

@@ -4,7 +4,7 @@
 
 Confluence는 Domain/Data 의미·ownership·결정 이유를 관리하고, 실제 개발 단계에서 사용할 Table/Column/PK/FK/Unique/Index/Check/Trigger 초안은 이 디렉터리에서 관리합니다.
 
-> 현재 상태는 **설계 초안**입니다. 아직 공용 개발 PostgreSQL에 baseline으로 적용·검증한 상태가 아니므로, 백엔드 개발 시작 시 pgx Query와 실제 Migration apply 결과에 따라 `000001`~`000005`를 재정리할 수 있습니다. 최초 공용 개발 DB에 baseline이 적용된 이후에는 기존 Migration을 수정하지 않고 새 번호 Migration을 추가합니다.
+> 현재 상태는 **설계 초안**입니다. 아직 공용 개발 PostgreSQL에 baseline으로 적용·검증한 상태가 아니므로, 백엔드 개발 시작 시 pgx Query와 실제 Migration apply 결과에 따라 `000001`~`000005`를 재정리할 수 있습니다. 최초 공용 개발 DB에 baseline이 적용된 이후에는 기존 Migration을 수정하지 않고 새 번호 Migration을 추가합니다. D-25의 `000006`은 기존 파일을 수정하지 않는 additive Migration이며, 공용 DB 적용 여부를 새로 확인했다는 의미는 아닙니다.
 
 ## 현재 v0.1 Draft Migration
 
@@ -36,6 +36,9 @@ Confluence는 Domain/Data 의미·ownership·결정 이유를 관리하고, 실�
 5. `000005_realtime_sessions.sql`
    - `terminal_sessions`
    - `live_sessions`
+6. `000006_operation_trace_context.sql`
+   - `operations.traceparent` / `operations.tracestate` nullable metadata
+   - D-25 API → Worker Context 복원용이며 기존 업무 제약/상태를 바꾸지 않음
 
 ## 확정된 Domain/Data 모델과의 관계
 
@@ -111,6 +114,25 @@ Browser가 보는 durable 작업은 `operations`, 실제 LabInstance별 실행 �
 PostgreSQL polling Worker는 `operation_items`의 `PENDING` row를 `FOR UPDATE SKIP LOCKED` 방식으로 claim하는 것을 기준으로 합니다. Claim transaction을 commit한 뒤 Connector/OpenStack 작업을 수행하며 외부 Provider 호출 중 DB transaction을 열어 두지 않습니다.
 
 `lease_expires_at`은 같은 Provider Mutation을 즉시 다시 실행할 권한이 아닙니다. RUNNING 작업의 결과가 불명확해지면 D-20/D-24에 따라 `RECONCILING`으로 전환하고 Provider 현실을 먼저 확인합니다.
+
+### D-25: 비동기 Trace Context
+
+`000006`은 `operations`에 nullable `text` 필드 두 개만 추가합니다. `operation_items`마다 원본 Context를 복제하거나 별도 Trace/Span 저장 테이블을 만들지 않습니다.
+
+| 필드 | 저장 의미 |
+| --- | --- |
+| `traceparent` | 새 Operation을 등록할 당시 현재 SaaS Span에서 직렬화한 유효한 W3C Context |
+| `tracestate` | 유효한 traceparent에 동반되는 선택 vendor state. 없거나 잘못되면 NULL |
+
+API는 업무 Operation INSERT와 같은 transaction에서 최소 Context를 저장합니다. Worker는 parent `operations`의 Context를 읽어 자신의 Span을 새로 만들고 item별 명령에 전달합니다. Span 전체, Go context 객체, Baggage, 전체 HTTP header는 저장하지 않습니다. HTTP cancellation과 Worker 실행 lifecycle은 별개입니다.
+
+입력 Context는 저장 **전**에 W3C propagator/parser로 검증하고 Connector wire field의 길이 한도를 넘는 값도 폐기합니다. `traceparent`가 없거나 잘못됐으면 두 필드를 NULL로, `tracestate`만 잘못됐으면 그것만 NULL로 저장합니다. 원문을 오류 로그에 남기지 않습니다. DB에 W3C 정규식/NOT NULL/Unique를 걸어 업무 등록을 막지 않으며, 이 규칙은 DB 접근·업무 무결성 실패를 무시한다는 뜻이 아닙니다.
+
+기존 row는 NULL을 유지합니다. Worker는 Context가 없는 기존 작업도 정상 처리하고 필요 시 새 Trace를 시작합니다. **`operation_id`가 durable 업무 식별자**이며 Trace metadata는 인증·tenant·멱등성 판단이나 `request_fingerprint`에 포함하지 않습니다. Idempotency replay와 Worker 재시작으로 원본 Context를 덮어쓰지 않습니다. 새 처리 시도는 새 Span ID를 사용합니다.
+
+Trace metadata의 보존은 해당 Operation의 접근/보존 경계를 따르며 이 변경만으로 무기한 보존하거나 Trace 본문을 제품 DB에 저장하지 않습니다. 최소 전파 정책/관측 장애 격리는 [Runtime Contract](../../runtime/README.md), Control WSS 처리는 [Connector 계약](../../contracts/connector/README.md#9-공통-correlation)을 따릅니다.
+
+**후속 검증:** 새 DB에 `000001`~`000006` 순차 적용, 기존 `000005` DB에 `000006`만 추가 적용, 기존 row NULL/신규 Context 왕복, HTTP 응답 뒤 Worker 복원, NULL/손상 Context와 Idempotency replay, rollback/재적용 절차를 폐기 가능한 PostgreSQL에서 확인합니다. SQL 파일을 추가한 것만으로 실제 DB 적용 또는 Trace E2E가 완료된 것은 아닙니다.
 
 ## ProviderResource
 

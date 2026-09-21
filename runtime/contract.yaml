@@ -1,8 +1,8 @@
-version: "0.1.0"
+version: "0.1.1"
 kind: "LabbitRuntimeContract"
 
 scope:
-  repository: "rabbit-app"
+  repository: "labbit-app"
   purpose: "애플리케이션과 플랫폼 사이의 Runtime 경계"
   excludes:
     - "Kubernetes Deployment/Pod 개수"
@@ -122,6 +122,38 @@ saas:
         플랫폼 검증을 거친 graceful shutdown budget입니다. v0.1에서는 normative 값을
         고정하지 않으며 integration test 이후 terminationGracePeriodSeconds와 connection
         draining 설정을 함께 조정해야 합니다.
+    OTEL_SERVICE_NAME:
+      required: false
+      secret: false
+      default: "labbit-server"
+      note: "SaaS Trace resource의 service.name입니다. component와 environment도 식별 가능해야 합니다."
+    OTEL_TRACES_EXPORTER:
+      required: false
+      secret: false
+      default: "none"
+      allowed:
+        - none
+        - otlp
+      note: >-
+        none은 로컬 개발/명시적 export 비활성화용 Labbit 기본값이며 Context 전달을 끄지 않습니다.
+        중앙 Trace 인수 검증 환경은 플랫폼이 otlp로 명시적으로 활성화합니다.
+    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:
+      required_when: "OTEL_TRACES_EXPORTER=otlp"
+      secret: false
+      format: "URL"
+      note: >-
+        SaaS 전용 Collector 수신 주소입니다. 자격증명은 URL에 넣지 않습니다.
+        HTTP/protobuf를 선택하면 /v1/traces를 포함한 최종 Trace URL을 주입합니다.
+        실제 주소·TLS·필요한 인증 주입은 플랫폼이 관리하며 Connector에는 주입하지 않습니다.
+    OTEL_EXPORTER_OTLP_TRACES_PROTOCOL:
+      required_when: "OTEL_TRACES_EXPORTER=otlp"
+      secret: false
+      allowed:
+        - grpc
+        - http/protobuf
+      note: >-
+        첫 통합 전에 개발·운영이 SDK exporter와 Collector receiver가 같은 protocol을
+        사용하도록 선택·검증합니다. 이 계약은 모든 SDK 환경변수가 자동 적용된다고 보장하지 않습니다.
 
   database:
     startup_migration: false
@@ -206,8 +238,37 @@ saas:
         - "Live OUTPUT"
         - "workspace file 본문/source code"
     tracing:
+      instrumentation: "OpenTelemetry"
       propagation: "W3C Trace Context"
-      dedicated_trace_backend_required: false
+      exporter: "OTLP"
+      trace_backend_is_application_dependency: false
+      minimum_boundaries:
+        - "HTTP request / Operation 등록"
+        - "OperationItem Worker 처리"
+        - "Connector Control command 전송 / ACK·PROGRESS·RESULT 수신"
+      durable_context:
+        source: "operations.traceparent / operations.tracestate"
+        migration: "db/migrations/000006_operation_trace_context.sql"
+        nullable: true
+        rules:
+          - "새 Operation을 등록할 때 현재 SaaS Span Context를 직렬화해 같은 transaction에 저장합니다."
+          - "Worker는 저장된 Context를 복원하고 자신의 lifecycle을 가진 새 Span을 만듭니다."
+          - "Idempotency replay는 원본 Context를 덮어쓰지 않고 Trace metadata를 request fingerprint에 넣지 않습니다."
+          - "재시작/재처리에서는 새 Span ID를 사용하며 operation_id로 계속 대조합니다."
+      failure_policy:
+        fail_operation_on_invalid_context: false
+        fail_operation_on_export_error: false
+        collector_required_for_liveness_or_readiness: false
+        rules:
+          - "유효하지 않은 Context는 폐기하고 SaaS는 필요 시 새 Trace를 시작합니다. operation_id는 유지합니다."
+          - "Exporter는 제한된 비동기 Queue·timeout을 사용하고 관측 장애로 업무 처리를 무기한 대기시키지 않습니다."
+          - "Trace 전용 설정 오류는 안전한 진단 후 export를 비활성화하며 업무 필수 설정 검증과 구분합니다."
+          - "종료 flush는 남은 shutdown budget 안에서만 수행하고 durable 업무 상태 저장을 우선합니다."
+      note: >-
+        D-25의 중앙 Trace 인수 검증은 유효한 Context와 수집 대상으로 선택된 실행을 기준으로 합니다.
+        Span 이름·Sampling 비율·보존기간은 구현/플랫폼 검증에서 관리합니다.
+        HTTP Span 종료는 비동기 Trace 연결의 종료가 아니며 HTTP request cancellation을 Worker 실행에 재사용하지 않습니다.
+        Collector 장애·미수집·프로세스 crash 때 완전한 Trace를 보장하지 않습니다.
     metrics:
       examples:
         - "HTTP request count/latency/5xx"
@@ -268,10 +329,17 @@ connector:
     log_format: "JSON object per line"
     central_raw_log_shipping_required: false
     central_raw_metric_shipping_required: false
+    central_raw_trace_shipping_required: false
+    tracing:
+      mode: "propagation-only"
+      propagation: "W3C Trace Context"
+      central_export_enabled: false
+      wire_contract: "contracts/connector/README.md#9-공통-correlation"
     note: >-
       SaaS는 Control WSS를 통해 이미 수신하는 metadata를 중앙에서 관측합니다.
-      Connector raw log/metric은 MVP에서는 로컬에 유지하고 동일한 correlation ID를 사용해
-      필요할 때 수동으로 교차 확인합니다.
+      Connector는 명령별 Context를 ACK/PROGRESS/RESULT와 로컬 로그까지 유지하며
+      중앙 OTLP 연결/인증/exporter를 추가하지 않습니다. OpenStack 내부 상세 Span은 중앙 수집하지 않습니다.
+      raw log/metric/trace는 중앙 상시 반출하지 않고 필요할 때 동일 correlation ID로 로컬 로그를 대조합니다.
 
 frontend:
   runtime:
@@ -293,12 +361,17 @@ platform_responsibilities:
   - "LABBIT_SHUTDOWN_GRACE를 connection draining 및 terminationGracePeriodSeconds와 조정합니다."
   - "SQL migration을 별도의 deployment/CI step으로 실행합니다."
   - "D-23/D-25 민감정보 규칙에 따라 stdout/stderr JSON log를 수집합니다."
+  - "SaaS에만 OTLP endpoint/protocol과 필요한 TLS·인증을 주입하고 Collector·Trace 저장/조회 경로를 운영합니다."
+  - "Trace 수집 검증 환경에서 otlp export를 활성화하고 Sampling·보존·비용·Log correlation을 개발팀과 검증합니다."
   - "RDS connectivity, backup/restore, DR, DNS/TLS, deployment rollback을 관리합니다."
 
 non_guarantees:
   - >-
     이 contract는 application, Kubernetes deployment, database migration,
     graceful shutdown 또는 multi-replica routing이 이미 구현·검증되었다고 주장하지 않습니다.
+  - >-
+    v0.1.1의 Trace 설정/전파 계약은 OTel SDK 초기화, OTLP exporter, Operation Context 저장/복원,
+    Connector propagation 또는 Tempo E2E가 이미 구현·검증되었다는 뜻이 아닙니다.
   - >-
     shutdown duration, replica count, HPA threshold, load-balancer timeout처럼 platform/integration
     validation에 맡긴 값은 API compatibility guarantee가 아닙니다.

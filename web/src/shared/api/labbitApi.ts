@@ -48,6 +48,14 @@ export interface LabbitApi {
     idempotencyKey: string,
   ): Promise<OperationAccepted>
   getLabExecution(labExecutionId: string): Promise<LabExecution>
+  cleanupLabExecution(
+    labExecutionId: string,
+    idempotencyKey: string,
+  ): Promise<OperationAccepted>
+  resetLabInstance(
+    labInstanceId: string,
+    idempotencyKey: string,
+  ): Promise<OperationAccepted>
   getOperation(operationId: string): Promise<Operation>
 }
 
@@ -139,6 +147,30 @@ export const httpLabbitApi: LabbitApi = {
   getLabExecution(labExecutionId) {
     return request<LabExecution>(
       `/lab-executions/${encodeURIComponent(labExecutionId)}`,
+    )
+  },
+
+  cleanupLabExecution(labExecutionId, idempotencyKey) {
+    return request<OperationAccepted>(
+      `/lab-executions/${encodeURIComponent(labExecutionId)}/cleanup`,
+      {
+        method: 'POST',
+        headers: {
+          'Idempotency-Key': idempotencyKey,
+        },
+      },
+    )
+  },
+
+  resetLabInstance(labInstanceId, idempotencyKey) {
+    return request<OperationAccepted>(
+      `/lab-instances/${encodeURIComponent(labInstanceId)}/reset`,
+      {
+        method: 'POST',
+        headers: {
+          'Idempotency-Key': idempotencyKey,
+        },
+      },
     )
   },
 

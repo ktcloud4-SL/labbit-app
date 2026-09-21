@@ -33,7 +33,7 @@ function blockedWorkspaceCopy(status: string) {
       return {
         tone: 'warning' as const,
         title: '현재 LabInstance 상태에서는 Workspace를 열 수 없습니다.',
-        detail: `알 수 없는 상태(\${status})를 임의로 해석하지 않고 최신 상태를 확인합니다.`,
+        detail: `알 수 없는 상태(${status})를 임의로 해석하지 않고 최신 상태를 확인합니다.`,
       }
   }
 }

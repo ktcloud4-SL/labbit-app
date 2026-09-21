@@ -100,6 +100,10 @@ function LabSpecForm({
       name: form.name.trim(),
       description: form.description?.trim() || undefined,
       startupScript: form.startupScript?.trim() || undefined,
+      workspaceVm: {
+        ...form.workspaceVm,
+        role: form.workspaceVm.role.trim(),
+      },
       vms: form.vms.map((vm) => ({
         ...vm,
         role: vm.role.trim(),
@@ -121,6 +125,12 @@ function LabSpecForm({
       )
     ) {
       setValidationError('각 VM의 Role, Image 참조, Size 참조와 Count를 확인해 주세요.')
+      return
+    }
+
+    const roles = normalized.vms.map((vm) => vm.role)
+    if (new Set(roles).size !== roles.length) {
+      setValidationError('VM Role은 LabSpec 안에서 중복될 수 없습니다.')
       return
     }
 
@@ -317,10 +327,10 @@ function LabSpecForm({
             }}
           >
             <option value=":0">선택해 주세요</option>
-            {form.vms.flatMap((vm) =>
+            {form.vms.flatMap((vm, vmIndex) =>
               Array.from({ length: Math.max(1, vm.count) }, (_, instanceIndex) => (
                 <option
-                  key={`${vm.role}:${instanceIndex}`}
+                  key={`${vmIndex}:${vm.role}:${instanceIndex}`}
                   value={`${vm.role}:${instanceIndex}`}
                 >
                   {vm.role || '(Role 미입력)'} · #{instanceIndex + 1}

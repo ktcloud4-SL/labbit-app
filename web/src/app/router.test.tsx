@@ -497,6 +497,26 @@ describe('Auth·Class·LabSpec routing', () => {
     ).toBeInTheDocument()
   })
 
+  it('알 수 없는 Operation 상태는 성공·실패로 단정하지 않고 fallback한다', async () => {
+    renderRoute(
+      '/operations/operation-future',
+      createApi({
+        getOperation: async () => ({
+          ...operationFixture,
+          id: 'operation-future',
+          status: 'WAITING_FOR_PROVIDER',
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', {
+        name: '상태 확인 필요 · WAITING_FOR_PROVIDER',
+      }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('알 수 없는 Operation 상태입니다.')).toBeInTheDocument()
+  })
+
   it('Operation RECONCILING을 중복 재실행이 아닌 Provider 확인 상태로 표시한다', async () => {
     renderRoute(
       '/operations/operation-reconciling',
@@ -532,6 +552,47 @@ describe('Auth·Class·LabSpec routing', () => {
       screen.getByText('일부 LabInstance에 오류가 있습니다.'),
     ).toBeInTheDocument()
     expect(screen.getByText('ERROR')).toBeInTheDocument()
+  })
+
+  it('STUDENT는 직접 URL로 실습 운영 화면에 진입할 수 없다', async () => {
+    renderRoute(
+      '/lab-executions/execution-kubernetes-basic',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          myRole: 'STUDENT',
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByText('INSTRUCTOR만 실습 운영 화면에 접근할 수 있습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Class Cleanup' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('알 수 없는 LabExecution 상태에서는 destructive action을 숨긴다', async () => {
+    renderRoute(
+      '/lab-executions/execution-kubernetes-basic',
+      createApi({
+        getLabExecution: async () => ({
+          ...labExecutionFixture,
+          status: 'PAUSED_BY_PROVIDER',
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByText('알 수 없는 LabExecution 상태입니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Class Cleanup' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Reset' }),
+    ).not.toBeInTheDocument()
   })
 
   it('강사는 학생 LabInstance Reset을 확인한 뒤 Operation을 시작한다', async () => {

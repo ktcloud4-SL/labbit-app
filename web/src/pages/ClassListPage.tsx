@@ -25,7 +25,11 @@ export function ClassListPage() {
   }
 
   if (classesQuery.error instanceof HttpError && classesQuery.error.status === 401) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return <Navigate
+      to="/login"
+      replace
+      state={{ from: `${location.pathname}${location.search}`, reason: 'sessionExpired' }}
+    />
   }
 
   if (classesQuery.error) {

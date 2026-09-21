@@ -7,6 +7,37 @@ import { labbitQueryKeys } from '../shared/api/labbitApi'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
+function blockedWorkspaceCopy(status: string) {
+  switch (status) {
+    case 'PENDING':
+    case 'PROVISIONING':
+      return {
+        tone: 'warning' as const,
+        title: '실습 환경을 준비하고 있습니다.',
+        detail:
+          'LabInstance가 READY가 되면 Editor, Terminal, Preview Workspace를 사용할 수 있습니다.',
+      }
+    case 'ERROR':
+      return {
+        tone: 'error' as const,
+        title: '실습 환경에 오류가 있어 Workspace를 열 수 없습니다.',
+        detail: 'Class 운영 화면에서 현재 LabInstance 상태와 후속 조치를 확인해 주세요.',
+      }
+    case 'DELETING':
+      return {
+        tone: 'warning' as const,
+        title: '실습 환경을 정리하고 있습니다.',
+        detail: 'Cleanup이 끝날 때까지 Workspace를 사용할 수 없습니다.',
+      }
+    default:
+      return {
+        tone: 'warning' as const,
+        title: '현재 LabInstance 상태에서는 Workspace를 열 수 없습니다.',
+        detail: `알 수 없는 상태(\${status})를 임의로 해석하지 않고 최신 상태를 확인합니다.`,
+      }
+  }
+}
+
 export function LabPage() {
   const api = useLabbitApi()
   const location = useLocation()
@@ -99,7 +130,7 @@ export function LabPage() {
   }
 
   if (labInstance.status !== 'READY') {
-    const isError = labInstance.status === 'ERROR'
+    const blockedCopy = blockedWorkspaceCopy(labInstance.status)
 
     return (
       <main className="app-page">
@@ -120,17 +151,11 @@ export function LabPage() {
           <span className="operation-status">{labInstance.status}</span>
         </header>
 
-        <section className={`notice-card ${isError ? 'notice-error' : 'notice-warning'}`}>
-          <strong>
-            {isError
-              ? '실습 환경에 오류가 있어 Workspace를 열 수 없습니다.'
-              : '실습 환경을 준비하고 있습니다.'}
-          </strong>
-          <p className="muted">
-            {isError
-              ? 'Class 운영 화면에서 현재 LabInstance 상태와 후속 조치를 확인해 주세요.'
-              : 'LabInstance가 READY가 되면 Editor, Terminal, Preview Workspace를 사용할 수 있습니다.'}
-          </p>
+        <section
+          className={`notice-card ${blockedCopy.tone === 'error' ? 'notice-error' : 'notice-warning'}`}
+        >
+          <strong>{blockedCopy.title}</strong>
+          <p className="muted">{blockedCopy.detail}</p>
           {classDetail.activeLabExecution && (
             <Link
               className="secondary-link"

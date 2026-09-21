@@ -85,6 +85,11 @@ export function ClassDetailPage() {
           <h1>{classDetail.name}</h1>
           <p className="muted">현재 사용자 기준의 Class 컨텍스트입니다.</p>
         </div>
+        {classDetail.myRole === 'INSTRUCTOR' && (
+          <Link className="secondary-link header-action" to="/lab-specs">
+            실습 정의 관리
+          </Link>
+        )}
       </header>
 
       <section className="detail-grid">

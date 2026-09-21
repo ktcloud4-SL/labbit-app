@@ -9,6 +9,12 @@ export interface ProblemDetails {
   [key: string]: unknown
 }
 
+export interface HttpResponse<T> {
+  data: T
+  status: number
+  headers: Headers
+}
+
 export class HttpError extends Error {
   constructor(
     public readonly status: number,
@@ -39,7 +45,10 @@ async function readProblem(response: Response): Promise<ProblemDetails | undefin
   }
 }
 
-export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function requestWithMetadata<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<HttpResponse<T>> {
   const headers = new Headers(init.headers)
   headers.set('Accept', 'application/json, application/problem+json')
 
@@ -57,9 +66,16 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     throw new HttpError(response.status, await readProblem(response))
   }
 
-  if (response.status === 204) {
-    return undefined as T
-  }
+  const data =
+    response.status === 204 ? (undefined as T) : ((await response.json()) as T)
 
-  return (await response.json()) as T
+  return {
+    data,
+    status: response.status,
+    headers: response.headers,
+  }
+}
+
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  return (await requestWithMetadata<T>(path, init)).data
 }

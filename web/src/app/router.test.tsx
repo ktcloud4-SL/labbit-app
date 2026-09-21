@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { ClassDetail, Me } from '../shared/api/contracts'
+import type { ClassDetail, LabSpec, Me } from '../shared/api/contracts'
 import { HttpError } from '../shared/api/httpClient'
 import type { LabbitApi } from '../shared/api/labbitApi'
 import { AppProviders } from './providers/AppProviders'
@@ -34,6 +34,26 @@ const classDetailFixture: ClassDetail = {
   },
 }
 
+const labSpecFixture: LabSpec = {
+  id: 'lab-spec-kubernetes-basic',
+  name: 'Kubernetes Basic Lab',
+  description: 'Multi-VM LabSpec',
+  ownerUserId: meFixture.id,
+  vms: [
+    {
+      role: 'control',
+      imageRef: 'ubuntu-24.04',
+      sizeRef: 'medium',
+      count: 1,
+    },
+  ],
+  workspaceVm: {
+    role: 'control',
+    instanceIndex: 0,
+  },
+  internetOutbound: true,
+}
+
 function createApi(overrides: Partial<LabbitApi> = {}): LabbitApi {
   return {
     login: async () => {},
@@ -51,6 +71,33 @@ function createApi(overrides: Partial<LabbitApi> = {}): LabbitApi {
     }),
     getClass: async () => classDetailFixture,
     listClassMemberships: async () => ({ items: [] }),
+    listLabSpecs: async () => ({
+      items: [
+        {
+          id: labSpecFixture.id,
+          name: labSpecFixture.name,
+          description: labSpecFixture.description,
+          ownerUserId: labSpecFixture.ownerUserId,
+        },
+      ],
+    }),
+    getLabSpec: async () => ({
+      labSpec: labSpecFixture,
+      etag: '"lab-spec-v1"',
+    }),
+    createLabSpec: async (input) => ({
+      id: 'lab-spec-created',
+      ownerUserId: meFixture.id,
+      ...input,
+    }),
+    updateLabSpec: async (_labSpecId, input) => ({
+      labSpec: {
+        id: labSpecFixture.id,
+        ownerUserId: meFixture.id,
+        ...input,
+      },
+      etag: '"lab-spec-v2"',
+    }),
     ...overrides,
   }
 }
@@ -69,7 +116,7 @@ function renderRoute(path: string, api: LabbitApi = createApi()) {
   return router
 }
 
-describe('Auth·Class routing', () => {
+describe('Auth·Class·LabSpec routing', () => {
   it('미인증 사용자가 보호 route에 진입하면 Login으로 이동한다', async () => {
     renderRoute(
       '/classes',
@@ -136,6 +183,7 @@ describe('Auth·Class routing', () => {
     expect(screen.getByText('INSTRUCTOR')).toBeInTheDocument()
     expect(screen.getByText('READY')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Lab Workspace 열기' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '실습 정의 관리' })).toBeInTheDocument()
   })
 
   it('LabInstance가 READY가 아니면 Workspace 진입 링크를 노출하지 않는다', async () => {
@@ -212,6 +260,74 @@ describe('Auth·Class routing', () => {
     )
 
     expect(await screen.findByText('수업을 찾을 수 없습니다.')).toBeInTheDocument()
+  })
+
+  it('LabSpec 목록에서 소유 여부와 편집 진입을 표시한다', async () => {
+    renderRoute('/lab-specs')
+
+    expect(
+      await screen.findByRole('heading', { name: '실습 정의' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Kubernetes Basic Lab')).toBeInTheDocument()
+    expect(screen.getByText('내 LabSpec')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '편집' })).toBeInTheDocument()
+  })
+
+  it('owner는 LabSpec 상세를 편집할 수 있다', async () => {
+    renderRoute('/lab-specs/lab-spec-kubernetes-basic')
+
+    expect(
+      await screen.findByRole('heading', { name: 'Kubernetes Basic Lab' }),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('이름')).toHaveValue('Kubernetes Basic Lab')
+    expect(screen.getByLabelText('Role')).toHaveValue('control')
+    expect(screen.getByRole('button', { name: 'LabSpec 저장' })).toBeInTheDocument()
+  })
+
+  it('LabSpec stale update 412를 덮어쓰지 않고 안내한다', async () => {
+    const updateLabSpec = vi.fn(async () => {
+      throw new HttpError(412)
+    })
+
+    renderRoute(
+      '/lab-specs/lab-spec-kubernetes-basic',
+      createApi({ updateLabSpec }),
+    )
+
+    await screen.findByRole('heading', { name: 'Kubernetes Basic Lab' })
+    fireEvent.click(screen.getByRole('button', { name: 'LabSpec 저장' }))
+
+    expect(
+      await screen.findByText(
+        '다른 곳에서 LabSpec이 수정되었습니다. 최신 내용을 다시 불러온 뒤 다시 저장해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(updateLabSpec).toHaveBeenCalled()
+  })
+
+  it('다른 owner의 LabSpec은 읽기 전용으로 표시한다', async () => {
+    renderRoute(
+      '/lab-specs/lab-spec-other',
+      createApi({
+        getLabSpec: async () => ({
+          labSpec: {
+            ...labSpecFixture,
+            id: 'lab-spec-other',
+            ownerUserId: 'user-other',
+          },
+          etag: '"other-v1"',
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByText(
+        '이 LabSpec은 다른 Instructor가 소유하고 있어 현재 계정에서는 읽기만 할 수 있습니다.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'LabSpec 저장' }),
+    ).not.toBeInTheDocument()
   })
 
   it('Lab placeholder route와 classId를 보호 route 안에서 렌더링한다', async () => {

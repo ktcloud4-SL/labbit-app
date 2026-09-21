@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import type { LabSpecWrite } from './contracts'
 import { httpLabbitApi } from './labbitApi'
 import {
   mockCredentials,
@@ -7,6 +8,23 @@ import {
   mockMe,
   resetMockApiSession,
 } from './mockLabbitApi'
+
+const labSpecWrite: LabSpecWrite = {
+  name: 'Kubernetes Basic',
+  vms: [
+    {
+      role: 'control',
+      imageRef: 'ubuntu-24.04',
+      sizeRef: 'medium',
+      count: 1,
+    },
+  ],
+  workspaceVm: {
+    role: 'control',
+    instanceIndex: 0,
+  },
+  internetOutbound: true,
+}
 
 describe('httpLabbitApi', () => {
   afterEach(() => {
@@ -62,6 +80,65 @@ describe('httpLabbitApi', () => {
       }),
     )
   })
+
+  it('LabSpec 상세의 ETag를 consumer metadata로 보존한다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 'lab-spec-1',
+          name: labSpecWrite.name,
+          ownerUserId: 'user-heechul',
+          ...labSpecWrite,
+        }),
+        {
+          status: 200,
+          headers: {
+            'content-type': 'application/json',
+            etag: '"lab-spec-v2"',
+          },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await httpLabbitApi.getLabSpec('lab/spec')
+
+    expect(result.etag).toBe('"lab-spec-v2"')
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/lab-specs/lab%2Fspec',
+      expect.objectContaining({
+        credentials: 'include',
+      }),
+    )
+  })
+
+  it('LabSpec 수정 시 최신 ETag를 If-Match로 전달한다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 'lab-spec-1',
+          name: labSpecWrite.name,
+          ownerUserId: 'user-heechul',
+          ...labSpecWrite,
+        }),
+        {
+          status: 200,
+          headers: {
+            'content-type': 'application/json',
+            etag: '"lab-spec-v3"',
+          },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpLabbitApi.updateLabSpec('lab-spec-1', labSpecWrite, '"lab-spec-v2"')
+
+    const init = fetchMock.mock.calls[0][1] as RequestInit
+    expect(init.method).toBe('PUT')
+    expect(new Headers(init.headers).get('If-Match')).toBe('"lab-spec-v2"')
+    expect(init.body).toBe(JSON.stringify(labSpecWrite))
+  })
 })
 
 describe('mockLabbitApi', () => {
@@ -97,6 +174,20 @@ describe('mockLabbitApi', () => {
 
     await expect(mockLabbitApi.getClass('missing-class')).rejects.toMatchObject({
       status: 404,
+    })
+  })
+
+  it('Mock LabSpec 수정은 stale ETag를 412로 거절한다', async () => {
+    await mockLabbitApi.login(mockCredentials)
+
+    await expect(
+      mockLabbitApi.updateLabSpec(
+        'lab-spec-kubernetes-basic',
+        labSpecWrite,
+        '"stale"',
+      ),
+    ).rejects.toMatchObject({
+      status: 412,
     })
   })
 })

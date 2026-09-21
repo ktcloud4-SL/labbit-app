@@ -7,6 +7,20 @@ import { labbitQueryKeys } from '../shared/api/labbitApi'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
+function workspaceStatusMessage(status: string) {
+  switch (status) {
+    case 'PENDING':
+    case 'PROVISIONING':
+      return '실습 환경이 READY 상태가 되면 Workspace를 열 수 있습니다.'
+    case 'ERROR':
+      return '실습 환경에 오류가 있어 Workspace를 열 수 없습니다. 상태를 확인해 주세요.'
+    case 'DELETING':
+      return '실습 환경을 정리하는 중이라 Workspace를 열 수 없습니다.'
+    default:
+      return `현재 LabInstance 상태(\${status})에서는 Workspace를 열 수 없습니다.`
+  }
+}
+
 export function ClassDetailPage() {
   const api = useLabbitApi()
   const location = useLocation()
@@ -137,12 +151,8 @@ export function ClassDetailPage() {
         )}
       </div>
 
-      {classDetail.myLabInstance && !isWorkspaceReady && (
-        <p className="muted">
-          {labInstanceStatus === 'ERROR'
-            ? '실습 환경에 오류가 있어 Workspace를 열 수 없습니다. 상태를 확인해 주세요.'
-            : '실습 환경이 READY 상태가 되면 Workspace를 열 수 있습니다.'}
-        </p>
+      {classDetail.myLabInstance && !isWorkspaceReady && labInstanceStatus && (
+        <p className="muted">{workspaceStatusMessage(labInstanceStatus)}</p>
       )}
     </main>
   )

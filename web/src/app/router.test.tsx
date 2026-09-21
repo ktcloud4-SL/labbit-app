@@ -663,6 +663,50 @@ describe('Auth·Class·LabSpec routing', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('직접 Workspace URL의 DELETING 상태를 정리 중으로 표시한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          myLabInstance: {
+            ...classDetailFixture.myLabInstance!,
+            status: 'DELETING',
+          },
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByText('실습 환경을 정리하고 있습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('알 수 없는 LabInstance 상태는 준비 중으로 오인하지 않고 fallback한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          myLabInstance: {
+            ...classDetailFixture.myLabInstance!,
+            status: 'PAUSED_BY_PROVIDER',
+          },
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByText('알 수 없는 LabInstance 상태입니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText('실습 환경을 준비하고 있습니다.'),
+    ).not.toBeInTheDocument()
+  })
+
   it('직접 Workspace URL에서도 ERROR 상태는 진입을 막는다', async () => {
     renderRoute(
       '/classes/class-kubernetes-basic/lab',

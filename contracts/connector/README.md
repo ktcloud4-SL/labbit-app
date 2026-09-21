@@ -66,6 +66,17 @@ connector.schema.json
 
 Terminal Data WSS는 별도 `terminal-data.schema.json`을 사용합니다.
 
+### JSON Text application message 크기 제한
+
+Control WSS와 Terminal lifecycle/Data WSS의 **JSON Text application message는 WebSocket fragmentation 재조립 후 최대 1 MiB(1,048,576 bytes)** 입니다. 이 제한은 JSON decode, Schema validation, 선택 Trace metadata 정상화보다 먼저 적용합니다.
+
+- 수신 구현은 read limit을 먼저 설정해 최대 크기를 넘는 JSON Text message 전체를 메모리에 무제한 적재하지 않습니다.
+- 1 MiB를 넘으면 해당 message를 파싱하거나 `traceparent`/`tracestate`를 제거해 계속 처리하지 않고 WebSocket close code **1009 (Message Too Big)** 로 연결을 종료할 수 있습니다. 별도 `ERROR` frame 전송은 요구하지 않습니다.
+- Schema의 `traceparent` 512자 / `tracestate` 1024자 제한은 이 전체 message guard를 통과한 뒤 적용되는 field 수준 검증입니다.
+- Terminal PTY Binary byte stream은 이 JSON Text 한도의 대상이 아닙니다. Binary transport도 구현에서 bounded read/write를 사용하지만 별도 application payload 한도는 부하 테스트와 Runtime에서 검증합니다.
+
+이 한도를 넘는 정상 control payload가 필요해지면 v1 구현마다 임의 값을 키우지 않고 Connector 계약을 먼저 변경합니다.
+
 ## 4. Control 연결 수명
 
 연결이 성립되면 Connector가 `HELLO`를 보내고 SaaS가 `HELLO_ACK`로 현재 heartbeat 설정을 전달합니다.
@@ -146,7 +157,7 @@ Browser Session Cookie, Password, Terminal Session Token은 Connector로 전달�
 
 ```text
 Connector
-   └─ outbound WSS 443 ───────────────────> Terminal / Live Relay
+   └─ outbound WSS 443 ────────────────────> Terminal / Live Relay
 
 wss://<saas-host>/connector/v1/terminal-data
 Sec-WebSocket-Protocol: labbit.connector-terminal.v1
@@ -217,6 +228,36 @@ Live fan-out, STUDENT 권한, 학생별 bounded Queue, slow consumer 처리는 �
 
 PTY Binary content에 Trace Context나 correlation envelope를 붙이지 않습니다.
 
+### D-25: MVP Trace 참여 방식
+
+**SaaS는 OTel Span 생성·OTLP export, Connector는 propagation-only**입니다. Connector에 중앙 Collector/Tempo로 직접 전송하는 exporter나 추가 인증/외부 연결을 만들지 않습니다. 경량 propagator/API 라이브러리 사용은 가능하지만 Connector 로컬 Span을 중앙에 보내는 요구는 아닙니다. Runtime 전송 설정과 API → Worker durable Context는 [Runtime Contract](../../runtime/README.md)가 원본입니다.
+
+| 경계 | 전파 규칙 |
+| --- | --- |
+| SaaS → `OPERATION_COMMAND` | 유효한 현재 command Span Context를 기존 optional `traceparent`와 가능한 `tracestate`로 전달합니다. |
+| Connector → `OPERATION_ACK` / `OPERATION_PROGRESS` / `OPERATION_RESULT` | 해당 명령의 유효한 Context를 보존해 반환합니다. propagation-only Connector는 새 Span을 가장하거나 parent-id를 임의로 생성하지 않습니다. |
+| `RECONCILE_REQUEST` / `RECONCILE_RESULT`, Provider 조회, Terminal JSON control | 요청/응답 관계가 있는 경우 같은 원칙을 적용합니다. 새 제어 작업은 해당 작업의 Context를 사용합니다. |
+| Connector 로컬 로그 | 유효한 Context의 `trace_id`와 알 수 있는 제품 ID를 기록합니다. Context가 없으면 가짜 Trace ID를 채우지 않습니다. |
+
+Context는 **connection 전역이 아니라 명령/작업별**로 관리합니다. 하나의 Operation이 여러 LabInstance로 fan-out될 수 있으므로 `operationId`만으로 Context를 덮어쓰지 않습니다. 인증된 Connector와 `operationId`, `labInstanceId`, `generation`, 적용 가능한 `messageId`/`replyToMessageId` 관계를 함께 사용해 병렬 명령과 응답을 구분합니다. handshake Trace를 모든 명령에 재사용하지 않습니다.
+
+같은 Trace의 SaaS Span들은 서로 다른 Span ID를 가집니다. 따라서 모든 구간의 `traceparent` 문자열이 같아야 하는 것은 아닙니다. Connector는 자신이 받은 명령 Context를 해당 결과까지 보존하고, SaaS는 결과 수신 시 자신의 새 Span을 생성합니다. 미샘플링 Context도 전파하며 `sampled=1`로 강제 변경하지 않습니다.
+
+재접속/프로세스 재시작으로 Context를 복구하지 못해도 제품 ID와 Reconciliation 계약을 유지합니다. Trace 유실을 Provider mutation 재실행 근거로 삼지 않습니다. 늦은 결과를 현재의 다른 명령 Context로 잘못 연결하지 않습니다.
+
+### 선택 Trace metadata의 오류 처리
+
+`traceparent`/`tracestate`는 기존 Schema에서 **optional을 유지**합니다. 다음 규칙은 producer가 올바른 값을 전송해야 한다는 요구를 완화하지 않으며, consumer가 관측 오류를 업무 실패로 확대하지 않기 위한 처리 규칙입니다.
+
+1. 인증 후 위의 **1 MiB JSON Text application message 한도**를 JSON decode·Trace field 정상화보다 먼저 적용합니다. 초과 message는 1009로 종료하며 비정상 JSON, 인증 실패, 필수 업무 field 오류는 기존 방식으로 거부합니다.
+2. Schema validation/강타입 decoding 전에 선택 Trace field만 정상화할 수 있어야 합니다. 값의 타입·길이·W3C 유효성이 잘못되면 그 관측 field를 제거한 뒤 나머지 업무 Envelope를 정상 검증합니다. 기존 field 길이 제한을 늘리거나 payload 전체를 검증에서 제외하지 않습니다.
+3. `traceparent`가 없거나 유효하지 않으면 `tracestate`도 사용하지 않습니다. `traceparent`는 유효하고 `tracestate`만 잘못됐으면 `tracestate`만 폐기합니다. W3C 유효성은 표준 propagator/parser로 확인합니다.
+4. Trace 문제만으로 `OPERATION_ACK` 거절, `OPERATION_RESULT=FAILED`, WSS 종료 또는 Provider retry를 발생시키지 않습니다. 잘못된 값 원문은 로그에 복사하지 않고 안전한 진단만 남깁니다.
+
+Trace Context는 인증·tenant 판정·멱등성 key가 아닙니다. Baggage, Token, 사용자 입력/코드, Provider raw payload를 Trace field에 싣지 않습니다. 본문 수집 금지와 낮은 cardinality metric 정책은 그대로 유지합니다.
+
+표준 참고: [W3C Trace Context — Processing Model](https://www.w3.org/TR/trace-context/#processing-model).
+
 ## 10. Operation Command 단위
 
 **하나의 `OPERATION_COMMAND`는 하나의 LabInstance mutation만 실행합니다.**
@@ -225,8 +266,7 @@ PTY Binary content에 Trace Context나 correlation envelope를 붙이지 않습�
 LabExecution Provision Operation
   ├─ Instructor LabInstance command
   ├─ Student A LabInstance command
-  ├─ Student B LabInstance command
-  └─ Student C LabInstance command
+  └─ Student B LabInstance command
 ```
 
 Connector에는 Nova/Neutron raw request를 그대로 전달하지 않습니다. SaaS는 `PROVISION`, `RESET`, `CLEANUP`이라는 Labbit domain command와 resolved 입력을 전달하고 Connector 내부 OpenStackProvider Adapter가 실제 Provider API 호출 순서를 담당합니다.
@@ -270,6 +310,8 @@ UNKNOWN
 
 중앙에서는 Heartbeat, version, reconnect, Operation stage/result, Terminal lifecycle, `error_code`, duration 같은 운영 metadata를 관측하고 필요하면 같은 correlation ID로 Connector 로컬 구조화 로그를 대조합니다.
 
+Connector 내부 OpenStack/VM 접근의 raw log·metric·상세 Span을 중앙에 상시 반출하지 않습니다. 중앙 SaaS의 command 전송/결과 수신 계측은 Connector 내부 개별 OpenStack API 호출 시간을 측정한 것과 다릅니다.
+
 ## 15. Control Close 규칙
 
 persistent Control connection의 v1 application close code는 다음을 사용합니다.
@@ -296,6 +338,12 @@ Terminal Data WSS의 Session 종료 의미는 `terminal-data.schema.json`과 Bro
 - Live 학생 fan-out이 Connector Data protocol로 확산되지 않습니다.
 - Credential/Token/Authorization/Provider raw payload/Terminal 본문이 메시지·로그에 남지 않습니다.
 - 각 JSON Schema 정상/비정상 message validation이 동작합니다.
+- 명령별 유효한 Trace Context가 ACK/PROGRESS/RESULT에 유지되고 병렬 item/다른 generation과 섞이지 않습니다.
+- 1 MiB 이하의 message에서 Context 없음/잘못된 타입·길이·W3C 값, 잘못된 tracestate만 존재하는 경우에도 정상 업무 Envelope는 처리됩니다. 전체 JSON Text message 한도 초과, 인증·업무 필드 오류는 계속 거부합니다.
+- 미샘플링 Context도 유지하고, Context 유실/재접속을 mutation retry로 처리하지 않습니다.
+- Connector가 중앙 OTLP 연결을 만들지 않고, PTY Binary frame에 Trace metadata를 추가하지 않습니다.
+
+위 기준은 후속 producer/consumer 구현의 인수 조건이며 README 변경만으로 검증 완료를 의미하지 않습니다.
 
 ## 17. SSOT 경계
 

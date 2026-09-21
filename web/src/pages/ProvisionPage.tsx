@@ -68,6 +68,11 @@ export function ProvisionPage() {
         replace: true,
       })
     },
+    onError: (error) => {
+      if (error instanceof HttpError && error.status === 401) {
+        queryClient.removeQueries({ queryKey: labbitQueryKeys.me })
+      }
+    },
   })
 
   if (!resolvedClassId) {

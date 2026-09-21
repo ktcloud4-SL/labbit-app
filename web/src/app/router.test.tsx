@@ -638,6 +638,51 @@ describe('Auth·Class·LabSpec routing', () => {
     ).toBeInTheDocument()
   })
 
+  it('Provision 409 후 동일 요청 재시도를 막고 Class 상태를 다시 확인한다', async () => {
+    const getClass = vi.fn(async () => ({
+      ...classDetailFixture,
+      activeLabExecution: undefined,
+      myLabInstance: undefined,
+    }))
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/provision',
+      createApi({
+        getClass,
+        listClassMemberships: async () => ({
+          items: [
+            {
+              userId: 'user-student-a',
+              username: 'student-a',
+              role: 'STUDENT',
+            },
+          ],
+        }),
+        createLabExecution: async () => {
+          throw new HttpError(409)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', {
+      name: 'Kubernetes Basic · 새 환경 생성',
+    })
+    fireEvent.change(screen.getByLabelText('LabSpec'), {
+      target: { value: labSpecFixture.id },
+    })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: '생성 내용 확인' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Provision 시작' }))
+
+    expect(
+      await screen.findByText(
+        '활성 LabExecution 또는 다른 변경 작업과 충돌했습니다. 현재 상태를 다시 확인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Provision 시작' })).toBeDisabled()
+    expect(getClass.mock.calls.length).toBeGreaterThanOrEqual(2)
+  })
+
   it('Operation 403은 권한 없음 상태로 표시한다', async () => {
     renderRoute(
       '/operations/forbidden-operation',
@@ -857,6 +902,42 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
     ).toBeInTheDocument()
+  })
+
+  it('Reset 409 후 중복 재시도는 막고 취소는 유지한다', async () => {
+    const getLabExecution = vi.fn(async () => labExecutionFixture)
+
+    renderRoute(
+      '/lab-executions/execution-kubernetes-basic',
+      createApi({
+        getLabExecution,
+        listClassMemberships: async () => ({
+          items: [
+            {
+              userId: 'user-student-a',
+              username: 'student-a',
+              role: 'STUDENT',
+            },
+          ],
+        }),
+        resetLabInstance: async () => {
+          throw new HttpError(409)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', { name: '실습 운영 상태' })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset 시작' }))
+
+    expect(
+      await screen.findByText(
+        '다른 변경 작업이 진행 중입니다. 현재 Operation 상태를 확인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reset 시작' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '취소' })).toBeEnabled()
+    expect(getLabExecution.mock.calls.length).toBeGreaterThanOrEqual(2)
   })
 
   it('Reset 422는 재현 불가 시 기존 환경이 먼저 삭제되지 않음을 안내한다', async () => {

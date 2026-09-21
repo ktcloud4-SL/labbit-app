@@ -8,6 +8,8 @@ import { labbitQueryKeys } from '../shared/api/labbitApi'
 
 interface LoginLocationState {
   from?: string
+  authRequired?: boolean
+  signedOut?: boolean
 }
 
 export function LoginPage() {
@@ -55,6 +57,13 @@ export function LoginPage() {
         ? '로그인 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'
         : null
 
+  const locationState = location.state as LoginLocationState | null
+  const sessionNotice = locationState?.authRequired
+    ? '세션이 만료되었거나 로그인이 필요합니다. 다시 로그인해 주세요.'
+    : locationState?.signedOut
+      ? '로그아웃했습니다.'
+      : null
+
   return (
     <main className="login-shell">
       <section className="login-card" aria-labelledby="login-title">
@@ -63,6 +72,12 @@ export function LoginPage() {
         </div>
         <h1 id="login-title">Labbit에 로그인</h1>
         <p className="muted">사전 생성된 Local Account로 수업과 실습 환경에 접속합니다.</p>
+
+        {sessionNotice && (
+          <p className="login-notice" role="status">
+            {sessionNotice}
+          </p>
+        )}
 
         <form className="login-form" onSubmit={handleSubmit}>
           <label className="field">

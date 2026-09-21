@@ -164,6 +164,30 @@ describe('Auth·Class routing', () => {
     ).toBeInTheDocument()
   })
 
+  it('LabInstance ERROR에서는 Workspace 진입을 막고 오류 안내를 표시한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          myLabInstance: {
+            ...classDetailFixture.myLabInstance!,
+            status: 'ERROR',
+          },
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByText(
+        '실습 환경에 오류가 있어 Workspace를 열 수 없습니다. 상태를 확인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'Lab Workspace 열기' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('Class 상세 403은 권한 없음 상태로 표시한다', async () => {
     renderRoute(
       '/classes/forbidden-class',

@@ -17,7 +17,7 @@ function workspaceStatusMessage(status: string) {
     case 'DELETING':
       return '실습 환경을 정리하는 중이라 Workspace를 열 수 없습니다.'
     default:
-      return `현재 LabInstance 상태(\${status})에서는 Workspace를 열 수 없습니다.`
+      return `현재 LabInstance 상태(${status})에서는 Workspace를 열 수 없습니다.`
   }
 }
 

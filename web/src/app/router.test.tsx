@@ -367,6 +367,39 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(updateLabSpec).toHaveBeenCalled()
   })
 
+  it('새 LabSpec 생성 403을 수정 권한 오류로 오인하지 않는다', async () => {
+    renderRoute(
+      '/lab-specs/new',
+      createApi({
+        createLabSpec: async () => {
+          throw new HttpError(403)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', { name: '새 LabSpec' })
+    fireEvent.change(screen.getByLabelText('이름'), {
+      target: { value: 'New Lab' },
+    })
+    fireEvent.change(screen.getByLabelText('Role'), {
+      target: { value: 'control' },
+    })
+    fireEvent.change(screen.getByLabelText('Image 참조'), {
+      target: { value: 'ubuntu-24.04' },
+    })
+    fireEvent.change(screen.getByLabelText('Size 참조'), {
+      target: { value: 'medium' },
+    })
+    fireEvent.change(screen.getByLabelText('Workspace VM'), {
+      target: { value: 'control:0' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'LabSpec 저장' }))
+
+    expect(
+      await screen.findByText('LabSpec을 생성할 권한이 없습니다.'),
+    ).toBeInTheDocument()
+  })
+
   it('다른 owner의 LabSpec은 읽기 전용으로 표시한다', async () => {
     renderRoute(
       '/lab-specs/lab-spec-other',
@@ -390,6 +423,31 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       screen.queryByRole('button', { name: 'LabSpec 저장' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('STUDENT는 Provision 입력 데이터 조회 전에 접근을 차단한다', async () => {
+    const listClassMemberships = vi.fn(async () => ({ items: [] }))
+    const listLabSpecs = vi.fn(async () => ({ items: [] }))
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/provision',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          myRole: 'STUDENT',
+          activeLabExecution: undefined,
+          myLabInstance: undefined,
+        }),
+        listClassMemberships,
+        listLabSpecs,
+      }),
+    )
+
+    expect(
+      await screen.findByText('INSTRUCTOR만 새 실습 환경을 생성할 수 있습니다.'),
+    ).toBeInTheDocument()
+    expect(listClassMemberships).not.toHaveBeenCalled()
+    expect(listLabSpecs).not.toHaveBeenCalled()
   })
 
   it('활성 LabExecution이 있으면 중복 Provision을 막고 현재 실행을 안내한다', async () => {
@@ -555,6 +613,8 @@ describe('Auth·Class·LabSpec routing', () => {
   })
 
   it('STUDENT는 직접 URL로 실습 운영 화면에 진입할 수 없다', async () => {
+    const listClassMemberships = vi.fn(async () => ({ items: [] }))
+
     renderRoute(
       '/lab-executions/execution-kubernetes-basic',
       createApi({
@@ -562,6 +622,7 @@ describe('Auth·Class·LabSpec routing', () => {
           ...classDetailFixture,
           myRole: 'STUDENT',
         }),
+        listClassMemberships,
       }),
     )
 
@@ -571,6 +632,7 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       screen.queryByRole('button', { name: 'Class Cleanup' }),
     ).not.toBeInTheDocument()
+    expect(listClassMemberships).not.toHaveBeenCalled()
   })
 
   it('알 수 없는 LabExecution 상태에서는 destructive action을 숨긴다', async () => {

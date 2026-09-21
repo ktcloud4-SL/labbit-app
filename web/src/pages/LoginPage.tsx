@@ -10,6 +10,10 @@ interface LoginLocationState {
   from?: string
 }
 
+function isSafeInternalPath(path: string | undefined): path is string {
+  return Boolean(path && path.startsWith('/') && !path.startsWith('//'))
+}
+
 export function LoginPage() {
   const api = useLabbitApi()
   const queryClient = useQueryClient()
@@ -28,8 +32,7 @@ export function LoginPage() {
       queryClient.setQueryData(labbitQueryKeys.me, me)
 
       const state = location.state as LoginLocationState | null
-      const destination =
-        state?.from && state.from.startsWith('/') ? state.from : '/classes'
+      const destination = isSafeInternalPath(state?.from) ? state.from : '/classes'
 
       navigate(destination, { replace: true })
     },

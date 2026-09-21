@@ -482,6 +482,21 @@ describe('Auth·Class·LabSpec routing', () => {
     )
   })
 
+  it('Operation 403은 권한 없음 상태로 표시한다', async () => {
+    renderRoute(
+      '/operations/forbidden-operation',
+      createApi({
+        getOperation: async () => {
+          throw new HttpError(403)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText('이 Operation을 볼 권한이 없습니다.'),
+    ).toBeInTheDocument()
+  })
+
   it('Operation RECONCILING을 중복 재실행이 아닌 Provider 확인 상태로 표시한다', async () => {
     renderRoute(
       '/operations/operation-reconciling',

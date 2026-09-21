@@ -67,9 +67,14 @@ export function LabExecutionPage() {
     onSuccess: (accepted) => {
       navigate(`/operations/${encodeURIComponent(accepted.operationId)}`)
     },
-    onError: (error) => {
+    onError: async (error) => {
       if (error instanceof HttpError && error.status === 401) {
         queryClient.removeQueries({ queryKey: labbitQueryKeys.me })
+      }
+      if (error instanceof HttpError && error.status === 409) {
+        await queryClient.invalidateQueries({
+          queryKey: labbitQueryKeys.labExecution(resolvedExecutionId),
+        })
       }
     },
   })

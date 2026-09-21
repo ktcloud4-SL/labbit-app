@@ -71,6 +71,8 @@ export function ClassDetailPage() {
   }
 
   const classDetail = classQuery.data
+  const labInstanceStatus = classDetail.myLabInstance?.status
+  const isWorkspaceReady = labInstanceStatus === 'READY'
 
   return (
     <main className="app-page">
@@ -96,14 +98,22 @@ export function ClassDetailPage() {
         </article>
         <article className="detail-card">
           <h2>내 환경</h2>
-          <strong>{classDetail.myLabInstance?.status ?? '없음'}</strong>
+          <strong>{labInstanceStatus ?? '없음'}</strong>
         </article>
       </section>
 
-      {classDetail.myLabInstance && (
+      {isWorkspaceReady && (
         <Link className="primary-link inline-link" to={`/classes/${encodeURIComponent(classDetail.id)}/lab`}>
           Lab Workspace 열기
         </Link>
+      )}
+
+      {classDetail.myLabInstance && !isWorkspaceReady && (
+        <p className="muted">
+          {labInstanceStatus === 'ERROR'
+            ? '실습 환경에 오류가 있어 Workspace를 열 수 없습니다. 상태를 확인해 주세요.'
+            : '실습 환경이 READY 상태가 되면 Workspace를 열 수 있습니다.'}
+        </p>
       )}
     </main>
   )

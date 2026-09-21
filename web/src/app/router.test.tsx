@@ -135,6 +135,33 @@ describe('Auth·Class routing', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('INSTRUCTOR')).toBeInTheDocument()
     expect(screen.getByText('READY')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Lab Workspace 열기' })).toBeInTheDocument()
+  })
+
+  it('LabInstance가 READY가 아니면 Workspace 진입 링크를 노출하지 않는다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          myLabInstance: {
+            ...classDetailFixture.myLabInstance!,
+            status: 'PROVISIONING',
+          },
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Kubernetes Basic' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('PROVISIONING')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'Lab Workspace 열기' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByText('실습 환경이 READY 상태가 되면 Workspace를 열 수 있습니다.'),
+    ).toBeInTheDocument()
   })
 
   it('Class 상세 403은 권한 없음 상태로 표시한다', async () => {

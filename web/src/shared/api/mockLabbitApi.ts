@@ -479,6 +479,101 @@ export const mockLabbitApi: LabbitApi = {
     }
   },
 
+  async cleanupLabExecution(labExecutionId) {
+    requireSession()
+
+    const execution = labExecutions.find((item) => item.id === labExecutionId)
+    if (!execution) {
+      throw new HttpError(404)
+    }
+
+    const classDetail = mockClassDetails[execution.classId]
+    if (!classDetail || classDetail.myRole !== 'INSTRUCTOR') {
+      throw new HttpError(403)
+    }
+
+    const operationId = `operation-cleanup-${labExecutionId}`
+    const now = new Date().toISOString()
+
+    execution.status = 'CLEANING_UP'
+    operations.set(operationId, {
+      id: operationId,
+      type: 'CLEANUP',
+      status: 'RUNNING',
+      stage: 'CLEANING_UP',
+      target: {
+        type: 'LAB_EXECUTION',
+        id: labExecutionId,
+      },
+      createdAt: now,
+      updatedAt: now,
+      startedAt: now,
+    })
+    operationReads.set(operationId, 0)
+
+    return {
+      operationId,
+      target: {
+        type: 'LAB_EXECUTION',
+        id: labExecutionId,
+      },
+    }
+  },
+
+  async resetLabInstance(labInstanceId) {
+    requireSession()
+
+    const execution = labExecutions.find((item) =>
+      item.labInstances.some((instance) => instance.id === labInstanceId),
+    )
+    if (!execution) {
+      throw new HttpError(404)
+    }
+
+    const classDetail = mockClassDetails[execution.classId]
+    if (!classDetail || classDetail.myRole !== 'INSTRUCTOR') {
+      throw new HttpError(403)
+    }
+
+    const labInstance = execution.labInstances.find(
+      (instance) => instance.id === labInstanceId,
+    )
+    if (!labInstance) {
+      throw new HttpError(404)
+    }
+
+    if (labInstance.userId === execution.instructorUserId) {
+      throw new HttpError(422)
+    }
+
+    const operationId = `operation-reset-${labInstanceId}`
+    const now = new Date().toISOString()
+
+    labInstance.status = 'PROVISIONING'
+    operations.set(operationId, {
+      id: operationId,
+      type: 'RESET',
+      status: 'RUNNING',
+      stage: 'RESETTING',
+      target: {
+        type: 'LAB_INSTANCE',
+        id: labInstanceId,
+      },
+      createdAt: now,
+      updatedAt: now,
+      startedAt: now,
+    })
+    operationReads.set(operationId, 0)
+
+    return {
+      operationId,
+      target: {
+        type: 'LAB_INSTANCE',
+        id: labInstanceId,
+      },
+    }
+  },
+
   async getOperation(operationId) {
     requireSession()
 
@@ -496,18 +591,49 @@ export const mockLabbitApi: LabbitApi = {
       operation.updatedAt = new Date().toISOString()
       operation.finishedAt = operation.updatedAt
 
-      const execution = labExecutions.find(
-        (item) => item.id === operation.target.id,
-      )
-      if (execution) {
-        execution.status = 'ACTIVE'
-        execution.labInstances = execution.labInstances.map((instance) => ({
-          ...instance,
-          status: 'READY',
-        }))
-        const classDetail = mockClassDetails[execution.classId]
-        if (classDetail?.activeLabExecution) {
-          classDetail.activeLabExecution.status = 'ACTIVE'
+      if (operation.type === 'PROVISION') {
+        const execution = labExecutions.find(
+          (item) => item.id === operation.target.id,
+        )
+        if (execution) {
+          execution.status = 'ACTIVE'
+          execution.labInstances = execution.labInstances.map((instance) => ({
+            ...instance,
+            status: 'READY',
+          }))
+          const classDetail = mockClassDetails[execution.classId]
+          if (classDetail?.activeLabExecution) {
+            classDetail.activeLabExecution.status = 'ACTIVE'
+          }
+        }
+      }
+
+      if (operation.type === 'RESET') {
+        const execution = labExecutions.find((item) =>
+          item.labInstances.some(
+            (instance) => instance.id === operation.target.id,
+          ),
+        )
+        const labInstance = execution?.labInstances.find(
+          (instance) => instance.id === operation.target.id,
+        )
+        if (labInstance) {
+          labInstance.status = 'READY'
+          labInstance.generation += 1
+        }
+      }
+
+      if (operation.type === 'CLEANUP') {
+        const execution = labExecutions.find(
+          (item) => item.id === operation.target.id,
+        )
+        if (execution) {
+          execution.status = 'COMPLETED'
+          const classDetail = mockClassDetails[execution.classId]
+          if (classDetail?.activeLabExecution?.id === execution.id) {
+            classDetail.activeLabExecution = undefined
+            classDetail.myLabInstance = undefined
+          }
         }
       }
     }

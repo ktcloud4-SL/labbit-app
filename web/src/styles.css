@@ -1,0 +1,286 @@
+:root {
+  font-family:
+    Inter, Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+  color: #202531;
+  background: #f5f6fa;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f5f6fa;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background:
+    radial-gradient(circle at top, rgba(88, 80, 200, 0.12), transparent 34rem),
+    #f5f6fa;
+}
+
+.login-card {
+  width: min(100%, 440px);
+  padding: 32px;
+  border: 1px solid #e5e8ef;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(30, 35, 50, 0.12);
+}
+
+.login-card h1,
+.page-header h1 {
+  margin: 0;
+}
+
+.brand-mark {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+  border-radius: 15px;
+  background: #5850c8;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.muted {
+  color: #6f7685;
+  line-height: 1.6;
+}
+
+.login-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.field input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #d7dce7;
+  border-radius: 9px;
+  padding: 0 12px;
+  background: #fff;
+  color: #202531;
+}
+
+.field input:focus {
+  outline: 3px solid rgba(88, 80, 200, 0.16);
+  border-color: #5850c8;
+}
+
+.primary-button,
+.primary-link,
+.secondary-link {
+  border-radius: 9px;
+  font-weight: 800;
+}
+
+.primary-button {
+  min-height: 42px;
+  border: 0;
+  padding: 0 16px;
+  background: #5850c8;
+  color: #fff;
+  cursor: pointer;
+}
+
+.primary-button:disabled {
+  cursor: progress;
+  opacity: 0.65;
+}
+
+.primary-link,
+.secondary-link,
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.primary-link {
+  min-height: 36px;
+  justify-content: center;
+  padding: 0 14px;
+  background: #5850c8;
+  color: #fff;
+}
+
+.secondary-link,
+.back-link {
+  color: #5148bb;
+  font-weight: 750;
+}
+
+.form-error {
+  margin: 0;
+  border: 1px solid #efc2c2;
+  border-radius: 9px;
+  padding: 10px 12px;
+  background: #fff0f0;
+  color: #ad3d3d;
+  font-size: 13px;
+}
+
+.dev-hint {
+  margin: 16px 0 0;
+  color: #9299a8;
+  font-size: 12px;
+  text-align: center;
+}
+
+.app-page {
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 48px 0 72px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #5850c8;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.class-grid,
+.detail-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.class-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.detail-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 20px;
+}
+
+.class-card,
+.detail-card,
+.empty-state {
+  border: 1px solid #e5e8ef;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.class-card {
+  padding: 20px;
+}
+
+.class-card h2,
+.detail-card h2,
+.empty-state h2 {
+  margin: 0;
+}
+
+.class-card .primary-link {
+  margin-top: 18px;
+}
+
+.class-card-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.role-badge {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #eceafe;
+  color: #554dbb;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.status-text {
+  color: #6f7685;
+  font-size: 12px;
+}
+
+.detail-card {
+  padding: 18px;
+}
+
+.detail-card h2 {
+  margin-bottom: 10px;
+  color: #6f7685;
+  font-size: 13px;
+}
+
+.detail-card strong {
+  font-size: 18px;
+}
+
+.empty-state {
+  padding: 32px;
+  text-align: center;
+}
+
+.empty-state p {
+  margin-bottom: 0;
+  color: #6f7685;
+}
+
+.inline-link {
+  width: max-content;
+}
+
+.back-link {
+  margin-bottom: 18px;
+}
+
+@media (max-width: 720px) {
+  .login-card {
+    padding: 24px;
+  }
+
+  .app-page {
+    width: min(100% - 28px, 1180px);
+    padding-top: 32px;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

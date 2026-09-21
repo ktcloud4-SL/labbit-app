@@ -192,6 +192,8 @@ export function LabExecutionPage() {
     execution.status === 'ACTIVE' || execution.status === 'ERROR'
 
   const mutationError = mutation.error
+  const conflictError =
+    mutationError instanceof HttpError && mutationError.status === 409
   const mutationErrorMessage =
     mutationError instanceof HttpError && mutationError.status === 403
       ? '현재 계정에는 이 변경 작업을 실행할 권한이 없습니다. 권한이 변경되었을 수 있습니다.'
@@ -348,7 +350,7 @@ export function LabExecutionPage() {
             <button
               className="secondary-button"
               type="button"
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || conflictError}
               onClick={() => {
                 mutation.reset()
                 setPendingAction(null)

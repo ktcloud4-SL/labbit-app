@@ -184,7 +184,7 @@ export function LabExecutionPage() {
     mutationError instanceof HttpError && mutationError.status === 409
       ? '다른 변경 작업이 진행 중입니다. 현재 Operation 상태를 확인해 주세요.'
       : mutationError instanceof HttpError && mutationError.status === 422
-        ? '현재 상태에서는 요청을 안전하게 수행할 수 없습니다. 재현 조건과 입력을 확인해 주세요.'
+        ? 'Reset 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현 불가로 거절된 경우 기존 환경은 먼저 삭제되지 않습니다.'
         : mutationError instanceof HttpError && mutationError.status === 503
           ? 'Connector 또는 Provider가 일시적으로 사용할 수 없습니다.'
           : mutationError

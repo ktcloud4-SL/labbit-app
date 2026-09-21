@@ -462,7 +462,8 @@ export function LabSpecEditorPage() {
 
   const authError =
     (meQuery.error instanceof HttpError && meQuery.error.status === 401) ||
-    (labSpecQuery.error instanceof HttpError && labSpecQuery.error.status === 401)
+    (labSpecQuery.error instanceof HttpError && labSpecQuery.error.status === 401) ||
+    (saveMutation.error instanceof HttpError && saveMutation.error.status === 401)
 
   if (authError) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />

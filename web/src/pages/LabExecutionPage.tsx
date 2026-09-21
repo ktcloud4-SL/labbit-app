@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 
@@ -27,6 +27,7 @@ function createIdempotencyKey() {
 
 export function LabExecutionPage() {
   const api = useLabbitApi()
+  const queryClient = useQueryClient()
   const location = useLocation()
   const navigate = useNavigate()
   const { labExecutionId } = useParams()
@@ -65,6 +66,11 @@ export function LabExecutionPage() {
     },
     onSuccess: (accepted) => {
       navigate(`/operations/${encodeURIComponent(accepted.operationId)}`)
+    },
+    onError: (error) => {
+      if (error instanceof HttpError && error.status === 401) {
+        queryClient.removeQueries({ queryKey: labbitQueryKeys.me })
+      }
     },
   })
 
@@ -187,7 +193,9 @@ export function LabExecutionPage() {
       : mutationError instanceof HttpError && mutationError.status === 409
         ? '다른 변경 작업이 진행 중입니다. 현재 Operation 상태를 확인해 주세요.'
       : mutationError instanceof HttpError && mutationError.status === 422
-        ? 'Reset 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현 불가로 거절된 경우 기존 환경은 먼저 삭제되지 않습니다.'
+        ? pendingAction?.type === 'RESET'
+          ? 'Reset 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현 불가로 거절된 경우 기존 환경은 먼저 삭제되지 않습니다.'
+          : '현재 LabExecution 상태에서는 Cleanup을 시작할 수 없습니다. 상태와 진행 중인 작업을 확인해 주세요.'
         : mutationError instanceof HttpError && mutationError.status === 503
           ? 'Connector 또는 Provider가 일시적으로 사용할 수 없습니다.'
           : mutationError

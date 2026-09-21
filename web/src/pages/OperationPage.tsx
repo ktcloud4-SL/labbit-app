@@ -9,6 +9,13 @@ import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
 const terminalStatuses = new Set(['SUCCEEDED', 'FAILED'])
+const knownOperationStatuses = new Set([
+  'PENDING',
+  'RUNNING',
+  'RECONCILING',
+  'SUCCEEDED',
+  'FAILED',
+])
 
 function statusLabel(status: string) {
   switch (status) {
@@ -47,6 +54,10 @@ export function OperationPage() {
     enabled: Boolean(resolvedOperationId),
     retry: false,
     refetchInterval: (query) => {
+      if (query.state.status === 'error') {
+        return false
+      }
+
       const status = query.state.data?.status
       return status && terminalStatuses.has(status) ? false : 2000
     },
@@ -98,6 +109,7 @@ export function OperationPage() {
 
   const operation = operationQuery.data
   const isReconciling = operation.status === 'RECONCILING'
+  const isUnknownStatus = !knownOperationStatuses.has(operation.status)
   const link = targetLink(operation)
 
   return (
@@ -121,6 +133,15 @@ export function OperationPage() {
           <strong>같은 작업을 다시 실행하지 않고 Provider의 실제 상태를 확인하고 있습니다.</strong>
           <p className="muted">
             결과가 불명확한 동안 중복 Create/Delete를 보내지 않습니다.
+          </p>
+        </section>
+      )}
+
+      {isUnknownStatus && (
+        <section className="notice-card notice-warning">
+          <strong>알 수 없는 Operation 상태입니다.</strong>
+          <p className="muted">
+            새 상태가 추가되었을 수 있으므로 성공·실패를 임의로 판단하지 않고 서버 상태를 계속 확인합니다.
           </p>
         </section>
       )}

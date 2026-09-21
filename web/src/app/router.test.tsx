@@ -575,6 +575,27 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByText('알 수 없는 Operation 상태입니다.')).toBeInTheDocument()
   })
 
+  it('알 수 없는 Operation 상태는 수동으로 다시 확인할 수 있다', async () => {
+    const getOperation = vi.fn(async () => ({
+      ...operationFixture,
+      id: 'operation-future',
+      status: 'WAITING_FOR_PROVIDER',
+    }))
+
+    renderRoute(
+      '/operations/operation-future',
+      createApi({ getOperation }),
+    )
+
+    await screen.findByRole('heading', {
+      name: '상태 확인 필요 · WAITING_FOR_PROVIDER',
+    })
+    fireEvent.click(screen.getByRole('button', { name: '상태 다시 확인' }))
+
+    await screen.findByRole('button', { name: '상태 다시 확인' })
+    expect(getOperation).toHaveBeenCalledTimes(2)
+  })
+
   it('Operation RECONCILING을 중복 재실행이 아닌 Provider 확인 상태로 표시한다', async () => {
     renderRoute(
       '/operations/operation-reconciling',
@@ -710,6 +731,36 @@ describe('Auth·Class·LabSpec routing', () => {
 
     await screen.findByRole('heading', { name: '실습 운영 상태' })
     expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument()
+  })
+
+  it('Reset 422는 재현 불가 시 기존 환경이 먼저 삭제되지 않음을 안내한다', async () => {
+    renderRoute(
+      '/lab-executions/execution-kubernetes-basic',
+      createApi({
+        listClassMemberships: async () => ({
+          items: [
+            {
+              userId: 'user-student-a',
+              username: 'student-a',
+              role: 'STUDENT',
+            },
+          ],
+        }),
+        resetLabInstance: async () => {
+          throw new HttpError(422)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', { name: '실습 운영 상태' })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset 시작' }))
+
+    expect(
+      await screen.findByText(
+        'Reset 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현 불가로 거절된 경우 기존 환경은 먼저 삭제되지 않습니다.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('강사는 LabExecution Cleanup을 확인한 뒤 Operation을 시작한다', async () => {

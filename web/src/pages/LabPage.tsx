@@ -100,6 +100,25 @@ export function LabPage() {
 
   if (labInstance.status !== 'READY') {
     const isError = labInstance.status === 'ERROR'
+    const isPreparing =
+      labInstance.status === 'PENDING' || labInstance.status === 'PROVISIONING'
+    const isDeleting = labInstance.status === 'DELETING'
+
+    const title = isError
+      ? '실습 환경에 오류가 있어 Workspace를 열 수 없습니다.'
+      : isPreparing
+        ? '실습 환경을 준비하고 있습니다.'
+        : isDeleting
+          ? '실습 환경을 정리하고 있습니다.'
+          : '알 수 없는 LabInstance 상태입니다.'
+
+    const description = isError
+      ? 'Class 운영 화면에서 현재 LabInstance 상태와 후속 조치를 확인해 주세요.'
+      : isPreparing
+        ? 'LabInstance가 READY가 되면 Editor, Terminal, Preview Workspace를 사용할 수 있습니다.'
+        : isDeleting
+          ? '리소스 정리가 완료되기 전에는 Workspace를 사용할 수 없습니다.'
+          : '새 상태가 추가되었을 수 있습니다. 실습 운영 상태를 확인해 주세요.'
 
     return (
       <main className="app-page">
@@ -121,16 +140,8 @@ export function LabPage() {
         </header>
 
         <section className={`notice-card ${isError ? 'notice-error' : 'notice-warning'}`}>
-          <strong>
-            {isError
-              ? '실습 환경에 오류가 있어 Workspace를 열 수 없습니다.'
-              : '실습 환경을 준비하고 있습니다.'}
-          </strong>
-          <p className="muted">
-            {isError
-              ? 'Class 운영 화면에서 현재 LabInstance 상태와 후속 조치를 확인해 주세요.'
-              : 'LabInstance가 READY가 되면 Editor, Terminal, Preview Workspace를 사용할 수 있습니다.'}
-          </p>
+          <strong>{title}</strong>
+          <p className="muted">{description}</p>
           {classDetail.activeLabExecution && (
             <Link
               className="secondary-link"

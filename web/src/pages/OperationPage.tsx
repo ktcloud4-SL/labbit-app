@@ -8,7 +8,7 @@ import { labbitQueryKeys } from '../shared/api/labbitApi'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
-const terminalStatuses = new Set(['SUCCEEDED', 'FAILED'])
+const activeOperationStatuses = new Set(['PENDING', 'RUNNING', 'RECONCILING'])
 const knownOperationStatuses = new Set([
   'PENDING',
   'RUNNING',
@@ -54,12 +54,8 @@ export function OperationPage() {
     enabled: Boolean(resolvedOperationId),
     retry: false,
     refetchInterval: (query) => {
-      if (query.state.status === 'error') {
-        return false
-      }
-
       const status = query.state.data?.status
-      return status && terminalStatuses.has(status) ? false : 2000
+      return status && activeOperationStatuses.has(status) ? 2000 : false
     },
   })
 
@@ -141,7 +137,7 @@ export function OperationPage() {
         <section className="notice-card notice-warning">
           <strong>알 수 없는 Operation 상태입니다.</strong>
           <p className="muted">
-            새 상태가 추가되었을 수 있으므로 성공·실패를 임의로 판단하지 않고 서버 상태를 계속 확인합니다.
+            새 상태가 추가되었을 수 있으므로 성공·실패를 임의로 판단하지 않으며 자동 polling도 중단합니다.
           </p>
         </section>
       )}

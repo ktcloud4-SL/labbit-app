@@ -192,6 +192,29 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
     ).toBeInTheDocument()
+    expect(
+      screen.getByText('이 화면을 사용하려면 로그인이 필요합니다.'),
+    ).toBeInTheDocument()
+  })
+
+  it('보호 화면 사용 중 API 401은 세션 만료 재로그인으로 안내한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('Login → /me → Class 목록 Flow를 수행한다', async () => {

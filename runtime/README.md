@@ -131,7 +131,7 @@ Prometheus label에는 위 ID처럼 high-cardinality 값을 사용하지 않습�
 
 SaaS는 HTTP 요청·Operation 등록, Worker 처리, Connector Command 전송과 ACK/PROGRESS/RESULT 수신 경계의 Span을 생성합니다. 계측 코드와 OTLP exporter는 개발팀, Collector 수신 경로·저장소·조회·TLS/인증 주입은 운영팀 책임입니다. D-25의 플랫폼 선택은 Alloy → Tempo → Grafana이며, 애플리케이션은 Tempo 전용 API/주소에 결합하지 않습니다.
 
-SaaS 전용 설정은 `OTEL_SERVICE_NAME`, `OTEL_TRACES_EXPORTER`, `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL`입니다. 정확한 필수 조건은 `contract.yaml`을 따릅니다. 첫 통합 전에 SDK exporter와 Collector의 gRPC 또는 HTTP/protobuf 선택을 맞춥니다. Trace 전용 HTTP endpoint는 `/v1/traces`를 포함한 최종 URL이며 자격증명은 URL에 넣지 않습니다.
+SaaS 전용 기본 설정은 `OTEL_SERVICE_NAME`, `OTEL_TRACES_EXPORTER`, `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL`입니다. Collector가 별도 인증/TLS 입력을 요구하면 표준 `OTEL_EXPORTER_OTLP_TRACES_HEADERS`, `OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE`, `OTEL_EXPORTER_OTLP_TRACES_CLIENT_CERTIFICATE`, `OTEL_EXPORTER_OTLP_TRACES_CLIENT_KEY`도 지원합니다. 정확한 필수 조건은 `contract.yaml`을 따릅니다. 첫 통합 전에 SDK exporter와 Collector의 gRPC 또는 HTTP/protobuf 선택을 맞춥니다. Trace 전용 HTTP endpoint는 `/v1/traces`를 포함한 최종 URL이며 자격증명은 URL에 넣지 않습니다. Header 원문은 Secret으로 주입하고, custom CA/client certificate/private key는 플랫폼이 파일로 mount한 뒤 경로만 애플리케이션에 전달합니다.
 
 로컬에서는 export `none`으로 실행할 수 있지만, 중앙 Trace 인수 검증 환경에서는 플랫폼이 `otlp`를 명시적으로 활성화합니다. Export 비활성화나 미샘플링은 유효한 Context 전달을 생략할 이유가 아닙니다. SDK 초기화 코드가 이 설정을 실제로 읽고 적용하는지 별도로 테스트해야 합니다.
 

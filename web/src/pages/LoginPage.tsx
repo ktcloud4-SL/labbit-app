@@ -8,6 +8,7 @@ import { labbitQueryKeys } from '../shared/api/labbitApi'
 
 interface LoginLocationState {
   from?: string
+  reason?: 'authRequired' | 'sessionExpired'
 }
 
 function isSafeInternalPath(path: string | undefined): path is string {
@@ -22,6 +23,7 @@ export function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
+  const state = location.state as LoginLocationState | null
 
   const loginMutation = useMutation({
     mutationFn: async () => {
@@ -31,7 +33,6 @@ export function LoginPage() {
     onSuccess: (me) => {
       queryClient.setQueryData(labbitQueryKeys.me, me)
 
-      const state = location.state as LoginLocationState | null
       const destination = isSafeInternalPath(state?.from) ? state.from : '/classes'
 
       navigate(destination, { replace: true })
@@ -66,6 +67,17 @@ export function LoginPage() {
         </div>
         <h1 id="login-title">Labbit에 로그인</h1>
         <p className="muted">사전 생성된 Local Account로 수업과 실습 환경에 접속합니다.</p>
+
+        {state?.reason === 'sessionExpired' && (
+          <div className="notice-card notice-warning" role="status">
+            세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.
+          </div>
+        )}
+        {state?.reason === 'authRequired' && (
+          <div className="notice-card" role="status">
+            이 화면을 사용하려면 로그인이 필요합니다.
+          </div>
+        )}
 
         <form className="login-form" onSubmit={handleSubmit}>
           <label className="field">

@@ -86,7 +86,6 @@ describe('httpLabbitApi', () => {
       new Response(
         JSON.stringify({
           id: 'lab-spec-1',
-          name: labSpecWrite.name,
           ownerUserId: 'user-heechul',
           ...labSpecWrite,
         }),
@@ -117,7 +116,6 @@ describe('httpLabbitApi', () => {
       new Response(
         JSON.stringify({
           id: 'lab-spec-1',
-          name: labSpecWrite.name,
           ownerUserId: 'user-heechul',
           ...labSpecWrite,
         }),

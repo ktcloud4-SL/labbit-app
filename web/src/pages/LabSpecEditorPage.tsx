@@ -357,7 +357,7 @@ function LabSpecForm({
         </label>
       </section>
 
-      {(validationError || staleError || forbiddenError || validationServerError || saveError) && (
+      {Boolean(validationError || staleError || forbiddenError || validationServerError || saveError) && (
         <div className="form-error" role="alert">
           {validationError ??
             (staleError

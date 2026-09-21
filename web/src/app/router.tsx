@@ -20,6 +20,7 @@ import { ProvisionPage } from '../pages/ProvisionPage'
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
+import { AppShell } from '../shared/ui/AppShell'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
@@ -45,12 +46,15 @@ function RequireAuth({ children }: { children: ReactNode }) {
       <Navigate
         to="/login"
         replace
-        state={{ from: `${location.pathname}${location.search}` }}
+        state={{
+          from: `${location.pathname}${location.search}`,
+          authRequired: true,
+        }}
       />
     )
   }
 
-  if (meQuery.error) {
+  if (meQuery.error || !meQuery.data) {
     return (
       <main className="app-page">
         <ErrorState message="로그인 상태를 확인하지 못했습니다." />
@@ -58,7 +62,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
     )
   }
 
-  return children
+  return <AppShell me={meQuery.data}>{children}</AppShell>
 }
 
 function protectedRoute(element: ReactNode) {

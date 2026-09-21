@@ -141,7 +141,11 @@ export function ClassDetailPage() {
         <p className="muted">
           {labInstanceStatus === 'ERROR'
             ? '실습 환경에 오류가 있어 Workspace를 열 수 없습니다. 상태를 확인해 주세요.'
-            : '실습 환경이 READY 상태가 되면 Workspace를 열 수 있습니다.'}
+            : labInstanceStatus === 'DELETING'
+              ? '실습 환경을 정리하고 있어 Workspace를 열 수 없습니다.'
+              : labInstanceStatus === 'PENDING' || labInstanceStatus === 'PROVISIONING'
+                ? '실습 환경이 READY 상태가 되면 Workspace를 열 수 있습니다.'
+                : '알 수 없는 LabInstance 상태입니다. 현재 상태를 다시 확인해 주세요.'}
         </p>
       )}
     </main>

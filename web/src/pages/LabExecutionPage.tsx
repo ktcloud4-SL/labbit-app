@@ -106,7 +106,16 @@ export function LabExecutionPage() {
     ) ||
     (mutation.error instanceof HttpError && mutation.error.status === 401)
   ) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: `${location.pathname}${location.search}`,
+          reason: 'sessionExpired',
+        }}
+      />
+    )
   }
 
   if (executionQuery.error instanceof HttpError && executionQuery.error.status === 403) {
@@ -167,7 +176,16 @@ export function LabExecutionPage() {
     membershipsQuery.error instanceof HttpError &&
     membershipsQuery.error.status === 401
   ) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: `${location.pathname}${location.search}`,
+          reason: 'sessionExpired',
+        }}
+      />
+    )
   }
 
   if (membershipsQuery.error || !membershipsQuery.data) {

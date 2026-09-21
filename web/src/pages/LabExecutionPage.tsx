@@ -92,7 +92,8 @@ export function LabExecutionPage() {
   if (
     primaryQueryErrors.some(
       (error) => error instanceof HttpError && error.status === 401,
-    )
+    ) ||
+    (mutation.error instanceof HttpError && mutation.error.status === 401)
   ) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
@@ -181,8 +182,10 @@ export function LabExecutionPage() {
 
   const mutationError = mutation.error
   const mutationErrorMessage =
-    mutationError instanceof HttpError && mutationError.status === 409
-      ? '다른 변경 작업이 진행 중입니다. 현재 Operation 상태를 확인해 주세요.'
+    mutationError instanceof HttpError && mutationError.status === 403
+      ? '현재 계정에는 이 변경 작업을 실행할 권한이 없습니다. 권한이 변경되었을 수 있습니다.'
+      : mutationError instanceof HttpError && mutationError.status === 409
+        ? '다른 변경 작업이 진행 중입니다. 현재 Operation 상태를 확인해 주세요.'
       : mutationError instanceof HttpError && mutationError.status === 422
         ? 'Reset 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현 불가로 거절된 경우 기존 환경은 먼저 삭제되지 않습니다.'
         : mutationError instanceof HttpError && mutationError.status === 503

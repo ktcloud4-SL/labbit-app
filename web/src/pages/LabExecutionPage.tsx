@@ -47,10 +47,12 @@ export function LabExecutionPage() {
     retry: false,
   })
 
+  const canLoadMemberships = classQuery.data?.myRole === 'INSTRUCTOR'
+
   const membershipsQuery = useQuery({
     queryKey: labbitQueryKeys.classMemberships(executionQuery.data?.classId ?? ''),
     queryFn: () => api.listClassMemberships(executionQuery.data?.classId ?? ''),
-    enabled: Boolean(executionQuery.data?.classId),
+    enabled: Boolean(executionQuery.data?.classId && canLoadMemberships),
     retry: false,
   })
 
@@ -77,7 +79,7 @@ export function LabExecutionPage() {
   if (
     executionQuery.isPending ||
     (executionQuery.data && classQuery.isPending) ||
-    (executionQuery.data && membershipsQuery.isPending)
+    (canLoadMemberships && membershipsQuery.isPending)
   ) {
     return (
       <main className="app-page">
@@ -86,12 +88,12 @@ export function LabExecutionPage() {
     )
   }
 
-  const queryErrors = [
-    executionQuery.error,
-    classQuery.error,
-    membershipsQuery.error,
-  ]
-  if (queryErrors.some((error) => error instanceof HttpError && error.status === 401)) {
+  const primaryQueryErrors = [executionQuery.error, classQuery.error]
+  if (
+    primaryQueryErrors.some(
+      (error) => error instanceof HttpError && error.status === 401,
+    )
+  ) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
 
@@ -122,10 +124,8 @@ export function LabExecutionPage() {
   if (
     executionQuery.error ||
     classQuery.error ||
-    membershipsQuery.error ||
     !executionQuery.data ||
-    !classQuery.data ||
-    !membershipsQuery.data
+    !classQuery.data
   ) {
     return (
       <main className="app-page">
@@ -147,6 +147,21 @@ export function LabExecutionPage() {
         >
           Class 상세로 돌아가기
         </Link>
+      </main>
+    )
+  }
+
+  if (
+    membershipsQuery.error instanceof HttpError &&
+    membershipsQuery.error.status === 401
+  ) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  }
+
+  if (membershipsQuery.error || !membershipsQuery.data) {
+    return (
+      <main className="app-page">
+        <ErrorState message="Class Membership 정보를 불러오지 못했습니다." />
       </main>
     )
   }

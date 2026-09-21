@@ -173,7 +173,9 @@ export function LabExecutionPage() {
         </section>
       )}
 
-      {isInstructor && execution.status !== 'COMPLETED' && (
+      {isInstructor &&
+        execution.status !== 'COMPLETED' &&
+        execution.status !== 'CLEANING_UP' && (
         <div className="action-row">
           <button
             className="secondary-button danger-text"
@@ -273,7 +275,11 @@ export function LabExecutionPage() {
               className="primary-button"
               type="button"
               disabled={mutation.isPending}
-              onClick={() => mutation.mutate(pendingAction)}
+              onClick={() => {
+                if (pendingAction) {
+                  mutation.mutate(pendingAction)
+                }
+              }}
             >
               {mutation.isPending
                 ? '요청 중...'

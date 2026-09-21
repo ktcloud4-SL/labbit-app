@@ -138,6 +138,72 @@ describe('httpLabbitApi', () => {
     expect(init.body).toBe(JSON.stringify(labSpecWrite))
   })
 
+  it('Reset 요청에 Idempotency-Key를 전달한다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          operationId: 'operation-reset-1',
+          target: {
+            type: 'LAB_INSTANCE',
+            id: 'lab-instance/student',
+          },
+        }),
+        {
+          status: 202,
+          headers: {
+            'content-type': 'application/json',
+          },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpLabbitApi.resetLabInstance('lab-instance/student', 'idem-reset-1')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/lab-instances/lab-instance%2Fstudent/reset',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      }),
+    )
+    const init = fetchMock.mock.calls[0][1] as RequestInit
+    expect(new Headers(init.headers).get('Idempotency-Key')).toBe('idem-reset-1')
+  })
+
+  it('Cleanup 요청에 Idempotency-Key를 전달한다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          operationId: 'operation-cleanup-1',
+          target: {
+            type: 'LAB_EXECUTION',
+            id: 'execution/demo',
+          },
+        }),
+        {
+          status: 202,
+          headers: {
+            'content-type': 'application/json',
+          },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpLabbitApi.cleanupLabExecution('execution/demo', 'idem-cleanup-1')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/lab-executions/execution%2Fdemo/cleanup',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      }),
+    )
+    const init = fetchMock.mock.calls[0][1] as RequestInit
+    expect(new Headers(init.headers).get('Idempotency-Key')).toBe('idem-cleanup-1')
+  })
+
   it('Provision 요청에 Idempotency-Key와 선택 학생을 전달한다', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
@@ -218,6 +284,46 @@ describe('mockLabbitApi', () => {
     await expect(mockLabbitApi.getClass('missing-class')).rejects.toMatchObject({
       status: 404,
     })
+  })
+
+  it('Mock Reset 완료 후 대상 LabInstance generation이 증가한다', async () => {
+    await mockLabbitApi.login(mockCredentials)
+
+    const accepted = await mockLabbitApi.resetLabInstance(
+      'lab-instance-student-a',
+      'idem-reset-mock',
+    )
+
+    await mockLabbitApi.getOperation(accepted.operationId)
+    await mockLabbitApi.getOperation(accepted.operationId)
+
+    const execution = await mockLabbitApi.getLabExecution(
+      'execution-kubernetes-basic',
+    )
+    const target = execution.labInstances.find(
+      (instance) => instance.id === 'lab-instance-student-a',
+    )
+
+    expect(target).toMatchObject({
+      status: 'READY',
+      generation: 2,
+    })
+  })
+
+  it('Mock Cleanup 완료 후 Class의 활성 Execution을 해제한다', async () => {
+    await mockLabbitApi.login(mockCredentials)
+
+    const accepted = await mockLabbitApi.cleanupLabExecution(
+      'execution-kubernetes-basic',
+      'idem-cleanup-mock',
+    )
+
+    await mockLabbitApi.getOperation(accepted.operationId)
+    await mockLabbitApi.getOperation(accepted.operationId)
+
+    const detail = await mockLabbitApi.getClass('class-kubernetes-basic')
+    expect(detail.activeLabExecution).toBeUndefined()
+    expect(detail.myLabInstance).toBeUndefined()
   })
 
   it('Mock LabSpec 수정은 stale ETag를 412로 거절한다', async () => {

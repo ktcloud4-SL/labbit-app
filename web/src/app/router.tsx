@@ -9,11 +9,14 @@ import {
 
 import { ClassDetailPage } from '../pages/ClassDetailPage'
 import { ClassListPage } from '../pages/ClassListPage'
+import { LabExecutionPage } from '../pages/LabExecutionPage'
 import { LabPage } from '../pages/LabPage'
 import { LabSpecEditorPage } from '../pages/LabSpecEditorPage'
 import { LabSpecListPage } from '../pages/LabSpecListPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
+import { OperationPage } from '../pages/OperationPage'
+import { ProvisionPage } from '../pages/ProvisionPage'
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
@@ -67,10 +70,16 @@ export const appRoutes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
   { path: '/classes', element: protectedRoute(<ClassListPage />) },
   { path: '/classes/:classId', element: protectedRoute(<ClassDetailPage />) },
+  { path: '/classes/:classId/provision', element: protectedRoute(<ProvisionPage />) },
   { path: '/classes/:classId/lab', element: protectedRoute(<LabPage />) },
   { path: '/lab-specs', element: protectedRoute(<LabSpecListPage />) },
   { path: '/lab-specs/new', element: protectedRoute(<LabSpecEditorPage />) },
   { path: '/lab-specs/:labSpecId', element: protectedRoute(<LabSpecEditorPage />) },
+  {
+    path: '/lab-executions/:labExecutionId',
+    element: protectedRoute(<LabExecutionPage />),
+  },
+  { path: '/operations/:operationId', element: protectedRoute(<OperationPage />) },
   { path: '*', element: <NotFoundPage /> },
 ]
 

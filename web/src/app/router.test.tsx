@@ -192,6 +192,29 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
     ).toBeInTheDocument()
+    expect(
+      screen.getByText('이 화면을 사용하려면 로그인이 필요합니다.'),
+    ).toBeInTheDocument()
+  })
+
+  it('보호 화면 사용 중 API 401은 세션 만료 재로그인으로 안내한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('Login → /me → Class 목록 Flow를 수행한다', async () => {
@@ -221,6 +244,43 @@ describe('Auth·Class·LabSpec routing', () => {
     })
     expect(getMe).toHaveBeenCalled()
     expect(screen.getByText('Kubernetes Basic')).toBeInTheDocument()
+    expect(screen.getByText('heechul')).toBeInTheDocument()
+    expect(screen.getByText('SamsungLions Org')).toBeInTheDocument()
+  })
+
+  it('App Shell에서 로그아웃하면 Login으로 돌아가고 사용자 문맥을 제거한다', async () => {
+    const logout = vi.fn(async () => {})
+
+    renderRoute('/classes', createApi({ logout }))
+
+    await screen.findByRole('heading', { name: '수업' })
+    fireEvent.click(screen.getByRole('button', { name: '로그아웃' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('로그아웃했습니다.')).toBeInTheDocument()
+    expect(logout).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('SamsungLions Org')).not.toBeInTheDocument()
+  })
+
+  it('이미 만료된 세션의 logout 401도 안전하게 Login으로 종료한다', async () => {
+    renderRoute(
+      '/classes',
+      createApi({
+        logout: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', { name: '수업' })
+    fireEvent.click(screen.getByRole('button', { name: '로그아웃' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('로그아웃했습니다.')).toBeInTheDocument()
   })
 
   it('Class 목록이 비어 있으면 Empty 상태를 렌더링한다', async () => {
@@ -365,6 +425,29 @@ describe('Auth·Class·LabSpec routing', () => {
       ),
     ).toBeInTheDocument()
     expect(updateLabSpec).toHaveBeenCalled()
+  })
+
+  it('LabSpec 저장 중 세션이 만료되면 Login으로 이동한다', async () => {
+    renderRoute(
+      '/lab-specs/lab-spec-kubernetes-basic',
+      createApi({
+        updateLabSpec: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', { name: 'Kubernetes Basic Lab' })
+    fireEvent.click(screen.getByRole('button', { name: 'LabSpec 저장' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('새 LabSpec 생성 403을 수정 권한 오류로 오인하지 않는다', async () => {
@@ -576,6 +659,131 @@ describe('Auth·Class·LabSpec routing', () => {
     )
   })
 
+  it('Provision 요청 중 세션이 만료되면 Login으로 이동한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/provision',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          activeLabExecution: undefined,
+          myLabInstance: undefined,
+        }),
+        listClassMemberships: async () => ({
+          items: [
+            {
+              userId: 'user-student-a',
+              username: 'student-a',
+              role: 'STUDENT',
+            },
+          ],
+        }),
+        createLabExecution: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', {
+      name: 'Kubernetes Basic · 새 환경 생성',
+    })
+    fireEvent.change(screen.getByLabelText('LabSpec'), {
+      target: { value: labSpecFixture.id },
+    })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: '생성 내용 확인' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Provision 시작' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+  })
+
+  it('Provision 403은 권한 변경 안내로 표시한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/provision',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          activeLabExecution: undefined,
+          myLabInstance: undefined,
+        }),
+        listClassMemberships: async () => ({
+          items: [
+            {
+              userId: 'user-student-a',
+              username: 'student-a',
+              role: 'STUDENT',
+            },
+          ],
+        }),
+        createLabExecution: async () => {
+          throw new HttpError(403)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', {
+      name: 'Kubernetes Basic · 새 환경 생성',
+    })
+    fireEvent.change(screen.getByLabelText('LabSpec'), {
+      target: { value: labSpecFixture.id },
+    })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: '생성 내용 확인' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Provision 시작' }))
+
+    expect(
+      await screen.findByText(
+        '현재 계정에는 이 Class의 Provision 권한이 없습니다. 권한이 변경되었을 수 있습니다.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('Provision 409 후 동일 요청 재시도를 막고 Class 상태를 다시 확인한다', async () => {
+    const getClass = vi.fn(async () => ({
+      ...classDetailFixture,
+      activeLabExecution: undefined,
+      myLabInstance: undefined,
+    }))
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/provision',
+      createApi({
+        getClass,
+        listClassMemberships: async () => ({
+          items: [
+            {
+              userId: 'user-student-a',
+              username: 'student-a',
+              role: 'STUDENT',
+            },
+          ],
+        }),
+        createLabExecution: async () => {
+          throw new HttpError(409)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', {
+      name: 'Kubernetes Basic · 새 환경 생성',
+    })
+    fireEvent.change(screen.getByLabelText('LabSpec'), {
+      target: { value: labSpecFixture.id },
+    })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: '생성 내용 확인' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Provision 시작' }))
+
+    expect(
+      await screen.findByText(
+        '활성 LabExecution 또는 다른 변경 작업과 충돌했습니다. 현재 상태를 다시 확인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Provision 시작' })).toBeDisabled()
+    expect(getClass.mock.calls.length).toBeGreaterThanOrEqual(2)
+  })
+
   it('Operation 403은 권한 없음 상태로 표시한다', async () => {
     renderRoute(
       '/operations/forbidden-operation',
@@ -769,6 +977,70 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument()
   })
 
+  it('Reset 요청 중 세션이 만료되면 Login으로 이동한다', async () => {
+    renderRoute(
+      '/lab-executions/execution-kubernetes-basic',
+      createApi({
+        listClassMemberships: async () => ({
+          items: [
+            {
+              userId: 'user-student-a',
+              username: 'student-a',
+              role: 'STUDENT',
+            },
+          ],
+        }),
+        resetLabInstance: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', { name: '실습 운영 상태' })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset 시작' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+  })
+
+  it('Reset 409 후 중복 재시도는 막고 취소는 유지한다', async () => {
+    const getLabExecution = vi.fn(async () => labExecutionFixture)
+
+    renderRoute(
+      '/lab-executions/execution-kubernetes-basic',
+      createApi({
+        getLabExecution,
+        listClassMemberships: async () => ({
+          items: [
+            {
+              userId: 'user-student-a',
+              username: 'student-a',
+              role: 'STUDENT',
+            },
+          ],
+        }),
+        resetLabInstance: async () => {
+          throw new HttpError(409)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', { name: '실습 운영 상태' })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset 시작' }))
+
+    expect(
+      await screen.findByText(
+        '다른 변경 작업이 진행 중입니다. 현재 Operation 상태를 확인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reset 시작' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '취소' })).toBeEnabled()
+    expect(getLabExecution.mock.calls.length).toBeGreaterThanOrEqual(2)
+  })
+
   it('Reset 422는 재현 불가 시 기존 환경이 먼저 삭제되지 않음을 안내한다', async () => {
     renderRoute(
       '/lab-executions/execution-kubernetes-basic',
@@ -834,6 +1106,30 @@ describe('Auth·Class·LabSpec routing', () => {
       labExecutionFixture.id,
       expect.any(String),
     )
+  })
+
+  it('Cleanup 422는 Reset 재현 오류 문구로 표시하지 않는다', async () => {
+    renderRoute(
+      '/lab-executions/execution-kubernetes-basic',
+      createApi({
+        cleanupLabExecution: async () => {
+          throw new HttpError(422)
+        },
+      }),
+    )
+
+    await screen.findByRole('heading', { name: '실습 운영 상태' })
+    fireEvent.click(screen.getByRole('button', { name: 'Class Cleanup' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cleanup 시작' }))
+
+    expect(
+      await screen.findByText(
+        '현재 LabExecution 상태에서는 Cleanup을 시작할 수 없습니다. 상태와 진행 중인 작업을 확인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/Reset 재현 조건/),
+    ).not.toBeInTheDocument()
   })
 
   it('READY LabInstance만 직접 Workspace URL 진입을 허용한다', async () => {

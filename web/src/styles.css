@@ -726,3 +726,80 @@ a {
     min-height: 240px;
   }
 }
+
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.app-topbar {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px max(20px, calc((100vw - 1180px) / 2));
+  border-bottom: 1px solid #e5e8ef;
+  background: #fff;
+}
+
+.app-topbar-main,
+.app-user,
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.app-brand,
+.app-nav a {
+  text-decoration: none;
+}
+
+.app-brand {
+  color: #5148bb;
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.app-nav a {
+  color: #505767;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.app-user-context {
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+
+.app-user-context strong {
+  font-size: 13px;
+}
+
+.app-user-context span {
+  color: #7d8492;
+  font-size: 11px;
+}
+
+.app-shell-alert {
+  width: min(1180px, calc(100% - 40px));
+  margin: 18px auto 0;
+}
+
+@media (max-width: 720px) {
+  .app-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .app-user {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .app-user-context {
+    text-align: left;
+  }
+}

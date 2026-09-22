@@ -68,6 +68,16 @@ export function ProvisionPage() {
         replace: true,
       })
     },
+    onError: async (error) => {
+      if (error instanceof HttpError && error.status === 401) {
+        queryClient.removeQueries({ queryKey: labbitQueryKeys.me })
+      }
+      if (error instanceof HttpError && error.status === 409) {
+        await queryClient.invalidateQueries({
+          queryKey: labbitQueryKeys.classDetail(resolvedClassId),
+        })
+      }
+    },
   })
 
   if (!resolvedClassId) {
@@ -86,8 +96,21 @@ export function ProvisionPage() {
     )
   }
 
-  if (classQuery.error instanceof HttpError && classQuery.error.status === 401) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  if (
+    (classQuery.error instanceof HttpError && classQuery.error.status === 401) ||
+    (provisionMutation.error instanceof HttpError &&
+      provisionMutation.error.status === 401)
+  ) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: `${location.pathname}${location.search}`,
+          reason: 'sessionExpired',
+        }}
+      />
+    )
   }
 
   if (classQuery.error instanceof HttpError && classQuery.error.status === 403) {
@@ -169,7 +192,16 @@ export function ProvisionPage() {
 
   const inputErrors = [membershipsQuery.error, labSpecsQuery.error]
   if (inputErrors.some((error) => error instanceof HttpError && error.status === 401)) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: `${location.pathname}${location.search}`,
+          reason: 'sessionExpired',
+        }}
+      />
+    )
   }
 
   if (
@@ -220,9 +252,13 @@ export function ProvisionPage() {
   }
 
   const mutationError = provisionMutation.error
-  const errorMessage =
+  const conflictError =
     mutationError instanceof HttpError && mutationError.status === 409
-      ? '활성 LabExecution 또는 다른 변경 작업과 충돌했습니다. 현재 상태를 다시 확인해 주세요.'
+  const errorMessage =
+    mutationError instanceof HttpError && mutationError.status === 403
+      ? '현재 계정에는 이 Class의 Provision 권한이 없습니다. 권한이 변경되었을 수 있습니다.'
+      : mutationError instanceof HttpError && mutationError.status === 409
+        ? '활성 LabExecution 또는 다른 변경 작업과 충돌했습니다. 현재 상태를 다시 확인해 주세요.'
       : mutationError instanceof HttpError && mutationError.status === 422
         ? '선택한 LabSpec 또는 학생 대상이 현재 Class 규칙과 맞지 않습니다.'
         : mutationError instanceof HttpError && mutationError.status === 503
@@ -376,7 +412,7 @@ export function ProvisionPage() {
             <button
               className="primary-button"
               type="button"
-              disabled={provisionMutation.isPending}
+              disabled={provisionMutation.isPending || conflictError}
               onClick={() => provisionMutation.mutate(confirmation)}
             >
               {provisionMutation.isPending ? '요청 중...' : 'Provision 시작'}

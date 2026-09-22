@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 
@@ -27,6 +27,7 @@ function createIdempotencyKey() {
 
 export function LabExecutionPage() {
   const api = useLabbitApi()
+  const queryClient = useQueryClient()
   const location = useLocation()
   const navigate = useNavigate()
   const { labExecutionId } = useParams()
@@ -66,6 +67,16 @@ export function LabExecutionPage() {
     onSuccess: (accepted) => {
       navigate(`/operations/${encodeURIComponent(accepted.operationId)}`)
     },
+    onError: async (error) => {
+      if (error instanceof HttpError && error.status === 401) {
+        queryClient.removeQueries({ queryKey: labbitQueryKeys.me })
+      }
+      if (error instanceof HttpError && error.status === 409) {
+        await queryClient.invalidateQueries({
+          queryKey: labbitQueryKeys.labExecution(resolvedExecutionId),
+        })
+      }
+    },
   })
 
   if (!resolvedExecutionId) {
@@ -92,9 +103,19 @@ export function LabExecutionPage() {
   if (
     primaryQueryErrors.some(
       (error) => error instanceof HttpError && error.status === 401,
-    )
+    ) ||
+    (mutation.error instanceof HttpError && mutation.error.status === 401)
   ) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: `${location.pathname}${location.search}`,
+          reason: 'sessionExpired',
+        }}
+      />
+    )
   }
 
   if (executionQuery.error instanceof HttpError && executionQuery.error.status === 403) {
@@ -155,7 +176,16 @@ export function LabExecutionPage() {
     membershipsQuery.error instanceof HttpError &&
     membershipsQuery.error.status === 401
   ) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: `${location.pathname}${location.search}`,
+          reason: 'sessionExpired',
+        }}
+      />
+    )
   }
 
   if (membershipsQuery.error || !membershipsQuery.data) {
@@ -180,11 +210,17 @@ export function LabExecutionPage() {
     execution.status === 'ACTIVE' || execution.status === 'ERROR'
 
   const mutationError = mutation.error
-  const mutationErrorMessage =
+  const conflictError =
     mutationError instanceof HttpError && mutationError.status === 409
-      ? '다른 변경 작업이 진행 중입니다. 현재 Operation 상태를 확인해 주세요.'
+  const mutationErrorMessage =
+    mutationError instanceof HttpError && mutationError.status === 403
+      ? '현재 계정에는 이 변경 작업을 실행할 권한이 없습니다. 권한이 변경되었을 수 있습니다.'
+      : mutationError instanceof HttpError && mutationError.status === 409
+        ? '다른 변경 작업이 진행 중입니다. 현재 Operation 상태를 확인해 주세요.'
       : mutationError instanceof HttpError && mutationError.status === 422
-        ? 'Reset 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현 불가로 거절된 경우 기존 환경은 먼저 삭제되지 않습니다.'
+        ? pendingAction?.type === 'RESET'
+          ? 'Reset 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현 불가로 거절된 경우 기존 환경은 먼저 삭제되지 않습니다.'
+          : '현재 LabExecution 상태에서는 Cleanup을 시작할 수 없습니다. 상태와 진행 중인 작업을 확인해 주세요.'
         : mutationError instanceof HttpError && mutationError.status === 503
           ? 'Connector 또는 Provider가 일시적으로 사용할 수 없습니다.'
           : mutationError
@@ -343,7 +379,7 @@ export function LabExecutionPage() {
             <button
               className="primary-button"
               type="button"
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || conflictError}
               onClick={() => {
                 if (pendingAction) {
                   mutation.mutate(pendingAction)

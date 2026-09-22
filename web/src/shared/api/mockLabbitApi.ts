@@ -52,7 +52,7 @@ export const mockClasses: ClassList = {
   ],
 }
 
-const mockClassDetails: Record<string, ClassDetail> = {
+const initialMockClassDetails: Record<string, ClassDetail> = {
   'class-kubernetes-basic': {
     id: 'class-kubernetes-basic',
     name: 'Kubernetes Basic',
@@ -120,6 +120,8 @@ const mockMemberships: Record<string, ClassMembershipList> = {
     ],
   },
 }
+
+let mockClassDetails: Record<string, ClassDetail> = {}
 
 const initialLabSpecs: LabSpec[] = [
   {
@@ -211,6 +213,18 @@ let operations = new Map<string, Operation>()
 let operationReads = new Map<string, number>()
 let nextExecutionId = 1
 
+function cloneClassDetail(classDetail: ClassDetail): ClassDetail {
+  return {
+    ...classDetail,
+    activeLabExecution: classDetail.activeLabExecution
+      ? { ...classDetail.activeLabExecution }
+      : undefined,
+    myLabInstance: classDetail.myLabInstance
+      ? { ...classDetail.myLabInstance }
+      : undefined,
+  }
+}
+
 function cloneLabSpec(labSpec: LabSpec): LabSpec {
   return {
     ...labSpec,
@@ -224,6 +238,21 @@ function currentEtag(labSpecId: string) {
 }
 
 function resetMockData() {
+  mockClassDetails = Object.fromEntries(
+    Object.entries(initialMockClassDetails).map(([classId, classDetail]) => [
+      classId,
+      cloneClassDetail(classDetail),
+    ]),
+  )
+  mockClasses.items = Object.values(mockClassDetails).map((classDetail) => ({
+    id: classDetail.id,
+    name: classDetail.name,
+    myRole: classDetail.myRole,
+    activeLabExecution: classDetail.activeLabExecution
+      ? { ...classDetail.activeLabExecution }
+      : undefined,
+  }))
+
   labSpecs = initialLabSpecs.map(cloneLabSpec)
   labSpecVersions = new Map(initialLabSpecs.map((labSpec) => [labSpec.id, 1]))
   nextLabSpecId = 1
@@ -274,7 +303,14 @@ export const mockLabbitApi: LabbitApi = {
 
   async listClasses() {
     requireSession()
-    return mockClasses
+    return {
+      items: mockClasses.items.map((classItem) => ({
+        ...classItem,
+        activeLabExecution: classItem.activeLabExecution
+          ? { ...classItem.activeLabExecution }
+          : undefined,
+      })),
+    }
   },
 
   async getClass(classId) {
@@ -285,7 +321,7 @@ export const mockLabbitApi: LabbitApi = {
       throw new HttpError(404)
     }
 
-    return classDetail
+    return cloneClassDetail(classDetail)
   },
 
   async listClassMemberships(classId) {
@@ -437,6 +473,13 @@ export const mockLabbitApi: LabbitApi = {
     classDetail.activeLabExecution = {
       id: executionId,
       status: 'PROVISIONING',
+    }
+    const classSummary = mockClasses.items.find((item) => item.id === classId)
+    if (classSummary) {
+      classSummary.activeLabExecution = {
+        id: executionId,
+        status: 'PROVISIONING',
+      }
     }
 
     const now = new Date().toISOString()
@@ -605,6 +648,12 @@ export const mockLabbitApi: LabbitApi = {
           if (classDetail?.activeLabExecution) {
             classDetail.activeLabExecution.status = 'ACTIVE'
           }
+          const classSummary = mockClasses.items.find(
+            (item) => item.id === execution.classId,
+          )
+          if (classSummary?.activeLabExecution) {
+            classSummary.activeLabExecution.status = 'ACTIVE'
+          }
         }
       }
 
@@ -633,6 +682,12 @@ export const mockLabbitApi: LabbitApi = {
           if (classDetail?.activeLabExecution?.id === execution.id) {
             classDetail.activeLabExecution = undefined
             classDetail.myLabInstance = undefined
+          }
+          const classSummary = mockClasses.items.find(
+            (item) => item.id === execution.classId,
+          )
+          if (classSummary?.activeLabExecution?.id === execution.id) {
+            classSummary.activeLabExecution = undefined
           }
         }
       }

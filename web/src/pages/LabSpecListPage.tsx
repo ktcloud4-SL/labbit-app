@@ -34,7 +34,16 @@ export function LabSpecListPage() {
     (labSpecsQuery.error instanceof HttpError && labSpecsQuery.error.status === 401)
 
   if (authError) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: `${location.pathname}${location.search}`,
+          reason: 'sessionExpired',
+        }}
+      />
+    )
   }
 
   if (meQuery.error || labSpecsQuery.error || !meQuery.data || !labSpecsQuery.data) {

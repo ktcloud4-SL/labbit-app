@@ -159,19 +159,45 @@ async function hardNavigate(cdp, url) {
 async function navigateAuthenticated(cdp, pathname, readyExpression, label) {
   await hardNavigate(cdp, `${baseUrl}${pathname}`)
 
-  // Mock 로그인 상태는 새 문서 로드마다 초기화되므로,
-  // 보호 Route에서 Login으로 이동하면 스크립트가 자동 로그인한 뒤 원래 Route로 복귀합니다.
+  // Hard reload 직후에는 보호 Route가 잠깐 원래 pathname을 유지한 뒤
+  // Mock session 초기화 때문에 /login으로 이동할 수 있습니다.
+  // pathname만 보고 "도착"으로 판단하지 않고 실제 화면 준비 여부 또는 Login form을 기다립니다.
   const started = Date.now()
-  while (Date.now() - started < 8000) {
-    const currentPath = await evaluate(cdp, 'location.pathname')
-    if (currentPath === pathname) break
+  let authenticated = false
 
-    if (currentPath === '/login') {
+  while (Date.now() - started < 10000) {
+    const state = await evaluate(
+      cdp,
+      `(() => ({
+        path: location.pathname,
+        targetReady:
+          location.pathname === ${JSON.stringify(pathname)} &&
+          Boolean(${readyExpression}),
+        loginReady:
+          location.pathname === '/login' &&
+          Boolean(document.querySelector('form.login-form')),
+      }))()`,
+    )
+
+    if (state?.targetReady) {
+      authenticated = true
+      break
+    }
+
+    if (state?.loginReady) {
       await login(cdp, pathname)
+      authenticated = true
       break
     }
 
     await delay(100)
+  }
+
+  if (!authenticated) {
+    const currentPath = await evaluate(cdp, 'location.pathname')
+    throw new Error(
+      `화면 이동 실패: ${label} (현재 경로: ${currentPath})`,
+    )
   }
 
   await waitForJs(

@@ -142,8 +142,9 @@ async function evaluate(cdp, expression) {
 
 async function waitForJs(cdp, expression, label, timeoutMs = 8000) {
   const started = Date.now()
+  const encodedExpression = JSON.stringify(expression)
   while (Date.now() - started < timeoutMs) {
-    if (await evaluate(cdp, `Boolean(${expression})`)) return
+    if (await evaluate(cdp, `Boolean(eval(${encodedExpression}))`)) return
     await delay(100)
   }
   throw new Error(`화면 준비 대기 시간 초과: ${label}`)
@@ -168,15 +169,18 @@ async function navigateAuthenticated(cdp, pathname, readyExpression, label) {
   while (Date.now() - started < 10000) {
     const state = await evaluate(
       cdp,
-      `(() => ({
-        path: location.pathname,
-        targetReady:
-          location.pathname === ${JSON.stringify(pathname)} &&
-          Boolean(${readyExpression}),
-        loginReady:
-          location.pathname === '/login' &&
-          Boolean(document.querySelector('form.login-form')),
-      }))()`,
+      `(() => {
+        const readyExpression = ${JSON.stringify(readyExpression)};
+        return {
+          path: location.pathname,
+          targetReady:
+            location.pathname === ${JSON.stringify(pathname)} &&
+            Boolean(eval(readyExpression)),
+          loginReady:
+            location.pathname === '/login' &&
+            Boolean(document.querySelector('form.login-form')),
+        };
+      })()`,
     )
 
     if (state?.targetReady) {
@@ -202,7 +206,9 @@ async function navigateAuthenticated(cdp, pathname, readyExpression, label) {
 
   await waitForJs(
     cdp,
-    `location.pathname === ${JSON.stringify(pathname)} && (${readyExpression})`,
+    `location.pathname === ${JSON.stringify(pathname)} && Boolean(eval(${JSON.stringify(
+      readyExpression,
+    )}))`,
     label,
     10000,
   )
@@ -324,6 +330,7 @@ async function main() {
     throw new Error('Chrome/Edge 실행 파일을 찾지 못했습니다. CHROME_PATH 환경변수로 경로를 지정해 주세요.')
   }
 
+  await rm(outputDir, { recursive: true, force: true }).catch(() => {})
   await mkdir(outputDir, { recursive: true })
   const profileDir = await mkdtemp(path.join(os.tmpdir(), 'labbit-ui-capture-'))
 

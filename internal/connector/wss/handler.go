@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -26,6 +27,7 @@ func (f SendMessageFunc) SendMessage(ctx context.Context, msg interface{}) error
 // Handler 는 SaaS 로부터 수신한 Control WSS 메시지를 검증하고
 // 내부 Provider(DispatchOperation / DispatchReconcile)로 연결한 후 결과를 회신합니다.
 type Handler struct {
+	mu       sync.RWMutex
 	provider provider.Provider
 	sender   MessageSender
 }
@@ -36,6 +38,20 @@ func NewHandler(p provider.Provider, sender MessageSender) *Handler {
 		provider: p,
 		sender:   sender,
 	}
+}
+
+// SetSender 는 WSS 메시지 발송 인터페이스를 갱신합니다.
+func (h *Handler) SetSender(sender MessageSender) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.sender = sender
+}
+
+// Sender 는 현재 설정된 MessageSender 를 반환합니다.
+func (h *Handler) Sender() MessageSender {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.sender
 }
 
 // HandleMessage 는 수신된 raw JSON 메시지를 Envelope 기준으로 판별하여 적절한 처리기로 분기합니다.
@@ -64,7 +80,7 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 
 	// 1. 필수 Correlation 필드 검증 (OperationID, LabInstanceID, Generation >= 1)
 	if cmdMsg.OperationID == "" || cmdMsg.LabInstanceID == "" || cmdMsg.Generation < 1 {
-		if h.sender != nil {
+		if sender := h.Sender(); sender != nil {
 			ackErr := protocol.OperationAckMessage{
 				BaseEnvelope: protocol.BaseEnvelope{
 					Type:             protocol.MessageTypeOperationAck,
@@ -86,13 +102,13 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 					},
 				},
 			}
-			_ = h.sender.SendMessage(ctx, ackErr)
+			_ = sender.SendMessage(ctx, ackErr)
 		}
 		return fmt.Errorf("invalid operation command: missing correlation fields")
 	}
 
 	// 2. 계약에 따른 OPERATION_ACK(Accepted: true) 즉시 회신
-	if h.sender != nil {
+	if sender := h.Sender(); sender != nil {
 		ackMsg := protocol.OperationAckMessage{
 			BaseEnvelope: protocol.BaseEnvelope{
 				Type:             protocol.MessageTypeOperationAck,
@@ -110,7 +126,7 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 				Accepted: true,
 			},
 		}
-		if err := h.sender.SendMessage(ctx, ackMsg); err != nil {
+		if err := sender.SendMessage(ctx, ackMsg); err != nil {
 			return fmt.Errorf("failed to send OPERATION_ACK: %w", err)
 		}
 	}
@@ -227,8 +243,8 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 		}
 	}
 
-	if h.sender != nil {
-		if err := h.sender.SendMessage(ctx, resultMsg); err != nil {
+	if sender := h.Sender(); sender != nil {
+		if err := sender.SendMessage(ctx, resultMsg); err != nil {
 			return fmt.Errorf("failed to send OPERATION_RESULT: %w", err)
 		}
 	}
@@ -320,8 +336,8 @@ func (h *Handler) handleReconcileRequest(ctx context.Context, env protocol.BaseE
 		}
 	}
 
-	if h.sender != nil {
-		if err := h.sender.SendMessage(ctx, resultMsg); err != nil {
+	if sender := h.Sender(); sender != nil {
+		if err := sender.SendMessage(ctx, resultMsg); err != nil {
 			return fmt.Errorf("failed to send RECONCILE_RESULT: %w", err)
 		}
 	}

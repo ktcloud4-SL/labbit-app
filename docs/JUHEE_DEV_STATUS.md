@@ -110,14 +110,24 @@ rabbit-app/
   * `TestClient_CredentialFile`: `*_FILE` 경로 기반 보안 토큰 주입 검증 (PASS)
   * `TestClient_ResolveEndpoint`: 다양한 스킴 및 경로의 WSS 엔드포인트 정규화 검증 (PASS)
 
+### ✅ [M1-B] Heartbeat 주기 발송 및 지수 백오프 Reconnect (완료)
+* **Heartbeat Loop 구현 (`internal/connector/heartbeat/loop.go`)**:
+  * `HELLO_ACK`로 전달받은 Heartbeat 주기(기본 15초)마다 `HEARTBEAT` 메시지(`observedAt`) 주기적 발송
+  * 45초 단절 감지 및 에러 채널 통보
+  * `loop_test.go`: 주기 발송, 전송 실패 감지, context 종료 graceful stop 검증 통과 (PASS)
+* **지수 백오프 Reconnect 루프 (`internal/connector/wss/reconnect.go`)**:
+  * `BackoffPolicy`: 초기 1초, 배수 2.0, 최대 30초, RandomizationFactor 0.2(±20% Jitter) 계산
+  * "재접속은 Operation Retry가 아니다" 원칙 준수 (단절 시 임의 재시도 없이 순수 제어 소켓 복구)
+  * `Supervisor`: WSS 연결 ➔ `HELLO` 핸드셰이크 ➔ `Heartbeat` 가동 ➔ `Handler.Listen` 수명 관리 및 비정상 단절 시 자동 재접속
+  * `reconnect_test.go`: 백오프 Jitter 범위 검증, 비정상 단절 후 자동 재접속 및 `HELLO` 재협상 검증 통과 (PASS)
+
 ---
 
-## 6. 다음 개발 진행 계획 (M1-B 착수)
+## 6. 다음 개발 진행 계획 (M1 Checkpoint #1 및 M3 터미널 스트리밍)
 
-* **Heartbeat Loop 구현 (`internal/connector/heartbeat/loop.go`)**:
-  * `HELLO_ACK`로 전달받은 주기(기본 15초)로 `HEARTBEAT` 전송
-  * 45초 무응답 시 OFFLINE 판단 및 재접속 트리거
-* **지수 백오프 Reconnect 루프**:
-  * WSS 단절 감지 시 Exponential Backoff + Jitter 기반 자동 재연결
-* **Integration Checkpoint #1 준비**:
-  * Control Layer + Provider Adapter 단일 프로세스 기동 검증
+* **M1 Integration Checkpoint #1 (서빈 님 협업)**:
+  * 서빈 님 PC에서 주희 님 브랜치(`feat/SL-connector-control-wss`)를 당겨 받아 OpenStack Provider와 단일 프로세스 결합 검증
+* **Milestone M3 착수 (실시간 터미널 세션 스트리밍)**:
+  * SaaS `TERMINAL_OPEN` 수신 및 관리망 VM(22번 포트) SSH PTY 셸 연결
+  * 별도 Terminal Data WSS(`labbit.connector-terminal.v1`) 연결 및 1:1 양방향 PTY 바이너리 스트리밍
+  * 브라우저 탭 닫힘 시 60초 유예기간(Grace Period) 및 재접속 복구 구현

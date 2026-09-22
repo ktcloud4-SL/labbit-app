@@ -145,6 +145,20 @@ function createApi(overrides: Partial<LabbitApi> = {}): LabbitApi {
       target: operationFixture.target,
     }),
     getLabExecution: async () => labExecutionFixture,
+    cleanupLabExecution: async () => ({
+      operationId: 'operation-cleanup-1',
+      target: {
+        type: 'LAB_EXECUTION',
+        id: labExecutionFixture.id,
+      },
+    }),
+    resetLabInstance: async (labInstanceId) => ({
+      operationId: 'operation-reset-1',
+      target: {
+        type: 'LAB_INSTANCE',
+        id: labInstanceId,
+      },
+    }),
     getOperation: async () => operationFixture,
     ...overrides,
   }
@@ -504,6 +518,21 @@ describe('Auth·Class·LabSpec routing', () => {
     )
   })
 
+  it('Operation 403은 권한 없음 상태로 표시한다', async () => {
+    renderRoute(
+      '/operations/forbidden-operation',
+      createApi({
+        getOperation: async () => {
+          throw new HttpError(403)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText('이 Operation을 볼 권한이 없습니다.'),
+    ).toBeInTheDocument()
+  })
+
   it('Operation RECONCILING을 중복 재실행이 아닌 Provider 확인 상태로 표시한다', async () => {
     renderRoute(
       '/operations/operation-reconciling',
@@ -539,6 +568,98 @@ describe('Auth·Class·LabSpec routing', () => {
       screen.getByText('일부 LabInstance에 오류가 있습니다.'),
     ).toBeInTheDocument()
     expect(screen.getByText('ERROR')).toBeInTheDocument()
+  })
+
+  it('강사는 학생 LabInstance Reset을 확인한 뒤 Operation을 시작한다', async () => {
+    const resetLabInstance = vi.fn(async (labInstanceId: string) => ({
+      operationId: 'operation-reset-1',
+      target: {
+        type: 'LAB_INSTANCE',
+        id: labInstanceId,
+      },
+    }))
+
+    renderRoute(
+      '/lab-executions/execution-kubernetes-basic',
+      createApi({
+        listClassMemberships: async () => ({
+          items: [
+            {
+              userId: 'user-student-a',
+              username: 'student-a',
+              role: 'STUDENT',
+            },
+          ],
+        }),
+        resetLabInstance,
+        getOperation: async () => ({
+          ...operationFixture,
+          id: 'operation-reset-1',
+          type: 'RESET',
+          target: {
+            type: 'LAB_INSTANCE',
+            id: 'lab-instance-student-a',
+          },
+        }),
+      }),
+    )
+
+    await screen.findByRole('heading', { name: '실습 운영 상태' })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    expect(
+      await screen.findByRole('heading', { name: 'student-a 환경을 Reset할까요?' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset 시작' }))
+    expect(await screen.findByRole('heading', { name: '완료' })).toBeInTheDocument()
+    expect(resetLabInstance).toHaveBeenCalledWith(
+      'lab-instance-student-a',
+      expect.any(String),
+    )
+  })
+
+  it('ERROR 학생 LabInstance도 Reset 대상으로 선택할 수 있다', async () => {
+    renderRoute('/lab-executions/execution-kubernetes-basic')
+
+    await screen.findByRole('heading', { name: '실습 운영 상태' })
+    expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument()
+  })
+
+  it('강사는 LabExecution Cleanup을 확인한 뒤 Operation을 시작한다', async () => {
+    const cleanupLabExecution = vi.fn(async () => ({
+      operationId: 'operation-cleanup-1',
+      target: {
+        type: 'LAB_EXECUTION',
+        id: labExecutionFixture.id,
+      },
+    }))
+
+    renderRoute(
+      '/lab-executions/execution-kubernetes-basic',
+      createApi({
+        cleanupLabExecution,
+        getOperation: async () => ({
+          ...operationFixture,
+          id: 'operation-cleanup-1',
+          type: 'CLEANUP',
+        }),
+      }),
+    )
+
+    await screen.findByRole('heading', { name: '실습 운영 상태' })
+    fireEvent.click(screen.getByRole('button', { name: 'Class Cleanup' }))
+    expect(
+      await screen.findByRole('heading', {
+        name: '현재 LabExecution을 Cleanup할까요?',
+      }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cleanup 시작' }))
+    expect(await screen.findByRole('heading', { name: '완료' })).toBeInTheDocument()
+    expect(cleanupLabExecution).toHaveBeenCalledWith(
+      labExecutionFixture.id,
+      expect.any(String),
+    )
   })
 
   it('READY LabInstance만 직접 Workspace URL 진입을 허용한다', async () => {

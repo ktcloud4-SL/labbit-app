@@ -72,6 +72,14 @@ export function OperationPage() {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
 
+  if (operationQuery.error instanceof HttpError && operationQuery.error.status === 403) {
+    return (
+      <main className="app-page">
+        <ErrorState message="이 Operation을 볼 권한이 없습니다." />
+      </main>
+    )
+  }
+
   if (operationQuery.error instanceof HttpError && operationQuery.error.status === 404) {
     return (
       <main className="app-page">

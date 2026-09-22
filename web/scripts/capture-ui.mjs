@@ -347,6 +347,57 @@ async function captureProvisionOperationFlow(cdp) {
   await capture(cdp, '11-operation.png')
 }
 
+
+async function captureLabExecutionConfirmations(cdp) {
+  const screen = {
+    path: '/lab-executions/execution-kubernetes-basic',
+    selector: 'main',
+    text: '실습 운영 상태',
+    label: '실습 운영 확인 모달',
+  }
+
+  await navigateAuthenticated(cdp, screen)
+
+  await evaluate(
+    cdp,
+    `(() => {
+      const button = [...document.querySelectorAll('button')].find(
+        (candidate) => candidate.textContent?.trim() === '전체 실습 정리',
+      );
+      if (!button) throw new Error('전체 실습 정리 button not found');
+      button.click();
+    })()`,
+  )
+  await waitForJs(
+    cdp,
+    `Boolean(document.querySelector('[role="dialog"]')) &&
+      Boolean(document.body.textContent?.includes('현재 실습을 정리할까요?'))`,
+    '전체 실습 정리 확인',
+  )
+  await delay(120)
+  await capture(cdp, '16-cleanup-confirm.png')
+
+  await navigateAuthenticated(cdp, screen)
+  await evaluate(
+    cdp,
+    `(() => {
+      const button = [...document.querySelectorAll('button')].find(
+        (candidate) => candidate.textContent?.trim() === '초기화',
+      );
+      if (!button) throw new Error('초기화 button not found');
+      button.click();
+    })()`,
+  )
+  await waitForJs(
+    cdp,
+    `Boolean(document.querySelector('[role="dialog"]')) &&
+      Boolean(document.body.textContent?.includes('환경을 초기화할까요?'))`,
+    '개별 환경 초기화 확인',
+  )
+  await delay(120)
+  await capture(cdp, '17-reset-confirm.png')
+}
+
 async function ensureVite() {
   try {
     await waitForHttp(baseUrl, 700)
@@ -557,6 +608,8 @@ async function main() {
       await navigateAuthenticated(cdp, screen)
       await capture(cdp, screen.file)
     }
+
+    await captureLabExecutionConfirmations(cdp)
 
     console.log(`\n완료: ${outputDir}`)
   } finally {

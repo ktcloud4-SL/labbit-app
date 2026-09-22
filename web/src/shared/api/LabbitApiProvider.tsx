@@ -11,11 +11,11 @@ interface LabbitApiProviderProps extends PropsWithChildren {
 }
 
 function defaultApi() {
-  const mode = resolveLabbitApiMode(
-    import.meta.env.DEV,
-    import.meta.env.VITE_LABBIT_API_MODE,
-  )
+  if (!import.meta.env.DEV) {
+    return httpLabbitApi
+  }
 
+  const mode = resolveLabbitApiMode(true, import.meta.env.VITE_LABBIT_API_MODE)
   return mode === 'http' ? httpLabbitApi : mockLabbitApi
 }
 

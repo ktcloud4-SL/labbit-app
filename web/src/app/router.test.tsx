@@ -795,7 +795,7 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     expect(
-      await screen.findByText('이 Operation을 볼 권한이 없습니다.'),
+      await screen.findByText('이 작업을 볼 권한이 없습니다.'),
     ).toBeInTheDocument()
   })
 
@@ -918,7 +918,7 @@ describe('Auth·Class·LabSpec routing', () => {
       screen.queryByRole('button', { name: '전체 실습 정리' }),
     ).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Reset' }),
+      screen.queryByRole('button', { name: '초기화' }),
     ).not.toBeInTheDocument()
   })
 
@@ -957,12 +957,12 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: '실습 운영 상태' })
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화' }))
     expect(
-      await screen.findByRole('heading', { name: 'student-a 환경을 Reset할까요?' }),
+      await screen.findByRole('heading', { name: 'student-a 환경을 초기화할까요?' }),
     ).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reset 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화 시작' }))
     expect(await screen.findByRole('heading', { name: '완료' })).toBeInTheDocument()
     expect(resetLabInstance).toHaveBeenCalledWith(
       'lab-instance-student-a',
@@ -974,7 +974,7 @@ describe('Auth·Class·LabSpec routing', () => {
     renderRoute('/lab-executions/execution-kubernetes-basic')
 
     await screen.findByRole('heading', { name: '실습 운영 상태' })
-    expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '초기화' })).toBeInTheDocument()
   })
 
   it('Reset 요청 중 세션이 만료되면 Login으로 이동한다', async () => {
@@ -997,8 +997,8 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: '실습 운영 상태' })
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Reset 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화 시작' }))
 
     expect(
       await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
@@ -1028,15 +1028,15 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: '실습 운영 상태' })
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Reset 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화 시작' }))
 
     expect(
       await screen.findByText(
         '다른 변경 작업이 진행 중입니다. 현재 Operation 상태를 확인해 주세요.',
       ),
     ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Reset 시작' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '초기화 시작' })).toBeDisabled()
     expect(screen.getByRole('button', { name: '취소' })).toBeEnabled()
     expect(getLabExecution.mock.calls.length).toBeGreaterThanOrEqual(2)
   })
@@ -1061,12 +1061,12 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: '실습 운영 상태' })
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Reset 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화 시작' }))
 
     expect(
       await screen.findByText(
-        'Reset 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현 불가로 거절된 경우 기존 환경은 먼저 삭제되지 않습니다.',
+        '초기화 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현이 불가능한 경우 기존 환경은 먼저 삭제되지 않습니다.',
       ),
     ).toBeInTheDocument()
   })
@@ -1124,11 +1124,11 @@ describe('Auth·Class·LabSpec routing', () => {
 
     expect(
       await screen.findByText(
-        '현재 LabExecution 상태에서는 Cleanup을 시작할 수 없습니다. 상태와 진행 중인 작업을 확인해 주세요.',
+        '현재 실습 상태에서는 정리를 시작할 수 없습니다. 상태와 진행 중인 작업을 확인해 주세요.',
       ),
     ).toBeInTheDocument()
     expect(
-      screen.queryByText(/Reset 재현 조건/),
+      screen.queryByText(/초기화 재현 조건/),
     ).not.toBeInTheDocument()
   })
 

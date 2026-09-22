@@ -157,62 +157,73 @@ async function hardNavigate(cdp, url) {
   await waitForJs(cdp, 'document.readyState === "complete"', url)
 }
 
-async function navigateAuthenticated(cdp, pathname, readyExpression, label) {
-  await hardNavigate(cdp, `${baseUrl}${pathname}`)
+async function screenState(cdp, screen) {
+  return evaluate(
+    cdp,
+    `(() => {
+      const pathname = ${JSON.stringify(screen.path)};
+      const selector = ${JSON.stringify(screen.selector ?? null)};
+      const text = ${JSON.stringify(screen.text ?? null)};
+      const selectorReady = !selector || Boolean(document.querySelector(selector));
+      const textReady = !text || Boolean(document.body.textContent?.includes(text));
 
-  // Hard reload 직후에는 보호 Route가 잠깐 원래 pathname을 유지한 뒤
-  // Mock session 초기화 때문에 /login으로 이동할 수 있습니다.
-  // pathname만 보고 "도착"으로 판단하지 않고 실제 화면 준비 여부 또는 Login form을 기다립니다.
+      return {
+        path: location.pathname,
+        targetReady:
+          location.pathname === pathname &&
+          selectorReady &&
+          textReady,
+        loginReady:
+          location.pathname === '/login' &&
+          Boolean(document.querySelector('form.login-form')),
+      };
+    })()`,
+  )
+}
+
+async function waitForScreen(cdp, screen, timeoutMs = 10000) {
   const started = Date.now()
-  let authenticated = false
+  while (Date.now() - started < timeoutMs) {
+    const state = await screenState(cdp, screen)
+    if (state?.targetReady) return
+    await delay(100)
+  }
+
+  const currentPath = await evaluate(cdp, 'location.pathname')
+  throw new Error(
+    `화면 준비 대기 시간 초과: ${screen.label} (현재 경로: ${currentPath})`,
+  )
+}
+
+async function navigateAuthenticated(cdp, screen) {
+  await hardNavigate(cdp, `${baseUrl}${screen.path}`)
+
+  // Mock session은 문서를 새로 로드하면 초기화됩니다.
+  // 보호 Route가 /login으로 이동한 경우 자동 로그인 후 원래 Route로 복귀합니다.
+  const started = Date.now()
 
   while (Date.now() - started < 10000) {
-    const state = await evaluate(
-      cdp,
-      `(() => {
-        const readyExpression = ${JSON.stringify(readyExpression)};
-        return {
-          path: location.pathname,
-          targetReady:
-            location.pathname === ${JSON.stringify(pathname)} &&
-            Boolean(eval(readyExpression)),
-          loginReady:
-            location.pathname === '/login' &&
-            Boolean(document.querySelector('form.login-form')),
-        };
-      })()`,
-    )
+    const state = await screenState(cdp, screen)
 
     if (state?.targetReady) {
-      authenticated = true
-      break
+      await delay(180)
+      return
     }
 
     if (state?.loginReady) {
-      await login(cdp, pathname)
-      authenticated = true
-      break
+      await login(cdp, screen.path)
+      await waitForScreen(cdp, screen, 10000)
+      await delay(180)
+      return
     }
 
     await delay(100)
   }
 
-  if (!authenticated) {
-    const currentPath = await evaluate(cdp, 'location.pathname')
-    throw new Error(
-      `화면 이동 실패: ${label} (현재 경로: ${currentPath})`,
-    )
-  }
-
-  await waitForJs(
-    cdp,
-    `location.pathname === ${JSON.stringify(pathname)} && Boolean(eval(${JSON.stringify(
-      readyExpression,
-    )}))`,
-    label,
-    10000,
+  const currentPath = await evaluate(cdp, 'location.pathname')
+  throw new Error(
+    `화면 이동 실패: ${screen.label} (현재 경로: ${currentPath})`,
   )
-  await delay(180)
 }
 
 async function capture(cdp, filename) {
@@ -380,53 +391,57 @@ async function main() {
     const screens = [
       {
         path: '/classes/class-kubernetes-basic',
-        ready:
-          'document.querySelector("h1")?.textContent?.includes("Kubernetes Basic") && document.querySelector(".class-overview-card")',
+        selector: '.class-overview-card',
+        text: 'Kubernetes Basic',
         label: 'Kubernetes 상세',
         file: '03-class-active.png',
       },
       {
         path: '/classes/class-kubernetes-basic/lab',
-        ready: 'document.querySelector("[aria-label=\"Lab Workspace Shell\"]")',
+        selector: '[aria-label="Lab Workspace Shell"]',
+        text: 'Kubernetes Basic',
         label: 'Lab Workspace',
         file: '04-lab-workspace.png',
       },
       {
         path: '/classes/class-docker-basic',
-        ready:
-          'document.querySelector("h1")?.textContent?.includes("Docker Basic") && document.querySelector(".class-overview-card")',
+        selector: '.class-overview-card',
+        text: 'Docker Basic',
         label: 'Docker 상세',
         file: '05-class-empty-instructor.png',
       },
       {
         path: '/classes/class-linux-networking',
-        ready:
-          'document.querySelector("h1")?.textContent?.includes("Linux Networking") && document.querySelector(".class-overview-card")',
+        selector: '.class-overview-card',
+        text: 'Linux Networking',
         label: '학생 Class 상세',
         file: '06-class-empty-student.png',
       },
       {
         path: '/classes/class-docker-basic/provision',
-        ready: 'document.querySelector("h1")?.textContent?.includes("새 환경 생성")',
+        selector: 'main',
+        text: '새 환경 생성',
         label: 'Provision',
         file: '07-provision-select.png',
       },
       {
         path: '/lab-executions/execution-kubernetes-basic',
-        ready: 'document.querySelector("h1")?.textContent?.includes("실습 운영 상태")',
+        selector: 'main',
+        text: '실습 운영 상태',
         label: 'LabExecution',
         file: '08-lab-execution.png',
       },
       {
         path: '/lab-specs',
-        ready: 'document.querySelector("main") && document.body.textContent.includes("LabSpec")',
+        selector: 'main',
+        text: 'LabSpec',
         label: 'LabSpec 목록',
         file: '09-lab-specs.png',
       },
     ]
 
     for (const screen of screens) {
-      await navigateAuthenticated(cdp, screen.path, screen.ready, screen.label)
+      await navigateAuthenticated(cdp, screen)
       await capture(cdp, screen.file)
     }
 

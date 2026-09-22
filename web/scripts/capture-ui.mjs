@@ -130,7 +130,12 @@ async function evaluate(cdp, expression) {
     returnByValue: true,
   })
   if (result.exceptionDetails) {
-    throw new Error(result.exceptionDetails.text ?? '브라우저 스크립트 실행 실패')
+    const description =
+      result.exceptionDetails.exception?.description ??
+      result.exceptionDetails.exception?.value ??
+      result.exceptionDetails.text ??
+      '브라우저 스크립트 실행 실패'
+    throw new Error(String(description))
   }
   return result.result?.value
 }
@@ -151,17 +156,30 @@ async function hardNavigate(cdp, url) {
   await waitForJs(cdp, 'document.readyState === "complete"', url)
 }
 
-async function spaNavigate(cdp, pathname, readyExpression, label) {
-  await evaluate(
+async function navigateAuthenticated(cdp, pathname, readyExpression, label) {
+  await hardNavigate(cdp, `${baseUrl}${pathname}`)
+
+  // Mock 로그인 상태는 새 문서 로드마다 초기화되므로,
+  // 보호 Route에서 Login으로 이동하면 스크립트가 자동 로그인한 뒤 원래 Route로 복귀합니다.
+  const started = Date.now()
+  while (Date.now() - started < 8000) {
+    const currentPath = await evaluate(cdp, 'location.pathname')
+    if (currentPath === pathname) break
+
+    if (currentPath === '/login') {
+      await login(cdp, pathname)
+      break
+    }
+
+    await delay(100)
+  }
+
+  await waitForJs(
     cdp,
-    `(() => {
-      const nextState = { ...(history.state ?? {}), idx: ((history.state && history.state.idx) ?? 0) + 1 };
-      history.pushState(nextState, '', ${JSON.stringify(pathname)});
-      window.dispatchEvent(new PopStateEvent('popstate', { state: nextState }));
-      return location.pathname;
-    })()`,
+    `location.pathname === ${JSON.stringify(pathname)} && (${readyExpression})`,
+    label,
+    10000,
   )
-  await waitForJs(cdp, `location.pathname === ${JSON.stringify(pathname)} && (${readyExpression})`, label)
   await delay(180)
 }
 
@@ -184,7 +202,7 @@ async function capture(cdp, filename) {
   console.log(`✓ ${filename}`)
 }
 
-async function login(cdp) {
+async function login(cdp, destinationPath = '/classes') {
   await waitForJs(cdp, 'document.querySelector("form.login-form")', '로그인 폼')
   await evaluate(
     cdp,
@@ -204,8 +222,9 @@ async function login(cdp) {
   )
   await waitForJs(
     cdp,
-    'location.pathname === "/classes" && document.querySelector(".class-grid")',
-    'Mock 로그인 완료',
+    `location.pathname === ${JSON.stringify(destinationPath)}`,
+    `Mock 로그인 완료 → ${destinationPath}`,
+    10000,
   )
   await delay(180)
 }
@@ -321,7 +340,8 @@ async function main() {
     await hardNavigate(cdp, `${baseUrl}/login`)
     await capture(cdp, '01-login.png')
 
-    await login(cdp)
+    await login(cdp, '/classes')
+    await waitForJs(cdp, 'document.querySelector(".class-grid")', '수업 목록')
     await capture(cdp, '02-class-list.png')
 
     const screens = [
@@ -373,7 +393,7 @@ async function main() {
     ]
 
     for (const screen of screens) {
-      await spaNavigate(cdp, screen.path, screen.ready, screen.label)
+      await navigateAuthenticated(cdp, screen.path, screen.ready, screen.label)
       await capture(cdp, screen.file)
     }
 

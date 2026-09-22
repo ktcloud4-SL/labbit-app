@@ -302,8 +302,8 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       await screen.findByRole('heading', { name: 'Kubernetes Basic' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('INSTRUCTOR')).toBeInTheDocument()
-    expect(screen.getByText('READY')).toBeInTheDocument()
+    expect(screen.getByText('강사')).toBeInTheDocument()
+    expect(screen.getByText('사용 가능')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Lab Workspace 열기' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '실습 정의 관리' })).toBeInTheDocument()
   })
@@ -325,12 +325,12 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       await screen.findByRole('heading', { name: 'Kubernetes Basic' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('PROVISIONING')).toBeInTheDocument()
+    expect(screen.getByText('준비 중')).toBeInTheDocument()
     expect(
       screen.queryByRole('link', { name: 'Lab Workspace 열기' }),
     ).not.toBeInTheDocument()
     expect(
-      screen.getByText('실습 환경이 READY 상태가 되면 Workspace를 열 수 있습니다.'),
+      screen.getByText('환경이 사용 가능 상태가 되면 Workspace 버튼이 표시됩니다.'),
     ).toBeInTheDocument()
   })
 
@@ -350,7 +350,7 @@ describe('Auth·Class·LabSpec routing', () => {
 
     expect(
       await screen.findByText(
-        '실습 환경에 오류가 있어 Workspace를 열 수 없습니다. 상태를 확인해 주세요.',
+        '내 실습 환경에 오류가 있습니다.',
       ),
     ).toBeInTheDocument()
     expect(
@@ -1141,9 +1141,9 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       screen.getByRole('region', { name: 'Lab Workspace Shell' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('File Tree')).toBeInTheDocument()
+    expect(screen.getByText('파일')).toBeInTheDocument()
     expect(screen.getByText('Editor')).toBeInTheDocument()
-    expect(screen.getByText('Preview')).toBeInTheDocument()
+    expect(screen.getByText('미리보기')).toBeInTheDocument()
     expect(screen.getByText('Terminal / Live')).toBeInTheDocument()
   })
 

@@ -274,7 +274,7 @@ export function ProvisionPage() {
           <Link className="back-link" to={`/classes/${encodeURIComponent(resolvedClassId)}`}>
             ← 수업 상세
           </Link>
-          <p className="eyebrow">Provision</p>
+          <p className="eyebrow">실습 환경 생성</p>
           <h1>{classQuery.data.name} · 새 환경 생성</h1>
           <p className="muted">
             실습 정의와 참여 학생을 확인한 뒤 새로운 실습 환경 생성을 시작합니다.
@@ -291,7 +291,7 @@ export function ProvisionPage() {
                 <h2>실습 정의 선택</h2>
               </div>
               <Link className="secondary-link" to="/lab-specs">
-                LabSpec 관리
+                실습 정의 관리
               </Link>
             </div>
             <label className="field">
@@ -367,8 +367,8 @@ export function ProvisionPage() {
         </form>
       ) : (
         <section className="confirmation-card">
-          <p className="eyebrow">Confirm</p>
-          <h2>Provision 시작 전 확인</h2>
+          <p className="eyebrow">최종 확인</p>
+          <h2>환경 생성 전 확인</h2>
           <dl className="summary-list">
             <div>
               <dt>수업</dt>
@@ -415,7 +415,7 @@ export function ProvisionPage() {
               disabled={provisionMutation.isPending || conflictError}
               onClick={() => provisionMutation.mutate(confirmation)}
             >
-              {provisionMutation.isPending ? '요청 중...' : 'Provision 시작'}
+              {provisionMutation.isPending ? '요청 중...' : '환경 생성 시작'}
             </button>
           </div>
         </section>

@@ -21,6 +21,39 @@ const knownExecutionStatuses = new Set([
   'ERROR',
 ])
 
+function executionStatusLabel(status: string) {
+  switch (status) {
+    case 'PROVISIONING':
+      return '환경 생성 중'
+    case 'ACTIVE':
+      return '진행 중'
+    case 'CLEANING_UP':
+      return '정리 중'
+    case 'COMPLETED':
+      return '종료'
+    case 'ERROR':
+      return '오류'
+    default:
+      return status
+  }
+}
+
+function instanceStatusLabel(status: string) {
+  switch (status) {
+    case 'READY':
+      return '사용 가능'
+    case 'PENDING':
+    case 'PROVISIONING':
+      return '준비 중'
+    case 'DELETING':
+      return '정리 중'
+    case 'ERROR':
+      return '오류'
+    default:
+      return status
+  }
+}
+
 function createIdempotencyKey() {
   return crypto.randomUUID()
 }
@@ -229,7 +262,7 @@ export function LabExecutionPage() {
 
   return (
     <main className="app-page">
-      <header className="page-header">
+      <header className="page-header page-header-spacious">
         <div>
           <Link
             className="back-link"
@@ -237,16 +270,16 @@ export function LabExecutionPage() {
           >
             ← Class 상세
           </Link>
-          <p className="eyebrow">LabExecution</p>
+          <p className="eyebrow">실습 운영</p>
           <h1>실습 운영 상태</h1>
           <p className="muted">{execution.id}</p>
         </div>
-        <span className="operation-status">{execution.status}</span>
+        <span className="status-pill status-pill-success">{executionStatusLabel(execution.status)}</span>
       </header>
 
       <section className="detail-grid operation-grid">
         <article className="detail-card">
-          <h2>LabSpec</h2>
+          <h2>실습 정의</h2>
           <strong>{execution.labSpecId}</strong>
         </article>
         <article className="detail-card">
@@ -254,7 +287,7 @@ export function LabExecutionPage() {
           <strong>{execution.targetUserIds.length}명</strong>
         </article>
         <article className="detail-card">
-          <h2>LabInstance</h2>
+          <h2>실습 환경</h2>
           <strong>{execution.labInstances.length}개</strong>
         </article>
       </section>
@@ -278,7 +311,11 @@ export function LabExecutionPage() {
       )}
 
       {canCleanup && (
-        <div className="action-row">
+        <div className="danger-action-card">
+          <div>
+            <strong>실습 종료 및 리소스 정리</strong>
+            <p className="muted">모든 참여자의 실습 환경을 정리하기 전에 현재 상태를 확인하세요.</p>
+          </div>
           <button
             className="secondary-button danger-text"
             type="button"
@@ -311,8 +348,14 @@ export function LabExecutionPage() {
           return (
             <div className="status-row" key={labInstance.id}>
               <span>{username}</span>
-              <span>{rowIsInstructor ? 'INSTRUCTOR' : 'STUDENT'}</span>
-              <strong>{labInstance.status}</strong>
+              <span className="status-identity">
+                <strong>{rowIsInstructor ? '강사' : '수강생'}</strong>
+                <small>{rowIsInstructor ? 'INSTRUCTOR' : 'STUDENT'}</small>
+              </span>
+              <span className={'instance-status instance-status-' + labInstance.status.toLowerCase()}>
+                <strong>{instanceStatusLabel(labInstance.status)}</strong>
+                <small>{labInstance.status}</small>
+              </span>
               <span>
                 {labInstance.generation}
                 {!rowIsInstructor &&

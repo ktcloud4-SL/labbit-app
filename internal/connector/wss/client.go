@@ -155,6 +155,24 @@ func (c *Client) Conn() *websocket.Conn {
 	return c.conn
 }
 
+// SendMessage 는 WebSocket 연결을 통해 JSON 메시지를 전송합니다.
+func (c *Client) SendMessage(ctx context.Context, msg interface{}) error {
+	c.mu.RLock()
+	conn := c.conn
+	c.mu.RUnlock()
+
+	if conn == nil {
+		return fmt.Errorf("not connected: must call Dial first")
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal message: %w", err)
+	}
+
+	return conn.WriteMessage(websocket.TextMessage, data)
+}
+
 // Close 는 WebSocket 연결을 정상 종료합니다.
 func (c *Client) Close() error {
 	c.mu.Lock()

@@ -36,20 +36,22 @@ Connector는 2인이 분담하여 개발하며, 이주희는 **SaaS와의 통신
 * **작업 브랜치**: `feat/SL-connector-control-wss` 생성 완료
 * **패키지 의존성**: `github.com/gorilla/websocket v1.5.3` 추가 완료
 
-### 3) [준비 3] Shared Interface / Mock 준비 (단독 개발 환경 구축 완료)
-상대방(백서빈)의 OpenStack 실제 코드 완성 여부와 무관하게 이주희가 독립 개발·테스트할 수 있는 환경을 구축했습니다.
+### 3) [준비 3] Shared Interface / Mock 공동 완료 (E2E 연동 검증 완료)
+서빈 님의 PR #24(`internal/connector/provider`) 머지 후, 주희 님의 Control WSS 처리 코드와 공식 `MockProvider`를 연결하여 **"가짜 명령(SaaS) → Provider 호출(DispatchOperation) → 결과 응답(SaaS)"** 전 구간 E2E 검증을 완료했습니다.
 
 * **프로토콜 모델 (`internal/connector/protocol/types.go`)**:
-  * `BaseEnvelope`, `SafeError`, `OperationCommandPayload`, `OperationResultPayload`, `Reconcile*` 구조체 정의.
-  * 작업 결과 3가지 상태 상수화: `SUCCEEDED`, `FAILED`, `UNKNOWN`.
-* **공유 Provider 인터페이스 (`internal/connector/provider/interface.go`)**:
-  * 서빈님 모듈과 연결되는 표준 인터페이스 (`Provision`, `Reset`, `Cleanup`, `Reconcile`) 확정.
-* **MockProvider (`internal/connector/provider/mock.go`)**:
-  * OpenStack 없이도 가짜 성공/실패/`UNKNOWN` 응답을 주는 모의 Provider 작성.
-* **MockSaaS WSS 서버 (`internal/connector/mock/saas.go`)**:
-  * 로컬에서 WSS 연결을 수락하고 `Authorization` 헤더 검증 및 `HELLO` 수신 시 `HELLO_ACK`를 자동 반환하는 테스트 서버 작성.
-* **단위 테스트 통과**:
-  * `TestMockSaaS_Handshake`, `TestMockProvider_Provision`, `TestMockProvider_CustomFailure` 전체 통과 (커밋 `3a792a3`).
+  * `BaseEnvelope`, `SafeError`, `OperationCommandMessage/Payload`, `OperationAckMessage/Payload`, `OperationResultMessage/Payload`, `Reconcile*` 모델 및 스키마 SSOT 정렬.
+* **Control WSS Handler (`internal/connector/wss/handler.go`)**:
+  * `OPERATION_COMMAND` 수신 시 Envelope 검증 (`operationId`, `labInstanceId`, `generation >= 1`)
+  * `OPERATION_ACK(accepted: true)` 즉시 회신
+  * `provider.DispatchOperation` 호출 및 결과를 `OPERATION_RESULT`로 회신 (`requestId`, `traceparent`, `replyToMessageId` 보존)
+  * Provider 미분류 오류 발생 시 `UNKNOWN` 결과 정규화 및 내부 raw error 보호
+  * `RECONCILE_REQUEST` 수신 시 `discoverCandidates` 기본값 `true` 적용 후 `provider.DispatchReconcile` 호출 및 `RECONCILE_RESULT` 회신
+* **E2E 연동 테스트 통과 (`internal/connector/wss/handler_test.go`)**:
+  * `TestHandler_OperationCommand_Provision_Success`: PASS
+  * `TestHandler_OperationCommand_Unknown_OnUnclassifiedError`: PASS
+  * `TestHandler_OperationCommand_MissingCorrelation_Rejected`: PASS
+  * `TestHandler_ReconcileRequest_Success`: PASS
 
 ---
 

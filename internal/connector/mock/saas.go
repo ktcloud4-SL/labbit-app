@@ -134,3 +134,24 @@ func (m *MockSaaS) SendCommand(cmd map[string]interface{}) error {
 	}
 	return m.conn.WriteMessage(websocket.TextMessage, bytes)
 }
+
+// SendRaw 는 모의 SaaS에서 임의의 구조체 메시지를 JSON 직렬화하여 전송합니다.
+func (m *MockSaaS) SendRaw(msg interface{}) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	bytes, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	return m.conn.WriteMessage(websocket.TextMessage, bytes)
+}
+
+// ReceivedMessages 는 지금까지 수신된 모든 원본 메시지 사본을 반환합니다.
+func (m *MockSaaS) ReceivedMessages() [][]byte {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	res := make([][]byte, len(m.received))
+	copy(res, m.received)
+	return res
+}
+

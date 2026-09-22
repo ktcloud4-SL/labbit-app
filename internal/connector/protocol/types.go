@@ -55,8 +55,9 @@ type BaseEnvelope struct {
 	RequestID        string    `json:"requestId,omitempty"`
 	OperationID      string    `json:"operationId,omitempty"`
 	LabInstanceID    string    `json:"labInstanceId,omitempty"`
-	Generation       int       `json:"generation,omitempty"`
+	Generation       int64     `json:"generation,omitempty"`
 	TraceParent      string    `json:"traceparent,omitempty"`
+	TraceState       string    `json:"tracestate,omitempty"`
 }
 
 // 메시지 크기 및 WebSocket Close 코드 상수 (최신 contracts/connector SSOT)
@@ -116,7 +117,7 @@ type SafeError struct {
 type ProviderResourceRef struct {
 	ResourceType string `json:"resourceType"` // SERVER, NETWORK, SUBNET, ROUTER 등
 	ProviderID   string `json:"providerId"`   // 실제 OpenStack 리소스 UUID
-	Generation   int    `json:"generation,omitempty"`
+	Generation   int64  `json:"generation,omitempty"`
 	LogicalName  string `json:"logicalName,omitempty"`
 }
 
@@ -126,20 +127,38 @@ type ProviderResourceResult struct {
 	ObservedState string `json:"observedState,omitempty"` // ACTIVE, BUILD, DELETED 등
 }
 
+// ResolvedFlavorSpec 은 VM 하드웨어 리소스 규격입니다.
+type ResolvedFlavorSpec struct {
+	VCPUs   int64 `json:"vcpus"`
+	RAMMiB  int64 `json:"ramMiB"`
+	DiskGiB int64 `json:"diskGiB"`
+}
+
+// StartupScriptSnapshot 은 VM 기동 스크립트 스냅샷입니다.
+type StartupScriptSnapshot struct {
+	Content string `json:"content"`
+	SHA256  string `json:"sha256"`
+}
+
 // ResolvedVmSpec 은 생성할 VM의 상세 스펙입니다.
 type ResolvedVmSpec struct {
-	VMKey     string `json:"vmKey"`
-	Role      string `json:"role"`
-	ImageRef  string `json:"imageRef"`
-	FlavorRef string `json:"flavorRef"`
+	VMKey         string              `json:"vmKey"`
+	Role          string              `json:"role"`
+	InstanceIndex int64               `json:"instanceIndex,omitempty"`
+	ImageID       string              `json:"imageId,omitempty"`
+	ImageRef      string              `json:"imageRef,omitempty"`
+	FlavorID      string              `json:"flavorId,omitempty"`
+	FlavorRef     string              `json:"flavorRef,omitempty"`
+	FlavorSpec    *ResolvedFlavorSpec `json:"flavorSpec,omitempty"`
 }
 
 // CreationSnapshot 은 VM 및 네트워크 생성 기준 스냅샷입니다.
 type CreationSnapshot struct {
-	ProviderConnectionID string           `json:"providerConnectionId"`
-	VMs                  []ResolvedVmSpec `json:"vms"`
-	WorkspaceVMKey       string           `json:"workspaceVmKey"`
-	InternetOutbound     bool             `json:"internetOutbound"`
+	ProviderConnectionID string                 `json:"providerConnectionId"`
+	VMs                  []ResolvedVmSpec       `json:"vms"`
+	WorkspaceVMKey       string                 `json:"workspaceVmKey"`
+	InternetOutbound     bool                   `json:"internetOutbound"`
+	StartupScript        *StartupScriptSnapshot `json:"startupScript,omitempty"`
 }
 
 // OperationCommandPayload 는 SaaS가 지시하는 Provision/Reset/Cleanup 명령 본문입니다.
@@ -149,6 +168,24 @@ type OperationCommandPayload struct {
 	ProviderResources []ProviderResourceRef `json:"providerResources,omitempty"`
 }
 
+// OperationCommandMessage 는 SaaS가 Connector로 전달하는 명령 메시지입니다.
+type OperationCommandMessage struct {
+	BaseEnvelope
+	Payload OperationCommandPayload `json:"payload"`
+}
+
+// OperationAckPayload 는 명령 수신 수락 여부입니다.
+type OperationAckPayload struct {
+	Accepted bool       `json:"accepted"`
+	Error    *SafeError `json:"error,omitempty"`
+}
+
+// OperationAckMessage 는 Connector가 명령 수신 직후 보내는 응답 메시지입니다.
+type OperationAckMessage struct {
+	BaseEnvelope
+	Payload OperationAckPayload `json:"payload"`
+}
+
 // OperationResultPayload 는 작업 완료 후 보고하는 결과 본문입니다.
 type OperationResultPayload struct {
 	Outcome           string                   `json:"outcome"` // SUCCEEDED, FAILED, UNKNOWN
@@ -156,20 +193,43 @@ type OperationResultPayload struct {
 	Error             *SafeError               `json:"error,omitempty"`
 }
 
+// OperationResultMessage 는 작업 완료 후 Connector가 SaaS로 전달하는 결과 메시지입니다.
+type OperationResultMessage struct {
+	BaseEnvelope
+	Payload OperationResultPayload `json:"payload"`
+}
+
 // ReconcileRequestPayload 는 DB 기록과 OpenStack 현실 대조 요청입니다.
 type ReconcileRequestPayload struct {
 	KnownResources     []ProviderResourceRef `json:"knownResources"`
-	DiscoverCandidates bool                  `json:"discoverCandidates,omitempty"`
+	DiscoverCandidates *bool                 `json:"discoverCandidates,omitempty"`
+}
+
+// ReconcileRequestMessage 는 SaaS가 Connector로 전송하는 Reconcile 요청 메시지입니다.
+type ReconcileRequestMessage struct {
+	BaseEnvelope
+	Payload ReconcileRequestPayload `json:"payload"`
 }
 
 // ResourceObservation 은 OpenStack에서 관측된 실제 상태입니다.
 type ResourceObservation struct {
-	ResourceType string `json:"resourceType"`
-	ProviderID   string `json:"providerId"`
-	Status       string `json:"status"` // PRESENT, MISSING, DELETED, DISCOVERED_CANDIDATE
+	ResourceType  string `json:"resourceType"`
+	ProviderID    string `json:"providerId"`
+	Generation    int64  `json:"generation,omitempty"`
+	Exists        bool   `json:"exists"`
+	ObservedState string `json:"observedState,omitempty"`
+	Source        string `json:"source"` // KNOWN_RESOURCE, DISCOVERED_CANDIDATE
+	LogicalName   string `json:"logicalName,omitempty"`
 }
 
 // ReconcileResultPayload 는 리소스 대조 결과입니다.
 type ReconcileResultPayload struct {
 	Observations []ResourceObservation `json:"observations"`
+	Error        *SafeError            `json:"error,omitempty"`
+}
+
+// ReconcileResultMessage 는 Reconcile 완료 후 회신하는 메시지입니다.
+type ReconcileResultMessage struct {
+	BaseEnvelope
+	Payload ReconcileResultPayload `json:"payload"`
 }

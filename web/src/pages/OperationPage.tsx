@@ -34,6 +34,15 @@ function statusLabel(status: string) {
   }
 }
 
+function statusPillClass(status: string) {
+  if (status === 'SUCCEEDED') return 'status-pill status-pill-success'
+  if (status === 'FAILED') return 'status-pill status-pill-error'
+  if (status === 'RUNNING' || status === 'PENDING' || status === 'RECONCILING') {
+    return 'status-pill status-pill-progress'
+  }
+  return 'status-pill status-pill-neutral'
+}
+
 function operationTypeLabel(type: string) {
   switch (type) {
     case 'PROVISION':
@@ -149,7 +158,7 @@ export function OperationPage() {
             {operationTypeLabel(operation.type)} · {operation.id}
           </p>
         </div>
-        <span className="status-pill status-pill-neutral">{statusLabel(operation.status)}</span>
+        <span className={statusPillClass(operation.status)}>{statusLabel(operation.status)}</span>
       </header>
 
       {isReconciling && (

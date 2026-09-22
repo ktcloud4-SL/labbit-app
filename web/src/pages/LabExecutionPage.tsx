@@ -279,7 +279,7 @@ export function LabExecutionPage() {
             className="back-link"
             to={`/classes/${encodeURIComponent(execution.classId)}`}
           >
-            ← Class 상세
+            ← 수업 상세
           </Link>
           <p className="eyebrow">실습 운영</p>
           <h1>실습 운영 상태</h1>
@@ -305,9 +305,9 @@ export function LabExecutionPage() {
 
       {hasError && (
         <section className="notice-card notice-warning">
-          <strong>일부 LabInstance에 오류가 있습니다.</strong>
+          <strong>일부 실습 환경에 오류가 있습니다.</strong>
           <p className="muted">
-            성공한 환경은 유지하고 실패한 대상은 개별 상태로 추적합니다.
+            성공한 환경은 유지하며 실패한 대상만 개별 상태로 확인합니다.
           </p>
         </section>
       )}
@@ -338,7 +338,7 @@ export function LabExecutionPage() {
               })
             }}
           >
-            Class Cleanup
+            전체 실습 정리
           </button>
         </div>
       )}
@@ -404,7 +404,7 @@ export function LabExecutionPage() {
           <h2>
             {pendingAction.type === 'RESET'
               ? `${pendingAction.username} 환경을 Reset할까요?`
-              : '현재 LabExecution을 Cleanup할까요?'}
+              : '현재 실습을 정리할까요?'}
           </h2>
           <p className="muted">
             {pendingAction.type === 'RESET'
@@ -444,7 +444,7 @@ export function LabExecutionPage() {
                 ? '요청 중...'
                 : pendingAction.type === 'RESET'
                   ? 'Reset 시작'
-                  : 'Cleanup 시작'}
+                  : '정리 시작'}
             </button>
           </div>
         </section>

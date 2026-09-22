@@ -116,7 +116,8 @@ type ReconcileRequest struct {
 
 // Provider is the boundary called by Control; implementations own Provider API calls.
 // Known failures belong in OperationResult with a classified outcome and SafeError.
-// An unclassified Go error is internal; DispatchOperation converts it to UNKNOWN.
+// An unclassified Go error is internal; DispatchOperation and DispatchReconcile
+// convert it to a safe result. Mock configuration errors remain internal errors.
 type Provider interface {
 	Provision(context.Context, ProvisionRequest) (OperationResult, error)
 	Reset(context.Context, ResetRequest) (OperationResult, error)

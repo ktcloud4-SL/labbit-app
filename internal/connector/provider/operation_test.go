@@ -166,7 +166,7 @@ func TestMockProviderReconcileReturnsObservations(t *testing.T) {
 		}}, nil
 	}}
 
-	result, err := mock.Reconcile(context.Background(), ReconcileRequest{
+	result, err := DispatchReconcile(context.Background(), mock, ReconcileRequest{
 		Correlation:        Correlation{OperationID: "operation-4", LabInstanceID: "lab-instance-4", Generation: 1},
 		KnownResources:     []ResourceRef{known},
 		DiscoverCandidates: true,
@@ -180,6 +180,59 @@ func TestMockProviderRequiresConfiguredResponse(t *testing.T) {
 	_, err := (&MockProvider{}).Provision(context.Background(), ProvisionRequest{})
 	if !errors.Is(err, ErrMockNotConfigured) {
 		t.Fatalf("unconfigured mock error = %v", err)
+	}
+}
+
+func TestDispatchOperationReportsUnconfiguredMock(t *testing.T) {
+	correlation := Correlation{OperationID: "operation-9", LabInstanceID: "lab-instance-9", Generation: 1}
+	for _, command := range []OperationCommand{
+		{Correlation: correlation, MutationType: MutationProvision, CreationSnapshot: &CreationSnapshot{}},
+		{Correlation: correlation, MutationType: MutationReset, CreationSnapshot: &CreationSnapshot{}},
+		{Correlation: correlation, MutationType: MutationCleanup, ProviderResources: []ResourceRef{}},
+	} {
+		result, err := DispatchOperation(context.Background(), &MockProvider{}, command)
+		if !errors.Is(err, ErrMockNotConfigured) || result.Outcome != "" || result.Error != nil || result.ProviderResources != nil {
+			t.Fatalf("%s returned result = %+v, error = %v; want mock configuration error", command.MutationType, result, err)
+		}
+	}
+}
+
+func TestDispatchReconcileKeepsRawProviderErrorsOffTheResult(t *testing.T) {
+	known := []ResourceRef{{ResourceType: "SERVER", ProviderID: "server-1", Generation: 1}}
+	calls := 0
+	mock := &MockProvider{ReconcileFunc: func(_ context.Context, request ReconcileRequest) (ReconcileResult, error) {
+		calls++
+		if !request.DiscoverCandidates || request.KnownResources[0] != known[0] {
+			t.Fatalf("Reconcile received unexpected input: %+v", request)
+		}
+		request.KnownResources[0].ProviderID = "changed"
+		return ReconcileResult{Observations: []ResourceObservation{{ProviderID: "partial"}}},
+			errors.New("raw provider response with secret must remain local")
+	}}
+	result, err := DispatchReconcile(context.Background(), mock, ReconcileRequest{
+		Correlation:        Correlation{OperationID: "operation-10", LabInstanceID: "lab-instance-10", Generation: 1},
+		KnownResources:     known,
+		DiscoverCandidates: true,
+	})
+	if err != nil || calls != 1 || known[0].ProviderID != "server-1" {
+		t.Fatalf("Reconcile call = %+v, error = %v, calls = %d, original = %+v", result, err, calls, known)
+	}
+	if result.Error == nil || result.Error.Code != "PROVIDER_RECONCILE_UNAVAILABLE" ||
+		len(result.Observations) != 0 || result.Observations == nil {
+		t.Fatalf("raw error result = %+v; want safe incomplete result", result)
+	}
+	if result.Error.Message != "Provider resources could not be verified" {
+		t.Fatalf("raw provider error leaked: %+v", result.Error)
+	}
+}
+
+func TestDispatchReconcileReportsUnconfiguredMock(t *testing.T) {
+	result, err := DispatchReconcile(context.Background(), &MockProvider{}, ReconcileRequest{
+		Correlation:    Correlation{OperationID: "operation-11", LabInstanceID: "lab-instance-11", Generation: 1},
+		KnownResources: []ResourceRef{},
+	})
+	if !errors.Is(err, ErrMockNotConfigured) || result.Error != nil {
+		t.Fatalf("unconfigured Reconcile result = %+v, error = %v", result, err)
 	}
 }
 

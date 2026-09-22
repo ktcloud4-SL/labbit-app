@@ -44,7 +44,7 @@ func DispatchOperation(ctx context.Context, p Provider, command OperationCommand
 			Correlation:      command.Correlation,
 			CreationSnapshot: cloneSnapshot(*command.CreationSnapshot),
 		})
-		return safeOperationResult(result, err), nil
+		return safeOperationResult(result, err)
 	case MutationReset:
 		if command.CreationSnapshot == nil {
 			return OperationResult{}, ErrInvalidCommand
@@ -54,7 +54,7 @@ func DispatchOperation(ctx context.Context, p Provider, command OperationCommand
 			CreationSnapshot:  cloneSnapshot(*command.CreationSnapshot),
 			ProviderResources: cloneResources(command.ProviderResources),
 		})
-		return safeOperationResult(result, err), nil
+		return safeOperationResult(result, err)
 	case MutationCleanup:
 		if command.ProviderResources == nil {
 			return OperationResult{}, ErrInvalidCommand
@@ -63,22 +63,25 @@ func DispatchOperation(ctx context.Context, p Provider, command OperationCommand
 			Correlation:       command.Correlation,
 			ProviderResources: cloneResources(command.ProviderResources),
 		})
-		return safeOperationResult(result, err), nil
+		return safeOperationResult(result, err)
 	default:
 		return OperationResult{}, ErrInvalidCommand
 	}
 }
 
-func safeOperationResult(result OperationResult, err error) OperationResult {
+func safeOperationResult(result OperationResult, err error) (OperationResult, error) {
+	if errors.Is(err, ErrMockNotConfigured) {
+		return OperationResult{}, ErrMockNotConfigured
+	}
 	if err != nil || (result.Outcome != OutcomeSucceeded && result.Outcome != OutcomeFailed && result.Outcome != OutcomeUnknown) {
 		resources := make([]ResourceResult, len(result.ProviderResources))
 		copy(resources, result.ProviderResources)
-		return OperationResult{Outcome: OutcomeUnknown, ProviderResources: resources}
+		return OperationResult{Outcome: OutcomeUnknown, ProviderResources: resources}, nil
 	}
 	if result.ProviderResources == nil {
 		result.ProviderResources = []ResourceResult{}
 	}
-	return result
+	return result, nil
 }
 
 func cloneSnapshot(snapshot CreationSnapshot) CreationSnapshot {

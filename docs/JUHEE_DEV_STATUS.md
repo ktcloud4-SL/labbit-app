@@ -121,13 +121,38 @@ rabbit-app/
   * `Supervisor`: WSS 연결 ➔ `HELLO` 핸드셰이크 ➔ `Heartbeat` 가동 ➔ `Handler.Listen` 수명 관리 및 비정상 단절 시 자동 재접속
   * `reconnect_test.go`: 백오프 Jitter 범위 검증, 비정상 단절 후 자동 재접속 및 `HELLO` 재협상 검증 통과 (PASS)
 
+### ✅ [M3] 실시간 웹 터미널(Terminal Stream) 세션 스트리밍 (완료)
+* **터미널 프로토콜 모델 (`internal/connector/protocol/terminal.go`)**:
+  * `contracts/connector/terminal-control.schema.json` 및 `terminal-data.schema.json` 준수
+  * Control 메시지: `TERMINAL_OPEN`, `TERMINAL_OPEN_RESULT`, `TERMINAL_CLOSE`, `TERMINAL_ENDED`
+  * Data WSS 제어 프레임: `TERMINAL_DATA_ATTACH`, `TERMINAL_DATA_ATTACHED`, `TERMINAL_DATA_RESIZE`, `TERMINAL_DATA_CLOSE`, `TERMINAL_DATA_ENDED`
+* **터미널 세션 관리자 & 60초 Grace Period (`internal/connector/terminal/session.go`, `pty.go`)**:
+  * `SessionManager`: `terminalSessionId` 기준 Thread-safe 레지스트리 및 멱등성 보장 (동일 세션 재오픈 방어)
+  * `Session`: 단일 PTY 입출력 파이프라인 관리 및 생명주기 관리
+  * **60초 Grace Period**: WebSocket 단절 시 PTY를 즉시 종료하지 않고 60초간 보존, 기한 내 재접속 시 무중단 복구 (`resumed: true`)
+  * 타임아웃 경과 시 자동 안전 종료 (`protocol.TerminalReasonGraceTimeout`)
+* **Terminal Data WSS 클라이언트 (`internal/connector/terminal/client.go`)**:
+  * 별도 전용 데이터 WebSocket (`labbit.connector-terminal.v1`) 아웃바운드 연결
+  * `TERMINAL_DATA_ATTACH` ➔ `TERMINAL_DATA_ATTACHED` 핸드셰이크 수행
+  * PTY stdout ➔ WebSocket Binary Frame 1:1 고속 스트리밍
+  * WebSocket Binary Frame ➔ PTY stdin 및 Text Frame (`RESIZE`, `CLOSE`) 디스패치
+* **Control WSS Handler 연동 (`internal/connector/wss/handler.go`)**:
+  * `TERMINAL_OPEN` 수신 ➔ 세션 획득 ➔ `TERMINAL_OPEN_RESULT (SUCCEEDED/FAILED)` 회신
+  * `TERMINAL_CLOSE` 수신 ➔ 세션 정리 ➔ `TERMINAL_ENDED` 회신
+* **Mock Relay 및 검증 테스트 통과 (`internal/connector/terminal/terminal_test.go`, `handler_terminal_test.go`)**:
+  * `TestTerminal_OpenAndEchoStreaming`: 바이너리 에코 스트리밍 검증 (PASS)
+  * `TestTerminal_Resize`: 120x40 창 크기 조절 제어 프레임 검증 (PASS)
+  * `TestTerminal_GracePeriod_Resume`: 단절 후 60초 내 재연결 및 세션 복구 검증 (PASS)
+  * `TestTerminal_GracePeriod_Timeout`: Grace Period 만료 후 자동 정리 검증 (PASS)
+  * `TestTerminal_Close_Idempotent`: 멱등적 세션 닫기 검증 (PASS)
+  * `TestHandler_TerminalOpenAndClose`: Control WSS 연동 E2E 검증 (PASS)
+
 ---
 
-## 6. 다음 개발 진행 계획 (M1 Checkpoint #1 및 M3 터미널 스트리밍)
+## 6. 다음 개발 진행 계획 (M4 Preview 연계)
 
-* **M1 Integration Checkpoint #1 (서빈 님 협업)**:
-  * 서빈 님 PC에서 주희 님 브랜치(`feat/SL-connector-control-wss`)를 당겨 받아 OpenStack Provider와 단일 프로세스 결합 검증
-* **Milestone M3 착수 (실시간 터미널 세션 스트리밍)**:
-  * SaaS `TERMINAL_OPEN` 수신 및 관리망 VM(22번 포트) SSH PTY 셸 연결
-  * 별도 Terminal Data WSS(`labbit.connector-terminal.v1`) 연결 및 1:1 양방향 PTY 바이너리 스트리밍
-  * 브라우저 탭 닫힘 시 60초 유예기간(Grace Period) 및 재접속 복구 구현
+* **백서빈 님 SSH / OpenStack 연동**:
+  * 서빈 님의 `DialTCP` 및 `OpenPTY` 구현체와 실제 VM 결합 검증
+* **Milestone M4 착수 (웹 애플리케이션 미리보기 Preview)**:
+  * 준비 5에서 합의한 `PREVIEW_OPEN`/`PREVIEW_CLOSE` 및 `labbit.connector-preview.v1` WSS 파이프라인 구축
+

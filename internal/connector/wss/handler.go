@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/ktcloud4-SL/rabbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/rabbit-app/internal/connector/provider"
+	"github.com/ktcloud4-SL/rabbit-app/internal/connector/terminal"
 )
 
 // MessageSender 는 SaaS 로 WSS 메시지를 전송하는 인터페이스입니다.
@@ -24,12 +25,18 @@ func (f SendMessageFunc) SendMessage(ctx context.Context, msg interface{}) error
 	return f(ctx, msg)
 }
 
+// PTYFactoryFunc 는 대상 VM 정보를 기반으로 PTY 채널을 생성하는 함수 타입입니다.
+type PTYFactoryFunc func(targetVmKey string, serverId string, cols, rows int) (terminal.PTYChannel, error)
+
 // Handler 는 SaaS 로부터 수신한 Control WSS 메시지를 검증하고
-// 내부 Provider(DispatchOperation / DispatchReconcile)로 연결한 후 결과를 회신합니다.
+// 내부 Provider(DispatchOperation / DispatchReconcile) 및 터미널 세션 관리자로 연결한 후 결과를 회신합니다.
 type Handler struct {
-	mu       sync.RWMutex
-	provider provider.Provider
-	sender   MessageSender
+	mu          sync.RWMutex
+	provider    provider.Provider
+	sender      MessageSender
+	terminalMgr *terminal.SessionManager
+	ptyFactory  PTYFactoryFunc
+	terminalCfg terminal.DataWSSClientConfig
 }
 
 // NewHandler 는 새 Control WSS 메시지 핸들러를 생성합니다.
@@ -45,6 +52,15 @@ func (h *Handler) SetSender(sender MessageSender) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.sender = sender
+}
+
+// SetTerminalManager 는 터미널 세션 관리자와 PTY 팩토리 설정을 등록합니다.
+func (h *Handler) SetTerminalManager(mgr *terminal.SessionManager, ptyFactory PTYFactoryFunc, cfg terminal.DataWSSClientConfig) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.terminalMgr = mgr
+	h.ptyFactory = ptyFactory
+	h.terminalCfg = cfg
 }
 
 // Sender 는 현재 설정된 MessageSender 를 반환합니다.
@@ -66,6 +82,10 @@ func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
 		return h.handleOperationCommand(ctx, env, raw)
 	case protocol.MessageTypeReconcileRequest:
 		return h.handleReconcileRequest(ctx, env, raw)
+	case protocol.MessageTypeTerminalOpen:
+		return h.handleTerminalOpen(ctx, env, raw)
+	case protocol.MessageTypeTerminalClose:
+		return h.handleTerminalClose(ctx, env, raw)
 	default:
 		// 알 수 없는 메시지 타입이거나 핸들러 대상이 아닌 메시지는 무시
 		return nil
@@ -360,3 +380,169 @@ func (h *Handler) Listen(ctx context.Context, conn *websocket.Conn) error {
 		}
 	}
 }
+
+func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvelope, raw []byte) error {
+	var openMsg protocol.TerminalOpenMessage
+	if err := json.Unmarshal(raw, &openMsg); err != nil {
+		return fmt.Errorf("failed to unmarshal TERMINAL_OPEN: %w", err)
+	}
+
+	h.mu.RLock()
+	mgr := h.terminalMgr
+	factory := h.ptyFactory
+	dataCfg := h.terminalCfg
+	h.mu.RUnlock()
+
+	sender := h.Sender()
+
+	// 1. 유효성 검증 (targetVmKey, providerServerId, cols, rows 필수)
+	if openMsg.Payload.TargetVmKey == "" || openMsg.Payload.ProviderServerID == "" || openMsg.Payload.Cols <= 0 || openMsg.Payload.Rows <= 0 {
+		if sender != nil {
+			failResult := protocol.TerminalOpenResultMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:              protocol.MessageTypeTerminalOpenResult,
+					MessageID:         generateUUID(),
+					ReplyToMessageID:  openMsg.MessageID,
+					SentAt:            time.Now().UTC(),
+					TerminalSessionID: openMsg.TerminalSessionID,
+					LabInstanceID:     openMsg.LabInstanceID,
+					Generation:        openMsg.Generation,
+				},
+				Payload: protocol.TerminalOpenResultPayload{
+					Outcome: protocol.OutcomeFailed,
+					Error: &protocol.SafeError{
+						Code:    protocol.TerminalErrInvalidSession,
+						Message: "missing required targetVmKey, providerServerId, cols, or rows",
+					},
+				},
+			}
+			_ = sender.SendMessage(ctx, failResult)
+		}
+		return fmt.Errorf("invalid TERMINAL_OPEN: missing target or dimensions")
+	}
+
+	if mgr == nil || factory == nil {
+		if sender != nil {
+			failResult := protocol.TerminalOpenResultMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:              protocol.MessageTypeTerminalOpenResult,
+					MessageID:         generateUUID(),
+					ReplyToMessageID:  openMsg.MessageID,
+					SentAt:            time.Now().UTC(),
+					TerminalSessionID: openMsg.TerminalSessionID,
+					LabInstanceID:     openMsg.LabInstanceID,
+					Generation:        openMsg.Generation,
+				},
+				Payload: protocol.TerminalOpenResultPayload{
+					Outcome: protocol.OutcomeFailed,
+					Error: &protocol.SafeError{
+						Code:    protocol.TerminalErrAttachFailed,
+						Message: "terminal manager or PTY factory not configured",
+					},
+				},
+			}
+			_ = sender.SendMessage(ctx, failResult)
+		}
+		return fmt.Errorf("terminal manager not configured")
+	}
+
+	// 2. 세션 조회 또는 생성 (멱등성 보장)
+	session, _, err := mgr.GetOrCreateSession(openMsg.Payload, openMsg.BaseEnvelope, func() (terminal.PTYChannel, error) {
+		return factory(openMsg.Payload.TargetVmKey, openMsg.Payload.ProviderServerID, openMsg.Payload.Cols, openMsg.Payload.Rows)
+	})
+	if err != nil {
+		if sender != nil {
+			failResult := protocol.TerminalOpenResultMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:              protocol.MessageTypeTerminalOpenResult,
+					MessageID:         generateUUID(),
+					ReplyToMessageID:  openMsg.MessageID,
+					SentAt:            time.Now().UTC(),
+					TerminalSessionID: openMsg.TerminalSessionID,
+					LabInstanceID:     openMsg.LabInstanceID,
+					Generation:        openMsg.Generation,
+				},
+				Payload: protocol.TerminalOpenResultPayload{
+					Outcome: protocol.OutcomeFailed,
+					Error: &protocol.SafeError{
+						Code:    protocol.TerminalErrAttachFailed,
+						Message: "failed to create terminal session",
+					},
+				},
+			}
+			_ = sender.SendMessage(ctx, failResult)
+		}
+		return fmt.Errorf("failed to get/create terminal session: %w", err)
+	}
+
+	// 3. Terminal Data WSS Endpoint 가 설정되어 있다면 백그라운드로 연결 및 스트리밍 개시
+	if dataCfg.EndpointURL != "" {
+		dataClient := terminal.NewDataWSSClient(dataCfg, session)
+		go func() {
+			_ = dataClient.ConnectAndStream()
+		}()
+	}
+
+	// 4. TERMINAL_OPEN_RESULT (SUCCEEDED) 회신
+	if sender != nil {
+		succResult := protocol.TerminalOpenResultMessage{
+			BaseEnvelope: protocol.BaseEnvelope{
+				Type:              protocol.MessageTypeTerminalOpenResult,
+				MessageID:         generateUUID(),
+				ReplyToMessageID:  openMsg.MessageID,
+				SentAt:            time.Now().UTC(),
+				TerminalSessionID: openMsg.TerminalSessionID,
+				LabInstanceID:     openMsg.LabInstanceID,
+				Generation:        openMsg.Generation,
+			},
+			Payload: protocol.TerminalOpenResultPayload{
+				Outcome: protocol.OutcomeSucceeded,
+			},
+		}
+		_ = sender.SendMessage(ctx, succResult)
+	}
+
+	return nil
+}
+
+func (h *Handler) handleTerminalClose(ctx context.Context, env protocol.BaseEnvelope, raw []byte) error {
+	var closeMsg protocol.TerminalCloseMessage
+	if err := json.Unmarshal(raw, &closeMsg); err != nil {
+		return fmt.Errorf("failed to unmarshal TERMINAL_CLOSE: %w", err)
+	}
+
+	sessionID := closeMsg.TerminalSessionID
+	if sessionID == "" {
+		sessionID = closeMsg.RequestID
+	}
+
+	h.mu.RLock()
+	mgr := h.terminalMgr
+	h.mu.RUnlock()
+
+	if mgr != nil && sessionID != "" {
+		_ = mgr.CloseSession(sessionID, closeMsg.Payload.Reason)
+	}
+
+	// TERMINAL_ENDED 회신
+	if sender := h.Sender(); sender != nil {
+		endedMsg := protocol.TerminalEndedMessage{
+			BaseEnvelope: protocol.BaseEnvelope{
+				Type:              protocol.MessageTypeTerminalEnded,
+				MessageID:         generateUUID(),
+				ReplyToMessageID:  closeMsg.MessageID,
+				SentAt:            time.Now().UTC(),
+				TerminalSessionID: sessionID,
+				LabInstanceID:     closeMsg.LabInstanceID,
+				Generation:        closeMsg.Generation,
+			},
+			Payload: protocol.TerminalEndedPayload{
+				Reason: closeMsg.Payload.Reason,
+			},
+		}
+		_ = sender.SendMessage(ctx, endedMsg)
+	}
+
+	return nil
+}
+

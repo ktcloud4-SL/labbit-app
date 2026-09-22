@@ -38,6 +38,17 @@ function executionStatusLabel(status: string) {
   }
 }
 
+function executionStatusClass(status: string) {
+  if (status === 'ACTIVE' || status === 'COMPLETED') {
+    return 'status-pill status-pill-success'
+  }
+  if (status === 'ERROR') return 'status-pill status-pill-error'
+  if (status === 'PROVISIONING' || status === 'CLEANING_UP') {
+    return 'status-pill status-pill-progress'
+  }
+  return 'status-pill status-pill-neutral'
+}
+
 function instanceStatusLabel(status: string) {
   switch (status) {
     case 'READY':
@@ -274,7 +285,7 @@ export function LabExecutionPage() {
           <h1>실습 운영 상태</h1>
           <p className="muted">{execution.id}</p>
         </div>
-        <span className="status-pill status-pill-success">{executionStatusLabel(execution.status)}</span>
+        <span className={executionStatusClass(execution.status)}>{executionStatusLabel(execution.status)}</span>
       </header>
 
       <section className="detail-grid operation-grid">

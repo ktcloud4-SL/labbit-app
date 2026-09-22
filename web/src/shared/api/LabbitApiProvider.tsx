@@ -1,5 +1,6 @@
 import { createContext, useContext, type PropsWithChildren } from 'react'
 
+import { resolveLabbitApiMode } from './apiMode'
 import { httpLabbitApi, type LabbitApi } from '../api/labbitApi'
 import { mockLabbitApi } from '../api/mockLabbitApi'
 
@@ -10,7 +11,12 @@ interface LabbitApiProviderProps extends PropsWithChildren {
 }
 
 function defaultApi() {
-  return import.meta.env.DEV ? mockLabbitApi : httpLabbitApi
+  const mode = resolveLabbitApiMode(
+    import.meta.env.DEV,
+    import.meta.env.VITE_LABBIT_API_MODE,
+  )
+
+  return mode === 'http' ? httpLabbitApi : mockLabbitApi
 }
 
 export function LabbitApiProvider({ children, api = defaultApi() }: LabbitApiProviderProps) {

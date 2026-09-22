@@ -271,6 +271,17 @@ LabExecution Provision Operation
 
 Connector에는 Nova/Neutron raw request를 그대로 전달하지 않습니다. SaaS는 `PROVISION`, `RESET`, `CLEANUP`이라는 Labbit domain command와 resolved 입력을 전달하고 Connector 내부 OpenStackProvider Adapter가 실제 Provider API 호출 순서를 담당합니다.
 
+### Control ↔ Provider 내부 경계
+
+두 Connector 모듈을 연결할 때는 `internal/connector/provider`의 `Provider` 인터페이스를 기준으로 합니다. Control/WSS는 wire 메시지를 검증하고 `OperationCommand`로 변환해 `DispatchOperation`을 호출합니다. `RECONCILE_REQUEST`는 같은 Provider의 `Reconcile` 호출로 변환합니다. OpenStack API 호출과 실제 side effect 판단은 Provider가 담당하며, Control/WSS에서 Gophercloud를 직접 호출하지 않습니다. Control 테스트는 이 경계에 Mock Provider를 연결할 수 있어야 합니다.
+
+- Control은 wire의 `operationId`, `labInstanceId`, `generation`을 Provider 요청에 전달하고, `requestId` 및 trace context를 Control 응답까지 보존합니다.
+- Provider는 OpenStack 작업 결과를 `SUCCEEDED` / `FAILED` / `UNKNOWN`으로 분류하고 관측한 Provider Resource 식별자를 반환합니다. 오류 정보가 필요하면 노출 가능한 `SafeError`만 반환합니다. 실패가 확정된 경우 `FAILED`, side effect 여부가 불명확한 경우 `UNKNOWN`입니다. 분류되지 않은 내부 Go 오류나 Provider raw 오류 원문을 wire 응답에 노출하지 않습니다.
+- Control은 Provider 결과를 `OPERATION_RESULT`로 변환하며, `UNKNOWN`을 동일 Create/Delete의 자동 재시도로 바꾸지 않습니다. 이후 SaaS가 `RECONCILE_REQUEST`를 보내면 Control이 Provider 조회로 연결합니다.
+- `discoverCandidates`가 생략된 `RECONCILE_REQUEST`는 Control 변환 단계에서 `true`로 적용하고, 명시적인 `false`는 그대로 전달합니다.
+
+이 경계는 Connector 내부 역할 분담입니다. 위 규칙으로 새로운 wire 필드나 메시지를 추가하지 않습니다. 메시지 구조와 필수 필드는 `connector.schema.json`을 따릅니다.
+
 ## 11. CreationSnapshot과 Reset
 
 Provision/Reset에서 사용하는 `creationSnapshot`은 D-19의 immutable resolved CreationSnapshot입니다.

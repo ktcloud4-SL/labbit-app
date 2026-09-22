@@ -513,6 +513,16 @@ async function main() {
         label: '실습 정의 목록',
         file: '09-lab-specs.png',
       },
+    ]
+
+    for (const screen of screens) {
+      await navigateAuthenticated(cdp, screen)
+      await capture(cdp, screen.file)
+    }
+
+    await captureProvisionOperationFlow(cdp)
+
+    const extraScreens = [
       {
         path: '/lab-specs/new',
         selector: 'form.labspec-form',
@@ -543,12 +553,10 @@ async function main() {
       },
     ]
 
-    for (const screen of screens) {
+    for (const screen of extraScreens) {
       await navigateAuthenticated(cdp, screen)
       await capture(cdp, screen.file)
     }
-
-    await captureProvisionOperationFlow(cdp)
 
     console.log(`\n완료: ${outputDir}`)
   } finally {

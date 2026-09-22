@@ -210,16 +210,69 @@ async function login(cdp) {
   await delay(180)
 }
 
+async function ensureVite() {
+  try {
+    await waitForHttp(baseUrl, 700)
+    console.log('✓ 기존 Vite 서버 사용')
+    return null
+  } catch {
+    // 캡처 명령 하나만으로 실행할 수 있도록 Local Vite를 자동 기동합니다.
+  }
+
+  const url = new URL(baseUrl)
+  if (!['127.0.0.1', 'localhost'].includes(url.hostname)) {
+    throw new Error(
+      `대상 서버에 연결할 수 없습니다: ${baseUrl}\nLocal 주소가 아니어서 Vite를 자동 실행하지 않았습니다.`,
+    )
+  }
+
+  const viteBin = path.resolve('node_modules', 'vite', 'bin', 'vite.js')
+  if (!existsSync(viteBin)) {
+    throw new Error(
+      'Vite 실행 파일을 찾지 못했습니다. web 폴더에서 npm.cmd install 또는 npm.cmd ci를 먼저 실행해 주세요.',
+    )
+  }
+
+  const host = '127.0.0.1'
+  const vitePort = url.port || '5173'
+  console.log(`- Vite 자동 실행: http://${host}:${vitePort}`)
+
+  const vite = spawn(
+    process.execPath,
+    [viteBin, '--host', host, '--port', vitePort, '--strictPort'],
+    {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+      windowsHide: true,
+    },
+  )
+
+  let exited = false
+  vite.once('exit', () => {
+    exited = true
+  })
+
+  try {
+    await waitForHttp(baseUrl, 15000)
+    if (exited) {
+      throw new Error('Vite 프로세스가 시작 직후 종료되었습니다.')
+    }
+    console.log('✓ Vite 준비 완료')
+    return vite
+  } catch (error) {
+    vite.kill()
+    throw new Error(
+      `Vite 자동 실행에 실패했습니다.\n${error instanceof Error ? error.message : error}`,
+    )
+  }
+}
+
 async function main() {
   console.log('Labbit UI capture 시작')
   console.log(`- 대상: ${baseUrl}`)
   console.log(`- 저장: ${outputDir}`)
 
-  try {
-    await waitForHttp(baseUrl, 2500)
-  } catch {
-    throw new Error(`Vite 개발 서버가 실행 중인지 확인해 주세요.\n먼저: npm.cmd run dev\n대상: ${baseUrl}`)
-  }
+  const vite = await ensureVite()
 
   const chrome = findChrome()
   if (!chrome) {
@@ -328,6 +381,7 @@ async function main() {
   } finally {
     cdp?.close()
     browser.kill()
+    vite?.kill()
     await rm(profileDir, { recursive: true, force: true }).catch(() => {})
   }
 }

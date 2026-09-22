@@ -43,12 +43,27 @@ function statusPillClass(status: string) {
   return 'status-pill status-pill-neutral'
 }
 
+function stageLabel(stage: string | undefined) {
+  switch (stage) {
+    case 'PROVISIONING':
+      return '환경 생성 중'
+    case 'RESETTING':
+      return '환경 초기화 중'
+    case 'CLEANING_UP':
+      return '환경 정리 중'
+    case 'VERIFY_PROVIDER_STATE':
+      return '실제 상태 확인 중'
+    default:
+      return stage ?? '확인 중'
+  }
+}
+
 function operationTypeLabel(type: string) {
   switch (type) {
     case 'PROVISION':
       return '실습 환경 생성'
     case 'RESET':
-      return '실습 환경 Reset'
+      return '실습 환경 초기화'
     case 'CLEANUP':
       return '실습 환경 정리'
     default:
@@ -90,7 +105,7 @@ export function OperationPage() {
   if (!resolvedOperationId) {
     return (
       <main className="app-page">
-        <ErrorState message="Operation ID가 없습니다." />
+        <ErrorState message="작업 ID가 없습니다." />
       </main>
     )
   }
@@ -98,7 +113,7 @@ export function OperationPage() {
   if (operationQuery.isPending) {
     return (
       <main className="app-page">
-        <LoadingState label="Operation 상태를 확인하는 중..." />
+        <LoadingState label="작업 상태를 확인하는 중..." />
       </main>
     )
   }
@@ -119,7 +134,7 @@ export function OperationPage() {
   if (operationQuery.error instanceof HttpError && operationQuery.error.status === 403) {
     return (
       <main className="app-page">
-        <ErrorState message="이 Operation을 볼 권한이 없습니다." />
+        <ErrorState message="이 작업을 볼 권한이 없습니다." />
       </main>
     )
   }
@@ -127,7 +142,7 @@ export function OperationPage() {
   if (operationQuery.error instanceof HttpError && operationQuery.error.status === 404) {
     return (
       <main className="app-page">
-        <ErrorState message="Operation을 찾을 수 없습니다." />
+        <ErrorState message="작업을 찾을 수 없습니다." />
       </main>
     )
   }
@@ -135,7 +150,7 @@ export function OperationPage() {
   if (operationQuery.error || !operationQuery.data) {
     return (
       <main className="app-page">
-        <ErrorState message="Operation 상태를 불러오지 못했습니다." />
+        <ErrorState message="작업 상태를 불러오지 못했습니다." />
       </main>
     )
   }
@@ -194,7 +209,7 @@ export function OperationPage() {
         </article>
         <article className="detail-card">
           <h2>현재 단계</h2>
-          <strong>{operation.stage ?? '확인 중'}</strong>
+          <strong>{stageLabel(operation.stage)}</strong>
         </article>
         <article className="detail-card">
           <h2>대상</h2>
@@ -218,7 +233,7 @@ export function OperationPage() {
 
       {link && (
         <Link className="primary-link inline-link" to={link}>
-          대상 LabExecution 보기
+          실습 운영 상태 보기
         </Link>
       )}
     </main>

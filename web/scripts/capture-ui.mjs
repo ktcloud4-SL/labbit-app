@@ -272,6 +272,81 @@ async function login(cdp, destinationPath = '/classes') {
   await delay(180)
 }
 
+
+async function captureProvisionOperationFlow(cdp) {
+  const provisionScreen = {
+    path: '/classes/class-docker-basic/provision',
+    selector: 'form.labspec-form',
+    text: '새 환경 생성',
+    label: 'Provision 흐름',
+  }
+
+  await navigateAuthenticated(cdp, provisionScreen)
+
+  await evaluate(
+    cdp,
+    `(() => {
+      const select = document.querySelector('select');
+      if (!select) throw new Error('LabSpec select not found');
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLSelectElement.prototype,
+        'value',
+      ).set;
+      setter.call(select, 'lab-spec-kubernetes-basic');
+      select.dispatchEvent(new Event('input', { bubbles: true }));
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+
+      const checkbox = document.querySelector('input[type="checkbox"]');
+      if (!checkbox) throw new Error('student checkbox not found');
+      if (!checkbox.checked) checkbox.click();
+    })()`,
+  )
+
+  await waitForJs(
+    cdp,
+    `document.querySelector('select')?.value === 'lab-spec-kubernetes-basic' &&
+      Boolean(document.querySelector('input[type="checkbox"]')?.checked)`,
+    'Provision 입력 선택',
+  )
+
+  await evaluate(
+    cdp,
+    `(() => {
+      const form = document.querySelector('form.labspec-form');
+      if (!form) throw new Error('Provision form not found');
+      form.requestSubmit();
+    })()`,
+  )
+
+  await waitForJs(
+    cdp,
+    `Boolean(document.body.textContent?.includes('환경 생성 전 확인'))`,
+    'Provision 최종 확인',
+  )
+  await capture(cdp, '10-provision-confirm.png')
+
+  await evaluate(
+    cdp,
+    `(() => {
+      const button = [...document.querySelectorAll('button')].find(
+        (candidate) => candidate.textContent?.trim() === '환경 생성 시작',
+      );
+      if (!button) throw new Error('환경 생성 시작 button not found');
+      button.click();
+    })()`,
+  )
+
+  await waitForJs(
+    cdp,
+    `location.pathname.startsWith('/operations/') &&
+      Boolean(document.querySelector('.operation-grid'))`,
+    'Operation 상태 화면',
+    10000,
+  )
+  await delay(180)
+  await capture(cdp, '11-operation.png')
+}
+
 async function ensureVite() {
   try {
     await waitForHttp(baseUrl, 700)
@@ -444,6 +519,8 @@ async function main() {
       await navigateAuthenticated(cdp, screen)
       await capture(cdp, screen.file)
     }
+
+    await captureProvisionOperationFlow(cdp)
 
     console.log(`\n완료: ${outputDir}`)
   } finally {

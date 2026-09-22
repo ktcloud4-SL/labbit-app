@@ -263,10 +263,10 @@ export function LabExecutionPage() {
         ? '다른 변경 작업이 진행 중입니다. 현재 Operation 상태를 확인해 주세요.'
       : mutationError instanceof HttpError && mutationError.status === 422
         ? pendingAction?.type === 'RESET'
-          ? 'Reset 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현 불가로 거절된 경우 기존 환경은 먼저 삭제되지 않습니다.'
-          : '현재 LabExecution 상태에서는 Cleanup을 시작할 수 없습니다. 상태와 진행 중인 작업을 확인해 주세요.'
+          ? '초기화 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현이 불가능한 경우 기존 환경은 먼저 삭제되지 않습니다.'
+          : '현재 실습 상태에서는 정리를 시작할 수 없습니다. 상태와 진행 중인 작업을 확인해 주세요.'
         : mutationError instanceof HttpError && mutationError.status === 503
-          ? 'Connector 또는 Provider가 일시적으로 사용할 수 없습니다.'
+          ? '인프라 연결 구성요소를 일시적으로 사용할 수 없습니다.'
           : mutationError
             ? '요청을 접수하지 못했습니다. 잠시 후 다시 시도해 주세요.'
             : null
@@ -348,7 +348,7 @@ export function LabExecutionPage() {
           <span>사용자</span>
           <span>구분</span>
           <span>상태</span>
-          <span>Generation / 작업</span>
+          <span>세대 / 작업</span>
         </div>
         {execution.labInstances.map((labInstance) => {
           const rowIsInstructor =
@@ -387,7 +387,7 @@ export function LabExecutionPage() {
                           })
                         }}
                       >
-                        Reset
+                        초기화
                       </button>
                     </>
                   )}
@@ -399,17 +399,23 @@ export function LabExecutionPage() {
       </section>
 
       {pendingAction && (
-        <section className="confirmation-card">
-          <p className="eyebrow">Confirm</p>
-          <h2>
+        <div className="modal-backdrop">
+          <section
+            className={`modal-card ${pendingAction.type === 'CLEANUP' ? 'modal-card-danger' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lab-action-confirm-title"
+          >
+          <p className="eyebrow">최종 확인</p>
+          <h2 id="lab-action-confirm-title">
             {pendingAction.type === 'RESET'
-              ? `${pendingAction.username} 환경을 Reset할까요?`
+              ? `${pendingAction.username} 환경을 초기화할까요?`
               : '현재 실습을 정리할까요?'}
           </h2>
           <p className="muted">
             {pendingAction.type === 'RESET'
-              ? '현재 환경 데이터는 제거되고 생성 당시 immutable CreationSnapshot 기준으로 다시 생성됩니다. 재현 조건을 만족하지 못하면 기존 환경을 먼저 삭제하지 않고 요청이 실패합니다.'
-              : '현재 실행에 연결된 Terminal/Live와 Provider 리소스를 정리합니다. Class와 LabSpec, 과거 실행 기록 자체는 삭제하지 않습니다.'}
+              ? '현재 환경 데이터는 제거되고 생성 당시 기준으로 다시 만들어집니다. 재현 조건을 만족하지 못하면 기존 환경을 먼저 삭제하지 않고 요청이 실패합니다.'
+              : '현재 실습에 연결된 터미널·Live와 인프라 리소스를 정리합니다. 수업, 실습 정의, 과거 실행 기록은 삭제하지 않습니다.'}
           </p>
 
           {mutationErrorMessage && (
@@ -443,11 +449,12 @@ export function LabExecutionPage() {
               {mutation.isPending
                 ? '요청 중...'
                 : pendingAction.type === 'RESET'
-                  ? 'Reset 시작'
+                  ? '초기화 시작'
                   : '정리 시작'}
             </button>
           </div>
-        </section>
+          </section>
+        </div>
       )}
     </main>
   )

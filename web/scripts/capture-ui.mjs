@@ -509,9 +509,37 @@ async function main() {
       {
         path: '/lab-specs',
         selector: 'main',
-        text: 'LabSpec',
-        label: 'LabSpec 목록',
+        text: '실습 정의',
+        label: '실습 정의 목록',
         file: '09-lab-specs.png',
+      },
+      {
+        path: '/lab-specs/new',
+        selector: 'form.labspec-form',
+        text: '새 실습 정의',
+        label: '새 실습 정의',
+        file: '12-lab-spec-new.png',
+      },
+      {
+        path: '/lab-specs/lab-spec-kubernetes-basic',
+        selector: 'form.labspec-form',
+        text: 'Kubernetes Basic',
+        label: '실습 정의 편집',
+        file: '13-lab-spec-edit.png',
+      },
+      {
+        path: '/lab-specs/lab-spec-linux-networking',
+        selector: 'form.labspec-form',
+        text: '다른 강사가 소유한 실습 정의입니다.',
+        label: '실습 정의 읽기 전용',
+        file: '14-lab-spec-readonly.png',
+      },
+      {
+        path: '/not-found',
+        selector: '.standalone-state-card',
+        text: '페이지를 찾을 수 없습니다.',
+        label: 'Not Found',
+        file: '15-not-found.png',
       },
     ]
 

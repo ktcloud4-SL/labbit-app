@@ -8,7 +8,14 @@ import { labbitQueryKeys } from '../shared/api/labbitApi'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
-const terminalStatuses = new Set(['SUCCEEDED', 'FAILED'])
+const activeOperationStatuses = new Set(['PENDING', 'RUNNING', 'RECONCILING'])
+const knownOperationStatuses = new Set([
+  'PENDING',
+  'RUNNING',
+  'RECONCILING',
+  'SUCCEEDED',
+  'FAILED',
+])
 
 function statusLabel(status: string) {
   switch (status) {
@@ -48,7 +55,7 @@ export function OperationPage() {
     retry: false,
     refetchInterval: (query) => {
       const status = query.state.data?.status
-      return status && terminalStatuses.has(status) ? false : 2000
+      return status && activeOperationStatuses.has(status) ? 2000 : false
     },
   })
 
@@ -98,6 +105,7 @@ export function OperationPage() {
 
   const operation = operationQuery.data
   const isReconciling = operation.status === 'RECONCILING'
+  const isUnknownStatus = !knownOperationStatuses.has(operation.status)
   const link = targetLink(operation)
 
   return (
@@ -122,6 +130,23 @@ export function OperationPage() {
           <p className="muted">
             결과가 불명확한 동안 중복 Create/Delete를 보내지 않습니다.
           </p>
+        </section>
+      )}
+
+      {isUnknownStatus && (
+        <section className="notice-card notice-warning">
+          <strong>알 수 없는 Operation 상태입니다.</strong>
+          <p className="muted">
+            새 상태가 추가되었을 수 있으므로 성공·실패를 임의로 판단하지 않으며 자동 polling도 중단합니다.
+          </p>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={operationQuery.isFetching}
+            onClick={() => void operationQuery.refetch()}
+          >
+            {operationQuery.isFetching ? '상태 확인 중...' : '상태 다시 확인'}
+          </button>
         </section>
       )}
 

@@ -35,6 +35,7 @@ interface LabSpecFormProps {
   saving: boolean
   saveError: unknown
   requireEtag: boolean
+  forbiddenMessage: string
   onSubmit: (input: LabSpecWrite) => void
   onReload: () => void
 }
@@ -45,6 +46,7 @@ function LabSpecForm({
   saving,
   saveError,
   requireEtag,
+  forbiddenMessage,
   onSubmit,
   onReload,
 }: LabSpecFormProps) {
@@ -364,6 +366,9 @@ function LabSpecForm({
               setForm((current) => ({ ...current, startupScript: event.target.value }))
             }
           />
+          <small className="muted">
+            Credential, Token, Password 같은 Secret 원문은 Startup Script에 직접 넣지 않습니다.
+          </small>
         </label>
       </section>
 
@@ -373,7 +378,7 @@ function LabSpecForm({
             (staleError
               ? '다른 곳에서 LabSpec이 수정되었습니다. 최신 내용을 다시 불러온 뒤 다시 저장해 주세요.'
               : forbiddenError
-                ? '이 LabSpec을 수정할 권한이 없습니다.'
+                ? forbiddenMessage
                 : validationServerError
                   ? '저장할 수 없는 값이 있습니다. 입력 내용을 확인해 주세요.'
                   : 'LabSpec을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.')}
@@ -545,6 +550,11 @@ export function LabSpecEditorPage() {
         saving={saveMutation.isPending}
         saveError={saveMutation.error}
         requireEtag={requireEtag}
+        forbiddenMessage={
+          isNew
+            ? 'LabSpec을 생성할 권한이 없습니다.'
+            : '이 LabSpec을 수정할 권한이 없습니다.'
+        }
         onSubmit={(input) => {
           saveMutation.reset()
           saveMutation.mutate(input)

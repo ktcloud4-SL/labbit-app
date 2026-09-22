@@ -13,6 +13,14 @@ type PendingAction =
   | { type: 'CLEANUP'; idempotencyKey: string }
   | null
 
+const knownExecutionStatuses = new Set([
+  'PROVISIONING',
+  'ACTIVE',
+  'CLEANING_UP',
+  'COMPLETED',
+  'ERROR',
+])
+
 function createIdempotencyKey() {
   return crypto.randomUUID()
 }
@@ -39,10 +47,12 @@ export function LabExecutionPage() {
     retry: false,
   })
 
+  const canLoadMemberships = classQuery.data?.myRole === 'INSTRUCTOR'
+
   const membershipsQuery = useQuery({
     queryKey: labbitQueryKeys.classMemberships(executionQuery.data?.classId ?? ''),
     queryFn: () => api.listClassMemberships(executionQuery.data?.classId ?? ''),
-    enabled: Boolean(executionQuery.data?.classId),
+    enabled: Boolean(executionQuery.data?.classId && canLoadMemberships),
     retry: false,
   })
 
@@ -66,7 +76,11 @@ export function LabExecutionPage() {
     )
   }
 
-  if (executionQuery.isPending || (executionQuery.data && classQuery.isPending)) {
+  if (
+    executionQuery.isPending ||
+    (executionQuery.data && classQuery.isPending) ||
+    (canLoadMemberships && membershipsQuery.isPending)
+  ) {
     return (
       <main className="app-page">
         <LoadingState label="LabExecution 상태를 불러오는 중..." />
@@ -74,8 +88,12 @@ export function LabExecutionPage() {
     )
   }
 
-  const queryErrors = [executionQuery.error, classQuery.error]
-  if (queryErrors.some((error) => error instanceof HttpError && error.status === 401)) {
+  const primaryQueryErrors = [executionQuery.error, classQuery.error]
+  if (
+    primaryQueryErrors.some(
+      (error) => error instanceof HttpError && error.status === 401,
+    )
+  ) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
 
@@ -118,8 +136,38 @@ export function LabExecutionPage() {
 
   const execution = executionQuery.data
   const isInstructor = classQuery.data.myRole === 'INSTRUCTOR'
+
+  if (!isInstructor) {
+    return (
+      <main className="app-page">
+        <ErrorState message="INSTRUCTOR만 실습 운영 화면에 접근할 수 있습니다." />
+        <Link
+          className="secondary-link"
+          to={`/classes/${encodeURIComponent(execution.classId)}`}
+        >
+          Class 상세로 돌아가기
+        </Link>
+      </main>
+    )
+  }
+
+  if (
+    membershipsQuery.error instanceof HttpError &&
+    membershipsQuery.error.status === 401
+  ) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  }
+
+  if (membershipsQuery.error || !membershipsQuery.data) {
+    return (
+      <main className="app-page">
+        <ErrorState message="Class Membership 정보를 불러오지 못했습니다." />
+      </main>
+    )
+  }
+
   const usernameById = new Map(
-    (membershipsQuery.data?.items ?? []).map((membership) => [
+    membershipsQuery.data.items.map((membership) => [
       membership.userId,
       membership.username,
     ]),
@@ -127,13 +175,16 @@ export function LabExecutionPage() {
   const hasError = execution.labInstances.some(
     (labInstance) => labInstance.status === 'ERROR',
   )
+  const isUnknownExecutionStatus = !knownExecutionStatuses.has(execution.status)
+  const canCleanup =
+    execution.status === 'ACTIVE' || execution.status === 'ERROR'
 
   const mutationError = mutation.error
   const mutationErrorMessage =
     mutationError instanceof HttpError && mutationError.status === 409
       ? '다른 변경 작업이 진행 중입니다. 현재 Operation 상태를 확인해 주세요.'
       : mutationError instanceof HttpError && mutationError.status === 422
-        ? '현재 상태에서는 요청을 안전하게 수행할 수 없습니다. 재현 조건과 입력을 확인해 주세요.'
+        ? 'Reset 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현 불가로 거절된 경우 기존 환경은 먼저 삭제되지 않습니다.'
         : mutationError instanceof HttpError && mutationError.status === 503
           ? 'Connector 또는 Provider가 일시적으로 사용할 수 없습니다.'
           : mutationError
@@ -181,9 +232,16 @@ export function LabExecutionPage() {
         </section>
       )}
 
-      {isInstructor &&
-        execution.status !== 'COMPLETED' &&
-        execution.status !== 'CLEANING_UP' && (
+      {isUnknownExecutionStatus && (
+        <section className="notice-card notice-warning">
+          <strong>알 수 없는 LabExecution 상태입니다.</strong>
+          <p className="muted">
+            새 상태가 추가되었을 수 있으므로 destructive action을 임의로 활성화하지 않습니다.
+          </p>
+        </section>
+      )}
+
+      {canCleanup && (
         <div className="action-row">
           <button
             className="secondary-button danger-text"
@@ -221,8 +279,7 @@ export function LabExecutionPage() {
               <strong>{labInstance.status}</strong>
               <span>
                 {labInstance.generation}
-                {isInstructor &&
-                  !rowIsInstructor &&
+                {!rowIsInstructor &&
                   execution.status === 'ACTIVE' &&
                   (labInstance.status === 'READY' || labInstance.status === 'ERROR') && (
                     <>

@@ -1272,15 +1272,12 @@ a {
 }
 
 .labspec-form .form-actions {
-  position: sticky;
-  bottom: 16px;
-  z-index: 4;
+  position: static;
   border: 1px solid #e6e8ef;
   border-radius: 12px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 14px 34px rgba(30, 35, 50, 0.09);
-  backdrop-filter: blur(10px);
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(30, 35, 50, 0.05);
 }
 
 .state-card {
@@ -1396,5 +1393,57 @@ a {
 
   .standalone-state-card {
     padding: 26px;
+  }
+}
+
+
+/* Frontend UI polish: confirmation modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(20, 24, 36, 0.38);
+  backdrop-filter: blur(3px);
+}
+
+.modal-card {
+  width: min(100%, 520px);
+  border: 1px solid #e3e5ed;
+  border-radius: 18px;
+  padding: 26px;
+  background: #fff;
+  box-shadow: 0 28px 70px rgba(20, 24, 36, 0.2);
+}
+
+.modal-card h2 {
+  margin: 8px 0 10px;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+
+.modal-card .form-actions {
+  margin-top: 22px;
+}
+
+.modal-card-danger {
+  border-color: #efd0d0;
+}
+
+.modal-card-danger .eyebrow {
+  color: #ad3d3d;
+}
+
+@media (max-width: 720px) {
+  .modal-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .modal-card {
+    border-radius: 16px;
+    padding: 22px;
   }
 }

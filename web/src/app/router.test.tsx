@@ -403,7 +403,7 @@ describe('Auth·Class·LabSpec routing', () => {
     ).toBeInTheDocument()
     expect(screen.getByLabelText('이름')).toHaveValue('Kubernetes Basic Lab')
     expect(screen.getByLabelText('Role')).toHaveValue('control')
-    expect(screen.getByRole('button', { name: 'LabSpec 저장' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '실습 정의 저장' })).toBeInTheDocument()
   })
 
   it('LabSpec stale update 412를 덮어쓰지 않고 안내한다', async () => {
@@ -417,7 +417,7 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: 'Kubernetes Basic Lab' })
-    fireEvent.click(screen.getByRole('button', { name: 'LabSpec 저장' }))
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
 
     expect(
       await screen.findByText(
@@ -438,7 +438,7 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: 'Kubernetes Basic Lab' })
-    fireEvent.click(screen.getByRole('button', { name: 'LabSpec 저장' }))
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
 
     expect(
       await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
@@ -460,7 +460,7 @@ describe('Auth·Class·LabSpec routing', () => {
       }),
     )
 
-    await screen.findByRole('heading', { name: '새 LabSpec' })
+    await screen.findByRole('heading', { name: '새 실습 정의' })
     fireEvent.change(screen.getByLabelText('이름'), {
       target: { value: 'New Lab' },
     })
@@ -476,7 +476,7 @@ describe('Auth·Class·LabSpec routing', () => {
     fireEvent.change(screen.getByLabelText('Workspace VM'), {
       target: { value: 'control:0' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'LabSpec 저장' }))
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
 
     expect(
       await screen.findByText('LabSpec을 생성할 권한이 없습니다.'),
@@ -492,11 +492,11 @@ describe('Auth·Class·LabSpec routing', () => {
 
     renderRoute('/lab-specs/new', createApi({ createLabSpec }))
 
-    await screen.findByRole('heading', { name: '새 LabSpec' })
+    await screen.findByRole('heading', { name: '새 실습 정의' })
     fireEvent.change(screen.getByLabelText('이름'), {
       target: { value: 'Duplicate Role Lab' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'VM Role 추가' }))
+    fireEvent.click(screen.getByRole('button', { name: 'VM 역할 추가' }))
 
     const roleInputs = screen.getAllByLabelText('Role')
     const imageInputs = screen.getAllByLabelText('Image 참조')
@@ -511,7 +511,7 @@ describe('Auth·Class·LabSpec routing', () => {
     fireEvent.change(screen.getByLabelText('Workspace VM'), {
       target: { value: 'control:0' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'LabSpec 저장' }))
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
 
     expect(
       await screen.findByText('VM Role은 LabSpec 안에서 중복될 수 없습니다.'),
@@ -536,11 +536,11 @@ describe('Auth·Class·LabSpec routing', () => {
 
     expect(
       await screen.findByText(
-        '이 LabSpec은 다른 Instructor가 소유하고 있어 현재 계정에서는 읽기만 할 수 있습니다.',
+        '다른 강사가 소유한 실습 정의입니다. 현재 계정에서는 내용을 확인만 할 수 있습니다.',
       ),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'LabSpec 저장' }),
+      screen.queryByRole('button', { name: '실습 정의 저장' }),
     ).not.toBeInTheDocument()
   })
 

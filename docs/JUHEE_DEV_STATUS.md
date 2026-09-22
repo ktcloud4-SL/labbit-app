@@ -91,12 +91,31 @@ rabbit-app/
 
 ---
 
-## 5. 다음 개발 진행 계획 (M1-A 착수)
+## 5. Milestone 개발 현황
 
+### ✅ [M1-A] 기본 연결 및 HELLO 핸드셰이크 (완료)
 * **WSS Client 구현 (`internal/connector/wss/client.go`)**:
-  * `LABBIT_SAAS_BASE_URL` 기반 엔드포인트 파싱 (`wss://<host>/connector/v1/control`)
-  * Bearer 토큰 인증 헤더 주입 및 Subprotocol `labbit.connector.v1` 연결
-* **Handshake 구현 (`internal/connector/wss/handshake.go`)**:
-  * 연결 직후 `HELLO` 메시지 전송 및 `HELLO_ACK` 파싱
+  * `LABBIT_SAAS_BASE_URL` 기반 엔드포인트 파싱 (`wss://<host>/connector/v1/control` 또는 `ws://`)
+  * `Authorization: Bearer <connector-credential>` 인증 헤더 전송
+  * Subprotocol `labbit.connector.v1` 협상
+  * **JSON 메시지 상한 (1 MiB)**: 최신 SSOT 계약에 맞춰 `conn.SetReadLimit(1048576)` 설정
+* **HELLO / HELLO_ACK 핸드셰이크 구현**:
+  * `HELLO` 메시지(`connectorVersion`, `runtimeId`, `startedAt`, `capabilities`) 전송
+  * `HELLO_ACK`(`heartbeatIntervalSeconds`, `offlineTimeoutSeconds`) 수신 및 `replyToMessageId` 검증
+* **단위 테스트 통과 (`internal/connector/wss/client_test.go`)**:
+  * `TestClient_DialAndHello_Success`: MockSaaS와의 정상 연결 및 핸드셰이크 검증 (PASS)
+  * `TestClient_Dial_AuthFailure`: 잘못된 토큰 시 401 Unauthorized 거부 검증 (PASS)
+  * `TestClient_CredentialFile`: `*_FILE` 경로 기반 보안 토큰 주입 검증 (PASS)
+  * `TestClient_ResolveEndpoint`: 다양한 스킴 및 경로의 WSS 엔드포인트 정규화 검증 (PASS)
+
+---
+
+## 6. 다음 개발 진행 계획 (M1-B 착수)
+
 * **Heartbeat Loop 구현 (`internal/connector/heartbeat/loop.go`)**:
-  * 15초 주기 `HEARTBEAT` 전송 및 45초 무응답 시 재접속 트리거
+  * `HELLO_ACK`로 전달받은 주기(기본 15초)로 `HEARTBEAT` 전송
+  * 45초 무응답 시 OFFLINE 판단 및 재접속 트리거
+* **지수 백오프 Reconnect 루프**:
+  * WSS 단절 감지 시 Exponential Backoff + Jitter 기반 자동 재연결
+* **Integration Checkpoint #1 준비**:
+  * Control Layer + Provider Adapter 단일 프로세스 기동 검증

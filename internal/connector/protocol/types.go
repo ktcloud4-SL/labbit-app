@@ -57,7 +57,53 @@ type BaseEnvelope struct {
 	LabInstanceID    string    `json:"labInstanceId,omitempty"`
 	Generation       int       `json:"generation,omitempty"`
 	TraceParent      string    `json:"traceparent,omitempty"`
-	TraceState       string    `json:"tracestate,omitempty"`
+}
+
+// 메시지 크기 및 WebSocket Close 코드 상수 (최신 contracts/connector SSOT)
+const (
+	// MaxJSONMessageSize 는 WebSocket fragmentation 재조립 후 최대 JSON Text 메시지 크기 (1 MiB)
+	MaxJSONMessageSize int64 = 1048576
+
+	// CloseMessageTooBig 은 1 MiB 초과 시 사용하는 WebSocket close code (1009)
+	CloseMessageTooBig = 1009
+)
+
+// HelloPayload 는 HELLO 메시지 본문입니다.
+type HelloPayload struct {
+	ConnectorVersion string    `json:"connectorVersion"`
+	RuntimeID        string    `json:"runtimeId"`
+	StartedAt        time.Time `json:"startedAt"`
+	Capabilities     []string  `json:"capabilities,omitempty"`
+}
+
+// HelloMessage 는 Connector 가 최초 연결 시 전송하는 HELLO 메시지입니다.
+type HelloMessage struct {
+	BaseEnvelope
+	Payload HelloPayload `json:"payload"`
+}
+
+// HelloAckPayload 는 SaaS 가 회신하는 HELLO_ACK 본문입니다.
+type HelloAckPayload struct {
+	ServerTime               time.Time `json:"serverTime"`
+	HeartbeatIntervalSeconds int       `json:"heartbeatIntervalSeconds"`
+	OfflineTimeoutSeconds    int       `json:"offlineTimeoutSeconds"`
+}
+
+// HelloAckMessage 는 SaaS 가 HELLO 에 회신하는 메시지입니다.
+type HelloAckMessage struct {
+	BaseEnvelope
+	Payload HelloAckPayload `json:"payload"`
+}
+
+// HeartbeatPayload 는 Connector 가 주기적으로 전송하는 HEARTBEAT 본문입니다.
+type HeartbeatPayload struct {
+	ObservedAt time.Time `json:"observedAt"`
+}
+
+// HeartbeatMessage 는 Connector 생존 확인 메시지입니다.
+type HeartbeatMessage struct {
+	BaseEnvelope
+	Payload HeartbeatPayload `json:"payload"`
 }
 
 // SafeError 는 로그/에러 메시지에 노출 가능한 민감정보가 제거된 오류입니다.

@@ -142,9 +142,8 @@ async function evaluate(cdp, expression) {
 
 async function waitForJs(cdp, expression, label, timeoutMs = 8000) {
   const started = Date.now()
-  const encodedExpression = JSON.stringify(expression)
   while (Date.now() - started < timeoutMs) {
-    if (await evaluate(cdp, `Boolean(eval(${encodedExpression}))`)) return
+    if (await evaluate(cdp, `Boolean(${expression})`)) return
     await delay(100)
   }
   throw new Error(`화면 준비 대기 시간 초과: ${label}`)

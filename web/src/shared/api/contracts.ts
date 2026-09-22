@@ -62,3 +62,49 @@ export interface ClassMembershipList {
   items: ClassMembership[]
   nextCursor?: string
 }
+
+export interface VmRoleSpec {
+  role: string
+  name?: string
+  imageRef: string
+  sizeRef: string
+  count: number
+}
+
+export interface WorkspaceVmSelector {
+  role: string
+  instanceIndex: number
+}
+
+export interface LabSpecSummary {
+  id: ResourceId
+  name: string
+  description?: string
+  ownerUserId: ResourceId
+}
+
+export interface LabSpec extends LabSpecSummary {
+  vms: VmRoleSpec[]
+  workspaceVm: WorkspaceVmSelector
+  internetOutbound: boolean
+  startupScript?: string
+}
+
+export interface LabSpecWrite {
+  name: string
+  description?: string
+  vms: VmRoleSpec[]
+  workspaceVm: WorkspaceVmSelector
+  internetOutbound: boolean
+  startupScript?: string
+}
+
+export interface LabSpecList {
+  items: LabSpecSummary[]
+  nextCursor?: string
+}
+
+export interface VersionedLabSpec {
+  labSpec: LabSpec
+  etag?: string
+}

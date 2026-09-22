@@ -10,6 +10,8 @@ import {
 import { ClassDetailPage } from '../pages/ClassDetailPage'
 import { ClassListPage } from '../pages/ClassListPage'
 import { LabPage } from '../pages/LabPage'
+import { LabSpecEditorPage } from '../pages/LabSpecEditorPage'
+import { LabSpecListPage } from '../pages/LabSpecListPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { HttpError } from '../shared/api/httpClient'
@@ -66,6 +68,9 @@ export const appRoutes: RouteObject[] = [
   { path: '/classes', element: protectedRoute(<ClassListPage />) },
   { path: '/classes/:classId', element: protectedRoute(<ClassDetailPage />) },
   { path: '/classes/:classId/lab', element: protectedRoute(<LabPage />) },
+  { path: '/lab-specs', element: protectedRoute(<LabSpecListPage />) },
+  { path: '/lab-specs/new', element: protectedRoute(<LabSpecEditorPage />) },
+  { path: '/lab-specs/:labSpecId', element: protectedRoute(<LabSpecEditorPage />) },
   { path: '*', element: <NotFoundPage /> },
 ]
 

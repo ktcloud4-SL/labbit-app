@@ -54,6 +54,7 @@ type BaseEnvelope struct {
 	ReplyToMessageID string    `json:"replyToMessageId,omitempty"`
 	RequestID        string    `json:"requestId,omitempty"`
 	OperationID      string    `json:"operationId,omitempty"`
+	TerminalSessionID string   `json:"terminalSessionId,omitempty"`
 	LabInstanceID    string    `json:"labInstanceId,omitempty"`
 	Generation       int64     `json:"generation,omitempty"`
 	TraceParent      string    `json:"traceparent,omitempty"`

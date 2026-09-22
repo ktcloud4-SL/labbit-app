@@ -61,14 +61,14 @@ export function LabSpecListPage() {
           <Link className="back-link" to="/classes">
             ← 수업 목록
           </Link>
-          <p className="eyebrow">LabSpec</p>
+          <p className="eyebrow">실습 정의</p>
           <h1>실습 정의</h1>
           <p className="muted">
             실습 환경 구성을 미리 정의하고 관리합니다. 저장만으로 실제 실습 환경이 생성되지는 않습니다.
           </p>
         </div>
         <Link className="primary-link header-action" to="/lab-specs/new">
-          새 LabSpec
+          새 실습 정의
         </Link>
       </header>
 
@@ -85,7 +85,7 @@ export function LabSpecListPage() {
             return (
               <article className="class-card labspec-card" key={labSpec.id}>
                 <div className="class-card-topline">
-                  <span className="role-badge">{isOwner ? '내 LabSpec' : '읽기 전용'}</span>
+                  <span className="role-badge">{isOwner ? '내 실습 정의' : '읽기 전용'}</span>
                   <span className="status-pill status-pill-neutral">정의만 저장됨</span>
                 </div>
                 <div className="class-card-body">

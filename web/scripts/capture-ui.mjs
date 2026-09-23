@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
-const baseUrl = (process.env.LABBIT_CAPTURE_BASE_URL ?? 'http://127.0.0.1:5173').replace(/\/$/, '')
+const baseUrl = (process.env.LABBIT_CAPTURE_BASE_URL ?? 'http://127.0.0.1:5174').replace(/\/$/, '')
 const outputDir = path.resolve(process.env.LABBIT_CAPTURE_DIR ?? 'ui-captures')
 const port = Number(process.env.LABBIT_CAPTURE_DEBUG_PORT ?? '9333')
 
@@ -398,12 +398,22 @@ async function captureLabExecutionConfirmations(cdp) {
 }
 
 async function ensureVite() {
+  // capture:ui는 Provision 같은 mutation을 자동 실행하므로,
+  // 실제 HTTP Backend에 연결된 기존 서버를 재사용하지 않습니다.
+  // 전용 Local Vite를 Mock mode로 직접 기동해 캡처 대상을 고정합니다.
+  let existingServer = false
   try {
     await waitForHttp(baseUrl, 700)
-    console.log('✓ 기존 Vite 서버 사용')
-    return null
+    existingServer = true
   } catch {
-    // 캡처 명령 하나만으로 실행할 수 있도록 Local Vite를 자동 기동합니다.
+    // 사용 중인 서버가 없으면 아래에서 전용 Vite를 시작합니다.
+  }
+
+  if (existingServer) {
+    throw new Error(
+      `capture:ui 안전 가드: 이미 실행 중인 서버가 있습니다: ${baseUrl}\n` +
+        '기존 서버를 종료하거나 LABBIT_CAPTURE_BASE_URL을 사용하지 않는 Local 포트로 지정해 주세요.',
+    )
   }
 
   const url = new URL(baseUrl)
@@ -429,6 +439,10 @@ async function ensureVite() {
     [viteBin, '--host', host, '--port', vitePort, '--strictPort'],
     {
       cwd: process.cwd(),
+      env: {
+        ...process.env,
+        VITE_LABBIT_API_MODE: 'mock',
+      },
       stdio: 'ignore',
       windowsHide: true,
     },
@@ -457,6 +471,7 @@ async function ensureVite() {
 async function main() {
   console.log('Labbit UI capture 시작')
   console.log(`- 대상: ${baseUrl}`)
+  console.log('- API mode: mock (capture 전용 Vite에서 강제)')
   console.log(`- 저장: ${outputDir}`)
 
   const vite = await ensureVite()

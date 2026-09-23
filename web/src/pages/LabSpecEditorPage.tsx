@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import type { LabSpecWrite, VmRoleSpec } from '../shared/api/contracts'
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
+import { LoginRedirect } from '../shared/ui/LoginRedirect'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
@@ -406,7 +407,6 @@ export function LabSpecEditorPage() {
   const api = useLabbitApi()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const location = useLocation()
   const { labSpecId } = useParams()
   const isNew = !labSpecId
   const resolvedLabSpecId = labSpecId ?? ''
@@ -479,16 +479,7 @@ export function LabSpecEditorPage() {
     (saveMutation.error instanceof HttpError && saveMutation.error.status === 401)
 
   if (authError) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-        state={{
-          from: `${location.pathname}${location.search}`,
-          reason: 'sessionExpired',
-        }}
-      />
-    )
+    return <LoginRedirect reason="sessionExpired" />
   }
 
   if (!isNew && labSpecQuery.error instanceof HttpError && labSpecQuery.error.status === 403) {

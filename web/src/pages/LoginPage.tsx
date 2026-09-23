@@ -5,16 +5,10 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
-
-interface LoginLocationState {
-  from?: string
-  reason?: 'authRequired' | 'sessionExpired'
-  signedOut?: boolean
-}
-
-function isSafeInternalPath(path: string | undefined): path is string {
-  return Boolean(path && path.startsWith('/') && !path.startsWith('//'))
-}
+import {
+  isSafeInternalPath,
+  type LoginLocationState,
+} from '../shared/routing/loginNavigation'
 
 export function LoginPage() {
   const api = useLabbitApi()

@@ -248,6 +248,71 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByText('SamsungLions Org')).toBeInTheDocument()
   })
 
+  it('세션 만료 후 재로그인하면 query를 포함한 기존 내부 경로로 복귀한다', async () => {
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [
+        {
+          pathname: '/login',
+          state: {
+            from: '/classes/class-kubernetes-basic?tab=workspace',
+            reason: 'sessionExpired',
+          },
+        },
+      ],
+    })
+
+    render(
+      <AppProviders api={createApi()}>
+        <RouterProvider router={router} />
+      </AppProviders>,
+    )
+
+    fireEvent.change(screen.getByLabelText('사용자 이름'), {
+      target: { value: 'heechul' },
+    })
+    fireEvent.change(screen.getByLabelText('비밀번호'), {
+      target: { value: 'password' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Kubernetes Basic' }),
+    ).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/classes/class-kubernetes-basic')
+    expect(router.state.location.search).toBe('?tab=workspace')
+  })
+
+  it('외부 protocol-relative 복귀 경로는 기본 Class 목록으로 fallback한다', async () => {
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [
+        {
+          pathname: '/login',
+          state: {
+            from: '//evil.example/path',
+            reason: 'sessionExpired',
+          },
+        },
+      ],
+    })
+
+    render(
+      <AppProviders api={createApi()}>
+        <RouterProvider router={router} />
+      </AppProviders>,
+    )
+
+    fireEvent.change(screen.getByLabelText('사용자 이름'), {
+      target: { value: 'heechul' },
+    })
+    fireEvent.change(screen.getByLabelText('비밀번호'), {
+      target: { value: 'password' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    expect(await screen.findByRole('heading', { name: '수업' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/classes')
+  })
+
   it('App Shell에서 로그아웃하면 Login으로 돌아가고 사용자 문맥을 제거한다', async () => {
     const logout = vi.fn(async () => {})
 

@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import type { CreateLabExecutionRequest } from '../shared/api/contracts'
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
+import { LoginRedirect } from '../shared/ui/LoginRedirect'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
@@ -22,7 +23,6 @@ export function ProvisionPage() {
   const api = useLabbitApi()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const location = useLocation()
   const { classId } = useParams()
   const resolvedClassId = classId ?? ''
   const [labSpecId, setLabSpecId] = useState('')
@@ -101,16 +101,7 @@ export function ProvisionPage() {
     (provisionMutation.error instanceof HttpError &&
       provisionMutation.error.status === 401)
   ) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-        state={{
-          from: `${location.pathname}${location.search}`,
-          reason: 'sessionExpired',
-        }}
-      />
-    )
+    return <LoginRedirect reason="sessionExpired" />
   }
 
   if (classQuery.error instanceof HttpError && classQuery.error.status === 403) {
@@ -192,16 +183,7 @@ export function ProvisionPage() {
 
   const inputErrors = [membershipsQuery.error, labSpecsQuery.error]
   if (inputErrors.some((error) => error instanceof HttpError && error.status === 401)) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-        state={{
-          from: `${location.pathname}${location.search}`,
-          reason: 'sessionExpired',
-        }}
-      />
-    )
+    return <LoginRedirect reason="sessionExpired" />
   }
 
   if (

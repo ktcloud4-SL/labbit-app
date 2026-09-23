@@ -939,6 +939,24 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(resetButton).toHaveFocus()
   })
 
+  it('Reset 확인 모달은 Tab focus를 모달 내부에서 순환시킨다', async () => {
+    renderRoute('/lab-executions/execution-kubernetes-basic')
+
+    await screen.findByRole('heading', { name: '실습 운영 상태' })
+    fireEvent.click(screen.getByRole('button', { name: '초기화' }))
+
+    const cancelButton = await screen.findByRole('button', { name: '취소' })
+    const confirmButton = screen.getByRole('button', { name: '초기화 시작' })
+
+    expect(cancelButton).toHaveFocus()
+
+    fireEvent.keyDown(cancelButton, { key: 'Tab', shiftKey: true })
+    expect(confirmButton).toHaveFocus()
+
+    fireEvent.keyDown(confirmButton, { key: 'Tab' })
+    expect(cancelButton).toHaveFocus()
+  })
+
   it('강사는 학생 LabInstance Reset을 확인한 뒤 Operation을 시작한다', async () => {
     const resetLabInstance = vi.fn(async (labInstanceId: string) => ({
       operationId: 'operation-reset-1',

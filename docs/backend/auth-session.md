@@ -56,11 +56,13 @@ v0.1 기준:
 
 POST /api/v1/auth/login 성공 시:
 1. username으로 Local Account를 조회합니다.
-2. Argon2id로 Password를 검증합니다.
-3. User disabled 여부를 확인합니다.
+2. 계정이 있으면 저장된 PHC로, 없으면 고정된 dummy Argon2id PHC로 입력 Password를 반드시 1회 검증합니다.
+3. 계정이 존재하고 Password가 일치한 경우에만 User disabled 여부를 확인합니다.
 4. fresh random Session token을 생성합니다.
 5. token hash와 8시간 expires_at을 DB에 저장합니다.
 6. 새 __Host-labbit-session Cookie를 반환합니다.
+
+존재하지 않는 username에서도 실제 계정과 같은 Argon2id baseline의 dummy hash 검증을 수행해 username 존재 여부가 Password hash 수행 유무만으로 드러나지 않게 합니다. dummy PHC는 애플리케이션 상수/설정으로 안전하게 관리하되 실제 사용자 Password나 계정에서 파생하지 않습니다.
 
 같은 User가 다른 Browser에서 가진 Session은 로그인만으로 일괄 폐기하지 않습니다.
 
@@ -126,7 +128,7 @@ Class/API 권한은 UI가 아니라 Application use case에서 DB 관계를 사�
 ## SL-64 자동 테스트 최소 범위
 
 - 정상 Password → fresh Session 발급
-- 잘못된 username/password → 동일 401
+- 잘못된 username/password → 동일 401, 존재하지 않는 username도 dummy Argon2id 검증 수행
 - raw Password/Session token 비로그
 - Session token DB에는 digest만 저장
 - 만료/revoked/disabled/password-changed 이전 Session → 401

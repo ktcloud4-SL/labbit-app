@@ -53,6 +53,79 @@ describe('httpLabbitApi', () => {
     )
   })
 
+  it('logout 요청을 세션 Cookie 포함 POST로 전송한다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpLabbitApi.logout()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/auth/logout',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      }),
+    )
+  })
+
+  it('/me 요청을 세션 Cookie와 함께 전송하고 응답을 반환한다', async () => {
+    const me = {
+      id: 'user-heechul',
+      username: 'heechul',
+      organization: {
+        id: 'org-samsunglions',
+        name: 'SamsungLions Org',
+      },
+      organizationRole: 'MEMBER',
+    }
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(me), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(httpLabbitApi.getMe()).resolves.toEqual(me)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/me',
+      expect.objectContaining({
+        credentials: 'include',
+      }),
+    )
+  })
+
+  it('Class 목록 요청을 세션 Cookie와 함께 전송하고 목록을 반환한다', async () => {
+    const classes = {
+      items: [
+        {
+          id: 'class-kubernetes-basic',
+          name: 'Kubernetes Basic',
+          myRole: 'INSTRUCTOR',
+        },
+      ],
+    }
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(classes), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(httpLabbitApi.listClasses()).resolves.toEqual(classes)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/classes',
+      expect.objectContaining({
+        credentials: 'include',
+      }),
+    )
+  })
+
   it('opaque classId를 URL encoding해 Class 상세를 요청한다', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(

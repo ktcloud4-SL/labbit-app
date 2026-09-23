@@ -5,6 +5,7 @@
 ## 작업 원칙
 
 - 브랜치, Commit, PR, Merge 규칙은 `CONTRIBUTING.md`를 따릅니다.
+- 테스트 코드 작성 기준은 `TESTING.md`를 따릅니다.
 - 변경 범위는 Jira 작업 또는 명시된 작업 목적에 집중합니다.
 - 기존 SSOT가 관리하는 제품·아키텍처 결정을 코드 주석이나 임의 문서에 중복 정의하지 않습니다.
 - producer 또는 consumer를 변경하기 전에 적용되는 계약을 먼저 확인합니다.
@@ -21,7 +22,7 @@
 
 ## 검증
 
-작업 중에는 변경 범위에 맞는 최소 검증을 사용하고, 의미 있는 작업을 완료하기 전에는 저장소 전체 기본 검증을 실행합니다.
+작업 중에는 변경 범위에 맞는 최소 검증을 사용하고, 의미 있는 작업을 완료하기 전에는 저장소 전체 기본 검증을 실행합니다. 테스트 레이어와 Mock/Fake 선택은 `TESTING.md`를 따릅니다.
 
 ```bash
 make setup
@@ -31,8 +32,10 @@ make test
 필요한 검증은 개별 target으로도 실행할 수 있습니다.
 
 ```bash
-make go-test
+make go-fmt-check
 make go-vet
+make go-test
+make go-build
 make web-typecheck
 make web-lint
 make web-test
@@ -44,6 +47,8 @@ make web-build
 ## Code Review Rules
 
 리뷰는 correctness, contract drift, security, data integrity, operational safety에 집중합니다. CI가 안정적으로 강제하는 formatting, lint, type-check 문제는 behavioral defect를 드러내는 경우가 아니라면 중복 지적하지 않습니다.
+
+동작 변경이나 Bug fix에서는 기존 테스트가 통과하는지만 보지 않고, `TESTING.md` 기준에 따라 변경된 행동 또는 재발 조건을 검증하는 테스트가 필요한지 확인합니다. 단순 문구/CSS/문서 변경에 새 테스트를 기계적으로 요구하지 않습니다.
 
 ### 계약 경계
 

@@ -922,6 +922,23 @@ describe('Auth·Class·LabSpec routing', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('Reset 확인 모달은 취소에 초기 focus를 두고 Escape로 닫은 뒤 trigger focus를 복원한다', async () => {
+    renderRoute('/lab-executions/execution-kubernetes-basic')
+
+    await screen.findByRole('heading', { name: '실습 운영 상태' })
+    const resetButton = screen.getByRole('button', { name: '초기화' })
+
+    fireEvent.click(resetButton)
+
+    const cancelButton = await screen.findByRole('button', { name: '취소' })
+    expect(cancelButton).toHaveFocus()
+
+    fireEvent.keyDown(cancelButton, { key: 'Escape' })
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(resetButton).toHaveFocus()
+  })
+
   it('강사는 학생 LabInstance Reset을 확인한 뒤 Operation을 시작한다', async () => {
     const resetLabInstance = vi.fn(async (labInstanceId: string) => ({
       operationId: 'operation-reset-1',

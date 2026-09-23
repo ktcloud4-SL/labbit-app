@@ -3,7 +3,6 @@ import { type ReactNode } from 'react'
 import {
   createBrowserRouter,
   Navigate,
-  useLocation,
   type RouteObject,
 } from 'react-router-dom'
 
@@ -23,10 +22,10 @@ import { labbitQueryKeys } from '../shared/api/labbitApi'
 import { AppShell } from '../shared/ui/AppShell'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
+import { LoginRedirect } from '../shared/ui/LoginRedirect'
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const api = useLabbitApi()
-  const location = useLocation()
   const meQuery = useQuery({
     queryKey: labbitQueryKeys.me,
     queryFn: () => api.getMe(),
@@ -42,16 +41,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
   }
 
   if (meQuery.error instanceof HttpError && meQuery.error.status === 401) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-        state={{
-          from: `${location.pathname}${location.search}`,
-          reason: 'authRequired',
-        }}
-      />
-    )
+    return <LoginRedirect reason="authRequired" />
   }
 
   if (meQuery.error || !meQuery.data) {

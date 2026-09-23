@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import type { Me } from '../api/contracts'
 import { HttpError } from '../api/httpClient'
 import { useLabbitApi } from '../api/LabbitApiProvider'
+import type { LoginLocationState } from '../routing/loginNavigation'
 
 interface AppShellProps extends PropsWithChildren {
   me: Me
@@ -28,10 +29,8 @@ export function AppShell({ me, children }: AppShellProps) {
     },
     onSuccess: () => {
       queryClient.clear()
-      navigate('/login', {
-        replace: true,
-        state: { signedOut: true },
-      })
+      const state: LoginLocationState = { signedOut: true }
+      navigate('/login', { replace: true, state })
     },
   })
 

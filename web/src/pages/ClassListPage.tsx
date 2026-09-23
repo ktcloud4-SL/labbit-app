@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
+import { LoginRedirect } from '../shared/ui/LoginRedirect'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
@@ -23,7 +24,6 @@ const executionStatusLabel = (status?: string) => {
 
 export function ClassListPage() {
   const api = useLabbitApi()
-  const location = useLocation()
   const classesQuery = useQuery({
     queryKey: labbitQueryKeys.classes,
     queryFn: () => api.listClasses(),
@@ -39,16 +39,7 @@ export function ClassListPage() {
   }
 
   if (classesQuery.error instanceof HttpError && classesQuery.error.status === 401) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-        state={{
-          from: `${location.pathname}${location.search}`,
-          reason: 'sessionExpired',
-        }}
-      />
-    )
+    return <LoginRedirect reason="sessionExpired" />
   }
 
   if (classesQuery.error) {

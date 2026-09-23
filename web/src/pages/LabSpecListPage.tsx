@@ -1,15 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
+import { LoginRedirect } from '../shared/ui/LoginRedirect'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
 export function LabSpecListPage() {
   const api = useLabbitApi()
-  const location = useLocation()
   const meQuery = useQuery({
     queryKey: labbitQueryKeys.me,
     queryFn: () => api.getMe(),
@@ -34,16 +34,7 @@ export function LabSpecListPage() {
     (labSpecsQuery.error instanceof HttpError && labSpecsQuery.error.status === 401)
 
   if (authError) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-        state={{
-          from: `${location.pathname}${location.search}`,
-          reason: 'sessionExpired',
-        }}
-      />
-    )
+    return <LoginRedirect reason="sessionExpired" />
   }
 
   if (meQuery.error || labSpecsQuery.error || !meQuery.data || !labSpecsQuery.data) {

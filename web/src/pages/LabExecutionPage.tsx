@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { HttpError } from '../shared/api/httpClient'
@@ -77,6 +77,9 @@ export function LabExecutionPage() {
   const { labExecutionId } = useParams()
   const resolvedExecutionId = labExecutionId ?? ''
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null)
+  const mutationPendingRef = useRef(false)
 
   const executionQuery = useQuery({
     queryKey: labbitQueryKeys.labExecution(resolvedExecutionId),
@@ -122,6 +125,31 @@ export function LabExecutionPage() {
       }
     },
   })
+
+  mutationPendingRef.current = mutation.isPending
+
+  useEffect(() => {
+    if (!pendingAction) return
+
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
+    cancelButtonRef.current?.focus()
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || mutationPendingRef.current) return
+
+      event.preventDefault()
+      setPendingAction(null)
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      previousFocusRef.current?.focus()
+      previousFocusRef.current = null
+    }
+  }, [pendingAction])
 
   if (!resolvedExecutionId) {
     return (
@@ -426,6 +454,7 @@ export function LabExecutionPage() {
 
           <div className="form-actions">
             <button
+              ref={cancelButtonRef}
               className="secondary-button"
               type="button"
               disabled={mutation.isPending}

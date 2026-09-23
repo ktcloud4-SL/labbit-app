@@ -428,24 +428,47 @@ export function LabExecutionPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="lab-action-confirm-title"
+            aria-describedby="lab-action-confirm-description"
             onKeyDown={(event) => {
               if (event.key === 'Escape') {
                 event.preventDefault()
                 closePendingAction()
+                return
+              }
+
+              if (event.key !== 'Tab') return
+
+              const focusableElements = Array.from(
+                event.currentTarget.querySelectorAll<HTMLElement>(
+                  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+                ),
+              )
+
+              if (focusableElements.length === 0) return
+
+              const first = focusableElements[0]
+              const last = focusableElements[focusableElements.length - 1]
+
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault()
+                last.focus()
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault()
+                first.focus()
               }
             }}
           >
-          <p className="eyebrow">최종 확인</p>
-          <h2 id="lab-action-confirm-title">
-            {pendingAction.type === 'RESET'
-              ? `${pendingAction.username} 환경을 초기화할까요?`
-              : '현재 실습을 정리할까요?'}
-          </h2>
-          <p className="muted">
-            {pendingAction.type === 'RESET'
-              ? '현재 환경 데이터는 제거되고 생성 당시 기준으로 다시 만들어집니다. 재현 조건을 만족하지 못하면 기존 환경을 먼저 삭제하지 않고 요청이 실패합니다.'
-              : '현재 실습에 연결된 터미널·Live와 인프라 리소스를 정리합니다. 수업, 실습 정의, 과거 실행 기록은 삭제하지 않습니다.'}
-          </p>
+            <p className="eyebrow">최종 확인</p>
+            <h2 id="lab-action-confirm-title">
+              {pendingAction.type === 'RESET'
+                ? `${pendingAction.username} 환경을 초기화할까요?`
+                : '현재 실습을 정리할까요?'}
+            </h2>
+            <p id="lab-action-confirm-description" className="muted">
+              {pendingAction.type === 'RESET'
+                ? '현재 환경 데이터는 제거되고 생성 당시 기준으로 다시 만들어집니다. 재현 조건을 만족하지 못하면 기존 환경을 먼저 삭제하지 않고 요청이 실패합니다.'
+                : '현재 실습에 연결된 터미널·Live와 인프라 리소스를 정리합니다. 수업, 실습 정의, 과거 실행 기록은 삭제하지 않습니다.'}
+            </p>
 
           {mutationErrorMessage && (
             <p className="form-error" role="alert">

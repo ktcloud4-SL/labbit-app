@@ -5,6 +5,7 @@ import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-route
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
+import { ConfirmationDialog } from '../shared/ui/ConfirmationDialog'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
@@ -138,8 +139,6 @@ export function LabExecutionPage() {
 
     mutation.reset()
     setPendingAction(null)
-    actionTriggerRef.current?.focus()
-    actionTriggerRef.current = null
   }
 
   if (!resolvedExecutionId) {
@@ -422,89 +421,28 @@ export function LabExecutionPage() {
       </section>
 
       {pendingAction && (
-        <div className="modal-backdrop">
-          <section
-            className={`modal-card ${pendingAction.type === 'CLEANUP' ? 'modal-card-danger' : ''}`}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="lab-action-confirm-title"
-            aria-describedby="lab-action-confirm-description"
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                event.preventDefault()
-                closePendingAction()
-                return
-              }
-
-              if (event.key !== 'Tab') return
-
-              const focusableElements = Array.from(
-                event.currentTarget.querySelectorAll<HTMLElement>(
-                  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-                ),
-              )
-
-              if (focusableElements.length === 0) return
-
-              const first = focusableElements[0]
-              const last = focusableElements[focusableElements.length - 1]
-
-              if (event.shiftKey && document.activeElement === first) {
-                event.preventDefault()
-                last.focus()
-              } else if (!event.shiftKey && document.activeElement === last) {
-                event.preventDefault()
-                first.focus()
-              }
-            }}
-          >
-            <p className="eyebrow">최종 확인</p>
-            <h2 id="lab-action-confirm-title">
-              {pendingAction.type === 'RESET'
-                ? `${pendingAction.username} 환경을 초기화할까요?`
-                : '현재 실습을 정리할까요?'}
-            </h2>
-            <p id="lab-action-confirm-description" className="muted">
-              {pendingAction.type === 'RESET'
-                ? '현재 환경 데이터는 제거되고 생성 당시 기준으로 다시 만들어집니다. 재현 조건을 만족하지 못하면 기존 환경을 먼저 삭제하지 않고 요청이 실패합니다.'
-                : '현재 실습에 연결된 터미널·Live와 인프라 리소스를 정리합니다. 수업, 실습 정의, 과거 실행 기록은 삭제하지 않습니다.'}
-            </p>
-
-          {mutationErrorMessage && (
-            <p className="form-error" role="alert">
-              {mutationErrorMessage}
-            </p>
-          )}
-
-          <div className="form-actions">
-            <button
-              className="secondary-button"
-              type="button"
-              autoFocus
-              disabled={mutation.isPending}
-              onClick={closePendingAction}
-            >
-              취소
-            </button>
-            <button
-              className="primary-button"
-              type="button"
-              disabled={mutation.isPending || conflictError}
-              onClick={() => {
-                if (pendingAction) {
-                  mutation.mutate(pendingAction)
-                }
-              }}
-            >
-              {mutation.isPending
-                ? '요청 중...'
-                : pendingAction.type === 'RESET'
-                  ? '초기화 시작'
-                  : '정리 시작'}
-            </button>
-          </div>
-          </section>
-        </div>
+        <ConfirmationDialog
+          title={
+            pendingAction.type === 'RESET'
+              ? `${pendingAction.username} 환경을 초기화할까요?`
+              : '현재 실습을 정리할까요?'
+          }
+          description={
+            pendingAction.type === 'RESET'
+              ? '현재 환경 데이터는 제거되고 생성 당시 기준으로 다시 만들어집니다. 재현 조건을 만족하지 못하면 기존 환경을 먼저 삭제하지 않고 요청이 실패합니다.'
+              : '현재 실습에 연결된 터미널·Live와 인프라 리소스를 정리합니다. 수업, 실습 정의, 과거 실행 기록은 삭제하지 않습니다.'
+          }
+          confirmLabel={
+            pendingAction.type === 'RESET' ? '초기화 시작' : '정리 시작'
+          }
+          tone={pendingAction.type === 'CLEANUP' ? 'danger' : 'default'}
+          pending={mutation.isPending}
+          confirmDisabled={conflictError}
+          errorMessage={mutationErrorMessage}
+          returnFocusRef={actionTriggerRef}
+          onCancel={closePendingAction}
+          onConfirm={() => mutation.mutate(pendingAction)}
+        />
       )}
     </main>
   )

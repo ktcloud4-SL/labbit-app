@@ -18,6 +18,7 @@
 # Frontend
 /web/node_modules/
 /web/dist/
+/web/ui-captures/
 
 # 임시 파일
 *.tmp

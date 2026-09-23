@@ -21,6 +21,50 @@ const knownExecutionStatuses = new Set([
   'ERROR',
 ])
 
+function executionStatusLabel(status: string) {
+  switch (status) {
+    case 'PROVISIONING':
+      return '환경 생성 중'
+    case 'ACTIVE':
+      return '진행 중'
+    case 'CLEANING_UP':
+      return '정리 중'
+    case 'COMPLETED':
+      return '종료'
+    case 'ERROR':
+      return '오류'
+    default:
+      return status
+  }
+}
+
+function executionStatusClass(status: string) {
+  if (status === 'ACTIVE' || status === 'COMPLETED') {
+    return 'status-pill status-pill-success'
+  }
+  if (status === 'ERROR') return 'status-pill status-pill-error'
+  if (status === 'PROVISIONING' || status === 'CLEANING_UP') {
+    return 'status-pill status-pill-progress'
+  }
+  return 'status-pill status-pill-neutral'
+}
+
+function instanceStatusLabel(status: string) {
+  switch (status) {
+    case 'READY':
+      return '사용 가능'
+    case 'PENDING':
+    case 'PROVISIONING':
+      return '준비 중'
+    case 'DELETING':
+      return '정리 중'
+    case 'ERROR':
+      return '오류'
+    default:
+      return status
+  }
+}
+
 function createIdempotencyKey() {
   return crypto.randomUUID()
 }
@@ -219,34 +263,34 @@ export function LabExecutionPage() {
         ? '다른 변경 작업이 진행 중입니다. 현재 Operation 상태를 확인해 주세요.'
       : mutationError instanceof HttpError && mutationError.status === 422
         ? pendingAction?.type === 'RESET'
-          ? 'Reset 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현 불가로 거절된 경우 기존 환경은 먼저 삭제되지 않습니다.'
-          : '현재 LabExecution 상태에서는 Cleanup을 시작할 수 없습니다. 상태와 진행 중인 작업을 확인해 주세요.'
+          ? '초기화 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현이 불가능한 경우 기존 환경은 먼저 삭제되지 않습니다.'
+          : '현재 실습 상태에서는 정리를 시작할 수 없습니다. 상태와 진행 중인 작업을 확인해 주세요.'
         : mutationError instanceof HttpError && mutationError.status === 503
-          ? 'Connector 또는 Provider가 일시적으로 사용할 수 없습니다.'
+          ? '인프라 연결 구성요소를 일시적으로 사용할 수 없습니다.'
           : mutationError
             ? '요청을 접수하지 못했습니다. 잠시 후 다시 시도해 주세요.'
             : null
 
   return (
     <main className="app-page">
-      <header className="page-header">
+      <header className="page-header page-header-spacious">
         <div>
           <Link
             className="back-link"
             to={`/classes/${encodeURIComponent(execution.classId)}`}
           >
-            ← Class 상세
+            ← 수업 상세
           </Link>
-          <p className="eyebrow">LabExecution</p>
+          <p className="eyebrow">실습 운영</p>
           <h1>실습 운영 상태</h1>
           <p className="muted">{execution.id}</p>
         </div>
-        <span className="operation-status">{execution.status}</span>
+        <span className={executionStatusClass(execution.status)}>{executionStatusLabel(execution.status)}</span>
       </header>
 
       <section className="detail-grid operation-grid">
         <article className="detail-card">
-          <h2>LabSpec</h2>
+          <h2>실습 정의</h2>
           <strong>{execution.labSpecId}</strong>
         </article>
         <article className="detail-card">
@@ -254,16 +298,16 @@ export function LabExecutionPage() {
           <strong>{execution.targetUserIds.length}명</strong>
         </article>
         <article className="detail-card">
-          <h2>LabInstance</h2>
+          <h2>실습 환경</h2>
           <strong>{execution.labInstances.length}개</strong>
         </article>
       </section>
 
       {hasError && (
         <section className="notice-card notice-warning">
-          <strong>일부 LabInstance에 오류가 있습니다.</strong>
+          <strong>일부 실습 환경에 오류가 있습니다.</strong>
           <p className="muted">
-            성공한 환경은 유지하고 실패한 대상은 개별 상태로 추적합니다.
+            성공한 환경은 유지하며 실패한 대상만 개별 상태로 확인합니다.
           </p>
         </section>
       )}
@@ -278,7 +322,11 @@ export function LabExecutionPage() {
       )}
 
       {canCleanup && (
-        <div className="action-row">
+        <div className="danger-action-card">
+          <div>
+            <strong>실습 종료 및 리소스 정리</strong>
+            <p className="muted">모든 참여자의 실습 환경을 정리하기 전에 현재 상태를 확인하세요.</p>
+          </div>
           <button
             className="secondary-button danger-text"
             type="button"
@@ -290,7 +338,7 @@ export function LabExecutionPage() {
               })
             }}
           >
-            Class Cleanup
+            전체 실습 정리
           </button>
         </div>
       )}
@@ -300,7 +348,7 @@ export function LabExecutionPage() {
           <span>사용자</span>
           <span>구분</span>
           <span>상태</span>
-          <span>Generation / 작업</span>
+          <span>세대 / 작업</span>
         </div>
         {execution.labInstances.map((labInstance) => {
           const rowIsInstructor =
@@ -311,8 +359,14 @@ export function LabExecutionPage() {
           return (
             <div className="status-row" key={labInstance.id}>
               <span>{username}</span>
-              <span>{rowIsInstructor ? 'INSTRUCTOR' : 'STUDENT'}</span>
-              <strong>{labInstance.status}</strong>
+              <span className="status-identity">
+                <strong>{rowIsInstructor ? '강사' : '수강생'}</strong>
+                <small>{rowIsInstructor ? 'INSTRUCTOR' : 'STUDENT'}</small>
+              </span>
+              <span className={'instance-status instance-status-' + labInstance.status.toLowerCase()}>
+                <strong>{instanceStatusLabel(labInstance.status)}</strong>
+                <small>{labInstance.status}</small>
+              </span>
               <span>
                 {labInstance.generation}
                 {!rowIsInstructor &&
@@ -333,7 +387,7 @@ export function LabExecutionPage() {
                           })
                         }}
                       >
-                        Reset
+                        초기화
                       </button>
                     </>
                   )}
@@ -345,17 +399,23 @@ export function LabExecutionPage() {
       </section>
 
       {pendingAction && (
-        <section className="confirmation-card">
-          <p className="eyebrow">Confirm</p>
-          <h2>
+        <div className="modal-backdrop">
+          <section
+            className={`modal-card ${pendingAction.type === 'CLEANUP' ? 'modal-card-danger' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lab-action-confirm-title"
+          >
+          <p className="eyebrow">최종 확인</p>
+          <h2 id="lab-action-confirm-title">
             {pendingAction.type === 'RESET'
-              ? `${pendingAction.username} 환경을 Reset할까요?`
-              : '현재 LabExecution을 Cleanup할까요?'}
+              ? `${pendingAction.username} 환경을 초기화할까요?`
+              : '현재 실습을 정리할까요?'}
           </h2>
           <p className="muted">
             {pendingAction.type === 'RESET'
-              ? '현재 환경 데이터는 제거되고 생성 당시 immutable CreationSnapshot 기준으로 다시 생성됩니다. 재현 조건을 만족하지 못하면 기존 환경을 먼저 삭제하지 않고 요청이 실패합니다.'
-              : '현재 실행에 연결된 Terminal/Live와 Provider 리소스를 정리합니다. Class와 LabSpec, 과거 실행 기록 자체는 삭제하지 않습니다.'}
+              ? '현재 환경 데이터는 제거되고 생성 당시 기준으로 다시 만들어집니다. 재현 조건을 만족하지 못하면 기존 환경을 먼저 삭제하지 않고 요청이 실패합니다.'
+              : '현재 실습에 연결된 터미널·Live와 인프라 리소스를 정리합니다. 수업, 실습 정의, 과거 실행 기록은 삭제하지 않습니다.'}
           </p>
 
           {mutationErrorMessage && (
@@ -389,11 +449,12 @@ export function LabExecutionPage() {
               {mutation.isPending
                 ? '요청 중...'
                 : pendingAction.type === 'RESET'
-                  ? 'Reset 시작'
-                  : 'Cleanup 시작'}
+                  ? '초기화 시작'
+                  : '정리 시작'}
             </button>
           </div>
-        </section>
+          </section>
+        </div>
       )}
     </main>
   )

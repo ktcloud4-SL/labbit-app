@@ -56,19 +56,19 @@ export function LabSpecListPage() {
 
   return (
     <main className="app-page">
-      <header className="page-header">
+      <header className="page-header page-header-spacious">
         <div>
           <Link className="back-link" to="/classes">
             ← 수업 목록
           </Link>
-          <p className="eyebrow">LabSpec</p>
+          <p className="eyebrow">실습 정의</p>
           <h1>실습 정의</h1>
           <p className="muted">
-            Multi-VM 구성을 저장합니다. LabSpec 저장만으로 VM이나 Network가 생성되지는 않습니다.
+            실습 환경 구성을 미리 정의하고 관리합니다. 저장만으로 실제 실습 환경이 생성되지는 않습니다.
           </p>
         </div>
         <Link className="primary-link header-action" to="/lab-specs/new">
-          새 LabSpec
+          새 실습 정의
         </Link>
       </header>
 
@@ -83,19 +83,24 @@ export function LabSpecListPage() {
             const isOwner = labSpec.ownerUserId === meQuery.data.id
 
             return (
-              <article className="class-card" key={labSpec.id}>
+              <article className="class-card labspec-card" key={labSpec.id}>
                 <div className="class-card-topline">
-                  <span className="role-badge">{isOwner ? '내 LabSpec' : '읽기 전용'}</span>
-                  <span className="status-text">저장 ≠ Provision</span>
+                  <span className="role-badge">{isOwner ? '내 실습 정의' : '읽기 전용'}</span>
+                  <span className="status-pill status-pill-neutral">정의만 저장됨</span>
                 </div>
-                <h2>{labSpec.name}</h2>
-                <p className="muted">{labSpec.description || '설명이 없습니다.'}</p>
-                <Link
+                <div className="class-card-body">
+                  <h2>{labSpec.name}</h2>
+                  <p className="class-card-description">{labSpec.description || '설명이 없습니다.'}</p>
+                </div>
+                <div className="class-card-footer">
+                  <span className="class-card-id">LabSpec · {labSpec.id}</span>
+                  <Link
                   className={isOwner ? 'primary-link' : 'secondary-link card-link'}
                   to={`/lab-specs/${encodeURIComponent(labSpec.id)}`}
-                >
-                  {isOwner ? '편집' : '상세'}
-                </Link>
+                  >
+                    {isOwner ? '편집' : '상세'}
+                  </Link>
+                </div>
               </article>
             )
           })}

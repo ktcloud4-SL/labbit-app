@@ -302,8 +302,8 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       await screen.findByRole('heading', { name: 'Kubernetes Basic' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('INSTRUCTOR')).toBeInTheDocument()
-    expect(screen.getByText('READY')).toBeInTheDocument()
+    expect(screen.getByText('강사')).toBeInTheDocument()
+    expect(screen.getByText('사용 가능')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Lab Workspace 열기' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '실습 정의 관리' })).toBeInTheDocument()
   })
@@ -325,12 +325,12 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       await screen.findByRole('heading', { name: 'Kubernetes Basic' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('PROVISIONING')).toBeInTheDocument()
+    expect(screen.getByText('준비 중')).toBeInTheDocument()
     expect(
       screen.queryByRole('link', { name: 'Lab Workspace 열기' }),
     ).not.toBeInTheDocument()
     expect(
-      screen.getByText('실습 환경이 READY 상태가 되면 Workspace를 열 수 있습니다.'),
+      screen.getByText('환경이 사용 가능 상태가 되면 Workspace 버튼이 표시됩니다.'),
     ).toBeInTheDocument()
   })
 
@@ -350,7 +350,7 @@ describe('Auth·Class·LabSpec routing', () => {
 
     expect(
       await screen.findByText(
-        '실습 환경에 오류가 있어 Workspace를 열 수 없습니다. 상태를 확인해 주세요.',
+        '내 실습 환경에 오류가 있습니다.',
       ),
     ).toBeInTheDocument()
     expect(
@@ -391,7 +391,7 @@ describe('Auth·Class·LabSpec routing', () => {
       await screen.findByRole('heading', { name: '실습 정의' }),
     ).toBeInTheDocument()
     expect(screen.getByText('Kubernetes Basic Lab')).toBeInTheDocument()
-    expect(screen.getByText('내 LabSpec')).toBeInTheDocument()
+    expect(screen.getByText('내 실습 정의')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '편집' })).toBeInTheDocument()
   })
 
@@ -403,7 +403,7 @@ describe('Auth·Class·LabSpec routing', () => {
     ).toBeInTheDocument()
     expect(screen.getByLabelText('이름')).toHaveValue('Kubernetes Basic Lab')
     expect(screen.getByLabelText('Role')).toHaveValue('control')
-    expect(screen.getByRole('button', { name: 'LabSpec 저장' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '실습 정의 저장' })).toBeInTheDocument()
   })
 
   it('LabSpec stale update 412를 덮어쓰지 않고 안내한다', async () => {
@@ -417,7 +417,7 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: 'Kubernetes Basic Lab' })
-    fireEvent.click(screen.getByRole('button', { name: 'LabSpec 저장' }))
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
 
     expect(
       await screen.findByText(
@@ -438,7 +438,7 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: 'Kubernetes Basic Lab' })
-    fireEvent.click(screen.getByRole('button', { name: 'LabSpec 저장' }))
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
 
     expect(
       await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
@@ -460,7 +460,7 @@ describe('Auth·Class·LabSpec routing', () => {
       }),
     )
 
-    await screen.findByRole('heading', { name: '새 LabSpec' })
+    await screen.findByRole('heading', { name: '새 실습 정의' })
     fireEvent.change(screen.getByLabelText('이름'), {
       target: { value: 'New Lab' },
     })
@@ -476,7 +476,7 @@ describe('Auth·Class·LabSpec routing', () => {
     fireEvent.change(screen.getByLabelText('Workspace VM'), {
       target: { value: 'control:0' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'LabSpec 저장' }))
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
 
     expect(
       await screen.findByText('LabSpec을 생성할 권한이 없습니다.'),
@@ -492,11 +492,11 @@ describe('Auth·Class·LabSpec routing', () => {
 
     renderRoute('/lab-specs/new', createApi({ createLabSpec }))
 
-    await screen.findByRole('heading', { name: '새 LabSpec' })
+    await screen.findByRole('heading', { name: '새 실습 정의' })
     fireEvent.change(screen.getByLabelText('이름'), {
       target: { value: 'Duplicate Role Lab' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'VM Role 추가' }))
+    fireEvent.click(screen.getByRole('button', { name: 'VM 역할 추가' }))
 
     const roleInputs = screen.getAllByLabelText('Role')
     const imageInputs = screen.getAllByLabelText('Image 참조')
@@ -511,7 +511,7 @@ describe('Auth·Class·LabSpec routing', () => {
     fireEvent.change(screen.getByLabelText('Workspace VM'), {
       target: { value: 'control:0' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'LabSpec 저장' }))
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
 
     expect(
       await screen.findByText('VM Role은 LabSpec 안에서 중복될 수 없습니다.'),
@@ -536,11 +536,11 @@ describe('Auth·Class·LabSpec routing', () => {
 
     expect(
       await screen.findByText(
-        '이 LabSpec은 다른 Instructor가 소유하고 있어 현재 계정에서는 읽기만 할 수 있습니다.',
+        '다른 강사가 소유한 실습 정의입니다. 현재 계정에서는 내용을 확인만 할 수 있습니다.',
       ),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'LabSpec 저장' }),
+      screen.queryByRole('button', { name: '실습 정의 저장' }),
     ).not.toBeInTheDocument()
   })
 
@@ -641,10 +641,10 @@ describe('Auth·Class·LabSpec routing', () => {
     fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(screen.getByRole('button', { name: '생성 내용 확인' }))
     expect(
-      await screen.findByRole('heading', { name: 'Provision 시작 전 확인' }),
+      await screen.findByRole('heading', { name: '환경 생성 전 확인' }),
     ).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Provision 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '환경 생성 시작' }))
 
     expect(
       await screen.findByRole('heading', { name: '완료' }),
@@ -691,7 +691,7 @@ describe('Auth·Class·LabSpec routing', () => {
     })
     fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(screen.getByRole('button', { name: '생성 내용 확인' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Provision 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '환경 생성 시작' }))
 
     expect(
       await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
@@ -730,7 +730,7 @@ describe('Auth·Class·LabSpec routing', () => {
     })
     fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(screen.getByRole('button', { name: '생성 내용 확인' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Provision 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '환경 생성 시작' }))
 
     expect(
       await screen.findByText(
@@ -773,14 +773,14 @@ describe('Auth·Class·LabSpec routing', () => {
     })
     fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(screen.getByRole('button', { name: '생성 내용 확인' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Provision 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '환경 생성 시작' }))
 
     expect(
       await screen.findByText(
         '활성 LabExecution 또는 다른 변경 작업과 충돌했습니다. 현재 상태를 다시 확인해 주세요.',
       ),
     ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Provision 시작' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '환경 생성 시작' })).toBeDisabled()
     expect(getClass.mock.calls.length).toBeGreaterThanOrEqual(2)
   })
 
@@ -795,7 +795,7 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     expect(
-      await screen.findByText('이 Operation을 볼 권한이 없습니다.'),
+      await screen.findByText('이 작업을 볼 권한이 없습니다.'),
     ).toBeInTheDocument()
   })
 
@@ -872,7 +872,7 @@ describe('Auth·Class·LabSpec routing', () => {
       await screen.findByRole('heading', { name: '실습 운영 상태' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByText('일부 LabInstance에 오류가 있습니다.'),
+      screen.getByText('일부 실습 환경에 오류가 있습니다.'),
     ).toBeInTheDocument()
     expect(screen.getByText('ERROR')).toBeInTheDocument()
   })
@@ -895,7 +895,7 @@ describe('Auth·Class·LabSpec routing', () => {
       await screen.findByText('INSTRUCTOR만 실습 운영 화면에 접근할 수 있습니다.'),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Class Cleanup' }),
+      screen.queryByRole('button', { name: '전체 실습 정리' }),
     ).not.toBeInTheDocument()
     expect(listClassMemberships).not.toHaveBeenCalled()
   })
@@ -915,10 +915,10 @@ describe('Auth·Class·LabSpec routing', () => {
       await screen.findByText('알 수 없는 LabExecution 상태입니다.'),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Class Cleanup' }),
+      screen.queryByRole('button', { name: '전체 실습 정리' }),
     ).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Reset' }),
+      screen.queryByRole('button', { name: '초기화' }),
     ).not.toBeInTheDocument()
   })
 
@@ -957,12 +957,12 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: '실습 운영 상태' })
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화' }))
     expect(
-      await screen.findByRole('heading', { name: 'student-a 환경을 Reset할까요?' }),
+      await screen.findByRole('heading', { name: 'student-a 환경을 초기화할까요?' }),
     ).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reset 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화 시작' }))
     expect(await screen.findByRole('heading', { name: '완료' })).toBeInTheDocument()
     expect(resetLabInstance).toHaveBeenCalledWith(
       'lab-instance-student-a',
@@ -974,7 +974,7 @@ describe('Auth·Class·LabSpec routing', () => {
     renderRoute('/lab-executions/execution-kubernetes-basic')
 
     await screen.findByRole('heading', { name: '실습 운영 상태' })
-    expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '초기화' })).toBeInTheDocument()
   })
 
   it('Reset 요청 중 세션이 만료되면 Login으로 이동한다', async () => {
@@ -997,8 +997,8 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: '실습 운영 상태' })
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Reset 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화 시작' }))
 
     expect(
       await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
@@ -1028,15 +1028,15 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: '실습 운영 상태' })
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Reset 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화 시작' }))
 
     expect(
       await screen.findByText(
         '다른 변경 작업이 진행 중입니다. 현재 Operation 상태를 확인해 주세요.',
       ),
     ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Reset 시작' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '초기화 시작' })).toBeDisabled()
     expect(screen.getByRole('button', { name: '취소' })).toBeEnabled()
     expect(getLabExecution.mock.calls.length).toBeGreaterThanOrEqual(2)
   })
@@ -1061,12 +1061,12 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: '실습 운영 상태' })
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Reset 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화' }))
+    fireEvent.click(screen.getByRole('button', { name: '초기화 시작' }))
 
     expect(
       await screen.findByText(
-        'Reset 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현 불가로 거절된 경우 기존 환경은 먼저 삭제되지 않습니다.',
+        '초기화 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현이 불가능한 경우 기존 환경은 먼저 삭제되지 않습니다.',
       ),
     ).toBeInTheDocument()
   })
@@ -1093,14 +1093,14 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: '실습 운영 상태' })
-    fireEvent.click(screen.getByRole('button', { name: 'Class Cleanup' }))
+    fireEvent.click(screen.getByRole('button', { name: '전체 실습 정리' }))
     expect(
       await screen.findByRole('heading', {
-        name: '현재 LabExecution을 Cleanup할까요?',
+        name: '현재 실습을 정리할까요?',
       }),
     ).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cleanup 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '정리 시작' }))
     expect(await screen.findByRole('heading', { name: '완료' })).toBeInTheDocument()
     expect(cleanupLabExecution).toHaveBeenCalledWith(
       labExecutionFixture.id,
@@ -1119,16 +1119,16 @@ describe('Auth·Class·LabSpec routing', () => {
     )
 
     await screen.findByRole('heading', { name: '실습 운영 상태' })
-    fireEvent.click(screen.getByRole('button', { name: 'Class Cleanup' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Cleanup 시작' }))
+    fireEvent.click(screen.getByRole('button', { name: '전체 실습 정리' }))
+    fireEvent.click(screen.getByRole('button', { name: '정리 시작' }))
 
     expect(
       await screen.findByText(
-        '현재 LabExecution 상태에서는 Cleanup을 시작할 수 없습니다. 상태와 진행 중인 작업을 확인해 주세요.',
+        '현재 실습 상태에서는 정리를 시작할 수 없습니다. 상태와 진행 중인 작업을 확인해 주세요.',
       ),
     ).toBeInTheDocument()
     expect(
-      screen.queryByText(/Reset 재현 조건/),
+      screen.queryByText(/초기화 재현 조건/),
     ).not.toBeInTheDocument()
   })
 
@@ -1141,9 +1141,9 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       screen.getByRole('region', { name: 'Lab Workspace Shell' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('File Tree')).toBeInTheDocument()
+    expect(screen.getByText('파일')).toBeInTheDocument()
     expect(screen.getByText('Editor')).toBeInTheDocument()
-    expect(screen.getByText('Preview')).toBeInTheDocument()
+    expect(screen.getByText('미리보기')).toBeInTheDocument()
     expect(screen.getByText('Terminal / Live')).toBeInTheDocument()
   })
 

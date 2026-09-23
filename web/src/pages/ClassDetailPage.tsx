@@ -7,6 +7,29 @@ import { labbitQueryKeys } from '../shared/api/labbitApi'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
+const roleLabel = (role: string) => {
+  if (role === 'INSTRUCTOR') return '강사'
+  if (role === 'STUDENT') return '수강생'
+  return role
+}
+
+const labExecutionStatusLabel = (status?: string) => {
+  if (!status) return '진행 중인 실습 없음'
+  if (status === 'ACTIVE' || status === 'RUNNING') return '진행 중'
+  if (status === 'PROVISIONING') return '생성 중'
+  if (status === 'ERROR') return '오류'
+  return status
+}
+
+const labInstanceStatusLabel = (status?: string) => {
+  if (!status) return '환경 없음'
+  if (status === 'READY') return '사용 가능'
+  if (status === 'PENDING' || status === 'PROVISIONING') return '준비 중'
+  if (status === 'DELETING') return '정리 중'
+  if (status === 'ERROR') return '오류'
+  return status
+}
+
 export function ClassDetailPage() {
   const api = useLabbitApi()
   const location = useLocation()
@@ -83,17 +106,34 @@ export function ClassDetailPage() {
   const labInstanceStatus = classDetail.myLabInstance?.status
   const isWorkspaceReady = labInstanceStatus === 'READY'
   const isInstructor = classDetail.myRole === 'INSTRUCTOR'
+  const hasActiveExecution = Boolean(classDetail.activeLabExecution)
+
+  const overviewTitle = hasActiveExecution
+    ? '현재 실습이 진행 중입니다.'
+    : '현재 진행 중인 실습이 없습니다.'
+
+  const overviewDescription = hasActiveExecution
+    ? isWorkspaceReady
+      ? '내 실습 환경을 사용할 수 있습니다. 필요한 작업으로 바로 이동하세요.'
+      : classDetail.myLabInstance
+        ? '실습은 진행 중이지만 내 환경은 아직 사용할 수 없습니다.'
+        : '실습은 진행 중입니다. 내 실습 환경 할당 상태를 확인해 주세요.'
+    : isInstructor
+      ? 'LabSpec을 선택해 새로운 실습 환경을 시작할 수 있습니다.'
+      : '강사가 실습을 시작하면 이곳에서 내 실습 환경에 입장할 수 있습니다.'
 
   return (
     <main className="app-page">
-      <header className="page-header">
+      <header className="page-header page-header-spacious">
         <div>
           <Link className="back-link" to="/classes">
             ← 수업 목록
           </Link>
           <p className="eyebrow">Class detail</p>
           <h1>{classDetail.name}</h1>
-          <p className="muted">현재 사용자 기준의 Class 컨텍스트입니다.</p>
+          <p className="muted">
+            수업과 실습 환경 상태를 확인하고 필요한 작업으로 이동합니다.
+          </p>
         </div>
         {isInstructor && (
           <Link className="secondary-link header-action" to="/lab-specs">
@@ -102,60 +142,96 @@ export function ClassDetailPage() {
         )}
       </header>
 
-      <section className="detail-grid">
-        <article className="detail-card">
-          <h2>내 역할</h2>
-          <strong>{classDetail.myRole}</strong>
-        </article>
-        <article className="detail-card">
-          <h2>활성 실습</h2>
-          <strong>{classDetail.activeLabExecution?.status ?? '없음'}</strong>
-        </article>
-        <article className="detail-card">
-          <h2>내 환경</h2>
-          <strong>{labInstanceStatus ?? '없음'}</strong>
-        </article>
+      <section
+        className={'class-overview-card' + (hasActiveExecution ? ' class-overview-active' : '')}
+      >
+        <div className="class-overview-heading">
+          <div>
+            <p className="section-kicker">현재 실습</p>
+            <h2>{overviewTitle}</h2>
+            <p className="muted">{overviewDescription}</p>
+          </div>
+          <span
+            className={
+              'status-pill ' +
+              (hasActiveExecution ? 'status-pill-success' : 'status-pill-neutral')
+            }
+          >
+            {labExecutionStatusLabel(classDetail.activeLabExecution?.status)}
+          </span>
+        </div>
+
+        <div className="class-overview-meta">
+          <div>
+            <span>내 역할</span>
+            <strong>{roleLabel(classDetail.myRole)}</strong>
+          </div>
+          <div>
+            <span>내 환경</span>
+            <strong>{labInstanceStatusLabel(labInstanceStatus)}</strong>
+          </div>
+          <div>
+            <span>Workspace</span>
+            <strong>{isWorkspaceReady ? '입장 가능' : '입장 대기'}</strong>
+          </div>
+        </div>
+
+        <div className="class-overview-actions">
+          {isInstructor && !classDetail.activeLabExecution && (
+            <Link
+              className="primary-link inline-link"
+              to={'/classes/' + encodeURIComponent(classDetail.id) + '/provision'}
+            >
+              새 환경 생성
+            </Link>
+          )}
+
+          {isInstructor && classDetail.activeLabExecution && (
+            <Link
+              className="secondary-link action-link"
+              to={'/lab-executions/' + encodeURIComponent(classDetail.activeLabExecution.id)}
+            >
+              현재 실습 운영 보기
+            </Link>
+          )}
+
+          {isWorkspaceReady && (
+            <Link
+              className="primary-link inline-link"
+              to={'/classes/' + encodeURIComponent(classDetail.id) + '/lab'}
+            >
+              Lab Workspace 열기
+            </Link>
+          )}
+        </div>
       </section>
 
-      <div className="action-row">
-        {isInstructor && !classDetail.activeLabExecution && (
-          <Link
-            className="primary-link inline-link"
-            to={`/classes/${encodeURIComponent(classDetail.id)}/provision`}
-          >
-            새 환경 생성
-          </Link>
-        )}
-
-        {isInstructor && classDetail.activeLabExecution && (
-          <Link
-            className="secondary-link"
-            to={`/lab-executions/${encodeURIComponent(classDetail.activeLabExecution.id)}`}
-          >
-            현재 실습 운영 보기
-          </Link>
-        )}
-
-        {isWorkspaceReady && (
-          <Link
-            className="primary-link inline-link"
-            to={`/classes/${encodeURIComponent(classDetail.id)}/lab`}
-          >
-            Lab Workspace 열기
-          </Link>
-        )}
-      </div>
-
       {classDetail.myLabInstance && !isWorkspaceReady && (
-        <p className="muted">
-          {labInstanceStatus === 'ERROR'
-            ? '실습 환경에 오류가 있어 Workspace를 열 수 없습니다. 상태를 확인해 주세요.'
-            : labInstanceStatus === 'DELETING'
-              ? '실습 환경을 정리하고 있어 Workspace를 열 수 없습니다.'
-              : labInstanceStatus === 'PENDING' || labInstanceStatus === 'PROVISIONING'
-                ? '실습 환경이 READY 상태가 되면 Workspace를 열 수 있습니다.'
-                : '알 수 없는 LabInstance 상태입니다. 현재 상태를 다시 확인해 주세요.'}
-        </p>
+        <section
+          className={
+            'notice-card compact-notice ' +
+            (labInstanceStatus === 'ERROR' ? 'notice-error' : 'notice-warning')
+          }
+        >
+          <strong>
+            {labInstanceStatus === 'ERROR'
+              ? '내 실습 환경에 오류가 있습니다.'
+              : labInstanceStatus === 'DELETING'
+                ? '내 실습 환경을 정리하고 있습니다.'
+                : labInstanceStatus === 'PENDING' || labInstanceStatus === 'PROVISIONING'
+                  ? '내 실습 환경을 준비하고 있습니다.'
+                  : '현재 실습 환경 상태를 확인해 주세요.'}
+          </strong>
+          <p className="muted">
+            {labInstanceStatus === 'ERROR'
+              ? 'Workspace를 열 수 없습니다. 강사는 실습 운영 화면에서 상태를 확인할 수 있습니다.'
+              : labInstanceStatus === 'DELETING'
+                ? '리소스 정리가 완료되면 다음 실습 상태를 확인할 수 있습니다.'
+                : labInstanceStatus === 'PENDING' || labInstanceStatus === 'PROVISIONING'
+                  ? '환경이 사용 가능 상태가 되면 Workspace 버튼이 표시됩니다.'
+                  : '새로운 상태가 추가되었을 수 있습니다. 현재 실습 운영 상태를 확인해 주세요.'}
+          </p>
+        </section>
       )}
     </main>
   )

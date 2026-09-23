@@ -34,6 +34,49 @@ function statusLabel(status: string) {
   }
 }
 
+function statusPillClass(status: string) {
+  if (status === 'SUCCEEDED') return 'status-pill status-pill-success'
+  if (status === 'FAILED') return 'status-pill status-pill-error'
+  if (status === 'RUNNING' || status === 'PENDING' || status === 'RECONCILING') {
+    return 'status-pill status-pill-progress'
+  }
+  return 'status-pill status-pill-neutral'
+}
+
+function stageLabel(stage: string | undefined) {
+  switch (stage) {
+    case 'PROVISIONING':
+      return '환경 생성 중'
+    case 'RESETTING':
+      return '환경 초기화 중'
+    case 'CLEANING_UP':
+      return '환경 정리 중'
+    case 'VERIFY_PROVIDER_STATE':
+      return '실제 상태 확인 중'
+    default:
+      return stage ?? '확인 중'
+  }
+}
+
+function operationTypeLabel(type: string) {
+  switch (type) {
+    case 'PROVISION':
+      return '실습 환경 생성'
+    case 'RESET':
+      return '실습 환경 초기화'
+    case 'CLEANUP':
+      return '실습 환경 정리'
+    default:
+      return type
+  }
+}
+
+function targetTypeLabel(type: string) {
+  if (type === 'LAB_EXECUTION') return '실습 실행'
+  if (type === 'LAB_INSTANCE') return '개별 실습 환경'
+  return type
+}
+
 function targetLink(operation: Operation) {
   if (operation.target.type === 'LAB_EXECUTION') {
     return `/lab-executions/${encodeURIComponent(operation.target.id)}`
@@ -62,7 +105,7 @@ export function OperationPage() {
   if (!resolvedOperationId) {
     return (
       <main className="app-page">
-        <ErrorState message="Operation ID가 없습니다." />
+        <ErrorState message="작업 ID가 없습니다." />
       </main>
     )
   }
@@ -70,7 +113,7 @@ export function OperationPage() {
   if (operationQuery.isPending) {
     return (
       <main className="app-page">
-        <LoadingState label="Operation 상태를 확인하는 중..." />
+        <LoadingState label="작업 상태를 확인하는 중..." />
       </main>
     )
   }
@@ -91,7 +134,7 @@ export function OperationPage() {
   if (operationQuery.error instanceof HttpError && operationQuery.error.status === 403) {
     return (
       <main className="app-page">
-        <ErrorState message="이 Operation을 볼 권한이 없습니다." />
+        <ErrorState message="이 작업을 볼 권한이 없습니다." />
       </main>
     )
   }
@@ -99,7 +142,7 @@ export function OperationPage() {
   if (operationQuery.error instanceof HttpError && operationQuery.error.status === 404) {
     return (
       <main className="app-page">
-        <ErrorState message="Operation을 찾을 수 없습니다." />
+        <ErrorState message="작업을 찾을 수 없습니다." />
       </main>
     )
   }
@@ -107,7 +150,7 @@ export function OperationPage() {
   if (operationQuery.error || !operationQuery.data) {
     return (
       <main className="app-page">
-        <ErrorState message="Operation 상태를 불러오지 못했습니다." />
+        <ErrorState message="작업 상태를 불러오지 못했습니다." />
       </main>
     )
   }
@@ -119,25 +162,25 @@ export function OperationPage() {
 
   return (
     <main className="app-page">
-      <header className="page-header">
+      <header className="page-header page-header-spacious">
         <div>
           <Link className="back-link" to="/classes">
             ← 수업 목록
           </Link>
-          <p className="eyebrow">Operation</p>
+          <p className="eyebrow">작업 상태</p>
           <h1>{statusLabel(operation.status)}</h1>
           <p className="muted">
-            {operation.type} · {operation.id}
+            {operationTypeLabel(operation.type)} · {operation.id}
           </p>
         </div>
-        <span className="operation-status">{operation.status}</span>
+        <span className={statusPillClass(operation.status)}>{statusLabel(operation.status)}</span>
       </header>
 
       {isReconciling && (
         <section className="notice-card notice-warning">
           <strong>같은 작업을 다시 실행하지 않고 Provider의 실제 상태를 확인하고 있습니다.</strong>
           <p className="muted">
-            결과가 불명확한 동안 중복 Create/Delete를 보내지 않습니다.
+            현재 상태를 확인하는 동안 같은 작업을 다시 요청하지 않고 안전하게 결과를 기다립니다.
           </p>
         </section>
       )}
@@ -146,7 +189,7 @@ export function OperationPage() {
         <section className="notice-card notice-warning">
           <strong>알 수 없는 Operation 상태입니다.</strong>
           <p className="muted">
-            새 상태가 추가되었을 수 있으므로 성공·실패를 임의로 판단하지 않으며 자동 polling도 중단합니다.
+            새 상태가 추가되었을 수 있어 자동 판단을 멈췄습니다. 필요하면 상태를 다시 확인해 주세요.
           </p>
           <button
             className="secondary-button"
@@ -161,16 +204,16 @@ export function OperationPage() {
 
       <section className="detail-grid operation-grid">
         <article className="detail-card">
-          <h2>작업 종류</h2>
-          <strong>{operation.type}</strong>
+          <h2>작업</h2>
+          <strong>{operationTypeLabel(operation.type)}</strong>
         </article>
         <article className="detail-card">
-          <h2>진행 단계</h2>
-          <strong>{operation.stage ?? '확인 중'}</strong>
+          <h2>현재 단계</h2>
+          <strong>{stageLabel(operation.stage)}</strong>
         </article>
         <article className="detail-card">
           <h2>대상</h2>
-          <strong>{operation.target.type}</strong>
+          <strong>{targetTypeLabel(operation.target.type)}</strong>
           <p className="muted">{operation.target.id}</p>
         </article>
       </section>
@@ -190,7 +233,7 @@ export function OperationPage() {
 
       {link && (
         <Link className="primary-link inline-link" to={link}>
-          대상 LabExecution 보기
+          실습 운영 상태 보기
         </Link>
       )}
     </main>

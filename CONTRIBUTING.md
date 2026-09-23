@@ -1,6 +1,6 @@
 # Labbit 개발 협업 규칙
 
-이 문서는 `rabbit-app` 개발 시작 전에 필요한 최소 Git/PR 규칙만 정의합니다. 기능·도메인 정책은 Confluence, 기계 판독 계약은 `contracts/`, `db/`, `runtime/`의 각 SSOT를 따릅니다.
+이 문서는 `labbit-app` 개발 시작 전에 필요한 최소 Git/PR 규칙만 정의합니다. 기능·도메인 정책은 Confluence, 기계 판독 계약은 `contracts/`, `db/`, `runtime/`의 각 SSOT를 따릅니다.
 
 ## 브랜치
 

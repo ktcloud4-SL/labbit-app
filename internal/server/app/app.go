@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ktcloud4-SL/rabbit-app/internal/observability"
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 )
 
 const (

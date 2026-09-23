@@ -7,8 +7,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/app"
-	"github.com/ktcloud4-SL/rabbit-app/internal/observability"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/app"
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 )
 
 func main() {

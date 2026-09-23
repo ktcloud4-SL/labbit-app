@@ -13,7 +13,7 @@ Labbit은 현재 정식 릴리스 이전의 개발 단계입니다.
 
 이 저장소의 GitHub Private Vulnerability Reporting을 사용해 주세요.
 
-https://github.com/ktcloud4-SL/rabbit-app/security/advisories/new
+https://github.com/ktcloud4-SL/labbit-app/security/advisories/new
 
 신고할 때 가능하면 다음 정보를 포함해 주세요.
 

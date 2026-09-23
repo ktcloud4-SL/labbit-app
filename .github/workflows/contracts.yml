@@ -8,6 +8,7 @@ on:
       - "contracts/**"
       - "runtime/**"
       - "db/migrations/**"
+      - ".github/workflows/contracts.yml"
 
 permissions:
   contents: read
@@ -21,37 +22,91 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install YAML parser
-        run: python -m pip install --disable-pip-version-check PyYAML==6.0.3
+      - name: Install contract validators
+        run: >-
+          python -m pip install --disable-pip-version-check
+          PyYAML==6.0.3
+          openapi-spec-validator==0.9.0
+          jsonschema==4.26.0
 
-      - name: Parse contract files
+      - name: Validate OpenAPI
+        run: openapi-spec-validator contracts/http/openapi.yaml
+
+      - name: Validate JSON Schemas
         shell: bash
         run: |
           python <<'PY'
           import json
           from pathlib import Path
 
-          import yaml
+          from jsonschema import Draft202012Validator
 
-          # OpenAPI/Runtime YAML은 최소한 파싱 가능한 문서인지 확인한다.
-          for path in [Path("contracts/http/openapi.yaml"), Path("runtime/contract.yaml")]:
-              with path.open("r", encoding="utf-8") as file:
-                  value = yaml.safe_load(file)
-              if not isinstance(value, dict):
-                  raise SystemExit(f"{path}: 최상위 YAML 값이 object가 아닙니다")
+          expected_meta_schema = Draft202012Validator.META_SCHEMA["$id"]
 
-          # 모든 JSON Schema 파일이 유효한 JSON 문서인지 확인한다.
-          for path in sorted(Path("contracts").rglob("*.json")):
+          def resolve_local_ref(document, ref, path):
+              if not ref.startswith("#/"):
+                  return
+
+              current = document
+              for raw_token in ref[2:].split("/"):
+                  token = raw_token.replace("~1", "/").replace("~0", "~")
+                  if not isinstance(current, dict) or token not in current:
+                      raise SystemExit(f"{path}: unresolved local $ref: {ref}")
+                  current = current[token]
+
+          def walk(node, document, path):
+              if isinstance(node, dict):
+                  ref = node.get("$ref")
+                  if isinstance(ref, str):
+                      resolve_local_ref(document, ref, path)
+                  for value in node.values():
+                      walk(value, document, path)
+              elif isinstance(node, list):
+                  for value in node:
+                      walk(value, document, path)
+
+          schema_paths = sorted(Path("contracts").rglob("*.json"))
+          if not schema_paths:
+              raise SystemExit("contracts: JSON Schema 파일이 없습니다")
+
+          for path in schema_paths:
               with path.open("r", encoding="utf-8") as file:
-                  value = json.load(file)
-              if not isinstance(value, dict):
+                  schema = json.load(file)
+
+              if not isinstance(schema, dict):
                   raise SystemExit(f"{path}: 최상위 JSON 값이 object가 아닙니다")
 
-          # Migration 파일 이름의 순서가 중복되지 않는지만 skeleton 단계에서 확인한다.
+              if schema.get("$schema") != expected_meta_schema:
+                  raise SystemExit(
+                      f"{path}: $schema={schema.get('$schema')!r}, "
+                      f"want {expected_meta_schema!r}"
+                  )
+
+              Draft202012Validator.check_schema(schema)
+              walk(schema, schema, path)
+              print(f"{path}: Draft 2020-12 schema OK")
+
+          print("JSON Schema validation: OK")
+          PY
+
+      - name: Validate Runtime and Migration metadata
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          import yaml
+
+          runtime_path = Path("runtime/contract.yaml")
+          with runtime_path.open("r", encoding="utf-8") as file:
+              runtime = yaml.safe_load(file)
+          if not isinstance(runtime, dict):
+              raise SystemExit(f"{runtime_path}: 최상위 YAML 값이 object가 아닙니다")
+
           migrations = sorted(Path("db/migrations").glob("[0-9]*_*.sql"))
           prefixes = [path.name.split("_", 1)[0] for path in migrations]
           if len(prefixes) != len(set(prefixes)):
               raise SystemExit("db/migrations: migration 번호가 중복되었습니다")
 
-          print("contract files: parse OK")
+          print("Runtime/Migration metadata validation: OK")
           PY

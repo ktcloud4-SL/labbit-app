@@ -96,7 +96,11 @@
 ## Contract Test
 
 - OpenAPI, Connector/Realtime JSON Schema, Runtime Contract, DB Migration은 각 Git SSOT를 기준으로 검증합니다.
+- OpenAPI는 CI에서 OpenAPI specification validator로 구조와 참조 정합성을 검증합니다.
+- Connector/Realtime JSON Schema는 선언된 Draft 2020-12 meta-schema와 로컬 `$ref` 해석 가능 여부를 CI에서 검증합니다.
+- Runtime Contract는 YAML 구조, DB Migration은 현재 단계에서 파일 번호 중복 여부를 CI에서 검증합니다.
 - 계약 변경은 producer와 consumer 양쪽 영향도를 함께 확인합니다.
+- breaking change 자동 판정은 아직 Gate가 아니며, 기존 호환성 규칙과 리뷰로 확인합니다.
 - CI validator가 강제하는 범위는 실제 workflow를 기준으로 하며, 문서가 구현되지 않은 Gate를 통과한 것으로 간주하지 않습니다.
 
 ## Mock / Fake 사용 원칙

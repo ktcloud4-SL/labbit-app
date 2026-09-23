@@ -139,6 +139,7 @@ export function LabExecutionPage() {
 
     mutation.reset()
     setPendingAction(null)
+    actionTriggerRef.current = null
   }
 
   if (!resolvedExecutionId) {

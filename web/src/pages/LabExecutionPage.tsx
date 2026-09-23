@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { HttpError } from '../shared/api/httpClient'
@@ -77,6 +77,7 @@ export function LabExecutionPage() {
   const { labExecutionId } = useParams()
   const resolvedExecutionId = labExecutionId ?? ''
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
+  const actionTriggerRef = useRef<HTMLElement | null>(null)
 
   const executionQuery = useQuery({
     queryKey: labbitQueryKeys.labExecution(resolvedExecutionId),
@@ -122,6 +123,24 @@ export function LabExecutionPage() {
       }
     },
   })
+
+  function openPendingAction(
+    action: Exclude<PendingAction, null>,
+    trigger: HTMLElement,
+  ) {
+    actionTriggerRef.current = trigger
+    mutation.reset()
+    setPendingAction(action)
+  }
+
+  function closePendingAction() {
+    if (mutation.isPending) return
+
+    mutation.reset()
+    setPendingAction(null)
+    actionTriggerRef.current?.focus()
+    actionTriggerRef.current = null
+  }
 
   if (!resolvedExecutionId) {
     return (
@@ -330,12 +349,14 @@ export function LabExecutionPage() {
           <button
             className="secondary-button danger-text"
             type="button"
-            onClick={() => {
-              mutation.reset()
-              setPendingAction({
-                type: 'CLEANUP',
-                idempotencyKey: createIdempotencyKey(),
-              })
+            onClick={(event) => {
+              openPendingAction(
+                {
+                  type: 'CLEANUP',
+                  idempotencyKey: createIdempotencyKey(),
+                },
+                event.currentTarget,
+              )
             }}
           >
             전체 실습 정리
@@ -377,14 +398,16 @@ export function LabExecutionPage() {
                       <button
                         className="text-button danger-text"
                         type="button"
-                        onClick={() => {
-                          mutation.reset()
-                          setPendingAction({
-                            type: 'RESET',
-                            labInstanceId: labInstance.id,
-                            username,
-                            idempotencyKey: createIdempotencyKey(),
-                          })
+                        onClick={(event) => {
+                          openPendingAction(
+                            {
+                              type: 'RESET',
+                              labInstanceId: labInstance.id,
+                              username,
+                              idempotencyKey: createIdempotencyKey(),
+                            },
+                            event.currentTarget,
+                          )
                         }}
                       >
                         초기화
@@ -405,18 +428,47 @@ export function LabExecutionPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="lab-action-confirm-title"
+            aria-describedby="lab-action-confirm-description"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                closePendingAction()
+                return
+              }
+
+              if (event.key !== 'Tab') return
+
+              const focusableElements = Array.from(
+                event.currentTarget.querySelectorAll<HTMLElement>(
+                  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+                ),
+              )
+
+              if (focusableElements.length === 0) return
+
+              const first = focusableElements[0]
+              const last = focusableElements[focusableElements.length - 1]
+
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault()
+                last.focus()
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault()
+                first.focus()
+              }
+            }}
           >
-          <p className="eyebrow">최종 확인</p>
-          <h2 id="lab-action-confirm-title">
-            {pendingAction.type === 'RESET'
-              ? `${pendingAction.username} 환경을 초기화할까요?`
-              : '현재 실습을 정리할까요?'}
-          </h2>
-          <p className="muted">
-            {pendingAction.type === 'RESET'
-              ? '현재 환경 데이터는 제거되고 생성 당시 기준으로 다시 만들어집니다. 재현 조건을 만족하지 못하면 기존 환경을 먼저 삭제하지 않고 요청이 실패합니다.'
-              : '현재 실습에 연결된 터미널·Live와 인프라 리소스를 정리합니다. 수업, 실습 정의, 과거 실행 기록은 삭제하지 않습니다.'}
-          </p>
+            <p className="eyebrow">최종 확인</p>
+            <h2 id="lab-action-confirm-title">
+              {pendingAction.type === 'RESET'
+                ? `${pendingAction.username} 환경을 초기화할까요?`
+                : '현재 실습을 정리할까요?'}
+            </h2>
+            <p id="lab-action-confirm-description" className="muted">
+              {pendingAction.type === 'RESET'
+                ? '현재 환경 데이터는 제거되고 생성 당시 기준으로 다시 만들어집니다. 재현 조건을 만족하지 못하면 기존 환경을 먼저 삭제하지 않고 요청이 실패합니다.'
+                : '현재 실습에 연결된 터미널·Live와 인프라 리소스를 정리합니다. 수업, 실습 정의, 과거 실행 기록은 삭제하지 않습니다.'}
+            </p>
 
           {mutationErrorMessage && (
             <p className="form-error" role="alert">
@@ -428,11 +480,9 @@ export function LabExecutionPage() {
             <button
               className="secondary-button"
               type="button"
+              autoFocus
               disabled={mutation.isPending}
-              onClick={() => {
-                mutation.reset()
-                setPendingAction(null)
-              }}
+              onClick={closePendingAction}
             >
               취소
             </button>

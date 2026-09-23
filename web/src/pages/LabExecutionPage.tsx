@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { HttpError } from '../shared/api/httpClient'
@@ -77,6 +77,7 @@ export function LabExecutionPage() {
   const { labExecutionId } = useParams()
   const resolvedExecutionId = labExecutionId ?? ''
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
+  const actionTriggerRef = useRef<HTMLElement | null>(null)
 
   const executionQuery = useQuery({
     queryKey: labbitQueryKeys.labExecution(resolvedExecutionId),
@@ -122,6 +123,22 @@ export function LabExecutionPage() {
       }
     },
   })
+
+  function openPendingAction(action: Exclude<PendingAction, null>) {
+    actionTriggerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
+    mutation.reset()
+    setPendingAction(action)
+  }
+
+  function closePendingAction() {
+    if (mutation.isPending) return
+
+    mutation.reset()
+    setPendingAction(null)
+    actionTriggerRef.current?.focus()
+    actionTriggerRef.current = null
+  }
 
   if (!resolvedExecutionId) {
     return (
@@ -331,8 +348,7 @@ export function LabExecutionPage() {
             className="secondary-button danger-text"
             type="button"
             onClick={() => {
-              mutation.reset()
-              setPendingAction({
+              openPendingAction({
                 type: 'CLEANUP',
                 idempotencyKey: createIdempotencyKey(),
               })
@@ -378,8 +394,7 @@ export function LabExecutionPage() {
                         className="text-button danger-text"
                         type="button"
                         onClick={() => {
-                          mutation.reset()
-                          setPendingAction({
+                          openPendingAction({
                             type: 'RESET',
                             labInstanceId: labInstance.id,
                             username,
@@ -405,6 +420,12 @@ export function LabExecutionPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="lab-action-confirm-title"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                closePendingAction()
+              }
+            }}
           >
           <p className="eyebrow">최종 확인</p>
           <h2 id="lab-action-confirm-title">
@@ -428,11 +449,9 @@ export function LabExecutionPage() {
             <button
               className="secondary-button"
               type="button"
+              autoFocus
               disabled={mutation.isPending}
-              onClick={() => {
-                mutation.reset()
-                setPendingAction(null)
-              }}
+              onClick={closePendingAction}
             >
               취소
             </button>

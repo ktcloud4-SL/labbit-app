@@ -124,9 +124,11 @@ export function LabExecutionPage() {
     },
   })
 
-  function openPendingAction(action: Exclude<PendingAction, null>) {
-    actionTriggerRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null
+  function openPendingAction(
+    action: Exclude<PendingAction, null>,
+    trigger: HTMLElement,
+  ) {
+    actionTriggerRef.current = trigger
     mutation.reset()
     setPendingAction(action)
   }
@@ -347,11 +349,14 @@ export function LabExecutionPage() {
           <button
             className="secondary-button danger-text"
             type="button"
-            onClick={() => {
-              openPendingAction({
-                type: 'CLEANUP',
-                idempotencyKey: createIdempotencyKey(),
-              })
+            onClick={(event) => {
+              openPendingAction(
+                {
+                  type: 'CLEANUP',
+                  idempotencyKey: createIdempotencyKey(),
+                },
+                event.currentTarget,
+              )
             }}
           >
             전체 실습 정리
@@ -393,13 +398,16 @@ export function LabExecutionPage() {
                       <button
                         className="text-button danger-text"
                         type="button"
-                        onClick={() => {
-                          openPendingAction({
-                            type: 'RESET',
-                            labInstanceId: labInstance.id,
-                            username,
-                            idempotencyKey: createIdempotencyKey(),
-                          })
+                        onClick={(event) => {
+                          openPendingAction(
+                            {
+                              type: 'RESET',
+                              labInstanceId: labInstance.id,
+                              username,
+                              idempotencyKey: createIdempotencyKey(),
+                            },
+                            event.currentTarget,
+                          )
                         }}
                       >
                         초기화

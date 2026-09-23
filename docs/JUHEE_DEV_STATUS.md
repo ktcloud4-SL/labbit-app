@@ -4,8 +4,9 @@
 > **Confluence 문서**: [Connector > 이주희](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/15892482)  
 > **Jira 에픽 Task 정리**: [이주희 - Task 정리](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/19333228/-+Task) (9/27 리더 회의용)  
 > **기준 계획서**: [Connector MVP 개발 실행 계획](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/12845071/Connector+MVP)  
-> **세부 의사결정**: [결정 완료 사안](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/11075640) · [추가 결정 사안](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/18055175)  
-> **작업 브랜치**: `feat/SL-connector-control-wss` (PR #27 리뷰 반영 완료, CI 통과) / `feat/SL-connector-terminal-stream` (M3 완료)  
+> **결정 완료 사안 (SSOT)**: [결정 완료 사안](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/11075640)  
+> **추가 결정 사안 (마일스톤별 계획)**: [추가 결정 사안](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/18055175)  
+> **작업 브랜치**: `feat/SL-connector-terminal-stream` (M3 완료) / `main` (PR #27 머지 완료)  
 > **Git SSOT 저장소**: [ktcloud4-SL/labbit-app](https://github.com/ktcloud4-SL/labbit-app.git)
 
 ---

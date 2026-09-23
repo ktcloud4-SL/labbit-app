@@ -60,7 +60,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/CsrfRejected'
 
   /auth/logout:
     post:
@@ -76,7 +76,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/CsrfRejected'
 
   /me:
     get:
@@ -626,6 +626,13 @@ components:
 
     Forbidden:
       description: 인증은 되었지만 이 리소스나 동작에 필요한 권한이 없습니다.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+    CsrfRejected:
+      description: Browser unsafe-method 요청의 Origin/Referer가 trusted public origin과 일치하지 않아 요청을 거절했습니다.
       content:
         application/problem+json:
           schema:

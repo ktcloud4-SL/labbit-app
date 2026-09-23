@@ -53,7 +53,60 @@ describe('httpLabbitApi', () => {
     )
   })
 
-  it('opaque classId를 URL encoding해 Class 상세를 요청한다', async () => {
+  it('logout 요청을 Session Cookie 포함 POST로 전송한다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpLabbitApi.logout()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/auth/logout',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      }),
+    )
+  })
+
+  it('/me 요청을 Session Cookie 포함 GET으로 전송한다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ id: 'user-1' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpLabbitApi.getMe()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/me',
+      expect.objectContaining({
+        credentials: 'include',
+      }),
+    )
+  })
+
+  it('Class 목록 요청을 Session Cookie 포함 GET으로 전송한다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpLabbitApi.listClasses()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/classes',
+      expect.objectContaining({
+        credentials: 'include',
+      }),
+    )
+  })
+
+  it('Class 상세 요청은 opaque classId를 encoding하고 Session Cookie를 포함한다', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({

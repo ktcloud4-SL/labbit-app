@@ -8,7 +8,7 @@
 
 Runtime Contract는 HTTP/OpenAPI나 WSS 메시지 계약을 다시 정의하지 않습니다. 애플리케이션이 **어떻게 실행되고, 어떤 포트·설정·Probe·로그·종료 동작을 제공해야 하는지**와 플랫폼이 무엇을 주입·구성해야 하는지를 고정합니다.
 
-**v0.1.1 변경:** D-25에 따라 SaaS OTel/OTLP, API → Worker의 durable Context, Connector propagation-only와 관측 장애 격리 계약을 추가했습니다. 아래 요구사항은 구현 기준이며, 기존 스켈레톤이 이미 이를 제공한다는 뜻은 아닙니다.
+**v0.1.2 변경:** SL-64 Auth/Class 구현 준비에 따라 Browser unsafe method의 CSRF/Origin 검증에 사용할 trusted LABBIT_PUBLIC_ORIGIN 입력을 추가했습니다. v0.1.1의 SaaS OTel/OTLP, durable Context, Connector propagation-only 계약은 유지합니다. 아래 요구사항은 구현 기준이며, 기존 스켈레톤이 이미 이를 제공한다는 뜻은 아닙니다.
 
 ## v0.1에서 확정하는 경계
 
@@ -54,13 +54,16 @@ Runtime Contract는 HTTP/OpenAPI나 WSS 메시지 계약을 다시 정의하지 
 | `LABBIT_RUNTIME_ROLES` | `api,worker,realtime,preview` 중 enabled role | No |
 | `LABBIT_ENVIRONMENT` | environment 식별 | No |
 | `LABBIT_HTTP_ADDR` | application listen address | No |
+| `LABBIT_PUBLIC_ORIGIN` | Browser Auth/CSRF 검증의 trusted public app origin | No |
 | `LABBIT_ADMIN_ADDR` | health/metrics listen address | No |
 | `LABBIT_DATABASE_DSN_FILE` | production DB DSN secret file 경로 | 경로 자체 No / 파일 내용 Yes |
 | `LABBIT_DATABASE_DSN` | local development용 직접 DSN | **Yes** |
 | `LABBIT_LOG_LEVEL` | application log level | No |
 | `LABBIT_SHUTDOWN_GRACE` | graceful shutdown budget | No |
 
-Production에서는 DB DSN 원문을 일반 ConfigMap이나 로그에 남기지 않고 Secret injection으로 파일을 제공하는 방식을 기준으로 합니다. `LABBIT_DATABASE_DSN`은 local development escape hatch이며 두 값이 모두 있으면 file form을 우선합니다.
+Production에서는 DB DSN 원문을 일반 ConfigMap이나 로그에 남기지 않고 Secret injection으로 파일을 제공하는 방식을 기준으로 합니다. LABBIT_DATABASE_DSN은 local development escape hatch이며 두 값이 모두 있으면 file form을 우선합니다.
+
+LABBIT_PUBLIC_ORIGIN은 Proxy/LB 뒤의 request Host에서 추론하지 않는 trusted 설정입니다. 개발자 PC에서는 Vite가 보이는 Browser origin을, 공유 Local/AWS에서는 실제 public HTTPS application origin을 사용합니다. Session lifecycle과 Origin/Referer 검증 세부는 docs/backend/auth-session.md를 따릅니다.
 
 ## Schema Migration
 
@@ -193,6 +196,7 @@ Platform/GitOps는 Runtime Contract를 소비해 다음을 실제 배포 값으�
 
 - immutable image/artifact build와 version 식별
 - Secret/Config 주입
+- 환경별 LABBIT_PUBLIC_ORIGIN 주입
 - public HTTPS/WSS 443 routing
 - admin listener 비공개 유지
 - `/livez`, `/readyz` Kubernetes Probe

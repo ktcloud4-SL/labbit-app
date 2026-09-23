@@ -1,7 +1,7 @@
 openapi: 3.1.2
 info:
   title: Labbit HTTP API
-  version: 0.1.1
+  version: 0.1.2
   description: |
     Labbit Browser ↔ SaaS HTTP 계약의 기계 판독 가능한 SSOT입니다.
 
@@ -51,7 +51,7 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       responses:
         '204':
-          description: 인증에 성공했으며 브라우저 세션 Cookie를 발급했습니다.
+          description: 인증에 성공했으며 기존 값을 재사용하지 않는 새 브라우저 세션 Cookie를 발급했습니다.
           headers:
             Set-Cookie:
               $ref: '#/components/headers/SessionSetCookie'
@@ -59,6 +59,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /auth/logout:
     post:
@@ -73,6 +75,8 @@ paths:
               $ref: '#/components/headers/SessionClearCookie'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /me:
     get:
@@ -496,15 +500,26 @@ components:
       description: |
         Labbit Backend가 발급하는 opaque 브라우저 세션 식별자입니다.
 
-        Production Cookie 속성은 Secure, HttpOnly, SameSite=Lax, Path=/를 사용하고
-        Domain 속성은 지정하지 않는 방향을 기준으로 합니다.
+        Production 및 production-like HTTPS 환경의 Cookie 속성은
+        Secure, HttpOnly, SameSite=Lax, Path=/를 사용하고 Domain은 지정하지 않습니다.
+        v0.1에서는 Max-Age/Expires를 두지 않는 non-persistent browser Cookie로 사용합니다.
         브라우저는 Cookie 값을 직접 읽거나 인증 상태의 원본으로 사용하지 않습니다.
 
-        세션 저장소는 HTTP 계약의 구현 상세입니다.
-        PostgreSQL에서 Valkey 등 다른 저장소로 변경하더라도 Cookie 계약은 유지할 수 있습니다.
+        로그인 성공마다 cryptographically-random 새 Session token을 발급하며
+        기존 Cookie 값을 인증 후 세션 ID로 재사용하거나 고정하지 않습니다.
+        서버 Session의 v0.1 absolute lifetime은 생성 시점부터 8시간이며
+        활동에 따른 sliding extension이나 주기적 token renewal은 적용하지 않습니다.
+        만료·폐기·비활성 사용자 또는 Password 변경 이전 Session은 인증에 사용할 수 없고
+        보호 API는 401을 반환합니다.
 
-        Cookie 인증을 사용하더라도 unsafe method에 대한 CSRF/Origin 검증 책임은
-        서버에 남아 있습니다.
+        세션 저장소는 HTTP 계약의 구현 상세입니다.
+        PostgreSQL에서 다른 저장소로 변경하더라도 Cookie와 인증 의미는 유지합니다.
+
+        POST/PUT/PATCH/DELETE 같은 unsafe method는 SameSite Cookie만 신뢰하지 않고,
+        서버가 trusted public origin과 Origin을 정확히 비교합니다.
+        Origin이 없는 경우 Referer의 origin을 fallback으로 확인하며
+        둘 다 없거나 일치하지 않으면 403으로 거절합니다.
+        구체 구현 기준은 docs/backend/auth-session.md를 따릅니다.
 
   parameters:
     ClassId:
@@ -575,12 +590,12 @@ components:
 
   headers:
     SessionSetCookie:
-      description: '이 계약의 보안 속성을 적용한 `__Host-labbit-session` Cookie를 발급합니다.'
+      description: '새 opaque token으로 Secure; HttpOnly; SameSite=Lax; Path=/, Domain 미지정의 non-persistent __Host-labbit-session Cookie를 발급합니다.'
       schema:
         type: string
 
     SessionClearCookie:
-      description: '현재 `__Host-labbit-session` Cookie를 만료시켜 제거합니다.'
+      description: '현재 Session을 서버에서 폐기하고 동일 Cookie scope에 Max-Age=0을 적용해 __Host-labbit-session Cookie를 제거합니다.'
       schema:
         type: string
 

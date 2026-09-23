@@ -1071,6 +1071,25 @@ describe('Auth·Class·LabSpec routing', () => {
     ).toBeInTheDocument()
   })
 
+  it('실습 확인 모달은 취소 버튼에 focus하고 ESC로 닫은 뒤 trigger로 focus를 복원한다', async () => {
+    renderRoute('/lab-executions/execution-kubernetes-basic')
+
+    await screen.findByRole('heading', { name: '실습 운영 상태' })
+    const cleanupTrigger = screen.getByRole('button', { name: '전체 실습 정리' })
+
+    fireEvent.click(cleanupTrigger)
+
+    const cancelButton = await screen.findByRole('button', { name: '취소' })
+    expect(cancelButton).toHaveFocus()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    expect(
+      screen.queryByRole('heading', { name: '현재 실습을 정리할까요?' }),
+    ).not.toBeInTheDocument()
+    expect(cleanupTrigger).toHaveFocus()
+  })
+
   it('강사는 LabExecution Cleanup을 확인한 뒤 Operation을 시작한다', async () => {
     const cleanupLabExecution = vi.fn(async () => ({
       operationId: 'operation-cleanup-1',

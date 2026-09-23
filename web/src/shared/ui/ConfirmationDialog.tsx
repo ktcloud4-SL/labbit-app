@@ -35,29 +35,42 @@ export function ConfirmationDialog({
 }: ConfirmationDialogProps) {
   const titleId = useId()
   const descriptionId = useId()
+  const dialogRef = useRef<HTMLElement | null>(null)
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     const returnFocusElement = returnFocusRef?.current
-    cancelButtonRef.current?.focus()
 
     return () => {
       returnFocusElement?.focus()
     }
   }, [returnFocusRef])
 
+  useEffect(() => {
+    if (pending) {
+      dialogRef.current?.focus()
+      return
+    }
+
+    cancelButtonRef.current?.focus()
+  }, [pending])
+
   return (
     <div className="modal-backdrop">
       <section
+        ref={dialogRef}
         className={`modal-card ${tone === 'danger' ? 'modal-card-danger' : ''}`}
         role="dialog"
         aria-modal="true"
+        aria-busy={pending}
+        tabIndex={-1}
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
+            event.preventDefault()
+
             if (!pending) {
-              event.preventDefault()
               onCancel()
             }
             return
@@ -69,7 +82,11 @@ export function ConfirmationDialog({
             event.currentTarget.querySelectorAll<HTMLElement>(focusableSelector),
           )
 
-          if (focusableElements.length === 0) return
+          if (focusableElements.length === 0) {
+            event.preventDefault()
+            dialogRef.current?.focus()
+            return
+          }
 
           const first = focusableElements[0]
           const last = focusableElements[focusableElements.length - 1]

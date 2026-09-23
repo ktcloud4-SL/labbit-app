@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ktcloud4-SL/rabbit-app/internal/observability"
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 )
 
 // Run은 Connector 프로세스의 최소 lifecycle만 제공한다.

@@ -18,6 +18,13 @@
 - PostgreSQL Physical Schema: `db/migrations/`
 - Application Runtime Contract: `runtime/`
 
+## Backend 구현 가이드
+
+- Backend 책임/의존 방향: docs/backend/README.md
+- Auth/Session 구현 계약: docs/backend/auth-session.md
+
+Backend 작업은 상위 제품/HTTP/DB/Runtime SSOT를 바꾸지 않는 범위에서 이 구현 가이드를 따릅니다. 구현 중 계약 변경이 필요하면 가이드만 수정하지 않고 owning SSOT를 함께 수정합니다.
+
 구현은 적용되는 SSOT와 모순되는 field, state, protocol behavior, runtime semantics를 임의로 만들지 않습니다. 계약 자체가 변경되어야 한다면 계약을 명시적으로 수정하고 영향을 받는 producer와 consumer를 함께 확인합니다.
 
 ## 검증

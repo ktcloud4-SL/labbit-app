@@ -38,10 +38,11 @@ export function ConfirmationDialog({
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
+    const returnFocusElement = returnFocusRef?.current
     cancelButtonRef.current?.focus()
 
     return () => {
-      returnFocusRef?.current?.focus()
+      returnFocusElement?.focus()
     }
   }, [returnFocusRef])
 

@@ -5,7 +5,7 @@
 > **기준 계획서**: [Connector MVP 개발 실행 계획](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/12845071/Connector+MVP)  
 > **세부 의사결정**: [현재 결정해야 하는 사안 — 2, 3번 세부 결정](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/13598741/2+3+Preview)  
 > **작업 브랜치**: `feat/SL-connector-control-wss`  
-> **Git SSOT 저장소**: [ktcloud4-SL/rabbit-app](https://github.com/ktcloud4-SL/rabbit-app.git)
+> **Git SSOT 저장소**: [ktcloud4-SL/labbit-app](https://github.com/ktcloud4-SL/labbit-app.git)
 
 ---
 
@@ -68,10 +68,10 @@ Connector는 2인이 분담하여 개발하며, 이주희는 **SaaS와의 통신
 
 ---
 
-## 4. 코드베이스 구조 (rabbit-app)
+## 4. 코드베이스 구조 (labbit-app)
 
 ```text
-rabbit-app/
+labbit-app/
 ├── cmd/
 │   └── labbit-connector/main.go       # Connector 프로세스 기동 진입점 (Graceful shutdown)
 ├── docs/

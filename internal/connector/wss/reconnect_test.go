@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/protocol"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/provider"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/wss"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/wss"
 )
 
 func TestBackoffPolicy_CalculationAndJitter(t *testing.T) {

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/protocol"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/provider"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 )
 
 // MessageSender 는 SaaS 로 WSS 메시지를 전송하는 인터페이스입니다.

@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 )
 
 // Config 는 Connector WSS Client 연결 설정입니다.

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 )
 
 // Client 는 SaaS 와의 Control WSS 통신을 담당하는 클라이언트입니다.

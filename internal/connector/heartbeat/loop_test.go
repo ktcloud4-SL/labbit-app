@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/heartbeat"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/heartbeat"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 )
 
 type mockSender struct {

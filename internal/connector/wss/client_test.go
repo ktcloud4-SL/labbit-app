@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/mock"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/protocol"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/wss"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/mock"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/wss"
 )
 
 func TestClient_DialAndHello_Success(t *testing.T) {

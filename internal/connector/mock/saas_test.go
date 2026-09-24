@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/mock"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/mock"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 )
 
 func TestMockSaaS_Handshake(t *testing.T) {

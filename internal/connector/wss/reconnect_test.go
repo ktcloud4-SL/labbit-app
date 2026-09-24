@@ -2,6 +2,7 @@ package wss_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -81,17 +82,20 @@ func newReconnectableMockServer(t *testing.T) *ReconnectableMockServer {
 			if err != nil {
 				break
 			}
+			var env protocol.BaseEnvelope
+			_ = json.Unmarshal(msg, &env)
 			// HELLO 메시지에 HELLO_ACK 회신
-			if strings.Contains(string(msg), "HELLO") && !strings.Contains(string(msg), "HELLO_ACK") {
+			if env.Type == protocol.MessageTypeHello {
 				rms.mu.Lock()
 				rms.helloCount++
 				rms.mu.Unlock()
 
 				ack := protocol.HelloAckMessage{
 					BaseEnvelope: protocol.BaseEnvelope{
-						Type:      protocol.MessageTypeHelloAck,
-						MessageID: "ack-reconnect-1",
-						SentAt:    time.Now().UTC(),
+						Type:             protocol.MessageTypeHelloAck,
+						MessageID:        "ack-reconnect-1",
+						ReplyToMessageID: env.MessageID,
+						SentAt:           time.Now().UTC(),
 					},
 					Payload: protocol.HelloAckPayload{
 						ServerTime:               time.Now().UTC(),
@@ -140,6 +144,7 @@ func TestSupervisor_LifecycleAndReconnect(t *testing.T) {
 		BaseURL:          server.URL(),
 		Credential:       "test-secret-token",
 		ConnectorVersion: "0.1.0-test",
+		AllowInsecure:    true,
 	}
 
 	backoff := wss.BackoffPolicy{

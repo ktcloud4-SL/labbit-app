@@ -21,8 +21,9 @@ func TestHandler_OperationCommand_Provision_Success(t *testing.T) {
 
 	// 1. Client 연결 및 HELLO 핸드셰이크
 	cfg := wss.Config{
-		BaseURL:    mockSaaS.URL(),
-		Credential: testToken,
+		BaseURL:       mockSaaS.URL(),
+		Credential:    testToken,
+		AllowInsecure: true,
 	}
 	client := wss.NewClient(cfg)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -189,8 +190,9 @@ func TestHandler_OperationCommand_Unknown_OnUnclassifiedError(t *testing.T) {
 	defer mockSaaS.Close()
 
 	cfg := wss.Config{
-		BaseURL:    mockSaaS.URL(),
-		Credential: testToken,
+		BaseURL:       mockSaaS.URL(),
+		Credential:    testToken,
+		AllowInsecure: true,
 	}
 	client := wss.NewClient(cfg)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -295,8 +297,9 @@ func TestHandler_OperationCommand_MissingCorrelation_Rejected(t *testing.T) {
 	defer mockSaaS.Close()
 
 	cfg := wss.Config{
-		BaseURL:    mockSaaS.URL(),
-		Credential: testToken,
+		BaseURL:       mockSaaS.URL(),
+		Credential:    testToken,
+		AllowInsecure: true,
 	}
 	client := wss.NewClient(cfg)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -373,8 +376,9 @@ func TestHandler_ReconcileRequest_Success(t *testing.T) {
 	defer mockSaaS.Close()
 
 	cfg := wss.Config{
-		BaseURL:    mockSaaS.URL(),
-		Credential: testToken,
+		BaseURL:       mockSaaS.URL(),
+		Credential:    testToken,
+		AllowInsecure: true,
 	}
 	client := wss.NewClient(cfg)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -489,5 +493,320 @@ func TestHandler_ReconcileRequest_Success(t *testing.T) {
 	}
 	if resMsg.Payload.Observations[1].Source != "DISCOVERED_CANDIDATE" {
 		t.Fatalf("unexpected candidate source: %s", resMsg.Payload.Observations[1].Source)
+	}
+}
+
+// TestHandler_OperationCommand_MissingImageId_RejectedWithoutProviderCall 는
+// CreationSnapshot 의 ResolvedVmSpec 에 imageId 가 누락된 경우 imageRef 로 대체하지 않고
+// Provider 호출 전에 INVALID_COMMAND 로 즉시 거절하는지 검증하는 테스트입니다 (팀장님 리뷰 3번).
+func TestHandler_OperationCommand_MissingImageId_RejectedWithoutProviderCall(t *testing.T) {
+	testToken := "test-secret-token"
+	mockSaaS := mock.NewMockSaaS(testToken)
+	defer mockSaaS.Close()
+
+	cfg := wss.Config{
+		BaseURL:       mockSaaS.URL(),
+		Credential:    testToken,
+		AllowInsecure: true,
+	}
+	client := wss.NewClient(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := client.Dial(ctx); err != nil {
+		t.Fatalf("client.Dial failed: %v", err)
+	}
+	defer client.Close()
+
+	if _, err := client.SendHello(ctx); err != nil {
+		t.Fatalf("client.SendHello failed: %v", err)
+	}
+
+	provisionCalled := false
+	mockProv := &provider.MockProvider{
+		ProvisionFunc: func(ctx context.Context, req provider.ProvisionRequest) (provider.OperationResult, error) {
+			provisionCalled = true
+			return provider.OperationResult{Outcome: provider.OutcomeSucceeded}, nil
+		},
+	}
+
+	handler := wss.NewHandler(mockProv, client)
+	go func() {
+		_ = handler.Listen(ctx, client.Conn())
+	}()
+
+	// ImageID 누락 및 ImageRef만 제공된 비정상 명령 (imageRef fallback 금지 검증)
+	cmdMsg := protocol.OperationCommandMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:          protocol.MessageTypeOperationCommand,
+			MessageID:     "msg-missing-img-1",
+			SentAt:        time.Now().UTC(),
+			OperationID:   "op-missing-img",
+			LabInstanceID: "inst-missing-img",
+			Generation:    1,
+		},
+		Payload: protocol.OperationCommandPayload{
+			MutationType: "PROVISION",
+			CreationSnapshot: &protocol.CreationSnapshot{
+				ProviderConnectionID: "conn-1",
+				WorkspaceVMKey:       "vm-1",
+				InternetOutbound:     true,
+				VMs: []protocol.ResolvedVmSpec{
+					{
+						VMKey:         "vm-1",
+						Role:          "default",
+						InstanceIndex: 0,
+						ImageID:       "", // ImageID 누락
+						ImageRef:      "deprecated-image-ref",
+						FlavorID:      "flavor-id-1",
+						FlavorSpec: &protocol.ResolvedFlavorSpec{
+							VCPUs:   1,
+							RAMMiB:  1024,
+							DiskGiB: 10,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if err := mockSaaS.SendRaw(cmdMsg); err != nil {
+		t.Fatalf("failed to send command: %v", err)
+	}
+
+	var ackMsg *protocol.OperationAckMessage
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		msgs := mockSaaS.ReceivedMessages()
+		for _, m := range msgs {
+			var env protocol.BaseEnvelope
+			if err := json.Unmarshal(m, &env); err == nil {
+				if env.Type == protocol.MessageTypeOperationAck && env.ReplyToMessageID == "msg-missing-img-1" {
+					var ack protocol.OperationAckMessage
+					_ = json.Unmarshal(m, &ack)
+					ackMsg = &ack
+				}
+			}
+		}
+		if ackMsg != nil {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	// Provider가 절대 호출되지 않아야 함
+	if provisionCalled {
+		t.Fatalf("provider must NOT be called when wire validation fails")
+	}
+
+	if ackMsg == nil {
+		t.Fatalf("expected OPERATION_ACK to be received by SaaS")
+	}
+	if ackMsg.Payload.Accepted {
+		t.Fatalf("expected OPERATION_ACK accepted to be false")
+	}
+	if ackMsg.Payload.Error == nil || ackMsg.Payload.Error.Code != "INVALID_COMMAND" {
+		t.Fatalf("expected SafeError with code INVALID_COMMAND, got %+v", ackMsg.Payload.Error)
+	}
+}
+
+// TestHandler_OperationCommand_MissingFlavorId_RejectedWithoutProviderCall 는
+// CreationSnapshot 의 ResolvedVmSpec 에 flavorId 가 누락된 경우 flavorRef 로 대체하지 않고
+// Provider 호출 전에 INVALID_COMMAND 로 즉시 거절하는지 검증하는 테스트입니다.
+func TestHandler_OperationCommand_MissingFlavorId_RejectedWithoutProviderCall(t *testing.T) {
+	testToken := "test-secret-token"
+	mockSaaS := mock.NewMockSaaS(testToken)
+	defer mockSaaS.Close()
+
+	cfg := wss.Config{
+		BaseURL:       mockSaaS.URL(),
+		Credential:    testToken,
+		AllowInsecure: true,
+	}
+	client := wss.NewClient(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := client.Dial(ctx); err != nil {
+		t.Fatalf("client.Dial failed: %v", err)
+	}
+	defer client.Close()
+
+	if _, err := client.SendHello(ctx); err != nil {
+		t.Fatalf("client.SendHello failed: %v", err)
+	}
+
+	provisionCalled := false
+	mockProv := &provider.MockProvider{
+		ProvisionFunc: func(ctx context.Context, req provider.ProvisionRequest) (provider.OperationResult, error) {
+			provisionCalled = true
+			return provider.OperationResult{Outcome: provider.OutcomeSucceeded}, nil
+		},
+	}
+
+	handler := wss.NewHandler(mockProv, client)
+	go func() {
+		_ = handler.Listen(ctx, client.Conn())
+	}()
+
+	cmdMsg := protocol.OperationCommandMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:          protocol.MessageTypeOperationCommand,
+			MessageID:     "msg-missing-flavor-1",
+			SentAt:        time.Now().UTC(),
+			OperationID:   "op-missing-flavor",
+			LabInstanceID: "inst-missing-flavor",
+			Generation:    1,
+		},
+		Payload: protocol.OperationCommandPayload{
+			MutationType: "PROVISION",
+			CreationSnapshot: &protocol.CreationSnapshot{
+				ProviderConnectionID: "conn-1",
+				WorkspaceVMKey:       "vm-1",
+				InternetOutbound:     true,
+				VMs: []protocol.ResolvedVmSpec{
+					{
+						VMKey:         "vm-1",
+						Role:          "default",
+						InstanceIndex: 0,
+						ImageID:       "image-id-1",
+						FlavorID:      "", // FlavorID 누락
+						FlavorRef:     "deprecated-flavor-ref",
+						FlavorSpec: &protocol.ResolvedFlavorSpec{
+							VCPUs:   1,
+							RAMMiB:  1024,
+							DiskGiB: 10,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if err := mockSaaS.SendRaw(cmdMsg); err != nil {
+		t.Fatalf("failed to send command: %v", err)
+	}
+
+	var ackMsg *protocol.OperationAckMessage
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		msgs := mockSaaS.ReceivedMessages()
+		for _, m := range msgs {
+			var env protocol.BaseEnvelope
+			if err := json.Unmarshal(m, &env); err == nil {
+				if env.Type == protocol.MessageTypeOperationAck && env.ReplyToMessageID == "msg-missing-flavor-1" {
+					var ack protocol.OperationAckMessage
+					_ = json.Unmarshal(m, &ack)
+					ackMsg = &ack
+				}
+			}
+		}
+		if ackMsg != nil {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	if provisionCalled {
+		t.Fatalf("provider must NOT be called when wire validation fails")
+	}
+
+	if ackMsg == nil {
+		t.Fatalf("expected OPERATION_ACK to be received by SaaS")
+	}
+	if ackMsg.Payload.Accepted {
+		t.Fatalf("expected OPERATION_ACK accepted to be false")
+	}
+	if ackMsg.Payload.Error == nil || ackMsg.Payload.Error.Code != "INVALID_COMMAND" {
+		t.Fatalf("expected SafeError with code INVALID_COMMAND, got %+v", ackMsg.Payload.Error)
+	}
+}
+
+// TestHandler_OperationCommand_MissingCreationSnapshot_Rejected 는
+// PROVISION 명령에 CreationSnapshot 이 누락된 경우 Provider 호출 없이 거절되는지 검증합니다.
+func TestHandler_OperationCommand_MissingCreationSnapshot_Rejected(t *testing.T) {
+	testToken := "test-secret-token"
+	mockSaaS := mock.NewMockSaaS(testToken)
+	defer mockSaaS.Close()
+
+	cfg := wss.Config{
+		BaseURL:       mockSaaS.URL(),
+		Credential:    testToken,
+		AllowInsecure: true,
+	}
+	client := wss.NewClient(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := client.Dial(ctx); err != nil {
+		t.Fatalf("client.Dial failed: %v", err)
+	}
+	defer client.Close()
+
+	if _, err := client.SendHello(ctx); err != nil {
+		t.Fatalf("client.SendHello failed: %v", err)
+	}
+
+	provisionCalled := false
+	mockProv := &provider.MockProvider{
+		ProvisionFunc: func(ctx context.Context, req provider.ProvisionRequest) (provider.OperationResult, error) {
+			provisionCalled = true
+			return provider.OperationResult{Outcome: provider.OutcomeSucceeded}, nil
+		},
+	}
+
+	handler := wss.NewHandler(mockProv, client)
+	go func() {
+		_ = handler.Listen(ctx, client.Conn())
+	}()
+
+	cmdMsg := protocol.OperationCommandMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:          protocol.MessageTypeOperationCommand,
+			MessageID:     "msg-no-snapshot-1",
+			SentAt:        time.Now().UTC(),
+			OperationID:   "op-no-snapshot",
+			LabInstanceID: "inst-no-snapshot",
+			Generation:    1,
+		},
+		Payload: protocol.OperationCommandPayload{
+			MutationType:     "PROVISION",
+			CreationSnapshot: nil, // 누락
+		},
+	}
+
+	if err := mockSaaS.SendRaw(cmdMsg); err != nil {
+		t.Fatalf("failed to send command: %v", err)
+	}
+
+	var ackMsg *protocol.OperationAckMessage
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		msgs := mockSaaS.ReceivedMessages()
+		for _, m := range msgs {
+			var env protocol.BaseEnvelope
+			if err := json.Unmarshal(m, &env); err == nil {
+				if env.Type == protocol.MessageTypeOperationAck && env.ReplyToMessageID == "msg-no-snapshot-1" {
+					var ack protocol.OperationAckMessage
+					_ = json.Unmarshal(m, &ack)
+					ackMsg = &ack
+				}
+			}
+		}
+		if ackMsg != nil {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	if provisionCalled {
+		t.Fatalf("provider must NOT be called when creationSnapshot is missing")
+	}
+
+	if ackMsg == nil {
+		t.Fatalf("expected OPERATION_ACK to be received by SaaS")
+	}
+	if ackMsg.Payload.Accepted {
+		t.Fatalf("expected OPERATION_ACK accepted to be false")
 	}
 }

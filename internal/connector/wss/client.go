@@ -17,6 +17,7 @@ import (
 type Client struct {
 	cfg       Config
 	mu        sync.RWMutex
+	writeMu   sync.Mutex // Gorilla WebSocket concurrent write 방지를 위한 쓰기 직렬화 뮤텍스
 	conn      *websocket.Conn
 	startedAt time.Time
 }
@@ -106,8 +107,11 @@ func (c *Client) SendHello(ctx context.Context) (*protocol.HelloAckPayload, erro
 		return nil, fmt.Errorf("failed to marshal HELLO message: %w", err)
 	}
 
-	// HELLO 메시지 전송
-	if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+	// HELLO 메시지 전송 (동시 쓰기 보호)
+	c.writeMu.Lock()
+	err = conn.WriteMessage(websocket.TextMessage, data)
+	c.writeMu.Unlock()
+	if err != nil {
 		return nil, fmt.Errorf("failed to send HELLO message: %w", err)
 	}
 
@@ -140,8 +144,25 @@ func (c *Client) SendHello(ctx context.Context) (*protocol.HelloAckPayload, erro
 			return nil, fmt.Errorf("expected %s but received %s", protocol.MessageTypeHelloAck, ack.Type)
 		}
 
-		if ack.ReplyToMessageID != "" && ack.ReplyToMessageID != msgID {
+		// required field 검증 (connector.schema.json: replyToMessageId, heartbeatIntervalSeconds, offlineTimeoutSeconds, serverTime)
+		if ack.ReplyToMessageID == "" {
+			return nil, fmt.Errorf("missing required replyToMessageId in HELLO_ACK")
+		}
+
+		if ack.ReplyToMessageID != msgID {
 			return nil, fmt.Errorf("replyToMessageId mismatch: expected %s, got %s", msgID, ack.ReplyToMessageID)
+		}
+
+		if ack.Payload.HeartbeatIntervalSeconds <= 0 {
+			return nil, fmt.Errorf("invalid heartbeatIntervalSeconds in HELLO_ACK: %d", ack.Payload.HeartbeatIntervalSeconds)
+		}
+
+		if ack.Payload.OfflineTimeoutSeconds <= 0 {
+			return nil, fmt.Errorf("invalid offlineTimeoutSeconds in HELLO_ACK: %d", ack.Payload.OfflineTimeoutSeconds)
+		}
+
+		if ack.Payload.ServerTime.IsZero() {
+			return nil, fmt.Errorf("missing required serverTime in HELLO_ACK")
 		}
 
 		return &ack.Payload, nil
@@ -156,7 +177,16 @@ func (c *Client) Conn() *websocket.Conn {
 }
 
 // SendMessage 는 WebSocket 연결을 통해 JSON 메시지를 전송합니다.
+// Gorilla WebSocket 의 single writer 제약을 위해 writeMu 뮤텍스로 동시 쓰기를 직렬화합니다.
 func (c *Client) SendMessage(ctx context.Context, msg interface{}) error {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal message: %w", err)
+	}
+
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+
 	c.mu.RLock()
 	conn := c.conn
 	c.mu.RUnlock()
@@ -165,25 +195,25 @@ func (c *Client) SendMessage(ctx context.Context, msg interface{}) error {
 		return fmt.Errorf("not connected: must call Dial first")
 	}
 
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return fmt.Errorf("failed to marshal message: %w", err)
-	}
-
 	return conn.WriteMessage(websocket.TextMessage, data)
 }
 
 // Close 는 WebSocket 연결을 정상 종료합니다.
 func (c *Client) Close() error {
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+
 	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.conn != nil {
-		err := c.conn.WriteMessage(
+	conn := c.conn
+	c.conn = nil
+	c.mu.Unlock()
+
+	if conn != nil {
+		err := conn.WriteMessage(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "connector client closing"),
 		)
-		_ = c.conn.Close()
-		c.conn = nil
+		_ = conn.Close()
 		return err
 	}
 	return nil

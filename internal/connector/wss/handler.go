@@ -67,9 +67,123 @@ func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
 	case protocol.MessageTypeReconcileRequest:
 		return h.handleReconcileRequest(ctx, env, raw)
 	default:
-		// 알 수 없는 메시지 타입이거나 핸들러 대상이 아닌 메시지는 무시
+		// 지원되지 않는 메시지 타입은 Protocol Error 회신 후 무시
+		if sender := h.Sender(); sender != nil && env.MessageID != "" {
+			errPayload := protocol.ProtocolErrorMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:             protocol.MessageTypeError,
+					MessageID:        generateUUID(),
+					ReplyToMessageID: env.MessageID,
+					SentAt:           time.Now().UTC(),
+				},
+				Payload: protocol.ProtocolErrorPayload{
+					Code:    "UNSUPPORTED_MESSAGE_TYPE",
+					Message: fmt.Sprintf("unsupported message type: %s", env.Type),
+					Fatal:   false,
+				},
+			}
+			_ = sender.SendMessage(ctx, errPayload)
+		}
 		return nil
 	}
+}
+
+// validateOperationCommand 는 connector.schema.json 기준 필수 Correlation 및 Payload 필드를 Provider 호출 전에 사전 검증합니다.
+func validateOperationCommand(cmd *protocol.OperationCommandMessage) error {
+	if cmd.MessageID == "" {
+		return fmt.Errorf("missing required messageId in envelope")
+	}
+	if cmd.OperationID == "" {
+		return fmt.Errorf("missing required operationId in envelope")
+	}
+	if cmd.LabInstanceID == "" {
+		return fmt.Errorf("missing required labInstanceId in envelope")
+	}
+	if cmd.Generation < 1 {
+		return fmt.Errorf("invalid generation in envelope: must be >= 1, got %d", cmd.Generation)
+	}
+
+	switch cmd.Payload.MutationType {
+	case protocol.MutationTypeProvision, protocol.MutationTypeReset:
+		if cmd.Payload.CreationSnapshot == nil {
+			return fmt.Errorf("creationSnapshot is required for %s", cmd.Payload.MutationType)
+		}
+		snap := cmd.Payload.CreationSnapshot
+		if snap.ProviderConnectionID == "" {
+			return fmt.Errorf("providerConnectionId is required in creationSnapshot")
+		}
+		if snap.WorkspaceVMKey == "" {
+			return fmt.Errorf("workspaceVmKey is required in creationSnapshot")
+		}
+		if len(snap.VMs) == 0 {
+			return fmt.Errorf("creationSnapshot must contain at least 1 VM")
+		}
+		workspaceVMFound := false
+		for i, v := range snap.VMs {
+			if v.VMKey == "" {
+				return fmt.Errorf("vmKey is required for VM at index %d", i)
+			}
+			if v.Role == "" {
+				return fmt.Errorf("role is required for VM %q", v.VMKey)
+			}
+			if v.InstanceIndex < 0 {
+				return fmt.Errorf("instanceIndex must be >= 0 for VM %q", v.VMKey)
+			}
+			// imageId, flavorId 필수 검증: imageRef/flavorRef 대체는 금지되며 invalid command로 거절
+			if v.ImageID == "" {
+				return fmt.Errorf("imageId is required for VM %q: imageRef fallback is prohibited", v.VMKey)
+			}
+			if v.FlavorID == "" {
+				return fmt.Errorf("flavorId is required for VM %q: flavorRef fallback is prohibited", v.VMKey)
+			}
+			if v.FlavorSpec == nil {
+				return fmt.Errorf("flavorSpec is required for VM %q", v.VMKey)
+			}
+			if v.FlavorSpec.VCPUs < 1 {
+				return fmt.Errorf("flavorSpec.vcpus must be >= 1 for VM %q", v.VMKey)
+			}
+			if v.FlavorSpec.RAMMiB < 1 {
+				return fmt.Errorf("flavorSpec.ramMiB must be >= 1 for VM %q", v.VMKey)
+			}
+			if v.FlavorSpec.DiskGiB < 0 {
+				return fmt.Errorf("flavorSpec.diskGiB must be >= 0 for VM %q", v.VMKey)
+			}
+			if v.VMKey == snap.WorkspaceVMKey {
+				workspaceVMFound = true
+			}
+		}
+		if !workspaceVMFound {
+			return fmt.Errorf("workspaceVmKey %q does not match any VM in creationSnapshot", snap.WorkspaceVMKey)
+		}
+		if snap.StartupScript != nil {
+			if snap.StartupScript.Content == "" {
+				return fmt.Errorf("startupScript content cannot be empty")
+			}
+			if len(snap.StartupScript.SHA256) != 64 {
+				return fmt.Errorf("startupScript sha256 must be 64-character hex string")
+			}
+		}
+
+	case protocol.MutationTypeCleanup:
+		if cmd.Payload.ProviderResources != nil {
+			for i, r := range cmd.Payload.ProviderResources {
+				if r.ResourceType == "" {
+					return fmt.Errorf("resourceType is required for cleanup provider resource at index %d", i)
+				}
+				if r.ProviderID == "" {
+					return fmt.Errorf("providerId is required for cleanup provider resource at index %d", i)
+				}
+				if r.Generation < 1 {
+					return fmt.Errorf("generation must be >= 1 for cleanup provider resource at index %d", i)
+				}
+			}
+		}
+
+	default:
+		return fmt.Errorf("unsupported mutationType: %s", cmd.Payload.MutationType)
+	}
+
+	return nil
 }
 
 func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseEnvelope, raw []byte) error {
@@ -78,9 +192,9 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 		return fmt.Errorf("failed to unmarshal OPERATION_COMMAND: %w", err)
 	}
 
-	// 1. 필수 Correlation 필드 검증 (OperationID, LabInstanceID, Generation >= 1)
-	if cmdMsg.OperationID == "" || cmdMsg.LabInstanceID == "" || cmdMsg.Generation < 1 {
-		if sender := h.Sender(); sender != nil {
+	// 1. Wire Validation (Envelope 및 Payload 스키마 필수값 엄격 검증)
+	if valErr := validateOperationCommand(&cmdMsg); valErr != nil {
+		if sender := h.Sender(); sender != nil && cmdMsg.MessageID != "" {
 			ackErr := protocol.OperationAckMessage{
 				BaseEnvelope: protocol.BaseEnvelope{
 					Type:             protocol.MessageTypeOperationAck,
@@ -98,13 +212,13 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 					Accepted: false,
 					Error: &protocol.SafeError{
 						Code:    "INVALID_COMMAND",
-						Message: "missing required correlation fields in envelope",
+						Message: valErr.Error(),
 					},
 				},
 			}
 			_ = sender.SendMessage(ctx, ackErr)
 		}
-		return fmt.Errorf("invalid operation command: missing correlation fields")
+		return fmt.Errorf("invalid operation command: %w", valErr)
 	}
 
 	// 2. 계약에 따른 OPERATION_ACK(Accepted: true) 즉시 회신
@@ -162,12 +276,7 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 				ImageID:       v.ImageID,
 				FlavorID:      v.FlavorID,
 			}
-			if vmSpec.ImageID == "" && v.ImageRef != "" {
-				vmSpec.ImageID = v.ImageRef
-			}
-			if vmSpec.FlavorID == "" && v.FlavorRef != "" {
-				vmSpec.FlavorID = v.FlavorRef
-			}
+			// imageRef / flavorRef 대체 로직 완전 제거 (스키마 필수값 imageId / flavorId 만 사용)
 			if v.FlavorSpec != nil {
 				vmSpec.FlavorSpec = provider.FlavorSpec{
 					VCPUs:   v.FlavorSpec.VCPUs,
@@ -252,14 +361,67 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 	return nil
 }
 
+// validateReconcileRequest 는 connector.schema.json 기준 RECONCILE_REQUEST 필수 필드를 사전 검증합니다.
+func validateReconcileRequest(req *protocol.ReconcileRequestMessage) error {
+	if req.MessageID == "" {
+		return fmt.Errorf("missing required messageId in envelope")
+	}
+	if req.OperationID == "" {
+		return fmt.Errorf("missing required operationId in envelope")
+	}
+	if req.LabInstanceID == "" {
+		return fmt.Errorf("missing required labInstanceId in envelope")
+	}
+	if req.Generation < 1 {
+		return fmt.Errorf("invalid generation in envelope: must be >= 1, got %d", req.Generation)
+	}
+	for i, r := range req.Payload.KnownResources {
+		if r.ResourceType == "" {
+			return fmt.Errorf("resourceType is required in knownResources at index %d", i)
+		}
+		if r.ProviderID == "" {
+			return fmt.Errorf("providerId is required in knownResources at index %d", i)
+		}
+		if r.Generation < 1 {
+			return fmt.Errorf("generation must be >= 1 in knownResources at index %d", i)
+		}
+	}
+	return nil
+}
+
 func (h *Handler) handleReconcileRequest(ctx context.Context, env protocol.BaseEnvelope, raw []byte) error {
 	var reqMsg protocol.ReconcileRequestMessage
 	if err := json.Unmarshal(raw, &reqMsg); err != nil {
 		return fmt.Errorf("failed to unmarshal RECONCILE_REQUEST: %w", err)
 	}
 
-	if reqMsg.OperationID == "" || reqMsg.LabInstanceID == "" || reqMsg.Generation < 1 {
-		return fmt.Errorf("invalid reconcile request: missing correlation fields")
+	// 1. Wire Validation (Correlation 및 knownResources 필수값 검증)
+	if valErr := validateReconcileRequest(&reqMsg); valErr != nil {
+		if sender := h.Sender(); sender != nil && reqMsg.MessageID != "" && reqMsg.OperationID != "" && reqMsg.LabInstanceID != "" && reqMsg.Generation >= 1 {
+			errRes := protocol.ReconcileResultMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:             protocol.MessageTypeReconcileResult,
+					MessageID:        generateUUID(),
+					ReplyToMessageID: reqMsg.MessageID,
+					SentAt:           time.Now().UTC(),
+					RequestID:        reqMsg.RequestID,
+					OperationID:      reqMsg.OperationID,
+					LabInstanceID:    reqMsg.LabInstanceID,
+					Generation:       reqMsg.Generation,
+					TraceParent:      reqMsg.TraceParent,
+					TraceState:       reqMsg.TraceState,
+				},
+				Payload: protocol.ReconcileResultPayload{
+					Observations: []protocol.ResourceObservation{},
+					Error: &protocol.SafeError{
+						Code:    "INVALID_REQUEST",
+						Message: valErr.Error(),
+					},
+				},
+			}
+			_ = sender.SendMessage(ctx, errRes)
+		}
+		return fmt.Errorf("invalid reconcile request: %w", valErr)
 	}
 
 	// 공동 결정 규칙: discoverCandidates 생략 시 true 적용, 명시적 false 유지

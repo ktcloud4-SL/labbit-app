@@ -13,7 +13,7 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	CheckOrigin:  func(r *http.Request) bool { return true },
 	Subprotocols: []string{protocol.SubprotocolControl},
 }
 
@@ -154,4 +154,3 @@ func (m *MockSaaS) ReceivedMessages() [][]byte {
 	copy(res, m.received)
 	return res
 }
-

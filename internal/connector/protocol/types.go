@@ -113,6 +113,19 @@ type SafeError struct {
 	Message string `json:"message,omitempty"`
 }
 
+// ProtocolErrorPayload 는 프로토콜 및 제어 레벨 오류 본문입니다.
+type ProtocolErrorPayload struct {
+	Code    string `json:"code"`
+	Message string `json:"message,omitempty"`
+	Fatal   bool   `json:"fatal,omitempty"`
+}
+
+// ProtocolErrorMessage 는 연결 레벨 프로토콜 오류 메시지입니다.
+type ProtocolErrorMessage struct {
+	BaseEnvelope
+	Payload ProtocolErrorPayload `json:"payload"`
+}
+
 // ProviderResourceRef 는 OpenStack 리소스의 기본 참조 정보입니다.
 type ProviderResourceRef struct {
 	ResourceType string `json:"resourceType"` // SERVER, NETWORK, SUBNET, ROUTER 등

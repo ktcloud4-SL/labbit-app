@@ -1,20 +1,31 @@
 GO ?= go
 NPM ?= npm
 
-.PHONY: setup test go-test go-vet web-install web-typecheck web-lint web-test web-build server connector web
+.PHONY: setup test go-fmt-check go-vet go-test go-build web-install web-typecheck web-lint web-test web-build server connector web
 
 # 개발 시작 전에 필요한 최소 의존성을 설치한다.
 setup: web-install
 	$(GO) mod download
 
 # 저장소 전체의 기본 검증 진입점이다.
-test: go-test go-vet web-typecheck web-lint web-test web-build
+test: go-fmt-check go-vet go-test go-build web-typecheck web-lint web-test web-build
+
+go-fmt-check:
+	@files="$$(gofmt -l $$(find . -type f -name '*.go' -not -path './vendor/*'))"; \
+	if [ -n "$$files" ]; then \
+		echo "gofmt가 필요한 파일:"; \
+		echo "$$files"; \
+		exit 1; \
+	fi
+
+go-vet:
+	$(GO) vet ./...
 
 go-test:
 	$(GO) test ./...
 
-go-vet:
-	$(GO) vet ./...
+go-build:
+	$(GO) build ./...
 
 web-install:
 	cd web && $(NPM) ci

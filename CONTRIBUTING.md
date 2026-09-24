@@ -1,10 +1,12 @@
 # Labbit 개발 협업 규칙
 
-이 문서는 `rabbit-app` 개발 시작 전에 필요한 최소 Git/PR 규칙만 정의합니다. 기능·도메인 정책은 Confluence, 기계 판독 계약은 `contracts/`, `db/`, `runtime/`의 각 SSOT를 따릅니다.
+이 문서는 `labbit-app` 개발에 필요한 최소 Git/PR 및 repository-level 검증 규칙을 정의합니다. 기능·도메인 정책은 Confluence, 기계 판독 계약은 `contracts/`, `db/`, `runtime/`의 각 SSOT를 따릅니다.
 
 ## 브랜치
 
 브랜치 이름은 ASCII로 작성합니다.
+
+관련 Jira가 있는 작업은 Jira key를 사용합니다.
 
 ```text
 <type>/<jira-key>-<english-slug>
@@ -17,6 +19,22 @@ feat/SL-123-provision-targets
 fix/SL-214-reset-conflict
 docs/SL-301-runtime-contract
 ```
+
+별도 Jira로 추적할 필요가 없는 **소규모 repository maintenance 또는 기존 review follow-up**은 다음 예외 형식을 사용할 수 있습니다.
+
+```text
+<type>/<english-slug>
+```
+
+예:
+
+```text
+fix/repo-module-path
+refactor/frontend-confirmation-dialog
+chore/testing-convention-go-gate
+```
+
+기존에 관련 Jira가 있다면 예외 형식보다 해당 Jira key를 재사용합니다. 사용자 기능, HTTP/WSS 계약, DB/보안/Runtime 의미 변경 또는 여러 PR에 걸쳐 추적해야 하는 작업은 Jira 연결을 우선합니다.
 
 ## Commit / PR 제목
 
@@ -85,9 +103,19 @@ ci
 
 - `main`에 직접 push하지 않고 PR을 사용합니다.
 - PR 제목도 Commit Convention과 같은 형식을 사용합니다.
-- 한 PR은 가능한 한 하나의 Jira Story/명확한 목적에 집중합니다.
+- 한 PR은 가능한 한 하나의 Jira Story 또는 하나의 명확한 목적에 집중합니다.
+- 관련 Jira가 있으면 PR에 연결하고, Jira가 없는 예외 작업은 PR에 그 이유를 명시합니다.
 - 계약 파일을 바꾸면 해당 producer/consumer 영향도 함께 확인합니다.
 - 생성된 코드가 있다면 생성 원본과 생성 방법을 PR에 명시합니다.
+
+## 테스트와 검증
+
+테스트 코드 작성 기준은 [TESTING.md](./TESTING.md)를 따릅니다.
+
+- 기능 또는 동작 변경 PR은 변경 동작에 대한 자동 테스트 필요 여부를 함께 검토합니다.
+- Bug fix는 가능한 경우 동일 문제가 다시 발생하지 않도록 regression test를 추가합니다.
+- 자동 테스트가 적절하지 않은 변경은 PR에 그 이유를 남깁니다.
+- Integration/E2E가 Acceptance 기준인 작업은 unit test 통과만으로 완료로 판단하지 않습니다.
 
 ## Merge 전략
 
@@ -114,6 +142,15 @@ Labbit의 모든 코드 변경은 개발 리더가 최종 리뷰합니다.
 ```bash
 make setup
 make test
+```
+
+Go 검증은 개별 target으로도 실행할 수 있습니다.
+
+```bash
+make go-fmt-check
+make go-vet
+make go-test
+make go-build
 ```
 
 개별 실행:

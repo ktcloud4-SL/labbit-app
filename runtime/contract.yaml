@@ -1,4 +1,4 @@
-version: "0.1.1"
+version: "0.1.2"
 kind: "LabbitRuntimeContract"
 
 scope:
@@ -95,6 +95,17 @@ saas:
       required: false
       secret: false
       default: ":8080"
+    LABBIT_PUBLIC_ORIGIN:
+      required_when: "api role enables Browser HTTP/Auth handlers"
+      secret: false
+      format: "absolute origin URL (scheme + host + optional port, no path/query/fragment)"
+      examples:
+        - "http://localhost:5173"
+        - "https://labbit.example.com"
+      note: >-
+        Browser unsafe-method CSRF/Origin 검증의 trusted target origin입니다.
+        request Host/X-Forwarded-Host를 신뢰해 동적으로 결정하지 않습니다.
+        개발자 PC에서는 Vite Browser origin, 공유 Local/AWS에서는 실제 public HTTPS app origin을 주입합니다.
     LABBIT_ADMIN_ADDR:
       required: false
       secret: false

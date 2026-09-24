@@ -8,6 +8,8 @@ on:
       - "**/*.go"
       - "go.mod"
       - "go.sum"
+      - "Makefile"
+      - ".github/workflows/go.yml"
 
 permissions:
   contents: read
@@ -22,8 +24,14 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Go test
-        run: go test ./...
+      - name: Go format
+        run: make go-fmt-check
 
       - name: Go vet
-        run: go vet ./...
+        run: make go-vet
+
+      - name: Go test
+        run: make go-test
+
+      - name: Go build
+        run: make go-build

@@ -159,7 +159,7 @@ function LabSpecForm({
     <form className="labspec-form" onSubmit={handleSubmit}>
       {readOnly && (
         <div className="notice-card">
-          이 LabSpec은 다른 Instructor가 소유하고 있어 현재 계정에서는 읽기만 할 수 있습니다.
+          다른 강사가 소유한 실습 정의입니다. 현재 계정에서는 내용을 확인만 할 수 있습니다.
         </div>
       )}
 
@@ -175,7 +175,7 @@ function LabSpecForm({
       <section className="form-section">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Basic</p>
+            <p className="eyebrow">기본 설정</p>
             <h2>기본 정보</h2>
           </div>
         </div>
@@ -207,16 +207,15 @@ function LabSpecForm({
       <section className="form-section">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Multi-VM</p>
+            <p className="eyebrow">환경 구성</p>
             <h2>VM 구성</h2>
             <p className="muted">
-              Image/Size 후보 조회 계약은 아직 별도 확정 전이므로 현재 화면은 OpenAPI의
-              논리 참조값만 입력합니다.
+              실습에 필요한 VM 역할과 이미지·크기 참조값을 정의합니다.
             </p>
           </div>
           {!readOnly && (
             <button className="secondary-button" type="button" onClick={addVm}>
-              VM Role 추가
+              VM 역할 추가
             </button>
           )}
         </div>
@@ -225,7 +224,7 @@ function LabSpecForm({
           {form.vms.map((vm, index) => (
             <article className="vm-row" key={index}>
               <div className="vm-row-heading">
-                <strong>VM Role {index + 1}</strong>
+                <strong>VM 역할 {index + 1}</strong>
                 {!readOnly && form.vms.length > 1 && (
                   <button
                     className="text-button danger-text"
@@ -301,11 +300,10 @@ function LabSpecForm({
       <section className="form-section">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Workspace</p>
+            <p className="eyebrow">작업 환경</p>
             <h2>Workspace VM</h2>
             <p className="muted">
-              Editor와 기본 Preview가 사용할 VM 하나를 지정합니다. Terminal의 Multi-VM
-              선택과는 별개입니다.
+              파일 편집과 기본 미리보기에 사용할 대표 VM을 지정합니다.
             </p>
           </div>
         </div>
@@ -352,7 +350,7 @@ function LabSpecForm({
               }))
             }
           />
-          <span>Internet Outbound 허용</span>
+          <span>외부 인터넷 연결 허용</span>
         </label>
 
         <label className="field">
@@ -367,7 +365,7 @@ function LabSpecForm({
             }
           />
           <small className="muted">
-            Credential, Token, Password 같은 Secret 원문은 Startup Script에 직접 넣지 않습니다.
+            비밀번호나 Token 같은 민감정보는 시작 스크립트에 직접 입력하지 마세요.
           </small>
         </label>
       </section>
@@ -396,7 +394,7 @@ function LabSpecForm({
             취소
           </Link>
           <button className="primary-button" type="submit" disabled={saving || requireEtag}>
-            {saving ? '저장 중...' : 'LabSpec 저장'}
+            {saving ? '저장 중...' : '실습 정의 저장'}
           </button>
         </div>
       )}
@@ -470,7 +468,7 @@ export function LabSpecEditorPage() {
   if (meQuery.isPending || (!isNew && labSpecQuery.isPending)) {
     return (
       <main className="app-page">
-        <LoadingState label="LabSpec을 불러오는 중..." />
+        <LoadingState label="실습 정의를 불러오는 중..." />
       </main>
     )
   }
@@ -540,16 +538,15 @@ export function LabSpecEditorPage() {
 
   return (
     <main className="app-page">
-      <header className="page-header">
+      <header className="page-header page-header-spacious labspec-editor-header">
         <div>
           <Link className="back-link" to="/lab-specs">
             ← 실습 정의 목록
           </Link>
-          <p className="eyebrow">LabSpec</p>
-          <h1>{isNew ? '새 LabSpec' : labSpec?.name}</h1>
+          <p className="eyebrow">실습 정의</p>
+          <h1>{isNew ? '새 실습 정의' : labSpec?.name}</h1>
           <p className="muted">
-            저장은 실습 정의만 변경합니다. 실제 환경 생성은 Class의 별도 Provision
-            동작에서 시작합니다.
+            여기서는 실습 구성을 저장합니다. 실제 환경 생성은 수업 상세에서 별도로 시작합니다.
           </p>
         </div>
       </header>

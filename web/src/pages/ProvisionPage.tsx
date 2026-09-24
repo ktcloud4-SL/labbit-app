@@ -157,12 +157,12 @@ export function ProvisionPage() {
   if (classQuery.data.activeLabExecution) {
     return (
       <main className="app-page">
-        <header className="page-header">
+        <header className="page-header page-header-spacious">
           <div>
             <Link className="back-link" to={`/classes/${encodeURIComponent(resolvedClassId)}`}>
-              ← Class 상세
+              ← 수업 상세
             </Link>
-            <p className="eyebrow">Provision</p>
+            <p className="eyebrow">실습 환경 생성</p>
             <h1>새 환경 생성</h1>
           </div>
         </header>
@@ -269,15 +269,15 @@ export function ProvisionPage() {
 
   return (
     <main className="app-page">
-      <header className="page-header">
+      <header className="page-header page-header-spacious">
         <div>
           <Link className="back-link" to={`/classes/${encodeURIComponent(resolvedClassId)}`}>
-            ← Class 상세
+            ← 수업 상세
           </Link>
-          <p className="eyebrow">Provision</p>
+          <p className="eyebrow">실습 환경 생성</p>
           <h1>{classQuery.data.name} · 새 환경 생성</h1>
           <p className="muted">
-            저장된 LabSpec과 이번 실행의 학생 대상을 확인한 뒤 LabExecution을 시작합니다.
+            실습 정의와 참여 학생을 확인한 뒤 새로운 실습 환경 생성을 시작합니다.
           </p>
         </div>
       </header>
@@ -287,11 +287,11 @@ export function ProvisionPage() {
           <section className="form-section">
             <div className="section-heading">
               <div>
-                <p className="eyebrow">LabSpec</p>
+                <p className="eyebrow">실습 정의</p>
                 <h2>실습 정의 선택</h2>
               </div>
               <Link className="secondary-link" to="/lab-specs">
-                LabSpec 관리
+                실습 정의 관리
               </Link>
             </div>
             <label className="field">
@@ -313,17 +313,17 @@ export function ProvisionPage() {
           <section className="form-section">
             <div className="section-heading">
               <div>
-                <p className="eyebrow">Target</p>
+                <p className="eyebrow">참여 대상</p>
                 <h2>참여 학생 선택</h2>
                 <p className="muted">
-                  실행 시작 시 선택한 학생 집합이 고정되며 이후 Membership 변경은 현재 실행에 자동 반영되지 않습니다.
+                  이번 실습에 참여할 학생을 선택합니다. 실습을 시작한 뒤에는 현재 대상이 그대로 유지됩니다.
                 </p>
               </div>
             </div>
 
             {students.length === 0 ? (
               <div className="empty-state compact-empty">
-                <h2>선택할 STUDENT가 없습니다.</h2>
+                <h2>선택할 수강생이 없습니다.</h2>
               </div>
             ) : (
               <div className="selection-list">
@@ -367,15 +367,15 @@ export function ProvisionPage() {
         </form>
       ) : (
         <section className="confirmation-card">
-          <p className="eyebrow">Confirm</p>
-          <h2>Provision 시작 전 확인</h2>
+          <p className="eyebrow">최종 확인</p>
+          <h2>환경 생성 전 확인</h2>
           <dl className="summary-list">
             <div>
-              <dt>Class</dt>
+              <dt>수업</dt>
               <dd>{classQuery.data.name}</dd>
             </div>
             <div>
-              <dt>LabSpec</dt>
+              <dt>실습 정의</dt>
               <dd>{selectedLabSpec?.name ?? confirmation.request.labSpecId}</dd>
             </div>
             <div>
@@ -384,11 +384,11 @@ export function ProvisionPage() {
             </div>
             <div>
               <dt>생성 범위</dt>
-              <dd>강사용 LabInstance 1개 + 선택한 학생별 LabInstance</dd>
+              <dd>강사용 환경 1개 + 선택한 학생별 실습 환경</dd>
             </div>
           </dl>
           <p className="muted">
-            요청이 접수되면 학생 대상 집합이 고정되고 비동기 Operation으로 생성 상태를 추적합니다.
+            시작하면 생성 진행 상황 화면으로 이동하며, 완료될 때까지 현재 상태를 확인할 수 있습니다.
           </p>
 
           {errorMessage && (
@@ -415,7 +415,7 @@ export function ProvisionPage() {
               disabled={provisionMutation.isPending || conflictError}
               onClick={() => provisionMutation.mutate(confirmation)}
             >
-              {provisionMutation.isPending ? '요청 중...' : 'Provision 시작'}
+              {provisionMutation.isPending ? '요청 중...' : '환경 생성 시작'}
             </button>
           </div>
         </section>

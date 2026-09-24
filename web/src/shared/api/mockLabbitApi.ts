@@ -205,6 +205,7 @@ const initialLabExecutions: LabExecution[] = [
 ]
 
 let signedIn = false
+let mockDataInitialized = false
 let labSpecs: LabSpec[] = []
 let labSpecVersions = new Map<string, number>()
 let nextLabSpecId = 1
@@ -264,9 +265,8 @@ function resetMockData() {
   operations = new Map()
   operationReads = new Map()
   nextExecutionId = 1
+  mockDataInitialized = true
 }
-
-resetMockData()
 
 function requireSession() {
   if (!signedIn) {
@@ -286,6 +286,10 @@ export const mockLabbitApi: LabbitApi = {
       credentials.password !== mockCredentials.password
     ) {
       throw new HttpError(401)
+    }
+
+    if (!mockDataInitialized) {
+      resetMockData()
     }
 
     signedIn = true

@@ -1,8 +1,8 @@
 # Frontend G1 Deployment Handoff
 
-> 기준: `labbit-app` current main `61a45b` / Frontend 기준 merge commit `186da4b` (PR #33)
+> 검토 기준: FE-01(PR #33) merge 이후 최신 `main`의 Frontend 코드와 Web CI
 >
-> `186da4b → 61a45b` 사이 main 변경은 Connector 구현/Go 의존성 쪽이며 `web/**` 변경은 없어 아래 Frontend build/runtime 입력은 동일하다.
+> 이 문서는 특정 `main` SHA에 고정하지 않고, 실제 `web/**` 변경이 생기면 build/runtime 입력을 다시 확인해 갱신한다.
 >
 > 목적: Sprint 01 / AWS1 G1 준비에서 Frontend가 Platform의 LBT-32(Container Image / Helm Packaging)에 전달해야 할 **현재 Web artifact·runtime 경계**를 짧게 고정한다. Dockerfile/Helm/Istio 구현 자체는 Platform 담당 범위이며, 이 문서는 그 구현에 필요한 Frontend 입력만 다룬다.
 
@@ -155,6 +155,8 @@ Platform packaging에서 현재 필요한 Frontend 입력은 다음과 같다.
 
 ## 관련
 
+- 현재 문서 PR은 팀 범위 확인 전의 소규모 documentation maintenance로 Jira `없음` 예외를 사용한다.
+- 팀에서 별도 Jira Task로 관리하기로 결정하면 그 기준에 맞춰 추적 방식을 조정한다.
 - Jira LBT-11 — FE-01 Frontend Core / Auth Consumer 기반 (완료)
 - Jira LBT-12 — FE-02 Auth / Class 실제 통합
 - Jira LBT-32 — CD-02 Container Image / Helm Packaging

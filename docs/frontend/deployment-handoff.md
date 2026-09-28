@@ -29,7 +29,9 @@ npm run build
 ^22.22.2 || ^24.15.0 || >=26.0.0
 ```
 
-G1 packaging에서는 기존 `npm run build` 결과를 배포 입력으로 사용하고, Frontend 소스와 Mock 개발환경을 runtime 이미지에 별도 포함해야 한다는 전제를 만들지 않는다.
+G1 packaging에서는 기존 `npm run build` 결과를 배포 입력으로 사용한다. 현재 `vite.config.ts`에서 `build.outDir`을 별도로 바꾸지 않으므로 기본 산출물은 `web/dist/`다.
+
+현재 Web은 정적 SPA이며, 저장소 안에 Web 전용 production Dockerfile이나 Nginx/Caddy 설정은 아직 없다. Node/Vite는 build 단계 입력이고, 정적 산출물을 어떤 서버/hosting 방식으로 제공할지는 Platform 배포 경계에서 결정한다. `npm run preview`는 로컬 build 확인용이며 production serving 계약으로 사용하지 않는다.
 
 ## 2. Production API mode
 
@@ -118,6 +120,8 @@ Platform packaging에서 현재 필요한 Frontend 입력은 다음과 같다.
 | Build context | `web/` |
 | Install | `npm ci` |
 | Production build | `npm run build` |
+| Build output | `web/dist/` (Vite 기본값, 현재 override 없음) |
+| Production serving | 정적 SPA. 서버/hosting 방식은 Platform 결정 |
 | Production API mode | HTTP 고정 |
 | Browser API prefix | `/api/v1` |
 | Cookie | `credentials: include` |
@@ -130,7 +134,7 @@ Platform packaging에서 현재 필요한 Frontend 입력은 다음과 같다.
 
 배포 artifact가 준비되면 Frontend 관점에서 최소 다음을 확인한다.
 
-- Browser에서 Web 첫 화면이 정상 로드
+- Browser에서 Web 첫 화면과 정적 asset이 정상 로드
 - `/login`, `/classes` 등 직접 URL 진입/새로고침이 Web 404로 끝나지 않음
 - `/api/v1/*`가 SPA HTML이 아니라 Backend 응답으로 전달
 - Production artifact가 Mock 데이터를 사용하지 않음

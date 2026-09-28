@@ -1,6 +1,8 @@
 # Frontend G1 Deployment Handoff
 
-> 기준: `labbit-app` main `186da4b` (PR #33 merge 이후)
+> 기준: `labbit-app` current main `61a45b` / Frontend 기준 merge commit `186da4b` (PR #33)
+>
+> `186da4b → 61a45b` 사이 main 변경은 Connector 구현/Go 의존성 쪽이며 `web/**` 변경은 없어 아래 Frontend build/runtime 입력은 동일하다.
 >
 > 목적: Sprint 01 / AWS1 G1 준비에서 Frontend가 Platform의 LBT-32(Container Image / Helm Packaging)에 전달해야 할 **현재 Web artifact·runtime 경계**를 짧게 고정한다. Dockerfile/Helm/Istio 구현 자체는 Platform 담당 범위이며, 이 문서는 그 구현에 필요한 Frontend 입력만 다룬다.
 

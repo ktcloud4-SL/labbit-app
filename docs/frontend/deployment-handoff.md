@@ -117,7 +117,7 @@ Platform packaging에서 현재 필요한 Frontend 입력은 다음과 같다.
 
 | 항목 | 현재 기준 |
 | --- | --- |
-| Build context | `web/` |
+| Frontend source/build root | `web/` |
 | Install | `npm ci` |
 | Production build | `npm run build` |
 | Build output | `web/dist/` (Vite 기본값, 현재 override 없음) |
@@ -159,8 +159,8 @@ Platform packaging에서 현재 필요한 Frontend 입력은 다음과 같다.
 
 ## 관련
 
-- 현재 문서 PR은 팀 범위 확인 전의 소규모 documentation maintenance로 Jira `없음` 예외를 사용한다.
-- 팀에서 별도 Jira Task로 관리하기로 결정하면 그 기준에 맞춰 추적 방식을 조정한다.
+- 이 문서는 기존 **Jira LBT-32 — CD-02 Container Image / Helm Packaging**에 연결된 Frontend handoff 입력이다.
+- LBT-32의 Dockerfile/Helm 구현 책임을 Frontend로 옮기는 것이 아니라, 해당 작업이 소비할 Web build/runtime 입력만 정리한다.
 - Jira LBT-11 — FE-01 Frontend Core / Auth Consumer 기반 (완료)
 - Jira LBT-12 — FE-02 Auth / Class 실제 통합
 - Jira LBT-32 — CD-02 Container Image / Helm Packaging

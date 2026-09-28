@@ -69,4 +69,4 @@ make web
 
 Backend 구현 경계는 [docs/backend/README.md](./docs/backend/README.md), Auth/Session 구현 기준은 [docs/backend/auth-session.md](./docs/backend/auth-session.md), 테스트 규칙은 [TESTING.md](./TESTING.md)를 따릅니다.
 
-Git/PR 규칙은 [CONTRIBUTING.md](./CONTRIBUTING.md)를 따릅니다. Commit/PR 제목은 **영어 prefix + 한글 description** 형식을 사용하고, merge는 **3-way merge 기반 Create a merge commit**을 기본으로 합니다.
+Git/PR 규칙은 [CONTRIBUTING.md](./CONTRIBUTING.md)를 따릅니다. Commit은 Conventional 형식을 사용하고, Jira Task가 있는 PR은 제목에 `LBT-*`를 남기며, `main` 반영은 **Squash Merge**를 사용합니다.

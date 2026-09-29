@@ -395,6 +395,47 @@ connector:
       note: >-
         고객 환경에만 존재하는 Provider 설정 파일 경로입니다. 파일에 OpenStack Credential이
         포함될 수 있으며, 내용은 중앙 SaaS나 log로 보내지 않습니다.
+    OS_CLOUD:
+      required: true
+      secret: false
+      note: "LABBIT_PROVIDER_CONFIG_FILE 안에서 사용할 OpenStack cloud 이름입니다."
+    LABBIT_PROVIDER_CONNECTION_ID:
+      required: true
+      secret: false
+      note: "이 Connector 설정이 담당하는 SaaS ProviderConnection ID이며 CreationSnapshot의 연결 affinity를 검증합니다."
+    OS_PROJECT_ID:
+      required: true
+      secret: false
+      note: "Nova/Neutron quota preflight에 사용하는 현재 Provider project ID입니다."
+    LABBIT_OPENSTACK_MANAGEMENT_NETWORK_ID:
+      required: true
+      secret: false
+    LABBIT_OPENSTACK_EXTERNAL_NETWORK_ID:
+      required: false
+      secret: false
+      note: "CreationSnapshot.internetOutbound=true일 때 필수이며 generation별 Lab Router의 external gateway입니다."
+    LABBIT_OPENSTACK_KEYPAIR_NAME:
+      required: true
+      secret: false
+    LABBIT_OPENSTACK_SSH_ALLOWED_CIDR:
+      required: true
+      secret: false
+      note: "Management security group에서 Connector의 SSH 접근만 허용하는 IPv4 CIDR입니다."
+    LABBIT_OPENSTACK_LAB_SUBNET_CIDR:
+      required: true
+      secret: false
+    LABBIT_OPENSTACK_SSH_USERNAME:
+      required: false
+      secret: false
+      note: "CreationSnapshot.startupScript가 있을 때 필수이며 cloud-init 완료 확인에 사용합니다."
+    LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE:
+      required: false
+      secret: false
+      note: "CreationSnapshot.startupScript가 있을 때 필수입니다. 고객 환경 Secret 경계에 있는 Connector 전용 SSH private key 파일 경로이며, 파일 내용은 log/중앙 SaaS로 보내지 않습니다."
+    LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE:
+      required: false
+      secret: false
+      note: "CreationSnapshot.startupScript가 있을 때 필수입니다. 동적 VM host key를 TOFU로 고정하고 이후 불일치를 거부하는 고객 로컬 파일 경로입니다."
     LABBIT_LOG_LEVEL:
       required: false
       secret: false

@@ -6,7 +6,6 @@
 - 기본 Control 메시지: `connector.schema.json`
 - TerminalSession lifecycle Control 메시지: `terminal-control.schema.json`
 - Terminal Data WSS JSON control frame: `terminal-data.schema.json`
-
 Terminal/Live의 Browser-facing 계약은 `contracts/realtime/README.md` + `terminal-live.schema.json`이 원본입니다.
 
 Terminal/Live INPUT/OUTPUT과 Preview 본문은 **persistent Control WSS에 싣지 않습니다.** Control에는 lifecycle/metadata만 전달하고 실제 PTY byte stream은 별도 Terminal Data WSS를 사용합니다.
@@ -289,6 +288,11 @@ Provision/Reset에서 사용하는 `creationSnapshot`은 D-19의 immutable resol
 
 Reset에서 최신 LabSpec이나 비슷한 최신 Image를 다시 선택하지 않습니다. 기존 generation을 파괴하기 전에 원본 Image/Flavor/Provider 연결 등 재현 가능성을 Preflight하고 재현 불가하면 기존 환경을 먼저 삭제하지 않습니다.
 
+- Preflight는 Image, Flavor, Management/External Network, Key Pair와 함께 Nova의 Instance/vCPU/RAM 및 Neutron의 Network/Subnet/Port/Router/Security Group/Rule 상세 quota를 확인합니다. Reset은 삭제가 확정된 기존 generation 리소스를 quota 사용량에서 차감해 판단하되, Preflight 이후의 동시 사용 변화까지 성공으로 보장하지는 않습니다.
+- `internetOutbound=true`이면 generation별 Lab Router를 만들고 External Gateway와 Lab Subnet interface를 연결합니다. `false`이면 Router를 만들지 않고 Lab Subnet gateway를 비활성화합니다.
+- Lab NIC에는 동일 Lab 대역 ingress를 가진 Lab Security Group만, Management NIC에는 Connector SSH CIDR의 TCP 22 ingress를 가진 Management Security Group만 연결합니다.
+- Startup Script가 있으면 VM `ACTIVE`와 SSH banner만으로 `SUCCEEDED`를 반환하지 않습니다. Connector 전용 SSH key와 TOFU로 고정한 host key를 사용해 `cloud-init status --wait` 성공까지 확인합니다.
+
 ## 12. Result와 결과 불명
 
 `OPERATION_RESULT.payload.outcome`은 다음 세 값을 사용합니다.
@@ -323,6 +327,32 @@ UNKNOWN
 중앙에서는 Heartbeat, version, reconnect, Operation stage/result, Terminal lifecycle, `error_code`, duration 같은 운영 metadata를 관측하고 필요하면 같은 correlation ID로 Connector 로컬 구조화 로그를 대조합니다.
 
 Connector 내부 OpenStack/VM 접근의 raw log·metric·상세 Span을 중앙에 상시 반출하지 않습니다. 중앙 SaaS의 command 전송/결과 수신 계측은 Connector 내부 개별 OpenStack API 호출 시간을 측정한 것과 다릅니다.
+
+### SafeError 기본 코드
+
+`SafeError.code`는 확장 가능한 문자열입니다. consumer는 아래 기본 코드를 처리하고 unknown code에 일반 fallback을 제공해야 합니다.
+
+| Code | 의미 |
+| --- | --- |
+| `ERR_CONNECTOR_OFFLINE` | Connector Control 연결을 사용할 수 없음 |
+| `ERR_INFRA_OPENSTACK` | OpenStack 인증·quota·API 또는 Provider 상태 때문에 작업을 완료할 수 없음 |
+| `ERR_CONNECTOR_INTERNAL` | Connector 입력 구성·내부 처리 오류 |
+| `ERR_VM_BOOT_TIMEOUT` | 제한 시간 안에 VM이 준비 상태에 도달하지 못함 |
+| `ERR_PORT_NOT_LISTENING` | Workspace VM의 승인 Application Port에서 응답을 받을 수 없음 |
+| `ERR_RESOURCE_QUOTA_EXCEEDED` | OpenStack resource quota가 부족함 |
+| `ERR_UNKNOWN_RECONCILING` | Provider side effect 여부를 확정할 수 없어 Reconciliation이 필요함 |
+
+기본 한국어 사용자 표시 문구는 다음 의미를 유지합니다. consumer가 locale에 맞게 번역할 수 있지만 내부 원문 오류로 대체하지 않습니다.
+
+- `ERR_CONNECTOR_OFFLINE`: `실습 에이전트와 연결이 끊겼습니다. 관리자에게 문의하세요.`
+- `ERR_VM_BOOT_TIMEOUT`: `가상머신 생성 시간이 초과되었습니다. 실습 환경을 재설정(Reset)해 주세요.`
+- `ERR_PORT_NOT_LISTENING`: `실습 VM 내 웹 애플리케이션이 실행되지 않았습니다. 포트 번호를 확인하세요.`
+- `ERR_RESOURCE_QUOTA_EXCEEDED`: `실습실 자원 한도가 초과되었습니다. 미사용 환경을 정리해 주세요.`
+- `ERR_UNKNOWN_RECONCILING`: `자원 생성 상태를 확인 중입니다. 잠시 후 새로고침해 주세요.`
+
+Provider mutation 요청 뒤 5xx·timeout처럼 side effect 여부가 불명확한 경우에는 단순히 `ERR_INFRA_OPENSTACK`의 확정 실패로 축소하지 않습니다. outcome을 `UNKNOWN`으로 두고 `ERR_UNKNOWN_RECONCILING`을 사용해 실제 Provider 상태를 먼저 확인합니다.
+
+위 code와 함께 보내는 message는 사용자·운영자에게 노출 가능한 안전한 설명이어야 합니다. Credential, Authorization, Provider raw payload, 내부 endpoint 또는 SDK 원문 오류를 포함하지 않습니다.
 
 ## 15. Control Close 규칙
 

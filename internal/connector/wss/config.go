@@ -66,14 +66,22 @@ func (c *Config) ResolveEndpoint() (string, error) {
 // GetCredential 은 직접 입력된 토큰 또는 CredentialFile 경로에서 Bearer 토큰을 가져옵니다.
 func (c *Config) GetCredential() (string, error) {
 	if c.Credential != "" {
-		return strings.TrimSpace(c.Credential), nil
+		credential := strings.TrimSpace(c.Credential)
+		if credential == "" {
+			return "", fmt.Errorf("credential is empty")
+		}
+		return credential, nil
 	}
 	if c.CredentialFile != "" {
 		data, err := os.ReadFile(c.CredentialFile)
 		if err != nil {
 			return "", fmt.Errorf("failed to read credential file %s: %w", c.CredentialFile, err)
 		}
-		return strings.TrimSpace(string(data)), nil
+		credential := strings.TrimSpace(string(data))
+		if credential == "" {
+			return "", fmt.Errorf("credential file is empty")
+		}
+		return credential, nil
 	}
 	return "", fmt.Errorf("no credential provided (either Credential or CredentialFile required)")
 }

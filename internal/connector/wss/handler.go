@@ -3,7 +3,9 @@ package wss
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -77,6 +79,8 @@ func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
 	}
 
 	switch env.Type {
+	case protocol.MessageTypeProviderRequest:
+		return h.handleProviderRequest(ctx, env, raw)
 	case protocol.MessageTypeOperationCommand:
 		return h.handleOperationCommand(ctx, env, raw)
 	case protocol.MessageTypeReconcileRequest:
@@ -101,6 +105,123 @@ func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
 		}
 		return nil
 	}
+}
+
+func validateProviderRequest(request *protocol.ProviderRequestMessage) error {
+	if request.MessageID == "" {
+		return fmt.Errorf("missing required messageId in envelope")
+	}
+	if strings.TrimSpace(request.Payload.ProviderConnectionID) == "" {
+		return fmt.Errorf("providerConnectionId is required")
+	}
+	switch request.Payload.RequestType {
+	case protocol.ProviderRequestValidateConnection,
+		protocol.ProviderRequestListImages,
+		protocol.ProviderRequestListFlavors:
+		return nil
+	default:
+		return fmt.Errorf("unsupported provider requestType")
+	}
+}
+
+func (h *Handler) handleProviderRequest(ctx context.Context, _ protocol.BaseEnvelope, raw []byte) error {
+	var request protocol.ProviderRequestMessage
+	if err := json.Unmarshal(raw, &request); err != nil {
+		return fmt.Errorf("failed to unmarshal PROVIDER_REQUEST: %w", err)
+	}
+	if err := validateProviderRequest(&request); err != nil {
+		if sender := h.Sender(); sender != nil && request.MessageID != "" {
+			_ = sender.SendMessage(ctx, protocol.ProtocolErrorMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:             protocol.MessageTypeError,
+					MessageID:        generateUUID(),
+					ReplyToMessageID: request.MessageID,
+					SentAt:           time.Now().UTC(),
+					RequestID:        request.RequestID,
+					TraceParent:      request.TraceParent,
+					TraceState:       request.TraceState,
+				},
+				Payload: protocol.ProtocolErrorPayload{
+					Code:    "INVALID_MESSAGE",
+					Message: "Provider request is invalid",
+				},
+			})
+		}
+		return fmt.Errorf("invalid provider request: %w", err)
+	}
+
+	response := protocol.ProviderResponseMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:             protocol.MessageTypeProviderResponse,
+			MessageID:        generateUUID(),
+			ReplyToMessageID: request.MessageID,
+			SentAt:           time.Now().UTC(),
+			RequestID:        request.RequestID,
+			TraceParent:      request.TraceParent,
+			TraceState:       request.TraceState,
+		},
+		Payload: protocol.ProviderResponsePayload{
+			RequestType: request.Payload.RequestType,
+			Outcome:     protocol.OutcomeSucceeded,
+		},
+	}
+
+	queryProvider, ok := h.provider.(provider.QueryProvider)
+	if !ok || queryProvider == nil {
+		response.Payload.Outcome = protocol.OutcomeFailed
+		response.Payload.Error = &protocol.SafeError{
+			Code:    "ERR_CONNECTOR_INTERNAL",
+			Message: "Connector Provider query support is unavailable",
+		}
+	} else if queryProvider.ProviderConnectionID() == "" || queryProvider.ProviderConnectionID() != request.Payload.ProviderConnectionID {
+		response.Payload.Outcome = protocol.OutcomeFailed
+		response.Payload.Error = &protocol.SafeError{
+			Code:    "ERR_INFRA_OPENSTACK",
+			Message: "OpenStack Provider connection is unavailable",
+		}
+	} else {
+		var queryErr error
+		switch request.Payload.RequestType {
+		case protocol.ProviderRequestValidateConnection:
+			queryErr = queryProvider.ValidateConnection(ctx)
+		case protocol.ProviderRequestListImages:
+			var images []provider.Image
+			images, queryErr = queryProvider.ListImages(ctx)
+			for _, image := range images {
+				response.Payload.Items = append(response.Payload.Items, protocol.ProviderImage{
+					Kind: "IMAGE", ID: image.ID, Name: image.Name, Status: image.Status,
+				})
+			}
+		case protocol.ProviderRequestListFlavors:
+			var flavors []provider.Flavor
+			flavors, queryErr = queryProvider.ListFlavors(ctx)
+			for _, flavor := range flavors {
+				response.Payload.Items = append(response.Payload.Items, protocol.ProviderFlavor{
+					Kind: "FLAVOR", ID: flavor.ID, Name: flavor.Name,
+					VCPUs: flavor.VCPUs, RAMMiB: flavor.RAMMiB, DiskGiB: flavor.DiskGiB,
+				})
+			}
+		}
+		if queryErr != nil {
+			response.Payload.Outcome = protocol.OutcomeFailed
+			response.Payload.Items = nil
+			response.Payload.Error = &protocol.SafeError{
+				Code:    "ERR_INFRA_OPENSTACK",
+				Message: "OpenStack Provider request could not be completed",
+			}
+			if errors.Is(queryErr, provider.ErrMockNotConfigured) {
+				response.Payload.Error.Code = "ERR_CONNECTOR_INTERNAL"
+				response.Payload.Error.Message = "Connector Provider query is not configured"
+			}
+		}
+	}
+
+	if sender := h.Sender(); sender != nil {
+		if err := sender.SendMessage(ctx, response); err != nil {
+			return fmt.Errorf("failed to send PROVIDER_RESPONSE: %w", err)
+		}
+	}
+	return nil
 }
 
 // validateOperationCommand 는 connector.schema.json 기준 필수 Correlation 및 Payload 필드를 Provider 호출 전에 사전 검증합니다.
@@ -348,8 +469,8 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 			Outcome:           provider.OutcomeFailed,
 			ProviderResources: []provider.ResourceResult{},
 			Error: &provider.SafeError{
-				Code:    "DISPATCH_ERROR",
-				Message: err.Error(),
+				Code:    "ERR_CONNECTOR_INTERNAL",
+				Message: "Connector could not dispatch the Provider operation",
 			},
 		}
 	}
@@ -522,8 +643,8 @@ func (h *Handler) handleReconcileRequest(ctx context.Context, env protocol.BaseE
 		result = provider.ReconcileResult{
 			Observations: []provider.ResourceObservation{},
 			Error: &provider.SafeError{
-				Code:    "DISPATCH_ERROR",
-				Message: err.Error(),
+				Code:    "ERR_CONNECTOR_INTERNAL",
+				Message: "Connector could not dispatch Provider reconciliation",
 			},
 		}
 	}

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 )
 
 // TerminalRelay 는 Terminal Data WSS 통신 테스트를 위한 In-memory Mock Relay 서버입니다.

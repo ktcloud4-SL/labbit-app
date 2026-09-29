@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/mock"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/protocol"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/mock"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
 )
 
 func TestTerminal_OpenAndEchoStreaming(t *testing.T) {

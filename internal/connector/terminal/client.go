@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/ktcloud4-SL/rabbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 )
 
 // DataWSSClientConfig 는 Terminal Data WSS 클라이언트 설정입니다.

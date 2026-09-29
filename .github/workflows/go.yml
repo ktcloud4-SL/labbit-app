@@ -9,6 +9,7 @@ on:
       - "go.mod"
       - "go.sum"
       - "Makefile"
+      - "db/migrations/**"
       - ".github/workflows/go.yml"
 
 permissions:
@@ -17,6 +18,21 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      # Local compose.yaml과 같은 PostgreSQL 16이다. credential은 CI 전용 dummy 값이다.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: labbit
+          POSTGRES_PASSWORD: labbit-ci-dummy
+          POSTGRES_DB: labbit
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U labbit -d labbit"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -35,3 +51,8 @@ jobs:
 
       - name: Go build
         run: make go-build
+
+      - name: Go PostgreSQL integration test
+        env:
+          LABBIT_TEST_DATABASE_DSN: postgres://labbit:labbit-ci-dummy@localhost:5432/postgres?sslmode=disable
+        run: make go-integration-test

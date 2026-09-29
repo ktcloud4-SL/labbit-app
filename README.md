@@ -21,7 +21,7 @@
 - **Terminal/Live WSS v0.1 정의됨** — Browser Terminal/Live subprotocol, JSON control + Binary PTY byte stream, 60초 PTY grace, 기록 없는 reconnect, Live read-only fan-out, bounded Queue/slow consumer, Session 종료 의미.
 - **Connector Terminal Data v0.1 정의됨** — TerminalSession lifecycle은 persistent Control WSS로 전달하고, 실제 PTY bytes는 active TerminalSession별 별도 Connector outbound Data WSS로 중계.
 - **Domain/Data Model 확정** — Organization/User/Class/LabSpec/LabExecution/LabInstance/Operation/OperationItem/ProviderResource/TerminalSession/LiveSession의 핵심 관계와 ownership, 주요 불변조건을 확정.
-- **PostgreSQL Physical Schema Draft v0.1 작성됨** — 초기 5개 SQL Migration과 D-25의 additive `000006` 초안. 아직 실제 개발 PostgreSQL 적용·pgx Query·Migration runner·통합 검증 전이며, 최초 공용 개발 DB 적용 전까지 구현 피드백에 따라 정리할 수 있음.
+- **PostgreSQL Physical Schema Draft v0.1 작성됨** — 초기 5개 SQL Migration과 D-25의 additive `000006` 초안. 별도 Migration runner와 폐기 가능한 PostgreSQL 16의 전체/`000005→000006` 적용 Integration Test는 있으나, 공용 개발 DB 적용·pgx Repository/Query는 아직이며 최초 공용 개발 DB 적용 전까지 구현 피드백에 따라 정리할 수 있음.
 - **Auth/Session 구현 계약 v0.1 준비됨** — docs/backend/auth-session.md에서 8시간 absolute Session, fresh login token, Argon2id Password hash, raw Session token 비저장, Origin/Referer 검증 기준을 정의합니다. 실제 Handler/Repository 구현은 LBT-10에서 추적합니다.
 - **HTTP 후속 범위** — Organization/Provider 관리, File, Preview, Terminal/Live Session 생성·종료 control API.
 - **Runtime Contract v0.1.2 정의됨** — 기존 실행 경계에 SaaS OpenTelemetry/OTLP, Operation의 durable Trace Context, Connector propagation-only, 관측 장애의 업무 격리 계약 추가. 실제 계측·전파·Tempo E2E 구현 완료는 아님.
@@ -44,10 +44,12 @@ Terminal/Live는 Control과 Data를 분리합니다. Browser-facing Terminal/Liv
 ```text
 cmd/
 ├─ labbit-server/       # 중앙 SaaS 실행 진입점
+├─ labbit-migrate/      # rollout 전 별도 단계로 실행하는 SQL Migration runner
 └─ labbit-connector/    # 고객 환경 Connector 실행 진입점
 
 internal/
-├─ server/app/          # Runtime role·listener·graceful shutdown bootstrap
+├─ server/app/          # Runtime role·listener·readiness·graceful shutdown bootstrap
+├─ postgres/            # DSN 입력·pgx 연결·Migration 적용·schema 호환성 확인
 ├─ connector/app/       # Connector process lifecycle bootstrap
 └─ observability/       # 공통 JSON logging bootstrap
 
@@ -65,7 +67,24 @@ make connector
 make web
 ```
 
-`labbit-server`는 현재 Runtime Contract의 application/admin listener와 `/livez`, `/readyz`, `/metrics` 골격만 제공합니다. Auth/Class/LabSpec/Operation, DB repository, Connector Control/Provider/SSH, Terminal/Live 같은 실제 기능 구현 완료를 의미하지 않습니다.
+`labbit-server`는 현재 Runtime Contract의 application/admin listener와 `/livez`, `/readyz`, `/metrics` 골격, api/worker role의 PostgreSQL 연결·schema 호환성 readiness만 제공합니다. Auth/Class/LabSpec/Operation, DB repository, Connector Control/Provider/SSH, Terminal/Live 같은 실제 기능 구현 완료를 의미하지 않습니다.
+
+### Local PostgreSQL
+
+Docker Compose로 PostgreSQL 16만 실행합니다. `compose.yaml`의 credential은 로컬 폐기용 dummy 값입니다.
+
+```bash
+make dev-db-up          # PostgreSQL 16 시작, healthcheck 통과까지 대기
+make dev-db-migrate     # 별도 runner로 db/migrations 적용 (server startup은 적용하지 않음)
+make server             # api role, /readyz는 Migration 적용 후 200
+make go-integration-test
+make dev-db-down        # container만 중지, DB volume은 유지
+```
+
+- 5432 포트가 이미 사용 중이면 `LABBIT_DEV_DB_PORT=15432 make dev-db-up`처럼 모든 target에 같은 값을 지정합니다.
+- 다른 container runtime을 쓰면 `COMPOSE="podman compose"`처럼 지정할 수 있습니다.
+- `make go-integration-test`는 개발 DB(`labbit`)가 아니라 같은 server에 test별 임시 database를 만들고 삭제합니다.
+- 개발 DB를 완전히 초기화해야 할 때만 `docker compose down -v`를 직접 실행합니다. 이 명령은 volume의 데이터를 삭제합니다.
 
 Backend 구현 경계는 [docs/backend/README.md](./docs/backend/README.md), Auth/Session 구현 기준은 [docs/backend/auth-session.md](./docs/backend/auth-session.md), 테스트 규칙은 [TESTING.md](./TESTING.md)를 따릅니다.
 

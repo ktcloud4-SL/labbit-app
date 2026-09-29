@@ -11,12 +11,16 @@ import (
 	"sync/atomic"
 	"time"
 
+	migrationfiles "github.com/ktcloud4-SL/labbit-app/db/migrations"
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
+	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
 )
 
 const (
 	defaultHTTPAddr  = ":8080"
 	defaultAdminAddr = ":9090"
+
+	readinessCheckTimeout = 2 * time.Second
 )
 
 type Config struct {
@@ -26,10 +30,12 @@ type Config struct {
 	AdminAddr     string
 	LogLevel      string
 	ShutdownGrace time.Duration
+	// DatabaseDSN은 Secret이다. 로그·오류 메시지에 기록하지 않는다.
+	DatabaseDSN string
 }
 
-// LoadConfig는 개발 스켈레톤에서 필요한 Runtime Contract 항목만 읽는다.
-// DB DSN, Secret, role별 세부 설정은 해당 기능을 구현할 때 이 경계에 추가한다.
+// LoadConfig는 현재 구현된 role에 필요한 Runtime Contract 항목만 읽는다.
+// Secret, role별 세부 설정은 해당 기능을 구현할 때 이 경계에 추가한다.
 func LoadConfig() (Config, error) {
 	environment := strings.TrimSpace(os.Getenv("LABBIT_ENVIRONMENT"))
 	if environment == "" {
@@ -46,6 +52,17 @@ func LoadConfig() (Config, error) {
 		return Config{}, err
 	}
 
+	var databaseDSN string
+	if requiresDatabase(roles) {
+		databaseDSN, err = postgres.LoadDSN(environment)
+		if errors.Is(err, postgres.ErrDSNNotConfigured) {
+			return Config{}, fmt.Errorf("api/worker role에는 PostgreSQL이 필요합니다: %w", err)
+		}
+		if err != nil {
+			return Config{}, err
+		}
+	}
+
 	return Config{
 		Environment:   environment,
 		Roles:         roles,
@@ -53,12 +70,33 @@ func LoadConfig() (Config, error) {
 		AdminAddr:     envOrDefault("LABBIT_ADMIN_ADDR", defaultAdminAddr),
 		LogLevel:      envOrDefault("LABBIT_LOG_LEVEL", "info"),
 		ShutdownGrace: grace,
+		DatabaseDSN:   databaseDSN,
 	}, nil
 }
 
 func Run(ctx context.Context, cfg Config) error {
 	logger := observability.NewJSONLogger("labbit-server", "bootstrap", cfg.Environment, cfg.LogLevel)
 	ready := &atomic.Bool{}
+
+	var checkDatabase func(context.Context) error
+	if cfg.DatabaseDSN != "" {
+		pool, err := postgres.OpenPool(ctx, cfg.DatabaseDSN)
+		if err != nil {
+			return err
+		}
+		defer pool.Close()
+
+		// 같은 build에 포함된 migration을 호환 schema의 기준으로 사용한다. Migration 적용은 하지 않는다.
+		migrations, err := postgres.LoadMigrations(migrationfiles.Files)
+		if err != nil {
+			return err
+		}
+		checkDatabase = (&databaseReadiness{
+			querier:    pool,
+			migrations: migrations,
+			logger:     logger,
+		}).check
+	}
 
 	applicationServer := &http.Server{
 		Addr:              cfg.HTTPAddr,
@@ -67,7 +105,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	adminServer := &http.Server{
 		Addr:              cfg.AdminAddr,
-		Handler:           adminHandler(ready),
+		Handler:           adminHandler(ready, checkDatabase),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -75,8 +113,8 @@ func Run(ctx context.Context, cfg Config) error {
 	go serve(logger, "application", applicationServer, errCh)
 	go serve(logger, "admin", adminServer, errCh)
 
-	// 두 listener의 Serve goroutine을 시작한 뒤 신규 트래픽 수신 가능 상태로 전환한다.
-	// 실제 개발에서는 enabled role별 DB/의존성 readiness 조건을 이 지점에 연결한다.
+	// 두 listener의 Serve goroutine을 시작한 뒤 startup 완료로 전환한다.
+	// DB가 필요한 role의 PostgreSQL/schema 조건은 /readyz 요청마다 별도로 확인한다.
 	ready.Store(true)
 	logger.Info("Labbit 서버 스켈레톤 시작",
 		"roles", strings.Join(cfg.Roles, ","),
@@ -113,7 +151,8 @@ func applicationHandler() http.Handler {
 	return mux
 }
 
-func adminHandler(ready *atomic.Bool) http.Handler {
+// adminHandler의 checkDatabase는 DB가 필요한 role이 없으면 nil이다.
+func adminHandler(ready *atomic.Bool, checkDatabase func(context.Context) error) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /livez", func(w http.ResponseWriter, _ *http.Request) {
@@ -121,10 +160,20 @@ func adminHandler(ready *atomic.Bool) http.Handler {
 		_, _ = w.Write([]byte("ok\n"))
 	})
 
-	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		if !ready.Load() {
 			http.Error(w, "not ready", http.StatusServiceUnavailable)
 			return
+		}
+		// API/worker role은 사용 가능한 PostgreSQL과 호환 schema가 있어야 새 작업을 받을 수 있다.
+		// 고객 Connector/OpenStack 상태는 SaaS process readiness 조건에 포함하지 않는다.
+		if checkDatabase != nil {
+			checkCtx, cancel := context.WithTimeout(r.Context(), readinessCheckTimeout)
+			defer cancel()
+			if err := checkDatabase(checkCtx); err != nil {
+				http.Error(w, "not ready", http.StatusServiceUnavailable)
+				return
+			}
 		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok\n"))
@@ -175,6 +224,16 @@ func parseRoles(raw string) ([]string, error) {
 		return nil, errors.New("LABBIT_RUNTIME_ROLES가 필요합니다")
 	}
 	return roles, nil
+}
+
+// requiresDatabase는 Runtime Contract에서 readiness에 PostgreSQL과 호환 schema를 요구하는 role인지 판단한다.
+func requiresDatabase(roles []string) bool {
+	for _, role := range roles {
+		if role == "api" || role == "worker" {
+			return true
+		}
+	}
+	return false
 }
 
 func parseShutdownGrace(environment, raw string) (time.Duration, error) {

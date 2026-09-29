@@ -195,8 +195,23 @@ DB constraint만으로 자연스럽게 표현하기 어렵거나, 중복 컬럼�
 - **현재 draft baseline이 아직 공용 개발 DB에 적용되기 전에는 초기 파일 재정리가 가능합니다.**
 - **baseline 적용 이후에는 기존 Migration을 수정하지 않고 변경은 새 번호의 SQL 파일로 추가합니다.**
 - Organization/User/Class/ClassMembership 같은 운영 Bootstrap 데이터는 Schema Migration에 `INSERT`하지 않습니다. Trusted operator Bootstrap command가 별도로 생성합니다.
-- Migration runner/rollback mechanism의 구체 도구는 Runtime/Platform 계약에서 정합니다.
+- Migration 실행 시점·Job 구성과 rollback/restore 절차는 Runtime/Platform 계약에서 정합니다. runner 자체의 동작은 아래 절을 따릅니다.
 - 되돌리기 어려운 파괴적 Schema 변경은 D-22 기준으로 수업 외 유지보수 창과 Application 호환성을 먼저 검증합니다.
+
+### Migration runner
+
+`cmd/labbit-migrate`가 이 디렉터리의 `*.sql`을 실행 파일에 포함해 version 순서로 적용합니다.
+
+```bash
+LABBIT_ENVIRONMENT=<environment> LABBIT_DATABASE_DSN_FILE=<path> labbit-migrate up
+```
+
+- DSN 입력과 우선순위는 Runtime Contract의 `LABBIT_DATABASE_DSN_FILE` / `LABBIT_DATABASE_DSN`을 따릅니다.
+- 각 파일은 최상위 `BEGIN;` … `COMMIT;` 하나로 감쌉니다. runner가 이 envelope 대신 transaction을 열어 본문과 `labbit_schema_migrations` 적용 기록을 함께 commit합니다. 본문에는 transaction 제어문을 두지 않으며, transaction 밖에서만 실행 가능한 DDL(`CREATE INDEX CONCURRENTLY` 등)은 현재 지원하지 않습니다.
+- 실패한 파일은 적용 기록 없이 전체 rollback되고 runner는 non-zero로 종료합니다. 원인을 고친 뒤 다시 실행하면 실패한 파일부터 이어서 적용합니다.
+- 이미 적용된 파일의 내용이 바뀌었거나(SHA-256 불일치) 미적용 파일 번호가 이미 적용된 번호보다 낮으면 적용하지 않고 실패합니다.
+- 같은 database에서 동시에 실행된 runner는 advisory lock으로 직렬화합니다. down migration은 제공하지 않습니다.
+- `labbit-server`의 api/worker `/readyz`는 자신이 포함한 모든 파일이 같은 checksum으로 적용되어 있어야 성공합니다. Migration이 rollout보다 먼저 실행되므로 이전 application version은 자신이 모르는 더 높은 번호의 적용 기록을 허용합니다. 이전 version과 호환되지 않는 변경은 위 D-22 절차를 따릅니다.
 
 ## 아직 만들지 않는 Table
 

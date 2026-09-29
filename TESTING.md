@@ -72,8 +72,14 @@
 
 - FK, Unique, partial unique index, transaction, locking, concurrency처럼 PostgreSQL 의미에 의존하는 검증은 실제 PostgreSQL에서 수행합니다.
 - SQLite나 단순 in-memory DB를 PostgreSQL 고유 의미의 대체 검증으로 사용하지 않습니다.
-- 구체적인 테스트 환경 도구(Testcontainers, CI service 등)는 해당 작업의 구현 요구에 맞춰 선택하고 이 문서에서 선행 고정하지 않습니다.
 - 테스트가 생성한 DB 데이터는 다른 테스트에 영향을 주지 않도록 격리하거나 정리합니다.
+
+현재 entrypoint:
+
+- PostgreSQL Integration Test 파일은 `//go:build integration` tag를 사용하고 `make go-integration-test`로만 실행합니다. `make go-test` / `make test`는 PostgreSQL 없이 실행됩니다.
+- `LABBIT_TEST_DATABASE_DSN`은 `CREATE DATABASE` 권한이 있는 test PostgreSQL server를 가리킵니다. `internal/postgres/postgrestest`가 test마다 임시 database를 만들고 Migration을 적용한 뒤 삭제하므로 사람이 쓰는 개발 DB 상태에 의존하지 않습니다.
+- 명시적으로 실행한 Integration Test는 DSN이 없거나 연결할 수 없으면 skip하지 않고 실패합니다.
+- Local은 `compose.yaml`, CI는 GitHub Actions `Go / test` job의 service container를 사용합니다. 두 환경 모두 PostgreSQL 16, 같은 `db/migrations`, 같은 `make go-integration-test`를 사용합니다.
 
 ## Connector Test
 
@@ -98,7 +104,7 @@
 - OpenAPI, Connector/Realtime JSON Schema, Runtime Contract, DB Migration은 각 Git SSOT를 기준으로 검증합니다.
 - OpenAPI는 CI에서 OpenAPI specification validator로 구조와 참조 정합성을 검증합니다.
 - Connector/Realtime JSON Schema는 선언된 Draft 2020-12 meta-schema와 로컬 `$ref` 해석 가능 여부를 CI에서 검증합니다.
-- Runtime Contract는 YAML 구조, DB Migration은 현재 단계에서 파일 번호 중복 여부를 CI에서 검증합니다.
+- Runtime Contract는 YAML 구조, DB Migration은 Contracts workflow에서 파일 번호 중복 여부를, Go workflow의 PostgreSQL Integration Test에서 실제 적용 가능 여부를 검증합니다.
 - 계약 변경은 producer와 consumer 양쪽 영향도를 함께 확인합니다.
 - breaking change 자동 판정은 아직 Gate가 아니며, 기존 호환성 규칙과 리뷰로 확인합니다.
 - CI validator가 강제하는 범위는 실제 workflow를 기준으로 하며, 문서가 구현되지 않은 Gate를 통과한 것으로 간주하지 않습니다.

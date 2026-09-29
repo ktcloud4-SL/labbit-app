@@ -1,0 +1,24 @@
+# Local 개발·Integration Test용 PostgreSQL만 정의한다.
+# Backend/Frontend/Connector는 이 파일에 추가하지 않고 host에서 make target으로 실행한다.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      # 실제 Secret이 아닌 로컬 폐기용 dummy credential이다.
+      POSTGRES_USER: labbit
+      POSTGRES_PASSWORD: labbit-local-dummy
+      POSTGRES_DB: labbit
+    ports:
+      # 다른 PostgreSQL과 충돌하면 LABBIT_DEV_DB_PORT로 host port만 바꾼다.
+      - "127.0.0.1:${LABBIT_DEV_DB_PORT:-5432}:5432"
+    volumes:
+      # 개발 DB data는 named volume에 유지한다. docker compose down만으로는 삭제되지 않는다.
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U labbit -d labbit"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  postgres-data:

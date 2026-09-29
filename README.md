@@ -21,8 +21,8 @@
 - **Terminal/Live WSS v0.1 정의됨** — Browser Terminal/Live subprotocol, JSON control + Binary PTY byte stream, 60초 PTY grace, 기록 없는 reconnect, Live read-only fan-out, bounded Queue/slow consumer, Session 종료 의미.
 - **Connector Terminal Data v0.1 정의됨** — TerminalSession lifecycle은 persistent Control WSS로 전달하고, 실제 PTY bytes는 active TerminalSession별 별도 Connector outbound Data WSS로 중계.
 - **Domain/Data Model 확정** — Organization/User/Class/LabSpec/LabExecution/LabInstance/Operation/OperationItem/ProviderResource/TerminalSession/LiveSession의 핵심 관계와 ownership, 주요 불변조건을 확정.
-- **PostgreSQL Physical Schema Draft v0.1 작성됨** — 초기 5개 SQL Migration과 D-25의 additive `000006` 초안. 별도 Migration runner와 폐기 가능한 PostgreSQL 16의 전체/`000005→000006` 적용 Integration Test는 있으나, 공용 개발 DB 적용·pgx Repository/Query는 아직이며 최초 공용 개발 DB 적용 전까지 구현 피드백에 따라 정리할 수 있음.
-- **Auth/Session 구현 계약 v0.1 준비됨** — docs/backend/auth-session.md에서 8시간 absolute Session, fresh login token, Argon2id Password hash, raw Session token 비저장, Origin/Referer 검증 기준을 정의합니다. 실제 Handler/Repository 구현은 LBT-10에서 추적합니다.
+- **PostgreSQL Physical Schema Draft v0.1 작성됨** — 초기 5개 SQL Migration과 D-25의 additive `000006` 초안. 별도 Migration runner와 폐기 가능한 PostgreSQL 16의 전체/`000005→000006` 적용 Integration Test에 더해, Auth/Class 다음 Vertical Slice용 최소 pgx Repository/Transaction 경계와 실제 PostgreSQL 제약(FK/Unique/Check/partial unique) Integration Test가 있으나, 공용 개발 DB 적용과 나머지 도메인 Repository는 아직이며 최초 공용 개발 DB 적용 전까지 구현 피드백에 따라 정리할 수 있음.
+- **Auth/Session 구현 계약 v0.1 준비됨** — docs/backend/auth-session.md에서 8시간 absolute Session, fresh login token, Argon2id Password hash, raw Session token 비저장, Origin/Referer 검증 기준을 정의합니다. 실제 Handler와 Auth use case 구현은 LBT-10에서 추적합니다.
 - **HTTP 후속 범위** — Organization/Provider 관리, File, Preview, Terminal/Live Session 생성·종료 control API.
 - **Runtime Contract v0.1.3 정의됨** — 기존 실행 경계에 SaaS OpenTelemetry/OTLP, Operation의 durable Trace Context, Connector propagation-only, 관측 장애의 업무 격리 계약 추가. v0.1.3에서 one-shot `labbit-migrate`, api/worker role 기준 DB DSN 요구, rolling deployment schema 호환 invariant 추가. 실제 계측·전파·Tempo E2E 구현 완료는 아님.
 
@@ -49,7 +49,9 @@ cmd/
 
 internal/
 ├─ server/app/          # Runtime role·listener·readiness·graceful shutdown bootstrap
-├─ postgres/            # DSN 입력·pgx 연결·Migration 적용·schema 호환성 확인
+├─ server/repository/   # Application이 의존하는 Repository/Transaction port와 typed error (pgx 비의존)
+├─ server/bootstrap/    # trusted operator Bootstrap use case (하나의 transaction)
+├─ postgres/            # DSN 입력·pgx 연결·Migration 적용·schema 호환성 확인·Repository/Transaction 구현
 ├─ connector/app/       # Connector process lifecycle bootstrap
 └─ observability/       # 공통 JSON logging bootstrap
 
@@ -67,7 +69,7 @@ make connector
 make web
 ```
 
-`labbit-server`는 현재 Runtime Contract의 application/admin listener와 `/livez`, `/readyz`, `/metrics` 골격, api/worker role의 PostgreSQL 연결·schema 호환성 readiness만 제공합니다. Auth/Class/LabSpec/Operation, DB repository, Connector Control/Provider/SSH, Terminal/Live 같은 실제 기능 구현 완료를 의미하지 않습니다.
+`labbit-server`는 현재 Runtime Contract의 application/admin listener와 `/livez`, `/readyz`, `/metrics` 골격, api/worker role의 PostgreSQL 연결·schema 호환성 readiness만 제공합니다. Auth/Class/LabSpec/Operation 기능, LabSpec/Execution/Operation 등의 DB repository(Identity/Class 최소 query와 Bootstrap만 있고 Handler에는 연결되지 않음), Connector Control/Provider/SSH, Terminal/Live 같은 실제 기능 구현 완료를 의미하지 않습니다.
 
 ### Local PostgreSQL
 

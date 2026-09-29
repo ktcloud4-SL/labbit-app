@@ -100,6 +100,14 @@ HTTP request에 종속된 DB 조회와 짧은 처리는 request context를 사�
 
 Provision/Reset/Cleanup 같은 durable Operation은 HTTP request lifetime 이후에도 계속되어야 하므로 request cancellation을 Worker 실행 lifecycle에 그대로 전달하지 않습니다. 이 경계는 기존 Runtime/D-20/D-25 계약을 따릅니다.
 
+## 현재 구현 위치 (계약 아님)
+
+- `internal/server/repository`: Application이 의존하는 Repository/Transactor port, persistence record, typed error(`ErrNotFound`, `ErrConflict`, `ErrConstraintViolation`, `ErrInternal`). pgx/SQL을 import하지 않습니다.
+- `internal/postgres`: pgx 구현(`Store`). PostgreSQL 오류를 위 typed error로 정규화하며 원본 오류 문자열, SQLSTATE, constraint 이름은 사용자 응답과 외부 계약에 전달하지 않습니다.
+- `internal/server/bootstrap`: D-11 trusted operator Bootstrap use case. Migration이 아닌 이 경로로 Organization/User/Local Account/Class/ClassMembership을 하나의 transaction으로 생성합니다. 실행 command는 아직 없으며 추가할 때는 Runtime Contract `artifacts`와의 정합성을 함께 확인합니다.
+
+Repository는 Session 유효성, Class 접근 권한, 403/404를 판단하지 않고 저장된 값을 그대로 전달합니다. Transaction callback 안에서는 전달된 Repositories만 사용하고 Connector/OpenStack 같은 외부 I/O를 수행하지 않습니다.
+
 ## Auth/Class 첫 Vertical Slice (LBT-10)
 
     Bootstrap test data

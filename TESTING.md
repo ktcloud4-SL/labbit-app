@@ -77,6 +77,7 @@
 현재 entrypoint:
 
 - PostgreSQL Integration Test 파일은 `//go:build integration` tag를 사용하고 `make go-integration-test`로만 실행합니다. `make go-test` / `make test`는 PostgreSQL 없이 실행됩니다.
+- `make go-integration-test`는 Makefile `GO_INTEGRATION_PACKAGES`에 등록된 package만 실행합니다. 일반 unit test 전체는 `make go-test`가 한 번만 담당하므로, integration test를 새 package에 추가하면 이 목록에도 추가합니다.
 - `LABBIT_TEST_DATABASE_DSN`은 `CREATE DATABASE` 권한이 있는 test PostgreSQL server를 가리킵니다. `internal/postgres/postgrestest`가 test마다 임시 database를 만들고 Migration을 적용한 뒤 삭제하므로 사람이 쓰는 개발 DB 상태에 의존하지 않습니다.
 - 명시적으로 실행한 Integration Test는 DSN이 없거나 연결할 수 없으면 skip하지 않고 실패합니다.
 - Local은 `compose.yaml`, CI는 GitHub Actions `Go / test` job의 service container를 사용합니다. 두 환경 모두 PostgreSQL 16, 같은 `db/migrations`, 같은 `make go-integration-test`를 사용합니다.

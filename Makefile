@@ -7,6 +7,8 @@ LABBIT_DEV_DB_PORT ?= 5432
 LABBIT_DEV_DATABASE_DSN ?= postgres://labbit:labbit-local-dummy@127.0.0.1:$(LABBIT_DEV_DB_PORT)/labbit?sslmode=disable
 # Integration Test는 이 server에 test별 database를 만들고 삭제한다. 개발 DB(labbit) 상태에 의존하지 않는다.
 LABBIT_TEST_DATABASE_DSN ?= postgres://labbit:labbit-local-dummy@127.0.0.1:$(LABBIT_DEV_DB_PORT)/postgres?sslmode=disable
+# `//go:build integration` test가 있는 package만 둔다. 일반 unit test 전체는 go-test가 한 번만 실행한다.
+GO_INTEGRATION_PACKAGES ?= ./internal/postgres ./internal/postgres/postgrestest ./internal/server/app
 
 .PHONY: setup test go-fmt-check go-vet go-test go-build go-integration-test web-install web-typecheck web-lint web-test web-build dev-db-up dev-db-down dev-db-migrate server connector web
 
@@ -36,8 +38,8 @@ go-build:
 
 # 실제 PostgreSQL이 필요한 명시적 entrypoint다. DB가 준비되지 않았으면 skip하지 않고 실패한다.
 go-integration-test:
-	$(GO) vet -tags integration ./...
-	LABBIT_TEST_DATABASE_DSN='$(LABBIT_TEST_DATABASE_DSN)' $(GO) test -tags integration -count=1 ./...
+	$(GO) vet -tags integration $(GO_INTEGRATION_PACKAGES)
+	LABBIT_TEST_DATABASE_DSN='$(LABBIT_TEST_DATABASE_DSN)' $(GO) test -tags integration -count=1 $(GO_INTEGRATION_PACKAGES)
 
 web-install:
 	cd web && $(NPM) ci

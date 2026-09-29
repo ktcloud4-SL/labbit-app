@@ -24,6 +24,7 @@ type MockSaaS struct {
 	ExpectedToken   string
 	OnHelloReceived func(raw []byte)
 	OnMsgReceived   func(raw []byte)
+	OnConnected     func(conn *websocket.Conn)
 
 	mu       sync.Mutex
 	writeMu  sync.Mutex
@@ -84,7 +85,12 @@ func (m *MockSaaS) handleControlWSS(w http.ResponseWriter, r *http.Request) {
 
 	m.mu.Lock()
 	m.conn = c
+	onConnected := m.OnConnected
 	m.mu.Unlock()
+
+	if onConnected != nil {
+		onConnected(c)
+	}
 
 	defer func() {
 		m.mu.Lock()
@@ -187,4 +193,11 @@ func (m *MockSaaS) ReceivedMessages() [][]byte {
 	res := make([][]byte, len(m.received))
 	copy(res, m.received)
 	return res
+}
+
+// ActiveConn 은 현재 등록된 활성 WebSocket 연결을 반환합니다.
+func (m *MockSaaS) ActiveConn() *websocket.Conn {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.conn
 }

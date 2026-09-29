@@ -189,12 +189,24 @@ func TestMockSaaS_ReconnectConnectionAffinity(t *testing.T) {
 		Subprotocols: []string{protocol.SubprotocolControl},
 	}
 
+	connectedCh := make(chan struct{}, 2)
+	server.OnConnected = func(conn *websocket.Conn) {
+		connectedCh <- struct{}{}
+	}
+
 	// 1. Connection 1 연결
 	conn1, _, err := dialer.Dial(server.URL(), header)
 	if err != nil {
 		t.Fatalf("conn1 dial failed: %v", err)
 	}
 	defer conn1.Close()
+
+	// conn1 등록 완료 동기 대기
+	select {
+	case <-connectedCh:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for conn1 to register on server")
+	}
 
 	// 2. Connection 2 연결 (재연결 시뮬레이션: server.conn이 conn2로 갱신됨)
 	conn2, _, err := dialer.Dial(server.URL(), header)
@@ -215,8 +227,12 @@ func TestMockSaaS_ReconnectConnectionAffinity(t *testing.T) {
 		}
 	}()
 
-	// 잠시 대기하여 server 측에서 conn2 등록 완료 보장
-	time.Sleep(50 * time.Millisecond)
+	// server 측에서 conn2 등록 완료 동기 대기 (deterministic sync: time.Sleep 제거)
+	select {
+	case <-connectedCh:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for conn2 to register on server")
+	}
 
 	// 3. Conn1에서 HELLO 전송 -> HELLO_ACK는 Conn1으로만 회신되어야 함
 	hello1 := map[string]interface{}{

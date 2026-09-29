@@ -100,6 +100,12 @@ func withDatabase(dsn, database string) (string, error) {
 		if err != nil {
 			return "", errors.New("URL 형식이 올바르지 않습니다")
 		}
+		// pgx는 URL path보다 dbname/database query parameter를 우선한다.
+		// 임시 database 대신 공유 database를 선택하지 않도록 제거하고 path로만 지정한다.
+		query := parsed.Query()
+		query.Del("dbname")
+		query.Del("database")
+		parsed.RawQuery = query.Encode()
 		parsed.Path = "/" + database
 		parsed.RawPath = ""
 		return parsed.String(), nil

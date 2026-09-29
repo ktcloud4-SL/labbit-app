@@ -150,19 +150,93 @@ func TestMigrateFailureRollsBackFailedMigrationAndCanBeRetried(t *testing.T) {
 	}
 }
 
-func TestMigrateRejectsBodyThatEndsRunnerTransaction(t *testing.T) {
+// TestMigrateRejectsBodyThatEscapesRunnerTransaction은 파일 검사(lexical filter)를 통과하는
+// transaction 제어문이 runner transaction을 끝내거나 교체해도 DDL과 적용 기록이 어긋나지 않는지 확인한다.
+func TestMigrateRejectsBodyThatEscapesRunnerTransaction(t *testing.T) {
 	ctx := t.Context()
-	// 한 줄에 섞인 COMMIT은 파일 검사를 통과하므로 runner가 실행 후 transaction 상태로 막아야 한다.
-	escaping := loadMigrations(t, withExtraFile(t, "000007_it_escape.sql",
-		"BEGIN;\nSELECT 1; COMMIT; SELECT 2;\nCOMMIT;\n"))
 	dsn := postgrestest.NewDatabase(t)
 	conn := postgrestest.Connect(t, dsn)
+	postgrestest.Migrate(t, dsn, embeddedMigrations(t))
 
-	_, err := postgres.Migrate(ctx, conn, escaping, discardLogger)
-	if !errors.Is(err, postgres.ErrMigrationState) {
-		t.Fatalf("Migrate() error = %v, want ErrMigrationState", err)
+	tests := []struct {
+		name string
+		body string
+	}{
+		{
+			// Codex P1: 원래 transaction을 rollback하고 새 transaction에서 기록을 commit하던 경로
+			name: "ROLLBACK; BEGIN; as the last statements",
+			body: "CREATE TABLE it_before (id integer);\nROLLBACK; BEGIN;",
+		},
+		{
+			name: "ROLLBACK; BEGIN; on one line",
+			body: "CREATE TABLE it_before (id integer);\nROLLBACK; BEGIN;\nCREATE TABLE it_after (id integer);",
+		},
+		{
+			name: "ROLLBACK; BEGIN READ WRITE; on one line",
+			body: "CREATE TABLE it_before (id integer);\nROLLBACK; BEGIN READ WRITE;\nCREATE TABLE it_after (id integer);",
+		},
+		{
+			name: "ROLLBACK then implicit transaction",
+			body: "CREATE TABLE it_before (id integer);\nROLLBACK; CREATE TABLE it_after (id integer);",
+		},
+		{
+			// PL/pgSQL block과 구분할 수 없어 lexical filter가 허용하는 COMMIT 동의어
+			name: "END; alone on a line",
+			body: "CREATE TABLE it_before (id integer);\nEND;\nCREATE TABLE it_after (id integer);",
+		},
+		{
+			name: "COMMIT; BEGIN; on one line",
+			body: "CREATE TABLE it_before (id integer);\nCOMMIT; BEGIN;\nCREATE TABLE it_after (id integer);",
+		},
 	}
-	assertAppliedVersions(t, conn, 1, 2, 3, 4, 5, 6)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			escaping := loadMigrations(t, withExtraFile(t, "000007_it_escape.sql",
+				"BEGIN;\n"+tt.body+"\nCOMMIT;\n"))
+
+			applied, err := postgres.Migrate(ctx, conn, escaping, discardLogger)
+			if !errors.Is(err, postgres.ErrMigrationState) {
+				t.Fatalf("Migrate() error = %v, want ErrMigrationState", err)
+			}
+			t.Logf("rejected: %v", err)
+			if len(applied) != 0 {
+				t.Fatalf("applied = %v, want none", migrationNames(applied))
+			}
+			for _, table := range []string{"it_before", "it_after"} {
+				if tableExists(t, conn, table) {
+					t.Fatalf("%s was committed outside the runner transaction", table)
+				}
+			}
+			assertAppliedVersions(t, conn, 1, 2, 3, 4, 5, 6)
+		})
+	}
+
+	// 거부된 뒤에도 정상 migration으로 고치면 같은 version부터 다시 적용할 수 있다.
+	fixed := loadMigrations(t, withExtraFile(t, "000007_it_escape.sql",
+		"BEGIN;\nCREATE TABLE it_before (id integer);\nCREATE TABLE it_after (id integer);\nCOMMIT;\n"))
+	applied, err := postgres.Migrate(ctx, conn, fixed, discardLogger)
+	if err != nil {
+		t.Fatalf("fixed Migrate() error = %v", err)
+	}
+	if len(applied) != 1 || applied[0].Version != 7 {
+		t.Fatalf("fixed applied = %v, want only 000007", migrationNames(applied))
+	}
+	for _, table := range []string{"it_before", "it_after"} {
+		if !tableExists(t, conn, table) {
+			t.Fatalf("fixed migration did not create %s", table)
+		}
+	}
+	assertAppliedVersions(t, conn, 1, 2, 3, 4, 5, 6, 7)
+
+	// runner가 바꾼 session 기본값이 연결에 남지 않는다.
+	var readOnly string
+	if err := conn.QueryRow(ctx, "SHOW default_transaction_read_only").Scan(&readOnly); err != nil {
+		t.Fatal(err)
+	}
+	if readOnly != "off" {
+		t.Fatalf("default_transaction_read_only = %s after Migrate, want off", readOnly)
+	}
 }
 
 func TestMigrateRefusesChangedAppliedMigration(t *testing.T) {

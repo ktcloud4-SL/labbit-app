@@ -8,18 +8,33 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // migrationLockKey는 같은 database에서 동시에 실행된 runner를 직렬화한다.
 // PostgreSQL advisory lock은 database 단위이므로 다른 database의 runner와 경쟁하지 않는다.
 const migrationLockKey int64 = 0x6c61_6262_6974_6d67 // "labbitmg"
 
+// labbit_schema_migration_guard는 적용 중인 version을 적용 기록에 deferred FK로 묶는다.
+// migration 본문이 COMMIT/END로 runner transaction을 먼저 끝내려 하면 적용 기록이 아직 없으므로
+// commit 시점 FK 검사가 실패하고 transaction 전체가 rollback된다. 정상 적용 후에는 row를 지운다.
 const trackingTableDDL = `CREATE TABLE IF NOT EXISTS labbit_schema_migrations (
     version bigint PRIMARY KEY,
     name text NOT NULL,
     checksum text NOT NULL,
     applied_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS labbit_schema_migration_guard (
+    version bigint NOT NULL,
+    CONSTRAINT fk_labbit_schema_migration_guard_version
+        FOREIGN KEY (version) REFERENCES labbit_schema_migrations (version)
+        DEFERRABLE INITIALLY DEFERRED
 )`
+
+const migrationGuardConstraint = "fk_labbit_schema_migration_guard_version"
+
+// sqlStateReadOnlyTransaction은 read-only transaction에서 쓰기를 시도한 경우의 SQLSTATE다.
+const sqlStateReadOnlyTransaction = "25006"
 
 // ErrMigrationState는 적용 이력이 현재 migration 파일과 맞지 않아 runner가 진행을 거부한 상태다.
 // 자동 복구하지 않고 운영자가 원인을 확인해야 한다.
@@ -62,6 +77,18 @@ func Migrate(ctx context.Context, conn *pgx.Conn, migrations []Migration, logger
 	if err != nil {
 		return nil, err
 	}
+
+	// runner transaction만 READ WRITE로 명시해 연다. 본문이 runner transaction을 끝낸 뒤 이어지는
+	// 새 transaction이나 implicit transaction은 이 session 기본값 때문에 schema를 바꿀 수 없다.
+	// transaction 밖에서 설정하므로 본문의 ROLLBACK으로 되돌아가지 않는다.
+	if _, err := conn.Exec(ctx, "SET default_transaction_read_only = on"); err != nil {
+		return nil, fmt.Errorf("migration session 설정 실패: %w", err)
+	}
+	defer func() {
+		resetCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, _ = conn.Exec(resetCtx, "RESET default_transaction_read_only")
+	}()
 
 	var done []Migration
 	for _, migration := range pending {
@@ -126,7 +153,7 @@ func planPending(migrations []Migration, applied []appliedMigration) ([]Migratio
 }
 
 func applyMigration(ctx context.Context, conn *pgx.Conn, migration Migration) (err error) {
-	tx, err := conn.Begin(ctx)
+	tx, err := conn.BeginTx(ctx, pgx.TxOptions{AccessMode: pgx.ReadWrite})
 	if err != nil {
 		return fmt.Errorf("%s transaction 시작 실패: %w", migration.Name, err)
 	}
@@ -140,22 +167,61 @@ func applyMigration(ctx context.Context, conn *pgx.Conn, migration Migration) (e
 		_ = tx.Rollback(rollbackCtx)
 	}()
 
+	if _, err = tx.Exec(ctx,
+		"INSERT INTO labbit_schema_migration_guard (version) VALUES ($1)", migration.Version,
+	); err != nil {
+		return fmt.Errorf("%s commit guard 준비 실패: %w", migration.Name, err)
+	}
+	// PostgreSQL이 부여한 top-level transaction ID로 runner transaction을 식별한다.
+	var runnerXID string
+	if err = tx.QueryRow(ctx, "SELECT pg_current_xact_id()::text").Scan(&runnerXID); err != nil {
+		return fmt.Errorf("%s transaction ID 조회 실패: %w", migration.Name, err)
+	}
+
 	// 본문은 여러 statement이므로 simple protocol로 한 번에 실행한다.
 	if err = conn.PgConn().Exec(ctx, migration.body).Close(); err != nil {
+		if escapedRunnerTransaction(err) {
+			return fmt.Errorf("%w: %s 본문이 runner transaction 밖에서 schema 변경 또는 commit을 시도했습니다: %v",
+				ErrMigrationState, migration.Name, err)
+		}
 		return fmt.Errorf("%s 적용 실패: %w", migration.Name, err)
 	}
-	// 본문이 runner transaction을 끝냈다면 적용 기록을 같은 transaction에 남길 수 없으므로 실패시킨다.
-	if conn.PgConn().TxStatus() != 'T' {
-		return fmt.Errorf("%w: %s 실행 중 runner transaction이 종료되었습니다", ErrMigrationState, migration.Name)
+
+	// 본문이 runner transaction을 끝내고 새 transaction을 열었다면 ID가 다르거나 아직 부여되지 않았다.
+	// 원래 transaction이 그대로일 때만 적용 기록을 남긴다.
+	var currentXID *string
+	if conn.PgConn().TxStatus() == 'T' {
+		if err = tx.QueryRow(ctx, "SELECT pg_current_xact_id_if_assigned()::text").Scan(&currentXID); err != nil {
+			return fmt.Errorf("%s transaction ID 확인 실패: %w", migration.Name, err)
+		}
 	}
+	if currentXID == nil || *currentXID != runnerXID {
+		return fmt.Errorf("%w: %s 실행 중 runner transaction이 종료 또는 교체되었습니다", ErrMigrationState, migration.Name)
+	}
+
 	if _, err = tx.Exec(ctx,
 		"INSERT INTO labbit_schema_migrations (version, name, checksum) VALUES ($1, $2, $3)",
 		migration.Version, migration.Name, migration.Checksum,
 	); err != nil {
 		return fmt.Errorf("%s 적용 기록 실패: %w", migration.Name, err)
 	}
+	if _, err = tx.Exec(ctx,
+		"DELETE FROM labbit_schema_migration_guard WHERE version = $1", migration.Version,
+	); err != nil {
+		return fmt.Errorf("%s commit guard 정리 실패: %w", migration.Name, err)
+	}
 	if err = tx.Commit(ctx); err != nil {
 		return fmt.Errorf("%s commit 실패: %w", migration.Name, err)
 	}
 	return nil
+}
+
+// escapedRunnerTransaction은 본문이 runner transaction을 먼저 commit하려다 commit guard에 막혔거나,
+// runner transaction을 끝낸 뒤 read-only 기본값의 transaction에서 쓰기를 시도한 경우다.
+func escapedRunnerTransaction(err error) bool {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return false
+	}
+	return pgErr.Code == sqlStateReadOnlyTransaction || pgErr.ConstraintName == migrationGuardConstraint
 }

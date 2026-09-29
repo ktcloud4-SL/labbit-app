@@ -24,7 +24,10 @@ type Migration struct {
 
 var (
 	migrationFilePattern = regexp.MustCompile(`^([0-9]+)_[a-z0-9_]+\.sql$`)
-	// PL/pgSQL block의 BEGIN/END;와 구분하기 위해 세미콜론으로 끝나는 transaction 제어문만 찾는다.
+	// 흔한 transaction 제어문을 파일 적재 시점에 일찍 거부하기 위한 defense-in-depth다.
+	// SQL을 해석하지 않으므로 한 줄의 여러 statement나 END; 같은 형태는 놓칠 수 있으며,
+	// 정합성은 applyMigration의 transaction identity·commit guard·read-only 기본값이 보장한다.
+	// PL/pgSQL block의 BEGIN/END;와 구분하기 위해 한 줄 전체가 제어문인 경우만 찾는다.
 	transactionControlPattern = regexp.MustCompile(`(?i)^(BEGIN|START\s+TRANSACTION|COMMIT|ROLLBACK|ABORT|END\s+(TRANSACTION|WORK))\b[^;]*;$`)
 )
 

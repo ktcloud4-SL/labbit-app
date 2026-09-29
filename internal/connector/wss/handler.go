@@ -576,6 +576,9 @@ func (h *Handler) handleReconcileRequest(ctx context.Context, env protocol.BaseE
 
 // Listen 은 연결된 WebSocket 으로부터 메시지를 지속 수신하여 Handler 로 처리합니다.
 func (h *Handler) Listen(ctx context.Context, conn *websocket.Conn) error {
+	if conn == nil {
+		return fmt.Errorf("connector wss: cannot listen on nil websocket connection")
+	}
 	for {
 		select {
 		case <-ctx.Done():

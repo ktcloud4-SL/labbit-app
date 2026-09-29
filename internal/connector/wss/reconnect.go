@@ -223,8 +223,12 @@ func (s *Supervisor) runSession(ctx context.Context, client *Client) (bool, erro
 	// 4. 메시지 수신 청취 루프
 	readErrCh := make(chan error, 1)
 	if s.handler != nil {
+		conn := client.Conn()
+		if conn == nil {
+			return true, fmt.Errorf("connector wss: client connection is nil after handshake")
+		}
 		go func() {
-			readErrCh <- s.handler.Listen(sessionCtx, client.Conn())
+			readErrCh <- s.handler.Listen(sessionCtx, conn)
 		}()
 	}
 

@@ -75,9 +75,7 @@ func TestHandler_OperationCommand_Provision_Success(t *testing.T) {
 
 	// 3. Handler 연결 및 리스너 가동
 	handler := wss.NewHandler(mockProv, client)
-	go func() {
-		_ = handler.Listen(ctx, client.Conn())
-	}()
+	startTestListener(t, ctx, handler, client)
 
 	// 4. Mock SaaS에서 OPERATION_COMMAND (PROVISION) 전송
 	cmdMsg := protocol.OperationCommandMessage{
@@ -225,9 +223,7 @@ func TestHandler_OperationCommand_Unknown_OnUnclassifiedError(t *testing.T) {
 	}
 
 	handler := wss.NewHandler(mockProv, client)
-	go func() {
-		_ = handler.Listen(ctx, client.Conn())
-	}()
+	startTestListener(t, ctx, handler, client)
 
 	cmdMsg := protocol.OperationCommandMessage{
 		BaseEnvelope: protocol.BaseEnvelope{
@@ -316,9 +312,7 @@ func TestHandler_OperationCommand_MissingCorrelation_Rejected(t *testing.T) {
 
 	mockProv := &provider.MockProvider{}
 	handler := wss.NewHandler(mockProv, client)
-	go func() {
-		_ = handler.Listen(ctx, client.Conn())
-	}()
+	startTestListener(t, ctx, handler, client)
 
 	// OperationID 누락된 비정상 명령
 	invalidCmd := protocol.OperationCommandMessage{
@@ -426,9 +420,7 @@ func TestHandler_ReconcileRequest_Success(t *testing.T) {
 	}
 
 	handler := wss.NewHandler(mockProv, client)
-	go func() {
-		_ = handler.Listen(ctx, client.Conn())
-	}()
+	startTestListener(t, ctx, handler, client)
 
 	// discoverCandidates 생략된 Reconcile 요청
 	reqMsg := protocol.ReconcileRequestMessage{
@@ -528,9 +520,7 @@ func TestHandler_OperationCommand_MissingImageId_RejectedWithoutProviderCall(t *
 	}
 
 	handler := wss.NewHandler(mockProv, client)
-	go func() {
-		_ = handler.Listen(ctx, client.Conn())
-	}()
+	startTestListener(t, ctx, handler, client)
 
 	// ImageID 누락 및 ImageRef만 제공된 비정상 명령 (imageRef fallback 금지 검증)
 	cmdMsg := protocol.OperationCommandMessage{
@@ -642,9 +632,7 @@ func TestHandler_OperationCommand_MissingFlavorId_RejectedWithoutProviderCall(t 
 	}
 
 	handler := wss.NewHandler(mockProv, client)
-	go func() {
-		_ = handler.Listen(ctx, client.Conn())
-	}()
+	startTestListener(t, ctx, handler, client)
 
 	cmdMsg := protocol.OperationCommandMessage{
 		BaseEnvelope: protocol.BaseEnvelope{
@@ -753,9 +741,7 @@ func TestHandler_OperationCommand_MissingCreationSnapshot_Rejected(t *testing.T)
 	}
 
 	handler := wss.NewHandler(mockProv, client)
-	go func() {
-		_ = handler.Listen(ctx, client.Conn())
-	}()
+	startTestListener(t, ctx, handler, client)
 
 	cmdMsg := protocol.OperationCommandMessage{
 		BaseEnvelope: protocol.BaseEnvelope{
@@ -842,9 +828,7 @@ func TestHandler_OperationCommand_Cleanup_MissingProviderResources_Rejected(t *t
 	}
 
 	handler := wss.NewHandler(mockProv, client)
-	go func() {
-		_ = handler.Listen(ctx, client.Conn())
-	}()
+	startTestListener(t, ctx, handler, client)
 
 	// CLEANUP 요청이지만 ProviderResources 가 nil 로 누락된 비정상 명령
 	cmdMsg := protocol.OperationCommandMessage{
@@ -935,9 +919,7 @@ func TestHandler_ReconcileRequest_MissingKnownResources_Rejected(t *testing.T) {
 	}
 
 	handler := wss.NewHandler(mockProv, client)
-	go func() {
-		_ = handler.Listen(ctx, client.Conn())
-	}()
+	startTestListener(t, ctx, handler, client)
 
 	// knownResources 가 nil 로 누락된 비정상 reconcile 요청
 	reqMsg := protocol.ReconcileRequestMessage{
@@ -1026,9 +1008,7 @@ func TestHandler_Listen_HandleMessageErrorCallbackInvoked(t *testing.T) {
 		}
 	})
 
-	go func() {
-		_ = handler.Listen(ctx, client.Conn())
-	}()
+	startTestListener(t, ctx, handler, client)
 
 	// 잘못된 JSON 전송으로 HandleMessage 에러 유발
 	if err := mockSaaS.SendBytes([]byte("invalid-raw-json-message")); err != nil {
@@ -1042,5 +1022,37 @@ func TestHandler_Listen_HandleMessageErrorCallbackInvoked(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("timed out waiting for onError callback in Handler.Listen")
+	}
+}
+
+// startTestListener 는 리스너 고루틴을 띄우기 전에 connection이 유효함을 동기적으로 검증하고,
+// 테스트 종료 시 리스너 고루틴이 완전히 종료(cleanup)되었음을 보장하여 고루틴 누수를 방지합니다 (LBT-93).
+func startTestListener(t *testing.T, ctx context.Context, handler *wss.Handler, client *wss.Client) <-chan error {
+	t.Helper()
+	conn := client.Conn()
+	if conn == nil {
+		t.Fatal("cannot start listener: client.Conn() is nil")
+	}
+	done := make(chan error, 1)
+	go func() {
+		done <- handler.Listen(ctx, conn)
+	}()
+	t.Cleanup(func() {
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+			t.Errorf("listener goroutine failed to stop within timeout")
+		}
+	})
+	return done
+}
+
+// TestHandler_Listen_NilConnection_ReturnsError 는 nil websocket.Conn 전달 시
+// nil pointer dereference 패닉 대신 명시적 에러를 반환하는지 검증합니다 (LBT-93).
+func TestHandler_Listen_NilConnection_ReturnsError(t *testing.T) {
+	handler := wss.NewHandler(nil, nil)
+	err := handler.Listen(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error when passing nil connection to Listen, got nil")
 	}
 }

@@ -116,28 +116,32 @@ func (m *MockSaaS) handleControlWSS(w http.ResponseWriter, r *http.Request) {
 				if m.OnHelloReceived != nil {
 					m.OnHelloReceived(message)
 				}
-				m.sendHelloAck(env.MessageID)
+				m.sendHelloAck(c, env.MessageID)
 			}
 		}
 	}
 }
 
-// writeMessage 는 writeMu 락으로 보호되는 WebSocket 단일 쓰기 헬퍼입니다.
-func (m *MockSaaS) writeMessage(messageType int, data []byte) error {
+// writeMessageTo 는 지정한 WebSocket 연결에 writeMu 락으로 보호하여 직렬화 쓰기를 수행합니다.
+func (m *MockSaaS) writeMessageTo(c *websocket.Conn, messageType int, data []byte) error {
+	if c == nil {
+		return fmt.Errorf("mock saas: websocket connection is not established or closed")
+	}
 	m.writeMu.Lock()
 	defer m.writeMu.Unlock()
+	return c.WriteMessage(messageType, data)
+}
 
+// writeMessage 는 현재 활성 WebSocket 연결(m.conn)에 writeMu 락으로 보호하여 직렬화 쓰기를 수행합니다.
+func (m *MockSaaS) writeMessage(messageType int, data []byte) error {
 	m.mu.Lock()
 	conn := m.conn
 	m.mu.Unlock()
 
-	if conn == nil {
-		return fmt.Errorf("mock saas: websocket connection is not established or closed")
-	}
-	return conn.WriteMessage(messageType, data)
+	return m.writeMessageTo(conn, messageType, data)
 }
 
-func (m *MockSaaS) sendHelloAck(replyTo string) {
+func (m *MockSaaS) sendHelloAck(c *websocket.Conn, replyTo string) {
 	ack := map[string]interface{}{
 		"type":             protocol.MessageTypeHelloAck,
 		"messageId":        "mock-ack-msg-1",
@@ -150,7 +154,7 @@ func (m *MockSaaS) sendHelloAck(replyTo string) {
 		},
 	}
 	bytes, _ := json.Marshal(ack)
-	_ = m.writeMessage(websocket.TextMessage, bytes)
+	_ = m.writeMessageTo(c, websocket.TextMessage, bytes)
 }
 
 // SendCommand 는 모의 SaaS에서 Connector로 OperationCommand를 전송합니다.

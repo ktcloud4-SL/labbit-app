@@ -8,7 +8,7 @@
 
 Runtime Contract는 HTTP/OpenAPI나 WSS 메시지 계약을 다시 정의하지 않습니다. 애플리케이션이 **어떻게 실행되고, 어떤 포트·설정·Probe·로그·종료 동작을 제공해야 하는지**와 플랫폼이 무엇을 주입·구성해야 하는지를 고정합니다.
 
-**v0.1.2 변경:** LBT-10 Auth/Class 구현 준비에 따라 Browser unsafe method의 CSRF/Origin 검증에 사용할 trusted LABBIT_PUBLIC_ORIGIN 입력을 추가했습니다. v0.1.1의 SaaS OTel/OTLP, durable Context, Connector propagation-only 계약은 유지합니다. 아래 요구사항은 구현 기준이며, 기존 스켈레톤이 이미 이를 제공한다는 뜻은 아닙니다.
+**v0.1.3 변경:** LBT-64에 따라 one-shot Migration runner `labbit-migrate`, api/worker role 기준의 DB DSN 요구, rolling deployment의 schema 호환 invariant를 추가했습니다. v0.1.2의 LABBIT_PUBLIC_ORIGIN, v0.1.1의 SaaS OTel/OTLP, durable Context, Connector propagation-only 계약은 유지합니다. 아래 요구사항은 구현 기준이며, 기존 스켈레톤이 이미 이를 제공한다는 뜻은 아닙니다.
 
 ## v0.1에서 확정하는 경계
 
@@ -23,7 +23,7 @@ Runtime Contract는 HTTP/OpenAPI나 WSS 메시지 계약을 다시 정의하지 
 
 이 네 역할이 곧 네 개의 Kubernetes Deployment라는 뜻은 아닙니다. v0.1은 하나의 `labbit-server` 실행 파일이 `LABBIT_RUNTIME_ROLES`로 하나 이상 역할을 켤 수 있게 계약하고, 실제 workload 분리·Replica/HPA는 부하·장애·배포 검증 후 Platform/GitOps에서 결정합니다.
 
-고객 환경 Connector는 별도 `labbit-connector` 실행 단위입니다.
+Schema Migration은 application rollout 전에 한 번 실행하는 별도 `labbit-migrate` 실행 단위가 담당합니다. 고객 환경 Connector는 별도 `labbit-connector` 실행 단위입니다.
 
 ## Listener
 
@@ -56,12 +56,12 @@ Runtime Contract는 HTTP/OpenAPI나 WSS 메시지 계약을 다시 정의하지 
 | `LABBIT_HTTP_ADDR` | application listen address | No |
 | `LABBIT_PUBLIC_ORIGIN` | Browser Auth/CSRF 검증의 trusted public app origin | No |
 | `LABBIT_ADMIN_ADDR` | health/metrics listen address | No |
-| `LABBIT_DATABASE_DSN_FILE` | production DB DSN secret file 경로 | 경로 자체 No / 파일 내용 Yes |
+| `LABBIT_DATABASE_DSN_FILE` | production DB DSN secret file 경로 (api/worker process, `labbit-migrate`) | 경로 자체 No / 파일 내용 Yes |
 | `LABBIT_DATABASE_DSN` | local development용 직접 DSN | **Yes** |
 | `LABBIT_LOG_LEVEL` | application log level | No |
 | `LABBIT_SHUTDOWN_GRACE` | graceful shutdown budget | No |
 
-Production에서는 DB DSN 원문을 일반 ConfigMap이나 로그에 남기지 않고 Secret injection으로 파일을 제공하는 방식을 기준으로 합니다. LABBIT_DATABASE_DSN은 local development escape hatch이며 두 값이 모두 있으면 file form을 우선합니다.
+Production에서는 DB DSN 원문을 일반 ConfigMap이나 로그에 남기지 않고 Secret injection으로 파일을 제공하는 방식을 기준으로 합니다. LABBIT_DATABASE_DSN은 local development escape hatch이며 두 값이 모두 있으면 file form을 우선합니다. DSN 입력은 PostgreSQL을 사용하는 api/worker role process와 `labbit-migrate`에 필요하며, 없으면 startup에 실패합니다. PostgreSQL을 사용하지 않는 realtime/preview 전용 process에는 요구하지 않습니다.
 
 LABBIT_PUBLIC_ORIGIN은 Proxy/LB 뒤의 request Host에서 추론하지 않는 trusted 설정입니다. 개발자 PC에서는 Vite가 보이는 Browser origin을, 공유 Local/AWS에서는 실제 public HTTPS application origin을 사용합니다. Session lifecycle과 Origin/Referer 검증 세부는 docs/backend/auth-session.md를 따릅니다.
 
@@ -72,7 +72,7 @@ Application startup AutoMigration은 사용하지 않습니다.
 ```text
 Git SQL Migration
       ↓
-별도 CI / Migration Job
+labbit-migrate up (별도 CI / Migration Job, one-shot)
       ↓
 Schema 호환 확인
       ↓
@@ -80,6 +80,8 @@ Application rollout
 ```
 
 Replica마다 startup 시 Migration을 실행하지 않습니다. 애플리케이션이 지원하지 않는 Schema 상태라면 정상 서비스인 것처럼 Ready가 되지 않아야 합니다.
+
+api/worker는 자신의 build에 포함된 Migration이 모두 같은 checksum으로 적용됐을 때 호환으로 보고, 자신이 모르는 더 높은 version의 적용 기록은 허용합니다. 이 규칙은 **rollout 전에 실행하는 Migration이 현재 배포 중인 application version과 backward-compatible하다**는 invariant를 전제로 합니다(old app → 호환 Migration → old/new 공존 → new app rollout). 이전 application이 쓰는 column/table 삭제, 호환되지 않는 constraint 변경처럼 이 전제를 깨는 Migration은 일반 rolling 경로가 아니라 D-22의 maintenance window, 명시적 전환 순서, restore/recovery 계획, 실제 호환성 검증을 거칩니다. 정확한 기준은 `contract.yaml`의 `saas.database.schema_compatibility`를 따릅니다.
 
 ## Graceful Shutdown
 
@@ -203,7 +205,7 @@ Platform/GitOps는 Runtime Contract를 소비해 다음을 실제 배포 값으�
 - `/metrics` Prometheus scrape
 - Replica/HPA/workload 분리
 - `LABBIT_SHUTDOWN_GRACE` · `terminationGracePeriodSeconds` · connection draining 정합화
-- 별도 SQL Migration 단계
+- rollout 전 `labbit-migrate up` 단계
 - stdout/stderr JSON log 수집
 - SaaS 전용 OTLP 수신 주소/protocol·TLS/인증 주입, Alloy/Tempo/Grafana 및 Log correlation 검증
 - RDS·Backup/Restore·DR·DNS/TLS·rollback

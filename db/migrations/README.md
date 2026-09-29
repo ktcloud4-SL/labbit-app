@@ -200,18 +200,18 @@ DB constraint만으로 자연스럽게 표현하기 어렵거나, 중복 컬럼�
 
 ### Migration runner
 
-`cmd/labbit-migrate`가 이 디렉터리의 `*.sql`을 실행 파일에 포함해 version 순서로 적용합니다.
+`cmd/labbit-migrate`가 이 디렉터리의 `*.sql`을 실행 파일에 포함해 version 순서로 적용합니다. 실행 단위·시점·DSN 입력은 Runtime Contract(`artifacts.migration`, `saas.database`)가 원본입니다.
 
 ```bash
 LABBIT_ENVIRONMENT=<environment> LABBIT_DATABASE_DSN_FILE=<path> labbit-migrate up
 ```
 
-- DSN 입력과 우선순위는 Runtime Contract의 `LABBIT_DATABASE_DSN_FILE` / `LABBIT_DATABASE_DSN`을 따릅니다.
 - 각 파일은 최상위 `BEGIN;` … `COMMIT;` 하나로 감쌉니다. runner가 이 envelope 대신 transaction을 열어 본문과 `labbit_schema_migrations` 적용 기록을 함께 commit합니다. 본문에는 transaction 제어문을 두지 않으며, transaction 밖에서만 실행 가능한 DDL(`CREATE INDEX CONCURRENTLY` 등)은 현재 지원하지 않습니다.
+- 본문이 transaction 제어문으로 runner transaction을 끝내거나 교체하면 적용 기록 없이 실패합니다. 파일 적재 시 흔한 제어문을 먼저 거르지만, 정합성은 SQL 해석이 아니라 PostgreSQL이 보장합니다. 적용 기록은 원래 transaction ID(`pg_current_xact_id()`)가 유지될 때만 남기고, `labbit_schema_migration_guard`의 deferred FK가 기록 없는 조기 commit을 실패시키며, runner session의 다른 transaction은 read-only로 열립니다.
 - 실패한 파일은 적용 기록 없이 전체 rollback되고 runner는 non-zero로 종료합니다. 원인을 고친 뒤 다시 실행하면 실패한 파일부터 이어서 적용합니다.
 - 이미 적용된 파일의 내용이 바뀌었거나(SHA-256 불일치) 미적용 파일 번호가 이미 적용된 번호보다 낮으면 적용하지 않고 실패합니다.
 - 같은 database에서 동시에 실행된 runner는 advisory lock으로 직렬화합니다. down migration은 제공하지 않습니다.
-- `labbit-server`의 api/worker `/readyz`는 자신이 포함한 모든 파일이 같은 checksum으로 적용되어 있어야 성공합니다. Migration이 rollout보다 먼저 실행되므로 이전 application version은 자신이 모르는 더 높은 번호의 적용 기록을 허용합니다. 이전 version과 호환되지 않는 변경은 위 D-22 절차를 따릅니다.
+- `labbit-server`의 api/worker `/readyz` 호환 기준과, rollout 전에 실행하는 Migration이 현재 배포 중인 application version과 backward-compatible해야 한다는 invariant는 Runtime Contract `saas.database.schema_compatibility`를 따릅니다. 이 invariant를 깨는 변경은 위 D-22 절차를 따릅니다.
 
 ## 아직 만들지 않는 Table
 

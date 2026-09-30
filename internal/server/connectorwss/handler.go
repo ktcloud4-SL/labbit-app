@@ -4,7 +4,11 @@
 // 담당한다. 연결 수명은 인증과 Upgrade에 성공한 새 connection의 소유권 확보와 이전 connection 교체(4002),
 // HEARTBEAT 수신 기반 OFFLINE 판단과 last_seen 기록, Credential revoke(4001), shutdown이다.
 // Credential 판정과 heartbeat 기록은 use case(connector.Service)에 위임하고 SQL/pgx를 알지 못한다.
-// command/result routing, Provider/Operation 실행은 이 package의 범위가 아니다. HELLO 이후 HEARTBEAT가 아닌 message는 해석하지 않고 버린다.
+//
+// command/result routing은 connector.Router가 소유한다. 이 package는 HELLO_ACK를 마친 connection의 writer를 Registry에
+// protocol-ready route로 등록하고(소유와 ready는 다르다), HELLO 이후의 OPERATION_ACK/PROGRESS/RESULT와 RECONCILE_RESULT를
+// exact-case Schema로 검증해 그 Session이 아직 current일 때만 Router에 넘긴다. Router가 없으면 이 message들은 해석하지 않고 버린다.
+// Provider/Operation 실행, durable Operation 상태 반영은 이 package의 범위가 아니다.
 package connectorwss
 
 import (
@@ -14,7 +18,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -64,6 +67,9 @@ type Options struct {
 	Auth       Authenticator
 	Heartbeats HeartbeatRecorder
 	Registry   *connector.Registry
+	// Router가 있으면 HELLO 이후의 command 응답 message(OPERATION_ACK/PROGRESS/RESULT, RECONCILE_RESULT)를 검증해 넘긴다.
+	// Router는 이 Options의 Registry와 같은 Registry를 사용해야 한다. nil이면 그 message들을 해석하지 않고 버린다.
+	Router *connector.Router
 	// Logger가 nil이면 로그를 남기지 않는다.
 	Logger *slog.Logger
 	// HelloTimeout은 Upgrade 후 HELLO를 기다리는 시간이다. 0이면 기본값을 사용한다.
@@ -83,6 +89,7 @@ type Handler struct {
 	auth       Authenticator
 	heartbeats HeartbeatRecorder
 	registry   *connector.Registry
+	router     *connector.Router
 	logger     *slog.Logger
 	upgrader   websocket.Upgrader
 
@@ -108,6 +115,9 @@ func New(opts Options) (*Handler, error) {
 	if opts.Registry == nil {
 		return nil, errors.New("connectorwss: Registry가 필요합니다")
 	}
+	if opts.Router != nil && opts.Router.Registry() != opts.Registry {
+		return nil, errors.New("connectorwss: Router는 Handler와 같은 Registry를 사용해야 합니다")
+	}
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
@@ -116,6 +126,7 @@ func New(opts Options) (*Handler, error) {
 		auth:       opts.Auth,
 		heartbeats: opts.Heartbeats,
 		registry:   opts.Registry,
+		router:     opts.Router,
 		logger:     logger,
 		// CheckOrigin은 기본값을 유지한다. Connector는 Browser가 아니므로 Origin을 보내지 않으며,
 		// Browser가 보낸 cross-origin Upgrade는 거절된다.
@@ -261,7 +272,7 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal) {
 	// (contracts/connector/README.md §4). HELLO를 기다리기 전에 등록하므로 같은 Connector의 이전 connection은
 	// 새 peer가 HELLO를 보내지 않거나 잘못된 HELLO를 보내도 이 호출 안에서 4002로 종료가 요청된다.
 	// 등록된 Session은 소유자일 뿐 protocol-ready가 아니다. HELLO_ACK를 보내기 전에는 이 connection으로 나가는
-	// message가 없고, command routing(LBT-71)도 HELLO_ACK 이후에만 이 connection을 사용해야 한다.
+	// message가 없고, command routing도 아래 MarkReady로 이 Session의 route를 등록하기 전에는 이 connection을 사용하지 못한다.
 	// HELLO 실패·timeout이면 아래 Release가 이 Session만 제거하며 더 새로운 Session은 건드리지 않는다.
 	registration := h.registry.Register(principal, cc.closeFor)
 	defer registration.Release()
@@ -317,6 +328,13 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal) {
 		return
 	}
 
+	// HELLO_ACK를 마친 이 Session만 command를 받을 수 있다. 등록 시점부터 Router는 이 exact Session의 writer로 보낸다.
+	// 그 사이 교체·revoke되었다면 등록되지 않는다. 이미 종료가 요청된 connection이므로 아래 read loop가 상대의 close 응답이나
+	// 종료로 끝나도록 그대로 진행한다(여기서 곧바로 반환하면 close code를 전달하기 전에 TCP를 닫을 수 있다).
+	if !registration.MarkReady(cc.route) {
+		log.Info("Connector Control connection이 ready 전에 교체·revoke됨")
+	}
+
 	// HELLO_ACK를 보낸 시점부터 OFFLINE timeout을 잰다. 이후에는 current Session의 유효한 HEARTBEAT를 받았을 때만 연장한다.
 	// WebSocket Ping/Pong, 알 수 없는 message, 잘못된 HEARTBEAT는 연장하지 않는다.
 	_ = conn.SetReadDeadline(time.Now().Add(h.offlineTimeout))
@@ -325,8 +343,9 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal) {
 	h.readLoop(conn, cc, registration, principal, log)
 }
 
-// readLoop는 HELLO 이후의 message를 읽는다. HEARTBEAT만 해석하고 나머지는 버린다(command/result routing은 이 범위가 아니다).
-// 크기 제한과 control frame(ping/pong/close) 처리는 계속 적용된다.
+// readLoop는 HELLO 이후의 message를 읽는다. HEARTBEAT와, Router가 있을 때 command 응답 message(routeInbound)만 해석하고
+// 나머지는 버린다. 크기 제한과 control frame(ping/pong/close) 처리는 계속 적용된다.
+// 유효한 HEARTBEAT만 offline deadline을 연장한다. command 응답 message는 유효해도 연장하지 않는다.
 func (h *Handler) readLoop(conn *websocket.Conn, cc *controlConn, registration *connector.Registration, principal connector.Principal, log *slog.Logger) {
 	for {
 		messageType, data, err := conn.ReadMessage()
@@ -356,7 +375,22 @@ func (h *Handler) readLoop(conn *websocket.Conn, cc *controlConn, registration *
 		if !ok {
 			continue
 		}
-		if kind, ok := jsonString(envelope["type"]); !ok || kind != protocol.MessageTypeHeartbeat {
+		kind, ok := jsonString(envelope["type"])
+		if !ok {
+			continue
+		}
+		switch kind {
+		case protocol.MessageTypeHeartbeat:
+			// 아래에서 처리한다.
+		case protocol.MessageTypeOperationAck, protocol.MessageTypeOperationProgress,
+			protocol.MessageTypeOperationResult, protocol.MessageTypeReconcileResult:
+			h.routeInbound(cc, registration, principal, log, kind, envelope)
+			continue
+		case protocol.MessageTypeError:
+			// Connector의 ERROR는 업무 결과가 아니다. 어떤 pending도 바꾸지 않고 안전한 code만 남긴다.
+			log.Warn("Connector ERROR 수신", "error_code", safeErrorCode(envelope))
+			continue
+		default:
 			continue
 		}
 
@@ -397,15 +431,73 @@ func (h *Handler) readLoop(conn *websocket.Conn, cc *controlConn, registration *
 // reject는 고정된 설명만 담은 fatal ERROR를 보내고 4004로 닫는다. 입력 값은 응답과 로그에 복사하지 않는다.
 func (h *Handler) reject(cc *controlConn, log *slog.Logger, what, code, message string) {
 	log.Warn("Connector Control "+what+" 거절", "error_code", code)
+	sendProtocolError(cc, code, message, true)
+	cc.close(closeProtocolError, "protocol error")
+}
+
+// sendProtocolError는 ERROR message 하나를 이 connection의 writer 순서대로 보낸다. 실패는 무시한다.
+// 입력에서 온 값은 싣지 않는다. 호출자는 고정된 code와 설명만 넘긴다.
+func sendProtocolError(cc *controlConn, code, message string, fatal bool) {
 	_ = cc.writeJSON(protocol.ProtocolErrorMessage{
 		BaseEnvelope: protocol.BaseEnvelope{
 			Type:      protocol.MessageTypeError,
 			MessageID: uuid.NewString(),
 			SentAt:    time.Now().UTC(),
 		},
-		Payload: protocol.ProtocolErrorPayload{Code: code, Message: message, Fatal: true},
+		Payload: protocol.ProtocolErrorPayload{Code: code, Message: message, Fatal: fatal},
 	})
-	cc.close(closeProtocolError, "protocol error")
+}
+
+// routeInbound는 type이 확인된 command 응답 message를 검증해 Router에 넘긴다. Router가 없으면 버린다.
+//
+// Schema-invalid이면 어떤 pending에도 넘기지 않고 non-fatal ERROR만 보낸다. 계약(README §15)은 4004를 "복구 불가능한
+// protocol message 오류"로 정하는데 message 하나가 잘못된 것만으로 연결을 복구 불가능하다고 볼 근거가 없어 연결과 기존
+// pending을 유지한다. Schema는 만족하지만 int64를 넘는 정수는 Schema 위반이 아니므로 ERROR 없이 unmatched로 알린다.
+// 넘기는 일은 이 Session이 아직 current인 동안에만 한다. 교체·revoke된 Session의 message는 routing하지 않는다.
+func (h *Handler) routeInbound(cc *controlConn, registration *connector.Registration, principal connector.Principal, log *slog.Logger, kind string, envelope map[string]json.RawMessage) {
+	if h.router == nil {
+		return
+	}
+	in, payload, status := inboundHeader(envelope, kind == protocol.MessageTypeOperationAck || kind == protocol.MessageTypeReconcileResult)
+
+	var route func()
+	if status == decodeOK {
+		route, status = h.decodeInbound(kind, principal.ConnectorID, in, payload)
+	}
+	switch status {
+	case decodeInvalid:
+		log.Warn("Connector Control 응답 message 거절", "message_type", kind, "error_code", errorCodeInvalidMessage)
+		sendProtocolError(cc, errorCodeInvalidMessage, kind+" does not match the connector contract", false)
+		return
+	case decodeUnrepresentable:
+		route = func() { h.router.RouteUnrepresentable(principal.ConnectorID, kind, in) }
+	}
+
+	current, _ := registration.IfCurrent(func() error {
+		route()
+		return nil
+	})
+	if !current {
+		log.Debug("교체·revoke된 Session의 응답 message를 routing하지 않음", "message_type", kind)
+	}
+}
+
+// decodeInbound는 payload를 kind의 typed model로 decode하고, 성공하면 Router로 넘기는 함수를 돌려준다.
+func (h *Handler) decodeInbound(kind string, connectorID uuid.UUID, in connector.Inbound, payload map[string]json.RawMessage) (func(), decodeStatus) {
+	switch kind {
+	case protocol.MessageTypeOperationAck:
+		decoded, status := decodeOperationAck(payload)
+		return func() { h.router.RouteOperationAck(connectorID, in, decoded) }, status
+	case protocol.MessageTypeOperationProgress:
+		decoded, status := decodeOperationProgress(payload)
+		return func() { h.router.RouteOperationProgress(connectorID, in, decoded) }, status
+	case protocol.MessageTypeOperationResult:
+		decoded, status := decodeOperationResult(payload)
+		return func() { h.router.RouteOperationResult(connectorID, in, decoded) }, status
+	default: // protocol.MessageTypeReconcileResult
+		decoded, status := decodeReconcileResult(payload)
+		return func() { h.router.RouteReconcileResult(connectorID, in, decoded) }, status
+	}
 }
 
 // validateHello는 connector.schema.json의 HelloMessage required 조건을 확인한다.
@@ -502,83 +594,6 @@ func nonEmptyString(raw json.RawMessage) bool {
 func validTimestamp(raw json.RawMessage) bool {
 	var t time.Time
 	return json.Unmarshal(raw, &t) == nil && !t.IsZero()
-}
-
-// integerAtLeastOne은 raw가 1 이상의 정수 값인 JSON number일 때만 true다(generation: integer, minimum 1).
-// Schema에 maximum이 없고 JSON Schema 2020-12의 integer는 1.0, 1e2처럼 소수부가 0인 표기도 포함한다.
-// 그래서 값을 계산하지 않고 숫자 문법만 lexical하게 판정한다. 유효숫자열 D와 지수로 값은 D × 10^e이고,
-// D의 앞 0을 버리고 뒤 0을 e로 옮기면 D는 0으로 끝나지 않으므로 e >= 0일 때만 정수다(D가 0이면 값이 0이다).
-// 지수는 부호와 자릿수로만 비교해 1e999999999처럼 큰 값을 만들지 않는다. big.Int로 지수를 읽으면
-// 1 MiB 지수 문자열에서 처리 시간이 자릿수의 제곱으로 늘 수 있어 쓰지 않는다.
-// 숫자가 아니거나 문법에 맞지 않는 raw는 false다.
-func integerAtLeastOne(raw json.RawMessage) bool {
-	digitsAt := func(i int) int {
-		n := 0
-		for i+n < len(raw) && raw[i+n] >= '0' && raw[i+n] <= '9' {
-			n++
-		}
-		return n
-	}
-
-	i := 0
-	intLen := digitsAt(i)
-	if intLen == 0 || (intLen > 1 && raw[i] == '0') { // 음수('-')와 number가 아닌 값도 여기서 거절한다.
-		return false
-	}
-	intPart := string(raw[i : i+intLen])
-	i += intLen
-
-	var fracPart string
-	if i < len(raw) && raw[i] == '.' {
-		i++
-		fracLen := digitsAt(i)
-		if fracLen == 0 {
-			return false
-		}
-		fracPart = string(raw[i : i+fracLen])
-		i += fracLen
-	}
-
-	var expDigits string
-	expNegative := false
-	if i < len(raw) && (raw[i] == 'e' || raw[i] == 'E') {
-		i++
-		if i < len(raw) && (raw[i] == '+' || raw[i] == '-') {
-			expNegative = raw[i] == '-'
-			i++
-		}
-		expLen := digitsAt(i)
-		if expLen == 0 {
-			return false
-		}
-		expDigits = string(raw[i : i+expLen])
-		i += expLen
-	}
-	if i != len(raw) {
-		return false
-	}
-
-	digits := strings.TrimLeft(intPart+fracPart, "0")
-	if digits == "" {
-		return false
-	}
-	trailingZeros := len(digits) - len(strings.TrimRight(digits, "0"))
-	// 값 = (0으로 끝나지 않는 D) × 10^(exp - shift)
-	shift := int64(len(fracPart) - trailingZeros)
-
-	expDigits = strings.TrimLeft(expDigits, "0")
-	if len(expDigits) > 18 {
-		// 지수의 크기가 shift(입력 길이 이하)보다 항상 크므로 부호만 본다.
-		return !expNegative
-	}
-	var exp int64
-	if expDigits != "" {
-		exp, _ = strconv.ParseInt(expDigits, 10, 64)
-	}
-	if expNegative {
-		exp = -exp
-	}
-	return exp >= shift
 }
 
 // validCapabilities는 capabilities가 없거나, 중복 없는 string 배열일 때만 true다.

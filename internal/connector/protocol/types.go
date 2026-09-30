@@ -154,10 +154,13 @@ type StartupScriptSnapshot struct {
 }
 
 // ResolvedVmSpec 은 생성할 VM의 상세 스펙입니다.
+//
+// instanceIndex 는 Schema 상 required(minimum 0)이므로 0 도 직렬화해야 합니다. omitempty 를 두면 첫 VM(0)의
+// instanceIndex 가 wire 에서 빠져 Schema-invalid OPERATION_COMMAND 가 됩니다.
 type ResolvedVmSpec struct {
 	VMKey         string              `json:"vmKey"`
 	Role          string              `json:"role"`
-	InstanceIndex int64               `json:"instanceIndex,omitempty"`
+	InstanceIndex int64               `json:"instanceIndex"`
 	ImageID       string              `json:"imageId,omitempty"`
 	ImageRef      string              `json:"imageRef,omitempty"`
 	FlavorID      string              `json:"flavorId,omitempty"`
@@ -197,6 +200,17 @@ type OperationAckPayload struct {
 type OperationAckMessage struct {
 	BaseEnvelope
 	Payload OperationAckPayload `json:"payload"`
+}
+
+// OperationProgressPayload 는 작업의 현재 진행 단계입니다(connector.schema.json OperationProgressPayload).
+type OperationProgressPayload struct {
+	Stage string `json:"stage"` // CREATE_NETWORK, CREATE_VM 같은 확장 가능한 단계 이름
+}
+
+// OperationProgressMessage 는 Connector가 작업 중간에 SaaS로 전달하는 진행 메시지입니다.
+type OperationProgressMessage struct {
+	BaseEnvelope
+	Payload OperationProgressPayload `json:"payload"`
 }
 
 // OperationResultPayload 는 작업 완료 후 보고하는 결과 본문입니다.

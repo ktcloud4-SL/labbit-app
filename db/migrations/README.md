@@ -162,6 +162,17 @@ PostgreSQL에는 `terminal_sessions`와 `live_sessions`의 **최소 lifecycle me
 
 학생 Live subscriber 목록도 MVP durable 제품 상태가 아니므로 별도 Table을 만들지 않습니다.
 
+### `terminal_sessions.status`의 의미
+
+| status | 의미 |
+| --- | --- |
+| `OPENING` | 생성 중입니다. Connector가 PTY를 준비하기 전이며 Browser가 attach할 수 없습니다. |
+| `DETACHED` | PTY가 준비되었고 active Browser attachment가 없습니다. 생성 직후 첫 attach 전과 Browser 단절 뒤 모두 이 상태이며 `grace_expires_at`(기본 60초)까지 같은 TerminalSession에 attach할 수 있습니다. |
+| `ACTIVE` | Browser attachment 하나가 attach한 상태입니다. |
+| `ENDED` | 종료되었습니다. `end_reason`에 원인(`SESSION_CLOSED`, `SESSION_EXPIRED`, `PTY_EXITED`, `SSH_DISCONNECTED`, `LAB_RESET`, `LAB_CLEANUP`, `SERVICE_RESTARTING`, `OPEN_FAILED` 등 확장 가능한 값)을 기록하며 어떤 전이로도 되살아나지 않습니다. |
+
+전이는 모두 조건부 `UPDATE`(예: `ENDED`가 아닐 때만 `ENDED`로)이며 조건을 만족하지 않으면 아무것도 바꾸지 않습니다. Connector가 알려 준 exit code는 이 table에 저장하지 않고 Browser에 전달만 합니다. `attach_token_hash`는 attach token 원문의 SHA-256 digest이며, `token_expires_at`은 발급 시각 + 8시간입니다.
+
 ## Application에서 추가로 검증할 의미
 
 DB constraint만으로 자연스럽게 표현하기 어렵거나, 중복 컬럼을 추가해 DB 제약으로 만들기보다 도메인 서비스에서 확인하는 편이 더 단순한 의미는 Application이 검증합니다.

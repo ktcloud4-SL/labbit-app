@@ -72,6 +72,10 @@ Backend에서 아래 Local dev fixture를 준비하는 것으로 합의했다.
 
 이 fixture는 직접 SQL을 넣는 방식이 아니라 기존 `bootstrap.Run()` use case를 재사용한 Local dev fixture 실행 경로로 제공받는다.
 
+403 검증은 목록에 보이지 않는 기존 Class를 직접 요청해야 하므로, fixture 실행 경로에서
+Class Alpha / Bravo의 실제 Resource ID를 안전한 출력 또는 fixture mapping으로 확인할 수 있어야 한다.
+Resource ID는 Secret이 아니지만 Password, Session token, DB credential과 함께 기록하지 않는다.
+
 권장 재사용 시나리오:
 
 - `dev-admin`: Login → `/me`에서 ADMIN 확인 → Class 목록 empty → Class Alpha 상세 직접 접근 시 403

@@ -21,11 +21,19 @@ Frontend가 임의의 Auth/Class 정책이나 별도 데이터 생성 규칙을 
 
 ## 2. Backend 준비
 
-저장소 root에서:
+저장소 root에서 먼저 DB와 Migration을 준비한다.
 
 ```bash
 make dev-db-up
 make dev-db-migrate
+```
+
+Backend가 Local dev fixture 실행 경로를 전달하면 해당 절차로 fixture를 준비한다.
+실행 명령은 아직 확정되지 않았으므로 이 문서에서 임의로 만들지 않는다.
+
+fixture 준비 후 Backend를 실행한다.
+
+```bash
 make server
 ```
 

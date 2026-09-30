@@ -123,6 +123,71 @@ type ClassWithRole struct {
 	Role  ClassRole
 }
 
+// TerminalSessionStatus는 terminal_sessions.status 값이다.
+type TerminalSessionStatus string
+
+const (
+	TerminalSessionOpening  TerminalSessionStatus = "OPENING"
+	TerminalSessionActive   TerminalSessionStatus = "ACTIVE"
+	TerminalSessionDetached TerminalSessionStatus = "DETACHED"
+	TerminalSessionEnded    TerminalSessionStatus = "ENDED"
+)
+
+// LabInstance는 Terminal 권한 판정에 필요한 lab_instances row와 그 LabExecution의 Class다.
+// status와 generation의 의미 판정은 Application이 한다.
+type LabInstance struct {
+	ID             uuid.UUID
+	OrganizationID uuid.UUID
+	LabExecutionID uuid.UUID
+	ClassID        uuid.UUID
+	UserID         uuid.UUID
+	Status         string
+	Generation     int64
+}
+
+// ProviderServer는 provider_resources 중 resource_type이 SERVER인 row다.
+// LifecycleStatus가 PRESENT인지 판단하는 것은 Application이다.
+type ProviderServer struct {
+	ID              uuid.UUID
+	ProviderID      string
+	LifecycleStatus string
+}
+
+// TerminalSession은 terminal_sessions row다. raw attach token은 저장하지 않으므로 digest만 담는다.
+// Terminal INPUT/OUTPUT, transcript, exit code는 저장하지 않는다.
+type TerminalSession struct {
+	ID                 uuid.UUID
+	OrganizationID     uuid.UUID
+	LabInstanceID      uuid.UUID
+	UserID             uuid.UUID
+	ProviderResourceID uuid.UUID
+	Generation         int64
+	Status             TerminalSessionStatus
+	AttachTokenHash    []byte
+	TokenExpiresAt     time.Time
+	CreatedAt          time.Time
+	// 아래 시각은 nil이면 기록이 없다는 뜻이다.
+	AttachedAt     *time.Time
+	DetachedAt     *time.Time
+	GraceExpiresAt *time.Time
+	EndedAt        *time.Time
+	// EndReason은 ENDED가 아니면 비어 있다.
+	EndReason string
+}
+
+// NewTerminalSession은 OPENING으로 저장할 TerminalSession이다. 시각은 Application이 정해 전달한다.
+type NewTerminalSession struct {
+	ID                 uuid.UUID
+	OrganizationID     uuid.UUID
+	LabInstanceID      uuid.UUID
+	UserID             uuid.UUID
+	ProviderResourceID uuid.UUID
+	Generation         int64
+	AttachTokenHash    []byte
+	TokenExpiresAt     time.Time
+	CreatedAt          time.Time
+}
+
 // 아래 New* 값은 trusted operator Bootstrap이 저장할 입력이다. created_at은 DB default를 사용한다.
 
 type NewOrganization struct {

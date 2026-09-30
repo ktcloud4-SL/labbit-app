@@ -6,8 +6,9 @@
 // Credential 판정과 heartbeat 기록은 use case(connector.Service)에 위임하고 SQL/pgx를 알지 못한다.
 //
 // command/result routing은 connector.Router가 소유한다. 이 package는 HELLO_ACK를 마친 connection의 writer를 Registry에
-// protocol-ready route로 등록하고(소유와 ready는 다르다), HELLO 이후의 OPERATION_ACK/PROGRESS/RESULT와 RECONCILE_RESULT를
-// exact-case Schema로 검증해 그 Session이 아직 current일 때만 Router에 넘긴다. Router가 없으면 이 message들은 해석하지 않고 버린다.
+// protocol-ready route로 등록하고(소유와 ready는 다르다), HELLO 이후의 OPERATION_ACK/PROGRESS/RESULT, RECONCILE_RESULT,
+// TerminalSession lifecycle의 TERMINAL_OPEN_RESULT/TERMINAL_ENDED를 exact-case Schema로 검증해 그 Session이 아직 current일 때만
+// Router에 넘긴다. Router가 없으면 이 message들은 해석하지 않고 버린다.
 // Provider/Operation 실행, durable Operation 상태 반영은 이 package의 범위가 아니다.
 package connectorwss
 
@@ -385,6 +386,9 @@ func (h *Handler) readLoop(conn *websocket.Conn, cc *controlConn, registration *
 		case protocol.MessageTypeOperationAck, protocol.MessageTypeOperationProgress,
 			protocol.MessageTypeOperationResult, protocol.MessageTypeReconcileResult:
 			h.routeInbound(cc, registration, principal, log, kind, envelope)
+			continue
+		case protocol.MessageTypeTerminalOpenResult, protocol.MessageTypeTerminalEnded:
+			h.routeTerminalInbound(cc, registration, principal, log, kind, envelope)
 			continue
 		case protocol.MessageTypeError:
 			// Connector의 ERROR는 업무 결과가 아니다. 어떤 pending도 바꾸지 않고 안전한 code만 남긴다.

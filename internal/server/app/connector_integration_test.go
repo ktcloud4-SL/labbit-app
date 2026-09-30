@@ -262,10 +262,12 @@ func TestConnectorControlEndpointIsOwnedByAPIRole(t *testing.T) {
 		}
 	})
 
-	// realtime 전용 process는 PostgreSQL 없이 정상 시작하며 Connector Control을 제공하지 않는다.
+	// realtime 전용 process는 PostgreSQL 없이 시작하며(liveness 성공) Connector Control을 제공하지 않는다.
+	// v0.1에서는 authority를 제공하는 api role이 없으므로 readiness는 실패한다.
 	t.Run("realtime 전용 process는 DB 없이 시작하고 Control을 제공하지 않는다", func(t *testing.T) {
 		admin, application := startServerWithApplication(t, "development", "realtime", "", "")
-		waitForStatus(t, admin+"/readyz", http.StatusOK)
+		waitForStatus(t, admin+"/livez", http.StatusOK)
+		waitForStatus(t, admin+"/readyz", http.StatusServiceUnavailable)
 
 		requireControlNotServed(t, application)
 	})

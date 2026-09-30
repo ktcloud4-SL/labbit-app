@@ -70,6 +70,9 @@ type RouterOptions struct {
 	Registry *Registry
 	// Sink가 nil이면 event를 버린다.
 	Sink EventSink
+	// TerminalSink는 TerminalSession lifecycle 결과(TERMINAL_OPEN_RESULT, TERMINAL_ENDED)를 받는다. Operation 결과를 받는 Sink와
+	// 별개이며 nil이면 그 결과를 버린다.
+	TerminalSink TerminalSink
 	// Logger가 nil이면 로그를 남기지 않는다.
 	Logger *slog.Logger
 }
@@ -87,13 +90,16 @@ type RouterOptions struct {
 // pending은 프로세스 안의 ephemeral routing 상태이며 durable Operation 상태(operations/operation_items)가 아니다.
 // timer, retry, lease를 두지 않으므로 더 이상 기다리지 않을 command는 호출자가 ForgetOperation/ForgetReconcile로 정리한다.
 type Router struct {
-	registry *Registry
-	sink     EventSink
-	logger   *slog.Logger
+	registry     *Registry
+	sink         EventSink
+	terminalSink TerminalSink
+	logger       *slog.Logger
 
 	mu         sync.Mutex
 	operations map[operationKey]pendingOperation
 	reconciles map[reconcileKey]pendingReconcile
+	// terminals는 진행 중인 TERMINAL_OPEN이다. 이것도 process 안의 ephemeral routing 상태이며 TerminalSession의 durable 상태가 아니다.
+	terminals map[terminalKey]pendingTerminalOpen
 }
 
 type operationKey struct {
@@ -128,11 +134,13 @@ func NewRouter(opts RouterOptions) (*Router, error) {
 		logger = slog.New(slog.DiscardHandler)
 	}
 	return &Router{
-		registry:   opts.Registry,
-		sink:       opts.Sink,
-		logger:     logger,
-		operations: make(map[operationKey]pendingOperation),
-		reconciles: make(map[reconcileKey]pendingReconcile),
+		registry:     opts.Registry,
+		sink:         opts.Sink,
+		terminalSink: opts.TerminalSink,
+		logger:       logger,
+		operations:   make(map[operationKey]pendingOperation),
+		reconciles:   make(map[reconcileKey]pendingReconcile),
+		terminals:    make(map[terminalKey]pendingTerminalOpen),
 	}, nil
 }
 

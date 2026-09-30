@@ -15,11 +15,9 @@ import (
 	migrationfiles "github.com/ktcloud4-SL/labbit-app/db/migrations"
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
-	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
-	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
-	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
 )
 
 const (
@@ -38,8 +36,8 @@ type Config struct {
 	ShutdownGrace time.Duration
 	// DatabaseDSN은 Secret이다. 로그·오류 메시지에 기록하지 않는다.
 	DatabaseDSN string
-	// PublicOrigin은 api role의 Browser unsafe-method Origin 검증에 쓰는 trusted origin이다.
-	// LABBIT_PUBLIC_ORIGIN을 httpapi.ParseOrigin으로 정규화한 값이며 request Host에서 만들지 않는다.
+	// PublicOrigin은 api role의 Browser unsafe-method Origin 검증과 realtime role의 Browser WSS Upgrade Origin 검증에 쓰는
+	// trusted origin이다. LABBIT_PUBLIC_ORIGIN을 httpapi.ParseOrigin으로 정규화한 값이며 request Host에서 만들지 않는다.
 	PublicOrigin string
 }
 
@@ -72,11 +70,16 @@ func LoadConfig() (Config, error) {
 		}
 	}
 
+	// Browser HTTP/Auth 경계(api)와 Browser Terminal/Live WSS 경계(realtime) 모두 strict Origin 검증이 필요하다.
+	// realtime 때문에 필요해지는 것이며 DB DSN 요구는 추가하지 않는다.
 	var publicOrigin string
-	if slices.Contains(roles, "api") {
+	if slices.Contains(roles, "api") || slices.Contains(roles, "realtime") {
 		raw := strings.TrimSpace(os.Getenv("LABBIT_PUBLIC_ORIGIN"))
 		if raw == "" {
-			return Config{}, errors.New("api role에는 LABBIT_PUBLIC_ORIGIN이 필요합니다")
+			if slices.Contains(roles, "api") {
+				return Config{}, errors.New("api role에는 LABBIT_PUBLIC_ORIGIN이 필요합니다")
+			}
+			return Config{}, errors.New("realtime role에는 LABBIT_PUBLIC_ORIGIN이 필요합니다")
 		}
 		publicOrigin, err = httpapi.ParseOrigin(raw)
 		if err != nil {
@@ -101,10 +104,8 @@ func Run(ctx context.Context, cfg Config) error {
 	ready := &atomic.Bool{}
 
 	var (
-		checkDatabase  func(context.Context) error
-		apiHandler     http.Handler
-		connectorWSS   *connectorwss.Handler
-		connectorMount http.Handler
+		checks []func(context.Context) error
+		stack  *controlStack
 	)
 	if cfg.DatabaseDSN != "" {
 		pool, err := postgres.OpenPool(ctx, cfg.DatabaseDSN)
@@ -118,60 +119,50 @@ func Run(ctx context.Context, cfg Config) error {
 		if err != nil {
 			return err
 		}
-		checkDatabase = (&databaseReadiness{
+		checks = append(checks, (&databaseReadiness{
 			querier:    pool,
 			migrations: migrations,
 			logger:     logger,
-		}).check
+		}).check)
 
 		if slices.Contains(cfg.Roles, "api") {
-			store := postgres.NewStore(pool)
-			apiHandler, err = httpapi.New(httpapi.Options{
-				Auth:         auth.NewService(store, auth.Argon2id{}, nil),
-				Classes:      class.NewService(store),
-				PublicOrigin: cfg.PublicOrigin,
+			// api role이 Auth/Class HTTP와 Connector Control WSS를 소유한다. realtime role이 같은 process에서 함께 enabled되면
+			// 같은 Connector Registry/Router 위에 Terminal Relay와 TerminalSession 생성/종료를 조립한다.
+			// 아직 Operation 결과를 받는 durable Worker(LBT-18)가 없으므로 Operation Sink는 두지 않는다.
+			stack, err = newControlStack(postgres.NewStore(pool), stackOptions{
 				Logger:       logger,
+				PublicOrigin: cfg.PublicOrigin,
+				Realtime:     slices.Contains(cfg.Roles, "realtime"),
 			})
 			if err != nil {
 				return err
 			}
-
-			// Connector Control WSS는 API/Control(api role)이 소유한다. Terminal/Live WebSocket을 처리하는 realtime role과 별개다.
-			// Router는 protocol-ready Connector connection으로 command를 보내고 응답을 correlation으로 연결하는 경계다.
-			// Registry는 Router와 handler가 같은 것을 써야 한다. 아직 event를 받는 Operation Worker(LBT-18)가 없으므로
-			// Sink 없이 두며, 이 프로세스가 보내는 command가 없으면 도착하는 응답은 모두 unmatched로 기록만 남는다.
-			connectorService := connector.NewService(store)
-			connectorRegistry := connector.NewRegistry()
-			connectorRouter, err := connector.NewRouter(connector.RouterOptions{Registry: connectorRegistry, Logger: logger})
-			if err != nil {
-				return err
-			}
-			connectorWSS, err = connectorwss.New(connectorwss.Options{
-				Auth:       connectorService,
-				Heartbeats: connectorService,
-				Registry:   connectorRegistry,
-				Router:     connectorRouter,
-				Logger:     logger,
-			})
-			if err != nil {
-				return err
-			}
-			connectorMount = connectorWSS
 		}
 	}
+	if slices.Contains(cfg.Roles, "realtime") && stack == nil {
+		// v0.1의 realtime role은 DB-backed authority(Browser 인증, TerminalSession 권한, Connector Control)를 같은 process의
+		// api role에서 받는다. 없으면 인증 없는 Terminal route를 열지 않고 not-ready로 둔다. DB DSN을 새로 요구하지도 않는다.
+		logger.Warn("realtime role은 같은 process의 api role 없이는 Terminal을 제공하지 않습니다",
+			"roles", strings.Join(cfg.Roles, ","))
+		checks = append(checks, func(context.Context) error { return errRealtimeRequiresAPI })
+	}
 
+	var appRoutes routes
+	if stack != nil {
+		appRoutes = stack.routes()
+	}
 	applicationServer := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           applicationHandler(apiHandler, connectorMount),
+		Handler:           applicationHandler(appRoutes),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
-	if connectorWSS != nil {
+	if stack != nil {
 		// Shutdown은 hijack된 WebSocket connection을 닫지 않으므로 handler가 새 Upgrade 거절과 기존 connection drain을 맡는다.
-		applicationServer.RegisterOnShutdown(connectorWSS.Close)
+		applicationServer.RegisterOnShutdown(stack.close)
 	}
 	adminServer := &http.Server{
 		Addr:              cfg.AdminAddr,
-		Handler:           adminHandler(ready, checkDatabase),
+		Handler:           adminHandler(ready, checks...),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -204,32 +195,53 @@ func Run(ctx context.Context, cfg Config) error {
 	defer cancel()
 
 	applicationErr := applicationServer.Shutdown(shutdownCtx)
-	if connectorWSS != nil {
-		// http.Server.Shutdown은 hijack된 WebSocket을 기다리지 않는다. 열린 Control connection이 정리될 때까지 기다린다.
-		applicationErr = errors.Join(applicationErr, connectorWSS.Shutdown(shutdownCtx))
+	if stack != nil {
+		// http.Server.Shutdown은 hijack된 WebSocket을 기다리지 않는다. active TerminalSession을 종료하고 열린 Control/Terminal
+		// connection이 정리될 때까지 기다린다.
+		applicationErr = errors.Join(applicationErr, stack.shutdown(shutdownCtx))
 	}
 	adminErr := adminServer.Shutdown(shutdownCtx)
 	return errors.Join(applicationErr, adminErr)
 }
 
-// applicationHandler의 api는 api role이 아니면, connectorControl은 Connector Control endpoint를 제공하지 않으면 nil이다.
-func applicationHandler(api, connectorControl http.Handler) http.Handler {
+// errRealtimeRequiresAPI는 realtime role만으로는 Terminal을 제공할 수 없음을 readiness에 알리는 사유다. 응답 본문에는 싣지 않는다.
+var errRealtimeRequiresAPI = errors.New("realtime role은 같은 process의 api role이 필요합니다")
+
+// routes는 application listener에 mount할 handler들이다. 제공하지 않는 endpoint는 nil이며 mount하지 않는다.
+type routes struct {
+	// API는 /api/v1 Auth, Class, TerminalSession HTTP다(api role).
+	API http.Handler
+	// ConnectorControl은 Connector Control WSS다(api role이 소유).
+	ConnectorControl http.Handler
+	// BrowserTerminal과 ConnectorTerminalData는 Terminal Relay의 WSS다(realtime role, 같은 process의 api role이 authority를 제공할 때만).
+	BrowserTerminal       http.Handler
+	ConnectorTerminalData http.Handler
+}
+
+func applicationHandler(rt routes) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// OpenAPI 기능 구현 전에는 존재하지 않는 endpoint를 임의로 흉내 내지 않는다.
 		http.NotFound(w, r)
 	})
-	if api != nil {
-		mux.Handle("/api/v1/", api)
+	if rt.API != nil {
+		mux.Handle("/api/v1/", rt.API)
 	}
-	if connectorControl != nil {
-		mux.Handle("GET "+connectorwss.Path, connectorControl)
+	if rt.ConnectorControl != nil {
+		mux.Handle("GET "+connectorwss.Path, rt.ConnectorControl)
+	}
+	if rt.BrowserTerminal != nil {
+		mux.Handle("GET "+realtime.BrowserPath, rt.BrowserTerminal)
+	}
+	if rt.ConnectorTerminalData != nil {
+		mux.Handle("GET "+realtime.DataPath, rt.ConnectorTerminalData)
 	}
 	return mux
 }
 
-// adminHandler의 checkDatabase는 DB가 필요한 role이 없으면 nil이다.
-func adminHandler(ready *atomic.Bool, checkDatabase func(context.Context) error) http.Handler {
+// adminHandler의 checks는 role이 새 작업을 안전하게 받을 수 있는지 확인하는 함수들이다(예: DB와 schema 호환성).
+// nil은 건너뛴다. 하나라도 실패하면 /readyz가 실패한다.
+func adminHandler(ready *atomic.Bool, checks ...func(context.Context) error) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /livez", func(w http.ResponseWriter, _ *http.Request) {
@@ -244,10 +256,14 @@ func adminHandler(ready *atomic.Bool, checkDatabase func(context.Context) error)
 		}
 		// API/worker role은 사용 가능한 PostgreSQL과 호환 schema가 있어야 새 작업을 받을 수 있다.
 		// 고객 Connector/OpenStack 상태는 SaaS process readiness 조건에 포함하지 않는다.
-		if checkDatabase != nil {
+		for _, check := range checks {
+			if check == nil {
+				continue
+			}
 			checkCtx, cancel := context.WithTimeout(r.Context(), readinessCheckTimeout)
-			defer cancel()
-			if err := checkDatabase(checkCtx); err != nil {
+			err := check(checkCtx)
+			cancel()
+			if err != nil {
 				http.Error(w, "not ready", http.StatusServiceUnavailable)
 				return
 			}

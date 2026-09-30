@@ -22,9 +22,10 @@ const (
 )
 
 var (
-	ErrSessionNotFound     = errors.New("terminal session not found")
+	ErrSessionNotFound      = errors.New("terminal session not found")
 	ErrSessionAlreadyClosed = errors.New("terminal session already closed")
-	ErrStaleGeneration     = errors.New("stale generation drop")
+	ErrStaleGeneration      = errors.New("stale generation drop")
+	ErrSessionConflict      = errors.New("terminal session conflict")
 )
 
 // SessionEndedCallback 은 세션이 완전 종료되었을 때 호출되는 콜백입니다.
@@ -54,6 +55,7 @@ type Session struct {
 
 	onEnded   SessionEndedCallback
 	closeOnce sync.Once
+	wasActive bool
 }
 
 // SessionManager 는 모든 활성 터미널 세션을 보관하는 Thread-safe 레지스트리입니다.
@@ -76,6 +78,13 @@ func NewSessionManager(graceDuration time.Duration, onEnded SessionEndedCallback
 	}
 }
 
+// SetOnEnded 는 세션 종료 콜백을 등록하거나 변경합니다.
+func (sm *SessionManager) SetOnEnded(cb SessionEndedCallback) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	sm.onEnded = cb
+}
+
 // GetOrCreateSession 은 동일한 terminalSessionId 가 존재하면 기존 세션을 반환(멱등성)하고,
 // 없으면 새 PTY를 생성하여 세션을 등록합니다.
 func (sm *SessionManager) GetOrCreateSession(
@@ -94,14 +103,22 @@ func (sm *SessionManager) GetOrCreateSession(
 		return nil, false, fmt.Errorf("missing terminalSessionId in request")
 	}
 
-	// 1. 기존 세션 존재 여부 확인 (멱등성)
+	// 1. 기존 세션 존재 여부 확인 (멱등성 및 충돌 검증)
 	if existing, exists := sm.sessions[sessionID]; exists {
 		existing.mu.Lock()
 		defer existing.mu.Unlock()
 
-		// Generation 검증 (더 낮은 generation 은 무시)
-		if envelope.Generation < existing.Generation {
-			return nil, false, fmt.Errorf("%w: current=%d, got=%d", ErrStaleGeneration, existing.Generation, envelope.Generation)
+		// Generation 및 대상 타겟 시맨틱 일치성 검증
+		if existing.Generation != envelope.Generation ||
+			existing.LabInstanceID != envelope.LabInstanceID ||
+			existing.TargetVmKey != payload.TargetVmKey ||
+			existing.ProviderServerID != payload.ProviderServerID {
+			if envelope.Generation < existing.Generation {
+				return nil, false, fmt.Errorf("%w: current=%d, got=%d", ErrStaleGeneration, existing.Generation, envelope.Generation)
+			}
+			return nil, false, fmt.Errorf("%w: cannot reuse session %q with different generation or target (existing gen=%d target=%s server=%s, got gen=%d target=%s server=%s)",
+				ErrSessionConflict, sessionID, existing.Generation, existing.TargetVmKey, existing.ProviderServerID,
+				envelope.Generation, payload.TargetVmKey, payload.ProviderServerID)
 		}
 
 		if existing.Status != StatusClosed {
@@ -132,8 +149,11 @@ func (sm *SessionManager) GetOrCreateSession(
 		graceDuration:    sm.graceDuration,
 		onEnded: func(s *Session, reason string, exitCode *int, sessionErr error) {
 			sm.removeSession(s.SessionID)
-			if sm.onEnded != nil {
-				sm.onEnded(s, reason, exitCode, sessionErr)
+			sm.mu.RLock()
+			cb := sm.onEnded
+			sm.mu.RUnlock()
+			if cb != nil {
+				cb(s, reason, exitCode, sessionErr)
 			}
 		},
 	}
@@ -218,9 +238,17 @@ func (s *Session) AttachDataConn(conn *websocket.Conn) (resumed bool) {
 
 	s.DataConn = conn
 	s.Status = StatusActive
+	s.wasActive = true
 	s.detachChan = make(chan struct{})
 
 	return resumed
+}
+
+// WasActive 는 세션이 한 번이라도 활성화(Data WSS attach 완료)되었는지 여부를 반환합니다.
+func (s *Session) WasActive() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.wasActive
 }
 
 // DetachDataConn 은 WebSocket 데이터 연결이 비정상 종료되거나 닫혔을 때 호출됩니다.
@@ -281,6 +309,30 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 		}
 
 		if s.DataConn != nil {
+			endedMsg := protocol.TerminalDataEndedMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:              protocol.MessageTypeTerminalDataEnded,
+					MessageID:         generateUUID(),
+					SentAt:            time.Now().UTC(),
+					TerminalSessionID: s.SessionID,
+					LabInstanceID:     s.LabInstanceID,
+					Generation:        s.Generation,
+				},
+				Payload: protocol.TerminalDataEndedPayload{
+					Reason:   reason,
+					ExitCode: exitCode,
+				},
+			}
+			if err != nil {
+				endedMsg.Payload.Error = &protocol.SafeError{
+					Code:    "SESSION_ERROR",
+					Message: err.Error(),
+				}
+			}
+			s.writeMu.Lock()
+			_ = s.DataConn.WriteJSON(endedMsg)
+			s.writeMu.Unlock()
+
 			_ = s.DataConn.Close()
 			s.DataConn = nil
 		}
@@ -366,4 +418,3 @@ func (s *Session) startPtyPump() {
 		}
 	}()
 }
-

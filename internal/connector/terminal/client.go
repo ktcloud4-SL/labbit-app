@@ -51,9 +51,13 @@ func NewDataWSSClient(cfg DataWSSClientConfig, session *Session) *DataWSSClient 
 	}
 }
 
-// ConnectAndStream 은 Relay 로 WebSocket 연결을 맺고, ATTACH 핸드셰이크를 완료한 후
-// PTY 와 WebSocket 간의 1:1 양방향 바이너리 스트리밍을 시작합니다.
-func (c *DataWSSClient) ConnectAndStream() error {
+// DialAndAttach 는 Relay 로 WebSocket 연결을 맺고, ATTACH 핸드셰이크 및 응답 correlation 검증을 완료한 후
+// 세션에 활성 데이터 연결을 바인딩합니다. 실패 시 연결을 닫고 에러를 반환합니다.
+func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
+	if c.config.EndpointURL == "" {
+		return errors.New("terminal data wss endpoint URL is empty")
+	}
+
 	dialer := websocket.Dialer{
 		HandshakeTimeout: c.config.DialTimeout,
 		Subprotocols:     []string{protocol.SubprotocolTerminalData},
@@ -64,7 +68,7 @@ func (c *DataWSSClient) ConnectAndStream() error {
 		header.Set("Authorization", "Bearer "+c.config.Credential)
 	}
 
-	conn, resp, err := dialer.Dial(c.config.EndpointURL, header)
+	conn, resp, err := dialer.DialContext(ctx, c.config.EndpointURL, header)
 	if err != nil {
 		if resp != nil {
 			return fmt.Errorf("dial failed with HTTP %d: %w", resp.StatusCode, err)
@@ -98,18 +102,22 @@ func (c *DataWSSClient) ConnectAndStream() error {
 		return fmt.Errorf("failed to send ATTACH message: %w", err)
 	}
 
-	// 2. TERMINAL_DATA_ATTACHED 응답 대기
-	_ = c.conn.SetReadDeadline(time.Now().Add(c.config.DialTimeout))
+	// 2. TERMINAL_DATA_ATTACHED 응답 대기 및 검증
+	readTimeout := c.config.DialTimeout
+	if readTimeout <= 0 {
+		readTimeout = 10 * time.Second
+	}
+	_ = c.conn.SetReadDeadline(time.Now().Add(readTimeout))
 	msgType, data, err := c.conn.ReadMessage()
 	if err != nil {
 		_ = c.conn.Close()
 		return fmt.Errorf("failed to read ATTACHED response: %w", err)
 	}
-	_ = c.conn.SetReadDeadline(time.Time{}) // deadline 해제
+	_ = c.conn.SetReadDeadline(time.Time{})
 
 	if msgType != websocket.TextMessage {
 		_ = c.conn.Close()
-		return fmt.Errorf("expected text JSON response, got binary")
+		return fmt.Errorf("expected text JSON response, got binary frame")
 	}
 
 	var baseEnv protocol.BaseEnvelope
@@ -123,13 +131,36 @@ func (c *DataWSSClient) ConnectAndStream() error {
 		return fmt.Errorf("unexpected message type: %s (expected TERMINAL_DATA_ATTACHED)", baseEnv.Type)
 	}
 
+	// Correlation 검증 (Reviewer 3, 6번 지적 사항)
+	if baseEnv.ReplyToMessageID != attachMsgID {
+		_ = c.conn.Close()
+		return fmt.Errorf("replyToMessageId mismatch: want %s, got %s", attachMsgID, baseEnv.ReplyToMessageID)
+	}
+	if baseEnv.TerminalSessionID != c.session.SessionID ||
+		baseEnv.LabInstanceID != c.session.LabInstanceID ||
+		baseEnv.Generation != c.session.Generation {
+		_ = c.conn.Close()
+		return fmt.Errorf("correlation mismatch: want session=%s lab=%s gen=%d, got session=%s lab=%s gen=%d",
+			c.session.SessionID, c.session.LabInstanceID, c.session.Generation,
+			baseEnv.TerminalSessionID, baseEnv.LabInstanceID, baseEnv.Generation)
+	}
+
 	// 3. 세션에 WebSocket 연결 바인딩
-	resumed := c.session.AttachDataConn(c.conn)
-	_ = resumed // 로그 또는 메트릭에 활용 가능
+	_ = c.session.AttachDataConn(c.conn)
+	return nil
+}
 
-	// 4. 수신 스트리밍 고루틴 실행 (송신은 세션의 startPtyPump 가 담당)
+// StartStreaming 은 Attach 성공 후 WebSocket 과 PTY 간의 양방향 수신 루프를 시작합니다.
+func (c *DataWSSClient) StartStreaming() {
 	go c.pumpFromWebSocketToPTY()
+}
 
+// ConnectAndStream 은 호환성을 위해 DialAndAttach 후 StartStreaming 을 수행합니다.
+func (c *DataWSSClient) ConnectAndStream() error {
+	if err := c.DialAndAttach(context.Background()); err != nil {
+		return err
+	}
+	c.StartStreaming()
 	return nil
 }
 
@@ -171,6 +202,14 @@ func (c *DataWSSClient) pumpFromWebSocketToPTY() {
 				continue
 			}
 
+			// Correlation 검증 (Reviewer 6번 지적 사항)
+			if baseEnv.TerminalSessionID != c.session.SessionID ||
+				baseEnv.LabInstanceID != c.session.LabInstanceID ||
+				baseEnv.Generation != c.session.Generation {
+				c.sendError(protocol.TerminalErrProtocolError, "mismatched session or generation correlation in control frame", false)
+				continue
+			}
+
 			switch baseEnv.Type {
 			case protocol.MessageTypeTerminalDataResize:
 				var resizeMsg protocol.TerminalDataResizeMessage
@@ -196,6 +235,28 @@ func (c *DataWSSClient) pumpFromWebSocketToPTY() {
 	}
 }
 
+func (c *DataWSSClient) sendError(code, message string, fatal bool) {
+	errMsg := protocol.TerminalDataErrorMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:              protocol.MessageTypeError,
+			MessageID:         generateUUID(),
+			SentAt:            time.Now().UTC(),
+			TerminalSessionID: c.session.SessionID,
+			LabInstanceID:     c.session.LabInstanceID,
+			Generation:        c.session.Generation,
+		},
+		Payload: protocol.TerminalDataErrorPayload{
+			Code:    code,
+			Message: message,
+			Fatal:   fatal,
+		},
+	}
+	c.writeMu.Lock()
+	if c.conn != nil {
+		_ = c.conn.WriteJSON(errMsg)
+	}
+	c.writeMu.Unlock()
+}
 
 // Close 는 클라이언트를 종료합니다.
 func (c *DataWSSClient) Close() {
@@ -218,4 +279,3 @@ func generateUUID() string {
 	b[8] = (b[8] & 0x3f) | 0x80
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
-

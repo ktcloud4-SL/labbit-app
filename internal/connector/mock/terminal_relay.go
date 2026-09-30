@@ -18,12 +18,15 @@ type TerminalRelay struct {
 	server   *httptest.Server
 	upgrader websocket.Upgrader
 
-	mu         sync.Mutex
-	conn       *websocket.Conn
-	activeSess string
-	attachRecv chan protocol.TerminalDataAttachMessage
-	binRecv    chan []byte
-	closed     bool
+	mu          sync.Mutex
+	conn        *websocket.Conn
+	activeSess  string
+	activeLabID string
+	activeGen   int64
+	attachRecv  chan protocol.TerminalDataAttachMessage
+	binRecv     chan []byte
+	textRecv    chan []byte
+	closed      bool
 }
 
 // NewTerminalRelay 는 로컬 테스트용 Mock Terminal Relay 서버를 시작합니다.
@@ -35,6 +38,7 @@ func NewTerminalRelay() *TerminalRelay {
 		},
 		attachRecv: make(chan protocol.TerminalDataAttachMessage, 10),
 		binRecv:    make(chan []byte, 100),
+		textRecv:   make(chan []byte, 10),
 	}
 
 	mux := http.NewServeMux()
@@ -109,6 +113,8 @@ func (r *TerminalRelay) handleWebSocket(w http.ResponseWriter, req *http.Request
 	r.mu.Lock()
 	_ = conn.WriteJSON(attachedResp)
 	r.activeSess = attachMsg.TerminalSessionID
+	r.activeLabID = attachMsg.LabInstanceID
+	r.activeGen = attachMsg.Generation
 	r.mu.Unlock()
 
 	// 3. 메시지 루프: 커넥터로부터 오는 바이너리 및 텍스트 프레임 수신
@@ -119,6 +125,8 @@ func (r *TerminalRelay) handleWebSocket(w http.ResponseWriter, req *http.Request
 		}
 		if mType == websocket.BinaryMessage {
 			r.binRecv <- p
+		} else if mType == websocket.TextMessage {
+			r.textRecv <- p
 		}
 	}
 }
@@ -153,6 +161,16 @@ func (r *TerminalRelay) ReadBinary(timeout time.Duration) ([]byte, error) {
 	}
 }
 
+// ReadText 는 커넥터로부터 전달된 JSON 제어 텍스트 프레임(예: TERMINAL_DATA_ENDED)을 수신합니다.
+func (r *TerminalRelay) ReadText(timeout time.Duration) ([]byte, error) {
+	select {
+	case b := <-r.textRecv:
+		return b, nil
+	case <-time.After(timeout):
+		return nil, fmt.Errorf("timeout waiting for text control frame")
+	}
+}
+
 // SendResize 는 창 크기 조절 제어 프레임을 커넥터로 보냅니다.
 func (r *TerminalRelay) SendResize(cols, rows int) error {
 	r.mu.Lock()
@@ -166,6 +184,8 @@ func (r *TerminalRelay) SendResize(cols, rows int) error {
 			MessageID:         "resize-1",
 			SentAt:            time.Now().UTC(),
 			TerminalSessionID: r.activeSess,
+			LabInstanceID:     r.activeLabID,
+			Generation:        r.activeGen,
 		},
 		Payload: protocol.TerminalDataResizePayload{
 			Cols: cols,

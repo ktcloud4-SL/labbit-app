@@ -539,6 +539,117 @@ describe('Auth·Class·LabSpec routing', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('Organization ADMIN이어도 Class Membership이 없으면 목록은 Empty로 표시한다', async () => {
+    const adminMe: Me = {
+      ...meFixture,
+      id: 'user-dev-admin',
+      username: 'dev-admin',
+      organizationRole: 'ADMIN',
+    }
+
+    renderRoute(
+      '/classes',
+      createApi({
+        getMe: async () => adminMe,
+        listClasses: async () => ({ items: [] }),
+      }),
+    )
+
+    expect(screen.getByText('dev-admin')).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: '참여 중인 수업이 없습니다.' }),
+    ).toBeInTheDocument()
+  })
+
+  it('Organization ADMIN이어도 Membership 없는 Class 상세 접근은 403으로 표시한다', async () => {
+    const adminMe: Me = {
+      ...meFixture,
+      id: 'user-dev-admin',
+      username: 'dev-admin',
+      organizationRole: 'ADMIN',
+    }
+
+    renderRoute(
+      '/classes/class-alpha',
+      createApi({
+        getMe: async () => adminMe,
+        getClass: async () => {
+          throw new HttpError(403)
+        },
+      }),
+    )
+
+    expect(screen.getByText('dev-admin')).toBeInTheDocument()
+    expect(
+      await screen.findByText('이 수업을 볼 권한이 없습니다.'),
+    ).toBeInTheDocument()
+  })
+
+  it('같은 MEMBER 사용자도 Class별 INSTRUCTOR/STUDENT role을 각각 표시한다', async () => {
+    renderRoute(
+      '/classes',
+      createApi({
+        getMe: async () => ({
+          ...meFixture,
+          id: 'user-dev-instructor',
+          username: 'dev-instructor',
+          organizationRole: 'MEMBER',
+        }),
+        listClasses: async () => ({
+          items: [
+            {
+              id: 'class-alpha',
+              name: 'Class Alpha',
+              myRole: 'INSTRUCTOR',
+            },
+            {
+              id: 'class-bravo',
+              name: 'Class Bravo',
+              myRole: 'STUDENT',
+            },
+          ],
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Class Alpha' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Class Bravo' })).toBeInTheDocument()
+    expect(screen.getByText('강사')).toBeInTheDocument()
+    expect(screen.getByText('수강생')).toBeInTheDocument()
+  })
+
+  it('STUDENT Class 상세에서는 Instructor 전용 동작을 노출하지 않는다', async () => {
+    renderRoute(
+      '/classes/class-bravo',
+      createApi({
+        getMe: async () => ({
+          ...meFixture,
+          id: 'user-dev-instructor',
+          username: 'dev-instructor',
+          organizationRole: 'MEMBER',
+        }),
+        getClass: async () => ({
+          id: 'class-bravo',
+          name: 'Class Bravo',
+          myRole: 'STUDENT',
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Class Bravo' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('수강생')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: '실습 정의 관리' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: '새 환경 생성' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('Class 상세 403은 권한 없음 상태로 표시한다', async () => {
     renderRoute(
       '/classes/forbidden-class',

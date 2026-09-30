@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -14,6 +15,8 @@ import (
 	migrationfiles "github.com/ktcloud4-SL/labbit-app/db/migrations"
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
 )
 
 const (
@@ -32,6 +35,9 @@ type Config struct {
 	ShutdownGrace time.Duration
 	// DatabaseDSN은 Secret이다. 로그·오류 메시지에 기록하지 않는다.
 	DatabaseDSN string
+	// PublicOrigin은 api role의 Browser unsafe-method Origin 검증에 쓰는 trusted origin이다.
+	// LABBIT_PUBLIC_ORIGIN을 httpapi.ParseOrigin으로 정규화한 값이며 request Host에서 만들지 않는다.
+	PublicOrigin string
 }
 
 // LoadConfig는 현재 구현된 role에 필요한 Runtime Contract 항목만 읽는다.
@@ -63,6 +69,18 @@ func LoadConfig() (Config, error) {
 		}
 	}
 
+	var publicOrigin string
+	if slices.Contains(roles, "api") {
+		raw := strings.TrimSpace(os.Getenv("LABBIT_PUBLIC_ORIGIN"))
+		if raw == "" {
+			return Config{}, errors.New("api role에는 LABBIT_PUBLIC_ORIGIN이 필요합니다")
+		}
+		publicOrigin, err = httpapi.ParseOrigin(raw)
+		if err != nil {
+			return Config{}, fmt.Errorf("LABBIT_PUBLIC_ORIGIN 형식 오류: %w", err)
+		}
+	}
+
 	return Config{
 		Environment:   environment,
 		Roles:         roles,
@@ -71,6 +89,7 @@ func LoadConfig() (Config, error) {
 		LogLevel:      envOrDefault("LABBIT_LOG_LEVEL", "info"),
 		ShutdownGrace: grace,
 		DatabaseDSN:   databaseDSN,
+		PublicOrigin:  publicOrigin,
 	}, nil
 }
 
@@ -78,7 +97,10 @@ func Run(ctx context.Context, cfg Config) error {
 	logger := observability.NewJSONLogger("labbit-server", "bootstrap", cfg.Environment, cfg.LogLevel)
 	ready := &atomic.Bool{}
 
-	var checkDatabase func(context.Context) error
+	var (
+		checkDatabase func(context.Context) error
+		apiHandler    http.Handler
+	)
 	if cfg.DatabaseDSN != "" {
 		pool, err := postgres.OpenPool(ctx, cfg.DatabaseDSN)
 		if err != nil {
@@ -96,11 +118,22 @@ func Run(ctx context.Context, cfg Config) error {
 			migrations: migrations,
 			logger:     logger,
 		}).check
+
+		if slices.Contains(cfg.Roles, "api") {
+			apiHandler, err = httpapi.New(httpapi.Options{
+				Auth:         auth.NewService(postgres.NewStore(pool), auth.Argon2id{}, nil),
+				PublicOrigin: cfg.PublicOrigin,
+				Logger:       logger,
+			})
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	applicationServer := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           applicationHandler(),
+		Handler:           applicationHandler(apiHandler),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	adminServer := &http.Server{
@@ -142,12 +175,16 @@ func Run(ctx context.Context, cfg Config) error {
 	return errors.Join(applicationErr, adminErr)
 }
 
-func applicationHandler() http.Handler {
+// applicationHandler의 api는 api role이 아니면 nil이다.
+func applicationHandler(api http.Handler) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// OpenAPI 기능 구현 전에는 존재하지 않는 endpoint를 임의로 흉내 내지 않는다.
 		http.NotFound(w, r)
 	})
+	if api != nil {
+		mux.Handle("/api/v1/", api)
+	}
 	return mux
 }
 

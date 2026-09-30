@@ -138,6 +138,7 @@ func TestLoadConfigDatabaseRequirementByRole(t *testing.T) {
 			t.Setenv("LABBIT_SHUTDOWN_GRACE", "5s")
 			t.Setenv("LABBIT_DATABASE_DSN_FILE", "")
 			t.Setenv("LABBIT_DATABASE_DSN", tt.dsnEnv)
+			t.Setenv("LABBIT_PUBLIC_ORIGIN", "http://localhost:5173")
 
 			cfg, err := LoadConfig()
 			if tt.wantErr != "" {
@@ -156,5 +157,70 @@ func TestLoadConfigDatabaseRequirementByRole(t *testing.T) {
 				t.Fatalf("DatabaseDSN = %q, want %q", cfg.DatabaseDSN, tt.wantDSN)
 			}
 		})
+	}
+}
+
+func TestLoadConfigPublicOrigin(t *testing.T) {
+	tests := []struct {
+		name    string
+		roles   string
+		origin  string
+		want    string
+		wantErr string
+	}{
+		{name: "api requires origin", roles: "api", wantErr: "api role에는 LABBIT_PUBLIC_ORIGIN이 필요합니다"},
+		{name: "blank origin is missing", roles: "api", origin: "  ", wantErr: "api role에는 LABBIT_PUBLIC_ORIGIN이 필요합니다"},
+		{name: "http origin with port", roles: "api", origin: "http://localhost:5173", want: "http://localhost:5173"},
+		{name: "origin is normalized", roles: "api", origin: "HTTPS://Labbit.Example.com:443", want: "https://labbit.example.com"},
+		{name: "path is rejected", roles: "api", origin: "https://labbit.example.com/app", wantErr: "LABBIT_PUBLIC_ORIGIN 형식 오류"},
+		{name: "trailing slash is rejected", roles: "api", origin: "https://labbit.example.com/", wantErr: "LABBIT_PUBLIC_ORIGIN 형식 오류"},
+		{name: "query is rejected", roles: "api", origin: "https://labbit.example.com?x=1", wantErr: "LABBIT_PUBLIC_ORIGIN 형식 오류"},
+		{name: "userinfo is rejected", roles: "api", origin: "https://user@labbit.example.com", wantErr: "LABBIT_PUBLIC_ORIGIN 형식 오류"},
+		{name: "non-http scheme is rejected", roles: "api", origin: "ftp://labbit.example.com", wantErr: "LABBIT_PUBLIC_ORIGIN 형식 오류"},
+		{name: "relative value is rejected", roles: "api", origin: "labbit.example.com", wantErr: "LABBIT_PUBLIC_ORIGIN 형식 오류"},
+		{name: "non-api role does not need origin", roles: "worker,realtime", want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("LABBIT_ENVIRONMENT", "development")
+			t.Setenv("LABBIT_RUNTIME_ROLES", tt.roles)
+			t.Setenv("LABBIT_SHUTDOWN_GRACE", "5s")
+			t.Setenv("LABBIT_DATABASE_DSN_FILE", "")
+			t.Setenv("LABBIT_DATABASE_DSN", "postgres://labbit:dummy@localhost:5432/labbit")
+			t.Setenv("LABBIT_PUBLIC_ORIGIN", tt.origin)
+
+			cfg, err := LoadConfig()
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("LoadConfig() error = %v, want containing %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("LoadConfig() error = %v", err)
+			}
+			if cfg.PublicOrigin != tt.want {
+				t.Fatalf("PublicOrigin = %q, want %q", cfg.PublicOrigin, tt.want)
+			}
+		})
+	}
+}
+
+func TestApplicationHandlerMountsAPIOnlyWhenProvided(t *testing.T) {
+	api := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+
+	withAPI := applicationHandler(api)
+	rec := httptest.NewRecorder()
+	withAPI.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/me", nil))
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("api role /api/v1/me status = %d, want %d", rec.Code, http.StatusNoContent)
+	}
+
+	withoutAPI := applicationHandler(nil)
+	rec = httptest.NewRecorder()
+	withoutAPI.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/me", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("non-api role /api/v1/me status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
 }

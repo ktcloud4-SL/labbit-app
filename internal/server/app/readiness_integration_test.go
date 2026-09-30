@@ -73,19 +73,28 @@ func TestServerReadinessFailsWhenDatabaseIsUnavailable(t *testing.T) {
 // fileDSN은 platform Secret mount처럼 LABBIT_DATABASE_DSN_FILE이 가리키는 파일로 주입한다.
 func startServer(t *testing.T, environment, roles, fileDSN, envDSN string) string {
 	t.Helper()
+	admin, _ := startServerWithApplication(t, environment, roles, fileDSN, envDSN)
+	return admin
+}
+
+// startServerWithApplication은 startServer와 같지만 application listener의 base URL도 반환한다.
+func startServerWithApplication(t *testing.T, environment, roles, fileDSN, envDSN string) (admin, application string) {
+	t.Helper()
 	dsnFile := filepath.Join(t.TempDir(), "database-dsn")
 	if err := os.WriteFile(dsnFile, []byte(fileDSN+"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	adminAddr := freeAddr(t)
+	applicationAddr := freeAddr(t)
 	t.Setenv("LABBIT_ENVIRONMENT", environment)
 	t.Setenv("LABBIT_RUNTIME_ROLES", roles)
 	t.Setenv("LABBIT_SHUTDOWN_GRACE", "5s")
-	t.Setenv("LABBIT_HTTP_ADDR", freeAddr(t))
+	t.Setenv("LABBIT_HTTP_ADDR", applicationAddr)
 	t.Setenv("LABBIT_ADMIN_ADDR", adminAddr)
 	t.Setenv("LABBIT_LOG_LEVEL", "error")
 	t.Setenv("LABBIT_DATABASE_DSN_FILE", dsnFile)
 	t.Setenv("LABBIT_DATABASE_DSN", envDSN)
+	t.Setenv("LABBIT_PUBLIC_ORIGIN", "https://labbit.test")
 
 	cfg, err := LoadConfig()
 	if err != nil {
@@ -108,7 +117,7 @@ func startServer(t *testing.T, environment, roles, fileDSN, envDSN string) strin
 			t.Error("server did not shut down")
 		}
 	})
-	return "http://" + adminAddr
+	return "http://" + adminAddr, "http://" + applicationAddr
 }
 
 func loadEmbeddedMigrations(t *testing.T) []postgres.Migration {

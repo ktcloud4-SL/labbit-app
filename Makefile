@@ -5,10 +5,12 @@ COMPOSE ?= docker compose
 # compose.yaml의 로컬 폐기용 dummy credential과 같은 값이다. 실제 Secret이 아니다.
 LABBIT_DEV_DB_PORT ?= 5432
 LABBIT_DEV_DATABASE_DSN ?= postgres://labbit:labbit-local-dummy@127.0.0.1:$(LABBIT_DEV_DB_PORT)/labbit?sslmode=disable
+# Browser가 실제로 보는 origin(Vite dev server)이다. unsafe method Origin 검증의 trusted origin으로 사용한다.
+LABBIT_DEV_PUBLIC_ORIGIN ?= http://localhost:5173
 # Integration Test는 이 server에 test별 database를 만들고 삭제한다. 개발 DB(labbit) 상태에 의존하지 않는다.
 LABBIT_TEST_DATABASE_DSN ?= postgres://labbit:labbit-local-dummy@127.0.0.1:$(LABBIT_DEV_DB_PORT)/postgres?sslmode=disable
 # `//go:build integration` test가 있는 package만 둔다. 일반 unit test 전체는 go-test가 한 번만 실행한다.
-GO_INTEGRATION_PACKAGES ?= ./internal/postgres ./internal/postgres/postgrestest ./internal/server/app
+GO_INTEGRATION_PACKAGES ?= ./internal/postgres ./internal/postgres/postgrestest ./internal/server/app ./internal/server/auth ./internal/server/httpapi
 
 .PHONY: setup test go-fmt-check go-vet go-test go-build go-integration-test web-install web-typecheck web-lint web-test web-build dev-db-up dev-db-down dev-db-migrate server connector web
 
@@ -76,6 +78,7 @@ server:
 	LABBIT_ENVIRONMENT=development \
 	LABBIT_RUNTIME_ROLES=api \
 	LABBIT_DATABASE_DSN='$(LABBIT_DEV_DATABASE_DSN)' \
+	LABBIT_PUBLIC_ORIGIN='$(LABBIT_DEV_PUBLIC_ORIGIN)' \
 	$(GO) run ./cmd/labbit-server
 
 # Connector 기능은 아직 스켈레톤이며 public inbound listener를 열지 않는다.

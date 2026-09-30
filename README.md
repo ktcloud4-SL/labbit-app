@@ -69,7 +69,7 @@ make connector
 make web
 ```
 
-`labbit-server`는 현재 Runtime Contract의 application/admin listener와 `/livez`, `/readyz`, `/metrics` 골격, api/worker role의 PostgreSQL 연결·schema 호환성 readiness만 제공합니다. Auth/Class/LabSpec/Operation 기능, LabSpec/Execution/Operation 등의 DB repository(Identity/Class 최소 query와 Bootstrap만 있고 Handler에는 연결되지 않음), Connector Control/Provider/SSH, Terminal/Live 같은 실제 기능 구현 완료를 의미하지 않습니다.
+`labbit-server`는 현재 Runtime Contract의 application/admin listener와 `/livez`, `/readyz`, `/metrics` 골격, api/worker role의 PostgreSQL 연결·schema 호환성 readiness, api role의 Auth endpoint(`POST /api/v1/auth/login`, `GET /api/v1/me`, `POST /api/v1/auth/logout`)만 제공합니다. api role은 Origin 검증을 위한 `LABBIT_PUBLIC_ORIGIN`이 필요하며 `make server`는 Vite dev origin(`LABBIT_DEV_PUBLIC_ORIGIN`, 기본 `http://localhost:5173`)을 주입합니다. Class/LabSpec/Operation 기능, LabSpec/Execution/Operation 등의 DB repository(Class 최소 query와 Bootstrap만 있고 Handler에는 연결되지 않음), Connector Control/Provider/SSH, Terminal/Live 같은 실제 기능 구현 완료를 의미하지 않습니다.
 
 ### Local PostgreSQL
 

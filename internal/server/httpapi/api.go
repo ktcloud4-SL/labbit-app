@@ -1,0 +1,240 @@
+// Package httpapi는 contracts/http/openapi.yaml의 Browser HTTP handler와 middleware다.
+//
+// Handler는 request 해석, Cookie, 상태 코드, Problem Details만 담당한다. SQL/pgx를 알지 못하며
+// 인증 판단은 Authenticator(auth.Service)에 위임한다. 인증 성공은 resource authorization이 아니므로
+// Class/Organization 권한은 이 package가 판단하지 않는다.
+package httpapi
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"log/slog"
+	"mime"
+	"net/http"
+
+	"github.com/google/uuid"
+
+	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
+)
+
+// maxLoginBodyBytes는 Login 요청 body 상한이다. Argon2id에 과도하게 긴 입력이 전달되지 않게 한다.
+const maxLoginBodyBytes = 16 << 10
+
+// Authenticator는 handler가 사용하는 인증 use case다. *auth.Service가 구현한다.
+type Authenticator interface {
+	Login(ctx context.Context, in auth.LoginInput) (auth.SessionToken, error)
+	Authenticate(ctx context.Context, token auth.SessionToken) (auth.Principal, error)
+	Logout(ctx context.Context, sessionID uuid.UUID) error
+}
+
+// Options는 Handler 구성이다.
+type Options struct {
+	Auth Authenticator
+	// PublicOrigin은 unsafe method의 trusted origin(LABBIT_PUBLIC_ORIGIN)이다. ParseOrigin 형식을 따른다.
+	PublicOrigin string
+	// Logger가 nil이면 로그를 남기지 않는다.
+	Logger *slog.Logger
+}
+
+type api struct {
+	auth   Authenticator
+	origin string
+	logger *slog.Logger
+}
+
+// New는 /api/v1 아래 Auth endpoint를 제공하는 http.Handler를 만든다.
+func New(opts Options) (http.Handler, error) {
+	if opts.Auth == nil {
+		return nil, errors.New("httpapi: Authenticator가 필요합니다")
+	}
+	origin, err := ParseOrigin(opts.PublicOrigin)
+	if err != nil {
+		return nil, errors.New("httpapi: PublicOrigin이 올바르지 않습니다")
+	}
+	logger := opts.Logger
+	if logger == nil {
+		logger = slog.New(slog.DiscardHandler)
+	}
+
+	a := &api{auth: opts.Auth, origin: origin, logger: logger}
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/auth/login", a.login)
+	mux.Handle("POST /api/v1/auth/logout", a.authenticated(http.HandlerFunc(a.logout)))
+	mux.Handle("GET /api/v1/me", a.authenticated(http.HandlerFunc(a.me)))
+
+	return withRequestID(noStore(a.originGuard(mux))), nil
+}
+
+// noStore는 인증 응답이 Browser나 중간 cache에 저장되지 않게 한다.
+func noStore(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// originGuard는 POST/PUT/PATCH/DELETE에 source origin 검증을 적용한다. Login도 포함한다.
+// 인증보다 먼저 실행하므로 거절된 요청은 Session 조회나 Cookie 변경을 일으키지 않는다.
+func (a *api) originGuard(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+			if !sourceAllowed(a.origin, r.Header) {
+				writeProblem(w, r, http.StatusForbidden, codeCSRFRejected, "요청의 출처를 확인할 수 없어 거절했습니다.")
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+type principalKey struct{}
+
+// PrincipalFrom은 auth middleware가 request context에 연결한 현재 사용자를 반환한다.
+// 인증된 사용자일 뿐이며 특정 Class를 다룰 권한이 있다는 뜻이 아니다.
+func PrincipalFrom(ctx context.Context) (auth.Principal, bool) {
+	principal, ok := ctx.Value(principalKey{}).(auth.Principal)
+	return principal, ok
+}
+
+// authenticated는 유효한 Session이 없으면 401로 거절하고, 있으면 Principal을 context에 연결한다.
+// 제시된 Cookie가 유효하지 않으면 stale Cookie를 함께 제거한다.
+func (a *api) authenticated(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token, presented := presentedToken(r)
+		if !presented {
+			a.unauthenticated(w, r, false)
+			return
+		}
+		principal, err := a.auth.Authenticate(r.Context(), token)
+		switch {
+		case err == nil:
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), principalKey{}, principal)))
+		case errors.Is(err, auth.ErrUnauthenticated):
+			a.unauthenticated(w, r, true)
+		default:
+			a.internalError(w, r, "authenticate", err)
+		}
+	})
+}
+
+func (a *api) unauthenticated(w http.ResponseWriter, r *http.Request, clearCookie bool) {
+	if clearCookie {
+		http.SetCookie(w, clearedSessionCookie())
+	}
+	writeProblem(w, r, http.StatusUnauthorized, codeUnauthenticated, "로그인이 필요하거나 세션이 만료되었습니다.")
+}
+
+// internalError는 내부 오류를 log에만 남기고 응답에는 고정 문구만 사용한다.
+func (a *api) internalError(w http.ResponseWriter, r *http.Request, op string, err error) {
+	attrs := []any{"request_id", requestIDFrom(r.Context()), "operation", op, "error", err.Error()}
+	var repoErr *repository.Error
+	if errors.As(err, &repoErr) {
+		attrs = append(attrs, "repository", repoErr)
+	}
+	a.logger.Error("HTTP 요청 처리 실패", attrs...)
+	writeProblem(w, r, http.StatusInternalServerError, codeInternal, "요청을 처리하지 못했습니다.")
+}
+
+type loginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (a *api) login(w http.ResponseWriter, r *http.Request) {
+	req, ok := decodeLoginRequest(w, r)
+	if !ok {
+		writeProblem(w, r, http.StatusBadRequest, codeInvalidRequest, "요청 형식이 올바르지 않습니다.")
+		return
+	}
+
+	presented, _ := presentedToken(r)
+	token, err := a.auth.Login(r.Context(), auth.LoginInput{
+		Username:       req.Username,
+		Password:       req.Password,
+		PresentedToken: presented,
+	})
+	switch {
+	case err == nil:
+		http.SetCookie(w, newSessionCookie(token))
+		w.WriteHeader(http.StatusNoContent)
+	case errors.Is(err, auth.ErrInvalidCredentials):
+		writeProblem(w, r, http.StatusUnauthorized, codeInvalidCredentials, "username 또는 password가 올바르지 않습니다.")
+	default:
+		a.internalError(w, r, "login", err)
+	}
+}
+
+// decodeLoginRequest는 OpenAPI LoginRequest(username, password 필수·비어 있지 않음, 추가 필드 없음)를 읽는다.
+func decodeLoginRequest(w http.ResponseWriter, r *http.Request) (loginRequest, bool) {
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		return loginRequest{}, false
+	}
+
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxLoginBodyBytes))
+	decoder.DisallowUnknownFields()
+	var req loginRequest
+	if err := decoder.Decode(&req); err != nil {
+		return loginRequest{}, false
+	}
+	// JSON 값 하나만 허용한다.
+	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
+		return loginRequest{}, false
+	}
+	if req.Username == "" || req.Password == "" {
+		return loginRequest{}, false
+	}
+	return req, true
+}
+
+type meResponse struct {
+	ID               string              `json:"id"`
+	Username         string              `json:"username"`
+	Organization     organizationSummary `json:"organization"`
+	OrganizationRole string              `json:"organizationRole"`
+}
+
+type organizationSummary struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+func (a *api) me(w http.ResponseWriter, r *http.Request) {
+	principal, ok := PrincipalFrom(r.Context())
+	if !ok {
+		a.internalError(w, r, "me", errors.New("인증 context가 없습니다"))
+		return
+	}
+	user := principal.User
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(meResponse{
+		ID:       user.ID.String(),
+		Username: user.Username,
+		Organization: organizationSummary{
+			ID:   user.OrganizationID.String(),
+			Name: user.OrganizationName,
+		},
+		OrganizationRole: string(user.OrganizationRole),
+	})
+}
+
+func (a *api) logout(w http.ResponseWriter, r *http.Request) {
+	principal, ok := PrincipalFrom(r.Context())
+	if !ok {
+		a.internalError(w, r, "logout", errors.New("인증 context가 없습니다"))
+		return
+	}
+	switch err := a.auth.Logout(r.Context(), principal.SessionID); {
+	case err == nil:
+		http.SetCookie(w, clearedSessionCookie())
+		w.WriteHeader(http.StatusNoContent)
+	case errors.Is(err, auth.ErrUnauthenticated):
+		a.unauthenticated(w, r, true)
+	default:
+		a.internalError(w, r, "logout", err)
+	}
+}

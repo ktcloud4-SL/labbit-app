@@ -348,6 +348,41 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByText('로그아웃했습니다.')).toBeInTheDocument()
   })
 
+  it('Class 목록 조회 중 세션이 만료되면 Login으로 이동한다', async () => {
+    renderRoute(
+      '/classes',
+      createApi({
+        listClasses: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('Class 목록 Backend 오류는 일반 오류 상태로 표시한다', async () => {
+    renderRoute(
+      '/classes',
+      createApi({
+        listClasses: async () => {
+          throw new HttpError(500)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText('수업 목록을 불러오지 못했습니다.'),
+    ).toBeInTheDocument()
+  })
+
   it('Class 목록이 비어 있으면 Empty 상태를 렌더링한다', async () => {
     renderRoute(
       '/classes',

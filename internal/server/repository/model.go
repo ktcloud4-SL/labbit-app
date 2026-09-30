@@ -81,6 +81,27 @@ type AuthSessionWithUser struct {
 	User    User
 }
 
+// Connector는 connectors row 중 인증 판정에 필요한 값이다. revoke 여부는 판정하지 않고 저장된 값만 전달한다.
+type Connector struct {
+	ID             uuid.UUID
+	OrganizationID uuid.UUID
+	RevokedAt      *time.Time
+}
+
+// ConnectorCredential은 connector_credentials row 중 인증 판정에 필요한 값이다.
+// credential digest는 조회 key로만 쓰이므로 반환하지 않는다.
+type ConnectorCredential struct {
+	ID          uuid.UUID
+	ConnectorID uuid.UUID
+	RevokedAt   *time.Time
+}
+
+// ConnectorCredentialWithConnector는 Credential과 그 소유 Connector의 revoke 상태를 함께 담는다.
+type ConnectorCredentialWithConnector struct {
+	Credential ConnectorCredential
+	Connector  Connector
+}
+
 type Class struct {
 	ID             uuid.UUID
 	OrganizationID uuid.UUID

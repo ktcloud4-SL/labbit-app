@@ -17,6 +17,8 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
 )
 
@@ -99,8 +101,10 @@ func Run(ctx context.Context, cfg Config) error {
 	ready := &atomic.Bool{}
 
 	var (
-		checkDatabase func(context.Context) error
-		apiHandler    http.Handler
+		checkDatabase  func(context.Context) error
+		apiHandler     http.Handler
+		connectorWSS   *connectorwss.Handler
+		connectorMount http.Handler
 	)
 	if cfg.DatabaseDSN != "" {
 		pool, err := postgres.OpenPool(ctx, cfg.DatabaseDSN)
@@ -131,13 +135,28 @@ func Run(ctx context.Context, cfg Config) error {
 			if err != nil {
 				return err
 			}
+
+			// Connector Control WSS는 API/Control(api role)이 소유한다. Terminal/Live WebSocket을 처리하는 realtime role과 별개다.
+			connectorWSS, err = connectorwss.New(connectorwss.Options{
+				Auth:     connector.NewService(store),
+				Registry: connector.NewRegistry(),
+				Logger:   logger,
+			})
+			if err != nil {
+				return err
+			}
+			connectorMount = connectorWSS
 		}
 	}
 
 	applicationServer := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           applicationHandler(apiHandler),
+		Handler:           applicationHandler(apiHandler, connectorMount),
 		ReadHeaderTimeout: 5 * time.Second,
+	}
+	if connectorWSS != nil {
+		// Shutdown은 hijack된 WebSocket connection을 닫지 않으므로 handler가 새 Upgrade 거절과 기존 connection drain을 맡는다.
+		applicationServer.RegisterOnShutdown(connectorWSS.Close)
 	}
 	adminServer := &http.Server{
 		Addr:              cfg.AdminAddr,
@@ -178,8 +197,8 @@ func Run(ctx context.Context, cfg Config) error {
 	return errors.Join(applicationErr, adminErr)
 }
 
-// applicationHandler의 api는 api role이 아니면 nil이다.
-func applicationHandler(api http.Handler) http.Handler {
+// applicationHandler의 api는 api role이 아니면, connectorControl은 Connector Control endpoint를 제공하지 않으면 nil이다.
+func applicationHandler(api, connectorControl http.Handler) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// OpenAPI 기능 구현 전에는 존재하지 않는 endpoint를 임의로 흉내 내지 않는다.
@@ -187,6 +206,9 @@ func applicationHandler(api http.Handler) http.Handler {
 	})
 	if api != nil {
 		mux.Handle("/api/v1/", api)
+	}
+	if connectorControl != nil {
+		mux.Handle("GET "+connectorwss.Path, connectorControl)
 	}
 	return mux
 }

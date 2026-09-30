@@ -210,17 +210,40 @@ func TestLoadConfigPublicOrigin(t *testing.T) {
 func TestApplicationHandlerMountsAPIOnlyWhenProvided(t *testing.T) {
 	api := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
 
-	withAPI := applicationHandler(api)
+	withAPI := applicationHandler(api, nil)
 	rec := httptest.NewRecorder()
 	withAPI.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/me", nil))
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("api role /api/v1/me status = %d, want %d", rec.Code, http.StatusNoContent)
 	}
 
-	withoutAPI := applicationHandler(nil)
+	withoutAPI := applicationHandler(nil, nil)
 	rec = httptest.NewRecorder()
 	withoutAPI.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/me", nil))
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("non-api role /api/v1/me status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+}
+
+func TestApplicationHandlerMountsConnectorControlOnlyWhenProvided(t *testing.T) {
+	control := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+
+	serve := func(h http.Handler, method string) int {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(method, "/connector/v1/control", nil))
+		return rec.Code
+	}
+
+	mounted := applicationHandler(nil, control)
+	if got := serve(mounted, http.MethodGet); got != http.StatusNoContent {
+		t.Fatalf("GET /connector/v1/control status = %d, want %d", got, http.StatusNoContent)
+	}
+	// WebSocket Upgrade는 GET이다. 다른 method는 method 무관 catch-all("/")로 가므로 handler에 도달하지 않는다.
+	if got := serve(mounted, http.MethodPost); got != http.StatusNotFound {
+		t.Fatalf("POST /connector/v1/control status = %d, want %d", got, http.StatusNotFound)
+	}
+
+	if got := serve(applicationHandler(nil, nil), http.MethodGet); got != http.StatusNotFound {
+		t.Fatalf("Connector Control 미제공 status = %d, want %d", got, http.StatusNotFound)
 	}
 }

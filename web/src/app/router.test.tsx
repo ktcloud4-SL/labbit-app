@@ -555,7 +555,7 @@ describe('Auth·Class·LabSpec routing', () => {
       }),
     )
 
-    expect(screen.getByText('dev-admin')).toBeInTheDocument()
+    expect(await screen.findByText('dev-admin')).toBeInTheDocument()
     expect(
       await screen.findByRole('heading', { name: '참여 중인 수업이 없습니다.' }),
     ).toBeInTheDocument()
@@ -579,7 +579,7 @@ describe('Auth·Class·LabSpec routing', () => {
       }),
     )
 
-    expect(screen.getByText('dev-admin')).toBeInTheDocument()
+    expect(await screen.findByText('dev-admin')).toBeInTheDocument()
     expect(
       await screen.findByText('이 수업을 볼 권한이 없습니다.'),
     ).toBeInTheDocument()
@@ -692,7 +692,7 @@ describe('Auth·Class·LabSpec routing', () => {
       screen.queryByRole('link', { name: '실습 정의 관리' }),
     ).not.toBeInTheDocument()
 
-    alphaRouter.navigate('/classes/class-bravo')
+    await alphaRouter.navigate('/classes/class-bravo')
 
     expect(
       await screen.findByText('이 수업을 볼 권한이 없습니다.'),

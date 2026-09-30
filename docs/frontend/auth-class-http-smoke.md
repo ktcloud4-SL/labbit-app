@@ -28,8 +28,15 @@ make dev-db-up
 make dev-db-migrate
 ```
 
-Backend가 Local dev fixture 실행 경로를 전달하면 해당 절차로 fixture를 준비한다.
-실행 명령은 아직 확정되지 않았으므로 이 문서에서 임의로 만들지 않는다.
+Backend Local dev fixture 실행 경로는 PR #51(LBT-68)에서 `make dev-auth-class-fixture`로 준비되었다.
+PR #51이 merge된 main 또는 해당 branch를 반영한 작업 트리에서 다음 순서로 fixture를 준비한다.
+
+```bash
+make dev-auth-class-fixture
+```
+
+성공하면 credential은 repository root의 `.local/dev-auth-class-fixture.json`에만 생성된다.
+이 파일은 gitignore 대상이며 Password 원문이 있으므로 Git/Jira/캡처에 올리지 않는다.
 
 fixture 준비 후 Backend를 실행한다.
 
@@ -78,11 +85,11 @@ Backend에서 아래 Local dev fixture를 준비하는 것으로 합의했다.
 | `dev-instructor` | MEMBER | INSTRUCTOR | STUDENT | 한 사용자의 Class별 Role 분리, Instructor/Student UI |
 | `dev-student` | MEMBER | STUDENT | Membership 없음 | Student UI, Membership 없는 다른 Class 403 |
 
-이 fixture는 직접 SQL을 넣는 방식이 아니라 기존 `bootstrap.Run()` use case를 재사용한 Local dev fixture 실행 경로로 제공받는다.
+이 fixture는 직접 SQL을 넣는 방식이 아니라 기존 `bootstrap.Run()` use case를 재사용한 PR #51의 dev-only 실행 경로를 사용한다.
 
-403 검증은 목록에 보이지 않는 기존 Class를 직접 요청해야 하므로, fixture 실행 경로에서
-Class Alpha / Bravo의 실제 Resource ID를 안전한 출력 또는 fixture mapping으로 확인할 수 있어야 한다.
-Resource ID는 Secret이 아니지만 Password, Session token, DB credential과 함께 기록하지 않는다.
+403 검증은 목록에 보이지 않는 기존 Class를 직접 요청해야 한다.
+PR #51의 credential file에는 `classes.alpha` / `classes.bravo` Resource ID가 포함되므로 그 값을 사용한다.
+Resource ID는 Secret이 아니지만 credential file 전체나 Password, Session token, DB credential은 기록하지 않는다.
 
 권장 재사용 시나리오:
 

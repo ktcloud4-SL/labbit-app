@@ -173,32 +173,29 @@ Login 응답은 정상인데 Browser의 Local HTTP Cookie 제약 때문에 이�
 이를 Frontend consumer 결함으로 단정하지 않는다. 최종 Cookie / Origin / Referer acceptance는
 공유 Local HTTPS 또는 AWS HTTPS 경로에서 확인한다.
 
-## 8. LBT-74 Evidence 기록 틀
+## 8. LBT-74 Evidence 기록 Template
 
-실제 Browser 검증 결과를 아래 표에 기록해 Jira LBT-74와 Backend LBT-68이 같은 Evidence를 참조할 수 있게 한다.
+아래 표는 재현 가능한 시나리오·기대 결과·확인 위치를 정리하는 Template이다.
+실제 Browser Acceptance 실행 결과와 PASS/FAIL Evidence는 Jira LBT-74에 기록한다.
 
-| 시나리오 | 권장 fixture | 기대 결과 | 확인 위치 | Evidence 상태 |
+| 시나리오 | 권장 fixture | 기대 결과 | 확인 위치 | Evidence 기록 |
 | --- | --- | --- | --- | --- |
-| 정상 Login | `dev-instructor` | `POST /auth/login` 204, Session 발급 | Browser Network / UI | PASS (Local HTTP Browser) |
-| 현재 사용자 | `dev-instructor` | `GET /me` 200, MEMBER/Organization 확인 | Network / AppShell | PASS (Local HTTP Browser) |
-| Class 목록 role 분리 | `dev-instructor` | Alpha=INSTRUCTOR, Bravo=STUDENT | Network / Class 화면 | PASS (Local HTTP Browser) |
-| Class 상세 정상 | `dev-instructor` | Alpha/Bravo `GET /classes/{classId}` 200, 각 role UI 일치 | Network / 상세 화면 | PASS (Local HTTP Browser) |
-| Logout | `dev-instructor` | `POST /auth/logout` 204 | Network / Login 화면 | PASS (Local HTTP Browser) |
-| Logout 이후 보호 API | `dev-instructor` | `/me` 또는 보호 API 401 | Network / Login redirect | PASS (Local HTTP Browser) |
-| 잘못된 credential | 기존 dev username + 잘못된 password | 401, 계정 존재 여부를 구분하지 않는 UI | Network / Login 오류 | PASS (Local HTTP Browser) |
-| Class 없음 | `dev-admin` | `GET /classes` 200 + 빈 items, Empty UI | Network / 목록 화면 | PASS (Local HTTP Browser) |
-| ADMIN ≠ INSTRUCTOR | `dev-admin` | `/me` ADMIN이지만 Class Membership/Instructor 권한은 생기지 않음 | Network / UI | PASS (Local HTTP Browser) |
-| Class 접근 불가 | `dev-admin` → Alpha 또는 `dev-student` → Bravo | 403, 권한 없음 UI | Network / 상세 화면 | PASS (Local HTTP Browser) |
-| Student UI | `dev-student` → Alpha | STUDENT 표시, Instructor 전용 동작 비노출 | Network / 상세 화면 | PASS (Local HTTP Browser) |
-| 없는 Class | 로그인된 dev 계정 + 안전한 미존재 테스트 ID | 404, 찾을 수 없음 UI | Network / 상세 화면 | PASS (Local HTTP Browser) |
-| Session 만료/폐기 | 실행 가능한 Backend 검증 경로 사용 | 401, Login redirect | Network / Login redirect | PASS (실제 server session 만료) |
-| Backend/Proxy 실패 | 환경에서 재현 가능한 실패 경로 | 대표 5xx, 일반 오류 UI | Network / 오류 화면 | PASS (Backend 중지 시 `/me` 502, 재기동 후 복구) |
-| Origin/Referer 불일치 | 공유 HTTPS 환경 | unsafe method 403 | Network | 공유 HTTPS에서 확인 |
-| Session Cookie 속성 | 공유 HTTPS 환경 | Secure/HttpOnly/SameSite=Lax/Path=/, Domain 없음 | Browser Cookie / Network | 공유 HTTPS에서 확인 |
-
-Local Browser 검증에서는 위 PASS 항목을 실제 Backend fixture와 Vite HTTP mode로 확인했다.
-Session 만료는 server-side `auth_sessions.expires_at`을 테스트용으로 만료시킨 뒤 `/me 401`과 Login redirect를 확인했다.
-최초 보호 route의 `/me 401`은 미인증과 만료를 응답만으로 구분할 수 없어 현재 `authRequired` 안내를 사용하며, child API 401은 `sessionExpired` 안내를 사용한다.
+| 정상 Login | `dev-instructor` | `POST /auth/login` 204, Session 발급 | Browser Network / UI | Jira LBT-74 |
+| 현재 사용자 | `dev-instructor` | `GET /me` 200, MEMBER/Organization 확인 | Network / AppShell | Jira LBT-74 |
+| Class 목록 role 분리 | `dev-instructor` | Alpha=INSTRUCTOR, Bravo=STUDENT | Network / Class 화면 | Jira LBT-74 |
+| Class 상세 정상 | `dev-instructor` | Alpha/Bravo `GET /classes/{classId}` 200, 각 role UI 일치 | Network / 상세 화면 | Jira LBT-74 |
+| Logout | `dev-instructor` | `POST /auth/logout` 204 | Network / Login 화면 | Jira LBT-74 |
+| Logout 이후 보호 API | `dev-instructor` | `/me` 또는 보호 API 401 | Network / Login redirect | Jira LBT-74 |
+| 잘못된 credential | 기존 dev username + 잘못된 password | 401, 계정 존재 여부를 구분하지 않는 UI | Network / Login 오류 | Jira LBT-74 |
+| Class 없음 | `dev-admin` | `GET /classes` 200 + 빈 items, Empty UI | Network / 목록 화면 | Jira LBT-74 |
+| ADMIN ≠ INSTRUCTOR | `dev-admin` | `/me` ADMIN이지만 Class Membership/Instructor 권한은 생기지 않음 | Network / UI | Jira LBT-74 |
+| Class 접근 불가 | `dev-admin` → Alpha 또는 `dev-student` → Bravo | 403, 권한 없음 UI | Network / 상세 화면 | Jira LBT-74 |
+| Student UI | `dev-student` → Alpha | STUDENT 표시, Instructor 전용 동작 비노출 | Network / 상세 화면 | Jira LBT-74 |
+| 없는 Class | 로그인된 dev 계정 + 안전한 미존재 테스트 ID | 404, 찾을 수 없음 UI | Network / 상세 화면 | Jira LBT-74 |
+| Session 만료/폐기 | 실행 가능한 Backend 검증 경로 사용 | 401, Login redirect | Network / Login redirect | Jira LBT-74 |
+| Backend/Proxy 실패 | 환경에서 재현 가능한 실패 경로 | 대표 5xx, 일반 오류 UI | Network / 오류 화면 | Jira LBT-74 |
+| Origin/Referer 불일치 | 공유 HTTPS 환경 | unsafe method 403 | Network | Jira LBT-74 |
+| Session Cookie 속성 | 공유 HTTPS 환경 | Secure/HttpOnly/SameSite=Lax/Path=/, Domain 없음 | Browser Cookie / Network | Jira LBT-74 |
 
 Evidence를 남길 때는 요청 URL, method, status, 화면 상태가 보이면 충분하다.
 Password 입력값, Cookie/Session token 원문, DB/AWS credential은 가리거나 제외한다.

@@ -100,10 +100,13 @@ func parsePHC(raw string) (phc, error) {
 	if len(params) != 3 {
 		return phc{}, ErrMalformedPasswordHash
 	}
-	memory, ok1 := parseParam(params[0], "m=", maxArgon2MemoryKiB)
-	iterations, ok2 := parseParam(params[1], "t=", maxArgon2Iterations)
-	parallelism, ok3 := parseParam(params[2], "p=", maxArgon2Parallelism)
-	if !ok1 || !ok2 || !ok3 || iterations < 1 || parallelism < 1 || memory < 8*parallelism {
+	memory, ok1 := parseParam(params[0], "m=")
+	iterations, ok2 := parseParam(params[1], "t=")
+	parallelism, ok3 := parseParam(params[2], "p=")
+	if !ok1 || !ok2 || !ok3 ||
+		iterations < 1 || iterations > maxArgon2Iterations ||
+		parallelism < 1 || parallelism > maxArgon2Parallelism ||
+		memory < 8*parallelism || memory > maxArgon2MemoryKiB {
 		return phc{}, ErrMalformedPasswordHash
 	}
 
@@ -125,14 +128,15 @@ func parsePHC(raw string) (phc, error) {
 	}, nil
 }
 
-// parseParam은 "<prefix><10진수>"를 limit 이하의 값으로 읽는다. 부호나 공백은 허용하지 않는다.
-func parseParam(s, prefix string, limit uint64) (uint64, bool) {
+// parseParam은 "<prefix><10진수>"를 32 bit 범위의 값으로 읽는다. 부호나 공백은 허용하지 않는다.
+// 각 parameter의 상한은 호출자가 형 변환 전에 검사한다.
+func parseParam(s, prefix string) (uint64, bool) {
 	digits, found := strings.CutPrefix(s, prefix)
 	if !found {
 		return 0, false
 	}
 	n, err := strconv.ParseUint(digits, 10, 32)
-	if err != nil || n > limit {
+	if err != nil {
 		return 0, false
 	}
 	return n, true

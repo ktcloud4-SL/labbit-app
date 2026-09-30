@@ -113,6 +113,8 @@ func TestVerifyRejectsMalformedPHC(t *testing.T) {
 		"zero parallelism":     strings.Replace(valid, "p=1", "p=0", 1),
 		"memory below 8*p":     strings.Replace(valid, "m=19456", "m=4", 1),
 		"memory above ceiling": strings.Replace(valid, "m=19456", "m=4294967295", 1),
+		"memory beyond 32 bit": strings.Replace(valid, "m=19456", "m=99999999999", 1),
+		"parallelism 256":      strings.Replace(valid, "p=1", "p=256", 1),
 		"iterations ceiling":   strings.Replace(valid, "t=2", "t=1000000", 1),
 		"parallelism ceiling":  strings.Replace(valid, "p=1", "p=255", 1),
 		"salt not base64":      fmt.Sprintf("$argon2id$v=19$m=19456,t=2,p=1$***$%s", key),

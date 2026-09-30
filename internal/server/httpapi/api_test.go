@@ -665,6 +665,142 @@ func TestInternalErrorsAreNotExposed(t *testing.T) {
 	}
 }
 
+// repository.Error.Cause와 오류 원문에는 driver/PostgreSQL 원문, Password hash, Session token 같은 값이 들어 있을 수 있다.
+// 응답과 log 어디에도 나가면 안 되고, log에는 correlation과 분류 정보만 남아야 한다.
+func TestInternalErrorLogKeepsClassificationButNeverRawCause(t *testing.T) {
+	const (
+		rawDetail = `password authentication failed for user "labbit" (SQLSTATE 28P01)`
+		fakeHash  = "$argon2id$v=19$m=19456,t=2,p=1$ZmFrZS1zYWx0LWZvci10ZXN0$ZmFrZS1oYXNoLWZvci10ZXN0LW9ubHk"
+		fakeToken = "fake-session-token-value-for-test-only-0123456789"
+	)
+	rawText := fmt.Sprintf("%s hash=%s token=%s", rawDetail, fakeHash, fakeToken)
+	secrets := []string{rawDetail, "password authentication failed", fakeHash, "argon2id", fakeToken, "28P01"}
+
+	repoErr := &repository.Error{
+		Kind: repository.KindInternal, Op: "CreateAuthSession",
+		SQLState: "23505", Constraint: "uq_auth_sessions_token_hash", Cause: errors.New(rawText),
+	}
+
+	variants := []struct {
+		name          string
+		err           error
+		wantKind      string
+		wantRepoOp    string
+		wantSQLState  string
+		wantConstrain string
+	}{
+		{name: "repository error", err: repoErr, wantKind: "internal", wantRepoOp: "CreateAuthSession", wantSQLState: "23505", wantConstrain: "uq_auth_sessions_token_hash"},
+		{name: "wrapped repository error", err: fmt.Errorf("auth: Session 발급: %w", repoErr), wantKind: "internal", wantRepoOp: "CreateAuthSession", wantSQLState: "23505", wantConstrain: "uq_auth_sessions_token_hash"},
+		{name: "unclassified error carrying secrets", err: errors.New(rawText), wantKind: "unclassified"},
+		{name: "wrapped unclassified error", err: fmt.Errorf("auth: verify: %w", errors.New(rawText)), wantKind: "unclassified"},
+		{name: "unusable stored password hash", err: fmt.Errorf("auth: password 검증: %w", auth.ErrMalformedPasswordHash), wantKind: "unusable_password_hash"},
+		{name: "request context canceled", err: fmt.Errorf("auth: Session 조회: %w", context.Canceled), wantKind: "context"},
+	}
+	endpoints := []struct {
+		operation string
+		inject    func(h *harness, err error)
+		call      func(h *harness) *httptest.ResponseRecorder
+	}{
+		{
+			operation: "login",
+			inject:    func(h *harness, err error) { h.auth.loginErr = err },
+			call:      func(h *harness) *httptest.ResponseRecorder { return h.login("alice", testPassword) },
+		},
+		{
+			operation: "authenticate",
+			inject:    func(h *harness, err error) { h.auth.authErr = err },
+			call: func(h *harness) *httptest.ResponseRecorder {
+				return h.send(http.MethodGet, "/api/v1/me", "", withCookie(fakeToken))
+			},
+		},
+		{
+			operation: "logout",
+			inject: func(h *harness, err error) {
+				h.auth.sessions[fakeToken] = h.auth.principal
+				h.auth.logoutErr = err
+			},
+			call: func(h *harness) *httptest.ResponseRecorder {
+				return h.send(http.MethodPost, "/api/v1/auth/logout", "", withHeader("Origin", trustedOrigin), withCookie(fakeToken))
+			},
+		},
+	}
+
+	for _, endpoint := range endpoints {
+		for _, variant := range variants {
+			t.Run(endpoint.operation+"/"+variant.name, func(t *testing.T) {
+				h := newHarness(t)
+				endpoint.inject(h, variant.err)
+
+				rec := endpoint.call(h)
+
+				if rec.Code != http.StatusInternalServerError {
+					t.Fatalf("status = %d, want 500", rec.Code)
+				}
+				problem := decodeProblem(t, rec)
+
+				logs := h.logs.String()
+				for _, secret := range secrets {
+					if strings.Contains(rec.Body.String(), secret) {
+						t.Fatalf("응답이 원문(%q)을 노출합니다", secret)
+					}
+					if strings.Contains(logs, secret) {
+						t.Fatalf("log가 원문(%q)을 노출합니다: %s", secret, logs)
+					}
+				}
+
+				// correlation과 분류 정보는 남는다.
+				records := logRecords(t, h.logs)
+				if len(records) != 1 {
+					t.Fatalf("log record = %d, want 1: %s", len(records), logs)
+				}
+				record := records[0]
+				want := map[string]string{
+					"request_id":           problem.RequestID,
+					"operation":            endpoint.operation,
+					"error_kind":           variant.wantKind,
+					"repository_operation": variant.wantRepoOp,
+					"sqlstate":             variant.wantSQLState,
+					"constraint":           variant.wantConstrain,
+				}
+				for key, value := range want {
+					got, present := record[key]
+					if value == "" {
+						if present {
+							t.Errorf("log field %q = %v, want absent", key, got)
+						}
+						continue
+					}
+					if got != value {
+						t.Errorf("log field %q = %v, want %q", key, got, value)
+					}
+				}
+				for _, key := range []string{"error", "cause", "repository"} {
+					if _, present := record[key]; present {
+						t.Errorf("log에 원문을 담을 수 있는 field %q가 있습니다: %v", key, record[key])
+					}
+				}
+			})
+		}
+	}
+}
+
+// logRecords는 JSON handler가 기록한 줄마다 하나의 record로 읽는다.
+func logRecords(t *testing.T, logs *bytes.Buffer) []map[string]any {
+	t.Helper()
+	var records []map[string]any
+	for _, line := range strings.Split(strings.TrimSpace(logs.String()), "\n") {
+		if line == "" {
+			continue
+		}
+		var record map[string]any
+		if err := json.Unmarshal([]byte(line), &record); err != nil {
+			t.Fatalf("log line이 JSON이 아닙니다: %q (%v)", line, err)
+		}
+		records = append(records, record)
+	}
+	return records
+}
+
 // Password 원문과 Session token은 log에 남지 않는다.
 func TestLogsDoNotContainPasswordOrSessionToken(t *testing.T) {
 	h := newHarness(t)

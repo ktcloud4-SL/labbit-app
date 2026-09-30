@@ -128,15 +128,36 @@ func (a *api) unauthenticated(w http.ResponseWriter, r *http.Request, clearCooki
 	writeProblem(w, r, http.StatusUnauthorized, codeUnauthenticated, "로그인이 필요하거나 세션이 만료되었습니다.")
 }
 
-// internalError는 내부 오류를 log에만 남기고 응답에는 고정 문구만 사용한다.
+// internalError는 응답에는 고정 문구만, log에는 correlation과 분류 정보만 남긴다.
+// err나 repository.Error를 그대로 기록하지 않는다. repository.Error.Cause와 오류 문자열에는
+// driver/PostgreSQL 원문이나 credential이 들어 있을 수 있다.
 func (a *api) internalError(w http.ResponseWriter, r *http.Request, op string, err error) {
-	attrs := []any{"request_id", requestIDFrom(r.Context()), "operation", op, "error", err.Error()}
-	var repoErr *repository.Error
-	if errors.As(err, &repoErr) {
-		attrs = append(attrs, "repository", repoErr)
-	}
+	attrs := append([]any{"request_id", requestIDFrom(r.Context()), "operation", op}, errorClassification(err)...)
 	a.logger.Error("HTTP 요청 처리 실패", attrs...)
 	writeProblem(w, r, http.StatusInternalServerError, codeInternal, "요청을 처리하지 못했습니다.")
+}
+
+// errorClassification은 err를 log에 남겨도 안전한 분류 정보로 바꾼다. 오류 문자열과 Cause는 포함하지 않는다.
+// repository.Error의 Op, SQLState, Constraint는 repository 계약이 운영 진단용 log metadata로 정한 값이다.
+func errorClassification(err error) []any {
+	var repoErr *repository.Error
+	switch {
+	case errors.As(err, &repoErr):
+		attrs := []any{"error_kind", repoErr.Kind.String(), "repository_operation", repoErr.Op}
+		if repoErr.SQLState != "" {
+			attrs = append(attrs, "sqlstate", repoErr.SQLState)
+		}
+		if repoErr.Constraint != "" {
+			attrs = append(attrs, "constraint", repoErr.Constraint)
+		}
+		return attrs
+	case errors.Is(err, auth.ErrMalformedPasswordHash):
+		return []any{"error_kind", "unusable_password_hash"}
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		return []any{"error_kind", "context"}
+	default:
+		return []any{"error_kind", "unclassified"}
+	}
 }
 
 type loginRequest struct {

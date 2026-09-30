@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -335,6 +336,14 @@ func TestDatabaseFailureDoesNotLeakDriverErrorsOrCredentials(t *testing.T) {
 	token := issuedToken(t, s.login("alice", password))
 	s.pool.Close() // 이후 모든 query는 실제 driver 오류를 반환한다.
 
+	// 실제 driver가 만든 Cause 원문을 직접 얻어, 이 문자열이 응답과 log 어디에도 없음을 아래에서 확인한다.
+	_, err := postgres.NewStore(s.pool).LocalAccountByUsername(t.Context(), "alice")
+	var repoErr *repository.Error
+	if !errors.As(err, &repoErr) || repoErr.Cause == nil || repoErr.Cause.Error() == "" {
+		t.Fatalf("실제 driver Cause를 얻지 못했습니다: %v", err)
+	}
+	rawCause := repoErr.Cause.Error()
+
 	for name, rec := range map[string]*httptest.ResponseRecorder{
 		"login":  s.login("alice", password),
 		"me":     s.me(token),
@@ -359,10 +368,10 @@ func TestDatabaseFailureDoesNotLeakDriverErrorsOrCredentials(t *testing.T) {
 	}
 
 	logs := s.logs.String()
-	if !strings.Contains(logs, "internal_error") && !strings.Contains(logs, "HTTP 요청 처리 실패") {
-		t.Fatalf("저장소 장애가 log에 남아야 합니다: %q", logs)
+	if !strings.Contains(logs, "HTTP 요청 처리 실패") || !strings.Contains(logs, `"error_kind":"internal"`) {
+		t.Fatalf("저장소 장애의 분류 정보가 log에 남아야 합니다: %q", logs)
 	}
-	for _, secret := range []string{password, token} {
+	for _, secret := range []string{password, token, rawCause} {
 		if strings.Contains(logs, secret) {
 			t.Fatalf("log가 민감한 값을 포함합니다: %s", logs)
 		}

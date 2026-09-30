@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveLabbitApiMode } from './apiMode'
+import {
+  resolveLabbitApiMode,
+  shouldShowMockAccountHint,
+} from './apiMode'
 
 describe('resolveLabbitApiMode', () => {
   it('개발환경에서 별도 설정이 없으면 Mock을 사용한다', () => {
@@ -23,5 +26,14 @@ describe('resolveLabbitApiMode', () => {
 
   it('production build에서는 설정과 무관하게 HTTP를 사용한다', () => {
     expect(resolveLabbitApiMode(false, 'mock')).toBe('http')
+  })
+})
+
+describe('shouldShowMockAccountHint', () => {
+  it('개발환경의 Mock mode에서만 Mock 계정 안내를 노출한다', () => {
+    expect(shouldShowMockAccountHint(true)).toBe(true)
+    expect(shouldShowMockAccountHint(true, 'mock')).toBe(true)
+    expect(shouldShowMockAccountHint(true, 'http')).toBe(false)
+    expect(shouldShowMockAccountHint(false, 'mock')).toBe(false)
   })
 })

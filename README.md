@@ -69,7 +69,7 @@ make connector
 make web
 ```
 
-`labbit-server`는 현재 Runtime Contract의 application/admin listener와 `/livez`, `/readyz`, `/metrics` 골격, api/worker role의 PostgreSQL 연결·schema 호환성 readiness, api role의 Auth endpoint(`POST /api/v1/auth/login`, `GET /api/v1/me`, `POST /api/v1/auth/logout`)만 제공합니다. api role은 Origin 검증을 위한 `LABBIT_PUBLIC_ORIGIN`이 필요하며 `make server`는 Vite dev origin(`LABBIT_DEV_PUBLIC_ORIGIN`, 기본 `http://localhost:5173`)을 주입합니다. Class/LabSpec/Operation 기능, LabSpec/Execution/Operation 등의 DB repository(Class 최소 query와 Bootstrap만 있고 Handler에는 연결되지 않음), Connector Control/Provider/SSH, Terminal/Live 같은 실제 기능 구현 완료를 의미하지 않습니다.
+`labbit-server`는 현재 Runtime Contract의 application/admin listener와 `/livez`, `/readyz`, `/metrics` 골격, api/worker role의 PostgreSQL 연결·schema 호환성 readiness를 제공합니다. `api` role에는 Auth/Session HTTP(`POST /api/v1/auth/login`, `GET /api/v1/me`, `POST /api/v1/auth/logout`), Class 목록·상세 권한 경계, Connector Control WSS의 인증·HELLO/Heartbeat·연결 수명 및 command/result correlation routing이 구현되어 있습니다. `api` role은 Origin 검증을 위한 `LABBIT_PUBLIC_ORIGIN`이 필요하며 `make server`는 Vite dev origin(`LABBIT_DEV_PUBLIC_ORIGIN`, 기본 `http://localhost:5173`)을 주입합니다. LabSpec/Execution/Operation HTTP, durable Operation Worker/Reconciliation, Workspace File/Terminal/Preview/Live Backend 경로와 실제 OpenStack 통합 검증은 후속 범위입니다. 상세 Backend 구현 위치와 책임 경계는 [`docs/backend/README.md`](./docs/backend/README.md)를 기준으로 확인합니다.
 
 ### Local PostgreSQL
 

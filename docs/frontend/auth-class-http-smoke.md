@@ -158,22 +158,24 @@ Login 응답은 정상인데 Browser의 Local HTTP Cookie 제약 때문에 이�
 
 실제 Browser 검증을 시작하면 아래 표를 채워 Jira LBT-74와 Backend LBT-68이 같은 Evidence를 참조할 수 있게 한다.
 
-| 시나리오 | 기대 결과 | 확인 위치 | Evidence 상태 |
-| --- | --- | --- | --- |
-| 정상 Login | `POST /auth/login` 성공, Session 발급 | Browser Network / UI | 대기 |
-| 현재 사용자 | `GET /me` 200, 사용자/Organization 표시 | Network / AppShell | 대기 |
-| Class 목록 | `GET /classes` 200, 실제 목록 표시 | Network / Class 화면 | 대기 |
-| Class 상세 | `GET /classes/{classId}` 200 | Network / 상세 화면 | 대기 |
-| Logout | `POST /auth/logout` 성공 | Network / Login 화면 | 대기 |
-| Logout 이후 보호 API | `/me` 또는 보호 API 401 | Network / Login redirect | 대기 |
-| 잘못된 credential | 401, 계정 존재 여부를 구분하지 않는 UI | Network / Login 오류 | 대기 |
-| Session 만료/폐기 | 401, 재로그인 안내 | Network / Login redirect | 대기 |
-| Class 접근 불가 | 403, 권한 없음 UI | Network / 상세 화면 | 대기 |
-| 없는 Class | 404, 찾을 수 없음 UI | Network / 상세 화면 | 대기 |
-| Class 없음 | 200 + 빈 items, Empty UI | Network / 목록 화면 | 대기 |
-| Backend/Proxy 실패 | 대표 5xx, 일반 오류 UI | Network / 오류 화면 | 대기 |
-| Origin/Referer 불일치 | unsafe method 403 | Network | 공유 HTTPS에서 확인 |
-| Session Cookie 속성 | Secure/HttpOnly/SameSite=Lax/Path=/, Domain 없음 | Browser Cookie / Network | 공유 HTTPS에서 확인 |
+| 시나리오 | 권장 fixture | 기대 결과 | 확인 위치 | Evidence 상태 |
+| --- | --- | --- | --- | --- |
+| 정상 Login | `dev-instructor` | `POST /auth/login` 204, Session 발급 | Browser Network / UI | 대기 |
+| 현재 사용자 | `dev-instructor` | `GET /me` 200, MEMBER/Organization 확인 | Network / AppShell | 대기 |
+| Class 목록 role 분리 | `dev-instructor` | Alpha=INSTRUCTOR, Bravo=STUDENT | Network / Class 화면 | 대기 |
+| Class 상세 정상 | `dev-instructor` | Alpha/Bravo `GET /classes/{classId}` 200, 각 role UI 일치 | Network / 상세 화면 | 대기 |
+| Logout | `dev-instructor` | `POST /auth/logout` 204 | Network / Login 화면 | 대기 |
+| Logout 이후 보호 API | `dev-instructor` | `/me` 또는 보호 API 401 | Network / Login redirect | 대기 |
+| 잘못된 credential | 기존 dev username + 잘못된 password | 401, 계정 존재 여부를 구분하지 않는 UI | Network / Login 오류 | 대기 |
+| Class 없음 | `dev-admin` | `GET /classes` 200 + 빈 items, Empty UI | Network / 목록 화면 | 대기 |
+| ADMIN ≠ INSTRUCTOR | `dev-admin` | `/me` ADMIN이지만 Class Membership/Instructor 권한은 생기지 않음 | Network / UI | 대기 |
+| Class 접근 불가 | `dev-admin` → Alpha 또는 `dev-student` → Bravo | 403, 권한 없음 UI | Network / 상세 화면 | 대기 |
+| Student UI | `dev-student` → Alpha | STUDENT 표시, Instructor 전용 동작 비노출 | Network / 상세 화면 | 대기 |
+| 없는 Class | 로그인된 dev 계정 | 404, 찾을 수 없음 UI | Network / 상세 화면 | 대기 |
+| Session 만료/폐기 | 실행 가능한 Backend 검증 경로 사용 | 401, 재로그인 안내 | Network / Login redirect | 대기 |
+| Backend/Proxy 실패 | 환경에서 재현 가능한 실패 경로 | 대표 5xx, 일반 오류 UI | Network / 오류 화면 | 대기 |
+| Origin/Referer 불일치 | 공유 HTTPS 환경 | unsafe method 403 | Network | 공유 HTTPS에서 확인 |
+| Session Cookie 속성 | 공유 HTTPS 환경 | Secure/HttpOnly/SameSite=Lax/Path=/, Domain 없음 | Browser Cookie / Network | 공유 HTTPS에서 확인 |
 
 Evidence를 남길 때는 요청 URL, method, status, 화면 상태가 보이면 충분하다.
 Password 입력값, `Set-Cookie` 값, Cookie 원문, Session token, DB/AWS credential은 가리거나 제외한다.

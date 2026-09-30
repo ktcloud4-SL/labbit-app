@@ -10,7 +10,7 @@ import { mockLabbitApi, mockMe } from '../shared/api/mockLabbitApi'
 import { LoginPage } from './LoginPage'
 
 describe('LoginPage', () => {
-  it('실제 HTTP consumer가 401을 반환하면 자격 증명 오류로 안내한다', async () => {
+  it('로그인 consumer가 HttpError 401을 반환하면 자격 증명 오류로 안내한다', async () => {
     const queryClient = new QueryClient()
     const api = {
       ...mockLabbitApi,

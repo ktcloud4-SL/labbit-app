@@ -471,6 +471,10 @@ func TestInvalidFirstMessageIsRejectedAndNotRegistered(t *testing.T) {
 		}
 	}
 	delKey := func(m map[string]any, key string) { delete(m, key) }
+	renameKey := func(m map[string]any, from, to string) {
+		m[to] = m[from]
+		delete(m, from)
+	}
 	const zeroTime = "0001-01-01T00:00:00Z"
 
 	tests := []struct {
@@ -487,7 +491,8 @@ func TestInvalidFirstMessageIsRejectedAndNotRegistered(t *testing.T) {
 			m["payload"] = map[string]any{"observedAt": time.Now().UTC().Format(time.RFC3339)}
 		}), errorCodeUnsupportedMessageType, false},
 		{"type이 문자열이 아님", mutate(func(m map[string]any) { m["type"] = 7 }), errorCodeInvalidMessage, false},
-		{"type 없음", mutate(func(m map[string]any) { delKey(m, "type") }), errorCodeUnsupportedMessageType, false},
+		{"type 없음", mutate(func(m map[string]any) { delKey(m, "type") }), errorCodeInvalidMessage, false},
+		{"type null", mutate(func(m map[string]any) { m["type"] = nil }), errorCodeInvalidMessage, false},
 		{"messageId 없음", mutate(func(m map[string]any) { delKey(m, "messageId") }), errorCodeInvalidMessage, false},
 		{"빈 messageId", mutate(func(m map[string]any) { m["messageId"] = "" }), errorCodeInvalidMessage, false},
 		{"messageId가 문자열이 아님", mutate(func(m map[string]any) { m["messageId"] = 12 }), errorCodeInvalidMessage, false},
@@ -531,6 +536,53 @@ func TestInvalidFirstMessageIsRejectedAndNotRegistered(t *testing.T) {
 		{"잘못된 Trace와 함께 잘못된 generation", mutate(func(m map[string]any) {
 			m["traceparent"] = "not-a-trace"
 			m["generation"] = 0
+		}), errorCodeInvalidMessage, false},
+		{"exponent가 큰 generation 0.1", mutate(func(m map[string]any) { m["generation"] = json.RawMessage("10e-999999999") }), errorCodeInvalidMessage, false},
+		{"소수 값 generation 123.45", mutate(func(m map[string]any) { m["generation"] = json.RawMessage("12345e-2") }), errorCodeInvalidMessage, false},
+
+		// Schema의 required property는 정확한 이름이어야 한다. 대소문자만 다른 key는 required property가 아니다.
+		{"TYPE만 있음", mutate(func(m map[string]any) { renameKey(m, "type", "TYPE") }), errorCodeInvalidMessage, false},
+		{"MessageId만 있음", mutate(func(m map[string]any) { renameKey(m, "messageId", "MessageId") }), errorCodeInvalidMessage, false},
+		{"MessageID만 있음", mutate(func(m map[string]any) { renameKey(m, "messageId", "MessageID") }), errorCodeInvalidMessage, false},
+		{"SentAt만 있음", mutate(func(m map[string]any) { renameKey(m, "sentAt", "SentAt") }), errorCodeInvalidMessage, false},
+		{"Payload만 있음", mutate(func(m map[string]any) { renameKey(m, "payload", "Payload") }), errorCodeInvalidMessage, false},
+		{"ConnectorVersion만 있음", mutate(func(m map[string]any) { renameKey(payloadOf(m), "connectorVersion", "ConnectorVersion") }), errorCodeInvalidMessage, false},
+		{"RuntimeId만 있음", mutate(func(m map[string]any) { renameKey(payloadOf(m), "runtimeId", "RuntimeId") }), errorCodeInvalidMessage, false},
+		{"RuntimeID만 있음", mutate(func(m map[string]any) { renameKey(payloadOf(m), "runtimeId", "RuntimeID") }), errorCodeInvalidMessage, false},
+		{"StartedAt만 있음", mutate(func(m map[string]any) { renameKey(payloadOf(m), "startedAt", "StartedAt") }), errorCodeInvalidMessage, false},
+
+		// 정확한 key와 대소문자만 다른 key가 함께 있으면 정확한 key의 값만 의미에 쓴다.
+		{"정확한 type은 HEARTBEAT이고 TYPE만 HELLO", mutate(func(m map[string]any) {
+			m["type"] = "HEARTBEAT"
+			m["TYPE"] = "HELLO"
+		}), errorCodeUnsupportedMessageType, false},
+		{"정확한 messageId가 비고 MessageID만 유효", mutate(func(m map[string]any) {
+			m["messageId"] = ""
+			m["MessageID"] = "other-message"
+		}), errorCodeInvalidMessage, false},
+		{"정확한 sentAt이 zero이고 SentAt만 유효", mutate(func(m map[string]any) {
+			m["sentAt"] = zeroTime
+			m["SentAt"] = time.Now().UTC().Format(time.RFC3339)
+		}), errorCodeInvalidMessage, false},
+		{"정확한 payload가 null이고 Payload만 유효", mutate(func(m map[string]any) {
+			m["Payload"] = m["payload"]
+			m["payload"] = nil
+		}), errorCodeInvalidMessage, false},
+		{"정확한 connectorVersion이 비고 ConnectorVersion만 유효", mutate(func(m map[string]any) {
+			payloadOf(m)["connectorVersion"] = ""
+			payloadOf(m)["ConnectorVersion"] = "9.9.9"
+		}), errorCodeInvalidMessage, false},
+		{"정확한 runtimeId가 비고 RuntimeID만 유효", mutate(func(m map[string]any) {
+			payloadOf(m)["runtimeId"] = ""
+			payloadOf(m)["RuntimeID"] = "other-runtime"
+		}), errorCodeInvalidMessage, false},
+		{"정확한 startedAt이 zero이고 StartedAt만 유효", mutate(func(m map[string]any) {
+			payloadOf(m)["startedAt"] = zeroTime
+			payloadOf(m)["StartedAt"] = time.Now().UTC().Format(time.RFC3339)
+		}), errorCodeInvalidMessage, false},
+		{"정확한 generation이 잘못되고 Generation만 유효", mutate(func(m map[string]any) {
+			m["generation"] = 0
+			m["Generation"] = 1
 		}), errorCodeInvalidMessage, false},
 	}
 	for _, tt := range tests {
@@ -614,15 +666,19 @@ func TestHelloToleratesUnknownOptionalFieldsAndInvalidTraceMetadata(t *testing.T
 // Schema가 정의한 선택 Envelope field는 유효한 값이면 받아들이고, HELLO_ACK은 HELLO의 messageId에 응답한다.
 func TestHelloAcceptsValidKnownOptionalEnvelopeFields(t *testing.T) {
 	tests := map[string]func(map[string]any){
-		"requestId":            func(m map[string]any) { m["requestId"] = "req-1" },
-		"operationId":          func(m map[string]any) { m["operationId"] = "op-1" },
-		"labInstanceId":        func(m map[string]any) { m["labInstanceId"] = "lab-1" },
-		"replyToMessageId":     func(m map[string]any) { m["replyToMessageId"] = "msg-0" },
-		"generation 1":         func(m map[string]any) { m["generation"] = 1 },
-		"generation 2":         func(m map[string]any) { m["generation"] = 2 },
-		"소수부가 0인 generation":   func(m map[string]any) { m["generation"] = json.RawMessage("1.0") },
-		"지수 표기 generation":     func(m map[string]any) { m["generation"] = json.RawMessage("1e2") },
-		"int64를 넘는 generation": func(m map[string]any) { m["generation"] = json.RawMessage("10000000000000000000000") },
+		"requestId":              func(m map[string]any) { m["requestId"] = "req-1" },
+		"operationId":            func(m map[string]any) { m["operationId"] = "op-1" },
+		"labInstanceId":          func(m map[string]any) { m["labInstanceId"] = "lab-1" },
+		"replyToMessageId":       func(m map[string]any) { m["replyToMessageId"] = "msg-0" },
+		"generation 1":           func(m map[string]any) { m["generation"] = 1 },
+		"generation 2":           func(m map[string]any) { m["generation"] = 2 },
+		"소수부가 0인 generation":     func(m map[string]any) { m["generation"] = json.RawMessage("1.0") },
+		"지수 표기 generation":       func(m map[string]any) { m["generation"] = json.RawMessage("1e2") },
+		"int64를 넘는 generation":   func(m map[string]any) { m["generation"] = json.RawMessage("10000000000000000000000") },
+		"exponent가 큰 generation": func(m map[string]any) { m["generation"] = json.RawMessage("1e999999999") },
+		"generation 100e-2":      func(m map[string]any) { m["generation"] = json.RawMessage("100e-2") },
+		"generation 1000e-3":     func(m map[string]any) { m["generation"] = json.RawMessage("1000e-3") },
+		"generation 12300e-2":    func(m map[string]any) { m["generation"] = json.RawMessage("12300e-2") },
 		"모든 선택 field": func(m map[string]any) {
 			m["replyToMessageId"] = "msg-0"
 			m["requestId"] = "req-1"
@@ -641,6 +697,17 @@ func TestHelloAcceptsValidKnownOptionalEnvelopeFields(t *testing.T) {
 			m["RequestId"] = 42
 			m["Generation"] = 0
 			m["GENERATION"] = "x"
+			m["FutureField"] = map[string]any{"a": 1}
+		},
+		// 정확한 key가 유효하면 대소문자만 다른 key는 값이 무엇이든 의미에 쓰지 않는다. ACK는 정확한 messageId에 응답한다.
+		"정확한 required key와 대소문자만 다른 key가 함께 있음": func(m map[string]any) {
+			m["TYPE"] = "HEARTBEAT"
+			m["MessageID"] = "other-message"
+			m["SentAt"] = "not-a-time"
+			m["Payload"] = []any{}
+			payloadOf(m)["ConnectorVersion"] = ""
+			payloadOf(m)["RuntimeID"] = ""
+			payloadOf(m)["StartedAt"] = "0001-01-01T00:00:00Z"
 		},
 	}
 	for name, mutate := range tests {
@@ -660,35 +727,164 @@ func TestHelloAcceptsValidKnownOptionalEnvelopeFields(t *testing.T) {
 	}
 }
 
-// generation 판정은 JSON Schema 2020-12 integer(minimum 1)와 같고, 지수가 과도한 표기는 거절한다.
+// generation 판정은 JSON Schema 2020-12 integer(minimum 1, maximum 없음)와 같다. 값의 크기 때문에 거절하지 않는다.
 func TestIntegerAtLeastOne(t *testing.T) {
 	tests := []struct {
 		raw  string
 		want bool
 	}{
+		// 1 이상의 정수 값
 		{"1", true},
 		{"2", true},
 		{"1.0", true},
 		{"1e2", true},
+		{"1E+2", true},
+		{"1e-0", true},
+		{"100e-2", true},
+		{"1000e-3", true},
+		{"12300e-2", true},
+		{"10.0e-1", true},
+		{"1.50e1", true},
 		{"10000000000000000000000", true},
+		{"1e999999999", true},
+		{"1e0000000000000000000000000000002", true},
+		{"1e" + strings.Repeat("9", 100), true},
+		// 0, 음수, 정수가 아닌 값
 		{"0", false},
 		{"-0", false},
 		{"-1", false},
+		{"-1e999999999", false},
+		{"0.0", false},
+		{"0e999999999", false},
+		{"0.000e5", false},
 		{"0.5", false},
+		{"0.9", false},
 		{"1.5", false},
 		{"1e-1", false},
+		{"10e-999999999", false},
+		{"12345e-2", false},
 		{"1.00000000000000000001", false},
-		{"1e999999999", false},
+		{"1e-" + strings.Repeat("9", 100), false},
+		// number가 아니거나 JSON number 문법이 아닌 값
 		{`"1"`, false},
 		{"null", false},
 		{"true", false},
 		{"[1]", false},
 		{"{}", false},
+		{"", false},
+		{"1e", false},
+		{"1e+", false},
+		{"1.", false},
+		{".5", false},
+		{"01", false},
+		{"+1", false},
+		{"1 ", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.raw, func(t *testing.T) {
 			if got := integerAtLeastOne(json.RawMessage(tt.raw)); got != tt.want {
 				t.Fatalf("integerAtLeastOne(%s) = %v, want %v", tt.raw, got, tt.want)
+			}
+		})
+	}
+}
+
+// 1 MiB 안에서 지수나 유효숫자열이 아무리 길어도 값을 만들지 않고 자릿수에 비례한 시간에 판정한다.
+func TestIntegerAtLeastOneDoesNotMaterializeHugeNumbers(t *testing.T) {
+	huge := int(protocol.MaxJSONMessageSize) - 64
+	tests := map[string]struct {
+		raw  string
+		want bool
+	}{
+		"양의 거대 지수":              {"1e" + strings.Repeat("9", huge), true},
+		"음의 거대 지수":              {"1e-" + strings.Repeat("9", huge), false},
+		"앞 0이 긴 지수":             {"1e" + strings.Repeat("0", huge) + "5", true},
+		"소수부가 매우 긴 정수 값":        {"1." + strings.Repeat("0", huge), true},
+		"소수부 끝에만 1이 있는 정수 값 아님": {"1." + strings.Repeat("0", huge-1) + "1", false},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			start := time.Now()
+			got := integerAtLeastOne(json.RawMessage(tt.raw))
+			if got != tt.want {
+				t.Fatalf("integerAtLeastOne(%d bytes) = %v, want %v", len(tt.raw), got, tt.want)
+			}
+			if elapsed := time.Since(start); elapsed > time.Second {
+				t.Fatalf("integerAtLeastOne(%d bytes)가 %v 걸림: 입력 크기에 비례한 시간이어야 한다", len(tt.raw), elapsed)
+			}
+		})
+	}
+}
+
+// validateHello는 판단에 쓰는 값을 정확한 property 이름으로만 읽는다. key 순서와 무관하다.
+func TestValidateHelloUsesExactPropertyNames(t *testing.T) {
+	const at = `"2026-09-30T00:00:00Z"`
+	payload := `"payload":{"connectorVersion":"1","runtimeId":"r","startedAt":` + at + `}`
+	envelope := func(members ...string) string { return "{" + strings.Join(members, ",") + "}" }
+	valid := []string{`"type":"HELLO"`, `"messageId":"m1"`, `"sentAt":` + at, payload}
+	with := func(replace map[string]string, extra ...string) string {
+		var members []string
+		for _, member := range valid {
+			key := member[:strings.Index(member, ":")]
+			if repl, ok := replace[key]; ok {
+				if repl != "" {
+					members = append(members, repl)
+				}
+				continue
+			}
+			members = append(members, member)
+		}
+		return envelope(append(members, extra...)...)
+	}
+	payloadWith := func(members ...string) string {
+		return `"payload":{` + strings.Join(members, ",") + `}`
+	}
+
+	tests := []struct {
+		name     string
+		data     string
+		wantID   string
+		wantCode string
+	}{
+		{"정확한 이름의 유효한 HELLO", with(nil), "m1", ""},
+
+		// case-only variant만 있으면 required property가 없는 것이다.
+		{"TYPE만 있음", with(map[string]string{`"type"`: `"TYPE":"HELLO"`}), "", errorCodeInvalidMessage},
+		{"MessageID만 있음", with(map[string]string{`"messageId"`: `"MessageID":"m1"`}), "", errorCodeInvalidMessage},
+		{"SentAt만 있음", with(map[string]string{`"sentAt"`: `"SentAt":` + at}), "", errorCodeInvalidMessage},
+		{"Payload만 있음", with(map[string]string{`"payload"`: strings.Replace(payload, `"payload"`, `"Payload"`, 1)}), "", errorCodeInvalidMessage},
+		{"ConnectorVersion만 있음", with(map[string]string{`"payload"`: payloadWith(`"ConnectorVersion":"1"`, `"runtimeId":"r"`, `"startedAt":`+at)}), "", errorCodeInvalidMessage},
+		{"RuntimeId만 있음", with(map[string]string{`"payload"`: payloadWith(`"connectorVersion":"1"`, `"RuntimeId":"r"`, `"startedAt":`+at)}), "", errorCodeInvalidMessage},
+		{"RuntimeID만 있음", with(map[string]string{`"payload"`: payloadWith(`"connectorVersion":"1"`, `"RuntimeID":"r"`, `"startedAt":`+at)}), "", errorCodeInvalidMessage},
+		{"StartedAt만 있음", with(map[string]string{`"payload"`: payloadWith(`"connectorVersion":"1"`, `"runtimeId":"r"`, `"StartedAt":`+at)}), "", errorCodeInvalidMessage},
+
+		// type: 정확한 key의 값만 의미에 쓴다.
+		{"type HEARTBEAT 다음 TYPE HELLO", with(map[string]string{`"type"`: `"type":"HEARTBEAT","TYPE":"HELLO"`}), "", errorCodeUnsupportedMessageType},
+		{"TYPE HELLO 다음 type HEARTBEAT", with(map[string]string{`"type"`: `"TYPE":"HELLO","type":"HEARTBEAT"`}), "", errorCodeUnsupportedMessageType},
+		{"type HELLO 다음 TYPE HEARTBEAT", with(map[string]string{`"type"`: `"type":"HELLO","TYPE":"HEARTBEAT"`}), "m1", ""},
+		{"TYPE HEARTBEAT 다음 type HELLO", with(map[string]string{`"type"`: `"TYPE":"HEARTBEAT","type":"HELLO"`}), "m1", ""},
+
+		// messageId: 어느 순서에서도 정확한 key의 값이 결과가 된다.
+		{"messageId 다음 MessageID", with(map[string]string{`"messageId"`: `"messageId":"exact","MessageID":"other"`}), "exact", ""},
+		{"MessageID 다음 messageId", with(map[string]string{`"messageId"`: `"MessageID":"other","messageId":"exact"`}), "exact", ""},
+		{"빈 messageId 다음 MessageID", with(map[string]string{`"messageId"`: `"messageId":"","MessageID":"other"`}), "", errorCodeInvalidMessage},
+		{"MessageID 다음 빈 messageId", with(map[string]string{`"messageId"`: `"MessageID":"other","messageId":""`}), "", errorCodeInvalidMessage},
+
+		// payload와 payload property도 정확한 이름만 쓴다.
+		{"payload null 다음 Payload", with(map[string]string{`"payload"`: `"payload":null,"Payload":{"connectorVersion":"1","runtimeId":"r","startedAt":` + at + `}`}), "", errorCodeInvalidMessage},
+		{"Payload 다음 payload null", with(map[string]string{`"payload"`: `"Payload":{"connectorVersion":"1","runtimeId":"r","startedAt":` + at + `},"payload":null`}), "", errorCodeInvalidMessage},
+		{"runtimeId 다음 RuntimeID", with(map[string]string{`"payload"`: payloadWith(`"connectorVersion":"1"`, `"runtimeId":"exact"`, `"RuntimeID":""`, `"startedAt":`+at)}), "m1", ""},
+		{"RuntimeID 다음 빈 runtimeId", with(map[string]string{`"payload"`: payloadWith(`"connectorVersion":"1"`, `"RuntimeID":"other"`, `"runtimeId":""`, `"startedAt":`+at)}), "", errorCodeInvalidMessage},
+
+		// 정의되지 않은 field는 대소문자와 상관없이 무시한다.
+		{"알 수 없는 field", with(nil, `"FutureField":{"a":1}`, `"RequestId":42`, `"GENERATION":0`, `"Generation":"x"`), "m1", ""},
+		{"잘못된 Trace", with(nil, `"traceparent":123`, `"tracestate":[]`), "m1", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotID, gotCode := validateHello([]byte(tt.data))
+			if gotID != tt.wantID || gotCode != tt.wantCode {
+				t.Fatalf("validateHello(%s) = (%q, %q), want (%q, %q)", tt.data, gotID, gotCode, tt.wantID, tt.wantCode)
 			}
 		})
 	}

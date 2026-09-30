@@ -12,9 +12,9 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"math/big"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -277,86 +277,162 @@ func (h *Handler) rejectHello(conn *websocket.Conn, log *slog.Logger, code, mess
 	closeWith(conn, closeProtocolError, "protocol error")
 }
 
-// helloFrame과 helloBody는 handshake가 판단에 쓰는 필드만 decode한다. traceparent/tracestate는 일부러 선언하지 않는다.
-// 잘못된 Trace 값 때문에 HELLO를 거절하지 않고(README §9), 알 수 없는 선택 field도 무시한다.
-// Schema가 정의한 나머지 선택 Envelope field는 validEnvelopeOptionals가 확인한다.
-type helloFrame struct {
-	Type      string          `json:"type"`
-	MessageID string          `json:"messageId"`
-	SentAt    time.Time       `json:"sentAt"`
-	Payload   json.RawMessage `json:"payload"`
-}
-
-type helloBody struct {
-	ConnectorVersion string          `json:"connectorVersion"`
-	RuntimeID        string          `json:"runtimeId"`
-	StartedAt        time.Time       `json:"startedAt"`
-	Capabilities     json.RawMessage `json:"capabilities"`
-}
-
 // validateHello는 connector.schema.json의 HelloMessage required 조건을 확인한다.
+// Schema의 property 이름은 대소문자를 구분한다. struct decode는 "TYPE"을 "type"으로 받아들이고 대소문자만 다른 key가
+// 정확한 key의 값을 덮어쓸 수 있으므로, 판단에 쓰는 값은 모두 정확한 이름으로 조회한 RawMessage에서 직접 decode한다.
+// 정의되지 않은 field(대소문자만 다른 key 포함)와 traceparent/tracestate는 검증하지 않고 무시한다(README §9).
 // 성공하면 HELLO의 messageId를, 실패하면 ERROR code를 반환한다.
 func validateHello(data []byte) (messageID, errorCode string) {
-	var frame helloFrame
-	if err := json.Unmarshal(data, &frame); err != nil {
+	envelope, ok := jsonObject(data)
+	if !ok {
 		return "", errorCodeInvalidMessage
 	}
-	if frame.Type != protocol.MessageTypeHello {
+	messageType, ok := jsonString(envelope["type"])
+	if !ok {
+		return "", errorCodeInvalidMessage
+	}
+	if messageType != protocol.MessageTypeHello {
 		return "", errorCodeUnsupportedMessageType
 	}
-	if frame.MessageID == "" || frame.SentAt.IsZero() {
+	messageID, ok = jsonString(envelope["messageId"])
+	if !ok || messageID == "" || !validTimestamp(envelope["sentAt"]) {
 		return "", errorCodeInvalidMessage
 	}
-	if !validEnvelopeOptionals(data) {
+	if !validEnvelopeOptionals(envelope) {
 		return "", errorCodeInvalidMessage
 	}
-	var body helloBody
-	if err := json.Unmarshal(frame.Payload, &body); err != nil {
+	payload, ok := jsonObject(envelope["payload"])
+	if !ok {
 		return "", errorCodeInvalidMessage
 	}
-	if body.ConnectorVersion == "" || body.RuntimeID == "" || body.StartedAt.IsZero() {
+	if !nonEmptyString(payload["connectorVersion"]) || !nonEmptyString(payload["runtimeId"]) || !validTimestamp(payload["startedAt"]) {
 		return "", errorCodeInvalidMessage
 	}
-	if !validCapabilities(body.Capabilities) {
+	if raw, present := payload["capabilities"]; present && !validCapabilities(raw) {
 		return "", errorCodeInvalidMessage
 	}
-	return frame.MessageID, ""
+	return messageID, ""
 }
 
 // validEnvelopeOptionals는 connector.schema.json BaseEnvelope의 선택 field 중 Trace를 제외한 것이
-// 없거나, 있으면 Schema 제약을 만족할 때만 true다. 이름은 Schema처럼 대소문자를 구분해 찾으므로
-// 대소문자만 다른 key와 정의되지 않은 field는 알 수 없는 field로 무시한다.
-// traceparent/tracestate는 관측 metadata라 잘못되어도 업무 Envelope를 거절하지 않는다(README §9).
-func validEnvelopeOptionals(data []byte) bool {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(data, &fields); err != nil {
-		return false
-	}
+// 없거나, 있으면 Schema 제약을 만족할 때만 true다.
+func validEnvelopeOptionals(envelope map[string]json.RawMessage) bool {
 	for _, name := range []string{"replyToMessageId", "requestId", "operationId", "labInstanceId"} {
-		if raw, ok := fields[name]; ok && !nonEmptyString(raw) {
+		if raw, ok := envelope[name]; ok && !nonEmptyString(raw) {
 			return false
 		}
 	}
-	if raw, ok := fields["generation"]; ok && !integerAtLeastOne(raw) {
+	if raw, ok := envelope["generation"]; ok && !integerAtLeastOne(raw) {
 		return false
 	}
 	return true
 }
 
-// nonEmptyString은 raw가 비어 있지 않은 JSON string일 때만 true다(MessageId·ResourceId: string, minLength 1).
-// null도 string이 아니므로 거절한다.
-func nonEmptyString(raw json.RawMessage) bool {
+// jsonObject는 raw가 JSON object일 때만 그 member를 반환한다. null과 배열 등은 object가 아니다.
+func jsonObject(raw []byte) (map[string]json.RawMessage, bool) {
+	var members map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &members); err != nil || members == nil {
+		return nil, false
+	}
+	return members, true
+}
+
+// jsonString은 raw가 JSON string일 때만 그 값을 반환한다. 없는 field(빈 raw)와 null은 string이 아니다.
+func jsonString(raw json.RawMessage) (string, bool) {
 	var s string
-	return json.Unmarshal(raw, &s) == nil && s != ""
+	if err := json.Unmarshal(raw, &s); err != nil || string(raw) == "null" {
+		return "", false
+	}
+	return s, true
+}
+
+// nonEmptyString은 raw가 비어 있지 않은 JSON string일 때만 true다(MessageId·ResourceId: string, minLength 1).
+func nonEmptyString(raw json.RawMessage) bool {
+	s, ok := jsonString(raw)
+	return ok && s != ""
+}
+
+// validTimestamp는 raw가 RFC 3339 date-time string이고 zero time이 아닐 때만 true다.
+func validTimestamp(raw json.RawMessage) bool {
+	var t time.Time
+	return json.Unmarshal(raw, &t) == nil && !t.IsZero()
 }
 
 // integerAtLeastOne은 raw가 1 이상의 정수 값인 JSON number일 때만 true다(generation: integer, minimum 1).
-// JSON Schema 2020-12의 integer는 1.0, 1e2처럼 소수부가 0인 표기도 포함하므로 정확한 산술로 판정한다.
-// big.Rat.SetString은 지수가 매우 큰 표기를 실패로 돌려주며, 그런 값은 거절한다.
-// raw는 이미 유효한 JSON이므로 number가 아닌 값(string, null, bool, array, object)은 SetString이 실패한다.
+// Schema에 maximum이 없고 JSON Schema 2020-12의 integer는 1.0, 1e2처럼 소수부가 0인 표기도 포함한다.
+// 그래서 값을 계산하지 않고 숫자 문법만 lexical하게 판정한다. 유효숫자열 D와 지수로 값은 D × 10^e이고,
+// D의 앞 0을 버리고 뒤 0을 e로 옮기면 D는 0으로 끝나지 않으므로 e >= 0일 때만 정수다(D가 0이면 값이 0이다).
+// 지수는 부호와 자릿수로만 비교해 1e999999999처럼 큰 값을 만들지 않는다. big.Int로 지수를 읽으면
+// 1 MiB 지수 문자열에서 처리 시간이 자릿수의 제곱으로 늘 수 있어 쓰지 않는다.
+// 숫자가 아니거나 문법에 맞지 않는 raw는 false다.
 func integerAtLeastOne(raw json.RawMessage) bool {
-	r, ok := new(big.Rat).SetString(string(raw))
-	return ok && r.IsInt() && r.Sign() > 0
+	digitsAt := func(i int) int {
+		n := 0
+		for i+n < len(raw) && raw[i+n] >= '0' && raw[i+n] <= '9' {
+			n++
+		}
+		return n
+	}
+
+	i := 0
+	intLen := digitsAt(i)
+	if intLen == 0 || (intLen > 1 && raw[i] == '0') { // 음수('-')와 number가 아닌 값도 여기서 거절한다.
+		return false
+	}
+	intPart := string(raw[i : i+intLen])
+	i += intLen
+
+	var fracPart string
+	if i < len(raw) && raw[i] == '.' {
+		i++
+		fracLen := digitsAt(i)
+		if fracLen == 0 {
+			return false
+		}
+		fracPart = string(raw[i : i+fracLen])
+		i += fracLen
+	}
+
+	var expDigits string
+	expNegative := false
+	if i < len(raw) && (raw[i] == 'e' || raw[i] == 'E') {
+		i++
+		if i < len(raw) && (raw[i] == '+' || raw[i] == '-') {
+			expNegative = raw[i] == '-'
+			i++
+		}
+		expLen := digitsAt(i)
+		if expLen == 0 {
+			return false
+		}
+		expDigits = string(raw[i : i+expLen])
+		i += expLen
+	}
+	if i != len(raw) {
+		return false
+	}
+
+	digits := strings.TrimLeft(intPart+fracPart, "0")
+	if digits == "" {
+		return false
+	}
+	trailingZeros := len(digits) - len(strings.TrimRight(digits, "0"))
+	// 값 = (0으로 끝나지 않는 D) × 10^(exp - shift)
+	shift := int64(len(fracPart) - trailingZeros)
+
+	expDigits = strings.TrimLeft(expDigits, "0")
+	if len(expDigits) > 18 {
+		// 지수의 크기가 shift(입력 길이 이하)보다 항상 크므로 부호만 본다.
+		return !expNegative
+	}
+	var exp int64
+	if expDigits != "" {
+		exp, _ = strconv.ParseInt(expDigits, 10, 64)
+	}
+	if expNegative {
+		exp = -exp
+	}
+	return exp >= shift
 }
 
 // validCapabilities는 capabilities가 없거나, 중복 없는 string 배열일 때만 true다.

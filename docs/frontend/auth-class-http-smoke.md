@@ -59,6 +59,25 @@ make web
 Browser는 Vite dev server를 열고, Frontend 요청은 상대경로 `/api/v1/*`를 사용한다.
 Vite가 해당 경로를 `LABBIT_DEV_BACKEND_URL`로 proxy한다.
 
+## 3-1. 팀 Local dev fixture 기준
+
+Backend에서 아래 Local dev fixture를 준비하는 것으로 합의했다.
+실제 Password나 Secret은 Git에 기록하지 않고, 실행 경로가 전달되면 해당 Bootstrap use case를 사용한다.
+
+| 계정 | Organization Role | Class Alpha | Class Bravo | 주요 검증 목적 |
+| --- | --- | --- | --- | --- |
+| `dev-admin` | ADMIN | Membership 없음 | Membership 없음 | ADMIN ≠ INSTRUCTOR, Class empty list, Class 접근 403 |
+| `dev-instructor` | MEMBER | INSTRUCTOR | STUDENT | 한 사용자의 Class별 Role 분리, Instructor/Student UI |
+| `dev-student` | MEMBER | STUDENT | Membership 없음 | Student UI, Membership 없는 다른 Class 403 |
+
+이 fixture는 직접 SQL을 넣는 방식이 아니라 기존 `bootstrap.Run()` use case를 재사용한 Local dev fixture 실행 경로로 제공받는다.
+
+권장 재사용 시나리오:
+
+- `dev-admin`: Login → `/me`에서 ADMIN 확인 → Class 목록 empty → Class Alpha 상세 직접 접근 시 403
+- `dev-instructor`: Login → Alpha/Bravo 목록 확인 → Alpha는 INSTRUCTOR, Bravo는 STUDENT UI 확인
+- `dev-student`: Login → Alpha 목록/상세 STUDENT 확인 → Bravo 상세 직접 접근 시 403
+
 ## 4. LBT-72 Auth smoke
 
 준비된 개발용 계정으로 다음 흐름을 확인한다.

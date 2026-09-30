@@ -383,6 +383,29 @@ describe('Auth·Class·LabSpec routing', () => {
     ).toBeInTheDocument()
   })
 
+  it('현재 Backend 최소 Class 목록 응답만으로도 화면을 렌더링한다', async () => {
+    renderRoute(
+      '/classes',
+      createApi({
+        listClasses: async () => ({
+          items: [
+            {
+              id: 'class-minimal',
+              name: 'Minimal Class',
+              myRole: 'STUDENT',
+            },
+          ],
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Minimal Class' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('수강생')).toBeInTheDocument()
+    expect(screen.getByText('진행 중인 실습 없음')).toBeInTheDocument()
+  })
+
   it('Class 목록이 비어 있으면 Empty 상태를 렌더링한다', async () => {
     renderRoute(
       '/classes',
@@ -471,6 +494,49 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       await screen.findByText('수업 정보를 불러오지 못했습니다.'),
     ).toBeInTheDocument()
+  })
+
+  it('Class 상세 조회 중 세션이 만료되면 Login으로 이동한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('현재 Backend 최소 Class 상세 응답만으로도 화면을 렌더링한다', async () => {
+    renderRoute(
+      '/classes/class-minimal',
+      createApi({
+        getClass: async () => ({
+          id: 'class-minimal',
+          name: 'Minimal Class',
+          myRole: 'STUDENT',
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Minimal Class' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('진행 중인 실습 없음')).toBeInTheDocument()
+    expect(screen.getByText('환경 없음')).toBeInTheDocument()
+    expect(screen.getByText('입장 대기')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'Lab Workspace 열기' }),
+    ).not.toBeInTheDocument()
   })
 
   it('Class 상세 403은 권한 없음 상태로 표시한다', async () => {

@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math/big"
 	"net"
 	"net/http"
 	"strings"
@@ -276,8 +277,9 @@ func (h *Handler) rejectHello(conn *websocket.Conn, log *slog.Logger, code, mess
 	closeWith(conn, closeProtocolError, "protocol error")
 }
 
-// helloFrame과 helloBody는 handshake가 판단에 쓰는 필드만 decode한다. traceparent/tracestate 같은 선택 field는
-// 일부러 선언하지 않는다. 잘못된 Trace 값 때문에 HELLO를 거절하지 않고, 알 수 없는 선택 field도 무시한다.
+// helloFrame과 helloBody는 handshake가 판단에 쓰는 필드만 decode한다. traceparent/tracestate는 일부러 선언하지 않는다.
+// 잘못된 Trace 값 때문에 HELLO를 거절하지 않고(README §9), 알 수 없는 선택 field도 무시한다.
+// Schema가 정의한 나머지 선택 Envelope field는 validEnvelopeOptionals가 확인한다.
 type helloFrame struct {
 	Type      string          `json:"type"`
 	MessageID string          `json:"messageId"`
@@ -305,6 +307,9 @@ func validateHello(data []byte) (messageID, errorCode string) {
 	if frame.MessageID == "" || frame.SentAt.IsZero() {
 		return "", errorCodeInvalidMessage
 	}
+	if !validEnvelopeOptionals(data) {
+		return "", errorCodeInvalidMessage
+	}
 	var body helloBody
 	if err := json.Unmarshal(frame.Payload, &body); err != nil {
 		return "", errorCodeInvalidMessage
@@ -316,6 +321,42 @@ func validateHello(data []byte) (messageID, errorCode string) {
 		return "", errorCodeInvalidMessage
 	}
 	return frame.MessageID, ""
+}
+
+// validEnvelopeOptionals는 connector.schema.json BaseEnvelope의 선택 field 중 Trace를 제외한 것이
+// 없거나, 있으면 Schema 제약을 만족할 때만 true다. 이름은 Schema처럼 대소문자를 구분해 찾으므로
+// 대소문자만 다른 key와 정의되지 않은 field는 알 수 없는 field로 무시한다.
+// traceparent/tracestate는 관측 metadata라 잘못되어도 업무 Envelope를 거절하지 않는다(README §9).
+func validEnvelopeOptionals(data []byte) bool {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return false
+	}
+	for _, name := range []string{"replyToMessageId", "requestId", "operationId", "labInstanceId"} {
+		if raw, ok := fields[name]; ok && !nonEmptyString(raw) {
+			return false
+		}
+	}
+	if raw, ok := fields["generation"]; ok && !integerAtLeastOne(raw) {
+		return false
+	}
+	return true
+}
+
+// nonEmptyString은 raw가 비어 있지 않은 JSON string일 때만 true다(MessageId·ResourceId: string, minLength 1).
+// null도 string이 아니므로 거절한다.
+func nonEmptyString(raw json.RawMessage) bool {
+	var s string
+	return json.Unmarshal(raw, &s) == nil && s != ""
+}
+
+// integerAtLeastOne은 raw가 1 이상의 정수 값인 JSON number일 때만 true다(generation: integer, minimum 1).
+// JSON Schema 2020-12의 integer는 1.0, 1e2처럼 소수부가 0인 표기도 포함하므로 정확한 산술로 판정한다.
+// big.Rat.SetString은 지수가 매우 큰 표기를 실패로 돌려주며, 그런 값은 거절한다.
+// raw는 이미 유효한 JSON이므로 number가 아닌 값(string, null, bool, array, object)은 SetString이 실패한다.
+func integerAtLeastOne(raw json.RawMessage) bool {
+	r, ok := new(big.Rat).SetString(string(raw))
+	return ok && r.IsInt() && r.Sign() > 0
 }
 
 // validCapabilities는 capabilities가 없거나, 중복 없는 string 배열일 때만 true다.

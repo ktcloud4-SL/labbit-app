@@ -508,6 +508,30 @@ func TestInvalidFirstMessageIsRejectedAndNotRegistered(t *testing.T) {
 		{"capabilities 중복", mutate(func(m map[string]any) { payloadOf(m)["capabilities"] = []string{"a", "a"} }), errorCodeInvalidMessage, false},
 		{"capabilities 요소가 문자열이 아님", mutate(func(m map[string]any) { payloadOf(m)["capabilities"] = []any{"a", 1} }), errorCodeInvalidMessage, false},
 		{"capabilities 요소 null", mutate(func(m map[string]any) { payloadOf(m)["capabilities"] = []any{"a", nil} }), errorCodeInvalidMessage, false},
+
+		// Schema가 정의한 선택 Envelope field는 없으면 유효하지만, 있으면 제약을 만족해야 한다.
+		{"requestId가 number", mutate(func(m map[string]any) { m["requestId"] = 42 }), errorCodeInvalidMessage, false},
+		{"빈 requestId", mutate(func(m map[string]any) { m["requestId"] = "" }), errorCodeInvalidMessage, false},
+		{"requestId null", mutate(func(m map[string]any) { m["requestId"] = nil }), errorCodeInvalidMessage, false},
+		{"requestId가 object", mutate(func(m map[string]any) { m["requestId"] = map[string]any{"k": echoCheckMarker} }), errorCodeInvalidMessage, false},
+		{"operationId가 boolean", mutate(func(m map[string]any) { m["operationId"] = false }), errorCodeInvalidMessage, false},
+		{"빈 operationId", mutate(func(m map[string]any) { m["operationId"] = "" }), errorCodeInvalidMessage, false},
+		{"labInstanceId가 배열", mutate(func(m map[string]any) { m["labInstanceId"] = []any{echoCheckMarker} }), errorCodeInvalidMessage, false},
+		{"빈 labInstanceId", mutate(func(m map[string]any) { m["labInstanceId"] = "" }), errorCodeInvalidMessage, false},
+		{"replyToMessageId가 number", mutate(func(m map[string]any) { m["replyToMessageId"] = 1 }), errorCodeInvalidMessage, false},
+		{"빈 replyToMessageId", mutate(func(m map[string]any) { m["replyToMessageId"] = "" }), errorCodeInvalidMessage, false},
+		{"generation 0", mutate(func(m map[string]any) { m["generation"] = 0 }), errorCodeInvalidMessage, false},
+		{"음수 generation", mutate(func(m map[string]any) { m["generation"] = -1 }), errorCodeInvalidMessage, false},
+		{"소수 generation", mutate(func(m map[string]any) { m["generation"] = 1.5 }), errorCodeInvalidMessage, false},
+		{"1 미만 소수 generation", mutate(func(m map[string]any) { m["generation"] = json.RawMessage("0.9") }), errorCodeInvalidMessage, false},
+		{"지수 표기로 1 미만인 generation", mutate(func(m map[string]any) { m["generation"] = json.RawMessage("1e-1") }), errorCodeInvalidMessage, false},
+		{"string generation", mutate(func(m map[string]any) { m["generation"] = "1" }), errorCodeInvalidMessage, false},
+		{"generation null", mutate(func(m map[string]any) { m["generation"] = nil }), errorCodeInvalidMessage, false},
+		{"generation boolean", mutate(func(m map[string]any) { m["generation"] = true }), errorCodeInvalidMessage, false},
+		{"잘못된 Trace와 함께 잘못된 generation", mutate(func(m map[string]any) {
+			m["traceparent"] = "not-a-trace"
+			m["generation"] = 0
+		}), errorCodeInvalidMessage, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -583,6 +607,89 @@ func TestHelloToleratesUnknownOptionalFieldsAndInvalidTraceMetadata(t *testing.T
 				t.Fatalf("ack = %v, want HELLO_ACK replying to %v", ack, hello["messageId"])
 			}
 			h.waitRegistered()
+		})
+	}
+}
+
+// Schema가 정의한 선택 Envelope field는 유효한 값이면 받아들이고, HELLO_ACK은 HELLO의 messageId에 응답한다.
+func TestHelloAcceptsValidKnownOptionalEnvelopeFields(t *testing.T) {
+	tests := map[string]func(map[string]any){
+		"requestId":            func(m map[string]any) { m["requestId"] = "req-1" },
+		"operationId":          func(m map[string]any) { m["operationId"] = "op-1" },
+		"labInstanceId":        func(m map[string]any) { m["labInstanceId"] = "lab-1" },
+		"replyToMessageId":     func(m map[string]any) { m["replyToMessageId"] = "msg-0" },
+		"generation 1":         func(m map[string]any) { m["generation"] = 1 },
+		"generation 2":         func(m map[string]any) { m["generation"] = 2 },
+		"소수부가 0인 generation":   func(m map[string]any) { m["generation"] = json.RawMessage("1.0") },
+		"지수 표기 generation":     func(m map[string]any) { m["generation"] = json.RawMessage("1e2") },
+		"int64를 넘는 generation": func(m map[string]any) { m["generation"] = json.RawMessage("10000000000000000000000") },
+		"모든 선택 field": func(m map[string]any) {
+			m["replyToMessageId"] = "msg-0"
+			m["requestId"] = "req-1"
+			m["operationId"] = "op-1"
+			m["labInstanceId"] = "lab-1"
+			m["generation"] = 1
+		},
+		"유효한 field와 잘못된 Trace": func(m map[string]any) {
+			m["requestId"] = "req-1"
+			m["generation"] = 1
+			m["traceparent"] = "not-a-trace"
+			m["tracestate"] = 7
+		},
+		// Schema의 property 이름은 대소문자를 구분하므로 정의되지 않은 알 수 없는 field로 무시한다.
+		"대소문자만 다른 이름은 알 수 없는 field": func(m map[string]any) {
+			m["RequestId"] = 42
+			m["Generation"] = 0
+			m["GENERATION"] = "x"
+		},
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			h := newHarness(t)
+			conn := h.connect()
+			hello := validHello()
+			mutate(hello)
+			sendJSON(t, conn, hello)
+
+			ack := readJSON(t, conn)
+			if ack["type"] != "HELLO_ACK" || ack["replyToMessageId"] != hello["messageId"] {
+				t.Fatalf("ack = %v, want HELLO_ACK replying to %v", ack, hello["messageId"])
+			}
+			h.waitRegistered()
+		})
+	}
+}
+
+// generation 판정은 JSON Schema 2020-12 integer(minimum 1)와 같고, 지수가 과도한 표기는 거절한다.
+func TestIntegerAtLeastOne(t *testing.T) {
+	tests := []struct {
+		raw  string
+		want bool
+	}{
+		{"1", true},
+		{"2", true},
+		{"1.0", true},
+		{"1e2", true},
+		{"10000000000000000000000", true},
+		{"0", false},
+		{"-0", false},
+		{"-1", false},
+		{"0.5", false},
+		{"1.5", false},
+		{"1e-1", false},
+		{"1.00000000000000000001", false},
+		{"1e999999999", false},
+		{`"1"`, false},
+		{"null", false},
+		{"true", false},
+		{"[1]", false},
+		{"{}", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.raw, func(t *testing.T) {
+			if got := integerAtLeastOne(json.RawMessage(tt.raw)); got != tt.want {
+				t.Fatalf("integerAtLeastOne(%s) = %v, want %v", tt.raw, got, tt.want)
+			}
 		})
 	}
 }

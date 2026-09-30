@@ -575,12 +575,21 @@ func TestSlowBrowserIsDisconnectedWithoutBlockingTheConnector(t *testing.T) {
 // Browser/Connector 양방향 Binary와 control message가 동시에 오가도 connection마다 writer가 하나라 경쟁이 없고
 // 순서와 byte가 보존된다(go test -race로 실행한다).
 func TestConcurrentTrafficKeepsOrderAndBytes(t *testing.T) {
-	e := newEnv(t)
+	const frames = 300
+
+	// 이 test는 순서·바이트 보존과 data race 부재만 본다. writer는 역압 없이 frame을 밀어 넣으므로 reader가 scheduling 때문에
+	// 조금만 늦어도 기본 queue(256개)가 넘쳐 SLOW_CONSUMER가 된다(CPU 1개에서 재현). 그래서 queue 한도를 burst 전체보다 크게 잡아
+	// scheduling과 무관하게 결정적으로 만든다. 느린 소비자 동작은 TestSlowBrowserIsDisconnectedWithoutBlockingTheConnector가 검증한다.
+	e := newEnv(t, func(o *realtime.Options) {
+		o.BrowserQueueMessages = 4 * frames
+		o.BrowserQueueBytes = 4 * frames * 64
+		o.DataQueueMessages = 4 * frames
+		o.DataQueueBytes = 4 * frames * 64
+	})
 	s, d := e.liveSession()
 	b := e.connectBrowser(s)
 	d.readJSON()
 
-	const frames = 300
 	type outcome struct {
 		inputs, outputs, resizes int
 		err                      error

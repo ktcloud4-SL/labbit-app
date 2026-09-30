@@ -52,8 +52,17 @@ describe('LoginPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('Login 성공 뒤 /me 401은 잘못된 비밀번호로 오인하지 않는다', async () => {
+  it('Login 성공 뒤 /me 401은 잘못된 비밀번호로 오인하지 않고 이전 사용자 cache를 제거한다', async () => {
     const queryClient = new QueryClient()
+    queryClient.setQueryData(labbitQueryKeys.me, {
+      ...mockMe,
+      id: 'user-previous',
+      username: 'previous-user',
+    })
+    queryClient.setQueryData(labbitQueryKeys.classes, {
+      items: [{ id: 'class-previous-user' }],
+    })
+
     const api = {
       ...mockLabbitApi,
       login: async () => {},
@@ -98,6 +107,8 @@ describe('LoginPage', () => {
     expect(
       screen.queryByText('사용자 이름 또는 비밀번호를 확인해 주세요.'),
     ).not.toBeInTheDocument()
+    expect(queryClient.getQueryData(labbitQueryKeys.me)).toBeUndefined()
+    expect(queryClient.getQueryData(labbitQueryKeys.classes)).toBeUndefined()
   })
 
   it('직접 재로그인 성공 시 이전 사용자 query cache를 제거하고 새 me만 저장한다', async () => {

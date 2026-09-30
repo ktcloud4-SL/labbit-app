@@ -64,12 +64,12 @@ Vite가 해당 경로를 `LABBIT_DEV_BACKEND_URL`로 proxy한다.
 준비된 개발용 계정으로 다음 흐름을 확인한다.
 
 1. `/login`에서 실제 계정으로 로그인
-2. Network에서 `POST /api/v1/auth/login` 확인
-3. 이어서 `GET /api/v1/me`가 호출되고 보호 화면으로 이동하는지 확인
+2. Network에서 `POST /api/v1/auth/login` → `204` 확인
+3. 이어서 `GET /api/v1/me` → `200`이 호출되고 보호 화면으로 이동하는지 확인
 4. 화면 상단의 현재 사용자 / Organization 정보 확인
 5. 로그아웃
-6. `POST /api/v1/auth/logout` 확인
-7. 로그아웃 후 보호 화면 재진입 시 인증 필요 상태로 돌아가는지 확인
+6. `POST /api/v1/auth/logout` → `204` 확인
+7. 로그아웃 후 `/me` 또는 보호 API가 `401`이 되고 인증 필요 상태로 돌아가는지 확인
 
 추가 확인:
 
@@ -81,10 +81,10 @@ Vite가 해당 경로를 `LABBIT_DEV_BACKEND_URL`로 proxy한다.
 
 로그인 Session을 유지한 상태에서 다음을 확인한다.
 
-1. `GET /api/v1/classes`
+1. `GET /api/v1/classes` → `200`
 2. 실제 Backend 응답의 Class 목록이 화면에 표시
 3. Class 열기
-4. `GET /api/v1/classes/{classId}`
+4. `GET /api/v1/classes/{classId}` → `200`
 5. `id`, `name`, `myRole`이 실제 응답과 화면에서 일치
 
 현재 Backend가 아직 제공하지 않는 optional 필드:

@@ -983,7 +983,7 @@ func TestSendRejectsInvalidCommandsBeforeWritingAnything(t *testing.T) {
 		{"empty mutation", func(cmd *OperationCommand) { cmd.Payload = protocol.OperationCommandPayload{} }},
 		{"provision without snapshot", func(cmd *OperationCommand) { cmd.Payload.CreationSnapshot = nil }},
 		{"reset without snapshot", func(cmd *OperationCommand) { cmd.Payload = reset }},
-		{"cleanup without resources", func(cmd *OperationCommand) {
+		{"cleanup with providerResources missing (nil, not an empty list)", func(cmd *OperationCommand) {
 			cmd.Payload = protocol.OperationCommandPayload{MutationType: protocol.MutationTypeCleanup}
 		}},
 		{"cleanup resource without generation", func(cmd *OperationCommand) { cmd.Payload = badRef }},
@@ -1054,6 +1054,131 @@ func TestCleanupAndResetCommandsAreSent(t *testing.T) {
 	mustSend(t, f, reset)
 	if msg := decodeCommand(t, frames.last(t)); msg.Payload.MutationType != protocol.MutationTypeReset || msg.Payload.CreationSnapshot == nil {
 		t.Fatalf("reset frame = %+v", msg.Payload)
+	}
+}
+
+// rawPayload는 frame의 payload member를 raw JSON으로 반환한다. 구조체 decode로는 property가 사라졌는지 null인지 알 수 없다.
+func rawPayload(t *testing.T, frame []byte) map[string]json.RawMessage {
+	t.Helper()
+	var envelope struct {
+		Payload map[string]json.RawMessage `json:"payload"`
+	}
+	if err := json.Unmarshal(frame, &envelope); err != nil {
+		t.Fatalf("frame이 JSON이 아님: %v: %s", err, frame)
+	}
+	return envelope.Payload
+}
+
+// CLEANUP의 providerResources는 property가 required이고 array에 minItems가 없다(connector.schema.json).
+// 정리할 추적 리소스가 없는 빈 CLEANUP도 유효하므로 거절하지 않고, wire에 `"providerResources": []`가 실제로 있어야 한다.
+func TestEmptyCleanupIsSentWithRequiredEmptyArray(t *testing.T) {
+	f := newRouterFixture(t)
+	principal := principalOf(uuid.New())
+	_, frames := f.connect(principal)
+	cid := principal.ConnectorID
+	c := corr("op-1", "lab-A", 2)
+
+	cmd := commandFor(cid, c)
+	cmd.Payload = protocol.OperationCommandPayload{MutationType: protocol.MutationTypeCleanup, ProviderResources: []protocol.ProviderResourceRef{}}
+	sent, err := f.router.SendOperationCommand(context.Background(), cmd)
+	if err != nil {
+		t.Fatalf("빈 providerResources의 CLEANUP이 거절됨: %v", err)
+	}
+	if frames.count() != 1 || pendingOps(f, cid) != 1 {
+		t.Fatalf("writes %d, pending %d, want 1, 1", frames.count(), pendingOps(f, cid))
+	}
+
+	payload := rawPayload(t, frames.last(t))
+	raw, present := payload["providerResources"]
+	if !present {
+		t.Fatalf("providerResources property가 wire에서 사라짐: %v", payload)
+	}
+	if string(raw) != "[]" { // null이 아니라 빈 배열이어야 한다.
+		t.Fatalf("providerResources = %s, want []", raw)
+	}
+	if string(payload["mutationType"]) != `"CLEANUP"` {
+		t.Fatalf("mutationType = %s", payload["mutationType"])
+	}
+	if _, present := payload["creationSnapshot"]; present {
+		t.Fatal("CLEANUP에 creationSnapshot이 실림")
+	}
+
+	// 빈 CLEANUP도 기존 pending으로 정확히 돌아온다.
+	if !f.router.RouteOperationAck(cid, replyFor(sent, c), protocol.OperationAckPayload{Accepted: true}) ||
+		!f.router.RouteOperationResult(cid, replyFor(sent, c), protocol.OperationResultPayload{Outcome: protocol.OutcomeSucceeded, ProviderResources: []protocol.ProviderResourceResult{}}) {
+		t.Fatal("빈 CLEANUP의 ACK/RESULT가 pending에 연결되지 않음")
+	}
+	events := f.sink.all()
+	if len(events) != 2 {
+		t.Fatalf("events = %+v", events)
+	}
+	if ack, ok := events[0].(OperationAckEvent); !ok || ack.RequestMessageID != sent.MessageID || ack.Correlation != c {
+		t.Fatalf("ACK event = %+v", events[0])
+	}
+	if res, ok := events[1].(OperationResultEvent); !ok || res.RequestMessageID != sent.MessageID || res.Correlation != c {
+		t.Fatalf("RESULT event = %+v", events[1])
+	}
+	if pendingOps(f, cid) != 0 {
+		t.Fatalf("terminal result 뒤 pending = %d", pendingOps(f, cid))
+	}
+}
+
+// startupScript.content는 string이며 minLength가 없다. 빈 content의 script도 유효하므로 거절하지 않고, required인 content와
+// sha256이 wire에 그대로 실려야 한다. 이 검증은 sha256의 Schema pattern을 약화하지 않는다.
+func TestEmptyStartupScriptContentIsSentAndDigestConstraintIsKept(t *testing.T) {
+	f := newRouterFixture(t)
+	principal := principalOf(uuid.New())
+	_, frames := f.connect(principal)
+	cid := principal.ConnectorID
+	const emptyDigest = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+	cmd := commandFor(cid, corr("op-1", "lab-A", 1))
+	cmd.Payload.CreationSnapshot.StartupScript = &protocol.StartupScriptSnapshot{Content: "", SHA256: emptyDigest}
+	mustSend(t, f, cmd)
+
+	var snapshot map[string]json.RawMessage
+	if err := json.Unmarshal(rawPayload(t, frames.last(t))["creationSnapshot"], &snapshot); err != nil {
+		t.Fatal(err)
+	}
+	var script map[string]json.RawMessage
+	if err := json.Unmarshal(snapshot["startupScript"], &script); err != nil {
+		t.Fatalf("startupScript가 wire에서 사라짐: %v", err)
+	}
+	if string(script["content"]) != `""` || string(script["sha256"]) != `"`+emptyDigest+`"` {
+		t.Fatalf("startupScript = %v, want content \"\" + sha256", script)
+	}
+
+	// sha256 제약은 그대로다. 빈 content여도 64자리 hex가 아니면 거절한다.
+	for _, digest := range []string{"", "abc", strings.Repeat("g", 64), strings.Repeat("a", 63)} {
+		bad := commandFor(cid, corr("op-2", "lab-B", 1))
+		bad.Payload.CreationSnapshot.StartupScript = &protocol.StartupScriptSnapshot{Content: "", SHA256: digest}
+		if _, err := f.router.SendOperationCommand(context.Background(), bad); !errors.Is(err, ErrInvalidCommand) {
+			t.Fatalf("sha256 %q: err = %v, want ErrInvalidCommand", digest, err)
+		}
+	}
+	if frames.count() != 1 {
+		t.Fatalf("writes = %d, want 1(잘못된 sha256은 보내지 않는다)", frames.count())
+	}
+}
+
+// PROVISION/RESET의 providerResources는 optional이다. nil이면 property 자체를 만들지 않고(null도 아님), 값이 있으면 그대로 싣는다.
+func TestOptionalProviderResourcesAreOmittedWhenNilAndKeptWhenSet(t *testing.T) {
+	f := newRouterFixture(t)
+	principal := principalOf(uuid.New())
+	_, frames := f.connect(principal)
+	cid := principal.ConnectorID
+
+	mustSend(t, f, commandFor(cid, corr("op-1", "lab-A", 1))) // PROVISION, ProviderResources nil
+	if payload := rawPayload(t, frames.last(t)); payload["providerResources"] != nil {
+		t.Fatalf("PROVISION의 nil providerResources가 wire에 %s로 나감", payload["providerResources"])
+	}
+
+	reset := commandFor(cid, corr("op-2", "lab-B", 3))
+	reset.Payload.MutationType = protocol.MutationTypeReset
+	reset.Payload.ProviderResources = []protocol.ProviderResourceRef{{ResourceType: "SERVER", ProviderID: "srv-old", Generation: 2}}
+	mustSend(t, f, reset)
+	if got := string(rawPayload(t, frames.last(t))["providerResources"]); got != `[{"resourceType":"SERVER","providerId":"srv-old","generation":2}]` {
+		t.Fatalf("RESET의 providerResources = %s", got)
 	}
 }
 

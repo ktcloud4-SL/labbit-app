@@ -1,6 +1,9 @@
 package protocol
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // WSS Subprotocol 상수
 const (
@@ -178,10 +181,34 @@ type CreationSnapshot struct {
 }
 
 // OperationCommandPayload 는 SaaS가 지시하는 Provision/Reset/Cleanup 명령 본문입니다.
+//
+// ProviderResources 는 nil 과 빈 목록을 구분합니다. Schema 에서 CLEANUP 은 providerResources property 가 required 이고
+// array 에 minItems 가 없으므로 `"providerResources": []` 는 유효합니다. 반대로 PROVISION/RESET 에서는 optional 입니다.
+//
+//   - nil            → property 를 만들지 않습니다(누락). null 도 만들지 않습니다.
+//   - 빈 non-nil     → `"providerResources": []`
+//   - 항목이 있는 경우 → 그 목록
+//
+// 단순한 omitempty 는 빈 목록의 property 를 지워 유효한 빈 CLEANUP 을 Schema-invalid 로 만들고, omitempty 를 빼면
+// PROVISION/RESET 의 nil 이 null 로 나가 Schema-invalid 가 되므로 MarshalJSON 으로 구분합니다. decode 는 기본 동작이며
+// `[]` 는 빈 non-nil, 누락과 null 은 nil 입니다.
 type OperationCommandPayload struct {
 	MutationType      string                `json:"mutationType"` // PROVISION, RESET, CLEANUP
 	CreationSnapshot  *CreationSnapshot     `json:"creationSnapshot,omitempty"`
 	ProviderResources []ProviderResourceRef `json:"providerResources,omitempty"`
+}
+
+// MarshalJSON 은 ProviderResources 의 nil(누락)과 빈 목록([])을 구분해 직렬화합니다.
+func (p OperationCommandPayload) MarshalJSON() ([]byte, error) {
+	wire := struct {
+		MutationType      string                 `json:"mutationType"`
+		CreationSnapshot  *CreationSnapshot      `json:"creationSnapshot,omitempty"`
+		ProviderResources *[]ProviderResourceRef `json:"providerResources,omitempty"` // nil 포인터만 생략한다.
+	}{MutationType: p.MutationType, CreationSnapshot: p.CreationSnapshot}
+	if p.ProviderResources != nil {
+		wire.ProviderResources = &p.ProviderResources
+	}
+	return json.Marshal(wire)
 }
 
 // OperationCommandMessage 는 SaaS가 Connector로 전달하는 명령 메시지입니다.

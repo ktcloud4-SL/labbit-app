@@ -60,9 +60,11 @@ func validateOperationCommand(cmd OperationCommand) error {
 			return err
 		}
 	case protocol.MutationTypeCleanup:
-		// 공유 type의 providerResources는 omitempty라 빈 목록은 wire에서 property가 사라져 Schema-invalid가 된다.
-		if len(payload.ProviderResources) == 0 {
-			return invalidCommand("CLEANUP에는 providerResources가 하나 이상 필요합니다")
+		// Schema는 CLEANUP의 providerResources property를 required로 두지만 array에 minItems가 없다. 그래서 빈 목록([])은
+		// 유효하고(정리할 추적 리소스가 없는 경우) 그대로 보낸다. nil은 property 누락이다. 호출자가 리소스를 조회하지 못한 실수를
+		// "정리할 것 없음"으로 바꿔 보내면 잔여 리소스가 남으므로 빈 목록은 명시적인 빈 non-nil 목록으로만 표현한다.
+		if payload.ProviderResources == nil {
+			return invalidCommand("CLEANUP에는 providerResources가 필요합니다(정리할 것이 없으면 빈 목록을 명시)")
 		}
 	default:
 		return invalidCommand("지원하지 않는 mutationType입니다")

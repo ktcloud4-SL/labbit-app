@@ -464,3 +464,102 @@ func TestActualSupervisorReconnectDoesNotRetryAndLateResultRoutes(t *testing.T) 
 		t.Fatalf("pending = %d", pending(h, h.principal.ConnectorID))
 	}
 }
+
+// 빈 providerResources의 CLEANUP은 Schema-valid이다. Backend Router가 `"providerResources": []`로 보내고 실제 Connector Handler가
+// ACK를 수락해 Provider.Cleanup을 정확히 한 번, 빈 non-nil 목록으로 호출하며, ACK/RESULT가 기존 pending으로 돌아온다.
+func TestActualConnectorEmptyCleanupRoundTrip(t *testing.T) {
+	h := newRoutedHarness(t, realConnectorHeartbeat)
+	var mu sync.Mutex
+	var calls int
+	var got provider.CleanupRequest
+	rig := startConnector(t, h, testCredential, h.principal.ConnectorID, &provider.MockProvider{
+		CleanupFunc: func(_ context.Context, r provider.CleanupRequest) (provider.OperationResult, error) {
+			mu.Lock()
+			defer mu.Unlock()
+			calls++
+			got = r
+			return provider.OperationResult{Outcome: provider.OutcomeSucceeded}, nil
+		},
+	})
+
+	cmd := provisionCommand(h.principal.ConnectorID, "op-1", "lab-A", 4)
+	cmd.Payload = protocol.OperationCommandPayload{MutationType: protocol.MutationTypeCleanup, ProviderResources: []protocol.ProviderResourceRef{}}
+	sent := send(t, h, cmd)
+
+	events := h.events.waitCount(t, 2)
+	ack, ok1 := events[0].(connector.OperationAckEvent)
+	result, ok2 := events[1].(connector.OperationResultEvent)
+	if !ok1 || !ok2 {
+		t.Fatalf("events = %T, %T, want ACK, RESULT", events[0], events[1])
+	}
+	want := connector.Correlation{OperationID: "op-1", LabInstanceID: "lab-A", Generation: 4}
+	if ack.RequestMessageID != sent.MessageID || ack.Correlation != want || !ack.Payload.Accepted || ack.Payload.Error != nil {
+		t.Fatalf("ACK event = %+v", ack)
+	}
+	if result.RequestMessageID != sent.MessageID || result.Correlation != want || result.RequestID != "request-lab-A" ||
+		result.Payload.Outcome != protocol.OutcomeSucceeded || result.Payload.Error != nil {
+		t.Fatalf("RESULT event = %+v (빈 CLEANUP이 Connector에서 실패로 끝나면 안 됨)", result)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if calls != 1 {
+		t.Fatalf("Provider.Cleanup 호출 = %d번, want 정확히 1", calls)
+	}
+	if got.ProviderResources == nil || len(got.ProviderResources) != 0 {
+		t.Fatalf("Provider가 받은 ProviderResources = %#v, want 빈 non-nil 목록", got.ProviderResources)
+	}
+	if got.Correlation != (provider.Correlation{OperationID: "op-1", LabInstanceID: "lab-A", Generation: 4}) {
+		t.Fatalf("Provider가 받은 correlation = %+v", got.Correlation)
+	}
+	if pending(h, h.principal.ConnectorID) != 0 {
+		t.Fatalf("pending = %d, want 0", pending(h, h.principal.ConnectorID))
+	}
+	wantNoHandlerErrors(t, rig)
+}
+
+// startupScript.content가 빈 문자열인 PROVISION도 Schema-valid이다. 실제 Connector Handler가 수락하고 Provider를 호출한다.
+func TestActualConnectorEmptyStartupScriptRoundTrip(t *testing.T) {
+	h := newRoutedHarness(t, realConnectorHeartbeat)
+	const emptyDigest = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+	var mu sync.Mutex
+	var calls int
+	var got provider.ProvisionRequest
+	rig := startConnector(t, h, testCredential, h.principal.ConnectorID, &provider.MockProvider{
+		ProvisionFunc: func(_ context.Context, r provider.ProvisionRequest) (provider.OperationResult, error) {
+			mu.Lock()
+			defer mu.Unlock()
+			calls++
+			got = r
+			return succeeded(r.Correlation, "srv-1"), nil
+		},
+	})
+
+	cmd := provisionCommand(h.principal.ConnectorID, "op-1", "lab-A", 1)
+	cmd.Payload.CreationSnapshot.StartupScript = &protocol.StartupScriptSnapshot{Content: "", SHA256: emptyDigest}
+	sent := send(t, h, cmd)
+
+	events := h.events.waitCount(t, 2)
+	ack, ok1 := events[0].(connector.OperationAckEvent)
+	result, ok2 := events[1].(connector.OperationResultEvent)
+	if !ok1 || !ok2 {
+		t.Fatalf("events = %T, %T, want ACK, RESULT", events[0], events[1])
+	}
+	if !ack.Payload.Accepted || ack.Payload.Error != nil || ack.RequestMessageID != sent.MessageID {
+		t.Fatalf("빈 content의 startupScript가 거절됨: %+v", ack.Payload)
+	}
+	if result.Payload.Outcome != protocol.OutcomeSucceeded || len(result.Payload.ProviderResources) != 1 || result.RequestMessageID != sent.MessageID {
+		t.Fatalf("RESULT event = %+v", result)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	script := got.CreationSnapshot.StartupScript
+	if calls != 1 || script == nil || script.Content != "" || script.SHA256 != emptyDigest {
+		t.Fatalf("Provider 호출 %d번, StartupScript = %+v, want 1번, {content:\"\" sha256:%s}", calls, script, emptyDigest)
+	}
+	if pending(h, h.principal.ConnectorID) != 0 {
+		t.Fatalf("pending = %d, want 0", pending(h, h.principal.ConnectorID))
+	}
+	wantNoHandlerErrors(t, rig)
+}

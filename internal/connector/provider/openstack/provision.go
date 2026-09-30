@@ -14,6 +14,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
 	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/external"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/rules"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
 
@@ -57,7 +58,7 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 
 	baseName := provisionBaseName(request.LabInstanceID, request.Generation)
 	description := fmt.Sprintf("Labbit %s generation %d operation %s", safeName(request.LabInstanceID, 36), request.Generation, safeName(request.OperationID, 36))
-	resources := make([]coreprovider.ResourceResult, 0, 7+len(request.CreationSnapshot.VMs)*3)
+	resources := make([]coreprovider.ResourceResult, 0, 5+len(request.CreationSnapshot.VMs)*3)
 
 	networkResource, err := a.EnsureNetwork(ctx, resourceIdentity(request.Generation, "lab-network"), NetworkSpec{
 		Name:        baseName + "-network",
@@ -120,28 +121,6 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 	}
 	resources = upsertResource(resources, labRule)
 
-	managementSecurityGroupResource, err := a.EnsureSecurityGroup(ctx, resourceIdentity(request.Generation, "management-security-group"), SecurityGroupSpec{
-		Name:        baseName + "-management-sg",
-		Description: description,
-	})
-	if err != nil {
-		return mutationFailure(resources, err, "Management security group could not be created"), nil
-	}
-	resources = upsertResource(resources, managementSecurityGroupResource)
-
-	sshRule, err := a.EnsureIngressRule(ctx, resourceIdentity(request.Generation, "management-ssh-ingress"), SecurityRuleSpec{
-		SecurityGroupID: managementSecurityGroupResource.ProviderID,
-		Description:     "Allow Connector Management SSH",
-		Protocol:        rules.ProtocolTCP,
-		PortMin:         22,
-		PortMax:         22,
-		RemoteCIDR:      config.SSHAllowedCIDR,
-	})
-	if err != nil {
-		return mutationFailure(resources, err, "Management SSH rule could not be created"), nil
-	}
-	resources = upsertResource(resources, sshRule)
-
 	for _, vm := range request.CreationSnapshot.VMs {
 		vmName := baseName + "-" + safeName(vm.VMKey, 28)
 		labPortIdentity := resourceIdentity(request.Generation, vm.VMKey+":lab")
@@ -162,7 +141,7 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 			Name:             vmName + "-management",
 			Description:      description,
 			NetworkID:        config.ManagementNetworkID,
-			SecurityGroupIDs: []string{managementSecurityGroupResource.ProviderID},
+			SecurityGroupIDs: []string{config.ManagementSecurityGroupID},
 		})
 		if err != nil {
 			return mutationFailure(resources, err, "Management NIC could not be created"), nil
@@ -184,7 +163,7 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 			ImageID:  vm.ImageID,
 			FlavorID: vm.FlavorID,
 			KeyPair:  config.KeyPairName,
-			PortIDs:  []string{managementPortResource.ProviderID, labPortResource.ProviderID},
+			PortIDs:  []string{labPortResource.ProviderID, managementPortResource.ProviderID},
 			UserData: userData,
 			Metadata: metadata,
 		})
@@ -230,7 +209,7 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 		}
 		if request.CreationSnapshot.StartupScript != nil {
 			startupContext, cancelStartup := context.WithTimeout(ctx, config.StartupReadyTimeout)
-			err = a.waitStartupReady(startupContext, managementPort)
+			err = a.waitStartupReady(startupContext, managementPort, server.ID)
 			cancelStartup()
 			if err != nil {
 				if (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) && ctx.Err() != nil {
@@ -250,7 +229,7 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 func validateProvisionConfig(config ProvisionConfig) error {
 	labPrefix, labErr := netip.ParsePrefix(config.LabSubnetCIDR)
 	sshPrefix, sshErr := netip.ParsePrefix(config.SSHAllowedCIDR)
-	if config.ProjectID == "" || config.ManagementNetworkID == "" || config.KeyPairName == "" || labErr != nil || sshErr != nil || !labPrefix.Addr().Is4() || !sshPrefix.Addr().Is4() || labPrefix != labPrefix.Masked() {
+	if config.ProjectID == "" || config.ManagementNetworkID == "" || config.ManagementSecurityGroupID == "" || config.KeyPairName == "" || labErr != nil || sshErr != nil || !labPrefix.Addr().Is4() || !sshPrefix.Addr().Is4() || labPrefix != labPrefix.Masked() {
 		return ErrProvisionConfig
 	}
 	return nil
@@ -314,6 +293,9 @@ func (a *Adapter) preflightProvision(ctx context.Context, config ProvisionConfig
 	if err != nil || normalizeStatus(managementNetwork.Status) != "ACTIVE" || len(managementNetwork.Subnets) == 0 {
 		return ErrProvisionCheck
 	}
+	if err := a.validateManagementSecurityGroup(ctx, config); err != nil {
+		return err
+	}
 	if snapshot.InternetOutbound {
 		var externalNetwork struct {
 			networks.Network
@@ -351,6 +333,30 @@ func (a *Adapter) preflightProvision(ctx context.Context, config ProvisionConfig
 		}
 	}
 	return a.preflightQuota(ctx, config, snapshot, credit)
+}
+
+func (a *Adapter) validateManagementSecurityGroup(ctx context.Context, config ProvisionConfig) error {
+	group, err := groups.Get(ctx, a.network, config.ManagementSecurityGroupID).Extract()
+	if err != nil || group.ID != config.ManagementSecurityGroupID || !group.Stateful {
+		return ErrProvisionCheck
+	}
+	sshIngressRules := 0
+	for _, rule := range group.Rules {
+		direction := strings.ToLower(strings.TrimSpace(rule.Direction))
+		if direction == string(rules.DirEgress) {
+			return ErrProvisionCheck
+		}
+		if direction != string(rules.DirIngress) || strings.ToLower(strings.TrimSpace(rule.EtherType)) != "ipv4" ||
+			strings.ToLower(strings.TrimSpace(rule.Protocol)) != string(rules.ProtocolTCP) || rule.PortRangeMin != 22 || rule.PortRangeMax != 22 ||
+			strings.TrimSpace(rule.RemoteIPPrefix) != config.SSHAllowedCIDR || rule.RemoteGroupID != "" || rule.RemoteAddressGroupID != "" {
+			return ErrProvisionCheck
+		}
+		sshIngressRules++
+	}
+	if sshIngressRules != 1 {
+		return ErrProvisionCheck
+	}
+	return nil
 }
 
 func resourceIdentity(generation int64, logicalName string) ResourceIdentity {

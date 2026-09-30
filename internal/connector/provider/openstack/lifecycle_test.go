@@ -149,16 +149,37 @@ func TestResetPreflightFailureDoesNotDeleteCurrentGeneration(t *testing.T) {
 	adapter.provision = testProvisionConfig()
 
 	result, err := adapter.Reset(context.Background(), coreprovider.ResetRequest{
-		Correlation:      coreprovider.Correlation{OperationID: "reset-1", LabInstanceID: "lab-1", Generation: 2},
-		CreationSnapshot: validSnapshot(),
-		ProviderResources: []coreprovider.ResourceRef{{
-			ResourceType: coreprovider.ResourceTypeServer,
-			ProviderID:   "old-server",
-			Generation:   1,
-		}},
+		Correlation:       coreprovider.Correlation{OperationID: "reset-1", LabInstanceID: "lab-1", Generation: 2},
+		CreationSnapshot:  validSnapshot(),
+		ProviderResources: validResetResourceRefs(validSnapshot(), 1),
 	})
-	if err != nil || deletes != 0 || result.Outcome != coreprovider.OutcomeFailed || len(result.ProviderResources) != 1 || result.ProviderResources[0].ObservedState != stateDeleteNotAttempted {
+	if err != nil || deletes != 0 || result.Outcome != coreprovider.OutcomeFailed || len(result.ProviderResources) != 8 || result.ProviderResources[0].ObservedState != stateDeleteNotAttempted {
 		t.Fatalf("Reset() deletes=%d result=%+v err=%v", deletes, result, err)
+	}
+}
+
+func TestResetRejectsMissingEmptyAndPartialResourcesBeforePreflight(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		resources []coreprovider.ResourceRef
+	}{
+		{name: "missing", resources: nil},
+		{name: "empty", resources: []coreprovider.ResourceRef{}},
+		{name: "partial", resources: validResetResourceRefs(validSnapshot(), 1)[:7]},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			calls := 0
+			adapter := newTestAdapter(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls++ }))
+			adapter.provision = testProvisionConfig()
+			result, err := adapter.Reset(context.Background(), coreprovider.ResetRequest{
+				Correlation:       coreprovider.Correlation{OperationID: "reset-invalid", LabInstanceID: "lab-invalid", Generation: 2},
+				CreationSnapshot:  validSnapshot(),
+				ProviderResources: test.resources,
+			})
+			if err != nil || calls != 0 || result.Outcome != coreprovider.OutcomeFailed {
+				t.Fatalf("Reset() calls=%d result=%+v err=%v", calls, result, err)
+			}
+		})
 	}
 }
 
@@ -187,7 +208,7 @@ func TestResetCleansOldGenerationThenProvisionsNewGeneration(t *testing.T) {
 	adapter := newTestAdapter(t, fake)
 	adapter.provision = testProvisionConfig()
 	adapter.sshProbe = func(context.Context, string) error { return nil }
-	adapter.startupProbe = func(context.Context, string) error { return nil }
+	adapter.startupProbe = func(context.Context, string, string) error { return nil }
 
 	first, err := adapter.Provision(context.Background(), coreprovider.ProvisionRequest{
 		Correlation:      coreprovider.Correlation{OperationID: "provision-1", LabInstanceID: "lab-instance-1", Generation: 1},
@@ -206,11 +227,11 @@ func TestResetCleansOldGenerationThenProvisionsNewGeneration(t *testing.T) {
 		CreationSnapshot:  validSnapshot(),
 		ProviderResources: old,
 	})
-	if err != nil || reset.Outcome != coreprovider.OutcomeSucceeded || len(reset.ProviderResources) != 20 {
+	if err != nil || reset.Outcome != coreprovider.OutcomeSucceeded || len(reset.ProviderResources) != 16 {
 		t.Fatalf("Reset() = %+v, %v", reset, err)
 	}
 	for index, resource := range reset.ProviderResources {
-		if index < 10 {
+		if index < 8 {
 			if resource.Generation != 1 || resource.ObservedState != stateDeleted {
 				t.Fatalf("old generation result = %+v", resource)
 			}
@@ -218,7 +239,7 @@ func TestResetCleansOldGenerationThenProvisionsNewGeneration(t *testing.T) {
 			t.Fatalf("new generation result = %+v", resource)
 		}
 	}
-	if len(fake.deleteOrder) != 10 || !strings.Contains(fake.deleteOrder[0], "/servers/") || !strings.Contains(fake.deleteOrder[len(fake.deleteOrder)-1], "/networks/") {
+	if len(fake.deleteOrder) != 8 || !strings.Contains(fake.deleteOrder[0], "/servers/") || !strings.Contains(fake.deleteOrder[len(fake.deleteOrder)-1], "/networks/") {
 		t.Fatalf("delete order = %#v", fake.deleteOrder)
 	}
 }
@@ -257,9 +278,9 @@ func createdResourcePaths(collectionPath string) []string {
 	case "/network/v2.0/routers":
 		return []string{"/network/v2.0/routers/router-lab"}
 	case "/network/v2.0/security-groups":
-		return []string{"/network/v2.0/security-groups/security-group-lab", "/network/v2.0/security-groups/security-group-management"}
+		return []string{"/network/v2.0/security-groups/security-group-lab"}
 	case "/network/v2.0/security-group-rules":
-		return []string{"/network/v2.0/security-group-rules/rule-lab", "/network/v2.0/security-group-rules/rule-ssh"}
+		return []string{"/network/v2.0/security-group-rules/rule-lab"}
 	case "/network/v2.0/ports":
 		return []string{"/network/v2.0/ports/port-lab", "/network/v2.0/ports/port-management"}
 	case "/compute/v2/servers":
@@ -267,4 +288,24 @@ func createdResourcePaths(collectionPath string) []string {
 	default:
 		return nil
 	}
+}
+
+func validResetResourceRefs(snapshot coreprovider.CreationSnapshot, generation int64) []coreprovider.ResourceRef {
+	resources := []coreprovider.ResourceRef{
+		{ResourceType: coreprovider.ResourceTypeNetwork, ProviderID: "network-old", Generation: generation, LogicalName: "lab-network"},
+		{ResourceType: coreprovider.ResourceTypeSubnet, ProviderID: "subnet-old", Generation: generation, LogicalName: "lab-subnet"},
+		{ResourceType: coreprovider.ResourceTypeSecurityGroup, ProviderID: "security-group-old", Generation: generation, LogicalName: "lab-security-group"},
+		{ResourceType: coreprovider.ResourceTypeSecurityRule, ProviderID: "security-rule-old", Generation: generation, LogicalName: "lab-ingress"},
+	}
+	if snapshot.InternetOutbound {
+		resources = append(resources, coreprovider.ResourceRef{ResourceType: coreprovider.ResourceTypeRouter, ProviderID: "router-old", Generation: generation, LogicalName: "lab-router"})
+	}
+	for _, vm := range snapshot.VMs {
+		resources = append(resources,
+			coreprovider.ResourceRef{ResourceType: coreprovider.ResourceTypePort, ProviderID: vm.VMKey + "-lab-old", Generation: generation, LogicalName: vm.VMKey + ":lab"},
+			coreprovider.ResourceRef{ResourceType: coreprovider.ResourceTypePort, ProviderID: vm.VMKey + "-management-old", Generation: generation, LogicalName: vm.VMKey + ":management"},
+			coreprovider.ResourceRef{ResourceType: coreprovider.ResourceTypeServer, ProviderID: vm.VMKey + "-server-old", Generation: generation, LogicalName: vm.VMKey},
+		)
+	}
+	return resources
 }

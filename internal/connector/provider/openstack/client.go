@@ -37,35 +37,37 @@ type Config struct {
 // deployment inputs rather than Connector wire fields, so they remain outside
 // CreationSnapshot and can differ for each Provider connection.
 type ProvisionConfig struct {
-	ProviderConnectionID string
-	ProjectID            string
-	ManagementNetworkID  string
-	ExternalNetworkID    string
-	KeyPairName          string
-	SSHAllowedCIDR       string
-	LabSubnetCIDR        string
-	SSHUsername          string
-	SSHPrivateKeyFile    string
-	SSHKnownHostsFile    string
-	ActiveTimeout        time.Duration
-	SSHReadyTimeout      time.Duration
-	StartupReadyTimeout  time.Duration
-	PollInterval         time.Duration
+	ProviderConnectionID      string
+	ProjectID                 string
+	ManagementNetworkID       string
+	ManagementSecurityGroupID string
+	ExternalNetworkID         string
+	KeyPairName               string
+	SSHAllowedCIDR            string
+	LabSubnetCIDR             string
+	SSHUsername               string
+	SSHPrivateKeyFile         string
+	SSHKnownHostsFile         string
+	ActiveTimeout             time.Duration
+	SSHReadyTimeout           time.Duration
+	StartupReadyTimeout       time.Duration
+	PollInterval              time.Duration
 }
 
 const (
-	EnvProviderConfigFile = "LABBIT_PROVIDER_CONFIG_FILE"
-	EnvCloudName          = "OS_CLOUD"
-	EnvProviderConnection = "LABBIT_PROVIDER_CONNECTION_ID"
-	EnvProjectID          = "OS_PROJECT_ID"
-	EnvManagementNetwork  = "LABBIT_OPENSTACK_MANAGEMENT_NETWORK_ID"
-	EnvExternalNetwork    = "LABBIT_OPENSTACK_EXTERNAL_NETWORK_ID"
-	EnvKeyPairName        = "LABBIT_OPENSTACK_KEYPAIR_NAME"
-	EnvSSHAllowedCIDR     = "LABBIT_OPENSTACK_SSH_ALLOWED_CIDR"
-	EnvLabSubnetCIDR      = "LABBIT_OPENSTACK_LAB_SUBNET_CIDR"
-	EnvSSHUsername        = "LABBIT_OPENSTACK_SSH_USERNAME"
-	EnvSSHPrivateKeyFile  = "LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE"
-	EnvSSHKnownHostsFile  = "LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE"
+	EnvProviderConfigFile      = "LABBIT_PROVIDER_CONFIG_FILE"
+	EnvCloudName               = "OS_CLOUD"
+	EnvProviderConnection      = "LABBIT_PROVIDER_CONNECTION_ID"
+	EnvProjectID               = "OS_PROJECT_ID"
+	EnvManagementNetwork       = "LABBIT_OPENSTACK_MANAGEMENT_NETWORK_ID"
+	EnvManagementSecurityGroup = "LABBIT_OPENSTACK_MANAGEMENT_SECURITY_GROUP_ID"
+	EnvExternalNetwork         = "LABBIT_OPENSTACK_EXTERNAL_NETWORK_ID"
+	EnvKeyPairName             = "LABBIT_OPENSTACK_KEYPAIR_NAME"
+	EnvSSHAllowedCIDR          = "LABBIT_OPENSTACK_SSH_ALLOWED_CIDR"
+	EnvLabSubnetCIDR           = "LABBIT_OPENSTACK_LAB_SUBNET_CIDR"
+	EnvSSHUsername             = "LABBIT_OPENSTACK_SSH_USERNAME"
+	EnvSSHPrivateKeyFile       = "LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE"
+	EnvSSHKnownHostsFile       = "LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE"
 )
 
 // ConfigFromEnvironment uses Labbit's provider-config path and OpenStack's
@@ -76,16 +78,17 @@ func ConfigFromEnvironment() Config {
 		File:      strings.TrimSpace(os.Getenv(EnvProviderConfigFile)),
 		CloudName: strings.TrimSpace(os.Getenv(EnvCloudName)),
 		Provision: ProvisionConfig{
-			ProviderConnectionID: strings.TrimSpace(os.Getenv(EnvProviderConnection)),
-			ProjectID:            strings.TrimSpace(os.Getenv(EnvProjectID)),
-			ManagementNetworkID:  strings.TrimSpace(os.Getenv(EnvManagementNetwork)),
-			ExternalNetworkID:    strings.TrimSpace(os.Getenv(EnvExternalNetwork)),
-			KeyPairName:          strings.TrimSpace(os.Getenv(EnvKeyPairName)),
-			SSHAllowedCIDR:       strings.TrimSpace(os.Getenv(EnvSSHAllowedCIDR)),
-			LabSubnetCIDR:        strings.TrimSpace(os.Getenv(EnvLabSubnetCIDR)),
-			SSHUsername:          strings.TrimSpace(os.Getenv(EnvSSHUsername)),
-			SSHPrivateKeyFile:    strings.TrimSpace(os.Getenv(EnvSSHPrivateKeyFile)),
-			SSHKnownHostsFile:    strings.TrimSpace(os.Getenv(EnvSSHKnownHostsFile)),
+			ProviderConnectionID:      strings.TrimSpace(os.Getenv(EnvProviderConnection)),
+			ProjectID:                 strings.TrimSpace(os.Getenv(EnvProjectID)),
+			ManagementNetworkID:       strings.TrimSpace(os.Getenv(EnvManagementNetwork)),
+			ManagementSecurityGroupID: strings.TrimSpace(os.Getenv(EnvManagementSecurityGroup)),
+			ExternalNetworkID:         strings.TrimSpace(os.Getenv(EnvExternalNetwork)),
+			KeyPairName:               strings.TrimSpace(os.Getenv(EnvKeyPairName)),
+			SSHAllowedCIDR:            strings.TrimSpace(os.Getenv(EnvSSHAllowedCIDR)),
+			LabSubnetCIDR:             strings.TrimSpace(os.Getenv(EnvLabSubnetCIDR)),
+			SSHUsername:               strings.TrimSpace(os.Getenv(EnvSSHUsername)),
+			SSHPrivateKeyFile:         strings.TrimSpace(os.Getenv(EnvSSHPrivateKeyFile)),
+			SSHKnownHostsFile:         strings.TrimSpace(os.Getenv(EnvSSHKnownHostsFile)),
 		},
 	}
 }
@@ -99,7 +102,7 @@ type Adapter struct {
 	network      *gophercloud.ServiceClient
 	provision    ProvisionConfig
 	sshProbe     func(context.Context, string) error
-	startupProbe func(context.Context, string) error
+	startupProbe func(context.Context, string, string) error
 }
 
 // ProviderConnectionID returns the SaaS ProviderConnection affinity configured
@@ -151,6 +154,7 @@ func normalizedProvisionConfig(config ProvisionConfig) ProvisionConfig {
 	config.ProviderConnectionID = strings.TrimSpace(config.ProviderConnectionID)
 	config.ProjectID = strings.TrimSpace(config.ProjectID)
 	config.ManagementNetworkID = strings.TrimSpace(config.ManagementNetworkID)
+	config.ManagementSecurityGroupID = strings.TrimSpace(config.ManagementSecurityGroupID)
 	config.ExternalNetworkID = strings.TrimSpace(config.ExternalNetworkID)
 	config.KeyPairName = strings.TrimSpace(config.KeyPairName)
 	config.SSHAllowedCIDR = strings.TrimSpace(config.SSHAllowedCIDR)

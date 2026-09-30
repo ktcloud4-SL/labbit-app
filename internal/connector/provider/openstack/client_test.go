@@ -47,6 +47,7 @@ func TestConfigFromEnvironment(t *testing.T) {
 	t.Setenv(EnvProviderConnection, " provider-connection-1 ")
 	t.Setenv(EnvProjectID, " project-1 ")
 	t.Setenv(EnvManagementNetwork, " management-network ")
+	t.Setenv(EnvManagementSecurityGroup, " management-security-group ")
 	t.Setenv(EnvExternalNetwork, " external-network ")
 	t.Setenv(EnvKeyPairName, " openstack2 ")
 	t.Setenv(EnvSSHAllowedCIDR, " 172.16.8.1/32 ")
@@ -57,7 +58,7 @@ func TestConfigFromEnvironment(t *testing.T) {
 
 	config := ConfigFromEnvironment()
 	if config.File != "C:/openstack/clouds.yaml" || config.CloudName != "labbit-test" ||
-		config.Provision.ProviderConnectionID != "provider-connection-1" || config.Provision.ProjectID != "project-1" || config.Provision.ManagementNetworkID != "management-network" ||
+		config.Provision.ProviderConnectionID != "provider-connection-1" || config.Provision.ProjectID != "project-1" || config.Provision.ManagementNetworkID != "management-network" || config.Provision.ManagementSecurityGroupID != "management-security-group" ||
 		config.Provision.ExternalNetworkID != "external-network" || config.Provision.KeyPairName != "openstack2" ||
 		config.Provision.SSHAllowedCIDR != "172.16.8.1/32" || config.Provision.LabSubnetCIDR != "198.19.0.0/24" ||
 		config.Provision.SSHUsername != "ubuntu" || config.Provision.SSHPrivateKeyFile != "C:/keys/labbit" ||

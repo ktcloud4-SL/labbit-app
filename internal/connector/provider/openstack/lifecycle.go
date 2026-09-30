@@ -46,7 +46,7 @@ func (a *Adapter) Reset(ctx context.Context, request coreprovider.ResetRequest) 
 	if validateProvisionSettings(config, request.CreationSnapshot) != nil || validateProvisionRequest(provisionRequest) != nil {
 		return failedResult(nil, errorInvalidProvision, "Reset request is invalid"), nil
 	}
-	oldResources, err := validateResourceRefs(request.ProviderResources, request.Generation, true)
+	oldResources, err := validateResetResourceSet(request.ProviderResources, request.CreationSnapshot, request.Generation)
 	if err != nil {
 		return failedResult(nil, errorInvalidProvision, "Reset resources are invalid"), nil
 	}
@@ -211,6 +211,53 @@ func validateResourceRefs(resources []coreprovider.ResourceRef, maxGeneration in
 		validated = append(validated, resource)
 	}
 	return validated, nil
+}
+
+func validateResetResourceSet(resources []coreprovider.ResourceRef, snapshot coreprovider.CreationSnapshot, nextGeneration int64) ([]coreprovider.ResourceRef, error) {
+	if nextGeneration < 2 || len(resources) == 0 {
+		return nil, ErrLifecycleRequest
+	}
+	validated, err := validateResourceRefs(resources, nextGeneration, true)
+	if err != nil {
+		return nil, err
+	}
+
+	expected := map[string]struct{}{
+		resourceSetKey(coreprovider.ResourceTypeNetwork, "lab-network"):              {},
+		resourceSetKey(coreprovider.ResourceTypeSubnet, "lab-subnet"):                {},
+		resourceSetKey(coreprovider.ResourceTypeSecurityGroup, "lab-security-group"): {},
+		resourceSetKey(coreprovider.ResourceTypeSecurityRule, "lab-ingress"):         {},
+	}
+	if snapshot.InternetOutbound {
+		expected[resourceSetKey(coreprovider.ResourceTypeRouter, "lab-router")] = struct{}{}
+	}
+	for _, vm := range snapshot.VMs {
+		expected[resourceSetKey(coreprovider.ResourceTypePort, vm.VMKey+":lab")] = struct{}{}
+		expected[resourceSetKey(coreprovider.ResourceTypePort, vm.VMKey+":management")] = struct{}{}
+		expected[resourceSetKey(coreprovider.ResourceTypeServer, vm.VMKey)] = struct{}{}
+	}
+	if len(validated) != len(expected) {
+		return nil, ErrLifecycleRequest
+	}
+	seen := make(map[string]struct{}, len(validated))
+	for _, resource := range validated {
+		if resource.Generation != nextGeneration-1 || resource.LogicalName == "" {
+			return nil, ErrLifecycleRequest
+		}
+		key := resourceSetKey(resource.ResourceType, resource.LogicalName)
+		if _, ok := expected[key]; !ok {
+			return nil, ErrLifecycleRequest
+		}
+		if _, duplicate := seen[key]; duplicate {
+			return nil, ErrLifecycleRequest
+		}
+		seen[key] = struct{}{}
+	}
+	return validated, nil
+}
+
+func resourceSetKey(resourceType, logicalName string) string {
+	return strings.TrimSpace(resourceType) + "\x00" + strings.TrimSpace(logicalName)
 }
 
 func supportedResourceType(resourceType string) bool {

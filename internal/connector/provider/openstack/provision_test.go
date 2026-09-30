@@ -26,9 +26,13 @@ func TestDispatchOperationProvisionCreatesDualNICServerAndTracksResources(t *tes
 		fake.sshProbes++
 		return nil
 	}
-	adapter.startupProbe = func(_ context.Context, address string) error {
+	adapter.startupProbe = func(_ context.Context, address, hostIdentity string) error {
 		if address != "172.16.8.200:22" {
 			t.Fatalf("startup probe address = %q", address)
+		}
+		expectedIdentity, _ := sshHostKeyIdentity("provider-connection-1", "server-workspace")
+		if hostIdentity != expectedIdentity {
+			t.Fatalf("startup probe identity = %q, want %q", hostIdentity, expectedIdentity)
 		}
 		fake.startupProbes++
 		return nil
@@ -50,20 +54,20 @@ func TestDispatchOperationProvisionCreatesDualNICServerAndTracksResources(t *tes
 	if result.Outcome != coreprovider.OutcomeSucceeded || result.Error != nil {
 		t.Fatalf("unexpected result: %+v, safe error: %+v", result, result.Error)
 	}
-	if len(result.ProviderResources) != 10 {
+	if len(result.ProviderResources) != 8 {
 		t.Fatalf("resource count = %d, resources = %+v", len(result.ProviderResources), result.ProviderResources)
 	}
 	assertResourceCount(t, result.ProviderResources, coreprovider.ResourceTypeNetwork, 1)
 	assertResourceCount(t, result.ProviderResources, coreprovider.ResourceTypeSubnet, 1)
 	assertResourceCount(t, result.ProviderResources, coreprovider.ResourceTypeRouter, 1)
-	assertResourceCount(t, result.ProviderResources, coreprovider.ResourceTypeSecurityGroup, 2)
-	assertResourceCount(t, result.ProviderResources, coreprovider.ResourceTypeSecurityRule, 2)
+	assertResourceCount(t, result.ProviderResources, coreprovider.ResourceTypeSecurityGroup, 1)
+	assertResourceCount(t, result.ProviderResources, coreprovider.ResourceTypeSecurityRule, 1)
 	assertResourceCount(t, result.ProviderResources, coreprovider.ResourceTypePort, 2)
 	assertResourceCount(t, result.ProviderResources, coreprovider.ResourceTypeServer, 1)
 	if fake.sshProbes != 1 || fake.startupProbes != 1 || fake.serverCreates != 1 {
 		t.Fatalf("server creates = %d, SSH probes = %d, startup probes = %d", fake.serverCreates, fake.sshProbes, fake.startupProbes)
 	}
-	if len(fake.serverPortIDs) != 2 || fake.serverPortIDs[0] != "port-management" || fake.serverPortIDs[1] != "port-lab" {
+	if len(fake.serverPortIDs) != 2 || fake.serverPortIDs[0] != "port-lab" || fake.serverPortIDs[1] != "port-management" {
 		t.Fatalf("Nova port order = %#v", fake.serverPortIDs)
 	}
 	if fake.serverKeyPair != "openstack2" {
@@ -83,9 +87,6 @@ func TestDispatchOperationProvisionCreatesDualNICServerAndTracksResources(t *tes
 	}
 	if fake.labRuleSecurityGroup != "security-group-lab" {
 		t.Fatalf("Lab ingress security group = %q", fake.labRuleSecurityGroup)
-	}
-	if fake.sshRuleSecurityGroup != "security-group-management" {
-		t.Fatalf("Management SSH security group = %q", fake.sshRuleSecurityGroup)
 	}
 }
 
@@ -146,7 +147,7 @@ func TestProvisionSupportsMultipleVMs(t *testing.T) {
 	adapter := newTestAdapter(t, fake)
 	adapter.provision = testProvisionConfig()
 	adapter.sshProbe = func(context.Context, string) error { return nil }
-	adapter.startupProbe = func(context.Context, string) error { return nil }
+	adapter.startupProbe = func(context.Context, string, string) error { return nil }
 	snapshot := validSnapshot()
 	snapshot.VMs = append(snapshot.VMs, coreprovider.VMSpec{
 		VMKey: "worker", Role: "WORKER", InstanceIndex: 1, ImageID: "image-ubuntu", FlavorID: "flavor-small",
@@ -157,7 +158,7 @@ func TestProvisionSupportsMultipleVMs(t *testing.T) {
 		Correlation:      coreprovider.Correlation{OperationID: "multi", LabInstanceID: "multi-lab", Generation: 1},
 		CreationSnapshot: snapshot,
 	})
-	if err != nil || result.Outcome != coreprovider.OutcomeSucceeded || len(result.ProviderResources) != 13 {
+	if err != nil || result.Outcome != coreprovider.OutcomeSucceeded || len(result.ProviderResources) != 11 {
 		t.Fatalf("Provision() = %+v safeError=%+v err=%v", result, result.Error, err)
 	}
 	assertResourceCount(t, result.ProviderResources, coreprovider.ResourceTypePort, 4)
@@ -172,7 +173,7 @@ func TestProvisionWithoutInternetDoesNotCreateRouter(t *testing.T) {
 	adapter := newTestAdapter(t, fake)
 	adapter.provision = testProvisionConfig()
 	adapter.sshProbe = func(context.Context, string) error { return nil }
-	adapter.startupProbe = func(context.Context, string) error { return nil }
+	adapter.startupProbe = func(context.Context, string, string) error { return nil }
 	snapshot := validSnapshot()
 	snapshot.InternetOutbound = false
 
@@ -180,12 +181,34 @@ func TestProvisionWithoutInternetDoesNotCreateRouter(t *testing.T) {
 		Correlation:      coreprovider.Correlation{OperationID: "offline", LabInstanceID: "offline-lab", Generation: 1},
 		CreationSnapshot: snapshot,
 	})
-	if err != nil || result.Outcome != coreprovider.OutcomeSucceeded || len(result.ProviderResources) != 9 {
+	if err != nil || result.Outcome != coreprovider.OutcomeSucceeded || len(result.ProviderResources) != 7 {
 		t.Fatalf("Provision() = %+v safeError=%+v err=%v", result, result.Error, err)
 	}
 	assertResourceCount(t, result.ProviderResources, coreprovider.ResourceTypeRouter, 0)
 	if !fake.subnetGatewaySet || fake.subnetGateway != "" {
 		t.Fatalf("offline subnet gateway set=%t value=%q, want explicitly disabled", fake.subnetGatewaySet, fake.subnetGateway)
+	}
+}
+
+func TestProvisionWithoutInternetRejectsManagementSecurityGroupEgressBeforeMutation(t *testing.T) {
+	fake := &m2OpenStackFake{t: t, managementSecurityGroupEgress: true}
+	mutations := 0
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodPost || request.Method == http.MethodPut || request.Method == http.MethodDelete {
+			mutations++
+		}
+		fake.ServeHTTP(response, request)
+	}))
+	adapter.provision = testProvisionConfig()
+	snapshot := validSnapshot()
+	snapshot.InternetOutbound = false
+
+	result, err := adapter.Provision(context.Background(), coreprovider.ProvisionRequest{
+		Correlation:      coreprovider.Correlation{OperationID: "management-egress", LabInstanceID: "offline-lab", Generation: 1},
+		CreationSnapshot: snapshot,
+	})
+	if err != nil || mutations != 0 || result.Outcome != coreprovider.OutcomeFailed || result.Error == nil || result.Error.Code != errorOpenStack {
+		t.Fatalf("Provision() mutations=%d result=%+v safeError=%+v err=%v", mutations, result, result.Error, err)
 	}
 }
 
@@ -211,7 +234,7 @@ func TestProvisionServerCreateFailureIsUnknownWithPartialResources(t *testing.T)
 	if strings.Contains(strings.ToLower(result.Error.Message), "raw-provider-secret") {
 		t.Fatalf("Provider payload leaked through SafeError: %+v", result.Error)
 	}
-	if len(result.ProviderResources) != 9 {
+	if len(result.ProviderResources) != 7 {
 		t.Fatalf("partial resource count = %d, resources = %+v", len(result.ProviderResources), result.ProviderResources)
 	}
 	assertResourceCount(t, result.ProviderResources, coreprovider.ResourceTypePort, 2)
@@ -230,7 +253,7 @@ func TestProvisionRejectedServerCreateIsFailedWithPartialResources(t *testing.T)
 	if err != nil {
 		t.Fatalf("Provision() error = %v", err)
 	}
-	if result.Outcome != coreprovider.OutcomeFailed || result.Error == nil || result.Error.Code != errorOpenStack || len(result.ProviderResources) != 9 {
+	if result.Outcome != coreprovider.OutcomeFailed || result.Error == nil || result.Error.Code != errorOpenStack || len(result.ProviderResources) != 7 {
 		t.Fatalf("unexpected result: %+v", result)
 	}
 }
@@ -303,7 +326,7 @@ func TestProvisionWaitsForStartupCompletionBeforeSuccess(t *testing.T) {
 	adapter.provision = testProvisionConfig()
 	adapter.provision.StartupReadyTimeout = 5 * time.Millisecond
 	adapter.sshProbe = func(context.Context, string) error { return nil }
-	adapter.startupProbe = func(context.Context, string) error { return ErrStartupNotReady }
+	adapter.startupProbe = func(context.Context, string, string) error { return ErrStartupNotReady }
 
 	result, err := adapter.Provision(context.Background(), coreprovider.ProvisionRequest{
 		Correlation:      coreprovider.Correlation{OperationID: "startup", LabInstanceID: "startup-lab", Generation: 1},
@@ -352,20 +375,21 @@ func validSnapshot() coreprovider.CreationSnapshot {
 
 func testProvisionConfig() ProvisionConfig {
 	return normalizedProvisionConfig(ProvisionConfig{
-		ProviderConnectionID: "provider-connection-1",
-		ProjectID:            "project-1",
-		ManagementNetworkID:  "management-network",
-		ExternalNetworkID:    "external-network",
-		KeyPairName:          "openstack2",
-		SSHAllowedCIDR:       "172.16.8.1/32",
-		LabSubnetCIDR:        "198.19.0.0/24",
-		SSHUsername:          "ubuntu",
-		SSHPrivateKeyFile:    "unused-test-key",
-		SSHKnownHostsFile:    "unused-known-hosts",
-		ActiveTimeout:        time.Second,
-		SSHReadyTimeout:      time.Second,
-		StartupReadyTimeout:  time.Second,
-		PollInterval:         time.Millisecond,
+		ProviderConnectionID:      "provider-connection-1",
+		ProjectID:                 "project-1",
+		ManagementNetworkID:       "management-network",
+		ManagementSecurityGroupID: "security-group-management",
+		ExternalNetworkID:         "external-network",
+		KeyPairName:               "openstack2",
+		SSHAllowedCIDR:            "172.16.8.1/32",
+		LabSubnetCIDR:             "198.19.0.0/24",
+		SSHUsername:               "ubuntu",
+		SSHPrivateKeyFile:         "unused-test-key",
+		SSHKnownHostsFile:         "unused-known-hosts",
+		ActiveTimeout:             time.Second,
+		SSHReadyTimeout:           time.Second,
+		StartupReadyTimeout:       time.Second,
+		PollInterval:              time.Millisecond,
 	})
 }
 
@@ -386,21 +410,21 @@ func assertResourceCount(t *testing.T, resources []coreprovider.ResourceResult, 
 }
 
 type m2OpenStackFake struct {
-	t                            *testing.T
-	failServerStatus             int
-	serverCreates                int
-	sshProbes                    int
-	startupProbes                int
-	serverPortIDs                []string
-	serverKeyPair                string
-	userData                     string
-	subnetGateway                string
-	subnetGatewaySet             bool
-	labPortSecurityGroups        []string
-	managementPortSecurityGroups []string
-	labRuleSecurityGroup         string
-	sshRuleSecurityGroup         string
-	externalNetworkIsInternal    bool
+	t                             *testing.T
+	failServerStatus              int
+	serverCreates                 int
+	sshProbes                     int
+	startupProbes                 int
+	serverPortIDs                 []string
+	serverKeyPair                 string
+	userData                      string
+	subnetGateway                 string
+	subnetGatewaySet              bool
+	labPortSecurityGroups         []string
+	managementPortSecurityGroups  []string
+	labRuleSecurityGroup          string
+	externalNetworkIsInternal     bool
+	managementSecurityGroupEgress bool
 }
 
 func (f *m2OpenStackFake) ServeHTTP(response http.ResponseWriter, request *http.Request) {
@@ -410,6 +434,22 @@ func (f *m2OpenStackFake) ServeHTTP(response http.ResponseWriter, request *http.
 		writeJSON(f.t, response, http.StatusOK, map[string]any{"network": map[string]any{"id": "management-network", "name": "management", "status": "ACTIVE", "subnets": []string{"management-subnet"}}})
 	case request.Method == http.MethodGet && request.URL.Path == "/network/v2.0/networks/external-network":
 		writeJSON(f.t, response, http.StatusOK, map[string]any{"network": map[string]any{"id": "external-network", "name": "public", "status": "ACTIVE", "subnets": []string{"external-subnet"}, "router:external": !f.externalNetworkIsInternal}})
+	case request.Method == http.MethodGet && request.URL.Path == "/network/v2.0/security-groups/security-group-management":
+		securityGroupRules := []any{map[string]any{
+			"id": "management-ssh", "direction": "ingress", "ethertype": "IPv4", "protocol": "tcp",
+			"port_range_min": 22, "port_range_max": 22, "remote_ip_prefix": "172.16.8.1/32",
+			"security_group_id": "security-group-management",
+		}}
+		if f.managementSecurityGroupEgress {
+			securityGroupRules = append(securityGroupRules, map[string]any{
+				"id": "management-egress", "direction": "egress", "ethertype": "IPv4", "protocol": "",
+				"security_group_id": "security-group-management",
+			})
+		}
+		writeJSON(f.t, response, http.StatusOK, map[string]any{"security_group": map[string]any{
+			"id": "security-group-management", "name": "labbit-management", "stateful": true,
+			"security_group_rules": securityGroupRules,
+		}})
 	case request.Method == http.MethodGet && request.URL.Path == "/compute/v2/os-quota-sets/project-1/detail":
 		writeComputeQuota(f.t, response, 100000)
 	case request.Method == http.MethodGet && request.URL.Path == "/network/v2.0/quotas/project-1/details.json":
@@ -550,12 +590,8 @@ func (f *m2OpenStackFake) handleSecurityGroup(response http.ResponseWriter, requ
 		var body map[string]map[string]any
 		decodeJSON(f.t, request, &body)
 		name, _ := body["security_group"]["name"].(string)
-		id := "security-group-lab"
-		if strings.HasSuffix(name, "-management-sg") {
-			id = "security-group-management"
-		}
 		writeJSON(f.t, response, http.StatusCreated, map[string]any{"security_group": map[string]any{
-			"id": id, "name": name, "stateful": true, "security_group_rules": []any{},
+			"id": "security-group-lab", "name": name, "stateful": true, "security_group_rules": []any{},
 		}})
 	default:
 		response.WriteHeader(http.StatusMethodNotAllowed)
@@ -570,14 +606,8 @@ func (f *m2OpenStackFake) handleSecurityRule(response http.ResponseWriter, reque
 		var body map[string]map[string]any
 		decodeJSON(f.t, request, &body)
 		created := body["security_group_rule"]
-		id := "rule-lab"
-		if created["protocol"] == "tcp" {
-			id = "rule-ssh"
-			f.sshRuleSecurityGroup, _ = created["security_group_id"].(string)
-		} else {
-			f.labRuleSecurityGroup, _ = created["security_group_id"].(string)
-		}
-		created["id"] = id
+		f.labRuleSecurityGroup, _ = created["security_group_id"].(string)
+		created["id"] = "rule-lab"
 		writeJSON(f.t, response, http.StatusCreated, map[string]any{"security_group_rule": created})
 	default:
 		response.WriteHeader(http.StatusMethodNotAllowed)

@@ -2,6 +2,8 @@ package openstackprovider
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net"
 	"os"
@@ -19,8 +21,12 @@ var (
 	knownHostsMu       sync.Mutex
 )
 
-func (a *Adapter) waitStartupReady(ctx context.Context, port ports.Port) error {
+func (a *Adapter) waitStartupReady(ctx context.Context, port ports.Port, serverID string) error {
 	address, err := managementAddress(port)
+	if err != nil {
+		return err
+	}
+	hostIdentity, err := sshHostKeyIdentity(a.provision.ProviderConnectionID, serverID)
 	if err != nil {
 		return err
 	}
@@ -31,7 +37,7 @@ func (a *Adapter) waitStartupReady(ctx context.Context, port ports.Port) error {
 	ticker := time.NewTicker(a.provision.PollInterval)
 	defer ticker.Stop()
 	for {
-		if err := probe(ctx, net.JoinHostPort(address, "22")); err == nil {
+		if err := probe(ctx, net.JoinHostPort(address, "22"), hostIdentity); err == nil {
 			return nil
 		}
 		select {
@@ -42,7 +48,11 @@ func (a *Adapter) waitStartupReady(ctx context.Context, port ports.Port) error {
 	}
 }
 
-func (a *Adapter) probeCloudInitComplete(ctx context.Context, address string) error {
+func (a *Adapter) probeCloudInitComplete(ctx context.Context, address, hostIdentity string) error {
+	return a.runSSHCommand(ctx, address, hostIdentity, "cloud-init status --wait")
+}
+
+func (a *Adapter) runSSHCommand(ctx context.Context, address, hostIdentity, command string) error {
 	config := normalizedProvisionConfig(a.provision)
 	privateKey, err := os.ReadFile(config.SSHPrivateKeyFile)
 	if err != nil {
@@ -52,7 +62,7 @@ func (a *Adapter) probeCloudInitComplete(ctx context.Context, address string) er
 	if err != nil {
 		return ErrStartupNotReady
 	}
-	hostKeyCallback, err := trustOnFirstUseCallback(config.SSHKnownHostsFile)
+	hostKeyCallback, err := trustOnFirstUseCallback(config.SSHKnownHostsFile, hostIdentity)
 	if err != nil {
 		return ErrStartupNotReady
 	}
@@ -67,7 +77,7 @@ func (a *Adapter) probeCloudInitComplete(ctx context.Context, address string) er
 		_ = connection.SetDeadline(deadline)
 	}
 
-	clientConnection, channels, requests, err := ssh.NewClientConn(connection, address, &ssh.ClientConfig{
+	clientConnection, channels, requests, err := ssh.NewClientConn(connection, hostIdentity, &ssh.ClientConfig{
 		User:            config.SSHUsername,
 		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
 		HostKeyCallback: hostKeyCallback,
@@ -82,15 +92,26 @@ func (a *Adapter) probeCloudInitComplete(ctx context.Context, address string) er
 		return ErrStartupNotReady
 	}
 	defer session.Close()
-	if err := session.Run("cloud-init status --wait"); err != nil {
+	if err := session.Run(command); err != nil {
 		return ErrStartupNotReady
 	}
 	return nil
 }
 
-func trustOnFirstUseCallback(path string) (ssh.HostKeyCallback, error) {
+func sshHostKeyIdentity(providerConnectionID, serverID string) (string, error) {
+	providerConnectionID = strings.TrimSpace(providerConnectionID)
+	serverID = strings.TrimSpace(serverID)
+	if providerConnectionID == "" || serverID == "" {
+		return "", ErrStartupNotReady
+	}
+	digest := sha256.Sum256([]byte(providerConnectionID + "\x00" + serverID))
+	return "labbit-server-" + hex.EncodeToString(digest[:]) + ":22", nil
+}
+
+func trustOnFirstUseCallback(path, hostIdentity string) (ssh.HostKeyCallback, error) {
 	path = strings.TrimSpace(path)
-	if path == "" {
+	hostIdentity = strings.TrimSpace(hostIdentity)
+	if path == "" || hostIdentity == "" {
 		return nil, ErrStartupNotReady
 	}
 	knownHostsMu.Lock()
@@ -106,8 +127,8 @@ func trustOnFirstUseCallback(path string) (ssh.HostKeyCallback, error) {
 	if err != nil {
 		return nil, ErrStartupNotReady
 	}
-	return func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-		err := verify(hostname, remote, key)
+	return func(_ string, remote net.Addr, key ssh.PublicKey) error {
+		err := verify(hostIdentity, remote, key)
 		if err == nil {
 			return nil
 		}
@@ -123,7 +144,7 @@ func trustOnFirstUseCallback(path string) (ssh.HostKeyCallback, error) {
 		if freshErr != nil {
 			return ErrStartupNotReady
 		}
-		freshErr = freshVerify(hostname, remote, key)
+		freshErr = freshVerify(hostIdentity, remote, key)
 		if freshErr == nil {
 			return nil
 		}
@@ -136,7 +157,7 @@ func trustOnFirstUseCallback(path string) (ssh.HostKeyCallback, error) {
 			return ErrStartupNotReady
 		}
 		defer file.Close()
-		_, writeErr := file.WriteString(knownhosts.Line([]string{knownhosts.Normalize(hostname)}, key) + "\n")
+		_, writeErr := file.WriteString(knownhosts.Line([]string{knownhosts.Normalize(hostIdentity)}, key) + "\n")
 		if writeErr != nil {
 			return ErrStartupNotReady
 		}

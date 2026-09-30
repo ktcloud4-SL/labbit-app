@@ -67,8 +67,8 @@ func quotaRequired(snapshot coreprovider.CreationSnapshot) quotaUsage {
 		networks:           1,
 		subnets:            1,
 		ports:              len(snapshot.VMs) * 2,
-		securityGroups:     2,
-		securityGroupRules: 6, // two explicit ingress plus Neutron's two default egress rules per group
+		securityGroups:     1,
+		securityGroupRules: 3, // one Lab ingress plus Neutron's two default egress rules
 	}
 	for _, vm := range snapshot.VMs {
 		required.cores += int(vm.FlavorSpec.VCPUs)

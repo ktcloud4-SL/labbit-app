@@ -410,6 +410,10 @@ connector:
     LABBIT_OPENSTACK_MANAGEMENT_NETWORK_ID:
       required: true
       secret: false
+    LABBIT_OPENSTACK_MANAGEMENT_SECURITY_GROUP_ID:
+      required: true
+      secret: false
+      note: "D-18의 ProviderConnection 공용 Management SG입니다. stateful이어야 하며 Connector CIDR의 TCP/22 ingress 한 개만 허용하고 egress rule은 없어야 합니다."
     LABBIT_OPENSTACK_EXTERNAL_NETWORK_ID:
       required: false
       secret: false
@@ -420,7 +424,7 @@ connector:
     LABBIT_OPENSTACK_SSH_ALLOWED_CIDR:
       required: true
       secret: false
-      note: "Management security group에서 Connector의 SSH 접근만 허용하는 IPv4 CIDR입니다."
+      note: "공용 Management security group에서 Connector의 SSH 접근만 허용하는 IPv4 CIDR입니다."
     LABBIT_OPENSTACK_LAB_SUBNET_CIDR:
       required: true
       secret: false

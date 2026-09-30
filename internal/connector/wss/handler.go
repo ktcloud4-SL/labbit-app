@@ -299,6 +299,25 @@ func validateOperationCommand(cmd *protocol.OperationCommandMessage) error {
 				return fmt.Errorf("startupScript sha256 must be 64-character hex string")
 			}
 		}
+		if cmd.Payload.MutationType == protocol.MutationTypeReset {
+			if len(cmd.Payload.ProviderResources) == 0 {
+				return fmt.Errorf("providerResources must contain the complete previous generation for RESET")
+			}
+			for i, resource := range cmd.Payload.ProviderResources {
+				if resource.ResourceType == "" {
+					return fmt.Errorf("resourceType is required for reset provider resource at index %d", i)
+				}
+				if resource.ProviderID == "" {
+					return fmt.Errorf("providerId is required for reset provider resource at index %d", i)
+				}
+				if resource.LogicalName == "" {
+					return fmt.Errorf("logicalName is required for reset provider resource at index %d", i)
+				}
+				if resource.Generation != cmd.Generation-1 {
+					return fmt.Errorf("reset provider resource at index %d must belong to generation %d", i, cmd.Generation-1)
+				}
+			}
+		}
 
 	case protocol.MutationTypeCleanup:
 		// CLEANUP 시 providerResources 필수 검증 (팀장님 리뷰 1번)

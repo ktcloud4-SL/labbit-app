@@ -3,22 +3,30 @@ package openstackprovider
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/identity/v3/tokens"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/external"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/rules"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
+	"golang.org/x/crypto/ssh"
 
 	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 )
@@ -88,17 +96,22 @@ func TestOpenStackM2ProvisionIntegration(t *testing.T) {
 	image := exactImage(t, images, environmentOrDefault("LABBIT_OPENSTACK_TEST_IMAGE", "ubuntu"))
 	flavor := exactFlavor(t, flavors, environmentOrDefault("LABBIT_OPENSTACK_TEST_FLAVOR", "m1.small"))
 	managementNetwork := exactNetwork(t, networkItems, environmentOrDefault("LABBIT_OPENSTACK_TEST_MANAGEMENT_NETWORK", "sharednet1"))
+	projectID := integrationProjectID(t, adapter)
+	externalNetworkID := integrationExternalNetworkID(t, ctx, adapter)
+	sshAllowedCIDR := environmentOrDefault("LABBIT_OPENSTACK_TEST_SSH_CIDR", "172.16.8.1/32")
+	managementSecurityGroupID := integrationManagementSecurityGroup(t, ctx, adapter, sshAllowedCIDR)
 	adapter.provision = normalizedProvisionConfig(ProvisionConfig{
-		ProviderConnectionID: "local-integration",
-		ProjectID:            adapter.provision.ProjectID,
-		ManagementNetworkID:  managementNetwork.ID,
-		ExternalNetworkID:    adapter.provision.ExternalNetworkID,
-		KeyPairName:          environmentOrDefault("LABBIT_OPENSTACK_TEST_KEYPAIR", "openstack2"),
-		SSHAllowedCIDR:       environmentOrDefault("LABBIT_OPENSTACK_TEST_SSH_CIDR", "172.16.8.1/32"),
-		LabSubnetCIDR:        environmentOrDefault("LABBIT_OPENSTACK_TEST_LAB_CIDR", "198.20.0.0/24"),
-		ActiveTimeout:        5 * time.Minute,
-		SSHReadyTimeout:      3 * time.Minute,
-		PollInterval:         2 * time.Second,
+		ProviderConnectionID:      "local-integration",
+		ProjectID:                 projectID,
+		ManagementNetworkID:       managementNetwork.ID,
+		ManagementSecurityGroupID: managementSecurityGroupID,
+		ExternalNetworkID:         externalNetworkID,
+		KeyPairName:               environmentOrDefault("LABBIT_OPENSTACK_TEST_KEYPAIR", "openstack2"),
+		SSHAllowedCIDR:            sshAllowedCIDR,
+		LabSubnetCIDR:             environmentOrDefault("LABBIT_OPENSTACK_TEST_LAB_CIDR", "198.20.0.0/24"),
+		ActiveTimeout:             5 * time.Minute,
+		SSHReadyTimeout:           3 * time.Minute,
+		PollInterval:              2 * time.Second,
 	})
 
 	runID := integrationRunID(t)
@@ -135,8 +148,8 @@ func TestOpenStackM2ProvisionIntegration(t *testing.T) {
 	if result.Outcome != coreprovider.OutcomeSucceeded {
 		t.Fatalf("Provision outcome = %s, safe error = %+v, tracked resources = %d", result.Outcome, result.Error, len(result.ProviderResources))
 	}
-	if len(result.ProviderResources) != 10 {
-		t.Fatalf("tracked resource count = %d, want 10", len(result.ProviderResources))
+	if len(result.ProviderResources) != 8 {
+		t.Fatalf("tracked resource count = %d, want 8", len(result.ProviderResources))
 	}
 	t.Logf("M2 Provision reached VM ACTIVE and SSH ready; tracked resources=%d", len(result.ProviderResources))
 }
@@ -167,21 +180,34 @@ func TestOpenStackM3LifecycleIntegration(t *testing.T) {
 	image := exactImage(t, images, environmentOrDefault("LABBIT_OPENSTACK_TEST_IMAGE", "ubuntu"))
 	flavor := exactFlavor(t, flavors, environmentOrDefault("LABBIT_OPENSTACK_TEST_FLAVOR", "m1.small"))
 	managementNetwork := exactNetwork(t, networkItems, environmentOrDefault("LABBIT_OPENSTACK_TEST_MANAGEMENT_NETWORK", "sharednet1"))
+	projectID := integrationProjectID(t, adapter)
+	externalNetworkID := integrationExternalNetworkID(t, ctx, adapter)
+	privateKeyFile := adapter.provision.SSHPrivateKeyFile
+	keyPairName := integrationKeyPairName(t, ctx, adapter, privateKeyFile)
+	sshAllowedCIDR := environmentOrDefault("LABBIT_OPENSTACK_TEST_SSH_CIDR", "172.16.8.1/32")
+	managementSecurityGroupID := integrationManagementSecurityGroup(t, ctx, adapter, sshAllowedCIDR)
 	adapter.provision = normalizedProvisionConfig(ProvisionConfig{
-		ProviderConnectionID: "local-integration",
-		ProjectID:            adapter.provision.ProjectID,
-		ManagementNetworkID:  managementNetwork.ID,
-		ExternalNetworkID:    adapter.provision.ExternalNetworkID,
-		KeyPairName:          environmentOrDefault("LABBIT_OPENSTACK_TEST_KEYPAIR", "openstack2"),
-		SSHAllowedCIDR:       environmentOrDefault("LABBIT_OPENSTACK_TEST_SSH_CIDR", "172.16.8.1/32"),
-		LabSubnetCIDR:        environmentOrDefault("LABBIT_OPENSTACK_M3_LAB_CIDR", "198.21.0.0/24"),
-		ActiveTimeout:        5 * time.Minute,
-		SSHReadyTimeout:      3 * time.Minute,
-		PollInterval:         2 * time.Second,
+		ProviderConnectionID:      "local-integration",
+		ProjectID:                 projectID,
+		ManagementNetworkID:       managementNetwork.ID,
+		ManagementSecurityGroupID: managementSecurityGroupID,
+		ExternalNetworkID:         externalNetworkID,
+		KeyPairName:               keyPairName,
+		SSHAllowedCIDR:            sshAllowedCIDR,
+		LabSubnetCIDR:             environmentOrDefault("LABBIT_OPENSTACK_M3_LAB_CIDR", "198.21.0.0/24"),
+		SSHUsername:               adapter.provision.SSHUsername,
+		SSHPrivateKeyFile:         privateKeyFile,
+		SSHKnownHostsFile:         t.TempDir() + "/known_hosts",
+		ActiveTimeout:             5 * time.Minute,
+		SSHReadyTimeout:           3 * time.Minute,
+		StartupReadyTimeout:       5 * time.Minute,
+		PollInterval:              2 * time.Second,
 	})
 
 	runID := integrationRunID(t)
 	labInstanceID := "m3-integration-" + runID
+	startupContent := "#!/bin/sh\nset -eu\necho labbit-startup-ready\n"
+	startupDigest := sha256.Sum256([]byte(startupContent))
 	snapshot := coreprovider.CreationSnapshot{
 		ProviderConnectionID: "local-integration",
 		VMs: []coreprovider.VMSpec{{
@@ -198,8 +224,14 @@ func TestOpenStackM3LifecycleIntegration(t *testing.T) {
 		}},
 		WorkspaceVMKey:   "workspace",
 		InternetOutbound: true,
+		StartupScript: &coreprovider.StartupScript{
+			Content: startupContent,
+			SHA256:  hex.EncodeToString(startupDigest[:]),
+		},
 	}
 
+	tracked := []coreprovider.ResourceResult{}
+	t.Cleanup(func() { cleanupM2Resources(t, adapter, tracked) })
 	provision, err := adapter.Provision(ctx, coreprovider.ProvisionRequest{
 		Correlation:      coreprovider.Correlation{OperationID: "m3-provision-" + runID, LabInstanceID: labInstanceID, Generation: 1},
 		CreationSnapshot: snapshot,
@@ -207,8 +239,7 @@ func TestOpenStackM3LifecycleIntegration(t *testing.T) {
 	if err != nil || provision.Outcome != coreprovider.OutcomeSucceeded {
 		t.Fatalf("M3 initial Provision = %+v, %v", provision, err)
 	}
-	tracked := append([]coreprovider.ResourceResult(nil), provision.ProviderResources...)
-	t.Cleanup(func() { cleanupM2Resources(t, adapter, tracked) })
+	tracked = append(tracked, provision.ProviderResources...)
 	oldResources := resourceRefs(provision.ProviderResources, 1)
 
 	reset, err := adapter.Reset(ctx, coreprovider.ResetRequest{
@@ -221,8 +252,8 @@ func TestOpenStackM3LifecycleIntegration(t *testing.T) {
 	if err != nil || reset.Outcome != coreprovider.OutcomeSucceeded {
 		t.Fatalf("M3 Reset = %+v, %v", reset, err)
 	}
-	if len(newResources) != 10 {
-		t.Fatalf("M3 Reset generation 2 resources = %d, want 10", len(newResources))
+	if len(newResources) != 8 {
+		t.Fatalf("M3 Reset generation 2 resources = %d, want 8", len(newResources))
 	}
 
 	reconciled, err := adapter.Reconcile(ctx, coreprovider.ReconcileRequest{
@@ -263,6 +294,134 @@ func TestOpenStackM3LifecycleIntegration(t *testing.T) {
 	t.Logf("M3 lifecycle succeeded: Provision -> Reset -> Reconcile -> Cleanup; residual resources=0")
 }
 
+func TestOpenStackInternetPolicyIntegration(t *testing.T) {
+	if os.Getenv("LABBIT_OPENSTACK_INTERNET_POLICY_TEST") != "1" {
+		t.Skip("set LABBIT_OPENSTACK_INTERNET_POLICY_TEST=1 to verify real Internet ON/OFF reachability")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+	defer cancel()
+	adapter, err := New(ctx, ConfigFromEnvironment())
+	if err != nil {
+		t.Fatalf("OpenStack adapter initialization failed: %v", err)
+	}
+	imageItems, err := adapter.ListImages(ctx)
+	if err != nil {
+		t.Fatalf("image discovery failed: %v", err)
+	}
+	flavorItems, err := adapter.ListFlavors(ctx)
+	if err != nil {
+		t.Fatalf("flavor discovery failed: %v", err)
+	}
+	networkItems, err := adapter.ListNetworks(ctx)
+	if err != nil {
+		t.Fatalf("network discovery failed: %v", err)
+	}
+	image := exactImage(t, imageItems, environmentOrDefault("LABBIT_OPENSTACK_TEST_IMAGE", "ubuntu"))
+	flavor := exactFlavor(t, flavorItems, environmentOrDefault("LABBIT_OPENSTACK_TEST_FLAVOR", "m1.small"))
+	managementNetwork := exactNetwork(t, networkItems, environmentOrDefault("LABBIT_OPENSTACK_TEST_MANAGEMENT_NETWORK", "sharednet1"))
+	projectID := integrationProjectID(t, adapter)
+	externalNetworkID := integrationExternalNetworkID(t, ctx, adapter)
+	privateKeyFile := adapter.provision.SSHPrivateKeyFile
+	keyPairName := integrationKeyPairName(t, ctx, adapter, privateKeyFile)
+	sshAllowedCIDR := environmentOrDefault("LABBIT_OPENSTACK_TEST_SSH_CIDR", "172.16.8.1/32")
+	managementSecurityGroupID := integrationManagementSecurityGroup(t, ctx, adapter, sshAllowedCIDR)
+	targetHost, targetPortText, err := net.SplitHostPort(environmentOrDefault("LABBIT_OPENSTACK_TEST_INTERNET_TARGET", "1.1.1.1:443"))
+	if err != nil || net.ParseIP(targetHost) == nil {
+		t.Fatalf("LABBIT_OPENSTACK_TEST_INTERNET_TARGET must be an IP:port pair")
+	}
+	targetPort, err := strconv.Atoi(targetPortText)
+	if err != nil || targetPort < 1 || targetPort > 65535 {
+		t.Fatalf("LABBIT_OPENSTACK_TEST_INTERNET_TARGET port is invalid")
+	}
+	command := fmt.Sprintf("python3 -c \"import socket; socket.create_connection(('%s',%d),5).close()\"", targetHost, targetPort)
+	startupContent := "#!/bin/sh\nset -eu\necho labbit-internet-policy-ready\n"
+	startupDigest := sha256.Sum256([]byte(startupContent))
+
+	for _, test := range []struct {
+		name             string
+		internetOutbound bool
+		labCIDR          string
+	}{
+		{name: "internet-on", internetOutbound: true, labCIDR: environmentOrDefault("LABBIT_OPENSTACK_INTERNET_ON_LAB_CIDR", "198.22.0.0/24")},
+		{name: "internet-off", internetOutbound: false, labCIDR: environmentOrDefault("LABBIT_OPENSTACK_INTERNET_OFF_LAB_CIDR", "198.23.0.0/24")},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			adapter.provision = normalizedProvisionConfig(ProvisionConfig{
+				ProviderConnectionID:      "local-integration",
+				ProjectID:                 projectID,
+				ManagementNetworkID:       managementNetwork.ID,
+				ManagementSecurityGroupID: managementSecurityGroupID,
+				ExternalNetworkID:         externalNetworkID,
+				KeyPairName:               keyPairName,
+				SSHAllowedCIDR:            sshAllowedCIDR,
+				LabSubnetCIDR:             test.labCIDR,
+				SSHUsername:               adapter.provision.SSHUsername,
+				SSHPrivateKeyFile:         privateKeyFile,
+				SSHKnownHostsFile:         t.TempDir() + "/known_hosts",
+				ActiveTimeout:             5 * time.Minute,
+				SSHReadyTimeout:           3 * time.Minute,
+				StartupReadyTimeout:       5 * time.Minute,
+				PollInterval:              2 * time.Second,
+			})
+			runID := integrationRunID(t)
+			snapshot := coreprovider.CreationSnapshot{
+				ProviderConnectionID: "local-integration",
+				VMs: []coreprovider.VMSpec{{
+					VMKey: "workspace", Role: "WORKSPACE", ImageID: image.ID, FlavorID: flavor.ID,
+					FlavorSpec: coreprovider.FlavorSpec{VCPUs: flavor.VCPUs, RAMMiB: flavor.RAMMiB, DiskGiB: flavor.DiskGiB},
+				}},
+				WorkspaceVMKey:   "workspace",
+				InternetOutbound: test.internetOutbound,
+				StartupScript: &coreprovider.StartupScript{
+					Content: startupContent,
+					SHA256:  hex.EncodeToString(startupDigest[:]),
+				},
+			}
+			result, err := adapter.Provision(ctx, coreprovider.ProvisionRequest{
+				Correlation:      coreprovider.Correlation{OperationID: "internet-policy-" + runID, LabInstanceID: "internet-policy-" + runID, Generation: 1},
+				CreationSnapshot: snapshot,
+			})
+			t.Cleanup(func() { cleanupM2Resources(t, adapter, result.ProviderResources) })
+			if err != nil || result.Outcome != coreprovider.OutcomeSucceeded {
+				t.Fatalf("Provision = %+v, %v", result, err)
+			}
+			serverID := providerResourceID(t, result.ProviderResources, coreprovider.ResourceTypeServer, "workspace")
+			managementPortID := providerResourceID(t, result.ProviderResources, coreprovider.ResourceTypePort, "workspace:management")
+			managementPort, err := ports.Get(ctx, adapter.network, managementPortID).Extract()
+			if err != nil {
+				t.Fatalf("get Management port: %v", err)
+			}
+			managementIP, err := managementAddress(*managementPort)
+			if err != nil {
+				t.Fatal(err)
+			}
+			hostIdentity, err := sshHostKeyIdentity(adapter.provision.ProviderConnectionID, serverID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = adapter.runSSHCommand(ctx, net.JoinHostPort(managementIP, "22"), hostIdentity, command)
+			if test.internetOutbound && err != nil {
+				t.Fatalf("Internet ON connection failed: %v", err)
+			}
+			if !test.internetOutbound && err == nil {
+				t.Fatal("Internet OFF unexpectedly reached the external target")
+			}
+			t.Logf("Internet policy verified: internetOutbound=%t expectedReachable=%t", test.internetOutbound, test.internetOutbound)
+		})
+	}
+}
+
+func providerResourceID(t *testing.T, resources []coreprovider.ResourceResult, resourceType, logicalName string) string {
+	t.Helper()
+	for _, resource := range resources {
+		if resource.ResourceType == resourceType && resource.LogicalName == logicalName {
+			return resource.ProviderID
+		}
+	}
+	t.Fatalf("resource not found: type=%s logicalName=%s", resourceType, logicalName)
+	return ""
+}
+
 func resourceRefs(resources []coreprovider.ResourceResult, generation int64) []coreprovider.ResourceRef {
 	refs := make([]coreprovider.ResourceRef, 0, len(resources))
 	for _, resource := range resources {
@@ -281,6 +440,122 @@ func resourceResultsForGeneration(resources []coreprovider.ResourceResult, gener
 		}
 	}
 	return filtered
+}
+
+func integrationManagementSecurityGroup(t *testing.T, ctx context.Context, adapter *Adapter, sshAllowedCIDR string) string {
+	t.Helper()
+	if configured := strings.TrimSpace(os.Getenv("LABBIT_OPENSTACK_TEST_MANAGEMENT_SECURITY_GROUP_ID")); configured != "" {
+		return configured
+	}
+	stateful := true
+	group, err := groups.Create(ctx, adapter.network, groups.CreateOpts{
+		Name:        "labbit-integration-management-" + integrationRunID(t),
+		Description: "Temporary shared Management SG for Labbit integration tests",
+		Stateful:    &stateful,
+	}).Extract()
+	if err != nil {
+		t.Fatalf("create integration Management security group: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+		if err := groups.Delete(cleanupCtx, adapter.network, group.ID).ExtractErr(); err != nil && !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
+			t.Errorf("temporary Management security group cleanup failed")
+		}
+	})
+	for _, rule := range group.Rules {
+		if err := rules.Delete(ctx, adapter.network, rule.ID).ExtractErr(); err != nil {
+			t.Fatalf("remove default Management security group rule: %v", err)
+		}
+	}
+	if _, err := rules.Create(ctx, adapter.network, rules.CreateOpts{
+		Direction:      rules.DirIngress,
+		EtherType:      rules.EtherType4,
+		SecGroupID:     group.ID,
+		Protocol:       rules.ProtocolTCP,
+		PortRangeMin:   22,
+		PortRangeMax:   22,
+		RemoteIPPrefix: sshAllowedCIDR,
+		Description:    "Allow Connector SSH only",
+	}).Extract(); err != nil {
+		t.Fatalf("create integration Management SSH rule: %v", err)
+	}
+	return group.ID
+}
+
+func integrationProjectID(t *testing.T, adapter *Adapter) string {
+	t.Helper()
+	if configured := strings.TrimSpace(adapter.provision.ProjectID); configured != "" {
+		return configured
+	}
+	result, ok := adapter.provider.GetAuthResult().(tokens.CreateResult)
+	if !ok {
+		t.Fatal("authenticated OpenStack project ID is unavailable; set OS_PROJECT_ID")
+	}
+	project, err := result.ExtractProject()
+	if err != nil || project == nil || strings.TrimSpace(project.ID) == "" {
+		t.Fatal("authenticated OpenStack project ID is unavailable; set OS_PROJECT_ID")
+	}
+	return project.ID
+}
+
+func integrationExternalNetworkID(t *testing.T, ctx context.Context, adapter *Adapter) string {
+	t.Helper()
+	if configured := strings.TrimSpace(adapter.provision.ExternalNetworkID); configured != "" {
+		return configured
+	}
+	pages, err := networks.List(adapter.network, networks.ListOpts{}).AllPages(ctx)
+	if err != nil {
+		t.Fatalf("external network discovery failed: %v", err)
+	}
+	var items []struct {
+		networks.Network
+		external.NetworkExternalExt
+	}
+	if err := networks.ExtractNetworksInto(pages, &items); err != nil {
+		t.Fatalf("external network discovery failed: %v", err)
+	}
+	var matches []string
+	for _, item := range items {
+		if item.External && normalizeStatus(item.Status) == "ACTIVE" {
+			matches = append(matches, item.ID)
+		}
+	}
+	if len(matches) != 1 {
+		t.Fatalf("active external network count = %d; set LABBIT_OPENSTACK_EXTERNAL_NETWORK_ID", len(matches))
+	}
+	return matches[0]
+}
+
+func integrationKeyPairName(t *testing.T, ctx context.Context, adapter *Adapter, privateKeyFile string) string {
+	t.Helper()
+	if configured := strings.TrimSpace(os.Getenv("LABBIT_OPENSTACK_TEST_KEYPAIR")); configured != "" {
+		return configured
+	}
+	privateKey, err := os.ReadFile(strings.TrimSpace(privateKeyFile))
+	if err != nil {
+		t.Fatal("integration SSH private key is unavailable; set LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE")
+	}
+	signer, err := ssh.ParsePrivateKey(privateKey)
+	if err != nil {
+		t.Fatal("integration SSH private key is invalid")
+	}
+	name := "labbit-integration-key-" + integrationRunID(t)
+	_, err = keypairs.Create(ctx, adapter.compute, keypairs.CreateOpts{
+		Name:      name,
+		PublicKey: strings.TrimSpace(string(ssh.MarshalAuthorizedKey(signer.PublicKey()))),
+	}).Extract()
+	if err != nil {
+		t.Fatalf("create integration keypair: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+		if err := keypairs.Delete(cleanupCtx, adapter.compute, name, nil).ExtractErr(); err != nil && !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
+			t.Errorf("temporary integration keypair cleanup failed")
+		}
+	})
+	return name
 }
 
 func testM1NetworkFoundation(t *testing.T, adapter *Adapter) {

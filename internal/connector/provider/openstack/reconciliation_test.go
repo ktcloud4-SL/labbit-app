@@ -81,10 +81,6 @@ func TestReconcileDiscoversGenerationCandidatesWithoutClaimingOwnership(t *testi
 				writeJSON(t, response, http.StatusOK, map[string]any{"security_groups": []any{map[string]any{
 					"id": "sg-lab-candidate", "name": name, "security_group_rules": []any{map[string]any{"id": "rule-lab-candidate", "security_group_id": "sg-lab-candidate", "description": "Allow traffic inside this Lab network"}},
 				}}, "security_groups_links": []any{}})
-			case baseName + "-management-sg":
-				writeJSON(t, response, http.StatusOK, map[string]any{"security_groups": []any{map[string]any{
-					"id": "sg-management-candidate", "name": name, "security_group_rules": []any{map[string]any{"id": "rule-ssh-candidate", "security_group_id": "sg-management-candidate", "description": "Allow Connector Management SSH"}},
-				}}, "security_groups_links": []any{}})
 			default:
 				t.Fatalf("unexpected security group query: %s", request.URL.String())
 			}
@@ -104,7 +100,7 @@ func TestReconcileDiscoversGenerationCandidatesWithoutClaimingOwnership(t *testi
 		KnownResources:     []coreprovider.ResourceRef{},
 		DiscoverCandidates: true,
 	})
-	if err != nil || result.Error != nil || len(result.Observations) != 10 {
+	if err != nil || result.Error != nil || len(result.Observations) != 8 {
 		t.Fatalf("Reconcile() = %+v, %v", result, err)
 	}
 	for _, observation := range result.Observations {

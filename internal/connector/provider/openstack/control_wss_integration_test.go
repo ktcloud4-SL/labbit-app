@@ -2,6 +2,8 @@ package openstackprovider
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"sync"
@@ -41,17 +43,28 @@ func TestOpenStackM2ControlWSSIntegration(t *testing.T) {
 	image := exactImage(t, imageItems, environmentOrDefault("LABBIT_OPENSTACK_TEST_IMAGE", "ubuntu"))
 	flavor := exactFlavor(t, flavorItems, environmentOrDefault("LABBIT_OPENSTACK_TEST_FLAVOR", "m1.small"))
 	managementNetwork := exactNetwork(t, networkItems, environmentOrDefault("LABBIT_OPENSTACK_TEST_MANAGEMENT_NETWORK", "sharednet1"))
+	projectID := integrationProjectID(t, adapter)
+	externalNetworkID := integrationExternalNetworkID(t, ctx, adapter)
+	privateKeyFile := adapter.provision.SSHPrivateKeyFile
+	keyPairName := integrationKeyPairName(t, ctx, adapter, privateKeyFile)
+	sshAllowedCIDR := environmentOrDefault("LABBIT_OPENSTACK_TEST_SSH_CIDR", "172.16.8.1/32")
+	managementSecurityGroupID := integrationManagementSecurityGroup(t, ctx, adapter, sshAllowedCIDR)
 	adapter.provision = normalizedProvisionConfig(ProvisionConfig{
-		ProviderConnectionID: "local-integration",
-		ProjectID:            adapter.provision.ProjectID,
-		ManagementNetworkID:  managementNetwork.ID,
-		ExternalNetworkID:    adapter.provision.ExternalNetworkID,
-		KeyPairName:          environmentOrDefault("LABBIT_OPENSTACK_TEST_KEYPAIR", "openstack2"),
-		SSHAllowedCIDR:       environmentOrDefault("LABBIT_OPENSTACK_TEST_SSH_CIDR", "172.16.8.1/32"),
-		LabSubnetCIDR:        environmentOrDefault("LABBIT_OPENSTACK_TEST_LAB_CIDR", "198.20.0.0/24"),
-		ActiveTimeout:        5 * time.Minute,
-		SSHReadyTimeout:      3 * time.Minute,
-		PollInterval:         2 * time.Second,
+		ProviderConnectionID:      "local-integration",
+		ProjectID:                 projectID,
+		ManagementNetworkID:       managementNetwork.ID,
+		ManagementSecurityGroupID: managementSecurityGroupID,
+		ExternalNetworkID:         externalNetworkID,
+		KeyPairName:               keyPairName,
+		SSHAllowedCIDR:            sshAllowedCIDR,
+		LabSubnetCIDR:             environmentOrDefault("LABBIT_OPENSTACK_TEST_LAB_CIDR", "198.20.0.0/24"),
+		SSHUsername:               adapter.provision.SSHUsername,
+		SSHPrivateKeyFile:         privateKeyFile,
+		SSHKnownHostsFile:         t.TempDir() + "/known_hosts",
+		ActiveTimeout:             5 * time.Minute,
+		SSHReadyTimeout:           3 * time.Minute,
+		StartupReadyTimeout:       5 * time.Minute,
+		PollInterval:              2 * time.Second,
 	})
 
 	recorder := newRecordingProvider(adapter)
@@ -86,6 +99,8 @@ func TestOpenStackM2ControlWSSIntegration(t *testing.T) {
 	})
 
 	runID := integrationRunID(t)
+	startupContent := "#!/bin/sh\nset -eu\necho labbit-wss-startup-ready\n"
+	startupDigest := sha256.Sum256([]byte(startupContent))
 	messageID := "m2-wss-message-" + runID
 	command := protocol.OperationCommandMessage{
 		BaseEnvelope: protocol.BaseEnvelope{
@@ -113,6 +128,10 @@ func TestOpenStackM2ControlWSSIntegration(t *testing.T) {
 				}},
 				WorkspaceVMKey:   "workspace",
 				InternetOutbound: true,
+				StartupScript: &protocol.StartupScriptSnapshot{
+					Content: startupContent,
+					SHA256:  hex.EncodeToString(startupDigest[:]),
+				},
 			},
 		},
 	}
@@ -135,8 +154,8 @@ func TestOpenStackM2ControlWSSIntegration(t *testing.T) {
 	if result == nil || result.Payload.Outcome != string(coreprovider.OutcomeSucceeded) {
 		t.Fatalf("successful OPERATION_RESULT was not received: %+v", result)
 	}
-	if len(result.Payload.ProviderResources) != 10 || len(resources) != 10 {
-		t.Fatalf("wire resources=%d recorded resources=%d, want 10", len(result.Payload.ProviderResources), len(resources))
+	if len(result.Payload.ProviderResources) != 8 || len(resources) != 8 {
+		t.Fatalf("wire resources=%d recorded resources=%d, want 8", len(result.Payload.ProviderResources), len(resources))
 	}
 	t.Logf("Mock SaaS command reached real OpenStack and returned SUCCEEDED; tracked resources=%d", len(resources))
 	if !fullLifecycle {
@@ -160,8 +179,8 @@ func TestOpenStackM2ControlWSSIntegration(t *testing.T) {
 		t.Fatalf("WSS RESET failed: ack=%+v result=%+v", resetAck, resetResult)
 	}
 	newResources := wireResourceResultsForGeneration(resetResult.Payload.ProviderResources, 2)
-	if len(newResources) != 10 {
-		t.Fatalf("WSS RESET generation 2 resources=%d, want 10", len(newResources))
+	if len(newResources) != 8 {
+		t.Fatalf("WSS RESET generation 2 resources=%d, want 8", len(newResources))
 	}
 	resources = append(resources, newResources...)
 	newRefs := wireResourceRefs(resetResult.Payload.ProviderResources, 2)

@@ -201,7 +201,6 @@ func (a *Adapter) discoverCandidates(ctx context.Context, correlation coreprovid
 		logicalName string
 	}{
 		{name: baseName + "-lab-sg", logicalName: "lab-security-group"},
-		{name: baseName + "-management-sg", logicalName: "management-security-group"},
 	}
 	for _, expected := range securityGroups {
 		groupPages, err := groups.List(a.network, groups.ListOpts{Name: expected.name}).AllPages(ctx)

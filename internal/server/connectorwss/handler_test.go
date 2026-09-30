@@ -69,6 +69,64 @@ func (f *fakeAuth) Authenticate(_ context.Context, credential connector.Credenti
 	return principal, nil
 }
 
+// heartbeatRecord는 fakeHeartbeats가 받은 기록 요청 하나다.
+type heartbeatRecord struct {
+	principal connector.Principal
+	seenAt    time.Time
+}
+
+// fakeHeartbeats는 HeartbeatRecorder의 fake다. 저장소 대신 받은 요청을 기록한다.
+// revoked에 든 CredentialID나 err가 있으면 실제 저장소처럼 기록하지 않는다.
+type fakeHeartbeats struct {
+	mu      sync.Mutex
+	records []heartbeatRecord
+	err     error
+	revoked map[uuid.UUID]bool
+	// beforeRecord가 있으면 기록 직전에 호출한다(진행 중인 기록을 재현하는 용도).
+	beforeRecord func()
+}
+
+func (f *fakeHeartbeats) RecordHeartbeat(_ context.Context, principal connector.Principal, seenAt time.Time) error {
+	f.mu.Lock()
+	hook := f.beforeRecord
+	f.mu.Unlock()
+	if hook != nil {
+		hook()
+	}
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.err != nil {
+		return f.err
+	}
+	if f.revoked[principal.CredentialID] {
+		return connector.ErrUnauthenticated
+	}
+	f.records = append(f.records, heartbeatRecord{principal: principal, seenAt: seenAt})
+	return nil
+}
+
+func (f *fakeHeartbeats) revoke(credentialID uuid.UUID) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.revoked == nil {
+		f.revoked = map[uuid.UUID]bool{}
+	}
+	f.revoked[credentialID] = true
+}
+
+func (f *fakeHeartbeats) failWith(err error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.err = err
+}
+
+func (f *fakeHeartbeats) recorded() []heartbeatRecord {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]heartbeatRecord(nil), f.records...)
+}
+
 // syncBuffer는 handler goroutine이 쓰는 log를 test가 안전하게 읽게 한다.
 type syncBuffer struct {
 	mu  sync.Mutex
@@ -90,6 +148,7 @@ func (b *syncBuffer) String() string {
 type harness struct {
 	t         *testing.T
 	auth      *fakeAuth
+	beats     *fakeHeartbeats
 	registry  *connector.Registry
 	handler   *Handler
 	server    *httptest.Server
@@ -101,13 +160,15 @@ func newHarness(t *testing.T, mutate ...func(*Options)) *harness {
 	t.Helper()
 	principal := connector.Principal{ConnectorID: uuid.New(), OrganizationID: uuid.New(), CredentialID: uuid.New()}
 	auth := &fakeAuth{principals: map[string]connector.Principal{testCredential: principal}}
+	beats := &fakeHeartbeats{}
 	logs := &syncBuffer{}
 	registry := connector.NewRegistry()
 
 	opts := Options{
-		Auth:     auth,
-		Registry: registry,
-		Logger:   slog.New(slog.NewJSONHandler(logs, &slog.HandlerOptions{Level: slog.LevelDebug})),
+		Auth:       auth,
+		Heartbeats: beats,
+		Registry:   registry,
+		Logger:     slog.New(slog.NewJSONHandler(logs, &slog.HandlerOptions{Level: slog.LevelDebug})),
 	}
 	for _, fn := range mutate {
 		fn(&opts)
@@ -124,7 +185,7 @@ func newHarness(t *testing.T, mutate ...func(*Options)) *harness {
 		handler.Close()
 		server.Close()
 	})
-	return &harness{t: t, auth: auth, registry: registry, handler: handler, server: server, logs: logs, principal: principal}
+	return &harness{t: t, auth: auth, beats: beats, registry: registry, handler: handler, server: server, logs: logs, principal: principal}
 }
 
 func (h *harness) url() string {
@@ -232,6 +293,8 @@ func (h *harness) waitRegistered() connector.Session {
 	return session
 }
 
+// assertNotRegistered는 Upgrade 전에 거절된 요청(인증 실패 등)이 registry에 등록된 적이 없음을 즉시 확인한다.
+// HELLO가 실패한 connection은 Upgrade 직후 등록되므로 registryReleased로 해제를 기다려야 한다.
 func (h *harness) assertNotRegistered() {
 	h.t.Helper()
 	if session, ok := h.registry.Current(h.principal.ConnectorID); ok {
@@ -300,18 +363,51 @@ func TestHelloAckUsesConfiguredHeartbeatSettings(t *testing.T) {
 }
 
 func TestNewRejectsInvalidOptions(t *testing.T) {
-	auth := &fakeAuth{}
+	auth, beats := &fakeAuth{}, &fakeHeartbeats{}
 	registry := connector.NewRegistry()
 	tests := map[string]Options{
-		"Authenticator 없음":        {Registry: registry},
-		"Registry 없음":             {Auth: auth},
-		"1초 미만 HeartbeatInterval": {Auth: auth, Registry: registry, HeartbeatInterval: 500 * time.Millisecond},
-		"1초 미만 OfflineTimeout":    {Auth: auth, Registry: registry, OfflineTimeout: time.Millisecond},
+		"Authenticator 없음":                       {Heartbeats: beats, Registry: registry},
+		"HeartbeatRecorder 없음":                   {Auth: auth, Registry: registry},
+		"Registry 없음":                            {Auth: auth, Heartbeats: beats},
+		"음수 HeartbeatInterval":                   {Auth: auth, Heartbeats: beats, Registry: registry, HeartbeatInterval: -time.Second},
+		"음수 OfflineTimeout":                      {Auth: auth, Heartbeats: beats, Registry: registry, OfflineTimeout: -time.Second},
+		"음수 HelloTimeout":                        {Auth: auth, Heartbeats: beats, Registry: registry, HelloTimeout: -time.Second},
+		"OfflineTimeout이 HeartbeatInterval보다 짧음": {Auth: auth, Heartbeats: beats, Registry: registry, HeartbeatInterval: 30 * time.Second, OfflineTimeout: 20 * time.Second},
+		"OfflineTimeout이 HeartbeatInterval과 같음":  {Auth: auth, Heartbeats: beats, Registry: registry, HeartbeatInterval: 15 * time.Second, OfflineTimeout: 15 * time.Second},
 	}
 	for name, opts := range tests {
 		t.Run(name, func(t *testing.T) {
 			if _, err := New(opts); err == nil {
 				t.Fatal("New() error = nil")
+			}
+		})
+	}
+}
+
+// 1초 미만 값은 timer를 짧게 구동하는 용도로 허용하고, HELLO_ACK에는 Schema minimum(1)을 지켜 올림한 초로 전달한다.
+func TestHelloAckAdvertisesWholeSecondsAtLeastOne(t *testing.T) {
+	tests := []struct {
+		name               string
+		interval, offline  time.Duration
+		wantInterval, want float64
+	}{
+		{"기본값", 0, 0, 15, 45},
+		{"1초 미만", 20 * time.Millisecond, 100 * time.Millisecond, 1, 1},
+		{"올림", 1500 * time.Millisecond, 2500 * time.Millisecond, 2, 3},
+		{"정수 초", 2 * time.Second, 6 * time.Second, 2, 6},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := newHarness(t, func(o *Options) {
+				o.HeartbeatInterval = tt.interval
+				o.OfflineTimeout = tt.offline
+			})
+			conn := h.connect()
+			sendJSON(t, conn, validHello())
+
+			payload := payloadOf(readJSON(t, conn))
+			if payload["heartbeatIntervalSeconds"] != tt.wantInterval || payload["offlineTimeoutSeconds"] != tt.want {
+				t.Fatalf("heartbeat/offline = %v/%v, want %v/%v", payload["heartbeatIntervalSeconds"], payload["offlineTimeoutSeconds"], tt.wantInterval, tt.want)
 			}
 		})
 	}
@@ -627,7 +723,7 @@ func TestInvalidFirstMessageIsRejectedAndNotRegistered(t *testing.T) {
 					t.Fatalf("입력 또는 Credential이 노출됨: %s", out)
 				}
 			}
-			h.assertNotRegistered()
+			registryReleased(h.t, h) // Upgrade 직후 등록되므로 HELLO 실패 뒤 connection이 끝나면 해제된다.
 		})
 	}
 }
@@ -939,7 +1035,7 @@ func TestControlMessageSizeLimit(t *testing.T) {
 		if len(frames) != 0 {
 			t.Fatalf("크기 초과 message에 별도 frame을 보냄: %v", frames)
 		}
-		h.assertNotRegistered()
+		registryReleased(h.t, h) // Upgrade 직후 등록되므로 HELLO 실패 뒤 connection이 끝나면 해제된다.
 	})
 
 	t.Run("HELLO 이후 1 MiB 초과 message도 1009", func(t *testing.T) {
@@ -971,20 +1067,24 @@ func TestMissingHelloTimesOutAndIsNotRegistered(t *testing.T) {
 	if closeErr.Code != closeProtocolError {
 		t.Fatalf("close code = %d, want %d", closeErr.Code, closeProtocolError)
 	}
-	h.assertNotRegistered()
+	registryReleased(h.t, h) // Upgrade 직후 등록되므로 HELLO 실패 뒤 connection이 끝나면 해제된다.
 }
 
-// HELLO_ACK 이후에는 메시지를 해석하지 않으므로, 어떤 message를 보내도 registry 상태와 연결이 유지된다.
-func TestMessagesAfterHandshakeAreNotInterpreted(t *testing.T) {
+// HELLO_ACK 이후에는 HEARTBEAT만 해석한다(command/result routing은 LBT-71). 다른 type, non-JSON, binary,
+// 대소문자만 다른 type은 무시하며 registry 상태와 연결이 유지되고 heartbeat로 기록되지 않는다.
+func TestNonHeartbeatMessagesAfterHandshakeAreIgnored(t *testing.T) {
 	h := newHarness(t)
 	conn := h.connect()
 	sendJSON(t, conn, validHello())
 	readJSON(t, conn)
 	session := h.waitRegistered()
 
-	sendJSON(t, conn, map[string]any{"type": "HEARTBEAT", "messageId": "hb-1", "sentAt": time.Now().UTC().Format(time.RFC3339), "payload": map[string]any{}})
 	sendJSON(t, conn, map[string]any{"type": "OPERATION_RESULT", "messageId": "r-1", "payload": map[string]any{}})
+	sendJSON(t, conn, map[string]any{"TYPE": "HEARTBEAT", "messageId": "hb-1", "sentAt": time.Now().UTC().Format(time.RFC3339), "payload": map[string]any{"observedAt": time.Now().UTC().Format(time.RFC3339)}})
 	if err := conn.WriteMessage(websocket.TextMessage, []byte("not json")); err != nil {
+		t.Fatal(err)
+	}
+	if err := conn.WriteMessage(websocket.BinaryMessage, []byte{0x01, 0x02}); err != nil {
 		t.Fatal(err)
 	}
 	// 같은 연결의 ping이 pong으로 돌아오면 read loop가 위 message들을 처리하고 계속 살아 있다.
@@ -1001,6 +1101,9 @@ func TestMessagesAfterHandshakeAreNotInterpreted(t *testing.T) {
 	}
 	if got, ok := h.registry.Current(h.principal.ConnectorID); !ok || got != session {
 		t.Fatalf("registry = %+v, %v, want unchanged %+v", got, ok, session)
+	}
+	if got := h.beats.recorded(); len(got) != 0 {
+		t.Fatalf("HEARTBEAT가 아닌 message가 heartbeat로 기록됨: %+v", got)
 	}
 }
 

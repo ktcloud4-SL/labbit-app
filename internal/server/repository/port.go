@@ -54,12 +54,19 @@ type BootstrapRepository interface {
 	CreateClassMembership(ctx context.Context, membership NewClassMembership) error
 }
 
-// ConnectorRepository는 Connector Control WSS 인증이 사용하는 query다.
-// 단일 read-only query이므로 Transaction 안의 Repositories에는 포함하지 않는다.
+// ConnectorRepository는 Connector Control WSS 인증과 연결 수명이 사용하는 query다.
+// 각각 단일 statement이므로 Transaction 안의 Repositories에는 포함하지 않는다.
 type ConnectorRepository interface {
 	// ConnectorCredentialByHash는 credential digest로 Credential과 소유 Connector를 반환한다. 없으면 ErrNotFound다.
 	// revoke된 Credential이나 Connector도 필터링하지 않고 반환하며 인증 허용 여부는 Application이 판단한다.
 	ConnectorCredentialByHash(ctx context.Context, credentialHash []byte) (ConnectorCredentialWithConnector, error)
+	// RecordConnectorHeartbeat는 connectors.last_seen_at을 seenAt으로 갱신하고 갱신했으면 true를 반환한다.
+	// credentialID가 connectorID의 Credential이고 Credential과 Connector가 모두 revoke되지 않았을 때만 갱신하며,
+	// 그렇지 않으면 아무것도 바꾸지 않고 false다. 구현은 Connector와 Credential row를 잠근 채 revoke 여부를
+	// 확인하고 갱신하므로, commit되지 않은 revoke가 있으면 그 결과를 기다린다. revoke가 commit된 뒤에는 갱신되지 않고
+	// rollback되면 갱신된다. 이 lock과 순서(connectors → connector_credentials)는 구현 계약이므로
+	// 두 row를 함께 revoke하는 writer도 같은 순서를 지켜야 한다. seenAt은 Application이 정한 서버 수신 시각이다.
+	RecordConnectorHeartbeat(ctx context.Context, connectorID, credentialID uuid.UUID, seenAt time.Time) (bool, error)
 }
 
 // Repositories는 하나의 DB session에서 사용할 수 있는 Repository 모음이다.

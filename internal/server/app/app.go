@@ -137,10 +137,12 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 
 			// Connector Control WSS는 API/Control(api role)이 소유한다. Terminal/Live WebSocket을 처리하는 realtime role과 별개다.
+			connectorService := connector.NewService(store)
 			connectorWSS, err = connectorwss.New(connectorwss.Options{
-				Auth:     connector.NewService(store),
-				Registry: connector.NewRegistry(),
-				Logger:   logger,
+				Auth:       connectorService,
+				Heartbeats: connectorService,
+				Registry:   connector.NewRegistry(),
+				Logger:     logger,
 			})
 			if err != nil {
 				return err
@@ -193,6 +195,10 @@ func Run(ctx context.Context, cfg Config) error {
 	defer cancel()
 
 	applicationErr := applicationServer.Shutdown(shutdownCtx)
+	if connectorWSS != nil {
+		// http.Server.Shutdown은 hijack된 WebSocket을 기다리지 않는다. 열린 Control connection이 정리될 때까지 기다린다.
+		applicationErr = errors.Join(applicationErr, connectorWSS.Shutdown(shutdownCtx))
+	}
 	adminErr := adminServer.Shutdown(shutdownCtx)
 	return errors.Join(applicationErr, adminErr)
 }

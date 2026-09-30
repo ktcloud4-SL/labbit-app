@@ -17,7 +17,7 @@ import (
 type Client struct {
 	cfg       Config
 	mu        sync.RWMutex
-	writeMu   sync.Mutex // Gorilla WebSocket concurrent write 방지를 위한 쓰기 직렬화 뮤텍스
+	writeGate chan struct{} // Gorilla WebSocket 단일 writer 보장 및 context 취소 가능한 쓰기 대기열
 	conn      *websocket.Conn
 	startedAt time.Time
 }
@@ -28,10 +28,13 @@ func NewClient(cfg Config) *Client {
 	if cfg.RuntimeID == "" {
 		cfg.RuntimeID = generateUUID()
 	}
-	return &Client{
+	client := &Client{
 		cfg:       cfg,
+		writeGate: make(chan struct{}, 1),
 		startedAt: time.Now().UTC(),
 	}
+	client.writeGate <- struct{}{}
+	return client
 }
 
 // Dial 은 SaaS Control WSS 엔드포인트로 연결합니다.
@@ -113,11 +116,8 @@ func (c *Client) SendHello(ctx context.Context) (*protocol.HelloAckPayload, erro
 		return nil, fmt.Errorf("failed to marshal HELLO message: %w", err)
 	}
 
-	// HELLO 메시지 전송 (동시 쓰기 보호)
-	c.writeMu.Lock()
-	err = conn.WriteMessage(websocket.TextMessage, data)
-	c.writeMu.Unlock()
-	if err != nil {
+	// HELLO 메시지 전송 (동시 쓰기 보호 + timeout/context 취소 시 연결 강제 종료)
+	if err := c.writeMessage(ctx, websocket.TextMessage, data); err != nil {
 		return nil, fmt.Errorf("failed to send HELLO message: %w", err)
 	}
 
@@ -183,15 +183,28 @@ func (c *Client) Conn() *websocket.Conn {
 }
 
 // SendMessage 는 WebSocket 연결을 통해 JSON 메시지를 전송합니다.
-// Gorilla WebSocket 의 single writer 제약을 위해 writeMu 뮤텍스로 동시 쓰기를 직렬화합니다.
+// Gorilla WebSocket 의 single writer 제약을 위해 취소 가능한 write gate 로 동시 쓰기를 직렬화합니다.
 func (c *Client) SendMessage(ctx context.Context, msg interface{}) error {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 
-	c.writeMu.Lock()
-	defer c.writeMu.Unlock()
+	return c.writeMessage(ctx, websocket.TextMessage, data)
+}
+
+func (c *Client) writeMessage(ctx context.Context, messageType int, data []byte) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-c.writeGate:
+	}
+	defer func() { c.writeGate <- struct{}{} }()
+	// ctx.Done 과 writeGate 가 동시에 준비되면 select 는 임의의 case 를 고를 수 있습니다.
+	// gate 획득 직후 다시 확인하여 이전 세션의 취소된 작업이 현재 연결을 닫지 못하게 합니다.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 
 	c.mu.RLock()
 	conn := c.conn
@@ -201,28 +214,65 @@ func (c *Client) SendMessage(ctx context.Context, msg interface{}) error {
 		return fmt.Errorf("not connected: must call Dial first")
 	}
 
-	return conn.WriteMessage(websocket.TextMessage, data)
+	deadline := time.Now().Add(c.cfg.WriteTimeout)
+	if contextDeadline, ok := ctx.Deadline(); ok && contextDeadline.Before(deadline) {
+		deadline = contextDeadline
+	}
+	if err := conn.SetWriteDeadline(deadline); err != nil {
+		c.closeConnection(conn)
+		return fmt.Errorf("failed to set websocket write deadline: %w", err)
+	}
+
+	stopCancelClose := context.AfterFunc(ctx, func() {
+		c.closeConnection(conn)
+	})
+	err := conn.WriteMessage(messageType, data)
+	cancelCloseStopped := stopCancelClose()
+
+	if err != nil {
+		c.closeConnection(conn)
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+		return fmt.Errorf("websocket write failed: %w", err)
+	}
+	if !cancelCloseStopped {
+		c.closeConnection(conn)
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
+		return fmt.Errorf("websocket write canceled")
+	}
+	if err := conn.SetWriteDeadline(time.Time{}); err != nil {
+		c.closeConnection(conn)
+		return fmt.Errorf("failed to clear websocket write deadline: %w", err)
+	}
+	return nil
 }
 
-// Close 는 WebSocket 연결을 정상 종료합니다.
+// Close 는 활성 연결을 즉시 분리하고 닫습니다. 데이터 write 가 정지된 상태에서도
+// 동일한 write gate 를 기다리지 않으므로 Supervisor 종료와 reconnect 를 막지 않습니다.
 func (c *Client) Close() error {
-	c.writeMu.Lock()
-	defer c.writeMu.Unlock()
-
 	c.mu.Lock()
 	conn := c.conn
 	c.conn = nil
 	c.mu.Unlock()
 
 	if conn != nil {
-		err := conn.WriteMessage(
-			websocket.CloseMessage,
-			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "connector client closing"),
-		)
-		_ = conn.Close()
-		return err
+		return conn.Close()
 	}
 	return nil
+}
+
+// closeConnection 은 expected 가 현재 활성 연결일 때만 분리하고, 어느 경우든 해당
+// 소켓을 닫습니다. 이전 세션의 늦은 취소가 새 연결을 닫는 것을 방지합니다.
+func (c *Client) closeConnection(expected *websocket.Conn) {
+	c.mu.Lock()
+	if c.conn == expected {
+		c.conn = nil
+	}
+	c.mu.Unlock()
+	_ = expected.Close()
 }
 
 func generateUUID() string {

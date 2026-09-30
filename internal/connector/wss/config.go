@@ -5,20 +5,22 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 )
 
 // Config 는 Connector WSS Client 연결 설정입니다.
 type Config struct {
-	BaseURL          string   // SaaS 기본 엔드포인트 URL (e.g. "https://saas.example.com")
-	Credential       string   // Bearer 토큰 문자열
-	CredentialFile   string   // Bearer 토큰 파일 경로 (*_FILE 보안 주입 패턴)
-	ConnectorVersion string   // Connector 애플리케이션 버전 (기본값: "0.1.0")
-	RuntimeID        string   // 프로세스 런타임 인스턴스 식별자
-	Capabilities     []string // 선택 지원 capability 목록
-	ReadLimit        int64    // WebSocket 메시지 최대 수신 크기 바이트 (기본값: 1 MiB)
-	AllowInsecure    bool     // Test 전용: localhost 및 비보안 ws:// 연결 허용 플래그 (런타임에서는 항상 wss 강제)
+	BaseURL          string        // SaaS 기본 엔드포인트 URL (e.g. "https://saas.example.com")
+	Credential       string        // Bearer 토큰 문자열
+	CredentialFile   string        // Bearer 토큰 파일 경로 (*_FILE 보안 주입 패턴)
+	ConnectorVersion string        // Connector 애플리케이션 버전 (기본값: "0.1.0")
+	RuntimeID        string        // 프로세스 런타임 인스턴스 식별자
+	Capabilities     []string      // 선택 지원 capability 목록
+	ReadLimit        int64         // WebSocket 메시지 최대 수신 크기 바이트 (기본값: 1 MiB)
+	WriteTimeout     time.Duration // WebSocket 단일 메시지 최대 전송 시간 (기본값: 10초)
+	AllowInsecure    bool          // Test 전용: localhost 및 비보안 ws:// 연결 허용 플래그 (런타임에서는 항상 wss 강제)
 }
 
 // ResolveEndpoint 는 BaseURL을 WebSocket 제어 엔드포인트(wss://.../connector/v1/control)로 변환합니다.
@@ -93,5 +95,8 @@ func (c *Config) EnsureDefaults() {
 	}
 	if c.ReadLimit <= 0 {
 		c.ReadLimit = protocol.MaxJSONMessageSize
+	}
+	if c.WriteTimeout <= 0 {
+		c.WriteTimeout = 10 * time.Second
 	}
 }

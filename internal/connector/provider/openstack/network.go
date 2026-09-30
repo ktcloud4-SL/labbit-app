@@ -26,6 +26,7 @@ var (
 	ErrSecurityGroupCreate    = errors.New("OpenStack security group creation failed")
 	ErrSecurityRuleList       = errors.New("OpenStack security group rule list failed")
 	ErrSecurityRuleCreate     = errors.New("OpenStack security group rule creation failed")
+	ErrResourceOwnership      = errors.New("OpenStack resource is not owned by this operation")
 )
 
 type ResourceIdentity struct {
@@ -61,8 +62,8 @@ type SecurityRuleSpec struct {
 	RemoteCIDR      string
 }
 
-// EnsureNetwork returns the one exact-name network or creates it. It never
-// selects one arbitrarily when duplicate names are visible.
+// EnsureNetwork creates a network only when the deterministic name is unused.
+// A same-name resource is a reconciliation candidate, not ownership evidence.
 func (a *Adapter) EnsureNetwork(
 	ctx context.Context,
 	identity ResourceIdentity,
@@ -92,7 +93,7 @@ func (a *Adapter) EnsureNetwork(
 	}
 	switch len(exact) {
 	case 1:
-		return networkResource(identity, exact[0]), nil
+		return coreprovider.ResourceResult{}, ErrResourceOwnership
 	case 0:
 		// Continue to create.
 	default:
@@ -113,9 +114,8 @@ func (a *Adapter) EnsureNetwork(
 	return networkResource(identity, *created), nil
 }
 
-// EnsureSubnet is idempotent for an exact network/name/specification tuple.
-// A same-name subnet with different addressing is a conflict, not a signal to
-// create another subnet with an indistinguishable logical name.
+// EnsureSubnet creates a subnet only when the deterministic name is unused.
+// Existing resources must be reconciled against Provider IDs held by Control.
 func (a *Adapter) EnsureSubnet(
 	ctx context.Context,
 	identity ResourceIdentity,
@@ -165,7 +165,7 @@ func (a *Adapter) EnsureSubnet(
 		if !subnetMatches(exact[0], spec, cidr) {
 			return coreprovider.ResourceResult{}, ErrSubnetConflict
 		}
-		return subnetResource(identity, exact[0]), nil
+		return coreprovider.ResourceResult{}, ErrResourceOwnership
 	case 0:
 		// Continue to create.
 	default:
@@ -191,8 +191,8 @@ func (a *Adapter) EnsureSubnet(
 	return subnetResource(identity, *created), nil
 }
 
-// EnsureSecurityGroup returns an exact-name group or creates a stateful group.
-// Ingress rules are intentionally outside this M1 resource-foundation step.
+// EnsureSecurityGroup creates a stateful group only when the deterministic
+// name is unused. Ingress rules are managed separately.
 func (a *Adapter) EnsureSecurityGroup(
 	ctx context.Context,
 	identity ResourceIdentity,
@@ -222,7 +222,7 @@ func (a *Adapter) EnsureSecurityGroup(
 	}
 	switch len(exact) {
 	case 1:
-		return securityGroupResource(identity, exact[0]), nil
+		return coreprovider.ResourceResult{}, ErrResourceOwnership
 	case 0:
 		// Continue to create.
 	default:
@@ -287,7 +287,7 @@ func (a *Adapter) EnsureIngressRule(
 	}
 	switch len(exact) {
 	case 1:
-		return securityRuleResource(identity, exact[0]), nil
+		return coreprovider.ResourceResult{}, ErrResourceOwnership
 	case 0:
 		// Continue to create.
 	default:

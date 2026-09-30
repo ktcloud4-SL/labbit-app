@@ -54,7 +54,11 @@ func (a *Adapter) Reset(ctx context.Context, request coreprovider.ResetRequest) 
 	// This read-only check intentionally happens before cleanup. If the original
 	// image, flavor, key pair, or network can no longer reproduce the snapshot,
 	// the existing generation remains untouched.
-	if err := a.preflightProvision(ctx, config, request.CreationSnapshot, quotaCreditForReset(oldResources, request.CreationSnapshot)); err != nil {
+	credit, err := a.quotaCreditForExistingReset(ctx, oldResources, request.CreationSnapshot)
+	if err != nil {
+		return preflightFailure(resourceResults(oldResources, stateDeleteNotAttempted), err, "OpenStack Reset resource preflight failed"), nil
+	}
+	if err := a.preflightProvision(ctx, config, request.CreationSnapshot, credit); err != nil {
 		return preflightFailure(resourceResults(oldResources, stateDeleteNotAttempted), err, "OpenStack Reset preflight failed"), nil
 	}
 
@@ -124,10 +128,8 @@ func (a *Adapter) deleteAndConfirm(ctx context.Context, resource coreprovider.Re
 		if gophercloud.ResponseCodeIs(err, 404) {
 			return nil
 		}
-		for status := 400; status < 500; status++ {
-			if gophercloud.ResponseCodeIs(err, status) {
-				return errors.Join(ErrResourceDelete, ErrMutationRejected)
-			}
+		if isDefiniteMutationRejection(err) {
+			return errors.Join(ErrResourceDelete, ErrMutationRejected)
 		}
 		return safeContextError(ctx, ErrResourceDelete)
 	}

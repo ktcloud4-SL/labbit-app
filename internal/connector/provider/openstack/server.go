@@ -1,7 +1,6 @@
 package openstackprovider
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"net"
@@ -81,7 +80,7 @@ func (a *Adapter) EnsureServer(
 		if !serverMatches(*detail, imageID, flavorID, keyPair, spec.Metadata) || !slices.Equal(normalizedIDs(attachedPortIDs), normalizedIDs(portIDs)) {
 			return coreprovider.ResourceResult{}, servers.Server{}, ErrServerConflict
 		}
-		return serverResource(identity, *detail), *detail, nil
+		return coreprovider.ResourceResult{}, servers.Server{}, ErrResourceOwnership
 	case 0:
 		// Continue to create.
 	default:
@@ -155,14 +154,23 @@ func (a *Adapter) waitServerActive(ctx context.Context, identity ResourceIdentit
 	}
 }
 
-func (a *Adapter) waitSSHReady(ctx context.Context, port ports.Port) error {
+func (a *Adapter) waitSSHReady(ctx context.Context, port ports.Port, serverID string) error {
 	address, err := managementAddress(port)
 	if err != nil {
 		return err
 	}
 	probe := a.sshProbe
 	if probe == nil {
-		probe = probeSSHBanner
+		hostIdentity, identityErr := sshHostKeyIdentity(a.provision.ProviderConnectionID, serverID)
+		if identityErr != nil {
+			return ErrSSHNotReady
+		}
+		probe = func(probeContext context.Context, probeAddress string) error {
+			if err := a.runSSHCommand(probeContext, probeAddress, hostIdentity, "true"); err != nil {
+				return ErrSSHNotReady
+			}
+			return nil
+		}
 	}
 	ticker := time.NewTicker(a.provision.PollInterval)
 	defer ticker.Stop()
@@ -176,29 +184,6 @@ func (a *Adapter) waitSSHReady(ctx context.Context, port ports.Port) error {
 		case <-ticker.C:
 		}
 	}
-}
-
-func probeSSHBanner(ctx context.Context, address string) error {
-	dialer := net.Dialer{Timeout: 2 * time.Second}
-	connection, err := dialer.DialContext(ctx, "tcp", address)
-	if err != nil {
-		return ErrSSHNotReady
-	}
-	defer connection.Close()
-	if err := connection.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
-		return ErrSSHNotReady
-	}
-	reader := bufio.NewReaderSize(connection, 1024)
-	for range 5 {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			return ErrSSHNotReady
-		}
-		if strings.HasPrefix(strings.TrimSpace(line), "SSH-") {
-			return nil
-		}
-	}
-	return ErrSSHNotReady
 }
 
 func managementAddress(port ports.Port) (string, error) {

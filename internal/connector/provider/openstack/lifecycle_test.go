@@ -27,7 +27,7 @@ func TestCleanupDeletesExactIDsInDependencyOrderAndTreats404AsDeleted(t *testing
 		}
 		t.Fatalf("unexpected request: %s %s", request.Method, request.URL.Path)
 	}))
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 
 	result, err := adapter.Cleanup(context.Background(), coreprovider.CleanupRequest{
 		Correlation: coreprovider.Correlation{OperationID: "cleanup-1", LabInstanceID: "lab-1", Generation: 1},
@@ -80,7 +80,7 @@ func TestCleanupDetachesRouterInterfaceBeforeDelete(t *testing.T) {
 			t.Fatalf("unexpected request: %s %s", request.Method, request.URL.String())
 		}
 	}))
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 	result, err := adapter.Cleanup(context.Background(), coreprovider.CleanupRequest{
 		Correlation:       coreprovider.Correlation{OperationID: "cleanup-router", LabInstanceID: "lab", Generation: 1},
 		ProviderResources: []coreprovider.ResourceRef{{ResourceType: coreprovider.ResourceTypeRouter, ProviderID: "router-1", Generation: 1}},
@@ -105,7 +105,7 @@ func TestCleanupUncertainDeleteStopsAndPreservesEveryTarget(t *testing.T) {
 		calls++
 		http.Error(response, "raw-provider-secret", http.StatusGatewayTimeout)
 	}))
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 
 	result, err := adapter.Cleanup(context.Background(), coreprovider.CleanupRequest{
 		Correlation: coreprovider.Correlation{OperationID: "cleanup-2", LabInstanceID: "lab-2", Generation: 1},
@@ -122,6 +122,23 @@ func TestCleanupUncertainDeleteStopsAndPreservesEveryTarget(t *testing.T) {
 	}
 	if result.Error == nil || strings.Contains(strings.ToLower(result.Error.Message), "secret") {
 		t.Fatalf("unsafe error: %+v", result.Error)
+	}
+}
+
+func TestCleanupRequestTimeoutRemainsUnknown(t *testing.T) {
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodDelete {
+			t.Fatalf("unexpected request: %s %s", request.Method, request.URL.Path)
+		}
+		http.Error(response, "request timed out", http.StatusRequestTimeout)
+	}))
+	adapter.provision = testProvisionConfig(t)
+	result, err := adapter.Cleanup(context.Background(), coreprovider.CleanupRequest{
+		Correlation:       coreprovider.Correlation{OperationID: "cleanup-408", LabInstanceID: "lab", Generation: 1},
+		ProviderResources: []coreprovider.ResourceRef{{ResourceType: coreprovider.ResourceTypeServer, ProviderID: "server-1", Generation: 1}},
+	})
+	if err != nil || result.Outcome != coreprovider.OutcomeUnknown || result.ProviderResources[0].ObservedState != stateDeleteUnknown {
+		t.Fatalf("Cleanup() = %+v, %v", result, err)
 	}
 }
 
@@ -146,7 +163,7 @@ func TestResetPreflightFailureDoesNotDeleteCurrentGeneration(t *testing.T) {
 		}
 		http.NotFound(response, request)
 	}))
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 
 	result, err := adapter.Reset(context.Background(), coreprovider.ResetRequest{
 		Correlation:       coreprovider.Correlation{OperationID: "reset-1", LabInstanceID: "lab-1", Generation: 2},
@@ -154,6 +171,39 @@ func TestResetPreflightFailureDoesNotDeleteCurrentGeneration(t *testing.T) {
 		ProviderResources: validResetResourceRefs(validSnapshot(), 1),
 	})
 	if err != nil || deletes != 0 || result.Outcome != coreprovider.OutcomeFailed || len(result.ProviderResources) != 8 || result.ProviderResources[0].ObservedState != stateDeleteNotAttempted {
+		t.Fatalf("Reset() deletes=%d result=%+v err=%v", deletes, result, err)
+	}
+}
+
+func TestResetDoesNotCreditMissingResourcesBeforeDestructiveCleanup(t *testing.T) {
+	fake := &m2OpenStackFake{t: t}
+	deletes := 0
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodDelete {
+			deletes++
+		}
+		if request.Method == http.MethodGet && strings.Contains(request.URL.Path, "-old") {
+			http.NotFound(response, request)
+			return
+		}
+		switch request.URL.Path {
+		case "/compute/v2/os-quota-sets/project-1/detail":
+			writeComputeQuota(t, response, 0)
+			return
+		case "/network/v2.0/quotas/project-1/details.json":
+			writeNetworkQuota(t, response, 0)
+			return
+		}
+		fake.ServeHTTP(response, request)
+	}))
+	adapter.provision = testProvisionConfig(t)
+
+	result, err := adapter.Reset(context.Background(), coreprovider.ResetRequest{
+		Correlation:       coreprovider.Correlation{OperationID: "reset-missing-credit", LabInstanceID: "lab", Generation: 2},
+		CreationSnapshot:  validSnapshot(),
+		ProviderResources: validResetResourceRefs(validSnapshot(), 1),
+	})
+	if err != nil || deletes != 0 || result.Outcome != coreprovider.OutcomeFailed || result.Error == nil || result.Error.Code != errorQuotaExceeded {
 		t.Fatalf("Reset() deletes=%d result=%+v err=%v", deletes, result, err)
 	}
 }
@@ -170,7 +220,7 @@ func TestResetRejectsMissingEmptyAndPartialResourcesBeforePreflight(t *testing.T
 		t.Run(test.name, func(t *testing.T) {
 			calls := 0
 			adapter := newTestAdapter(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls++ }))
-			adapter.provision = testProvisionConfig()
+			adapter.provision = testProvisionConfig(t)
 			result, err := adapter.Reset(context.Background(), coreprovider.ResetRequest{
 				Correlation:       coreprovider.Correlation{OperationID: "reset-invalid", LabInstanceID: "lab-invalid", Generation: 2},
 				CreationSnapshot:  validSnapshot(),
@@ -186,7 +236,7 @@ func TestResetRejectsMissingEmptyAndPartialResourcesBeforePreflight(t *testing.T
 func TestResetRejectsCurrentGenerationResourcesBeforePreflight(t *testing.T) {
 	calls := 0
 	adapter := newTestAdapter(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls++ }))
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 
 	result, err := adapter.Reset(context.Background(), coreprovider.ResetRequest{
 		Correlation:      coreprovider.Correlation{OperationID: "reset-generation", LabInstanceID: "lab-generation", Generation: 2},
@@ -206,7 +256,7 @@ func TestResetCleansOldGenerationThenProvisionsNewGeneration(t *testing.T) {
 	base := &m2OpenStackFake{t: t}
 	fake := &m3ResetFake{base: base, deleted: make(map[string]bool)}
 	adapter := newTestAdapter(t, fake)
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 	adapter.sshProbe = func(context.Context, string) error { return nil }
 	adapter.startupProbe = func(context.Context, string, string) error { return nil }
 
@@ -260,6 +310,31 @@ func (f *m3ResetFake) ServeHTTP(response http.ResponseWriter, request *http.Requ
 	if request.Method == http.MethodGet && f.deleted[request.URL.Path] {
 		http.NotFound(response, request)
 		return
+	}
+	if request.Method == http.MethodGet {
+		switch request.URL.Path {
+		case "/network/v2.0/networks/network-lab":
+			writeJSON(f.base.t, response, http.StatusOK, map[string]any{"network": map[string]any{"id": "network-lab", "status": "ACTIVE"}})
+			return
+		case "/network/v2.0/subnets/subnet-lab":
+			writeJSON(f.base.t, response, http.StatusOK, map[string]any{"subnet": map[string]any{"id": "subnet-lab"}})
+			return
+		case "/network/v2.0/routers/router-lab":
+			writeJSON(f.base.t, response, http.StatusOK, map[string]any{"router": map[string]any{"id": "router-lab", "status": "ACTIVE"}})
+			return
+		case "/network/v2.0/security-groups/security-group-lab":
+			writeJSON(f.base.t, response, http.StatusOK, map[string]any{"security_group": map[string]any{
+				"id": "security-group-lab", "security_group_rules": []any{
+					map[string]any{"id": "default-egress-v4", "security_group_id": "security-group-lab"},
+					map[string]any{"id": "default-egress-v6", "security_group_id": "security-group-lab"},
+					map[string]any{"id": "rule-lab", "security_group_id": "security-group-lab"},
+				},
+			}})
+			return
+		case "/network/v2.0/security-group-rules/rule-lab":
+			writeJSON(f.base.t, response, http.StatusOK, map[string]any{"security_group_rule": map[string]any{"id": "rule-lab", "security_group_id": "security-group-lab"}})
+			return
+		}
 	}
 	if request.Method == http.MethodPost {
 		for _, path := range createdResourcePaths(request.URL.Path) {

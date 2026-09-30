@@ -10,7 +10,7 @@ import (
 	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 )
 
-func TestEnsureNetworkReturnsExistingExactResource(t *testing.T) {
+func TestEnsureNetworkRejectsExistingExactNameWithoutClaimingOwnership(t *testing.T) {
 	posts := 0
 	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		if request.URL.Path != "/network/v2.0/networks" {
@@ -35,11 +35,36 @@ func TestEnsureNetworkReturnsExistingExactResource(t *testing.T) {
 		Generation:  3,
 		LogicalName: "lab-network",
 	}, NetworkSpec{Name: "lab-network"})
-	if err != nil {
-		t.Fatalf("EnsureNetwork() error = %v", err)
-	}
-	if posts != 0 || result.ResourceType != coreprovider.ResourceTypeNetwork || result.ProviderID != "network-1" || result.Generation != 3 || result.ObservedState != "ACTIVE" {
+	if !errors.Is(err, ErrResourceOwnership) || posts != 0 || result.ProviderID != "" {
 		t.Fatalf("unexpected result: %+v, posts=%d", result, posts)
+	}
+}
+
+func TestEnsureNetworkTreatsRequestTimeoutAsUnknownMutation(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		status     int
+		isRejected bool
+	}{
+		{name: "request timeout", status: http.StatusRequestTimeout, isRejected: false},
+		{name: "bad request", status: http.StatusBadRequest, isRejected: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+				switch request.Method {
+				case http.MethodGet:
+					writeJSON(t, response, http.StatusOK, map[string]any{"networks": []any{}, "networks_links": []any{}})
+				case http.MethodPost:
+					http.Error(response, "provider response must not escape", test.status)
+				default:
+					response.WriteHeader(http.StatusMethodNotAllowed)
+				}
+			}))
+			_, err := adapter.EnsureNetwork(context.Background(), ResourceIdentity{Generation: 1, LogicalName: "lab-network"}, NetworkSpec{Name: "lab-network"})
+			if !errors.Is(err, ErrNetworkCreate) || errors.Is(err, ErrMutationRejected) != test.isRejected {
+				t.Fatalf("EnsureNetwork() error = %v, rejected = %v", err, errors.Is(err, ErrMutationRejected))
+			}
+		})
 	}
 }
 

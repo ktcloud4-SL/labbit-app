@@ -630,14 +630,14 @@ func testM1NetworkFoundation(t *testing.T, adapter *Adapter) {
 		}
 	})
 
-	if second, err := adapter.EnsureNetwork(ctx, identity, NetworkSpec{Name: name}); err != nil || second.ProviderID != networkResult.ProviderID {
-		t.Fatalf("network lookup after creation failed: result=%+v error=%v", second, err)
+	if second, err := adapter.EnsureNetwork(ctx, identity, NetworkSpec{Name: name}); !errors.Is(err, ErrResourceOwnership) || second.ProviderID != "" {
+		t.Fatalf("existing network was incorrectly claimed: result=%+v error=%v", second, err)
 	}
-	if second, err := adapter.EnsureSubnet(ctx, identity, SubnetSpec{Name: name + "-subnet", NetworkID: networkResult.ProviderID, CIDR: "198.18.0.0/24", EnableDHCP: true}); err != nil || second.ProviderID != subnetResult.ProviderID {
-		t.Fatalf("subnet lookup after creation failed: result=%+v error=%v", second, err)
+	if second, err := adapter.EnsureSubnet(ctx, identity, SubnetSpec{Name: name + "-subnet", NetworkID: networkResult.ProviderID, CIDR: "198.18.0.0/24", EnableDHCP: true}); !errors.Is(err, ErrResourceOwnership) || second.ProviderID != "" {
+		t.Fatalf("existing subnet was incorrectly claimed: result=%+v error=%v", second, err)
 	}
-	if second, err := adapter.EnsureSecurityGroup(ctx, identity, SecurityGroupSpec{Name: name + "-sg"}); err != nil || second.ProviderID != securityGroupResult.ProviderID {
-		t.Fatalf("security group lookup after creation failed: result=%+v error=%v", second, err)
+	if second, err := adapter.EnsureSecurityGroup(ctx, identity, SecurityGroupSpec{Name: name + "-sg"}); !errors.Is(err, ErrResourceOwnership) || second.ProviderID != "" {
+		t.Fatalf("existing security group was incorrectly claimed: result=%+v error=%v", second, err)
 	}
 
 	t.Logf("M1 network foundation succeeded and cleanup is scheduled: network=%s subnet=%s securityGroup=%s", networkResult.ProviderID, subnetResult.ProviderID, securityGroupResult.ProviderID)

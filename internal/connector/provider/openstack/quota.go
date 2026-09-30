@@ -7,6 +7,8 @@ import (
 
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/quotasets"
 	networkquotas "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/quotas"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 
 	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 )
@@ -82,13 +84,24 @@ func quotaRequired(snapshot coreprovider.CreationSnapshot) quotaUsage {
 	return required
 }
 
-func quotaCreditForReset(resources []coreprovider.ResourceRef, snapshot coreprovider.CreationSnapshot) quotaUsage {
+// quotaCreditForExistingReset credits only resources that still exist by the
+// exact Provider IDs persisted by Control. A stale ID must not make destructive
+// Reset preflight appear to have more capacity than cleanup can actually free.
+func (a *Adapter) quotaCreditForExistingReset(ctx context.Context, resources []coreprovider.ResourceRef, snapshot coreprovider.CreationSnapshot) (quotaUsage, error) {
 	credit := quotaUsage{}
 	vmByKey := make(map[string]coreprovider.VMSpec, len(snapshot.VMs))
 	for _, vm := range snapshot.VMs {
 		vmByKey[vm.VMKey] = vm
 	}
+	creditedRules := make(map[string]struct{})
 	for _, resource := range resources {
+		_, exists, err := a.observeResource(ctx, resource)
+		if err != nil {
+			return quotaUsage{}, errors.Join(ErrQuotaLookup, err)
+		}
+		if !exists {
+			continue
+		}
 		switch resource.ResourceType {
 		case coreprovider.ResourceTypeServer:
 			credit.instances++
@@ -104,15 +117,38 @@ func quotaCreditForReset(resources []coreprovider.ResourceRef, snapshot coreprov
 			credit.ports++
 		case coreprovider.ResourceTypeRouter:
 			credit.routers++
-			credit.ports += 2
+			pages, err := ports.List(a.network, ports.ListOpts{DeviceID: resource.ProviderID}).AllPages(ctx)
+			if err != nil {
+				return quotaUsage{}, safeContextError(ctx, ErrQuotaLookup)
+			}
+			items, err := ports.ExtractPorts(pages)
+			if err != nil {
+				return quotaUsage{}, ErrQuotaLookup
+			}
+			// Provision accounts for one internal interface and one external
+			// gateway port. Never credit more than that requirement.
+			credit.ports += min(len(items), 2)
 		case coreprovider.ResourceTypeSecurityGroup:
 			credit.securityGroups++
-			credit.securityGroupRules += 2
+			group, err := groups.Get(ctx, a.network, resource.ProviderID).Extract()
+			if err != nil {
+				return quotaUsage{}, safeContextError(ctx, ErrQuotaLookup)
+			}
+			for _, rule := range group.Rules {
+				if _, alreadyCredited := creditedRules[rule.ID]; alreadyCredited {
+					continue
+				}
+				creditedRules[rule.ID] = struct{}{}
+				credit.securityGroupRules++
+			}
 		case coreprovider.ResourceTypeSecurityRule:
-			credit.securityGroupRules++
+			if _, alreadyCredited := creditedRules[resource.ProviderID]; !alreadyCredited {
+				creditedRules[resource.ProviderID] = struct{}{}
+				credit.securityGroupRules++
+			}
 		}
 	}
-	return credit
+	return credit, nil
 }
 
 func computeQuotaAvailable(detail quotasets.QuotaDetail, required, credit int) bool {

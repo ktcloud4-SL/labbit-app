@@ -2,23 +2,28 @@ package openstackprovider
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"golang.org/x/crypto/ssh"
 )
 
 func TestDispatchOperationProvisionCreatesDualNICServerAndTracksResources(t *testing.T) {
 	fake := &m2OpenStackFake{t: t}
 	adapter := newTestAdapter(t, fake)
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 	adapter.sshProbe = func(_ context.Context, address string) error {
 		if address != "172.16.8.200:22" {
 			t.Fatalf("SSH probe address = %q", address)
@@ -93,7 +98,7 @@ func TestDispatchOperationProvisionCreatesDualNICServerAndTracksResources(t *tes
 func TestPreflightQuotaAllowsAvailableCapacity(t *testing.T) {
 	fake := &m2OpenStackFake{t: t}
 	adapter := newTestAdapter(t, fake)
-	if err := adapter.preflightQuota(context.Background(), testProvisionConfig(), validSnapshot(), quotaUsage{}); err != nil {
+	if err := adapter.preflightQuota(context.Background(), testProvisionConfig(t), validSnapshot(), quotaUsage{}); err != nil {
 		t.Fatalf("preflightQuota() error = %v", err)
 	}
 }
@@ -107,7 +112,7 @@ func TestProvisionRejectsNonExternalOutboundNetworkBeforeMutation(t *testing.T) 
 		}
 		fake.ServeHTTP(response, request)
 	}))
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 
 	result, err := adapter.Provision(context.Background(), coreprovider.ProvisionRequest{
 		Correlation:      coreprovider.Correlation{OperationID: "external-network", LabInstanceID: "external-network-lab", Generation: 1},
@@ -131,7 +136,7 @@ func TestProvisionRejectsInsufficientQuotaBeforeMutation(t *testing.T) {
 		}
 		fake.ServeHTTP(response, request)
 	}))
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 
 	result, err := adapter.Provision(context.Background(), coreprovider.ProvisionRequest{
 		Correlation:      coreprovider.Correlation{OperationID: "quota", LabInstanceID: "quota-lab", Generation: 1},
@@ -145,7 +150,7 @@ func TestProvisionRejectsInsufficientQuotaBeforeMutation(t *testing.T) {
 func TestProvisionSupportsMultipleVMs(t *testing.T) {
 	fake := &m2OpenStackFake{t: t}
 	adapter := newTestAdapter(t, fake)
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 	adapter.sshProbe = func(context.Context, string) error { return nil }
 	adapter.startupProbe = func(context.Context, string, string) error { return nil }
 	snapshot := validSnapshot()
@@ -171,7 +176,7 @@ func TestProvisionSupportsMultipleVMs(t *testing.T) {
 func TestProvisionWithoutInternetDoesNotCreateRouter(t *testing.T) {
 	fake := &m2OpenStackFake{t: t}
 	adapter := newTestAdapter(t, fake)
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 	adapter.sshProbe = func(context.Context, string) error { return nil }
 	adapter.startupProbe = func(context.Context, string, string) error { return nil }
 	snapshot := validSnapshot()
@@ -199,7 +204,7 @@ func TestProvisionWithoutInternetRejectsManagementSecurityGroupEgressBeforeMutat
 		}
 		fake.ServeHTTP(response, request)
 	}))
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 	snapshot := validSnapshot()
 	snapshot.InternetOutbound = false
 
@@ -215,7 +220,7 @@ func TestProvisionWithoutInternetRejectsManagementSecurityGroupEgressBeforeMutat
 func TestProvisionServerCreateFailureIsUnknownWithPartialResources(t *testing.T) {
 	fake := &m2OpenStackFake{t: t, failServerStatus: http.StatusGatewayTimeout}
 	adapter := newTestAdapter(t, fake)
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 
 	result, err := adapter.Provision(context.Background(), coreprovider.ProvisionRequest{
 		Correlation: coreprovider.Correlation{
@@ -244,7 +249,7 @@ func TestProvisionServerCreateFailureIsUnknownWithPartialResources(t *testing.T)
 func TestProvisionRejectedServerCreateIsFailedWithPartialResources(t *testing.T) {
 	fake := &m2OpenStackFake{t: t, failServerStatus: http.StatusBadRequest}
 	adapter := newTestAdapter(t, fake)
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 
 	result, err := adapter.Provision(context.Background(), coreprovider.ProvisionRequest{
 		Correlation:      coreprovider.Correlation{OperationID: "operation", LabInstanceID: "lab", Generation: 1},
@@ -264,7 +269,7 @@ func TestProvisionRejectsInvalidSnapshotBeforeOpenStackCalls(t *testing.T) {
 		calls++
 		http.Error(response, "unexpected", http.StatusInternalServerError)
 	}))
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 	snapshot := validSnapshot()
 	snapshot.StartupScript.SHA256 = strings.Repeat("0", 64)
 
@@ -280,10 +285,81 @@ func TestProvisionRejectsInvalidSnapshotBeforeOpenStackCalls(t *testing.T) {
 	}
 }
 
+func TestProvisionRejectsCollidingDerivedVMNamesBeforeOpenStackCalls(t *testing.T) {
+	for _, vmKeys := range [][]string{
+		{"web/1", "web-1"},
+		{"worker-identifier-that-is-long-a", "worker-identifier-that-is-long-b"},
+	} {
+		t.Run(strings.Join(vmKeys, "_"), func(t *testing.T) {
+			calls := 0
+			adapter := newTestAdapter(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls++ }))
+			adapter.provision = testProvisionConfig(t)
+			snapshot := validSnapshot()
+			snapshot.VMs = nil
+			for index, vmKey := range vmKeys {
+				snapshot.VMs = append(snapshot.VMs, coreprovider.VMSpec{
+					VMKey: vmKey, Role: "WORKER", InstanceIndex: int64(index), ImageID: "image-ubuntu", FlavorID: "flavor-small",
+					FlavorSpec: coreprovider.FlavorSpec{VCPUs: 1, RAMMiB: 2048, DiskGiB: 20},
+				})
+			}
+			snapshot.WorkspaceVMKey = vmKeys[0]
+			result, err := adapter.Provision(context.Background(), coreprovider.ProvisionRequest{
+				Correlation:      coreprovider.Correlation{OperationID: "name-collision", LabInstanceID: "lab", Generation: 1},
+				CreationSnapshot: snapshot,
+			})
+			if err != nil || calls != 0 || result.Outcome != coreprovider.OutcomeFailed || result.Error == nil || result.Error.Code != errorInvalidProvision {
+				t.Fatalf("Provision() calls=%d result=%+v err=%v", calls, result, err)
+			}
+		})
+	}
+}
+
+func TestProvisionRejectsUnreadableSSHPrivateKeyBeforeMutation(t *testing.T) {
+	fake := &m2OpenStackFake{t: t}
+	mutations := 0
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodPost || request.Method == http.MethodPut || request.Method == http.MethodDelete {
+			mutations++
+		}
+		fake.ServeHTTP(response, request)
+	}))
+	adapter.provision = testProvisionConfig(t)
+	adapter.provision.SSHPrivateKeyFile = filepath.Join(t.TempDir(), "missing-private-key")
+
+	result, err := adapter.Provision(context.Background(), coreprovider.ProvisionRequest{
+		Correlation:      coreprovider.Correlation{OperationID: "ssh-preflight", LabInstanceID: "lab", Generation: 1},
+		CreationSnapshot: validSnapshot(),
+	})
+	if err != nil || mutations != 0 || result.Outcome != coreprovider.OutcomeFailed {
+		t.Fatalf("Provision() mutations=%d result=%+v err=%v", mutations, result, err)
+	}
+}
+
+func TestProvisionRejectsMismatchedSSHPrivateKeyBeforeMutation(t *testing.T) {
+	fake := &m2OpenStackFake{t: t}
+	mutations := 0
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodPost || request.Method == http.MethodPut || request.Method == http.MethodDelete {
+			mutations++
+		}
+		fake.ServeHTTP(response, request)
+	}))
+	adapter.provision = testProvisionConfig(t)
+	adapter.provision.SSHPrivateKeyFile = writeTestPrivateKey(t, "different-key")
+
+	result, err := adapter.Provision(context.Background(), coreprovider.ProvisionRequest{
+		Correlation:      coreprovider.Correlation{OperationID: "ssh-key-mismatch", LabInstanceID: "lab", Generation: 1},
+		CreationSnapshot: validSnapshot(),
+	})
+	if err != nil || mutations != 0 || result.Outcome != coreprovider.OutcomeFailed {
+		t.Fatalf("Provision() mutations=%d result=%+v err=%v", mutations, result, err)
+	}
+}
+
 func TestProvisionRejectsProviderConnectionMismatchBeforeOpenStackCalls(t *testing.T) {
 	calls := 0
 	adapter := newTestAdapter(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls++ }))
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 	snapshot := validSnapshot()
 	snapshot.ProviderConnectionID = "different-provider-connection"
 
@@ -299,7 +375,7 @@ func TestProvisionRejectsProviderConnectionMismatchBeforeOpenStackCalls(t *testi
 func TestProvisionSSHTimeoutIsFailedAndPreservesActiveServer(t *testing.T) {
 	fake := &m2OpenStackFake{t: t}
 	adapter := newTestAdapter(t, fake)
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 	adapter.provision.SSHReadyTimeout = 5 * time.Millisecond
 	adapter.sshProbe = func(context.Context, string) error { return errors.New("raw ssh failure") }
 
@@ -323,7 +399,7 @@ func TestProvisionSSHTimeoutIsFailedAndPreservesActiveServer(t *testing.T) {
 func TestProvisionWaitsForStartupCompletionBeforeSuccess(t *testing.T) {
 	fake := &m2OpenStackFake{t: t}
 	adapter := newTestAdapter(t, fake)
-	adapter.provision = testProvisionConfig()
+	adapter.provision = testProvisionConfig(t)
 	adapter.provision.StartupReadyTimeout = 5 * time.Millisecond
 	adapter.sshProbe = func(context.Context, string) error { return nil }
 	adapter.startupProbe = func(context.Context, string, string) error { return ErrStartupNotReady }
@@ -373,7 +449,10 @@ func validSnapshot() coreprovider.CreationSnapshot {
 	}
 }
 
-func testProvisionConfig() ProvisionConfig {
+func testProvisionConfig(t *testing.T) ProvisionConfig {
+	t.Helper()
+	directory := t.TempDir()
+	privateKeyFile := writeTestPrivateKey(t, "default-key")
 	return normalizedProvisionConfig(ProvisionConfig{
 		ProviderConnectionID:      "provider-connection-1",
 		ProjectID:                 "project-1",
@@ -384,13 +463,42 @@ func testProvisionConfig() ProvisionConfig {
 		SSHAllowedCIDR:            "172.16.8.1/32",
 		LabSubnetCIDR:             "198.19.0.0/24",
 		SSHUsername:               "ubuntu",
-		SSHPrivateKeyFile:         "unused-test-key",
-		SSHKnownHostsFile:         "unused-known-hosts",
+		SSHPrivateKeyFile:         privateKeyFile,
+		SSHKnownHostsFile:         filepath.Join(directory, "known_hosts"),
 		ActiveTimeout:             time.Second,
 		SSHReadyTimeout:           time.Second,
 		StartupReadyTimeout:       time.Second,
 		PollInterval:              time.Millisecond,
 	})
+}
+
+func writeTestPrivateKey(t *testing.T, label string) string {
+	t.Helper()
+	privateKeyFile := filepath.Join(t.TempDir(), "id_ed25519")
+	privateKey := testPrivateKey(label)
+	block, err := ssh.MarshalPrivateKey(privateKey, "")
+	if err != nil {
+		t.Fatalf("marshal test SSH private key: %v", err)
+	}
+	if err := os.WriteFile(privateKeyFile, pem.EncodeToMemory(block), 0o600); err != nil {
+		t.Fatalf("write test SSH private key: %v", err)
+	}
+	return privateKeyFile
+}
+
+func testAuthorizedPublicKey(t *testing.T) string {
+	t.Helper()
+	privateKey := testPrivateKey("default-key")
+	publicKey, err := ssh.NewPublicKey(privateKey.Public())
+	if err != nil {
+		t.Fatalf("build test SSH public key: %v", err)
+	}
+	return strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicKey)))
+}
+
+func testPrivateKey(label string) ed25519.PrivateKey {
+	seed := sha256.Sum256([]byte("labbit-openstack-provider-test-key:" + label))
+	return ed25519.NewKeyFromSeed(seed[:])
 }
 
 func assertResourceCount(t *testing.T, resources []coreprovider.ResourceResult, resourceType string, expected int) {
@@ -455,7 +563,7 @@ func (f *m2OpenStackFake) ServeHTTP(response http.ResponseWriter, request *http.
 	case request.Method == http.MethodGet && request.URL.Path == "/network/v2.0/quotas/project-1/details.json":
 		writeNetworkQuota(f.t, response, 100000)
 	case request.Method == http.MethodGet && request.URL.Path == "/compute/v2/os-keypairs/openstack2":
-		writeJSON(f.t, response, http.StatusOK, map[string]any{"keypair": map[string]any{"name": "openstack2", "public_key": "ssh-rsa test", "fingerprint": "test"}})
+		writeJSON(f.t, response, http.StatusOK, map[string]any{"keypair": map[string]any{"name": "openstack2", "public_key": testAuthorizedPublicKey(f.t), "fingerprint": "test"}})
 	case request.Method == http.MethodGet && request.URL.Path == "/image/v2/images/image-ubuntu":
 		writeJSON(f.t, response, http.StatusOK, map[string]any{"id": "image-ubuntu", "name": "ubuntu", "status": "active"})
 	case request.Method == http.MethodGet && request.URL.Path == "/compute/v2/flavors/flavor-small":

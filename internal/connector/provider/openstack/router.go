@@ -25,9 +25,10 @@ type RouterSpec struct {
 	SubnetID          string
 }
 
-// EnsureRouter creates or verifies the generation-specific outbound router,
-// then idempotently attaches the Lab subnet. The router result is preserved
-// when interface attachment is uncertain so Control can reconcile or clean it.
+// EnsureRouter creates a generation-specific outbound router only when the
+// deterministic name is unused, then attaches the Lab subnet. The newly
+// created router result is preserved when attachment is uncertain so Control
+// can reconcile or clean it.
 func (a *Adapter) EnsureRouter(ctx context.Context, identity ResourceIdentity, spec RouterSpec) (coreprovider.ResourceResult, error) {
 	if a == nil || a.network == nil {
 		return coreprovider.ResourceResult{}, ErrClientUnavailable
@@ -57,10 +58,10 @@ func (a *Adapter) EnsureRouter(ctx context.Context, identity ResourceIdentity, s
 	var item routers.Router
 	switch len(exact) {
 	case 1:
-		item = exact[0]
-		if item.GatewayInfo.NetworkID != externalNetworkID {
-			return routerResource(identity, item), ErrRouterConflict
+		if exact[0].GatewayInfo.NetworkID != externalNetworkID {
+			return coreprovider.ResourceResult{}, ErrRouterConflict
 		}
+		return coreprovider.ResourceResult{}, ErrResourceOwnership
 	case 0:
 		adminStateUp := true
 		enableSNAT := true

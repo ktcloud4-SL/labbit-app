@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"os"
 	"strconv"
 	"strings"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/rules"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
+	"golang.org/x/crypto/ssh"
 
 	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 )
@@ -198,7 +200,7 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 
 		if vm.VMKey == request.CreationSnapshot.WorkspaceVMKey || request.CreationSnapshot.StartupScript != nil {
 			sshContext, cancelSSH := context.WithTimeout(ctx, config.SSHReadyTimeout)
-			err = a.waitSSHReady(sshContext, managementPort)
+			err = a.waitSSHReady(sshContext, managementPort, server.ID)
 			cancelSSH()
 			if err != nil {
 				if (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) && ctx.Err() != nil {
@@ -245,7 +247,7 @@ func validateProvisionSettings(config ProvisionConfig, snapshot coreprovider.Cre
 	if config.ProviderConnectionID == "" || snapshot.ProviderConnectionID != config.ProviderConnectionID {
 		return ErrProvisionConfig
 	}
-	if snapshot.StartupScript != nil && (config.SSHUsername == "" || config.SSHPrivateKeyFile == "" || config.SSHKnownHostsFile == "") {
+	if config.SSHUsername == "" || config.SSHPrivateKeyFile == "" || config.SSHKnownHostsFile == "" {
 		return ErrProvisionConfig
 	}
 	return nil
@@ -260,6 +262,7 @@ func validateProvisionRequest(request coreprovider.ProvisionRequest) error {
 		return ErrProvisionRequest
 	}
 	seen := make(map[string]struct{}, len(snapshot.VMs))
+	derivedNames := make(map[string]struct{}, len(snapshot.VMs))
 	workspaceFound := false
 	for _, vm := range snapshot.VMs {
 		vmKey := strings.TrimSpace(vm.VMKey)
@@ -270,6 +273,11 @@ func validateProvisionRequest(request coreprovider.ProvisionRequest) error {
 			return ErrProvisionRequest
 		}
 		seen[vmKey] = struct{}{}
+		derivedName := safeName(vmKey, 28)
+		if _, ok := derivedNames[derivedName]; ok {
+			return ErrProvisionRequest
+		}
+		derivedNames[derivedName] = struct{}{}
 		workspaceFound = workspaceFound || vmKey == snapshot.WorkspaceVMKey
 	}
 	if !workspaceFound {
@@ -310,6 +318,9 @@ func (a *Adapter) preflightProvision(ctx context.Context, config ProvisionConfig
 	if err != nil || keyPair.Name != config.KeyPairName {
 		return ErrProvisionCheck
 	}
+	if err := validateSSHCredential(config, keyPair.PublicKey); err != nil {
+		return err
+	}
 	seenImages := make(map[string]struct{}, len(snapshot.VMs))
 	seenFlavors := make(map[string]coreprovider.FlavorSpec, len(snapshot.VMs))
 	for _, vm := range snapshot.VMs {
@@ -333,6 +344,29 @@ func (a *Adapter) preflightProvision(ctx context.Context, config ProvisionConfig
 		}
 	}
 	return a.preflightQuota(ctx, config, snapshot, credit)
+}
+
+func validateSSHCredential(config ProvisionConfig, providerPublicKey string) error {
+	privateKey, err := os.ReadFile(config.SSHPrivateKeyFile)
+	if err != nil {
+		return ErrProvisionCheck
+	}
+	signer, err := ssh.ParsePrivateKey(privateKey)
+	if err != nil {
+		return ErrProvisionCheck
+	}
+	publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(strings.TrimSpace(providerPublicKey)))
+	if err != nil || ssh.FingerprintSHA256(publicKey) != ssh.FingerprintSHA256(signer.PublicKey()) {
+		return ErrProvisionCheck
+	}
+	knownHosts, err := os.OpenFile(config.SSHKnownHostsFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return ErrProvisionCheck
+	}
+	if err := knownHosts.Close(); err != nil {
+		return ErrProvisionCheck
+	}
+	return nil
 }
 
 func (a *Adapter) validateManagementSecurityGroup(ctx context.Context, config ProvisionConfig) error {

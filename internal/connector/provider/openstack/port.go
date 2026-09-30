@@ -26,9 +26,9 @@ type PortSpec struct {
 	SecurityGroupIDs []string
 }
 
-// EnsurePort returns the exact network/name/specification port or creates it.
-// Ports are created before Nova so every NIC has a durable ProviderResource ID
-// even when VM creation or readiness later fails.
+// EnsurePort creates a port only when the deterministic network/name tuple is
+// unused. Ports are created before Nova so every newly-created NIC has a
+// durable ProviderResource ID even when VM readiness later fails.
 func (a *Adapter) EnsurePort(
 	ctx context.Context,
 	identity ResourceIdentity,
@@ -64,7 +64,7 @@ func (a *Adapter) EnsurePort(
 		if !portMatches(exact[0], subnetID, securityGroupIDs) {
 			return coreprovider.ResourceResult{}, ports.Port{}, ErrPortConflict
 		}
-		return portResource(identity, exact[0]), exact[0], nil
+		return coreprovider.ResourceResult{}, ports.Port{}, ErrResourceOwnership
 	case 0:
 		// Continue to create.
 	default:

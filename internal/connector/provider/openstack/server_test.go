@@ -2,11 +2,12 @@ package openstackprovider
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"testing"
 )
 
-func TestEnsureServerReusesMatchingServerAndPorts(t *testing.T) {
+func TestEnsureServerRejectsMatchingServerWithoutPersistedOwnership(t *testing.T) {
 	posts := 0
 	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		switch {
@@ -39,10 +40,7 @@ func TestEnsureServerReusesMatchingServerAndPorts(t *testing.T) {
 		PortIDs:  []string{"port-management", "port-lab"},
 		Metadata: map[string]string{"labbit_vm_key": "workspace"},
 	})
-	if err != nil {
-		t.Fatalf("EnsureServer() error = %v", err)
-	}
-	if posts != 0 || server.ID != "server-1" || resource.ProviderID != "server-1" || resource.ObservedState != "ACTIVE" {
+	if !errors.Is(err, ErrResourceOwnership) || posts != 0 || server.ID != "" || resource.ProviderID != "" {
 		t.Fatalf("server = %+v, resource = %+v, posts = %d", server, resource, posts)
 	}
 }

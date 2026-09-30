@@ -650,6 +650,55 @@ describe('Auth·Class·LabSpec routing', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('dev-student는 Alpha에서 STUDENT로 보이고 Membership 없는 Bravo는 403 처리한다', async () => {
+    const studentMe: Me = {
+      ...meFixture,
+      id: 'user-dev-student',
+      username: 'dev-student',
+      organizationRole: 'MEMBER',
+    }
+
+    const studentApi = createApi({
+      getMe: async () => studentMe,
+      listClasses: async () => ({
+        items: [
+          {
+            id: 'class-alpha',
+            name: 'Class Alpha',
+            myRole: 'STUDENT',
+          },
+        ],
+      }),
+      getClass: async (classId) => {
+        if (classId === 'class-alpha') {
+          return {
+            id: 'class-alpha',
+            name: 'Class Alpha',
+            myRole: 'STUDENT',
+          }
+        }
+
+        throw new HttpError(403)
+      },
+    })
+
+    const alphaRouter = renderRoute('/classes/class-alpha', studentApi)
+
+    expect(
+      await screen.findByRole('heading', { name: 'Class Alpha' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('수강생')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: '실습 정의 관리' }),
+    ).not.toBeInTheDocument()
+
+    alphaRouter.navigate('/classes/class-bravo')
+
+    expect(
+      await screen.findByText('이 수업을 볼 권한이 없습니다.'),
+    ).toBeInTheDocument()
+  })
+
   it('Class 상세 403은 권한 없음 상태로 표시한다', async () => {
     renderRoute(
       '/classes/forbidden-class',

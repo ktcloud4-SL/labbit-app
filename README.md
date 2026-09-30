@@ -88,6 +88,27 @@ make dev-db-down        # container만 중지, DB volume은 유지
 - `make go-integration-test`는 개발 DB(`labbit`)가 아니라 같은 server에 test별 임시 database를 만들고 삭제합니다.
 - 개발 DB를 완전히 초기화해야 할 때만 `docker compose down -v`를 직접 실행합니다. 이 명령은 volume의 데이터를 삭제합니다.
 
+#### Local Auth/Class fixture
+
+Local Browser 검증에서 실제 Backend HTTP로 로그인·Class 목록을 확인할 수 있도록 dev-only fixture를 저장합니다. 기존 Bootstrap use case(`bootstrap.Run`)를 재사용하는 실행기이며 **production Bootstrap 방법이 아닙니다.**
+
+```bash
+make dev-db-up
+make dev-db-migrate
+make dev-auth-class-fixture
+make server             # 별도 terminal에서 make web
+```
+
+- Password는 실행 시 무작위로 생성해 `.local/dev-auth-class-fixture.json`(gitignore, mode 0600)에만 저장하며 DB에는 Argon2id hash만 들어갑니다. Git에 commit하지 않습니다.
+- Migration은 실행하지 않으며 기존 row를 삭제·갱신하지 않습니다. 이미 fixture가 있으면 아무것도 저장하지 않고 실패합니다. 다시 만들려면 개발 DB를 직접 초기화합니다.
+- Organization `Labbit Local Dev`, Class `Dev Alpha`/`Dev Bravo`:
+
+| 계정 | Organization role | Class Membership |
+| --- | --- | --- |
+| `dev-admin` | ADMIN | 없음 |
+| `dev-instructor` | MEMBER | Alpha INSTRUCTOR, Bravo STUDENT |
+| `dev-student` | MEMBER | Alpha STUDENT |
+
 Backend 구현 경계는 [docs/backend/README.md](./docs/backend/README.md), Auth/Session 구현 기준은 [docs/backend/auth-session.md](./docs/backend/auth-session.md), 테스트 규칙은 [TESTING.md](./TESTING.md)를 따릅니다.
 
 Git/PR 규칙은 [CONTRIBUTING.md](./CONTRIBUTING.md)를 따릅니다. Commit은 Conventional 형식을 사용하고, Jira Task가 있는 PR은 제목에 `LBT-*`를 남기며, `main` 반영은 **Squash Merge**를 사용합니다.

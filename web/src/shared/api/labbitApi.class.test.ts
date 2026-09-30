@@ -7,6 +7,22 @@ describe('httpLabbitApi Class consumer', () => {
     vi.unstubAllGlobals()
   })
 
+  it('Class 목록의 빈 items 응답을 그대로 전달한다', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ items: [] }), {
+          status: 200,
+          headers: {
+            'content-type': 'application/json',
+          },
+        }),
+      ),
+    )
+
+    await expect(httpLabbitApi.listClasses()).resolves.toEqual({ items: [] })
+  })
+
   it('Class 상세 403 응답을 HttpError로 전달한다', async () => {
     vi.stubGlobal(
       'fetch',

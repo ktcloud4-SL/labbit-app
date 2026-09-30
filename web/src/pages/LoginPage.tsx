@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
+import { shouldShowMockAccountHint } from '../shared/api/apiMode'
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
@@ -19,6 +20,10 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
   const state = location.state as LoginLocationState | null
+  const showMockAccountHint = shouldShowMockAccountHint(
+    import.meta.env.DEV,
+    import.meta.env.VITE_LABBIT_API_MODE,
+  )
 
   const loginMutation = useMutation({
     mutationFn: async () => {
@@ -113,7 +118,7 @@ export function LoginPage() {
           </button>
         </form>
 
-        {import.meta.env.DEV && (
+        {showMockAccountHint && (
           <p className="dev-hint">개발 Mock 계정: heechul / password</p>
         )}
       </section>

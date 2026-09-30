@@ -52,6 +52,54 @@ describe('LoginPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('Login 성공 뒤 /me 401은 잘못된 비밀번호로 오인하지 않는다', async () => {
+    const queryClient = new QueryClient()
+    const api = {
+      ...mockLabbitApi,
+      login: async () => {},
+      getMe: async () => {
+        throw new HttpError(401)
+      },
+    }
+
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/login',
+          element: <LoginPage />,
+        },
+      ],
+      {
+        initialEntries: ['/login'],
+      },
+    )
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <LabbitApiProvider api={api}>
+          <RouterProvider router={router} />
+        </LabbitApiProvider>
+      </QueryClientProvider>,
+    )
+
+    fireEvent.change(screen.getByLabelText('사용자 이름'), {
+      target: { value: 'valid-user' },
+    })
+    fireEvent.change(screen.getByLabelText('비밀번호'), {
+      target: { value: 'valid-password' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    expect(
+      await screen.findByText(
+        '로그인 후 사용자 정보를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText('사용자 이름 또는 비밀번호를 확인해 주세요.'),
+    ).not.toBeInTheDocument()
+  })
+
   it('직접 재로그인 성공 시 이전 사용자 query cache를 제거하고 새 me만 저장한다', async () => {
     const queryClient = new QueryClient()
     queryClient.setQueryData(labbitQueryKeys.me, {

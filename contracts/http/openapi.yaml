@@ -61,6 +61,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/CsrfRejected'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /auth/logout:
     post:
@@ -77,6 +79,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/CsrfRejected'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /me:
     get:
@@ -92,6 +96,8 @@ paths:
                 $ref: '#/components/schemas/Me'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /classes:
     get:
@@ -674,6 +680,16 @@ components:
 
     ServiceUnavailable:
       description: Connector 또는 Provider 같은 필수 의존성이 일시적으로 사용 불가능합니다.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+    InternalServerError:
+      description: |
+        서버 내부 오류로 요청을 처리하지 못했습니다.
+        응답에는 안전한 고정 설명과 requestId만 포함하며 DB 오류 문자열, SQLSTATE,
+        constraint 이름 같은 내부 오류 원문은 포함하지 않습니다.
       content:
         application/problem+json:
           schema:

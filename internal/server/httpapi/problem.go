@@ -13,6 +13,8 @@ const (
 	codeInvalidRequest     = "invalid_request"
 	codeInvalidCredentials = "invalid_credentials"
 	codeUnauthenticated    = "unauthenticated"
+	codeForbidden          = "forbidden"
+	codeNotFound           = "not_found"
 	codeCSRFRejected       = "csrf_rejected"
 	codeInternal           = "internal_error"
 )

@@ -101,22 +101,25 @@ func (f *fakeAuth) Logout(_ context.Context, sessionID uuid.UUID) error {
 type harness struct {
 	handler http.Handler
 	auth    *fakeAuth
+	classes *fakeClasses
 	logs    *bytes.Buffer
 }
 
 func newHarness(t *testing.T) *harness {
 	t.Helper()
 	fake := newFakeAuth()
+	classes := &fakeClasses{}
 	logs := &bytes.Buffer{}
 	handler, err := New(Options{
 		Auth:         fake,
+		Classes:      classes,
 		PublicOrigin: trustedOrigin,
 		Logger:       slog.New(slog.NewJSONHandler(logs, nil)),
 	})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	return &harness{handler: handler, auth: fake, logs: logs}
+	return &harness{handler: handler, auth: fake, classes: classes, logs: logs}
 }
 
 // send는 request를 만들고 mods로 조정한 뒤 handler를 실행한다. 기본 Host는 trusted origin의 host다.
@@ -510,6 +513,12 @@ func TestProtectedEndpointsRequireSession(t *testing.T) {
 		{name: "logout", call: func(h *harness, mods ...func(*http.Request)) *httptest.ResponseRecorder {
 			return h.send(http.MethodPost, "/api/v1/auth/logout", "", append(mods, withHeader("Origin", trustedOrigin))...)
 		}},
+		{name: "list classes", call: func(h *harness, mods ...func(*http.Request)) *httptest.ResponseRecorder {
+			return h.send(http.MethodGet, "/api/v1/classes", "", mods...)
+		}},
+		{name: "get class", call: func(h *harness, mods ...func(*http.Request)) *httptest.ResponseRecorder {
+			return h.send(http.MethodGet, "/api/v1/classes/"+uuid.NewString(), "", mods...)
+		}},
 	}
 
 	for _, tt := range tests {
@@ -527,6 +536,9 @@ func TestProtectedEndpointsRequireSession(t *testing.T) {
 			assertNoSetCookie(t, rec)
 			if h.auth.authenticates != 0 {
 				t.Fatal("Cookie가 없는데 Session을 조회했습니다")
+			}
+			if h.classes.listCalls != 0 || len(h.classes.getCalls) != 0 {
+				t.Fatal("인증되지 않은 요청이 Class use case를 호출했습니다")
 			}
 		})
 
@@ -853,11 +865,14 @@ func TestEachRequestGetsItsOwnRequestID(t *testing.T) {
 }
 
 func TestNewValidatesOptions(t *testing.T) {
-	if _, err := New(Options{PublicOrigin: trustedOrigin}); err == nil {
+	if _, err := New(Options{Classes: &fakeClasses{}, PublicOrigin: trustedOrigin}); err == nil {
 		t.Error("Authenticator가 없으면 오류여야 합니다")
 	}
+	if _, err := New(Options{Auth: newFakeAuth(), PublicOrigin: trustedOrigin}); err == nil {
+		t.Error("Classes가 없으면 오류여야 합니다")
+	}
 	for _, origin := range []string{"", "labbit.test", "https://labbit.test/app"} {
-		if _, err := New(Options{Auth: newFakeAuth(), PublicOrigin: origin}); err == nil {
+		if _, err := New(Options{Auth: newFakeAuth(), Classes: &fakeClasses{}, PublicOrigin: origin}); err == nil {
 			t.Errorf("PublicOrigin %q는 오류여야 합니다", origin)
 		}
 	}

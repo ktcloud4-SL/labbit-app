@@ -105,7 +105,8 @@ Provision/Reset/Cleanup 같은 durable Operation은 HTTP request lifetime 이후
 - `internal/server/repository`: Application이 의존하는 Repository/Transactor port, persistence record, typed error(`ErrNotFound`, `ErrConflict`, `ErrConstraintViolation`, `ErrInternal`). pgx/SQL을 import하지 않습니다.
 - `internal/postgres`: pgx 구현(`Store`). PostgreSQL 오류를 위 typed error로 정규화하며 원본 오류 문자열, SQLSTATE, constraint 이름은 사용자 응답과 외부 계약에 전달하지 않습니다.
 - `internal/server/auth`: Login/Session/Logout Application use case와 Argon2id PHC 검증. Session 유효성, disabled 계정 처리, username 존재 여부를 숨기는 dummy 검증을 이 계층이 판단하며 HTTP status와 Cookie는 알지 못합니다.
-- `internal/server/httpapi`: `/api/v1` Auth handler와 middleware(Origin/Referer 검증, Session 인증, Cookie, Problem Details). SQL/pgx를 import하지 않고 `auth.Service`에 위임합니다.
+- `internal/server/class`: Class 목록/상세 조회 Application use case. Class 접근은 ClassMembership 관계로만 결정하며 `organizationRole=ADMIN`도 Membership을 대신하지 않습니다. Class가 없으면 not found, 있지만 다른 Organization이거나 Membership이 없으면 forbidden, 참여 Class가 없는 목록은 오류가 아닌 빈 목록입니다. HTTP status는 알지 못합니다.
+- `internal/server/httpapi`: `/api/v1` Auth·Class handler와 middleware(Origin/Referer 검증, Session 인증, Cookie, Problem Details). SQL/pgx를 import하지 않고 `auth.Service`, `class.Service`에 위임합니다.
 - `internal/server/bootstrap`: D-11 trusted operator Bootstrap use case. Migration이 아닌 이 경로로 Organization/User/Local Account/Class/ClassMembership을 하나의 transaction으로 생성합니다. 실행 command는 아직 없으며 추가할 때는 Runtime Contract `artifacts`와의 정합성을 함께 확인합니다.
 
 Repository는 Session 유효성, Class 접근 권한, 403/404를 판단하지 않고 저장된 값을 그대로 전달합니다. Transaction callback 안에서는 전달된 Repositories만 사용하고 Connector/OpenStack 같은 외부 I/O를 수행하지 않습니다.

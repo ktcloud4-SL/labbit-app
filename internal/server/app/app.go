@@ -16,6 +16,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
 )
 
@@ -120,8 +121,10 @@ func Run(ctx context.Context, cfg Config) error {
 		}).check
 
 		if slices.Contains(cfg.Roles, "api") {
+			store := postgres.NewStore(pool)
 			apiHandler, err = httpapi.New(httpapi.Options{
-				Auth:         auth.NewService(postgres.NewStore(pool), auth.Argon2id{}, nil),
+				Auth:         auth.NewService(store, auth.Argon2id{}, nil),
+				Classes:      class.NewService(store),
 				PublicOrigin: cfg.PublicOrigin,
 				Logger:       logger,
 			})

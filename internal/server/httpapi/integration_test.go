@@ -23,6 +23,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/bootstrap"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 )
@@ -50,7 +51,25 @@ type stack struct {
 	orgID   uuid.UUID
 }
 
+// newStack은 Class 없이 ADMIN 사용자 alice 하나만 있는 Organization을 구성한다.
 func newStack(t *testing.T) *stack {
+	t.Helper()
+	userID, orgID := uuid.New(), uuid.New()
+	s := newStackWith(t, func(hash repository.PasswordHash) []bootstrap.Spec {
+		return []bootstrap.Spec{{
+			Organization: bootstrap.Organization{ID: orgID, Name: "HTTP Org"},
+			Users: []bootstrap.User{{
+				ID: userID, Username: "alice", PasswordHash: hash, OrganizationRole: repository.OrganizationRoleAdmin,
+			}},
+		}}
+	})
+	s.userID, s.orgID = userID, orgID
+	return s
+}
+
+// newStackWith는 build가 반환한 Organization들을 Bootstrap으로 저장한 stack을 만든다.
+// build에는 모든 사용자가 공유하는 실제 Argon2id PHC(password)가 전달된다.
+func newStackWith(t *testing.T, build func(hash repository.PasswordHash) []bootstrap.Spec) *stack {
 	t.Helper()
 	dsn := postgrestest.NewDatabase(t)
 	migrations, err := postgres.LoadMigrations(migrationfiles.Files)
@@ -70,19 +89,16 @@ func newStack(t *testing.T) *stack {
 	if err != nil {
 		t.Fatalf("HashPassword() error = %v", err)
 	}
-	s := &stack{pool: pool, clock: &clock{now: baseTime}, logs: &bytes.Buffer{}, userID: uuid.New(), orgID: uuid.New()}
-	err = bootstrap.Run(t.Context(), store, bootstrap.Spec{
-		Organization: bootstrap.Organization{ID: s.orgID, Name: "HTTP Org"},
-		Users: []bootstrap.User{{
-			ID: s.userID, Username: "alice", PasswordHash: hash, OrganizationRole: repository.OrganizationRoleAdmin,
-		}},
-	})
-	if err != nil {
-		t.Fatalf("bootstrap.Run() error = %v", err)
+	for _, spec := range build(hash) {
+		if err := bootstrap.Run(t.Context(), store, spec); err != nil {
+			t.Fatalf("bootstrap.Run() error = %v", err)
+		}
 	}
 
+	s := &stack{pool: pool, clock: &clock{now: baseTime}, logs: &bytes.Buffer{}}
 	s.handler, err = httpapi.New(httpapi.Options{
 		Auth:         auth.NewService(store, auth.Argon2id{}, s.clock.Now),
+		Classes:      class.NewService(store),
 		PublicOrigin: trustedOrigin,
 		Logger:       slog.New(slog.NewJSONHandler(s.logs, nil)),
 	})

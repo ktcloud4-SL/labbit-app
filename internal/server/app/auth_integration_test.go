@@ -92,6 +92,55 @@ func TestServerLoginMeLogoutFlow(t *testing.T) {
 	}
 }
 
+// 실제 서버 process 경로에서 Login → Class 목록 → Class 상세 → Logout → 보호 API 401이 이어진다.
+// Class 접근은 ClassMembership으로만 결정되므로 ADMIN 사용자도 Membership 없는 Class는 볼 수 없다.
+func TestServerLoginClassesLogoutFlow(t *testing.T) {
+	dsn := postgrestest.NewDatabase(t)
+	postgrestest.Migrate(t, dsn, loadEmbeddedMigrations(t))
+	joined, unjoined := seedClasses(t, dsn)
+
+	admin, application := startServerWithApplication(t, "development", "api", dsn, "")
+	waitForStatus(t, admin+"/readyz", http.StatusOK)
+
+	got := send(t, http.MethodPost, application+"/api/v1/auth/login", loginJSON("alice", e2ePassword), map[string]string{"Origin": publicOrigin})
+	if got.status != http.StatusNoContent {
+		t.Fatalf("login = %d, want 204: %s", got.status, got.body)
+	}
+	cookie := got.sessionCookie(t)
+	session := map[string]string{"Cookie": cookie.Name + "=" + cookie.Value}
+
+	// 목록에는 Membership이 있는 Class만 실제 역할과 함께 나온다.
+	got = send(t, http.MethodGet, application+"/api/v1/classes", "", session)
+	if got.status != http.StatusOK {
+		t.Fatalf("/classes = %d, want 200: %s", got.status, got.body)
+	}
+	if want := `{"items":[{"id":"` + joined.String() + `","name":"Joined Class","myRole":"STUDENT"}]}`; strings.TrimSpace(got.body) != want {
+		t.Fatalf("/classes = %s, want %s", got.body, want)
+	}
+
+	// 상세: 참여 Class는 200, Membership 없는 같은 Organization Class는 403, 없는 Class는 404다.
+	got = send(t, http.MethodGet, application+"/api/v1/classes/"+joined.String(), "", session)
+	if want := `{"id":"` + joined.String() + `","name":"Joined Class","myRole":"STUDENT"}`; got.status != http.StatusOK || strings.TrimSpace(got.body) != want {
+		t.Fatalf("/classes/{joined} = %d %s, want 200 %s", got.status, got.body, want)
+	}
+	if got := send(t, http.MethodGet, application+"/api/v1/classes/"+unjoined.String(), "", session); got.status != http.StatusForbidden || strings.Contains(got.body, "Unjoined Class") {
+		t.Fatalf("/classes/{unjoined} = %d %s, want 403 without Class data", got.status, got.body)
+	}
+	if got := send(t, http.MethodGet, application+"/api/v1/classes/"+uuid.NewString(), "", session); got.status != http.StatusNotFound {
+		t.Fatalf("/classes/{missing} = %d, want 404", got.status)
+	}
+
+	// Logout 뒤에는 같은 Cookie로 Class 데이터에 접근할 수 없다.
+	if got := send(t, http.MethodPost, application+"/api/v1/auth/logout", "", map[string]string{"Origin": publicOrigin, "Cookie": session["Cookie"]}); got.status != http.StatusNoContent {
+		t.Fatalf("logout = %d, want 204", got.status)
+	}
+	for _, path := range []string{"/api/v1/classes", "/api/v1/classes/" + joined.String()} {
+		if got := send(t, http.MethodGet, application+path, "", session); got.status != http.StatusUnauthorized {
+			t.Fatalf("logout 뒤 %s = %d, want 401", path, got.status)
+		}
+	}
+}
+
 // api role이 아닌 process는 Auth endpoint를 열지 않는다.
 func TestNonAPIRoleDoesNotServeAuthEndpoints(t *testing.T) {
 	admin, application := startServerWithApplication(t, "development", "realtime", "", "")
@@ -127,6 +176,37 @@ func seedUser(t *testing.T, dsn string) uuid.UUID {
 		t.Fatalf("bootstrap.Run() error = %v", err)
 	}
 	return userID
+}
+
+// seedClasses는 ADMIN 사용자 alice를 만들고, STUDENT Membership이 있는 Class와 같은 Organization이지만
+// Membership이 없는 Class의 ID를 반환한다.
+func seedClasses(t *testing.T, dsn string) (joined, unjoined uuid.UUID) {
+	t.Helper()
+	pool, err := postgres.OpenPool(t.Context(), dsn)
+	if err != nil {
+		t.Fatalf("OpenPool() error = %v", err)
+	}
+	t.Cleanup(pool.Close)
+
+	hash, err := auth.HashPassword(e2ePassword)
+	if err != nil {
+		t.Fatalf("HashPassword() error = %v", err)
+	}
+	userID, joined, unjoined := uuid.New(), uuid.New(), uuid.New()
+	err = bootstrap.Run(t.Context(), postgres.NewStore(pool), bootstrap.Spec{
+		Organization: bootstrap.Organization{ID: uuid.New(), Name: "E2E Org"},
+		Users: []bootstrap.User{{
+			ID: userID, Username: "alice", PasswordHash: hash, OrganizationRole: repository.OrganizationRoleAdmin,
+		}},
+		Classes: []bootstrap.Class{{ID: joined, Name: "Joined Class"}, {ID: unjoined, Name: "Unjoined Class"}},
+		Memberships: []bootstrap.Membership{
+			{ClassID: joined, UserID: userID, Role: repository.ClassRoleStudent},
+		},
+	})
+	if err != nil {
+		t.Fatalf("bootstrap.Run() error = %v", err)
+	}
+	return joined, unjoined
 }
 
 func loginJSON(username, password string) string {

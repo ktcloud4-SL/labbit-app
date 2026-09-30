@@ -1,8 +1,8 @@
 // Package httpapi는 contracts/http/openapi.yaml의 Browser HTTP handler와 middleware다.
 //
 // Handler는 request 해석, Cookie, 상태 코드, Problem Details만 담당한다. SQL/pgx를 알지 못하며
-// 인증 판단은 Authenticator(auth.Service)에 위임한다. 인증 성공은 resource authorization이 아니므로
-// Class/Organization 권한은 이 package가 판단하지 않는다.
+// 인증 판단은 Authenticator(auth.Service)에, Class 조회와 권한 판정은 Classes(class.Service)에 위임한다.
+// 인증 성공은 resource authorization이 아니므로 Class/Organization 권한은 이 package가 판단하지 않는다.
 package httpapi
 
 import (
@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 )
 
@@ -30,9 +31,16 @@ type Authenticator interface {
 	Logout(ctx context.Context, sessionID uuid.UUID) error
 }
 
+// Classes는 handler가 사용하는 Class 조회 use case다. *class.Service가 구현한다.
+type Classes interface {
+	List(ctx context.Context, user repository.User) ([]class.View, error)
+	Get(ctx context.Context, user repository.User, classID string) (class.View, error)
+}
+
 // Options는 Handler 구성이다.
 type Options struct {
-	Auth Authenticator
+	Auth    Authenticator
+	Classes Classes
 	// PublicOrigin은 unsafe method의 trusted origin(LABBIT_PUBLIC_ORIGIN)이다. ParseOrigin 형식을 따른다.
 	PublicOrigin string
 	// Logger가 nil이면 로그를 남기지 않는다.
@@ -40,15 +48,19 @@ type Options struct {
 }
 
 type api struct {
-	auth   Authenticator
-	origin string
-	logger *slog.Logger
+	auth    Authenticator
+	classes Classes
+	origin  string
+	logger  *slog.Logger
 }
 
-// New는 /api/v1 아래 Auth endpoint를 제공하는 http.Handler를 만든다.
+// New는 /api/v1 아래 Auth와 Class endpoint를 제공하는 http.Handler를 만든다.
 func New(opts Options) (http.Handler, error) {
 	if opts.Auth == nil {
 		return nil, errors.New("httpapi: Authenticator가 필요합니다")
+	}
+	if opts.Classes == nil {
+		return nil, errors.New("httpapi: Classes가 필요합니다")
 	}
 	origin, err := ParseOrigin(opts.PublicOrigin)
 	if err != nil {
@@ -59,11 +71,13 @@ func New(opts Options) (http.Handler, error) {
 		logger = slog.New(slog.DiscardHandler)
 	}
 
-	a := &api{auth: opts.Auth, origin: origin, logger: logger}
+	a := &api{auth: opts.Auth, classes: opts.Classes, origin: origin, logger: logger}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/auth/login", a.login)
 	mux.Handle("POST /api/v1/auth/logout", a.authenticated(http.HandlerFunc(a.logout)))
 	mux.Handle("GET /api/v1/me", a.authenticated(http.HandlerFunc(a.me)))
+	mux.Handle("GET /api/v1/classes", a.authenticated(http.HandlerFunc(a.listClasses)))
+	mux.Handle("GET /api/v1/classes/{classId}", a.authenticated(http.HandlerFunc(a.getClass)))
 
 	return withRequestID(noStore(a.originGuard(mux))), nil
 }
@@ -153,6 +167,8 @@ func errorClassification(err error) []any {
 		return attrs
 	case errors.Is(err, auth.ErrMalformedPasswordHash):
 		return []any{"error_kind", "unusable_password_hash"}
+	case errors.Is(err, class.ErrInconsistentData):
+		return []any{"error_kind", "inconsistent_data"}
 	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 		return []any{"error_kind", "context"}
 	default:

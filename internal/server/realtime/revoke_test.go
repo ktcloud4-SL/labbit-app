@@ -138,9 +138,9 @@ func TestRevokeClosesDataWSSThatIsStillWaitingForAttach(t *testing.T) {
 	}
 
 	e.connectors.revoke(connectorCred)
-	if n := e.relay.RevokeConnectorCredential(credentialID1); n != 1 {
-		t.Fatalf("RevokeConnectorCredential() = %d, want 1(attach 전 connection도 대상)", n)
-	}
+	// 클라이언트의 dial은 서버가 connection을 등록하기 전에 돌아올 수 있다. 그래서 반환 수는 0이나 1일 수 있다.
+	// 등록 전이면 등록 시점의 경쟁 방어(trust.go)가, 등록 뒤면 revoke가 종료한다. 어느 쪽이든 4001이어야 한다.
+	e.relay.RevokeConnectorCredential(credentialID1)
 	if code := p.expectClose(); code != closeCredentialRevoked {
 		t.Fatalf("close code = %d, want %d", code, closeCredentialRevoked)
 	}

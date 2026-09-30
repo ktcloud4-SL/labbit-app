@@ -98,6 +98,8 @@ func TestOpenStackM2ProvisionIntegration(t *testing.T) {
 	managementNetwork := exactNetwork(t, networkItems, environmentOrDefault("LABBIT_OPENSTACK_TEST_MANAGEMENT_NETWORK", "sharednet1"))
 	projectID := integrationProjectID(t, adapter)
 	externalNetworkID := integrationExternalNetworkID(t, ctx, adapter)
+	privateKeyFile := adapter.provision.SSHPrivateKeyFile
+	keyPairName := integrationKeyPairName(t, ctx, adapter, privateKeyFile)
 	sshAllowedCIDR := environmentOrDefault("LABBIT_OPENSTACK_TEST_SSH_CIDR", "172.16.8.1/32")
 	managementSecurityGroupID := integrationManagementSecurityGroup(t, ctx, adapter, sshAllowedCIDR)
 	adapter.provision = normalizedProvisionConfig(ProvisionConfig{
@@ -106,9 +108,12 @@ func TestOpenStackM2ProvisionIntegration(t *testing.T) {
 		ManagementNetworkID:       managementNetwork.ID,
 		ManagementSecurityGroupID: managementSecurityGroupID,
 		ExternalNetworkID:         externalNetworkID,
-		KeyPairName:               environmentOrDefault("LABBIT_OPENSTACK_TEST_KEYPAIR", "openstack2"),
+		KeyPairName:               keyPairName,
 		SSHAllowedCIDR:            sshAllowedCIDR,
 		LabSubnetCIDR:             environmentOrDefault("LABBIT_OPENSTACK_TEST_LAB_CIDR", "198.20.0.0/24"),
+		SSHUsername:               adapter.provision.SSHUsername,
+		SSHPrivateKeyFile:         privateKeyFile,
+		SSHKnownHostsFile:         t.TempDir() + "/known_hosts",
 		ActiveTimeout:             5 * time.Minute,
 		SSHReadyTimeout:           3 * time.Minute,
 		PollInterval:              2 * time.Second,

@@ -37,8 +37,9 @@ export function LoginPage() {
       await api.login({ username, password })
 
       // Login 성공 시 server-side Session은 새 사용자 문맥으로 교체된다.
-      // /me 검증이 실패하더라도 이전 사용자의 query cache가 남지 않게 먼저 비운다.
-      queryClient.clear()
+      // /me 검증이 실패하더라도 이전 사용자의 query cache가 남지 않게 먼저 제거한다.
+      // 진행 중인 login mutation 자체는 유지한다.
+      queryClient.removeQueries()
 
       try {
         return await api.getMe()

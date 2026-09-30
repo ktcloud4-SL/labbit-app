@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -334,6 +335,105 @@ func TestHandler_ProviderRequest_ListImages_Success(t *testing.T) {
 	image, ok := response.Payload.Items[0].(protocol.ProviderImage)
 	if !ok || image.Kind != "IMAGE" || image.ID != "image-1" || image.Status != "ACTIVE" {
 		t.Fatalf("image item = %#v", response.Payload.Items[0])
+	}
+}
+
+func TestHandler_InvalidOptionalTraceDoesNotBlockProviderRequest(t *testing.T) {
+	validParent := "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+	tests := []struct {
+		name       string
+		parent     any
+		state      any
+		wantParent string
+		wantState  string
+	}{
+		{name: "wrong parent type", parent: 123, state: "vendor=value"},
+		{name: "oversize parent", parent: strings.Repeat("a", 513), state: "vendor=value"},
+		{name: "invalid W3C parent", parent: "not-a-trace", state: "vendor=value"},
+		{name: "wrong state type", parent: validParent, state: []string{"vendor=value"}, wantParent: validParent},
+		{name: "invalid state", parent: validParent, state: "bad state", wantParent: validParent},
+		{name: "valid context", parent: validParent, state: "vendor=value", wantParent: validParent, wantState: "vendor=value"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			called := false
+			messages := make(chan interface{}, 1)
+			handler := wss.NewHandler(&provider.MockProvider{
+				ConnectionID: "provider-connection-1",
+				ListImagesFunc: func(context.Context) ([]provider.Image, error) {
+					called = true
+					return []provider.Image{{ID: "image-1", Name: "Ubuntu", Status: "ACTIVE"}}, nil
+				},
+			}, wss.SendMessageFunc(func(_ context.Context, message interface{}) error {
+				messages <- message
+				return nil
+			}))
+			raw, err := json.Marshal(map[string]any{
+				"type": protocol.MessageTypeProviderRequest, "messageId": "provider-trace", "sentAt": time.Now().UTC(),
+				"traceparent": test.parent, "tracestate": test.state,
+				"payload": map[string]any{"requestType": protocol.ProviderRequestListImages, "providerConnectionId": "provider-connection-1"},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := handler.HandleMessage(context.Background(), raw); err != nil {
+				t.Fatalf("HandleMessage() error = %v", err)
+			}
+			response, ok := (<-messages).(protocol.ProviderResponseMessage)
+			if !ok || !called || response.Payload.Outcome != protocol.OutcomeSucceeded {
+				t.Fatalf("provider request was not dispatched: called=%t response=%+v", called, response)
+			}
+			if response.TraceParent != test.wantParent || response.TraceState != test.wantState {
+				t.Fatalf("normalized trace = %q/%q, want %q/%q", response.TraceParent, response.TraceState, test.wantParent, test.wantState)
+			}
+		})
+	}
+}
+
+func TestHandler_InvalidOptionalTraceDoesNotBlockOperation(t *testing.T) {
+	called := false
+	messages := make(chan interface{}, 2)
+	handler := wss.NewHandler(&provider.MockProvider{
+		ProvisionFunc: func(context.Context, provider.ProvisionRequest) (provider.OperationResult, error) {
+			called = true
+			return provider.OperationResult{Outcome: provider.OutcomeSucceeded}, nil
+		},
+	}, wss.SendMessageFunc(func(_ context.Context, message interface{}) error {
+		messages <- message
+		return nil
+	}))
+	raw, err := json.Marshal(map[string]any{
+		"type": protocol.MessageTypeOperationCommand, "messageId": "operation-trace", "sentAt": time.Now().UTC(),
+		"operationId": "operation-1", "labInstanceId": "lab-1", "generation": 1,
+		"traceparent": 123, "tracestate": []string{"vendor=value"},
+		"payload": map[string]any{
+			"mutationType": protocol.MutationTypeProvision,
+			"creationSnapshot": map[string]any{
+				"providerConnectionId": "provider-1", "workspaceVmKey": "workspace", "internetOutbound": false,
+				"vms": []any{map[string]any{
+					"vmKey": "workspace", "role": "WORKSPACE", "instanceIndex": 0,
+					"imageId": "image-1", "flavorId": "flavor-1",
+					"flavorSpec": map[string]any{"vcpus": 1, "ramMiB": 1024, "diskGiB": 10},
+				}},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := handler.HandleMessage(context.Background(), raw); err != nil {
+		t.Fatalf("HandleMessage() error = %v", err)
+	}
+	if !called {
+		t.Fatal("operation was not dispatched")
+	}
+	ack, ok := (<-messages).(protocol.OperationAckMessage)
+	if !ok || !ack.Payload.Accepted || ack.TraceParent != "" || ack.TraceState != "" {
+		t.Fatalf("operation ACK = %+v", ack)
+	}
+	result, ok := (<-messages).(protocol.OperationResultMessage)
+	if !ok || result.Payload.Outcome != string(provider.OutcomeSucceeded) || result.TraceParent != "" || result.TraceState != "" {
+		t.Fatalf("operation result = %+v", result)
 	}
 }
 

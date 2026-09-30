@@ -4,8 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/quotasets"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	networkquotas "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/quotas"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
@@ -87,14 +91,32 @@ func quotaRequired(snapshot coreprovider.CreationSnapshot) quotaUsage {
 // quotaCreditForExistingReset credits only resources that still exist by the
 // exact Provider IDs persisted by Control. A stale ID must not make destructive
 // Reset preflight appear to have more capacity than cleanup can actually free.
-func (a *Adapter) quotaCreditForExistingReset(ctx context.Context, resources []coreprovider.ResourceRef, snapshot coreprovider.CreationSnapshot) (quotaUsage, error) {
+func (a *Adapter) quotaCreditForExistingReset(ctx context.Context, resources []coreprovider.ResourceRef) (quotaUsage, error) {
 	credit := quotaUsage{}
-	vmByKey := make(map[string]coreprovider.VMSpec, len(snapshot.VMs))
-	for _, vm := range snapshot.VMs {
-		vmByKey[vm.VMKey] = vm
-	}
 	creditedRules := make(map[string]struct{})
 	for _, resource := range resources {
+		if resource.ResourceType == coreprovider.ResourceTypeServer {
+			server, err := servers.Get(ctx, a.compute, resource.ProviderID).Extract()
+			if err != nil {
+				if gophercloud.ResponseCodeIs(err, 404) {
+					continue
+				}
+				return quotaUsage{}, safeContextError(ctx, ErrQuotaLookup)
+			}
+			flavorID, ok := server.Flavor["id"].(string)
+			flavorID = strings.TrimSpace(flavorID)
+			if !ok || flavorID == "" {
+				return quotaUsage{}, ErrQuotaLookup
+			}
+			flavor, err := flavors.Get(ctx, a.compute, flavorID).Extract()
+			if err != nil {
+				return quotaUsage{}, safeContextError(ctx, ErrQuotaLookup)
+			}
+			credit.instances++
+			credit.cores += flavor.VCPUs
+			credit.ramMiB += flavor.RAM
+			continue
+		}
 		_, exists, err := a.observeResource(ctx, resource)
 		if err != nil {
 			return quotaUsage{}, errors.Join(ErrQuotaLookup, err)
@@ -103,12 +125,6 @@ func (a *Adapter) quotaCreditForExistingReset(ctx context.Context, resources []c
 			continue
 		}
 		switch resource.ResourceType {
-		case coreprovider.ResourceTypeServer:
-			credit.instances++
-			if vm, ok := vmByKey[resource.LogicalName]; ok {
-				credit.cores += int(vm.FlavorSpec.VCPUs)
-				credit.ramMiB += int(vm.FlavorSpec.RAMMiB)
-			}
 		case coreprovider.ResourceTypeNetwork:
 			credit.networks++
 		case coreprovider.ResourceTypeSubnet:

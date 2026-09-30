@@ -421,6 +421,7 @@ connector:
     LABBIT_OPENSTACK_KEYPAIR_NAME:
       required: true
       secret: false
+      note: "D-18의 Connector 전용 공용 Ed25519 관리 keypair 이름입니다. 설치/등록 단계가 생성한 public key를 Nova에 등록하며, Lab Provision/Reset/Cleanup은 이 keypair를 생성·회전·삭제하지 않고 local private key와의 일치만 검증합니다."
     LABBIT_OPENSTACK_SSH_ALLOWED_CIDR:
       required: true
       secret: false
@@ -429,17 +430,17 @@ connector:
       required: true
       secret: false
     LABBIT_OPENSTACK_SSH_USERNAME:
-      required: false
+      required: true
       secret: false
-      note: "CreationSnapshot.startupScript가 있을 때 필수이며 cloud-init 완료 확인에 사용합니다."
+      note: "D-18의 Connector→VM SSH Ready 확인에 필수입니다. 이미지에 맞는 관리 사용자 이름이며 Terminal 사용자 입력과 분리합니다."
     LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE:
-      required: false
+      required: true
       secret: false
-      note: "CreationSnapshot.startupScript가 있을 때 필수입니다. 고객 환경 Secret 경계에 있는 Connector 전용 SSH private key 파일 경로이며, 파일 내용은 log/중앙 SaaS로 보내지 않습니다."
+      note: "D-18에 따라 Connector 설치/등록 단계가 생성한 Ed25519 관리 private key 파일 경로입니다. 파일은 Connector 로컬 Secret 경계에만 두고 log/중앙 SaaS로 보내지 않습니다."
     LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE:
-      required: false
+      required: true
       secret: false
-      note: "CreationSnapshot.startupScript가 있을 때 필수입니다. 동적 VM host key를 TOFU로 고정하고 이후 불일치를 거부하는 고객 로컬 파일 경로입니다."
+      note: "모든 Provision의 SSH Ready 확인에 필수입니다. 동적 VM host key를 ProviderConnection+Server ID 단위 TOFU로 고정하고 이후 불일치를 거부하는 Connector 로컬 파일 경로입니다."
     LABBIT_LOG_LEVEL:
       required: false
       secret: false

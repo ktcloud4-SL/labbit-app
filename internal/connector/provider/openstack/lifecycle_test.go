@@ -208,6 +208,86 @@ func TestResetDoesNotCreditMissingResourcesBeforeDestructiveCleanup(t *testing.T
 	}
 }
 
+func TestResetUsesActualOldServerFlavorForQuotaCreditBeforeCleanup(t *testing.T) {
+	base := &m2OpenStackFake{t: t}
+	deletes := 0
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodDelete {
+			deletes++
+		}
+		if request.Method == http.MethodGet {
+			switch request.URL.Path {
+			case "/compute/v2/servers/workspace-server-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"server": map[string]any{
+					"id": "workspace-server-old", "status": "ACTIVE", "flavor": map[string]any{"id": "actual-small"},
+				}})
+				return
+			case "/compute/v2/flavors/actual-small":
+				writeJSON(t, response, http.StatusOK, map[string]any{"flavor": map[string]any{
+					"id": "actual-small", "vcpus": 1, "ram": 2048, "disk": 20,
+				}})
+				return
+			case "/compute/v2/flavors/flavor-big":
+				writeJSON(t, response, http.StatusOK, map[string]any{"flavor": map[string]any{
+					"id": "flavor-big", "vcpus": 4, "ram": 8192, "disk": 20,
+				}})
+				return
+			case "/compute/v2/os-quota-sets/project-1/detail":
+				writeJSON(t, response, http.StatusOK, map[string]any{"quota_set": map[string]any{
+					"id":        "project-1",
+					"instances": map[string]int{"in_use": 1, "reserved": 0, "limit": 1},
+					"cores":     map[string]int{"in_use": 2, "reserved": 0, "limit": 4},
+					"ram":       map[string]int{"in_use": 4096, "reserved": 0, "limit": 8192},
+				}})
+				return
+			case "/network/v2.0/networks/network-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"network": map[string]any{"id": "network-old", "status": "ACTIVE"}})
+				return
+			case "/network/v2.0/subnets/subnet-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"subnet": map[string]any{"id": "subnet-old"}})
+				return
+			case "/network/v2.0/routers/router-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"router": map[string]any{"id": "router-old", "status": "ACTIVE"}})
+				return
+			case "/network/v2.0/security-groups/security-group-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"security_group": map[string]any{
+					"id": "security-group-old", "security_group_rules": []any{
+						map[string]any{"id": "default-egress-v4"}, map[string]any{"id": "default-egress-v6"}, map[string]any{"id": "security-rule-old"},
+					},
+				}})
+				return
+			case "/network/v2.0/security-group-rules/security-rule-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"security_group_rule": map[string]any{"id": "security-rule-old"}})
+				return
+			case "/network/v2.0/ports/workspace-lab-old", "/network/v2.0/ports/workspace-management-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"port": map[string]any{"id": strings.TrimPrefix(request.URL.Path, "/network/v2.0/ports/"), "status": "ACTIVE"}})
+				return
+			case "/network/v2.0/ports":
+				if request.URL.Query().Get("device_id") == "router-old" {
+					writeJSON(t, response, http.StatusOK, map[string]any{"ports": []any{
+						map[string]any{"id": "router-interface"}, map[string]any{"id": "router-gateway"},
+					}, "ports_links": []any{}})
+					return
+				}
+			}
+		}
+		base.ServeHTTP(response, request)
+	}))
+	adapter.provision = testProvisionConfig(t)
+	snapshot := validSnapshot()
+	snapshot.VMs[0].FlavorID = "flavor-big"
+	snapshot.VMs[0].FlavorSpec = coreprovider.FlavorSpec{VCPUs: 4, RAMMiB: 8192, DiskGiB: 20}
+
+	result, err := adapter.Reset(context.Background(), coreprovider.ResetRequest{
+		Correlation:       coreprovider.Correlation{OperationID: "reset-flavor-drift", LabInstanceID: "lab", Generation: 2},
+		CreationSnapshot:  snapshot,
+		ProviderResources: validResetResourceRefs(snapshot, 1),
+	})
+	if err != nil || deletes != 0 || result.Outcome != coreprovider.OutcomeFailed || result.Error == nil || result.Error.Code != errorQuotaExceeded {
+		t.Fatalf("Reset() deletes=%d result=%+v err=%v", deletes, result, err)
+	}
+}
+
 func TestResetRejectsMissingEmptyAndPartialResourcesBeforePreflight(t *testing.T) {
 	for _, test := range []struct {
 		name      string

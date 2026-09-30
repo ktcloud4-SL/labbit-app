@@ -20,7 +20,7 @@ func TestQuotaRequiredForTwoVMOutboundTopology(t *testing.T) {
 	}
 }
 
-func TestQuotaCreditForResetUsesOnlyResourcesObservedByProviderID(t *testing.T) {
+func TestQuotaCreditForResetUsesOnlyObservedResourcesAndActualServerFlavor(t *testing.T) {
 	resources := []coreprovider.ResourceRef{
 		{ResourceType: coreprovider.ResourceTypeServer, ProviderID: "server", LogicalName: "workspace", Generation: 1},
 		{ResourceType: coreprovider.ResourceTypeNetwork, ProviderID: "network", Generation: 1},
@@ -31,7 +31,13 @@ func TestQuotaCreditForResetUsesOnlyResourcesObservedByProviderID(t *testing.T) 
 	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		switch request.URL.Path {
 		case "/compute/v2/servers/server":
-			writeJSON(t, response, http.StatusOK, map[string]any{"server": map[string]any{"id": "server", "status": "ACTIVE"}})
+			writeJSON(t, response, http.StatusOK, map[string]any{"server": map[string]any{
+				"id": "server", "status": "ACTIVE", "flavor": map[string]any{"id": "actual-small"},
+			}})
+		case "/compute/v2/flavors/actual-small":
+			writeJSON(t, response, http.StatusOK, map[string]any{"flavor": map[string]any{
+				"id": "actual-small", "vcpus": 1, "ram": 2048, "disk": 20,
+			}})
 		case "/network/v2.0/networks/network":
 			http.NotFound(response, request)
 		case "/network/v2.0/routers/router":
@@ -54,7 +60,7 @@ func TestQuotaCreditForResetUsesOnlyResourcesObservedByProviderID(t *testing.T) 
 			t.Fatalf("unexpected request: %s %s", request.Method, request.URL.String())
 		}
 	}))
-	credit, err := adapter.quotaCreditForExistingReset(context.Background(), resources, validSnapshot())
+	credit, err := adapter.quotaCreditForExistingReset(context.Background(), resources)
 	if err != nil {
 		t.Fatalf("quotaCreditForExistingReset() error = %v", err)
 	}

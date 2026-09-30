@@ -12,6 +12,8 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // MessageSender 는 SaaS 로 WSS 메시지를 전송하는 인터페이스입니다.
@@ -73,6 +75,11 @@ func (h *Handler) OnError() func(err error) {
 
 // HandleMessage 는 수신된 raw JSON 메시지를 Envelope 기준으로 판별하여 적절한 처리기로 분기합니다.
 func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
+	normalized, err := normalizeOptionalTraceMetadata(raw)
+	if err != nil {
+		return fmt.Errorf("failed to normalize optional trace metadata: %w", err)
+	}
+	raw = normalized
 	var env protocol.BaseEnvelope
 	if err := json.Unmarshal(raw, &env); err != nil {
 		return fmt.Errorf("failed to unmarshal base envelope: %w", err)
@@ -105,6 +112,70 @@ func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
 		}
 		return nil
 	}
+}
+
+// normalizeOptionalTraceMetadata removes only invalid optional W3C Trace
+// Context fields before strongly typed decoding. Trace metadata is
+// observational and must never turn an otherwise valid Provider request or
+// operation into a business failure.
+func normalizeOptionalTraceMetadata(raw []byte) ([]byte, error) {
+	var envelope map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &envelope); err != nil || envelope == nil {
+		return raw, nil
+	}
+
+	changed := false
+	for name := range envelope {
+		if name != "traceparent" && name != "tracestate" &&
+			(strings.EqualFold(name, "traceparent") || strings.EqualFold(name, "tracestate")) {
+			delete(envelope, name)
+			changed = true
+		}
+	}
+
+	traceParent, parentPresent := jsonStringField(envelope["traceparent"])
+	parentValid := parentPresent && len(traceParent) <= 512
+	if parentValid {
+		carrier := propagation.MapCarrier{"traceparent": traceParent}
+		spanContext := trace.SpanContextFromContext(propagation.TraceContext{}.Extract(context.Background(), carrier))
+		parentValid = spanContext.IsValid()
+	}
+	if rawParent, exists := envelope["traceparent"]; exists && (!parentPresent || traceParent == "" || !parentValid || len(rawParent) == 0) {
+		delete(envelope, "traceparent")
+		changed = true
+	}
+
+	if !parentValid {
+		if _, exists := envelope["tracestate"]; exists {
+			delete(envelope, "tracestate")
+			changed = true
+		}
+	} else if traceState, exists := envelope["tracestate"]; exists {
+		value, validString := jsonStringField(traceState)
+		if !validString || value == "" || len(value) > 1024 {
+			delete(envelope, "tracestate")
+			changed = true
+		} else if _, err := trace.ParseTraceState(value); err != nil {
+			delete(envelope, "tracestate")
+			changed = true
+		}
+	}
+
+	if !changed {
+		return raw, nil
+	}
+	return json.Marshal(envelope)
+}
+
+func jsonStringField(raw json.RawMessage) (string, bool) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return "", false
+	}
+	var value string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return "", false
+	}
+	return value, true
 }
 
 func validateProviderRequest(request *protocol.ProviderRequestMessage) error {

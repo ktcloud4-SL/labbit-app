@@ -185,9 +185,9 @@ Connector는 고객망 내부에서 실행하며 **SaaS가 Connector로 inbound 
 - `LABBIT_OPENSTACK_MANAGEMENT_NETWORK_ID`
 - `LABBIT_OPENSTACK_MANAGEMENT_SECURITY_GROUP_ID` (공용·stateful, Connector CIDR의 TCP/22 ingress만 허용, egress rule 없음)
 - `LABBIT_OPENSTACK_EXTERNAL_NETWORK_ID` (`internetOutbound=true`일 때)
-- `LABBIT_OPENSTACK_KEYPAIR_NAME`, `LABBIT_OPENSTACK_SSH_ALLOWED_CIDR`
+- `LABBIT_OPENSTACK_KEYPAIR_NAME`, `LABBIT_OPENSTACK_SSH_ALLOWED_CIDR` (설치/등록 단계가 Nova에 등록한 Connector 전용 공용 Ed25519 keypair; Lab lifecycle은 생성·회전·삭제하지 않음)
 - `LABBIT_OPENSTACK_LAB_SUBNET_CIDR`
-- `LABBIT_OPENSTACK_SSH_USERNAME`, `LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE`, `LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE`
+- `LABBIT_OPENSTACK_SSH_USERNAME`, `LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE`, `LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE` (D-18의 설치/등록 단계에서 생성한 Connector 전용 Ed25519 관리 키와 SSH Ready/TOFU 확인에 필수)
 - `LABBIT_LOG_LEVEL`
 
 Connector Credential과 Provider/OpenStack Credential 원문은 고객 환경 Secret 경계에 남습니다. Connector는 SaaS 공개 443으로 outbound WSS를 생성합니다. Control path/subprotocol과 Terminal Data framing은 `contracts/connector`의 Git 계약이 원본입니다.

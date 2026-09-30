@@ -352,7 +352,7 @@ func validateSSHCredential(config ProvisionConfig, providerPublicKey string) err
 		return ErrProvisionCheck
 	}
 	signer, err := ssh.ParsePrivateKey(privateKey)
-	if err != nil {
+	if err != nil || signer.PublicKey().Type() != ssh.KeyAlgoED25519 {
 		return ErrProvisionCheck
 	}
 	publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(strings.TrimSpace(providerPublicKey)))

@@ -54,7 +54,7 @@ func (a *Adapter) Reset(ctx context.Context, request coreprovider.ResetRequest) 
 	// This read-only check intentionally happens before cleanup. If the original
 	// image, flavor, key pair, or network can no longer reproduce the snapshot,
 	// the existing generation remains untouched.
-	credit, err := a.quotaCreditForExistingReset(ctx, oldResources, request.CreationSnapshot)
+	credit, err := a.quotaCreditForExistingReset(ctx, oldResources)
 	if err != nil {
 		return preflightFailure(resourceResults(oldResources, stateDeleteNotAttempted), err, "OpenStack Reset resource preflight failed"), nil
 	}

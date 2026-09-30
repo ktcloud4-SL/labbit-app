@@ -3,6 +3,8 @@ package openstackprovider
 import (
 	"context"
 	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -356,6 +358,30 @@ func TestProvisionRejectsMismatchedSSHPrivateKeyBeforeMutation(t *testing.T) {
 	}
 }
 
+func TestValidateSSHCredentialRejectsMatchingNonEd25519Key(t *testing.T) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate RSA test key: %v", err)
+	}
+	block, err := ssh.MarshalPrivateKey(privateKey, "")
+	if err != nil {
+		t.Fatalf("marshal RSA test key: %v", err)
+	}
+	privateKeyFile := filepath.Join(t.TempDir(), "id_rsa")
+	if err := os.WriteFile(privateKeyFile, pem.EncodeToMemory(block), 0o600); err != nil {
+		t.Fatalf("write RSA test key: %v", err)
+	}
+	publicKey, err := ssh.NewPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		t.Fatalf("build RSA test public key: %v", err)
+	}
+	config := testProvisionConfig(t)
+	config.SSHPrivateKeyFile = privateKeyFile
+	if err := validateSSHCredential(config, string(ssh.MarshalAuthorizedKey(publicKey))); !errors.Is(err, ErrProvisionCheck) {
+		t.Fatalf("validateSSHCredential() error = %v, want ErrProvisionCheck", err)
+	}
+}
+
 func TestProvisionRejectsProviderConnectionMismatchBeforeOpenStackCalls(t *testing.T) {
 	calls := 0
 	adapter := newTestAdapter(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls++ }))
@@ -613,11 +639,13 @@ func (f *m2OpenStackFake) ServeHTTP(response http.ResponseWriter, request *http.
 	case request.Method == http.MethodGet && request.URL.Path == "/compute/v2/servers/server-workspace":
 		writeJSON(f.t, response, http.StatusOK, map[string]any{"server": map[string]any{
 			"id": "server-workspace", "name": "workspace", "status": "ACTIVE", "key_name": "openstack2",
+			"flavor":   map[string]any{"id": "flavor-small"},
 			"metadata": map[string]string{"labbit_lab_instance_id": "lab-instance-1", "labbit_generation": "2", "labbit_vm_key": "workspace"},
 		}})
 	case request.Method == http.MethodGet && request.URL.Path == "/compute/v2/servers/server-worker":
 		writeJSON(f.t, response, http.StatusOK, map[string]any{"server": map[string]any{
 			"id": "server-worker", "name": "worker", "status": "ACTIVE", "key_name": "openstack2",
+			"flavor":   map[string]any{"id": "flavor-small"},
 			"metadata": map[string]string{"labbit_vm_key": "worker"},
 		}})
 	default:

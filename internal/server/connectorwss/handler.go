@@ -1,16 +1,16 @@
 // Package connectorwss는 contracts/connector/의 Connector Control WSS endpoint(/connector/v1/control) transport다.
 //
-// 이 package는 WebSocket Upgrade, subprotocol, message 크기 제한, HELLO 검증과 HELLO_ACK 응답만 담당한다.
-// Credential 판정은 Authenticator(connector.Service)에 위임하고 SQL/pgx를 알지 못한다.
-// Heartbeat/OFFLINE/reconnect lifecycle, command/result routing, Provider/Operation 실행은 이 package의 범위가 아니다.
+// 이 package는 WebSocket Upgrade, subprotocol, message 크기 제한, HELLO 검증과 HELLO_ACK 응답, 그리고 HELLO 이후의
+// 연결 수명을 담당한다. 연결 수명은 HEARTBEAT 수신·last_seen 기록, OFFLINE 판단, 같은 Connector의 새 connection에 의한
+// 교체(4002), Credential revoke(4001), shutdown이다.
+// Credential 판정과 heartbeat 기록은 use case(connector.Service)에 위임하고 SQL/pgx를 알지 못한다.
+// command/result routing, Provider/Operation 실행은 이 package의 범위가 아니다. HELLO 이후 HEARTBEAT가 아닌 message는 해석하지 않고 버린다.
 package connectorwss
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -34,12 +34,14 @@ const (
 	defaultHeartbeatInterval = 15 * time.Second
 	defaultOfflineTimeout    = 45 * time.Second
 	writeTimeout             = 10 * time.Second
+	// heartbeatRecordTimeout은 heartbeat 하나를 저장소에 기록하는 데 쓸 수 있는 시간이다.
+	heartbeatRecordTimeout = 5 * time.Second
 
 	// closeProtocolError는 contracts/connector/README.md §15의 "복구 불가능한 protocol message 오류"다.
 	closeProtocolError = 4004
 )
 
-// 연결이 성립한 뒤 HELLO가 계약에 맞지 않을 때 ERROR payload에 싣는 code다(connector.schema.json의 예시 code).
+// 연결이 성립한 뒤 HELLO/HEARTBEAT가 계약에 맞지 않을 때 ERROR payload에 싣는 code다(connector.schema.json의 예시 code).
 const (
 	errorCodeInvalidMessage         = "INVALID_MESSAGE"
 	errorCodeUnsupportedMessageType = "UNSUPPORTED_MESSAGE_TYPE"
@@ -50,38 +52,58 @@ type Authenticator interface {
 	Authenticate(ctx context.Context, credential connector.Credential) (connector.Principal, error)
 }
 
+// HeartbeatRecorder는 유효한 HEARTBEAT를 영속 관측값(connectors.last_seen_at)으로 기록하는 use case다.
+// *connector.Service가 구현한다. seenAt은 Backend가 HEARTBEAT를 수신한 서버 시각이다.
+// principal의 Credential이나 Connector가 revoke되었다면 기록하지 않고 connector.ErrUnauthenticated를 반환해야 한다.
+type HeartbeatRecorder interface {
+	RecordHeartbeat(ctx context.Context, principal connector.Principal, seenAt time.Time) error
+}
+
 // Options는 Handler 구성이다.
 type Options struct {
-	Auth     Authenticator
-	Registry *connector.Registry
+	Auth       Authenticator
+	Heartbeats HeartbeatRecorder
+	Registry   *connector.Registry
 	// Logger가 nil이면 로그를 남기지 않는다.
 	Logger *slog.Logger
 	// HelloTimeout은 Upgrade 후 HELLO를 기다리는 시간이다. 0이면 기본값을 사용한다.
 	HelloTimeout time.Duration
-	// HeartbeatInterval과 OfflineTimeout은 HELLO_ACK로 전달하는 계약 기본값(15초/45초)을 바꾼다.
-	// 0이면 기본값을 사용하고, 1초 미만의 값은 허용하지 않는다. 이 값으로 timer를 구동하지는 않는다.
+	// HeartbeatInterval은 Connector가 HEARTBEAT를 보낼 주기이고, OfflineTimeout은 유효한 HEARTBEAT 없이
+	// Connector를 OFFLINE으로 판단하기까지의 시간이다. 0이면 계약 기본값(15초/45초)을 사용한다.
+	// OfflineTimeout은 HeartbeatInterval보다 길어야 한다.
+	//
+	// HELLO_ACK에는 초 단위 정수(최소 1)로 올려서 전달한다. 1초 미만 값은 이 timer를 짧게 구동하는 용도이며,
+	// 그 경우 Connector에 전달되는 값은 실제 timer보다 길다.
 	HeartbeatInterval time.Duration
 	OfflineTimeout    time.Duration
 }
 
 // Handler는 Connector Control WSS Upgrade 요청을 처리한다.
 type Handler struct {
-	auth     Authenticator
-	registry *connector.Registry
-	logger   *slog.Logger
-	upgrader websocket.Upgrader
+	auth       Authenticator
+	heartbeats HeartbeatRecorder
+	registry   *connector.Registry
+	logger     *slog.Logger
+	upgrader   websocket.Upgrader
 
 	helloTimeout      time.Duration
 	heartbeatInterval time.Duration
 	offlineTimeout    time.Duration
 
-	closeOnce sync.Once
-	done      chan struct{}
+	// mu는 closed와, wg에 요청을 더하는 시점을 Close/Shutdown과 직렬화한다.
+	mu     sync.Mutex
+	closed bool
+	done   chan struct{}
+	// wg는 처리 중인 Upgrade 요청과 열린 Control connection을 센다.
+	wg sync.WaitGroup
 }
 
 func New(opts Options) (*Handler, error) {
 	if opts.Auth == nil {
 		return nil, errors.New("connectorwss: Authenticator가 필요합니다")
+	}
+	if opts.Heartbeats == nil {
+		return nil, errors.New("connectorwss: HeartbeatRecorder가 필요합니다")
 	}
 	if opts.Registry == nil {
 		return nil, errors.New("connectorwss: Registry가 필요합니다")
@@ -91,9 +113,10 @@ func New(opts Options) (*Handler, error) {
 		logger = slog.New(slog.DiscardHandler)
 	}
 	h := &Handler{
-		auth:     opts.Auth,
-		registry: opts.Registry,
-		logger:   logger,
+		auth:       opts.Auth,
+		heartbeats: opts.Heartbeats,
+		registry:   opts.Registry,
+		logger:     logger,
 		// CheckOrigin은 기본값을 유지한다. Connector는 Browser가 아니므로 Origin을 보내지 않으며,
 		// Browser가 보낸 cross-origin Upgrade는 거절된다.
 		upgrader: websocket.Upgrader{
@@ -105,8 +128,11 @@ func New(opts Options) (*Handler, error) {
 		offlineTimeout:    durationOrDefault(opts.OfflineTimeout, defaultOfflineTimeout),
 		done:              make(chan struct{}),
 	}
-	if h.heartbeatInterval < time.Second || h.offlineTimeout < time.Second {
-		return nil, errors.New("connectorwss: HeartbeatInterval과 OfflineTimeout은 1초 이상이어야 합니다")
+	if h.helloTimeout <= 0 || h.heartbeatInterval <= 0 || h.offlineTimeout <= 0 {
+		return nil, errors.New("connectorwss: HelloTimeout, HeartbeatInterval, OfflineTimeout은 0보다 커야 합니다")
+	}
+	if h.offlineTimeout <= h.heartbeatInterval {
+		return nil, errors.New("connectorwss: OfflineTimeout은 HeartbeatInterval보다 길어야 합니다")
 	}
 	return h, nil
 }
@@ -118,27 +144,59 @@ func durationOrDefault(value, fallback time.Duration) time.Duration {
 	return value
 }
 
-// Close는 새 Upgrade를 거절하고 열려 있는 Control connection을 1001(Going Away)로 닫는다. 여러 번 호출해도 안전하다.
-// http.Server.Shutdown은 hijack된 WebSocket connection을 기다리거나 닫지 않으므로 호출자가 Shutdown 시 함께 호출한다.
-func (h *Handler) Close() {
-	h.closeOnce.Do(func() { close(h.done) })
+// wholeSeconds는 HELLO_ACK가 전달하는 초 단위 정수다. Schema의 minimum(1)을 지키도록 올림하고 최소 1로 한다.
+func wholeSeconds(d time.Duration) int {
+	seconds := int((d + time.Second - 1) / time.Second)
+	return max(seconds, 1)
 }
 
-func (h *Handler) closing() bool {
+// Close는 새 Upgrade를 거절하고 열려 있는 Control connection을 1001(Going Away)로 닫도록 요청한다. 기다리지 않는다.
+// 여러 번 호출해도 안전하다. http.Server.Shutdown은 hijack된 WebSocket connection을 기다리거나 닫지 않으므로
+// 호출자가 Shutdown 시 함께 호출한다.
+func (h *Handler) Close() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if !h.closed {
+		h.closed = true
+		close(h.done)
+	}
+}
+
+// Shutdown은 Close를 호출하고, 열린 Control connection과 진행 중인 요청이 모두 끝나거나 ctx가 끝날 때까지 기다린다.
+func (h *Handler) Shutdown(ctx context.Context) error {
+	h.Close()
+	drained := make(chan struct{})
+	go func() {
+		h.wg.Wait()
+		close(drained)
+	}()
 	select {
-	case <-h.done:
-		return true
-	default:
+	case <-drained:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// enter는 요청 하나의 처리를 시작한다. Close 이후에는 false다. true이면 호출자가 h.wg.Done을 호출해야 한다.
+func (h *Handler) enter() bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.closed {
 		return false
 	}
+	h.wg.Add(1)
+	return true
 }
 
 // ServeHTTP는 Upgrade 전에 Credential과 subprotocol을 확인하므로 인증되지 않은 요청은 WebSocket connection이 되지 못한다.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if h.closing() {
+	if !h.enter() {
 		http.Error(w, "unavailable", http.StatusServiceUnavailable)
 		return
 	}
+	defer h.wg.Done()
+
 	if !websocket.IsWebSocketUpgrade(r) {
 		http.Error(w, "websocket upgrade required", http.StatusBadRequest)
 		return
@@ -180,19 +238,21 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal) {
 	log := h.logger.With("connector_id", principal.ConnectorID.String())
+	cc := newControlConn(conn)
 
 	defer conn.Close()
+	defer cc.release()
 	// 모든 JSON Text message는 fragmentation 재조립 후 1 MiB를 넘을 수 없다. 첫 read 전에 설정하며
 	// 초과하면 gorilla가 payload를 읽기 전에 1009 close frame을 보내고 ErrReadLimit을 반환한다.
 	conn.SetReadLimit(protocol.MaxJSONMessageSize)
 
+	// shutdown이 시작되면 이 connection을 1001로 닫는다. read loop는 상대의 close 응답이나 connection 종료로 끝난다.
 	finished := make(chan struct{})
 	defer close(finished)
 	go func() {
 		select {
 		case <-h.done:
-			closeWith(conn, websocket.CloseGoingAway, "server shutting down")
-			_ = conn.Close()
+			cc.close(websocket.CloseGoingAway, "server shutting down")
 		case <-finished:
 		}
 	}()
@@ -203,22 +263,22 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal) {
 		log.Warn("Connector Control HELLO 수신 실패", "reason", readFailureReason(err))
 		// 1 MiB 초과(ErrReadLimit)는 gorilla가 이미 1009 close frame을 보냈으므로 추가로 보내지 않는다.
 		if isTimeout(err) {
-			closeWith(conn, closeProtocolError, "protocol error")
+			cc.close(closeProtocolError, "protocol error")
 		}
 		return
 	}
 	if messageType != websocket.TextMessage {
-		h.rejectHello(conn, log, errorCodeInvalidMessage, "HELLO must be a JSON text message")
+		h.reject(cc, log, "HELLO", errorCodeInvalidMessage, "HELLO must be a JSON text message")
 		return
 	}
 	messageID, errorCode := validateHello(data)
 	switch errorCode {
 	case "":
 	case errorCodeUnsupportedMessageType:
-		h.rejectHello(conn, log, errorCode, "first message must be HELLO")
+		h.reject(cc, log, "HELLO", errorCode, "first message must be HELLO")
 		return
 	default:
-		h.rejectHello(conn, log, errorCode, "HELLO does not match the connector contract")
+		h.reject(cc, log, "HELLO", errorCode, "HELLO does not match the connector contract")
 		return
 	}
 
@@ -232,41 +292,97 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal) {
 		},
 		Payload: protocol.HelloAckPayload{
 			ServerTime:               now,
-			HeartbeatIntervalSeconds: int(h.heartbeatInterval / time.Second),
-			OfflineTimeoutSeconds:    int(h.offlineTimeout / time.Second),
+			HeartbeatIntervalSeconds: wholeSeconds(h.heartbeatInterval),
+			OfflineTimeoutSeconds:    wholeSeconds(h.offlineTimeout),
 		},
 	}
-	if err := writeJSON(conn, ack); err != nil {
+	if err := cc.writeJSON(ack); err != nil {
 		log.Warn("Connector Control HELLO_ACK 전송 실패", "reason", "write_failed")
 		return
 	}
-	// handshake 전용 deadline이 이후 read/write로 이어지지 않게 해제한다.
-	_ = conn.SetReadDeadline(time.Time{})
-	_ = conn.SetWriteDeadline(time.Time{})
+
+	// HELLO_ACK를 보낸 시점부터 OFFLINE timeout을 잰다. 이후에는 유효한 HEARTBEAT를 기록한 경우에만 연장한다.
+	// WebSocket Ping/Pong, 알 수 없는 message, 잘못된 HEARTBEAT는 연장하지 않는다.
+	_ = conn.SetReadDeadline(time.Now().Add(h.offlineTimeout))
 
 	// HELLO_ACK를 보낸 뒤에만 등록한다. 이후 command routing이 ACK보다 먼저 나가지 않게 하기 위해서다.
-	_, release := h.registry.Register(principal.ConnectorID)
-	defer release()
+	// 같은 Connector의 이전 connection은 이 호출 안에서 4002 종료가 요청된다.
+	registration := h.registry.Register(principal, cc.closeFor)
+	defer registration.Release()
+	log = log.With("session_id", registration.Session().ID.String())
 	log.Info("Connector Control connection 수립")
 
-	// HEARTBEAT 처리(LBT-70)와 command/result routing(LBT-71)은 아직 없다. 읽은 message는 해석하지 않고 버린다.
-	// 크기 제한과 control frame(ping/pong/close) 처리는 계속 적용된다.
+	h.readLoop(conn, cc, registration, principal, log)
+}
+
+// readLoop는 HELLO 이후의 message를 읽는다. HEARTBEAT만 해석하고 나머지는 버린다(command/result routing은 이 범위가 아니다).
+// 크기 제한과 control frame(ping/pong/close) 처리는 계속 적용된다.
+func (h *Handler) readLoop(conn *websocket.Conn, cc *controlConn, registration *connector.Registration, principal connector.Principal, log *slog.Logger) {
 	for {
-		_, reader, err := conn.NextReader()
-		if err == nil {
-			_, err = io.Copy(io.Discard, reader)
-		}
+		messageType, data, err := conn.ReadMessage()
+		receivedAt := time.Now()
 		if err != nil {
-			log.Info("Connector Control connection 종료", "reason", readFailureReason(err))
+			switch {
+			case cc.isClosing():
+				log.Info("Connector Control connection 종료", "reason", "close_requested")
+			case isTimeout(err):
+				// 유효한 HEARTBEAT 없이 offline timeout이 지났다. 계약에 OFFLINE 전용 application close code가 없으므로
+				// shutdown과 같은 표준 1001로 끝낸다. Registry release는 호출한 쪽의 defer가 한다.
+				log.Info("Connector OFFLINE", "reason", "heartbeat_timeout")
+				cc.close(websocket.CloseGoingAway, "heartbeat timeout")
+			default:
+				log.Info("Connector Control connection 종료", "reason", readFailureReason(err))
+			}
 			return
 		}
+		// 종료가 시작된 connection의 message는 처리하지 않는다.
+		if cc.isClosing() {
+			return
+		}
+		if messageType != websocket.TextMessage {
+			continue
+		}
+		envelope, ok := jsonObject(data)
+		if !ok {
+			continue
+		}
+		if kind, ok := jsonString(envelope["type"]); !ok || kind != protocol.MessageTypeHeartbeat {
+			continue
+		}
+
+		if !validHeartbeat(envelope) {
+			h.reject(cc, log, "HEARTBEAT", errorCodeInvalidMessage, "HEARTBEAT does not match the connector contract")
+			return
+		}
+		// last_seen은 Connector의 observedAt이 아니라 Backend가 수신한 서버 시각으로 기록한다.
+		recorded, err := registration.IfCurrent(func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), heartbeatRecordTimeout)
+			defer cancel()
+			return h.heartbeats.RecordHeartbeat(ctx, principal, receivedAt.UTC())
+		})
+		switch {
+		case !recorded:
+			// 이미 교체되었거나 revoke된 Session이다. 종료가 요청된 connection이므로 아무것도 갱신하지 않는다.
+			continue
+		case errors.Is(err, connector.ErrUnauthenticated):
+			// DB에서 Credential 또는 Connector가 revoke되었다. last_seen을 갱신하지 않고 이 connection을 4001로 끝낸다.
+			log.Warn("Connector Control Credential revoke 감지", "reason", "revoked_on_heartbeat")
+			cc.close(closeCredentialRevoked, "credential revoked")
+			return
+		case err != nil:
+			// 저장소 장애다. 기록하지 못했으므로 OFFLINE deadline을 연장하지 않고 연결은 유지한다.
+			log.Error("Connector heartbeat 기록 실패", "error_code", "DEPENDENCY_UNAVAILABLE")
+			continue
+		}
+		_ = conn.SetReadDeadline(receivedAt.Add(h.offlineTimeout))
+		log.Debug("Connector heartbeat 수신")
 	}
 }
 
-// rejectHello는 고정된 설명만 담은 fatal ERROR를 보내고 4004로 닫는다. 입력 값은 응답과 로그에 복사하지 않는다.
-func (h *Handler) rejectHello(conn *websocket.Conn, log *slog.Logger, code, message string) {
-	log.Warn("Connector Control HELLO 거절", "error_code", code)
-	_ = writeJSON(conn, protocol.ProtocolErrorMessage{
+// reject는 고정된 설명만 담은 fatal ERROR를 보내고 4004로 닫는다. 입력 값은 응답과 로그에 복사하지 않는다.
+func (h *Handler) reject(cc *controlConn, log *slog.Logger, what, code, message string) {
+	log.Warn("Connector Control "+what+" 거절", "error_code", code)
+	_ = cc.writeJSON(protocol.ProtocolErrorMessage{
 		BaseEnvelope: protocol.BaseEnvelope{
 			Type:      protocol.MessageTypeError,
 			MessageID: uuid.NewString(),
@@ -274,7 +390,7 @@ func (h *Handler) rejectHello(conn *websocket.Conn, log *slog.Logger, code, mess
 		},
 		Payload: protocol.ProtocolErrorPayload{Code: code, Message: message, Fatal: true},
 	})
-	closeWith(conn, closeProtocolError, "protocol error")
+	cc.close(closeProtocolError, "protocol error")
 }
 
 // validateHello는 connector.schema.json의 HelloMessage required 조건을 확인한다.
@@ -294,14 +410,7 @@ func validateHello(data []byte) (messageID, errorCode string) {
 	if messageType != protocol.MessageTypeHello {
 		return "", errorCodeUnsupportedMessageType
 	}
-	messageID, ok = jsonString(envelope["messageId"])
-	if !ok || messageID == "" || !validTimestamp(envelope["sentAt"]) {
-		return "", errorCodeInvalidMessage
-	}
-	if !validEnvelopeOptionals(envelope) {
-		return "", errorCodeInvalidMessage
-	}
-	payload, ok := jsonObject(envelope["payload"])
+	messageID, payload, ok := checkEnvelope(envelope)
 	if !ok {
 		return "", errorCodeInvalidMessage
 	}
@@ -312,6 +421,28 @@ func validateHello(data []byte) (messageID, errorCode string) {
 		return "", errorCodeInvalidMessage
 	}
 	return messageID, ""
+}
+
+// validHeartbeat는 type이 HEARTBEAT로 확인된 envelope가 connector.schema.json의 HeartbeatMessage 조건을 만족하는지 확인한다.
+// payload.observedAt은 Connector의 시계 값이라 형식만 확인하며, last_seen 시각으로 쓰지 않는다.
+// HELLO와 같은 규칙을 적용한다(정확한 property 이름, 선택 Envelope field 제약, Trace와 알 수 없는 field는 무시).
+func validHeartbeat(envelope map[string]json.RawMessage) bool {
+	_, payload, ok := checkEnvelope(envelope)
+	return ok && validTimestamp(payload["observedAt"])
+}
+
+// checkEnvelope는 type을 확인한 뒤 모든 message가 공통으로 지켜야 하는 BaseEnvelope 조건을 확인한다.
+// 성공하면 messageId와 payload object를 반환한다.
+func checkEnvelope(envelope map[string]json.RawMessage) (messageID string, payload map[string]json.RawMessage, ok bool) {
+	messageID, ok = jsonString(envelope["messageId"])
+	if !ok || messageID == "" || !validTimestamp(envelope["sentAt"]) || !validEnvelopeOptionals(envelope) {
+		return "", nil, false
+	}
+	payload, ok = jsonObject(envelope["payload"])
+	if !ok {
+		return "", nil, false
+	}
+	return messageID, payload, true
 }
 
 // validEnvelopeOptionals는 connector.schema.json BaseEnvelope의 선택 field 중 Trace를 제외한 것이
@@ -485,19 +616,6 @@ func offersControlSubprotocol(r *http.Request) bool {
 func unauthorized(w http.ResponseWriter) {
 	w.Header().Set("WWW-Authenticate", "Bearer")
 	http.Error(w, "unauthorized", http.StatusUnauthorized)
-}
-
-func writeJSON(conn *websocket.Conn, v any) error {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return fmt.Errorf("connectorwss: message marshal: %w", err)
-	}
-	_ = conn.SetWriteDeadline(time.Now().Add(writeTimeout))
-	return conn.WriteMessage(websocket.TextMessage, data)
-}
-
-func closeWith(conn *websocket.Conn, code int, reason string) {
-	_ = conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(code, reason), time.Now().Add(writeTimeout))
 }
 
 func isTimeout(err error) bool {

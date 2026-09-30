@@ -25,11 +25,57 @@ type fakeRepo struct {
 	err   error
 
 	gotHash []byte
+
+	// RecordConnectorHeartbeat의 결과와 전달받은 값이다.
+	recorded    bool
+	recordErr   error
+	recordCalls []heartbeatCall
+}
+
+type heartbeatCall struct {
+	connectorID, credentialID uuid.UUID
+	seenAt                    time.Time
 }
 
 func (f *fakeRepo) ConnectorCredentialByHash(_ context.Context, hash []byte) (repository.ConnectorCredentialWithConnector, error) {
 	f.gotHash = append([]byte(nil), hash...)
 	return f.found, f.err
+}
+
+func (f *fakeRepo) RecordConnectorHeartbeat(_ context.Context, connectorID, credentialID uuid.UUID, seenAt time.Time) (bool, error) {
+	f.recordCalls = append(f.recordCalls, heartbeatCall{connectorID: connectorID, credentialID: credentialID, seenAt: seenAt})
+	return f.recorded, f.recordErr
+}
+
+func TestRecordHeartbeatPassesIdentityAndServerTimeToRepository(t *testing.T) {
+	repo := &fakeRepo{recorded: true}
+	principal := Principal{ConnectorID: uuid.New(), OrganizationID: uuid.New(), CredentialID: uuid.New()}
+	seenAt := time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)
+
+	if err := NewService(repo).RecordHeartbeat(t.Context(), principal, seenAt); err != nil {
+		t.Fatalf("RecordHeartbeat() error = %v", err)
+	}
+	want := heartbeatCall{connectorID: principal.ConnectorID, credentialID: principal.CredentialID, seenAt: seenAt}
+	if len(repo.recordCalls) != 1 || repo.recordCalls[0] != want {
+		t.Fatalf("repository calls = %+v, want [%+v]", repo.recordCalls, want)
+	}
+}
+
+// 기록하지 못한 heartbeat(Credential 또는 Connector가 더 이상 active가 아님)는 ErrUnauthenticated이고 저장소 장애와 구분된다.
+func TestRecordHeartbeatDistinguishesRevokedFromStorageFailure(t *testing.T) {
+	principal := Principal{ConnectorID: uuid.New(), CredentialID: uuid.New()}
+
+	revoked := NewService(&fakeRepo{recorded: false})
+	if err := revoked.RecordHeartbeat(t.Context(), principal, time.Now()); !errors.Is(err, ErrUnauthenticated) {
+		t.Fatalf("revoked RecordHeartbeat() error = %v, want ErrUnauthenticated", err)
+	}
+
+	outage := errors.New("connection refused: detail-that-must-not-become-unauthenticated")
+	broken := NewService(&fakeRepo{recordErr: outage})
+	err := broken.RecordHeartbeat(t.Context(), principal, time.Now())
+	if err == nil || errors.Is(err, ErrUnauthenticated) || !errors.Is(err, outage) {
+		t.Fatalf("storage failure RecordHeartbeat() error = %v, want wrapped storage error, not ErrUnauthenticated", err)
+	}
 }
 
 func activeRow() repository.ConnectorCredentialWithConnector {

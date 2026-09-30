@@ -73,7 +73,7 @@ func newConnectorClient(application, credential string) *wss.Client {
 func TestConnectorClientCompletesHandshakeAgainstServer(t *testing.T) {
 	dsn := postgrestest.NewDatabase(t)
 	postgrestest.Migrate(t, dsn, loadEmbeddedMigrations(t))
-	seedConnector(t, dsn, e2eConnectorCredential, false, false)
+	connectorID := seedConnector(t, dsn, e2eConnectorCredential, false, false)
 
 	admin, application := startServerWithApplication(t, "development", "api", dsn, "")
 	waitForStatus(t, admin+"/readyz", http.StatusOK)
@@ -137,6 +137,25 @@ func TestConnectorClientCompletesHandshakeAgainstServer(t *testing.T) {
 		t.Fatalf("SendMessage(HEARTBEAT) error = %v", err)
 	}
 	ping("HEARTBEAT 이후")
+
+	// app.Run의 실제 배선에서 유효한 HEARTBEAT가 서버 수신 시각으로 last_seen_at에 기록된다. HELLO만으로는 기록되지 않는다.
+	db := postgrestest.Connect(t, dsn)
+	var seen *time.Time
+	deadline := time.Now().Add(10 * time.Second)
+	for seen == nil && time.Now().Before(deadline) {
+		if err := db.QueryRow(ctx, `SELECT last_seen_at FROM connectors WHERE id = $1`, connectorID).Scan(&seen); err != nil {
+			t.Fatalf("last_seen_at 조회: %v", err)
+		}
+		if seen == nil {
+			time.Sleep(20 * time.Millisecond)
+		}
+	}
+	if seen == nil {
+		t.Fatal("유효한 HEARTBEAT 뒤에도 last_seen_at이 기록되지 않음")
+	}
+	if time.Since(*seen) > time.Minute || time.Until(*seen) > time.Minute {
+		t.Fatalf("last_seen_at = %v, want 현재 서버 시각", *seen)
+	}
 }
 
 // 인증할 수 없는 Credential은 실제 client의 Dial 단계에서 401로 거절되며 HELLO 단계까지 가지 못한다.

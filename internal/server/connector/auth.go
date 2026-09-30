@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -80,4 +81,19 @@ func (s *Service) Authenticate(ctx context.Context, credential Credential) (Prin
 		OrganizationID: found.Connector.OrganizationID,
 		CredentialID:   found.Credential.ID,
 	}, nil
+}
+
+// RecordHeartbeat는 principal의 Connector가 유효한 HEARTBEAT를 seenAt에 보냈음을 connectors.last_seen_at에 기록한다.
+// seenAt은 Backend가 HEARTBEAT를 수신한 서버 시각이다. Connector가 보낸 observedAt은 사용하지 않는다.
+// 인증 뒤에 principal의 Credential이나 Connector가 revoke되었다면 아무것도 기록하지 않고 ErrUnauthenticated를 반환한다.
+// 저장소 장애는 revoke가 아니므로 그대로 오류로 반환한다.
+func (s *Service) RecordHeartbeat(ctx context.Context, principal Principal, seenAt time.Time) error {
+	recorded, err := s.repo.RecordConnectorHeartbeat(ctx, principal.ConnectorID, principal.CredentialID, seenAt)
+	if err != nil {
+		return fmt.Errorf("connector: heartbeat 기록: %w", err)
+	}
+	if !recorded {
+		return ErrUnauthenticated
+	}
+	return nil
 }

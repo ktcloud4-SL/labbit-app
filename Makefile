@@ -12,7 +12,7 @@ LABBIT_TEST_DATABASE_DSN ?= postgres://labbit:labbit-local-dummy@127.0.0.1:$(LAB
 # `//go:build integration` test가 있는 package만 둔다. 일반 unit test 전체는 go-test가 한 번만 실행한다.
 GO_INTEGRATION_PACKAGES ?= ./internal/postgres ./internal/postgres/postgrestest ./internal/server/app ./internal/server/auth ./internal/server/httpapi
 
-.PHONY: setup test go-fmt-check go-vet go-test go-build go-integration-test web-install web-typecheck web-lint web-test web-build dev-db-up dev-db-down dev-db-migrate server connector web
+.PHONY: setup test go-fmt-check go-vet go-test go-build go-integration-test web-install web-typecheck web-lint web-test web-build dev-db-up dev-db-down dev-db-migrate dev-auth-class-fixture server connector web
 
 # 개발 시작 전에 필요한 최소 의존성을 설치한다.
 setup: web-install
@@ -71,6 +71,13 @@ dev-db-migrate:
 	LABBIT_ENVIRONMENT=development \
 	LABBIT_DATABASE_DSN='$(LABBIT_DEV_DATABASE_DSN)' \
 	$(GO) run ./cmd/labbit-migrate up
+
+# Local Browser 검증용 Auth/Class fixture를 기존 Bootstrap use case로 저장하는 dev-only 실행기다.
+# Migration은 실행하지 않으므로 dev-db-migrate 이후에 실행한다. 기존 row는 삭제·갱신하지 않는다.
+dev-auth-class-fixture:
+	LABBIT_ENVIRONMENT=development \
+	LABBIT_DATABASE_DSN='$(LABBIT_DEV_DATABASE_DSN)' \
+	$(GO) run ./tools/dev-auth-class-fixture
 
 # Runtime Contract의 필수 값을 개발용으로 주입한다.
 # api role의 /readyz는 dev-db-up, dev-db-migrate 이후 성공한다.

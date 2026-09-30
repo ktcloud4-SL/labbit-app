@@ -194,6 +194,18 @@ Password 입력값, Cookie/Session token 원문, DB/AWS credential은 가리거�
 Session Cookie 속성 검증이 필요한 캡처에서는 token 값만 가리고
 `Secure`, `HttpOnly`, `SameSite`, `Path`, Domain 유무 같은 속성은 확인 가능하게 남긴다.
 
+## 8-1. 대표 Backend / Proxy 실패 재현
+
+LBT-74의 대표 Backend/Proxy 실패 UI는 제품 데이터를 임의로 손상시키지 않고 다음처럼 확인할 수 있다.
+
+1. 정상 로그인/조회가 가능한 상태에서 Backend process를 중지한다.
+2. Browser에서 Class 목록 또는 상세을 다시 조회한다.
+3. Vite proxy / network 실패가 Frontend의 일반 오류 상태로 표시되는지 확인한다.
+4. Backend를 다시 실행한 뒤 정상 조회가 복구되는지 확인한다.
+
+이 검증은 Session 만료나 Backend 내부 5xx 정책을 대신하지 않는다.
+실제 5xx를 안전하게 재현할 팀 기준 경로가 별도로 제공되면 그 경로를 우선 사용한다.
+
 ## 9. 완료 판단
 
 LBT-72/73은 코드가 존재하거나 unit test만 통과했다고 완료 처리하지 않는다.

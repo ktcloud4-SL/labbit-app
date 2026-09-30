@@ -161,10 +161,61 @@ func TestOtherTrafficDoesNotPreventOffline(t *testing.T) {
 	}
 }
 
-// 저장소 장애로 기록하지 못한 HEARTBEAT는 OFFLINE deadline을 연장하지 않는다. 연결은 timeout까지 유지되고 오류 원문은 log에 남지 않는다.
-func TestHeartbeatStorageFailureDoesNotExtendOfflineDeadline(t *testing.T) {
+// 저장소 장애는 Connector가 OFFLINE인 것이 아니다. valid HEARTBEAT를 받았다면 last_seen 기록에 실패해도 deadline은 연장되어
+// offline timeout보다 오래 연결이 유지된다. 기록 성공으로 표시하지 않고 진단은 남기되 오류 원문은 log에 남기지 않는다.
+// 저장소가 복구되면 기록이 재개되고, heartbeat를 멈추면 그때부터 offline timeout으로 끝난다.
+func TestTransientPersistenceFailureDoesNotCauseOffline(t *testing.T) {
 	h := newHarness(t, shortHeartbeat)
 	h.beats.failWith(errors.New("dial tcp 10.0.0.9:5432: connection refused " + echoCheckMarker))
+	p := h.establish()
+	session := h.waitRegistered()
+
+	deadline := time.Now().Add(4 * testOfflineTimeout)
+	for time.Now().Before(deadline) {
+		p.heartbeat()
+		time.Sleep(testHeartbeatInterval)
+		if p.closedNow() {
+			t.Fatal("저장소 장애 중 유효한 HEARTBEAT를 보내는 connection이 OFFLINE으로 닫힘")
+		}
+	}
+	if got, ok := h.registry.Current(h.principal.ConnectorID); !ok || got != session {
+		t.Fatalf("registry = %+v, %v, want 같은 Session %+v", got, ok, session)
+	}
+	if got := h.beats.recorded(); len(got) != 0 {
+		t.Fatalf("저장소 장애 중 heartbeat가 기록 성공으로 표시됨: %+v", got)
+	}
+	logs := h.logs.String()
+	if !strings.Contains(logs, "DEPENDENCY_UNAVAILABLE") {
+		t.Fatal("저장소 장애 진단이 log에 남지 않음")
+	}
+	if strings.Contains(logs, echoCheckMarker) || strings.Contains(logs, "connection refused") || strings.Contains(logs, testCredential) {
+		t.Fatalf("저장소 오류 원문 또는 Credential이 log에 노출됨: %s", logs)
+	}
+
+	// 저장소가 복구되면 같은 connection에서 기록이 재개된다.
+	h.beats.failWith(nil)
+	p.heartbeat()
+	waitFor(t, "복구 뒤 heartbeat 기록", func() bool { return len(h.beats.recorded()) == 1 })
+	if p.closedNow() {
+		t.Fatal("저장소 복구 뒤 connection이 닫힘")
+	}
+
+	// heartbeat를 멈추면 마지막 유효한 HEARTBEAT 수신 기준 offline timeout 뒤에 OFFLINE이다.
+	stopped := time.Now()
+	closeErr := p.waitClosed(5 * time.Second)
+	if closeErr.Code != websocket.CloseGoingAway || closeErr.Text != "heartbeat timeout" {
+		t.Fatalf("close = %d %q, want 1001 heartbeat timeout", closeErr.Code, closeErr.Text)
+	}
+	if elapsed := time.Since(stopped); elapsed < testOfflineTimeout/2 {
+		t.Fatalf("heartbeat를 멈춘 지 %v 만에 닫힘", elapsed)
+	}
+	registryReleased(t, h)
+}
+
+// 저장소 장애 중에도 유효하지 않은 HEARTBEAT와 HEARTBEAT가 아닌 message는 deadline을 연장하지 못한다.
+func TestPersistenceFailureDoesNotLetOtherTrafficExtendDeadline(t *testing.T) {
+	h := newHarness(t, shortHeartbeat)
+	h.beats.failWith(errors.New("database unavailable"))
 	p := h.establish()
 
 	stop := make(chan struct{})
@@ -178,27 +229,20 @@ func TestHeartbeatStorageFailureDoesNotExtendOfflineDeadline(t *testing.T) {
 			case <-stop:
 				return
 			case <-ticker.C:
-				_ = p.conn.WriteJSON(validHeartbeatMessage())
+				now := time.Now().UTC().Format(time.RFC3339Nano)
+				_ = p.conn.WriteJSON(map[string]any{"type": "OPERATION_RESULT", "messageId": uuid.NewString(), "sentAt": now, "payload": map[string]any{}})
+				_ = p.conn.WriteMessage(websocket.TextMessage, []byte("not json"))
+				_ = p.conn.WriteMessage(websocket.BinaryMessage, []byte{1})
+				p.ping()
 			}
 		}
 	}()
-	started := time.Now()
 	closeErr := p.waitClosed(5 * time.Second)
 	close(stop)
 	<-sending
 
 	if closeErr.Code != websocket.CloseGoingAway || closeErr.Text != "heartbeat timeout" {
 		t.Fatalf("close = %d %q, want 1001 heartbeat timeout", closeErr.Code, closeErr.Text)
-	}
-	if elapsed := time.Since(started); elapsed < testOfflineTimeout/2 {
-		t.Fatalf("%v 만에 닫힘: 저장소 장애가 즉시 연결을 끊음", elapsed)
-	}
-	logs := h.logs.String()
-	if !strings.Contains(logs, "DEPENDENCY_UNAVAILABLE") {
-		t.Fatal("저장소 장애가 log에 남지 않음")
-	}
-	if strings.Contains(logs, echoCheckMarker) || strings.Contains(logs, "connection refused") {
-		t.Fatalf("저장소 오류 원문이 log에 노출됨: %s", logs)
 	}
 }
 
@@ -331,7 +375,164 @@ func TestStaleRevokeDetectionDoesNotCloseNewConnection(t *testing.T) {
 	}
 }
 
-// 같은 Credential로 동시에 여러 connection을 열어도 최종 current는 하나이고 나머지는 모두 4002로 끝난다.
+// 인증과 WebSocket Upgrade에 성공한 새 connection은 HELLO를 보내기 전에 current가 되고 이전 connection은 4002로 끝난다
+// (contracts/connector/README.md §4). 새 peer가 HELLO를 보내지 않아도(HelloTimeout까지 기다리지 않고) 교체된다.
+// HELLO_ACK가 끝나야 protocol-ready이며 그 뒤에는 정상적으로 heartbeat를 보낼 수 있다.
+func TestAuthenticatedUpgradeReplacesOldConnectionBeforeHello(t *testing.T) {
+	h := newHarness(t) // HelloTimeout은 기본 10초다.
+	first := h.establish()
+	firstSession := h.waitRegistered()
+
+	second := h.upgradeWith(testCredential) // Upgrade까지만. HELLO는 보내지 않는다.
+
+	closeErr := first.waitClosed(3 * time.Second)
+	if closeErr.Code != closeReplaced {
+		t.Fatalf("이전 connection close code = %d, want %d", closeErr.Code, closeReplaced)
+	}
+	current, ok := h.registry.Current(h.principal.ConnectorID)
+	if !ok || current == firstSession {
+		t.Fatalf("Current() = %+v, %v, want 새 connection의 Session (이전 %+v)", current, ok, firstSession)
+	}
+	// 새 connection은 아직 HELLO를 기다리는 중이다. 소유자이지만 protocol-ready가 아니므로 아무 message도 받지 않았다.
+	if second.closedNow() || len(second.received()) != 0 {
+		t.Fatalf("HELLO 전 새 connection 상태: closed=%v, frames=%v", second.closedNow(), second.received())
+	}
+
+	second.hello()
+	second.heartbeat()
+	waitFor(t, "새 connection heartbeat 기록", func() bool { return len(h.beats.recorded()) == 1 })
+	if got, ok := h.registry.Current(h.principal.ConnectorID); !ok || got != current {
+		t.Fatalf("HELLO 뒤 Current() = %+v, %v, want 같은 Session %+v", got, ok, current)
+	}
+}
+
+// 이미 이전 connection을 교체한 새 connection이 잘못된 HELLO를 보내면 그 connection은 4004로 끝나지만 이전 connection은
+// 되살아나지 않고, 그 Session은 release되어 current가 없어진다.
+func TestInvalidHelloAfterReplacementDoesNotReviveOldConnection(t *testing.T) {
+	h := newHarness(t)
+	first := h.establish()
+	h.waitRegistered()
+	second := h.upgradeWith(testCredential)
+	if closeErr := first.waitClosed(3 * time.Second); closeErr.Code != closeReplaced {
+		t.Fatalf("이전 connection close code = %d, want %d", closeErr.Code, closeReplaced)
+	}
+
+	second.send(map[string]any{"type": "HELLO", "messageId": "bad-hello", "sentAt": time.Now().UTC().Format(time.RFC3339)})
+	closeErr := second.waitClosed(5 * time.Second)
+	if closeErr.Code != closeProtocolError {
+		t.Fatalf("새 connection close code = %d, want %d", closeErr.Code, closeProtocolError)
+	}
+	frames := second.received()
+	if len(frames) != 1 || !strings.Contains(frames[0], errorCodeInvalidMessage) {
+		t.Fatalf("새 connection이 받은 frame = %v, want 단일 INVALID_MESSAGE ERROR", frames)
+	}
+
+	registryReleased(t, h)
+	if !first.closedNow() {
+		t.Fatal("교체된 이전 connection이 되살아남")
+	}
+	if got := h.beats.recorded(); len(got) != 0 {
+		t.Fatalf("HELLO를 마치지 못한 connection들에서 heartbeat가 기록됨: %+v", got)
+	}
+}
+
+// 새 peer가 HELLO를 보내지 않고 timeout되면 4004로 끝나고 그 Session만 release된다. 이전 connection은 timeout을 기다리지 않고
+// 이미 교체 종료되었다.
+func TestHelloTimeoutAfterReplacementReleasesOnlyThatSession(t *testing.T) {
+	const helloTimeout = 2 * time.Second
+	h := newHarness(t, func(o *Options) { o.HelloTimeout = helloTimeout })
+	first := h.establish()
+	h.waitRegistered()
+
+	second := h.upgradeWith(testCredential)
+	first.waitClosed(helloTimeout / 2)
+	if second.closedNow() {
+		t.Fatal("이전 connection이 교체 종료된 시점에 새 connection이 이미 HELLO timeout으로 끝남")
+	}
+
+	if closeErr := second.waitClosed(helloTimeout + 3*time.Second); closeErr.Code != closeProtocolError {
+		t.Fatalf("HELLO timeout close code = %d, want %d", closeErr.Code, closeProtocolError)
+	}
+	registryReleased(t, h)
+}
+
+// HELLO를 마치지 못한 채 더 새로운 connection에 교체된 connection은 HELLO를 보내도 ACK를 받지 못하고, 그 늦은 정리가
+// 더 새로운 current Session을 제거하거나 닫지 않는다.
+func TestConnectionReplacedBeforeHelloNeverGetsAckAndDoesNotAffectNewer(t *testing.T) {
+	h := newHarness(t)
+	first := h.establish()
+	h.waitRegistered()
+
+	stalled := h.upgradeWith(testCredential)
+	first.waitClosed(3 * time.Second)
+
+	newest := h.establishWith(testCredential) // stalled를 HELLO 전에 교체한다.
+	if closeErr := stalled.waitClosed(3 * time.Second); closeErr.Code != closeReplaced {
+		t.Fatalf("HELLO 전에 교체된 connection close code = %d, want %d", closeErr.Code, closeReplaced)
+	}
+	newestSession, ok := h.registry.Current(h.principal.ConnectorID)
+	if !ok {
+		t.Fatal("최신 connection이 current가 아님")
+	}
+
+	// 교체된 connection이 뒤늦게 HELLO를 보내도(연결이 이미 끝났다면 write 오류) ACK는 없다.
+	_ = stalled.conn.WriteJSON(validHello())
+	time.Sleep(200 * time.Millisecond)
+	if frames := stalled.received(); len(frames) != 0 {
+		t.Fatalf("HELLO 전에 교체된 connection이 frame을 받음: %v", frames)
+	}
+
+	// 늦은 release 뒤에도 최신 Session은 그대로이고 정상 동작한다.
+	if got, ok := h.registry.Current(h.principal.ConnectorID); !ok || got != newestSession {
+		t.Fatalf("Current() = %+v, %v, want 최신 Session %+v", got, ok, newestSession)
+	}
+	if newest.closedNow() {
+		t.Fatal("최신 connection이 함께 닫힘")
+	}
+	newest.heartbeat()
+	waitFor(t, "최신 connection heartbeat 기록", func() bool { return len(h.beats.recorded()) == 1 })
+}
+
+// 인증에 성공했어도 WebSocket Upgrade가 실패하면 새 Control connection이 만들어진 것이 아니므로 current connection을 교체하지 않는다.
+// 인증에 실패한 요청도 마찬가지다.
+func TestFailedUpgradeDoesNotReplaceCurrentConnection(t *testing.T) {
+	h := newHarness(t)
+	first := h.establish()
+	session := h.waitRegistered()
+
+	// 인증은 성공하지만 cross-origin Upgrade는 gorilla Upgrader가 403으로 거절한다.
+	before := h.auth.calls()
+	crossOrigin := bearer(testCredential)
+	crossOrigin.Set("Origin", "https://attacker.example")
+	_, resp, err := h.dial(crossOrigin, protocol.SubprotocolControl)
+	if err == nil || resp == nil || resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("cross-origin Dial() error = %v, resp = %v, want 403", err, resp)
+	}
+	if got := h.auth.calls(); got != before+1 {
+		t.Fatalf("인증 호출 = %d, want %d: Upgrade 실패 전에 인증은 성공해야 이 test가 의미가 있음", got, before+1)
+	}
+
+	// 인증 실패(401)와 subprotocol 불일치(400)도 교체하지 않는다.
+	if _, resp, err := h.dial(bearer(wrongCredential), protocol.SubprotocolControl); err == nil || resp == nil || resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("잘못된 Credential Dial() error = %v, resp = %v, want 401", err, resp)
+	}
+	if _, resp, err := h.dial(bearer(testCredential), "not-the-control-protocol"); err == nil || resp == nil || resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("잘못된 subprotocol Dial() error = %v, resp = %v, want 400", err, resp)
+	}
+
+	time.Sleep(300 * time.Millisecond)
+	if first.closedNow() {
+		t.Fatal("Upgrade에 실패한 요청이 current connection을 닫음")
+	}
+	if got, ok := h.registry.Current(h.principal.ConnectorID); !ok || got != session {
+		t.Fatalf("Current() = %+v, %v, want 그대로 %+v", got, ok, session)
+	}
+	first.heartbeat()
+	waitFor(t, "기존 connection heartbeat 기록", func() bool { return len(h.beats.recorded()) == 1 })
+}
+
+// 같은 Credential로 동시에 여러 connection을 Upgrade해도 최종 current는 하나이고 나머지는 모두 4002로 끝난다.
+// 마지막에 current가 된 connection만 HELLO를 마치고 정상 동작한다.
 func TestConcurrentConnectionsLeaveExactlyOneCurrent(t *testing.T) {
 	h := newHarness(t)
 	const connections = 6
@@ -342,12 +543,13 @@ func TestConcurrentConnectionsLeaveExactlyOneCurrent(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			peers[i] = h.establishWith(testCredential)
+			peers[i] = h.upgradeWith(testCredential)
 		}()
 	}
 	wg.Wait()
 
-	var replaced, alive int
+	var alive *peer
+	replaced := 0
 	for _, p := range peers {
 		select {
 		case <-p.done:
@@ -356,15 +558,21 @@ func TestConcurrentConnectionsLeaveExactlyOneCurrent(t *testing.T) {
 			}
 			replaced++
 		case <-time.After(1500 * time.Millisecond):
-			alive++
+			if alive != nil {
+				t.Fatal("살아 있는 connection이 둘 이상")
+			}
+			alive = p
 		}
 	}
-	if alive != 1 || replaced != connections-1 {
-		t.Fatalf("살아 있는 connection = %d, 교체 종료 = %d, want 1 and %d", alive, replaced, connections-1)
+	if alive == nil || replaced != connections-1 {
+		t.Fatalf("교체 종료 = %d, 생존 = %v, want %d and 1", replaced, alive != nil, connections-1)
 	}
 	if _, ok := h.registry.Current(h.principal.ConnectorID); !ok {
 		t.Fatal("최종 current가 없음")
 	}
+	alive.hello()
+	alive.heartbeat()
+	waitFor(t, "생존 connection heartbeat 기록", func() bool { return len(h.beats.recorded()) == 1 })
 }
 
 // 서로 다른 Connector의 connection은 서로 교체하거나 종료하지 않는다.

@@ -286,12 +286,13 @@ func TestSupervisorHeartbeatsKeepSessionAndAdvanceLastSeen(t *testing.T) {
 // 이 과정에서 Provider 호출이나 Operation 상태 변화는 없다(reconnect는 Operation retry가 아니다).
 func TestSupervisorReconnectsAfterDuplicateReplacement(t *testing.T) {
 	env := startLifecycleEnv(t)
-	// 중간 Session(B)이 current인 구간을 안정적으로 관찰할 수 있게 재접속 대기를 넉넉히 둔다.
-	run := startSupervisor(t, env, 400*time.Millisecond)
+	// B의 HELLO가 Supervisor의 재접속과 경쟁하지 않고 중간 Session(B)을 안정적으로 관찰할 수 있게 재접속 대기를 넉넉히 둔다.
+	// production Connector의 backoff 구현은 바꾸지 않고 test용 정책만 쓴다.
+	run := startSupervisor(t, env, 1500*time.Millisecond)
 	run.waitConnected(t)
 	first := env.current()
 
-	// 두 번째 실제 client B가 같은 Credential로 연결한다. B가 current가 되고 Supervisor 연결은 4002로 끝난다.
+	// 두 번째 실제 client B가 같은 Credential로 인증과 WebSocket Upgrade까지만 한다(HELLO 전).
 	other := newConnectorClient(env.url, e2eConnectorCredential)
 	t.Cleanup(func() { _ = other.Close() })
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
@@ -299,18 +300,24 @@ func TestSupervisorReconnectsAfterDuplicateReplacement(t *testing.T) {
 	if err := other.Dial(ctx); err != nil {
 		t.Fatalf("B Dial() error = %v", err)
 	}
-	if _, err := other.SendHello(ctx); err != nil {
-		t.Fatalf("B SendHello() error = %v", err)
-	}
+	// B가 HELLO를 보내기 전에 B가 current가 되고 Supervisor의 연결은 4002로 끝난다.
 	var second connector.Session
-	eventually(t, "B가 current", 10*time.Second, func() bool {
+	eventually(t, "B가 HELLO 전에 current", 10*time.Second, func() bool {
 		session, ok := env.registry.Current(env.connectorID)
 		second = session
 		return ok && session != first
 	})
 	requireCloseCode(t, run.waitDisconnected(t), 4002)
 
-	// Supervisor가 재접속해 다시 current가 되고, 그 HELLO가 B를 교체한다. Session은 세 번 모두 다르다.
+	// 그 다음에야 B가 HELLO를 보내고 protocol-ready가 된다.
+	if _, err := other.SendHello(ctx); err != nil {
+		t.Fatalf("B SendHello() error = %v", err)
+	}
+	if got, ok := env.registry.Current(env.connectorID); !ok || got != second {
+		t.Fatalf("B의 HELLO 뒤 registry = %+v, %v, want %+v", got, ok, second)
+	}
+
+	// Supervisor가 재접속하면 그 인증과 Upgrade가 B를 4002로 교체하고 이어서 HELLO/ACK를 마친다. Session은 세 번 모두 다르다.
 	run.waitConnected(t)
 	var third connector.Session
 	eventually(t, "재접속한 Supervisor가 current", 10*time.Second, func() bool {

@@ -1,8 +1,8 @@
 // Package connectorwss는 contracts/connector/의 Connector Control WSS endpoint(/connector/v1/control) transport다.
 //
-// 이 package는 WebSocket Upgrade, subprotocol, message 크기 제한, HELLO 검증과 HELLO_ACK 응답, 그리고 HELLO 이후의
-// 연결 수명을 담당한다. 연결 수명은 HEARTBEAT 수신·last_seen 기록, OFFLINE 판단, 같은 Connector의 새 connection에 의한
-// 교체(4002), Credential revoke(4001), shutdown이다.
+// 이 package는 WebSocket Upgrade, subprotocol, message 크기 제한, HELLO 검증과 HELLO_ACK 응답, 그리고 연결 수명을
+// 담당한다. 연결 수명은 인증과 Upgrade에 성공한 새 connection의 소유권 확보와 이전 connection 교체(4002),
+// HEARTBEAT 수신 기반 OFFLINE 판단과 last_seen 기록, Credential revoke(4001), shutdown이다.
 // Credential 판정과 heartbeat 기록은 use case(connector.Service)에 위임하고 SQL/pgx를 알지 못한다.
 // command/result routing, Provider/Operation 실행은 이 package의 범위가 아니다. HELLO 이후 HEARTBEAT가 아닌 message는 해석하지 않고 버린다.
 package connectorwss
@@ -257,6 +257,17 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal) {
 		}
 	}()
 
+	// Bearer 인증과 WebSocket Upgrade에 성공한 이 connection이 Connector의 current Control connection이 된다
+	// (contracts/connector/README.md §4). HELLO를 기다리기 전에 등록하므로 같은 Connector의 이전 connection은
+	// 새 peer가 HELLO를 보내지 않거나 잘못된 HELLO를 보내도 이 호출 안에서 4002로 종료가 요청된다.
+	// 등록된 Session은 소유자일 뿐 protocol-ready가 아니다. HELLO_ACK를 보내기 전에는 이 connection으로 나가는
+	// message가 없고, command routing(LBT-71)도 HELLO_ACK 이후에만 이 connection을 사용해야 한다.
+	// HELLO 실패·timeout이면 아래 Release가 이 Session만 제거하며 더 새로운 Session은 건드리지 않는다.
+	registration := h.registry.Register(principal, cc.closeFor)
+	defer registration.Release()
+	log = log.With("session_id", registration.Session().ID.String())
+	log.Info("Connector Control connection 소유")
+
 	_ = conn.SetReadDeadline(time.Now().Add(h.helloTimeout))
 	messageType, data, err := conn.ReadMessage()
 	if err != nil {
@@ -265,6 +276,11 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal) {
 		if isTimeout(err) {
 			cc.close(closeProtocolError, "protocol error")
 		}
+		return
+	}
+	// HELLO를 기다리는 동안 교체·revoke·shutdown으로 종료가 시작되었다면 이 connection은 HELLO를 처리하지 않는다.
+	if cc.isClosing() {
+		log.Info("Connector Control connection 종료", "reason", "close_requested_before_hello")
 		return
 	}
 	if messageType != websocket.TextMessage {
@@ -301,15 +317,9 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal) {
 		return
 	}
 
-	// HELLO_ACK를 보낸 시점부터 OFFLINE timeout을 잰다. 이후에는 유효한 HEARTBEAT를 기록한 경우에만 연장한다.
+	// HELLO_ACK를 보낸 시점부터 OFFLINE timeout을 잰다. 이후에는 current Session의 유효한 HEARTBEAT를 받았을 때만 연장한다.
 	// WebSocket Ping/Pong, 알 수 없는 message, 잘못된 HEARTBEAT는 연장하지 않는다.
 	_ = conn.SetReadDeadline(time.Now().Add(h.offlineTimeout))
-
-	// HELLO_ACK를 보낸 뒤에만 등록한다. 이후 command routing이 ACK보다 먼저 나가지 않게 하기 위해서다.
-	// 같은 Connector의 이전 connection은 이 호출 안에서 4002 종료가 요청된다.
-	registration := h.registry.Register(principal, cc.closeFor)
-	defer registration.Release()
-	log = log.With("session_id", registration.Session().ID.String())
 	log.Info("Connector Control connection 수립")
 
 	h.readLoop(conn, cc, registration, principal, log)
@@ -354,15 +364,20 @@ func (h *Handler) readLoop(conn *websocket.Conn, cc *controlConn, registration *
 			h.reject(cc, log, "HEARTBEAT", errorCodeInvalidMessage, "HEARTBEAT does not match the connector contract")
 			return
 		}
+		// 이 Session이 아직 current인 동안 유효한 HEARTBEAT를 받았다는 사실 자체가 application liveness의 증거다.
+		// OFFLINE은 HEARTBEAT를 받지 못한 상태이므로 deadline은 last_seen 기록의 성패와 무관하게 먼저 연장하고,
+		// 그 다음에 last_seen을 기록한다. 같은 IfCurrent 안에서 하므로 교체·revoke된 Session은 deadline도 갱신하지 못하고
+		// 교체는 진행 중인 이 처리를 기다린다.
 		// last_seen은 Connector의 observedAt이 아니라 Backend가 수신한 서버 시각으로 기록한다.
 		recorded, err := registration.IfCurrent(func() error {
+			_ = conn.SetReadDeadline(receivedAt.Add(h.offlineTimeout))
 			ctx, cancel := context.WithTimeout(context.Background(), heartbeatRecordTimeout)
 			defer cancel()
 			return h.heartbeats.RecordHeartbeat(ctx, principal, receivedAt.UTC())
 		})
 		switch {
 		case !recorded:
-			// 이미 교체되었거나 revoke된 Session이다. 종료가 요청된 connection이므로 아무것도 갱신하지 않는다.
+			// 이미 교체되었거나 revoke된 Session이다. 종료가 요청된 connection이므로 deadline도 last_seen도 갱신하지 않는다.
 			continue
 		case errors.Is(err, connector.ErrUnauthenticated):
 			// DB에서 Credential 또는 Connector가 revoke되었다. last_seen을 갱신하지 않고 이 connection을 4001로 끝낸다.
@@ -370,11 +385,11 @@ func (h *Handler) readLoop(conn *websocket.Conn, cc *controlConn, registration *
 			cc.close(closeCredentialRevoked, "credential revoked")
 			return
 		case err != nil:
-			// 저장소 장애다. 기록하지 못했으므로 OFFLINE deadline을 연장하지 않고 연결은 유지한다.
+			// 저장소 장애는 Connector가 OFFLINE인 것이 아니다. HEARTBEAT는 받았으므로 deadline은 이미 연장되었고 연결은 유지한다.
+			// last_seen만 기록하지 못했으며, revoke 여부도 이번에는 확인하지 못했다. 오류 원문은 남기지 않는다.
 			log.Error("Connector heartbeat 기록 실패", "error_code", "DEPENDENCY_UNAVAILABLE")
 			continue
 		}
-		_ = conn.SetReadDeadline(receivedAt.Add(h.offlineTimeout))
 		log.Debug("Connector heartbeat 수신")
 	}
 }

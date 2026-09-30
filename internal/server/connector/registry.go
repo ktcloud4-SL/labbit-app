@@ -17,18 +17,22 @@ const (
 	CloseRevoked
 )
 
-// Session은 HELLO까지 완료한 Control connection 하나를 식별한다.
+// Session은 인증과 WebSocket Upgrade를 마친 Control connection 하나를 식별한다.
 // 같은 Connector의 connection이 다시 붙어도 Session.ID는 서로 다르다.
+// Session은 connection의 소유자일 뿐 protocol-ready가 아니다. HELLO_ACK가 끝나기 전의 connection도 포함한다.
 type Session struct {
 	ID           uuid.UUID
 	ConnectorID  uuid.UUID
 	CredentialID uuid.UUID
 }
 
-// Registry는 HELLO까지 완료한 Control connection을 Connector별 current Session 하나로 소유한다.
+// Registry는 인증과 WebSocket Upgrade를 마친 Control connection을 Connector별 current Session 하나로 소유한다.
 // 여러 connection goroutine이 동시에 사용해도 안전하다.
 //
 //   - 같은 Connector의 새 Session이 등록되면 새 Session이 current가 되고 이전 Session의 종료를 요청한다.
+//     이 교체는 새 connection이 HELLO를 보내기 전에 일어난다(contracts/connector/README.md §4).
+//   - current는 소유자이지 protocol-ready(HELLO_ACK 완료)가 아니다. Registry는 message를 보내는 경로를 노출하지 않으며,
+//     command routing은 HELLO_ACK 이후에만 Session의 connection을 사용해야 한다.
 //   - Session 종료와 release는 그 Session만 다룬다. 이미 교체된 Session의 늦은 release는 새 Session을 지우지 않는다.
 //   - 종료 요청(closeFn)은 항상 Registry lock 밖에서 호출한다. lock을 잡은 채 network I/O를 하지 않는다.
 //

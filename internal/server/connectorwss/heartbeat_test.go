@@ -60,6 +60,39 @@ func (h *harness) establishWith(credential string) *peer {
 	return p
 }
 
+// upgradeWith는 credential로 Bearer 인증과 WebSocket Upgrade까지만 하고 read를 시작한다. HELLO는 보내지 않는다.
+// 인증과 Upgrade에 성공한 connection이 HELLO 전에 이미 current Session이 되는 계약을 확인하는 데 쓴다.
+func (h *harness) upgradeWith(credential string) *peer {
+	h.t.Helper()
+	conn, _, err := h.dial(bearer(credential), protocol.SubprotocolControl)
+	if err != nil {
+		h.t.Fatalf("Dial() error = %v", err)
+	}
+	h.t.Cleanup(func() { _ = conn.Close() })
+
+	p := &peer{t: h.t, conn: conn, done: make(chan struct{})}
+	conn.SetPongHandler(func(string) error {
+		p.pongs.Add(1)
+		return nil
+	})
+	go p.readLoop()
+	return p
+}
+
+// hello는 유효한 HELLO를 보내고 HELLO_ACK를 받을 때까지 기다린다(protocol-ready).
+func (p *peer) hello() {
+	p.t.Helper()
+	p.send(validHello())
+	waitFor(p.t, "HELLO_ACK", func() bool {
+		for _, frame := range p.received() {
+			if strings.Contains(frame, `"HELLO_ACK"`) {
+				return true
+			}
+		}
+		return false
+	})
+}
+
 func (p *peer) readLoop() {
 	defer close(p.done)
 	for {

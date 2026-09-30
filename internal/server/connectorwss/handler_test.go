@@ -293,6 +293,8 @@ func (h *harness) waitRegistered() connector.Session {
 	return session
 }
 
+// assertNotRegistered는 Upgrade 전에 거절된 요청(인증 실패 등)이 registry에 등록된 적이 없음을 즉시 확인한다.
+// HELLO가 실패한 connection은 Upgrade 직후 등록되므로 registryReleased로 해제를 기다려야 한다.
 func (h *harness) assertNotRegistered() {
 	h.t.Helper()
 	if session, ok := h.registry.Current(h.principal.ConnectorID); ok {
@@ -721,7 +723,7 @@ func TestInvalidFirstMessageIsRejectedAndNotRegistered(t *testing.T) {
 					t.Fatalf("입력 또는 Credential이 노출됨: %s", out)
 				}
 			}
-			h.assertNotRegistered()
+			registryReleased(h.t, h) // Upgrade 직후 등록되므로 HELLO 실패 뒤 connection이 끝나면 해제된다.
 		})
 	}
 }
@@ -1033,7 +1035,7 @@ func TestControlMessageSizeLimit(t *testing.T) {
 		if len(frames) != 0 {
 			t.Fatalf("크기 초과 message에 별도 frame을 보냄: %v", frames)
 		}
-		h.assertNotRegistered()
+		registryReleased(h.t, h) // Upgrade 직후 등록되므로 HELLO 실패 뒤 connection이 끝나면 해제된다.
 	})
 
 	t.Run("HELLO 이후 1 MiB 초과 message도 1009", func(t *testing.T) {
@@ -1065,7 +1067,7 @@ func TestMissingHelloTimesOutAndIsNotRegistered(t *testing.T) {
 	if closeErr.Code != closeProtocolError {
 		t.Fatalf("close code = %d, want %d", closeErr.Code, closeProtocolError)
 	}
-	h.assertNotRegistered()
+	registryReleased(h.t, h) // Upgrade 직후 등록되므로 HELLO 실패 뒤 connection이 끝나면 해제된다.
 }
 
 // HELLO_ACK 이후에는 HEARTBEAT만 해석한다(command/result routing은 LBT-71). 다른 type, non-JSON, binary,

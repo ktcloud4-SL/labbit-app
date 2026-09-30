@@ -54,6 +54,14 @@ type BootstrapRepository interface {
 	CreateClassMembership(ctx context.Context, membership NewClassMembership) error
 }
 
+// ConnectorRepository는 Connector Control WSS 인증이 사용하는 query다.
+// 단일 read-only query이므로 Transaction 안의 Repositories에는 포함하지 않는다.
+type ConnectorRepository interface {
+	// ConnectorCredentialByHash는 credential digest로 Credential과 소유 Connector를 반환한다. 없으면 ErrNotFound다.
+	// revoke된 Credential이나 Connector도 필터링하지 않고 반환하며 인증 허용 여부는 Application이 판단한다.
+	ConnectorCredentialByHash(ctx context.Context, credentialHash []byte) (ConnectorCredentialWithConnector, error)
+}
+
 // Repositories는 하나의 DB session에서 사용할 수 있는 Repository 모음이다.
 type Repositories interface {
 	IdentityRepository

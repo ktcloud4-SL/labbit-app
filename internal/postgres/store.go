@@ -35,8 +35,9 @@ type Store struct {
 }
 
 var (
-	_ repository.Repositories = (*Store)(nil)
-	_ repository.Transactor   = (*Store)(nil)
+	_ repository.Repositories        = (*Store)(nil)
+	_ repository.Transactor          = (*Store)(nil)
+	_ repository.ConnectorRepository = (*Store)(nil)
 )
 
 func NewStore(pool *pgxpool.Pool) *Store {

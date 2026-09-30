@@ -178,7 +178,7 @@ func TestExpectValidatesInput(t *testing.T) {
 func TestOptionsRequireDependencies(t *testing.T) {
 	ok := realtime.Options{
 		Control:     newFakeControl(),
-		Connectors:  fakeConnectors{},
+		Connectors:  newFakeConnectors(),
 		AllowOrigin: func(string) bool { return true },
 	}
 	if _, err := realtime.New(ok); err != nil {

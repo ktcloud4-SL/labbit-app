@@ -30,6 +30,13 @@ const (
 	connectorID1   = "11111111-1111-4111-8111-111111111111"
 	connectorID2   = "22222222-2222-4222-8222-222222222222"
 
+	// connectorCred1b는 connectorID1의 두 번째 유효한 Credential이다. 같은 Connector라도 다른 Credential이다.
+	connectorCred1b = "connector-credential-one-b"
+	// Credential 식별자다. Credential 원문이 아니며 revoke 통지가 이 값으로 connection을 찾는다.
+	credentialID1  = "c1111111-1111-4111-8111-111111111111"
+	credentialID1b = "c1111111-1111-4111-8111-11111111111b"
+	credentialID2  = "c2222222-2222-4222-8222-222222222222"
+
 	// 이 값들이 log나 DB에 나타나면 안 된다.
 	inputMarker  = "INPUT-MARKER-0f3a9c"
 	outputMarker = "OUTPUT-MARKER-7be21d"
@@ -189,15 +196,62 @@ func (c *fakeControl) snapshot() (attached []string, detached []detachCall, clos
 		append([]endedCall(nil), c.closed...), append([]endedCall(nil), c.ended...)
 }
 
-// fakeConnectors는 credential을 Connector identity로 바꾸는 fake다.
-type fakeConnectors map[string]string
+type fakeCredential struct{ connectorID, credentialID string }
 
-func (f fakeConnectors) AuthenticateConnector(_ context.Context, credential realtime.ConnectorCredential) (realtime.ConnectorIdentity, error) {
-	id, ok := f[string(credential)]
-	if !ok {
+// fakeConnectors는 credential을 Connector identity로 바꾸는 fake다. 저장소에서 Credential이 revoke된 것을 흉내 낼 수 있다(revoke).
+// 운영에서는 저장소 상태를 바꾼 뒤에 revoke 통지가 오므로 test도 revoke 뒤에 relay.RevokeConnectorCredential을 호출한다.
+type fakeConnectors struct {
+	mu      sync.Mutex
+	creds   map[string]fakeCredential
+	revoked map[string]bool
+	// stall이 있으면 다음 인증이 성공 결과를 얻은 뒤 release될 때까지 멈춘다(한 번만).
+	// "인증은 끝났지만 connection으로 등록되기 전"을 결정적으로 만든다.
+	stall *gate
+}
+
+func newFakeConnectors() *fakeConnectors {
+	return &fakeConnectors{
+		creds: map[string]fakeCredential{
+			connectorCred:   {connectorID1, credentialID1},
+			connectorCred1b: {connectorID1, credentialID1b},
+			connectorCred2:  {connectorID2, credentialID2},
+		},
+		revoked: map[string]bool{},
+	}
+}
+
+func (f *fakeConnectors) AuthenticateConnector(_ context.Context, credential realtime.ConnectorCredential) (realtime.ConnectorIdentity, error) {
+	f.mu.Lock()
+	c, ok := f.creds[string(credential)]
+	if !ok || f.revoked[string(credential)] {
+		f.mu.Unlock()
 		return realtime.ConnectorIdentity{}, realtime.ErrUnauthenticated
 	}
-	return realtime.ConnectorIdentity{ConnectorID: id}, nil
+	g := f.stall
+	f.stall = nil
+	f.mu.Unlock()
+
+	if g != nil {
+		g.entered <- struct{}{}
+		<-g.release
+	}
+	return realtime.ConnectorIdentity{ConnectorID: c.connectorID, CredentialID: c.credentialID}, nil
+}
+
+// revoke는 저장소에서 credential이 revoke된 것을 흉내 낸다. 이후의 인증은 실패한다.
+func (f *fakeConnectors) revoke(credential string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.revoked[credential] = true
+}
+
+// stallNextAuth는 다음 성공한 인증을 그 결과를 얻은 직후에 멈춘다.
+func (f *fakeConnectors) stallNextAuth() *gate {
+	g := newGate()
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.stall = g
+	return g
 }
 
 // env는 실제 WebSocket endpoint를 가진 Relay와 그 의존성이다.
@@ -206,17 +260,19 @@ type env struct {
 	relay   *realtime.Relay
 	clock   *realtimetest.FakeClock
 	control *fakeControl
-	server  *httptest.Server
-	logs    *syncBuffer
-	seq     int
+	// connectors는 Connector credential 인증 fake다.
+	connectors *fakeConnectors
+	server     *httptest.Server
+	logs       *syncBuffer
+	seq        int
 }
 
 func newEnv(t *testing.T, mods ...func(*realtime.Options)) *env {
 	t.Helper()
-	e := &env{t: t, clock: realtimetest.NewFakeClock(startTime), control: newFakeControl(), logs: &syncBuffer{}}
+	e := &env{t: t, clock: realtimetest.NewFakeClock(startTime), control: newFakeControl(), connectors: newFakeConnectors(), logs: &syncBuffer{}}
 	opts := realtime.Options{
 		Control:       e.control,
-		Connectors:    fakeConnectors{connectorCred: connectorID1, connectorCred2: connectorID2},
+		Connectors:    e.connectors,
 		AllowOrigin:   func(origin string) bool { return origin == trustedOrigin },
 		Clock:         e.clock,
 		Logger:        slog.New(slog.NewJSONHandler(e.logs, &slog.HandlerOptions{Level: slog.LevelDebug})),
@@ -253,14 +309,17 @@ func (e *env) wsURL(path string) string {
 }
 
 // newSession은 Control에 TerminalSession을 알리고 Relay에 예상 correlation을 등록한다. Activate는 하지 않는다.
-func (e *env) newSession() session {
+func (e *env) newSession() session { return e.newSessionOn(connectorID1) }
+
+// newSessionOn은 newSession을 connectorID의 Connector가 PTY를 소유하는 TerminalSession으로 만든다.
+func (e *env) newSessionOn(connectorID string) session {
 	e.t.Helper()
 	e.seq++
 	s := session{
 		ID:          fmt.Sprintf("00000000-0000-4000-8000-%012d", e.seq),
 		LabID:       fmt.Sprintf("10000000-0000-4000-8000-%012d", e.seq),
 		Generation:  1,
-		ConnectorID: connectorID1,
+		ConnectorID: connectorID,
 		Token:       fmt.Sprintf("test-attach-token-%d", e.seq),
 		OwnerCookie: ownerCookie,
 	}
@@ -461,6 +520,12 @@ func (e *env) connectData(s session) *dataPeer {
 	if s.ConnectorID == connectorID2 {
 		cred = connectorCred2
 	}
+	return e.connectDataWith(s, cred)
+}
+
+// connectDataWith는 지정한 credential로 connectData를 한다.
+func (e *env) connectDataWith(s session, cred string) *dataPeer {
+	e.t.Helper()
 	p, _, err := e.dialData(cred)
 	if err != nil {
 		e.t.Fatalf("Data WSS dial error = %v", err)

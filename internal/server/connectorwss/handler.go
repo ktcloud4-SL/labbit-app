@@ -419,7 +419,11 @@ func (h *Handler) readLoop(conn *websocket.Conn, cc *controlConn, registration *
 			continue
 		case errors.Is(err, connector.ErrUnauthenticated):
 			// DB에서 Credential 또는 Connector가 revoke되었다. last_seen을 갱신하지 않고 이 connection을 4001로 끝낸다.
+			// 이 Credential을 더 이상 신뢰하지 않으므로 같은 Credential로 인증된 다른 Control Session과 Terminal Data WSS도 함께 끝낸다
+			// (contracts/connector/README.md §2). Registry의 revoke primitive를 거치므로 직접 호출하는 revoke hook과 같은 경로다.
+			// Connector가 revoke된 것인지 Credential만 revoke된 것인지 여기서는 알 수 없어 이 Credential로만 한정한다.
 			log.Warn("Connector Control Credential revoke 감지", "reason", "revoked_on_heartbeat")
+			h.registry.RevokeCredential(principal.CredentialID)
 			cc.close(closeCredentialRevoked, "credential revoked")
 			return
 		case err != nil:

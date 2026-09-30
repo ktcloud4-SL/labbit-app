@@ -38,6 +38,11 @@ const (
 	closeReplaced       = 4004
 	closeSlowConsumer   = 4005
 	closeLifecycle      = 4006
+
+	// closeCredentialRevoked는 Connector Terminal Data WSS가 인증에 쓴 Credential(또는 Connector)이 revoke되어 더 이상 신뢰할 수 없을 때다.
+	// contracts/connector/README.md §15의 4001(Connector Credential revoke)과 같은 의미다. TerminalSession의 종료가 아니라
+	// 이 transport의 trust 상실이다.
+	closeCredentialRevoked = 4001
 )
 
 var (
@@ -49,6 +54,9 @@ var (
 	ErrInvalidExpected = errors.New("realtime: Expected가 올바르지 않음")
 	// ErrDataNotBound는 Connector Terminal Data WSS가 아직 bind되지 않았음이다.
 	ErrDataNotBound = errors.New("realtime: Terminal Data WSS가 bind되지 않음")
+
+	// errDataRevoked는 bind하려던 Data WSS의 Credential/Connector trust를 잃었음이다.
+	errDataRevoked = errors.New("realtime: Terminal Data WSS의 trust를 잃음")
 )
 
 // Options는 Relay 구성이다.
@@ -105,6 +113,9 @@ type Relay struct {
 	browserUpgrader websocket.Upgrader
 	dataUpgrader    websocket.Upgrader
 
+	// trust는 열린 Terminal Data WSS를 인증한 Connector trust별로 추적한다. revoke 통지가 오면 해당 connection만 종료한다.
+	trust *dataTrust
+
 	// mu는 sessions, closed, wg에 요청을 더하는 시점을 보호한다.
 	mu       sync.Mutex
 	sessions map[string]*session
@@ -140,6 +151,7 @@ func New(opts Options) (*Relay, error) {
 		dataQueueBytes:       intOr(opts.DataQueueBytes, defaultQueueBytes),
 		dataQueueMessages:    intOr(opts.DataQueueMessages, defaultQueueMessages),
 		sessions:             make(map[string]*session),
+		trust:                newDataTrust(),
 		done:                 make(chan struct{}),
 	}
 	if r.clock == nil {
@@ -257,6 +269,48 @@ func (r *Relay) shutdownSession(ctx context.Context, s *session) {
 		s.log.Warn("서비스 종료 중 TerminalSession 종료 기록 실패", "error_code", errorCode(err))
 	}
 	r.finish(s, End{Reason: EndReasonServiceRestarting}, true, true)
+}
+
+// RevokeConnectorCredential은 credentialID로 인증된 Terminal Data WSS를 더 이상 신뢰하지 않고 종료한다. 종료한 connection 수를 반환한다.
+// Credential 저장소 상태가 revoke로 바뀐 뒤에만 호출한다. 그래서 이 호출 뒤에 시작하는 Upgrade는 인증에서 거절된다.
+//
+// 다른 Credential이나 다른 Connector의 connection은 건드리지 않는다. 종료는 TerminalSession의 종료가 아니라 이 transport의
+// trust 상실이다. PTY는 그대로이고 TerminalSession은 data channel 없이 남으며, Connector가 유효한 Credential로 다시 attach하면
+// 같은 TerminalSession의 새 data channel이 된다(resumed=true). 이 호출이 반환한 뒤에는 종료된 connection으로 Binary frame이
+// 오가지 않는다.
+func (r *Relay) RevokeConnectorCredential(credentialID string) int {
+	if credentialID == "" {
+		return 0
+	}
+	return r.terminateRevoked(r.trust.revokeCredential(credentialID), "credential")
+}
+
+// RevokeConnector는 connectorID의 모든 Terminal Data WSS를 더 이상 신뢰하지 않고 종료한다. Connector 자체가 revoke되었을 때
+// 그 Connector의 어떤 Credential로 인증한 connection이든 같다. 그 밖의 의미는 RevokeConnectorCredential과 같다.
+func (r *Relay) RevokeConnector(connectorID string) int {
+	if connectorID == "" {
+		return 0
+	}
+	return r.terminateRevoked(r.trust.revokeConnector(connectorID), "connector")
+}
+
+// terminateRevoked는 trust를 잃은 connection들을 data channel에서 내리고 4001로 종료한다. 기다리지 않는다.
+func (r *Relay) terminateRevoked(conns []*dataConn, scope string) int {
+	for _, d := range conns {
+		// 먼저 세션의 current data channel에서 내려 이후 OUTPUT/INPUT/resize가 이 connection을 지나지 않게 한다.
+		// dataLoop의 읽기 반복이 끝나면 dataGone이 호출되지만 이미 s.data가 이 connection이 아니라 아무것도 하지 않는다.
+		if s := d.session.Load(); s != nil {
+			s.mu.Lock()
+			if s.data == d {
+				s.data = nil
+				s.log.Warn("Connector Terminal Data trust 상실로 data channel 종료", "scope", scope)
+			}
+			s.mu.Unlock()
+		}
+		// 아직 보내지 않은 frame은 버린다. 신뢰하지 않는 connection으로 INPUT을 더 흘리지 않는다.
+		d.p.close(closeCredentialRevoked, "credential revoked", false)
+	}
+	return len(conns)
 }
 
 // Sessions는 Relay가 추적 중인 TerminalSession 수다. 종료된 TerminalSession은 즉시 제거한다.

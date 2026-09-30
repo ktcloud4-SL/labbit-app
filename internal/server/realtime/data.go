@@ -36,6 +36,11 @@ func (r *Relay) serveDataHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// 인증을 시작하기 전에 revoke 순번을 기억한다. 인증이 끝난 뒤 connection으로 등록되기 전에 이 trust가 revoke되면
+	// 추적 목록에 없어 놓치게 되므로, 등록할 때 그 사이의 revoke를 확인한다(trust.go).
+	ticket := r.trust.begin()
+	defer ticket.release()
+
 	ctx, cancel := context.WithTimeout(req.Context(), controlTimeout)
 	identity, err := r.connectors.AuthenticateConnector(ctx, credential)
 	cancel()
@@ -55,15 +60,25 @@ func (r *Relay) serveDataHTTP(w http.ResponseWriter, req *http.Request) {
 		r.logger.Warn("Connector Terminal Data Upgrade 실패", "connector_id", identity.ConnectorID, "reason", "upgrade_failed")
 		return
 	}
-	r.serveData(ws, identity)
+	r.serveData(ws, identity, ticket)
 }
 
 // serveData는 Upgrade된 Connector connection 하나를 끝까지 처리한다. 첫 application message는 TERMINAL_DATA_ATTACH여야 한다.
-func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity) {
+func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket *trustTicket) {
 	ws.SetReadLimit(r.readLimit)
 	p := newPeer(ws, r.dataQueueBytes, r.dataQueueMessages, r.writeTimeout, r.closeGrace)
 	defer p.shutdown()
 	log := r.logger.With("connector_id", identity.ConnectorID)
+
+	// attach 전부터 trust를 추적한다. TERMINAL_DATA_ATTACH를 기다리는 connection도 Credential이 revoke되면 종료 대상이다.
+	d := &dataConn{p: p, credentialID: identity.CredentialID, connectorID: identity.ConnectorID}
+	if !r.trust.admit(ticket, d) {
+		// 인증한 뒤 등록하기 전에 같은 Credential/Connector가 revoke되었다. 오래된 trust로 connection을 열어 두지 않는다.
+		log.Warn("Connector Terminal Data 인증 직후 trust 상실", "reason", "revoked_during_upgrade")
+		p.close(closeCredentialRevoked, "credential revoked", false)
+		return
+	}
+	defer r.trust.forget(d)
 
 	var attached atomic.Bool
 	finished := make(chan struct{})
@@ -116,8 +131,14 @@ func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity) {
 	}
 
 	log = s.log
-	d := &dataConn{p: p, runtimeID: msg.RuntimeID}
+	d.runtimeID = msg.RuntimeID
 	resumed, err := r.bindData(s, d, msg.MessageID)
+	if errors.Is(err, errDataRevoked) {
+		// attach를 기다리는 동안 Credential이 revoke되었다. 이미 종료가 요청되었으므로 사유만 남긴다.
+		log.Warn("Connector Terminal Data attach 거절", "reason", "credential_revoked")
+		p.close(closeCredentialRevoked, "credential revoked", false)
+		return
+	}
 	if err != nil {
 		log.Warn("Connector Terminal Data attach 거절", "error_code", codeDataInvalidSession)
 		r.rejectData(p, msg, codeDataInvalidSession, "terminal data attach was rejected", msg.MessageID)
@@ -150,10 +171,18 @@ func (r *Relay) bindData(s *session, d *dataConn, attachMessageID string) (resum
 	s.tmu.Lock()
 	defer s.tmu.Unlock()
 
+	// revoke가 이 connection을 이 세션의 data channel에서 내릴 수 있도록 session을 먼저 알린다. 아래에서 s.mu 안에서 revoked를 확인하므로
+	// revoke가 session을 보지 못한 경우(이 store 이전)에는 그 확인이 revoke를 본다. revoke는 revoked를 먼저 true로 한 뒤 session을 읽는다.
+	d.session.Store(s)
+
 	s.mu.Lock()
 	if s.state == stateEnded {
 		s.mu.Unlock()
 		return false, ErrSessionEnded
+	}
+	if d.revoked.Load() {
+		s.mu.Unlock()
+		return false, errDataRevoked
 	}
 	resumed = s.dataBoundBefore
 	s.mu.Unlock()
@@ -164,6 +193,11 @@ func (r *Relay) bindData(s *session, d *dataConn, attachMessageID string) (resum
 	}
 
 	s.mu.Lock()
+	if d.revoked.Load() {
+		// ATTACHED를 queue에 넣는 사이에 revoke되었다. revoke는 아직 공개되지 않은 connection을 s.data에서 내릴 수 없었으므로 여기서 막는다.
+		s.mu.Unlock()
+		return false, errDataRevoked
+	}
 	old := s.data
 	s.data = d
 	s.dataBoundBefore = true

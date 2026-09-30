@@ -2,6 +2,7 @@ package terminaltest
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"sync"
@@ -67,6 +68,10 @@ type dataLink struct {
 	open    Open
 
 	writeMu sync.Mutex
+
+	// done은 이 connection의 read loop가 끝나면 닫힌다. err는 done이 닫힌 뒤에만 읽는다(close frame이면 *websocket.CloseError).
+	done chan struct{}
+	err  error
 }
 
 func (l *dataLink) write(kind int, data []byte) error {
@@ -90,6 +95,9 @@ type Connector struct {
 
 	ctrl      *websocket.Conn
 	ctrlWrite sync.Mutex
+	// ctrlDone은 Control connection의 read loop가 끝나면 닫힌다. ctrlErr는 ctrlDone이 닫힌 뒤에만 읽는다.
+	ctrlDone chan struct{}
+	ctrlErr  error
 
 	mu         sync.Mutex
 	opens      []Open
@@ -107,7 +115,8 @@ func NewConnector(t *testing.T, baseURL, credential string) *Connector {
 	t.Helper()
 	return &Connector{
 		t: t, base: "ws" + strings.TrimPrefix(baseURL, "http"), credential: credential, EndOnClose: true,
-		links: map[string]*dataLink{}, inputs: map[string][][]byte{}, resizes: map[string][]Resize{},
+		ctrlDone: make(chan struct{}),
+		links:    map[string]*dataLink{}, inputs: map[string][][]byte{}, resizes: map[string][]Resize{},
 		dataCloses: map[string]([]string){}, attaches: map[string][]map[string]any{},
 	}
 }
@@ -175,6 +184,8 @@ func (c *Connector) controlLoop() {
 	for {
 		_, data, err := c.ctrl.ReadMessage()
 		if err != nil {
+			c.ctrlErr = err
+			close(c.ctrlDone)
 			return
 		}
 		var msg struct {
@@ -270,7 +281,7 @@ func (c *Connector) attachData(open Open) bool {
 		c.t.Errorf("Terminal Data WSS 연결 실패: %v", err)
 		return false
 	}
-	link := &dataLink{ws: ws, session: open.TerminalSessionID, open: open}
+	link := &dataLink{ws: ws, session: open.TerminalSessionID, open: open, done: make(chan struct{})}
 	if err := link.write(websocket.TextMessage, mustJSON(map[string]any{
 		"type": "TERMINAL_DATA_ATTACH", "messageId": uuid.NewString(), "sentAt": now(),
 		"terminalSessionId": open.TerminalSessionID, "labInstanceId": open.LabInstanceID, "generation": open.Generation,
@@ -315,6 +326,8 @@ func (c *Connector) dataLoop(link *dataLink) {
 	for {
 		kind, data, err := link.ws.ReadMessage()
 		if err != nil {
+			link.err = err
+			close(link.done)
 			return
 		}
 		c.mu.Lock()
@@ -359,6 +372,53 @@ func (c *Connector) Output(session string, data []byte) {
 	if err := c.link(session).write(websocket.BinaryMessage, data); err != nil {
 		c.t.Fatalf("OUTPUT 전송 실패: %v", err)
 	}
+}
+
+// TryOutput은 Output과 같지만 전송 실패를 test 실패로 만들지 않고 돌려준다. 서버가 종료한 connection으로 더 보내 보는 용도다.
+func (c *Connector) TryOutput(session string, data []byte) error {
+	c.t.Helper()
+	return c.link(session).write(websocket.BinaryMessage, data)
+}
+
+// Heartbeat는 Control WSS로 유효한 HEARTBEAT를 보낸다. 서버는 이때 Credential이 아직 유효한지 저장소에서 확인한다.
+func (c *Connector) Heartbeat() {
+	c.t.Helper()
+	c.writeControl(map[string]any{
+		"type": "HEARTBEAT", "messageId": uuid.NewString(), "sentAt": now(),
+		"payload": map[string]any{"observedAt": now()},
+	})
+}
+
+// ControlClosed는 Control connection이 끝날 때까지 기다려 close code를 반환한다. 시간 안에 끝나지 않으면 ok는 false다.
+// close frame이 아닌 오류로 끝났으면 code는 0이다.
+func (c *Connector) ControlClosed(timeout time.Duration) (code int, ok bool) {
+	c.t.Helper()
+	select {
+	case <-c.ctrlDone:
+		return closeCode(c.ctrlErr), true
+	case <-time.After(timeout):
+		return 0, false
+	}
+}
+
+// DataClosed는 session의 현재 Terminal Data WSS connection이 끝날 때까지 기다려 close code를 반환한다. 시간 안에 끝나지 않으면 ok는 false다.
+func (c *Connector) DataClosed(session string, timeout time.Duration) (code int, ok bool) {
+	c.t.Helper()
+	link := c.link(session)
+	select {
+	case <-link.done:
+		return closeCode(link.err), true
+	case <-time.After(timeout):
+		return 0, false
+	}
+}
+
+func closeCode(err error) int {
+	var closeErr *websocket.CloseError
+	if errors.As(err, &closeErr) {
+		return closeErr.Code
+	}
+	return 0
 }
 
 // DropData는 Terminal Data WSS의 transport만 끊는다(PTY는 살아 있다). close frame 없이 TCP를 닫는다.

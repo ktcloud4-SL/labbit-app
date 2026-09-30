@@ -146,6 +146,10 @@ type Control interface {
 type ConnectorIdentity struct {
 	// ConnectorID는 Labbit의 canonical Connector ID 문자열이다.
 	ConnectorID string
+	// CredentialID는 이 connection을 인증한 Connector Credential의 식별자(canonical ID 문자열)다. Credential 원문이 아니다.
+	// Credential이 revoke되면 이 ID로 그 Credential이 인증한 Data WSS를 찾아 종료한다(RevokeConnectorCredential).
+	// 비어 있으면 어떤 revoke 통지와도 맞지 않으므로 인증 adapter는 항상 채워야 한다.
+	CredentialID string
 }
 
 // ConnectorAuthenticator는 Terminal Data WSS Upgrade의 Connector credential을 인증한다.

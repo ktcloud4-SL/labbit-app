@@ -90,7 +90,19 @@ func (b *browserConn) close(code int, reason string, flush bool) {
 }
 
 // dataConn은 Connector의 Terminal Data WSS connection 하나다.
+//
+// Upgrade 직후(attach 전)에 만들어 dataTrust에 등록한다. 그래서 TERMINAL_DATA_ATTACH를 기다리는 connection도 revoke 대상이다.
+// runtimeID는 attach 뒤 bind되기 전에만 쓰며 s.data로 공개되기 전에 정해진다.
 type dataConn struct {
 	p         *peer
 	runtimeID string
+
+	// credentialID와 connectorID는 이 connection을 인증한 trust다. 생성 뒤 바뀌지 않는다.
+	credentialID string
+	connectorID  string
+	// revoked는 이 connection의 trust를 잃었음(Credential/Connector revoke)을 나타낸다. 한 번 true가 되면 되돌아가지 않으며
+	// bindData는 revoked인 connection을 TerminalSession의 data channel로 공개하지 않는다.
+	revoked atomic.Bool
+	// session은 bind를 시도한 TerminalSession이다. revoke가 그 세션의 data channel에서 이 connection을 내릴 때 쓴다.
+	session atomic.Pointer[session]
 }

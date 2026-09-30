@@ -96,6 +96,8 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		}
 		relayFwd.target = relay
 		sink.target = service
+		// Credential/Connector revoke를 Control이 관측하면 같은 Credential로 인증된 Terminal Data WSS도 함께 종료한다.
+		registry.SetRevokeObserver(terminal.NewRevokeBridge(relay))
 		stack.Terminals, stack.Relay = service, relay
 		terminals = service
 	}

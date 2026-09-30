@@ -135,7 +135,14 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: |
+            요청한 classId에 해당하는 Class가 존재하지 않습니다.
+            서버가 발급하지 않은 형식의 classId도 같은 응답입니다.
+            Class가 존재하지만 현재 사용자가 접근할 수 없으면 이 응답이 아니라 403입니다.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
         '500':
           $ref: '#/components/responses/InternalServerError'
 

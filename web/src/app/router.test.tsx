@@ -458,6 +458,21 @@ describe('Auth·Class·LabSpec routing', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('Class 상세 Backend 오류는 일반 오류 상태로 표시한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(500)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText('수업 정보를 불러오지 못했습니다.'),
+    ).toBeInTheDocument()
+  })
+
   it('Class 상세 403은 권한 없음 상태로 표시한다', async () => {
     renderRoute(
       '/classes/forbidden-class',

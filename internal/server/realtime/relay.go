@@ -450,7 +450,7 @@ func (r *Relay) finish(s *session, end End, notifyBrowser, notifyData bool) {
 	}
 	if d != nil {
 		if notifyData {
-			_ = d.p.send(websocket.TextMessage, dataClose(s.corr, end.Reason))
+			_ = d.p.send(websocket.TextMessage, dataClose(s.corr, end.Reason, end.Trace))
 		}
 		d.p.close(closeNormal, "session ended", true)
 	}

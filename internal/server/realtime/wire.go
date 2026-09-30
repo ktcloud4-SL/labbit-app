@@ -3,12 +3,14 @@ package realtime
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/server/jsonnum"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext"
 )
 
 // 이 file은 JSON Text control frame의 검증과 생성이다. 검증은 JSON Schema(contracts/realtime/terminal-live.schema.json,
@@ -17,7 +19,8 @@ import (
 //   - property 이름은 대소문자를 구분한다. 판단에 쓰는 값은 정확한 이름으로 조회한 RawMessage에서 직접 decode한다.
 //     struct decode는 대소문자만 다른 key가 정확한 key의 값을 덮어쓸 수 있어 쓰지 않는다.
 //   - 정의되지 않은 field(대소문자만 다른 key 포함)는 무시한다(additionalProperties: true인 message).
-//   - traceparent/tracestate는 검증하지 않는다. Terminal은 관측 metadata 때문에 업무 message를 거절하지 않는다.
+//   - traceparent/tracestate는 업무 검증에서 제외하고 표준 parser로 따로 정상화한다(traceOf). 유효한 값만 message의 Trace로 보존하고
+//     타입·길이·W3C 유효성이 잘못된 값은 그 관측 field만 버린다. Terminal은 관측 metadata 때문에 업무 message를 거절하지 않는다.
 //   - cols/rows/generation 같은 integer는 JSON Schema 2020-12의 integer 규칙(1.0, 1e2도 정수)을 lexical하게 판정하고
 //     Schema에 없는 상한을 만들지 않는다.
 
@@ -94,6 +97,23 @@ func validTimestamp(raw json.RawMessage) bool {
 	return err == nil
 }
 
+// traceOf는 message의 선택 Trace field(traceparent, tracestate)를 표준 parser로 정상화한다(contracts/connector/README.md §9, D-25).
+// string이 아니거나 유효하지 않은 값은 버린다. traceparent가 없거나 유효하지 않으면 tracestate도 쓰지 않고, traceparent만 유효하면
+// tracestate만 버린다. 업무 검증과 독립이므로 이 값 때문에 message를 거절하지 않으며 원문을 기록하지도 않는다. 가짜 Trace ID를 만들지 않는다.
+func traceOf(members map[string]json.RawMessage) tracecontext.Context {
+	traceparent, _ := jsonString(members["traceparent"])
+	tracestate, _ := jsonString(members["tracestate"])
+	return tracecontext.Normalize(traceparent, tracestate)
+}
+
+// withTrace는 유효한 Trace Context가 있으면 그 trace_id를 log에 붙인다. 없으면 log를 그대로 반환하고 가짜 값을 만들지 않는다.
+func withTrace(log *slog.Logger, t tracecontext.Context) *slog.Logger {
+	if id := t.TraceID(); id != "" {
+		return log.With("trace_id", id)
+	}
+	return log
+}
+
 // optionalNonEmpty는 member가 없으면 true, 있으면 비어 있지 않은 string일 때만 true다.
 func optionalNonEmpty(members map[string]json.RawMessage, name string) bool {
 	raw, present := members[name]
@@ -139,6 +159,8 @@ type browserMessage struct {
 	Token AttachToken
 	// Cols와 Rows는 TERMINAL_ATTACH와 TERMINAL_RESIZE에서 채우며 검증된 양의 정수 JSON number 원문이다.
 	Cols, Rows json.RawMessage
+	// Trace는 message의 유효한 Trace Context다. 없거나 유효하지 않으면 zero value다.
+	Trace tracecontext.Context
 }
 
 // decodeBrowserMessage는 Browser가 보낼 수 있는 TERMINAL_ATTACH와 TERMINAL_RESIZE를 검증한다.
@@ -164,7 +186,7 @@ func decodeBrowserMessage(data []byte) (browserMessage, error) {
 	if !ok {
 		return browserMessage{}, errMalformed
 	}
-	msg := browserMessage{Type: kind, MessageID: messageID, TerminalSessionID: sessionID}
+	msg := browserMessage{Type: kind, MessageID: messageID, TerminalSessionID: sessionID, Trace: traceOf(members)}
 
 	if kind == typeTerminalAttach {
 		token, ok := nonEmptyString(payload["sessionToken"])
@@ -202,6 +224,8 @@ type dataMessage struct {
 	ExitCode *int64
 	// ErrorCode는 ERROR에서 채운다.
 	ErrorCode string
+	// Trace는 message의 유효한 Trace Context다. 없거나 유효하지 않으면 zero value다. errMalformed여도 읽을 수 있으면 채운다.
+	Trace tracecontext.Context
 }
 
 // decodeDataMessage는 Connector가 보낼 수 있는 TERMINAL_DATA_ATTACH, TERMINAL_DATA_ENDED, ERROR를 검증한다.
@@ -220,7 +244,7 @@ func decodeDataMessage(data []byte) (dataMessage, error) {
 	if kind != typeDataAttach && kind != typeDataEnded && kind != typeError {
 		return dataMessage{}, errUnsupportedType
 	}
-	msg := dataMessage{Type: kind}
+	msg := dataMessage{Type: kind, Trace: traceOf(members)}
 
 	// terminal-data.schema.json의 BaseEnvelope는 세 message 모두 terminalSessionId, labInstanceId, generation을 required로 둔다.
 	correlated := true
@@ -320,10 +344,20 @@ type outEnvelope struct {
 	TerminalSessionID string    `json:"terminalSessionId,omitempty"`
 	LabInstanceID     string    `json:"labInstanceId,omitempty"`
 	Generation        int64     `json:"generation,omitempty"`
-	Payload           any       `json:"payload"`
+	// Traceparent와 Tracestate는 control event의 W3C Trace Context다. PTY Binary frame에는 붙이지 않는다(Binary는 이 envelope를 쓰지 않는다).
+	Traceparent string `json:"traceparent,omitempty"`
+	Tracestate  string `json:"tracestate,omitempty"`
+	Payload     any    `json:"payload"`
 }
 
-func marshalOut(e outEnvelope) []byte {
+// noTrace는 전파할 Trace Context가 없는 control message다. 가짜 Trace를 만들지 않는다.
+var noTrace tracecontext.Context
+
+// marshalOut은 e를 JSON으로 만든다. t가 유효할 때만 traceparent/tracestate를 싣는다. 호출자가 넘긴 값이라도 표준 parser로 다시
+// 정상화하므로 유효하지 않은 값이 wire에 나가지 않는다.
+func marshalOut(e outEnvelope, t tracecontext.Context) []byte {
+	t = tracecontext.Normalize(t.Traceparent, t.Tracestate)
+	e.Traceparent, e.Tracestate = t.Traceparent, t.Tracestate
 	e.MessageID = uuid.NewString()
 	e.SentAt = time.Now().UTC()
 	data, err := json.Marshal(e)
@@ -341,23 +375,26 @@ type errorPayload struct {
 	Fatal   bool   `json:"fatal,omitempty"`
 }
 
-func browserError(code, message string, fatal bool, replyTo string) []byte {
+// 아래 builder의 trace는 그 message가 응답하거나 이어 가는 control event의 Trace Context다. 관계가 없으면 noTrace다.
+
+func browserError(code, message string, fatal bool, replyTo string, trace tracecontext.Context) []byte {
 	return marshalOut(outEnvelope{
 		Type: typeError, ReplyToMessageID: replyTo,
 		Payload: errorPayload{Code: code, Message: message, Fatal: fatal},
-	})
+	}, trace)
 }
 
-func browserAttached(sessionID, replyTo string, resumed bool) []byte {
+func browserAttached(sessionID, replyTo string, resumed bool, trace tracecontext.Context) []byte {
 	return marshalOut(outEnvelope{
 		Type: typeTerminalAttached, TerminalSessionID: sessionID, ReplyToMessageID: replyTo,
 		Payload: struct {
 			Resumed          bool `json:"resumed"`
 			HistoryAvailable bool `json:"historyAvailable"`
 		}{Resumed: resumed, HistoryAvailable: false},
-	})
+	}, trace)
 }
 
+// browserEnded는 종료 원인(end)의 Trace Context를 싣는다.
 func browserEnded(sessionID string, end End) []byte {
 	return marshalOut(outEnvelope{
 		Type: typeTerminalSessionEnded, TerminalSessionID: sessionID,
@@ -365,7 +402,7 @@ func browserEnded(sessionID string, end End) []byte {
 			Reason   string `json:"reason"`
 			ExitCode *int64 `json:"exitCode,omitempty"`
 		}{Reason: end.Reason, ExitCode: end.ExitCode},
-	})
+	}, end.Trace)
 }
 
 // correlation은 Terminal Data message가 공통으로 싣는 TerminalSession 식별자다.
@@ -375,35 +412,35 @@ type correlation struct {
 	Generation        int64
 }
 
-func (c correlation) envelope(kind, replyTo string, payload any) []byte {
+func (c correlation) envelope(kind, replyTo string, payload any, trace tracecontext.Context) []byte {
 	return marshalOut(outEnvelope{
 		Type: kind, ReplyToMessageID: replyTo,
 		TerminalSessionID: c.TerminalSessionID, LabInstanceID: c.LabInstanceID, Generation: c.Generation,
 		Payload: payload,
-	})
+	}, trace)
 }
 
-func dataAttached(c correlation, replyTo string, resumed bool) []byte {
+func dataAttached(c correlation, replyTo string, resumed bool, trace tracecontext.Context) []byte {
 	return c.envelope(typeDataAttached, replyTo, struct {
 		Resumed          bool `json:"resumed"`
 		HistoryAvailable bool `json:"historyAvailable"`
-	}{Resumed: resumed, HistoryAvailable: false})
+	}{Resumed: resumed, HistoryAvailable: false}, trace)
 }
 
 // dataResize의 cols/rows는 검증된 JSON number 원문을 그대로 전달한다. 값을 다시 만들지 않으므로 Schema에 없는 상한이 생기지 않는다.
-func dataResize(c correlation, cols, rows json.RawMessage) []byte {
+func dataResize(c correlation, cols, rows json.RawMessage, trace tracecontext.Context) []byte {
 	return c.envelope(typeDataResize, "", struct {
 		Cols json.RawMessage `json:"cols"`
 		Rows json.RawMessage `json:"rows"`
-	}{Cols: cols, Rows: rows})
+	}{Cols: cols, Rows: rows}, trace)
 }
 
-func dataClose(c correlation, reason string) []byte {
+func dataClose(c correlation, reason string, trace tracecontext.Context) []byte {
 	return c.envelope(typeDataClose, "", struct {
 		Reason string `json:"reason"`
-	}{Reason: reason})
+	}{Reason: reason}, trace)
 }
 
-func dataError(c correlation, code, message string, fatal bool, replyTo string) []byte {
-	return c.envelope(typeError, replyTo, errorPayload{Code: code, Message: message, Fatal: fatal})
+func dataError(c correlation, code, message string, fatal bool, replyTo string, trace tracecontext.Context) []byte {
+	return c.envelope(typeError, replyTo, errorPayload{Code: code, Message: message, Fatal: fatal}, trace)
 }

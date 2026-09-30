@@ -18,6 +18,7 @@ import (
 
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext"
 )
 
 // 테스트용 값이다. 실제 Credential이나 token이 아니다.
@@ -100,6 +101,12 @@ type fakeControl struct {
 	closed   []endedCall
 	ended    []endedCall
 	authn    int
+
+	// 아래는 control event(TERMINAL_ATTACH, TERMINAL_DATA_ENDED)로 Control을 호출할 때 ctx에 담겨 온 Trace Context다.
+	// 유효한 Context가 없으면 zero value다.
+	authorizeTraces []tracecontext.Context
+	attachedTraces  []tracecontext.Context
+	endedTraces     []tracecontext.Context
 }
 
 func newFakeControl() *fakeControl {
@@ -119,9 +126,10 @@ func (c *fakeControl) AuthenticateBrowser(_ context.Context, cookie realtime.Ses
 	return nil
 }
 
-func (c *fakeControl) AuthorizeAttach(_ context.Context, cookie realtime.SessionToken, req realtime.AttachRequest) (realtime.AttachGrant, error) {
+func (c *fakeControl) AuthorizeAttach(ctx context.Context, cookie realtime.SessionToken, req realtime.AttachRequest) (realtime.AttachGrant, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	c.authorizeTraces = append(c.authorizeTraces, tracecontext.FromContext(ctx))
 	if c.authorizeErr != nil {
 		return realtime.AttachGrant{}, c.authorizeErr
 	}
@@ -149,7 +157,7 @@ type gate struct {
 
 func newGate() *gate { return &gate{entered: make(chan struct{}, 1), release: make(chan struct{})} }
 
-func (c *fakeControl) RecordAttached(_ context.Context, id string, _ time.Time) error {
+func (c *fakeControl) RecordAttached(ctx context.Context, id string, _ time.Time) error {
 	c.mu.Lock()
 	g := c.attachGate
 	c.attachGate = nil
@@ -161,6 +169,7 @@ func (c *fakeControl) RecordAttached(_ context.Context, id string, _ time.Time) 
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	c.attachedTraces = append(c.attachedTraces, tracecontext.FromContext(ctx))
 	if c.recordAttachedErr != nil {
 		return c.recordAttachedErr
 	}
@@ -182,11 +191,20 @@ func (c *fakeControl) CloseSession(_ context.Context, id, reason string) error {
 	return nil
 }
 
-func (c *fakeControl) SessionEnded(_ context.Context, id string, end realtime.End) error {
+func (c *fakeControl) SessionEnded(ctx context.Context, id string, end realtime.End) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.ended = append(c.ended, endedCall{ID: id, End: end})
+	c.endedTraces = append(c.endedTraces, tracecontext.FromContext(ctx))
 	return nil
+}
+
+// traces는 Control 호출의 ctx에 담겨 온 Trace Context다.
+func (c *fakeControl) traces() (authorize, attached, ended []tracecontext.Context) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return append([]tracecontext.Context(nil), c.authorizeTraces...), append([]tracecontext.Context(nil), c.attachedTraces...),
+		append([]tracecontext.Context(nil), c.endedTraces...)
 }
 
 func (c *fakeControl) snapshot() (attached []string, detached []detachCall, closed, ended []endedCall) {

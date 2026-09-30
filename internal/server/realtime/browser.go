@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext"
 )
 
 // serveBrowserHTTP는 Upgrade 전에 Origin, Cookie, subprotocol, 현재 인증을 확인한다.
@@ -106,13 +108,13 @@ func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken) {
 
 	grant, err := r.authorizeAttach(session, msg)
 	if err != nil {
-		r.rejectAttach(p, r.logger.With("terminal_session_id", boundID(msg.TerminalSessionID)), err, msg.MessageID)
+		r.rejectAttach(p, withTrace(r.logger.With("terminal_session_id", boundID(msg.TerminalSessionID)), msg.Trace), err, msg.MessageID, msg.Trace)
 		return
 	}
 	s := r.lookup(grant.TerminalSessionID)
 	// Control이 허용한 TerminalSession이 Relay가 등록한 correlation과 정확히 같을 때만 사용한다.
 	if s == nil || s.corr.LabInstanceID != grant.LabInstanceID || s.corr.Generation != grant.Generation {
-		r.rejectAttach(p, r.logger.With("terminal_session_id", boundID(msg.TerminalSessionID)), ErrSessionNotFound, msg.MessageID)
+		r.rejectAttach(p, withTrace(r.logger.With("terminal_session_id", boundID(msg.TerminalSessionID)), msg.Trace), ErrSessionNotFound, msg.MessageID, msg.Trace)
 		return
 	}
 
@@ -120,11 +122,11 @@ func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken) {
 	defer b.cancel()
 	resumed, err := r.attachBrowser(s, b, msg)
 	if err != nil {
-		r.rejectAttach(p, s.log, err, msg.MessageID)
+		r.rejectAttach(p, withTrace(s.log, msg.Trace), err, msg.MessageID, msg.Trace)
 		return
 	}
 	attached.Store(true)
-	s.log.Info("Browser Terminal attach", "resumed", resumed)
+	withTrace(s.log, msg.Trace).Info("Browser Terminal attach", "resumed", resumed)
 
 	_ = ws.SetReadDeadline(time.Time{})
 	r.browserLoop(s, b, ws)
@@ -132,7 +134,7 @@ func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken) {
 }
 
 func (r *Relay) authorizeAttach(session SessionToken, msg browserMessage) (AttachGrant, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), controlTimeout)
+	ctx, cancel := context.WithTimeout(tracecontext.NewContext(context.Background(), msg.Trace), controlTimeout)
 	defer cancel()
 	return r.control.AuthorizeAttach(ctx, session, AttachRequest{TerminalSessionID: msg.TerminalSessionID, Token: msg.Token})
 }
@@ -158,16 +160,16 @@ func attachFailure(err error) (code string, closeCode int) {
 }
 
 // rejectAttach는 고정된 설명의 fatal ERROR를 보내고 close한다. 입력 값(token, ID)은 응답과 log에 복사하지 않는다.
-func (r *Relay) rejectAttach(p *peer, log *slog.Logger, err error, replyTo string) {
+func (r *Relay) rejectAttach(p *peer, log *slog.Logger, err error, replyTo string, trace tracecontext.Context) {
 	code, closeCode := attachFailure(err)
 	log.Warn("Browser Terminal attach 거절", "error_code", code)
-	p.closeWithError(browserError(code, "terminal attach was rejected", true, replyTo), closeCode, "attach rejected")
+	p.closeWithError(browserError(code, "terminal attach was rejected", true, replyTo, trace), closeCode, "attach rejected")
 }
 
 // protocolViolation은 계약을 어긴 Browser connection을 ERROR(PROTOCOL_ERROR)와 close 1008로 끝낸다.
 func (r *Relay) protocolViolation(p *peer, log *slog.Logger, reason string) {
 	log.Warn("Browser Terminal protocol 위반", "reason", reason)
-	p.closeWithError(browserError(codeProtocolError, "protocol violation", true, ""), closePolicy, "protocol violation")
+	p.closeWithError(browserError(codeProtocolError, "protocol violation", true, "", noTrace), closePolicy, "protocol violation")
 }
 
 // closeOnReadError는 읽기 오류를 log용 고정 분류로 바꾸고 필요한 close를 보낸다.
@@ -199,7 +201,7 @@ func (r *Relay) attachBrowser(s *session, b *browserConn, msg browserMessage) (r
 		return false, ErrSessionNotFound
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), controlTimeout)
+	ctx, cancel := context.WithTimeout(tracecontext.NewContext(context.Background(), msg.Trace), controlTimeout)
 	defer cancel()
 	if err := r.control.RecordAttached(ctx, s.corr.TerminalSessionID, r.clock.Now()); err != nil {
 		return false, err
@@ -209,7 +211,7 @@ func (r *Relay) attachBrowser(s *session, b *browserConn, msg browserMessage) (r
 	resumed = s.attachedBefore
 	s.mu.Unlock()
 	// TERMINAL_ATTACHED를 먼저 queue에 넣어 이 connection으로 나가는 어떤 OUTPUT보다 앞서게 한다. 아직 current가 아니므로 OUTPUT은 들어오지 않는다.
-	if err := b.p.send(websocket.TextMessage, browserAttached(s.corr.TerminalSessionID, msg.MessageID, resumed)); err != nil {
+	if err := b.p.send(websocket.TextMessage, browserAttached(s.corr.TerminalSessionID, msg.MessageID, resumed, msg.Trace)); err != nil {
 		return false, err
 	}
 
@@ -225,7 +227,7 @@ func (r *Relay) attachBrowser(s *session, b *browserConn, msg browserMessage) (r
 	}
 	// Browser의 현재 terminal 크기를 PTY에 반영한다. 기다리지 않는다.
 	if d != nil {
-		_ = d.p.send(websocket.TextMessage, dataResize(s.corr, msg.Cols, msg.Rows))
+		_ = d.p.send(websocket.TextMessage, dataResize(s.corr, msg.Cols, msg.Rows, msg.Trace))
 	}
 	return resumed, nil
 }
@@ -248,7 +250,7 @@ func (r *Relay) browserLoop(s *session, b *browserConn, ws *websocket.Conn) {
 		msg, err := decodeBrowserMessage(data)
 		if err != nil || msg.Type != typeTerminalResize || msg.TerminalSessionID != s.corr.TerminalSessionID {
 			b.log.Warn("Browser Terminal protocol 위반", "reason", "invalid_control")
-			b.p.closeWithError(browserError(codeProtocolError, "protocol violation", true, ""), closePolicy, "protocol violation")
+			b.p.closeWithError(browserError(codeProtocolError, "protocol violation", true, "", noTrace), closePolicy, "protocol violation")
 			b.cancel()
 			return
 		}
@@ -275,7 +277,7 @@ func (r *Relay) browserResize(s *session, b *browserConn, msg browserMessage) {
 		r.inputUnavailable(s, b)
 		return
 	}
-	if err := d.p.sendWait(b.ctx, websocket.TextMessage, dataResize(s.corr, msg.Cols, msg.Rows)); err != nil && !errors.Is(err, context.Canceled) {
+	if err := d.p.sendWait(b.ctx, websocket.TextMessage, dataResize(s.corr, msg.Cols, msg.Rows, msg.Trace)); err != nil && !errors.Is(err, context.Canceled) {
 		r.inputUnavailable(s, b)
 	}
 }
@@ -299,7 +301,7 @@ func (r *Relay) inputUnavailable(s *session, b *browserConn) {
 	if !current || b.unavailableSent.Swap(true) {
 		return
 	}
-	_ = b.p.send(websocket.TextMessage, browserError(codeConnectorUnavail, "terminal connector is not connected", false, ""))
+	_ = b.p.send(websocket.TextMessage, browserError(codeConnectorUnavail, "terminal connector is not connected", false, "", noTrace))
 }
 
 // browserGone은 Browser connection이 끝났을 때 호출한다. current attachment였다면 TerminalSession을 DETACHED로 두고
@@ -358,7 +360,7 @@ func (r *Relay) graceExpired(s *session, epoch uint64) {
 // 조용히 byte를 버리고 연결을 유지하지 않는다. PTY는 종료하지 않고 grace를 따른다.
 func (r *Relay) slowConsumer(s *session, b *browserConn) {
 	b.log.Warn("Browser Terminal 느린 수신자", "error_code", codeSlowConsumer)
-	b.p.closeWithError(browserError(codeSlowConsumer, "terminal output consumer is too slow", true, ""), closeSlowConsumer, "slow consumer")
+	b.p.closeWithError(browserError(codeSlowConsumer, "terminal output consumer is too slow", true, "", noTrace), closeSlowConsumer, "slow consumer")
 	b.cancel()
 	// 저장소 호출이 Connector output read loop를 막지 않도록 별도 goroutine에서 detach를 처리한다.
 	// 호출한 data connection의 handler가 wg를 잡고 있으므로 Shutdown은 이 goroutine을 기다린다.

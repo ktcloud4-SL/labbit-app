@@ -249,6 +249,15 @@ Terminal/Live INPUT·OUTPUT 본문은 다음에 저장하지 않습니다.
 
 `traceparent`/`tracestate`를 각 keystroke나 Binary OUTPUT chunk에 붙이지 않습니다. Trace는 Session 생성·attach·subscribe·종료 같은 control event에 사용합니다.
 
+### Terminal JSON control의 Trace 전파
+
+Browser와 Connector의 Terminal JSON control message(`TERMINAL_ATTACH`, `TERMINAL_RESIZE`, `TERMINAL_DATA_ATTACH`, `TERMINAL_DATA_ENDED`와 Connector Control의 `TERMINAL_ENDED`)에 있는 optional `traceparent`/`tracestate`는 [Connector 계약의 선택 Trace metadata 오류 처리](../connector/README.md#선택-trace-metadata의-오류-처리)와 같은 규칙으로 정상화합니다. W3C 유효성은 표준 parser로 확인하고 유효한 값만 사용합니다.
+
+- **유효한 Context**는 그 control event에서 이어 갑니다. 같은 event의 응답(`TERMINAL_ATTACHED`, `TERMINAL_DATA_ATTACHED`, `ERROR`), 그 event 때문에 Connector로 보내는 `TERMINAL_DATA_RESIZE`, Connector의 종료 통지가 일으키는 Browser의 `TERMINAL_SESSION_ENDED`, 그리고 Relay가 Control(권한 확인·lifecycle 기록)을 호출할 때의 Trace Context에 담습니다. 미샘플링 Context도 `sampled=1`로 바꾸지 않습니다.
+- Context는 **message별**입니다. `TERMINAL_ATTACH`의 Trace를 이후 `TERMINAL_RESIZE`나 다른 command에 재사용하지 않으며 Trace가 없는 event에 앞선 event의 Trace를 붙이지 않습니다.
+- **유효하지 않은 값**(타입·길이·W3C 형식 오류, `traceparent` 없이 `tracestate`만 있는 경우)은 그 관측 field만 버립니다. 권한 판정, attach, resize, 종료 같은 업무 처리는 Trace 때문에 실패하지 않으며 가짜 Trace를 만들지 않습니다. 잘못된 원문은 log에 복사하지 않고 정상화한 `trace_id`만 log에 남깁니다.
+- Trace Context는 인증·권한 판정의 근거가 아니며 DB에 저장하지 않습니다.
+
 ## 11. HTTP Control과 Connector Data 경계
 
 TerminalSession/LiveSession 생성·종료와 Terminal Session Token 발급은 HTTP Control API가 담당하며 정확한 Endpoint/Schema는 Git OpenAPI에서 별도로 관리합니다.

@@ -572,7 +572,8 @@ func (s *Service) handleConnectorEnded(e connector.TerminalEndedEvent) {
 	// 아직 OPEN_RESULT를 기다리는 Create가 있으면 그 Create를 실패시킨다.
 	s.notifyOpen(e.Correlation.TerminalSessionID, openOutcome{ended: true})
 
-	end := realtime.End{Reason: realtime.SanitizeReason(e.Payload.Reason), ExitCode: e.Payload.ExitCode, FromConnector: true}
+	// Connector가 종료를 알린 Control message의 유효한 Trace Context를 Browser의 종료 통지까지 잇는다.
+	end := realtime.End{Reason: realtime.SanitizeReason(e.Payload.Reason), ExitCode: e.Payload.ExitCode, FromConnector: true, Trace: e.Trace}
 	if _, err := s.store.EndTerminalSession(ctx, id, s.clock.Now(), end.Reason); err != nil {
 		log.Error("TerminalSession 종료 기록 실패", "error_code", classify(err))
 		return
@@ -604,7 +605,7 @@ func (s *Service) Close(ctx context.Context, user repository.User, terminalSessi
 	if err := s.closeLifecycle(ctx, rec, realtime.EndReasonSessionClosed, ""); err != nil {
 		return err
 	}
-	s.relay.Terminate(rec.ID.String(), realtime.End{Reason: realtime.EndReasonSessionClosed})
+	s.relay.Terminate(rec.ID.String(), realtime.End{Reason: realtime.EndReasonSessionClosed, Trace: connector.TraceFromContext(ctx)})
 	return nil
 }
 
@@ -634,7 +635,7 @@ func (s *Service) CloseForLabMutation(ctx context.Context, m LabMutation) error 
 			errs = append(errs, err)
 			continue
 		}
-		s.relay.Terminate(rec.ID.String(), realtime.End{Reason: m.Reason})
+		s.relay.Terminate(rec.ID.String(), realtime.End{Reason: m.Reason, Trace: connector.TraceFromContext(ctx)})
 	}
 	return errors.Join(errs...)
 }

@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+
+	"github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext"
 )
 
 // 계약에서 정한 endpoint, subprotocol, cookie 이름이다.
@@ -108,6 +110,9 @@ type End struct {
 	ExitCode *int64
 	// FromConnector는 Connector가 종료를 먼저 알렸음을 뜻한다. 그러면 Relay는 Connector에 TERMINAL_DATA_CLOSE를 다시 보내지 않는다.
 	FromConnector bool
+	// Trace는 종료를 일으킨 control event의 유효한 Trace Context다(Connector의 종료 통지, 호출자 ctx의 Trace). 없으면 zero value다.
+	// Relay는 이 값을 TERMINAL_SESSION_ENDED와 TERMINAL_DATA_CLOSE에 싣는다.
+	Trace tracecontext.Context
 }
 
 // 종료 원인 상수다. 계약이 예시로 든 값과 Labbit이 추가로 쓰는 값이다.
@@ -125,6 +130,10 @@ const (
 //
 // 구현은 Relay를 다시 호출하지 않는다. Relay가 session 전이를 직렬화하는 잠금을 잡은 채 호출하므로
 // 구현이 Relay.Terminate 등을 호출하면 교착한다. 종료 후의 ephemeral 정리는 Relay가 스스로 한다.
+//
+// Browser의 TERMINAL_ATTACH나 Connector의 TERMINAL_DATA_ENDED처럼 control event 때문에 하는 호출은, 그 message에 유효한 W3C Trace Context가
+// 있으면 ctx에 원격 parent로 담아 전달한다(tracecontext.FromContext로 꺼낼 수 있다). 없거나 유효하지 않으면 담지 않으며 가짜 Trace를 만들지
+// 않는다. Relay가 Span을 새로 만들지는 않는다. PTY Binary frame에는 Trace를 붙이지 않는다.
 type Control interface {
 	// AuthenticateBrowser는 Upgrade 전에 Cookie의 로그인 Session이 지금 유효한지 확인한다. 유효하지 않으면 ErrUnauthenticated다.
 	AuthenticateBrowser(ctx context.Context, session SessionToken) error

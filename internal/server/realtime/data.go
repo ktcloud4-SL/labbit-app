@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext"
 )
 
 // serveDataHTTP는 Upgrade 전에 Connector credential과 subprotocol을 확인한다. 인증되지 않은 요청은 WebSocket connection이 되지 못한다.
@@ -125,14 +127,14 @@ func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket
 		code = codeDataStaleGen
 	}
 	if code != "" {
-		log.Warn("Connector Terminal Data attach 거절", "terminal_session_id", boundID(msg.TerminalSessionID), "error_code", code)
+		withTrace(log, msg.Trace).Warn("Connector Terminal Data attach 거절", "terminal_session_id", boundID(msg.TerminalSessionID), "error_code", code)
 		r.rejectData(p, msg, code, "terminal data attach was rejected", msg.MessageID)
 		return
 	}
 
-	log = s.log
+	log = withTrace(s.log, msg.Trace)
 	d.runtimeID = msg.RuntimeID
-	resumed, err := r.bindData(s, d, msg.MessageID)
+	resumed, err := r.bindData(s, d, msg.MessageID, msg.Trace)
 	if errors.Is(err, errDataRevoked) {
 		// attach를 기다리는 동안 Credential이 revoke되었다. 이미 종료가 요청되었으므로 사유만 남긴다.
 		log.Warn("Connector Terminal Data attach 거절", "reason", "credential_revoked")
@@ -159,7 +161,7 @@ func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket
 func (r *Relay) rejectData(p *peer, msg dataMessage, code, message, replyTo string) {
 	if msg.TerminalSessionID != "" && len(msg.TerminalSessionID) <= 128 && len(msg.LabInstanceID) > 0 && len(msg.LabInstanceID) <= 128 && msg.Generation >= 1 {
 		c := correlation{TerminalSessionID: msg.TerminalSessionID, LabInstanceID: msg.LabInstanceID, Generation: msg.Generation}
-		p.closeWithError(dataError(c, code, message, true, replyTo), closePolicy, "rejected")
+		p.closeWithError(dataError(c, code, message, true, replyTo, msg.Trace), closePolicy, "rejected")
 		return
 	}
 	p.close(closePolicy, "rejected", false)
@@ -167,7 +169,7 @@ func (r *Relay) rejectData(p *peer, msg dataMessage, code, message, replyTo stri
 
 // bindData는 Connector data channel을 TerminalSession의 current channel로 만든다. 같은 TerminalSession에 이미 있는
 // data channel은 새 channel로 교체한다. channel이 끊겼다가 다시 붙은 경우 resumed는 true다. OUTPUT replay는 없다.
-func (r *Relay) bindData(s *session, d *dataConn, attachMessageID string) (resumed bool, err error) {
+func (r *Relay) bindData(s *session, d *dataConn, attachMessageID string, trace tracecontext.Context) (resumed bool, err error) {
 	s.tmu.Lock()
 	defer s.tmu.Unlock()
 
@@ -188,7 +190,7 @@ func (r *Relay) bindData(s *session, d *dataConn, attachMessageID string) (resum
 	s.mu.Unlock()
 
 	// TERMINAL_DATA_ATTACHED를 먼저 queue에 넣어 이 channel로 나가는 어떤 INPUT/control보다 앞서게 한다.
-	if err := d.p.send(websocket.TextMessage, dataAttached(s.corr, attachMessageID, resumed)); err != nil {
+	if err := d.p.send(websocket.TextMessage, dataAttached(s.corr, attachMessageID, resumed, trace)); err != nil {
 		return false, err
 	}
 
@@ -236,13 +238,13 @@ func (r *Relay) dataLoop(s *session, d *dataConn, ws *websocket.Conn) (ended boo
 			continue
 		case err != nil:
 			s.log.Warn("Connector Terminal Data protocol 위반", "reason", "malformed_control")
-			d.p.closeWithError(dataError(s.corr, codeProtocolError, "protocol violation", true, ""), closePolicy, "protocol violation")
+			d.p.closeWithError(dataError(s.corr, codeProtocolError, "protocol violation", true, "", noTrace), closePolicy, "protocol violation")
 			return false
 		}
 		// 이 connection은 하나의 TerminalSession에만 bind되어 있다. 다른 session을 가리키는 message를 그 session에 연결하지 않는다.
 		if msg.TerminalSessionID != s.corr.TerminalSessionID || msg.LabInstanceID != s.corr.LabInstanceID || msg.Generation != s.corr.Generation {
 			s.log.Warn("Connector Terminal Data correlation 불일치", "message_type", msg.Type)
-			d.p.closeWithError(dataError(s.corr, codeDataInvalidSession, "message does not match the bound terminal session", true, msg.MessageID), closePolicy, "correlation mismatch")
+			d.p.closeWithError(dataError(s.corr, codeDataInvalidSession, "message does not match the bound terminal session", true, msg.MessageID, msg.Trace), closePolicy, "correlation mismatch")
 			return false
 		}
 		switch msg.Type {
@@ -255,7 +257,7 @@ func (r *Relay) dataLoop(s *session, d *dataConn, ws *websocket.Conn) (ended boo
 		default:
 			// 두 번째 TERMINAL_DATA_ATTACH다.
 			s.log.Warn("Connector Terminal Data protocol 위반", "reason", "duplicate_attach")
-			d.p.closeWithError(dataError(s.corr, codeProtocolError, "protocol violation", true, msg.MessageID), closePolicy, "protocol violation")
+			d.p.closeWithError(dataError(s.corr, codeProtocolError, "protocol violation", true, msg.MessageID, msg.Trace), closePolicy, "protocol violation")
 			return false
 		}
 	}
@@ -288,11 +290,11 @@ func (r *Relay) dataEnded(s *session, d *dataConn, msg dataMessage) {
 	if !current {
 		return
 	}
-	end := End{Reason: SanitizeReason(msg.Reason), ExitCode: msg.ExitCode, FromConnector: true}
-	ctx, cancel := context.WithTimeout(context.Background(), controlTimeout)
+	end := End{Reason: SanitizeReason(msg.Reason), ExitCode: msg.ExitCode, FromConnector: true, Trace: msg.Trace}
+	ctx, cancel := context.WithTimeout(tracecontext.NewContext(context.Background(), msg.Trace), controlTimeout)
 	defer cancel()
 	if err := r.control.SessionEnded(ctx, s.corr.TerminalSessionID, end); err != nil {
-		s.log.Error("TerminalSession 종료 기록 실패", "error_code", errorCode(err))
+		withTrace(s.log, msg.Trace).Error("TerminalSession 종료 기록 실패", "error_code", errorCode(err))
 	}
 	r.finish(s, end, true, false)
 }

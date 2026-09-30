@@ -60,7 +60,8 @@ type Close struct {
 }
 
 // Resize는 Terminal Data WSS로 받은 TERMINAL_DATA_RESIZE다. 값은 JSON 원문이다.
-type Resize struct{ Cols, Rows string }
+// Traceparent와 Tracestate는 그 message가 실은 W3C Trace Context이며 없으면 빈 문자열이다.
+type Resize struct{ Cols, Rows, Traceparent, Tracestate string }
 
 type dataLink struct {
 	ws      *websocket.Conn
@@ -234,7 +235,7 @@ func (c *Connector) controlLoop() {
 			endOnClose := c.EndOnClose
 			c.mu.Unlock()
 			if endOnClose {
-				go c.endViaControl(closeMsg.TerminalSessionID, closeMsg.LabInstanceID, closeMsg.Generation, "SESSION_CLOSED", nil)
+				go c.endViaControl(closeMsg.TerminalSessionID, closeMsg.LabInstanceID, closeMsg.Generation, "SESSION_CLOSED", nil, nil)
 			}
 		}
 	}
@@ -337,8 +338,10 @@ func (c *Connector) dataLoop(link *dataLink) {
 			continue
 		}
 		var msg struct {
-			Type    string `json:"type"`
-			Payload struct {
+			Type        string `json:"type"`
+			Traceparent string `json:"traceparent"`
+			Tracestate  string `json:"tracestate"`
+			Payload     struct {
 				Cols   json.RawMessage `json:"cols"`
 				Rows   json.RawMessage `json:"rows"`
 				Reason string          `json:"reason"`
@@ -347,7 +350,9 @@ func (c *Connector) dataLoop(link *dataLink) {
 		_ = json.Unmarshal(data, &msg)
 		switch msg.Type {
 		case "TERMINAL_DATA_RESIZE":
-			c.resizes[link.session] = append(c.resizes[link.session], Resize{Cols: string(msg.Payload.Cols), Rows: string(msg.Payload.Rows)})
+			c.resizes[link.session] = append(c.resizes[link.session], Resize{
+				Cols: string(msg.Payload.Cols), Rows: string(msg.Payload.Rows), Traceparent: msg.Traceparent, Tracestate: msg.Tracestate,
+			})
 		case "TERMINAL_DATA_CLOSE":
 			c.dataCloses[link.session] = append(c.dataCloses[link.session], msg.Payload.Reason)
 		}
@@ -453,19 +458,29 @@ func (c *Connector) EndData(session, reason string, exitCode *int) {
 // EndControl은 PTY가 종료되었음을 Control WSS의 TERMINAL_ENDED로 알린다. 주장하는 correlation을 호출자가 정한다.
 func (c *Connector) EndControl(session, labInstanceID string, generation int64, reason string, exitCode *int) {
 	c.t.Helper()
-	c.endViaControl(session, labInstanceID, generation, reason, exitCode)
+	c.endViaControl(session, labInstanceID, generation, reason, exitCode, nil)
 }
 
-func (c *Connector) endViaControl(session, labInstanceID string, generation int64, reason string, exitCode *int) {
+// EndControlWithTrace는 EndControl이며 TERMINAL_ENDED에 trace 원문(traceparent, tracestate)을 그대로 싣는다. 잘못된 값도 넣을 수 있다.
+func (c *Connector) EndControlWithTrace(session, labInstanceID string, generation int64, reason string, trace map[string]any) {
+	c.t.Helper()
+	c.endViaControl(session, labInstanceID, generation, reason, nil, trace)
+}
+
+func (c *Connector) endViaControl(session, labInstanceID string, generation int64, reason string, exitCode *int, trace map[string]any) {
 	payload := map[string]any{"reason": reason}
 	if exitCode != nil {
 		payload["exitCode"] = *exitCode
 	}
-	c.writeControl(map[string]any{
+	msg := map[string]any{
 		"type": "TERMINAL_ENDED", "messageId": uuid.NewString(), "sentAt": now(),
 		"terminalSessionId": session, "labInstanceId": labInstanceID, "generation": generation,
 		"payload": payload,
-	})
+	}
+	for k, v := range trace {
+		msg[k] = v
+	}
+	c.writeControl(msg)
 }
 
 // Opens는 받은 TERMINAL_OPEN이다.

@@ -259,13 +259,13 @@ func TestOutgoingMessagesCarryRequiredEnvelopeFields(t *testing.T) {
 		data []byte
 		want []string
 	}{
-		{"browser attached", browserAttached("s1", "r1", true), []string{"type", "messageId", "sentAt", "terminalSessionId", "replyToMessageId", "payload"}},
+		{"browser attached", browserAttached("s1", "r1", true, noTrace), []string{"type", "messageId", "sentAt", "terminalSessionId", "replyToMessageId", "payload"}},
 		{"browser ended", browserEnded("s1", End{Reason: "PTY_EXITED", ExitCode: &zero}), []string{"type", "messageId", "sentAt", "terminalSessionId", "payload"}},
-		{"browser error", browserError("FORBIDDEN", "m", true, ""), []string{"type", "messageId", "sentAt", "payload"}},
-		{"data attached", dataAttached(c, "r1", false), []string{"type", "messageId", "sentAt", "terminalSessionId", "labInstanceId", "generation", "replyToMessageId", "payload"}},
-		{"data resize", dataResize(c, []byte("80"), []byte("24")), []string{"type", "messageId", "sentAt", "terminalSessionId", "labInstanceId", "generation", "payload"}},
-		{"data close", dataClose(c, "SESSION_CLOSED"), []string{"type", "messageId", "sentAt", "terminalSessionId", "labInstanceId", "generation", "payload"}},
-		{"data error", dataError(c, "PROTOCOL_ERROR", "m", true, ""), []string{"type", "messageId", "sentAt", "terminalSessionId", "labInstanceId", "generation", "payload"}},
+		{"browser error", browserError("FORBIDDEN", "m", true, "", noTrace), []string{"type", "messageId", "sentAt", "payload"}},
+		{"data attached", dataAttached(c, "r1", false, noTrace), []string{"type", "messageId", "sentAt", "terminalSessionId", "labInstanceId", "generation", "replyToMessageId", "payload"}},
+		{"data resize", dataResize(c, []byte("80"), []byte("24"), noTrace), []string{"type", "messageId", "sentAt", "terminalSessionId", "labInstanceId", "generation", "payload"}},
+		{"data close", dataClose(c, "SESSION_CLOSED", noTrace), []string{"type", "messageId", "sentAt", "terminalSessionId", "labInstanceId", "generation", "payload"}},
+		{"data error", dataError(c, "PROTOCOL_ERROR", "m", true, "", noTrace), []string{"type", "messageId", "sentAt", "terminalSessionId", "labInstanceId", "generation", "payload"}},
 	}
 	for _, tt := range tests {
 		members, ok := jsonObject(tt.data)
@@ -283,8 +283,8 @@ func TestOutgoingMessagesCarryRequiredEnvelopeFields(t *testing.T) {
 	}
 
 	// historyAvailable은 항상 false다(history/replay 없음). exitCode 0은 알려진 code이므로 생략하지 않는다.
-	if !strings.Contains(string(browserAttached("s1", "r", false)), `"historyAvailable":false`) ||
-		!strings.Contains(string(dataAttached(c, "r", true)), `"historyAvailable":false`) {
+	if !strings.Contains(string(browserAttached("s1", "r", false, noTrace)), `"historyAvailable":false`) ||
+		!strings.Contains(string(dataAttached(c, "r", true, noTrace)), `"historyAvailable":false`) {
 		t.Error("ATTACHED가 historyAvailable=false를 싣지 않음")
 	}
 	if !strings.Contains(string(browserEnded("s1", End{Reason: "PTY_EXITED", ExitCode: &zero})), `"exitCode":0`) {
@@ -294,7 +294,7 @@ func TestOutgoingMessagesCarryRequiredEnvelopeFields(t *testing.T) {
 		t.Error("알 수 없는 exit code가 전달됨")
 	}
 	// cols/rows 원문은 값이 바뀌지 않고 전달된다.
-	if !strings.Contains(string(dataResize(c, []byte("1e2"), []byte("1.0"))), `"cols":1e2,"rows":1.0`) {
+	if !strings.Contains(string(dataResize(c, []byte("1e2"), []byte("1.0"), noTrace)), `"cols":1e2,"rows":1.0`) {
 		t.Error("TERMINAL_DATA_RESIZE가 cols/rows 원문을 바꿈")
 	}
 }

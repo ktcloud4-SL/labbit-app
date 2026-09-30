@@ -175,14 +175,16 @@ Login 응답은 정상인데 Browser의 Local HTTP Cookie 제약 때문에 이�
 | ADMIN ≠ INSTRUCTOR | `dev-admin` | `/me` ADMIN이지만 Class Membership/Instructor 권한은 생기지 않음 | Network / UI | 대기 |
 | Class 접근 불가 | `dev-admin` → Alpha 또는 `dev-student` → Bravo | 403, 권한 없음 UI | Network / 상세 화면 | 대기 |
 | Student UI | `dev-student` → Alpha | STUDENT 표시, Instructor 전용 동작 비노출 | Network / 상세 화면 | 대기 |
-| 없는 Class | 로그인된 dev 계정 | 404, 찾을 수 없음 UI | Network / 상세 화면 | 대기 |
+| 없는 Class | 로그인된 dev 계정 + 안전한 미존재 테스트 ID | 404, 찾을 수 없음 UI | Network / 상세 화면 | 대기 |
 | Session 만료/폐기 | 실행 가능한 Backend 검증 경로 사용 | 401, 재로그인 안내 | Network / Login redirect | 대기 |
 | Backend/Proxy 실패 | 환경에서 재현 가능한 실패 경로 | 대표 5xx, 일반 오류 UI | Network / 오류 화면 | 대기 |
 | Origin/Referer 불일치 | 공유 HTTPS 환경 | unsafe method 403 | Network | 공유 HTTPS에서 확인 |
 | Session Cookie 속성 | 공유 HTTPS 환경 | Secure/HttpOnly/SameSite=Lax/Path=/, Domain 없음 | Browser Cookie / Network | 공유 HTTPS에서 확인 |
 
 Evidence를 남길 때는 요청 URL, method, status, 화면 상태가 보이면 충분하다.
-Password 입력값, `Set-Cookie` 값, Cookie 원문, Session token, DB/AWS credential은 가리거나 제외한다.
+Password 입력값, Cookie/Session token 원문, DB/AWS credential은 가리거나 제외한다.
+Session Cookie 속성 검증이 필요한 캡처에서는 token 값만 가리고
+`Secure`, `HttpOnly`, `SameSite`, `Path`, Domain 유무 같은 속성은 확인 가능하게 남긴다.
 
 ## 9. 완료 판단
 

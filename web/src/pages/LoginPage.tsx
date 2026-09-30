@@ -11,6 +11,13 @@ import {
   type LoginLocationState,
 } from '../shared/routing/loginNavigation'
 
+class PostLoginVerificationError extends Error {
+  constructor(public readonly cause: unknown) {
+    super('로그인 후 사용자 정보 확인 실패')
+    this.name = 'PostLoginVerificationError'
+  }
+}
+
 export function LoginPage() {
   const api = useLabbitApi()
   const queryClient = useQueryClient()
@@ -28,7 +35,12 @@ export function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: async () => {
       await api.login({ username, password })
-      return api.getMe()
+
+      try {
+        return await api.getMe()
+      } catch (error) {
+        throw new PostLoginVerificationError(error)
+      }
     },
     onSuccess: (me) => {
       queryClient.removeQueries()
@@ -56,9 +68,11 @@ export function LoginPage() {
   const loginError =
     loginMutation.error instanceof HttpError && loginMutation.error.status === 401
       ? '사용자 이름 또는 비밀번호를 확인해 주세요.'
-      : loginMutation.error
-        ? '로그인 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'
-        : null
+      : loginMutation.error instanceof PostLoginVerificationError
+        ? '로그인 후 사용자 정보를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+        : loginMutation.error
+          ? '로그인 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+          : null
 
   return (
     <main className="login-shell">

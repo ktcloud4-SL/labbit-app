@@ -124,8 +124,8 @@ func Run(ctx context.Context, cfg Config) error {
 			logger:     logger,
 		}).check
 
-		store := postgres.NewStore(pool)
 		if slices.Contains(cfg.Roles, "api") {
+			store := postgres.NewStore(pool)
 			apiHandler, err = httpapi.New(httpapi.Options{
 				Auth:         auth.NewService(store, auth.Argon2id{}, nil),
 				Classes:      class.NewService(store),
@@ -135,10 +135,8 @@ func Run(ctx context.Context, cfg Config) error {
 			if err != nil {
 				return err
 			}
-		}
 
-		// Connector Control WSS는 realtime role이 소유하고, Credential 인증에 PostgreSQL이 필요하다.
-		if slices.Contains(cfg.Roles, "realtime") {
+			// Connector Control WSS는 API/Control(api role)이 소유한다. Terminal/Live WebSocket을 처리하는 realtime role과 별개다.
 			connectorWSS, err = connectorwss.New(connectorwss.Options{
 				Auth:     connector.NewService(store),
 				Registry: connector.NewRegistry(),
@@ -149,8 +147,6 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 			connectorMount = connectorWSS
 		}
-	} else if slices.Contains(cfg.Roles, "realtime") {
-		logger.Warn("Connector Control endpoint를 제공하지 않음: Credential 인증에 PostgreSQL이 필요한 api/worker role이 함께 활성화되어야 합니다")
 	}
 
 	applicationServer := &http.Server{

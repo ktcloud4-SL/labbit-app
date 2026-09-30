@@ -75,7 +75,7 @@ func TestConnectorClientCompletesHandshakeAgainstServer(t *testing.T) {
 	postgrestest.Migrate(t, dsn, loadEmbeddedMigrations(t))
 	seedConnector(t, dsn, e2eConnectorCredential, false, false)
 
-	admin, application := startServerWithApplication(t, "development", "api,realtime", dsn, "")
+	admin, application := startServerWithApplication(t, "development", "api", dsn, "")
 	waitForStatus(t, admin+"/readyz", http.StatusOK)
 
 	client := newConnectorClient(application, e2eConnectorCredential)
@@ -146,7 +146,7 @@ func TestConnectorClientIsRejectedWithUnusableCredential(t *testing.T) {
 	seedConnector(t, dsn, "test-e2e-revoked-credential-unique", false, true)
 	seedConnector(t, dsn, "test-e2e-credential-of-revoked-connector-unique", true, false)
 
-	admin, application := startServerWithApplication(t, "development", "api,realtime", dsn, "")
+	admin, application := startServerWithApplication(t, "development", "api", dsn, "")
 	waitForStatus(t, admin+"/readyz", http.StatusOK)
 
 	for name, credential := range map[string]string{
@@ -183,7 +183,7 @@ func TestConnectorClientOversizedMessageIsClosedWith1009(t *testing.T) {
 	postgrestest.Migrate(t, dsn, loadEmbeddedMigrations(t))
 	seedConnector(t, dsn, e2eConnectorCredential, false, false)
 
-	admin, application := startServerWithApplication(t, "development", "api,realtime", dsn, "")
+	admin, application := startServerWithApplication(t, "development", "api", dsn, "")
 	waitForStatus(t, admin+"/readyz", http.StatusOK)
 
 	client := newConnectorClient(application, e2eConnectorCredential)
@@ -216,37 +216,72 @@ func TestConnectorClientOversizedMessageIsClosedWith1009(t *testing.T) {
 	}
 }
 
-// Connector Control endpoint는 realtime role이 활성화되고 Credential 조회용 PostgreSQL이 있을 때만 제공한다.
-func TestConnectorControlEndpointRequiresRealtimeRoleAndDatabase(t *testing.T) {
-	dsn := postgrestest.NewDatabase(t)
-	postgrestest.Migrate(t, dsn, loadEmbeddedMigrations(t))
-	seedConnector(t, dsn, e2eConnectorCredential, false, false)
+// Connector Control endpoint는 API/Control(api role)이 소유한다. Terminal/Live를 처리하는 realtime role은 제공하지 않는다.
+func TestConnectorControlEndpointIsOwnedByAPIRole(t *testing.T) {
+	// api role은 realtime과 함께 켜져도 Control handler를 한 번만 mount한다. 중복 mount는 ServeMux가 startup에서 panic한다.
+	t.Run("api와 realtime을 함께 켠 process는 handshake를 완료한다", func(t *testing.T) {
+		dsn := postgrestest.NewDatabase(t)
+		postgrestest.Migrate(t, dsn, loadEmbeddedMigrations(t))
+		seedConnector(t, dsn, e2eConnectorCredential, false, false)
 
-	tests := map[string]string{
-		"realtime role 없음":       "api",
-		"PostgreSQL 없는 realtime": "realtime",
+		admin, application := startServerWithApplication(t, "development", "api,realtime", dsn, "")
+		waitForStatus(t, admin+"/readyz", http.StatusOK)
+
+		client := newConnectorClient(application, e2eConnectorCredential)
+		t.Cleanup(func() { _ = client.Close() })
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+		defer cancel()
+		if err := client.Dial(ctx); err != nil {
+			t.Fatalf("Dial() error = %v", err)
+		}
+		ack, err := client.SendHello(ctx)
+		if err != nil {
+			t.Fatalf("SendHello() error = %v", err)
+		}
+		if ack.HeartbeatIntervalSeconds != 15 || ack.OfflineTimeoutSeconds != 45 {
+			t.Fatalf("heartbeat/offline = %d/%d, want 15/45", ack.HeartbeatIntervalSeconds, ack.OfflineTimeoutSeconds)
+		}
+	})
+
+	// realtime 전용 process는 PostgreSQL 없이 정상 시작하며 Connector Control을 제공하지 않는다.
+	t.Run("realtime 전용 process는 DB 없이 시작하고 Control을 제공하지 않는다", func(t *testing.T) {
+		admin, application := startServerWithApplication(t, "development", "realtime", "", "")
+		waitForStatus(t, admin+"/readyz", http.StatusOK)
+
+		requireControlNotServed(t, application)
+	})
+
+	// worker는 PostgreSQL을 쓰지만 Connector Control을 소유하지 않는다.
+	t.Run("worker 전용 process는 DB가 있어도 Control을 제공하지 않는다", func(t *testing.T) {
+		dsn := postgrestest.NewDatabase(t)
+		postgrestest.Migrate(t, dsn, loadEmbeddedMigrations(t))
+		seedConnector(t, dsn, e2eConnectorCredential, false, false)
+
+		admin, application := startServerWithApplication(t, "development", "worker", dsn, "")
+		waitForStatus(t, admin+"/readyz", http.StatusOK)
+
+		requireControlNotServed(t, application)
+	})
+}
+
+// requireControlNotServed는 유효한 Credential로도 Connector Control Dial이 404로 거절되는지 확인한다.
+func requireControlNotServed(t *testing.T, application string) {
+	t.Helper()
+	client := newConnectorClient(application, e2eConnectorCredential)
+	t.Cleanup(func() { _ = client.Close() })
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	// application listener가 뜰 때까지 connection 오류는 재시도하고, HTTP status 응답이 오면 판정한다.
+	deadline := time.Now().Add(15 * time.Second)
+	var err error
+	for time.Now().Before(deadline) {
+		if err = client.Dial(ctx); err == nil || strings.Contains(err.Error(), "status") {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
-	for name, roles := range tests {
-		t.Run(name, func(t *testing.T) {
-			_, application := startServerWithApplication(t, "development", roles, dsn, "")
-
-			client := newConnectorClient(application, e2eConnectorCredential)
-			t.Cleanup(func() { _ = client.Close() })
-			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
-			defer cancel()
-
-			// 서버 listener가 뜰 때까지 기다린다.
-			deadline := time.Now().Add(15 * time.Second)
-			var err error
-			for time.Now().Before(deadline) {
-				if err = client.Dial(ctx); err != nil && strings.Contains(err.Error(), "status") {
-					break
-				}
-				time.Sleep(100 * time.Millisecond)
-			}
-			if err == nil || !strings.Contains(err.Error(), "status 404") {
-				t.Fatalf("Dial() error = %v, want status 404 (endpoint 미제공)", err)
-			}
-		})
+	if err == nil || !strings.Contains(err.Error(), "status 404") {
+		t.Fatalf("Dial() error = %v, want status 404 (endpoint 미제공)", err)
 	}
 }

@@ -124,9 +124,42 @@ Backend Auth 계약상 production 및 production-like 환경의 Session Cookie�
 
 따라서 Local HTTP 환경에서 Browser별 Cookie 제약 때문에 Session 저장/전송이 기대와 다르더라도
 개발 편의를 위해 Cookie 보안 속성을 약화하지 않는다.
-최종 Cookie / Origin / Referer acceptance는 공유 Local HTTPS 또는 AWS HTTPS 경로에서 확인한다.
 
-## 8. 완료 판단
+Local Browser가 Secure Cookie를 유지하지 않아 Login 이후 `/me`가 401이 되는 경우에는 다음을 구분해 기록한다.
+
+- Login 응답 자체가 204이고 `Set-Cookie`가 계약대로 내려왔는지
+- Browser가 Cookie를 저장했는지
+- 이후 `/me` 요청에 Cookie가 실제로 포함됐는지
+
+Login 응답은 정상인데 Browser의 Local HTTP Cookie 제약 때문에 이후 요청에 Cookie가 없으면
+이를 Frontend consumer 결함으로 단정하지 않는다. 최종 Cookie / Origin / Referer acceptance는
+공유 Local HTTPS 또는 AWS HTTPS 경로에서 확인한다.
+
+## 8. LBT-74 Evidence 기록 틀
+
+실제 Browser 검증을 시작하면 아래 표를 채워 Jira LBT-74와 Backend LBT-68이 같은 Evidence를 참조할 수 있게 한다.
+
+| 시나리오 | 기대 결과 | 확인 위치 | Evidence 상태 |
+| --- | --- | --- | --- |
+| 정상 Login | `POST /auth/login` 성공, Session 발급 | Browser Network / UI | 대기 |
+| 현재 사용자 | `GET /me` 200, 사용자/Organization 표시 | Network / AppShell | 대기 |
+| Class 목록 | `GET /classes` 200, 실제 목록 표시 | Network / Class 화면 | 대기 |
+| Class 상세 | `GET /classes/{classId}` 200 | Network / 상세 화면 | 대기 |
+| Logout | `POST /auth/logout` 성공 | Network / Login 화면 | 대기 |
+| Logout 이후 보호 API | `/me` 또는 보호 API 401 | Network / Login redirect | 대기 |
+| 잘못된 credential | 401, 계정 존재 여부를 구분하지 않는 UI | Network / Login 오류 | 대기 |
+| Session 만료/폐기 | 401, 재로그인 안내 | Network / Login redirect | 대기 |
+| Class 접근 불가 | 403, 권한 없음 UI | Network / 상세 화면 | 대기 |
+| 없는 Class | 404, 찾을 수 없음 UI | Network / 상세 화면 | 대기 |
+| Class 없음 | 200 + 빈 items, Empty UI | Network / 목록 화면 | 대기 |
+| Backend/Proxy 실패 | 대표 5xx, 일반 오류 UI | Network / 오류 화면 | 대기 |
+| Origin/Referer 불일치 | unsafe method 403 | Network | 공유 HTTPS에서 확인 |
+| Session Cookie 속성 | Secure/HttpOnly/SameSite=Lax/Path=/, Domain 없음 | Browser Cookie / Network | 공유 HTTPS에서 확인 |
+
+Evidence를 남길 때는 요청 URL, method, status, 화면 상태가 보이면 충분하다.
+Password 입력값, `Set-Cookie` 값, Cookie 원문, Session token, DB/AWS credential은 가리거나 제외한다.
+
+## 9. 완료 판단
 
 LBT-72/73은 코드가 존재하거나 unit test만 통과했다고 완료 처리하지 않는다.
 

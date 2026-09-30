@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"sync"
 	"time"
 
@@ -331,10 +332,9 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 			}
 			s.writeMu.Lock()
 			_ = s.DataConn.WriteJSON(endedMsg)
-			s.writeMu.Unlock()
-
 			_ = s.DataConn.Close()
 			s.DataConn = nil
+			s.writeMu.Unlock()
 		}
 
 		if s.PTY != nil {
@@ -348,6 +348,38 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 			callback(s, reason, exitCode, err)
 		}
 	})
+}
+
+// WriteMessage 는 활성 WebSocket 연결로 메시지를 단일 뮤텍스 직렬화하여 전송합니다.
+func (s *Session) WriteMessage(messageType int, data []byte) error {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.Lock()
+	conn := s.DataConn
+	status := s.Status
+	s.mu.Unlock()
+
+	if status != StatusActive || conn == nil {
+		return net.ErrClosed
+	}
+	return conn.WriteMessage(messageType, data)
+}
+
+// WriteJSON 은 활성 WebSocket 연결로 JSON 메시지를 단일 뮤텍스 직렬화하여 전송합니다.
+func (s *Session) WriteJSON(v interface{}) error {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.Lock()
+	conn := s.DataConn
+	status := s.Status
+	s.mu.Unlock()
+
+	if status != StatusActive || conn == nil {
+		return net.ErrClosed
+	}
+	return conn.WriteJSON(v)
 }
 
 // Resize 는 터미널 크기를 변경합니다.
@@ -394,26 +426,27 @@ func (s *Session) startPtyPump() {
 			n, err := pty.Read(buf)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
-					exitCode := 0
-					s.Close(protocol.TerminalReasonPtyExited, &exitCode, nil)
+					var exitCode *int
+					if esp, ok := pty.(ExitStatusProvider); ok {
+						for i := 0; i < 5; i++ {
+							if code, exited := esp.ExitStatus(); exited {
+								exitCode = code
+								break
+							}
+							time.Sleep(10 * time.Millisecond)
+						}
+					}
+					s.Close(protocol.TerminalReasonPtyExited, exitCode, nil)
+				} else {
+					// SSH disconnect 또는 non-EOF I/O 오류 발생 시 세션을 ACTIVE로 방치하지 않고 확실히 종료
+					reason := protocol.TerminalReasonSSHDisconnected
+					s.Close(reason, nil, err)
 				}
 				return
 			}
 
 			if n > 0 {
-				s.mu.Lock()
-				conn := s.DataConn
-				status := s.Status
-				s.mu.Unlock()
-
-				if status == StatusClosed {
-					return
-				}
-				if conn != nil && status == StatusActive {
-					s.writeMu.Lock()
-					_ = conn.WriteMessage(websocket.BinaryMessage, buf[:n])
-					s.writeMu.Unlock()
-				}
+				_ = s.WriteMessage(websocket.BinaryMessage, buf[:n])
 			}
 		}
 	}()

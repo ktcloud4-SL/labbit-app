@@ -5,8 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -49,9 +52,10 @@ func TestTerminal_OpenAndEchoStreaming(t *testing.T) {
 
 	// 4. Data WSS Client 연결 및 스트리밍 시작
 	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
-		EndpointURL: relay.URL(),
-		RuntimeID:   "runtime-test-1",
-		DialTimeout: 2 * time.Second,
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "runtime-test-1",
+		DialTimeout:   2 * time.Second,
+		AllowInsecure: true,
 	}, session)
 	defer client.Close()
 
@@ -101,8 +105,9 @@ func TestTerminal_Resize(t *testing.T) {
 	}
 
 	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
-		EndpointURL: relay.URL(),
-		RuntimeID:   "runtime-test-2",
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "runtime-test-2",
+		AllowInsecure: true,
 	}, session)
 	defer client.Close()
 
@@ -146,8 +151,9 @@ func TestTerminal_GracePeriod_Resume(t *testing.T) {
 	}
 
 	client1 := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
-		EndpointURL: relay.URL(),
-		RuntimeID:   "rt-1",
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "rt-1",
+		AllowInsecure: true,
 	}, session)
 
 	if err := client1.ConnectAndStream(); err != nil {
@@ -167,8 +173,9 @@ func TestTerminal_GracePeriod_Resume(t *testing.T) {
 
 	// 60초 만료 전에 브라우저 새로고침으로 재접속 시뮬레이션
 	client2 := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
-		EndpointURL: relay.URL(),
-		RuntimeID:   "rt-1",
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "rt-1",
+		AllowInsecure: true,
 	}, session)
 	defer client2.Close()
 
@@ -215,8 +222,9 @@ func TestTerminal_GracePeriod_Timeout(t *testing.T) {
 	}
 
 	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
-		EndpointURL: relay.URL(),
-		RuntimeID:   "rt-1",
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "rt-1",
+		AllowInsecure: true,
 	}, session)
 
 	_ = client.ConnectAndStream()
@@ -346,8 +354,9 @@ func TestSession_Close_SendsTerminalDataEnded(t *testing.T) {
 	}
 
 	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
-		EndpointURL: relay.URL(),
-		RuntimeID:   "rt-ended",
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "rt-ended",
+		AllowInsecure: true,
 	}, session)
 	defer client.Close()
 
@@ -378,7 +387,10 @@ func TestSession_Close_SendsTerminalDataEnded(t *testing.T) {
 
 func TestDataWSSClient_AttachCorrelationMismatch_Fails(t *testing.T) {
 	// 잘못된 replyToMessageId 를 회신하는 Mock 서버
-	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	upgrader := websocket.Upgrader{
+		CheckOrigin:  func(r *http.Request) bool { return true },
+		Subprotocols: []string{protocol.SubprotocolTerminalData},
+	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -399,6 +411,9 @@ func TestDataWSSClient_AttachCorrelationMismatch_Fails(t *testing.T) {
 				LabInstanceID:     "inst-1",
 				Generation:        1,
 			},
+			Payload: protocol.TerminalDataAttachedPayload{
+				HistoryAvailable: false,
+			},
 		}
 		_ = conn.WriteJSON(badResp)
 	}))
@@ -416,13 +431,394 @@ func TestDataWSSClient_AttachCorrelationMismatch_Fails(t *testing.T) {
 
 	wsURL := "ws" + server.URL[len("http"):]
 	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
-		EndpointURL: wsURL,
-		DialTimeout: 1 * time.Second,
+		EndpointURL:   wsURL,
+		DialTimeout:   1 * time.Second,
+		AllowInsecure: true,
 	}, session)
 	defer client.Close()
 
 	attachErr := client.DialAndAttach(context.Background())
 	if attachErr == nil {
 		t.Fatal("expected DialAndAttach to fail on replyTo mismatch, got nil")
+	}
+}
+
+func TestSession_SingleWriter_Concurrency(t *testing.T) {
+	// 단일 WebSocket connection에 대해 여러 고루틴이 동시 쓰기(WriteMessage, WriteJSON)를 호출할 때
+	// 데이터 레이스나 패닉 없이 정상적으로 직렬화되어 처리되는지 검증
+	relay := mock.NewTerminalRelay()
+	defer relay.Close()
+
+	mgr := terminal.NewSessionManager(5*time.Second, nil)
+	pty := terminal.NewMockEchoPTY(80, 24)
+
+	session, _, err := mgr.GetOrCreateSession(
+		protocol.TerminalOpenPayload{TargetVmKey: "vm-1", ProviderServerID: "srv-1", Cols: 80, Rows: 24},
+		protocol.BaseEnvelope{TerminalSessionID: "sess-concurrent-write", LabInstanceID: "inst-1", Generation: 1},
+		func() (terminal.PTYChannel, error) { return pty, nil },
+	)
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+
+	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "rt-concurrency",
+		DialTimeout:   2 * time.Second,
+		AllowInsecure: true,
+	}, session)
+	defer client.Close()
+
+	if err := client.ConnectAndStream(); err != nil {
+		t.Fatalf("ConnectAndStream failed: %v", err)
+	}
+	_, _ = relay.WaitForAttach(2 * time.Second)
+
+	var wg sync.WaitGroup
+	const goroutines = 20
+	const iterations = 50
+
+	// 20개의 goroutine이 WriteMessage 호출
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				data := []byte(fmt.Sprintf("msg-%d-%d\n", id, j))
+				_ = session.WriteMessage(websocket.BinaryMessage, data)
+			}
+		}(i)
+	}
+
+	// 20개의 goroutine이 WriteJSON 호출
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				jsonMsg := map[string]interface{}{
+					"id":   id,
+					"seq":  j,
+					"time": time.Now().UnixNano(),
+				}
+				_ = session.WriteJSON(jsonMsg)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+}
+
+func TestDataWSSClient_SubprotocolMismatch_Fails(t *testing.T) {
+	// 하위 프로토콜 협상이 안 되거나 다른 프로토콜로 회신하는 경우 DialAndAttach 실패 검증
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+		// 올바른 subprotocol 대신 다른 것을 반환
+		Subprotocols: []string{"wrong.subprotocol.v1"},
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+	}))
+	defer server.Close()
+
+	mgr := terminal.NewSessionManager(5*time.Second, nil)
+	session, _, err := mgr.GetOrCreateSession(
+		protocol.TerminalOpenPayload{TargetVmKey: "vm-1", ProviderServerID: "srv-1", Cols: 80, Rows: 24},
+		protocol.BaseEnvelope{TerminalSessionID: "sess-subproto-mismatch", LabInstanceID: "inst-1", Generation: 1},
+		func() (terminal.PTYChannel, error) { return terminal.NewMockEchoPTY(80, 24), nil },
+	)
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+
+	wsURL := "ws" + server.URL[len("http"):]
+	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+		EndpointURL:   wsURL,
+		DialTimeout:   1 * time.Second,
+		AllowInsecure: true,
+	}, session)
+	defer client.Close()
+
+	err = client.DialAndAttach(context.Background())
+	if err == nil {
+		t.Fatal("expected DialAndAttach to fail on subprotocol mismatch, got nil")
+	}
+	if !strings.Contains(err.Error(), "negotiated subprotocol") {
+		t.Fatalf("expected error mentioning negotiated subprotocol, got: %v", err)
+	}
+}
+
+func TestDataWSSClient_HistoryAvailableTrue_Fails(t *testing.T) {
+	// Phase 1에서 historyAvailable: true 응답 수신 시 거부 검증
+	upgrader := websocket.Upgrader{
+		CheckOrigin:  func(r *http.Request) bool { return true },
+		Subprotocols: []string{protocol.SubprotocolTerminalData},
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+
+		_, data, err := conn.ReadMessage()
+		if err != nil {
+			return
+		}
+		var attachMsg protocol.TerminalDataAttachMessage
+		_ = json.Unmarshal(data, &attachMsg)
+
+		resp := protocol.TerminalDataAttachedMessage{
+			BaseEnvelope: protocol.BaseEnvelope{
+				Type:              protocol.MessageTypeTerminalDataAttached,
+				MessageID:         "msg-resp",
+				ReplyToMessageID:  attachMsg.MessageID,
+				TerminalSessionID: attachMsg.TerminalSessionID,
+				LabInstanceID:     attachMsg.LabInstanceID,
+				Generation:        attachMsg.Generation,
+			},
+			Payload: protocol.TerminalDataAttachedPayload{
+				Resumed:          false,
+				HistoryAvailable: true, // Phase 1 forbidden
+			},
+		}
+		_ = conn.WriteJSON(resp)
+	}))
+	defer server.Close()
+
+	mgr := terminal.NewSessionManager(5*time.Second, nil)
+	session, _, err := mgr.GetOrCreateSession(
+		protocol.TerminalOpenPayload{TargetVmKey: "vm-1", ProviderServerID: "srv-1", Cols: 80, Rows: 24},
+		protocol.BaseEnvelope{TerminalSessionID: "sess-history-unsupported", LabInstanceID: "inst-1", Generation: 1},
+		func() (terminal.PTYChannel, error) { return terminal.NewMockEchoPTY(80, 24), nil },
+	)
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+
+	wsURL := "ws" + server.URL[len("http"):]
+	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+		EndpointURL:   wsURL,
+		DialTimeout:   1 * time.Second,
+		AllowInsecure: true,
+	}, session)
+	defer client.Close()
+
+	err = client.DialAndAttach(context.Background())
+	if err == nil {
+		t.Fatal("expected DialAndAttach to fail on historyAvailable: true, got nil")
+	}
+	if !strings.Contains(err.Error(), "historyAvailable must be false") {
+		t.Fatalf("expected error mentioning historyAvailable must be false, got: %v", err)
+	}
+}
+
+func TestDataWSSClient_InsecureScheme_RejectedInProduction(t *testing.T) {
+	// 프로덕션 모드 (AllowInsecure = false) 일 때 비-루프백 ws:// 연결 거부 검증
+	mgr := terminal.NewSessionManager(5*time.Second, nil)
+	session, _, _ := mgr.GetOrCreateSession(
+		protocol.TerminalOpenPayload{TargetVmKey: "vm-1", ProviderServerID: "srv-1", Cols: 80, Rows: 24},
+		protocol.BaseEnvelope{TerminalSessionID: "sess-insecure-scheme", LabInstanceID: "inst-1", Generation: 1},
+		func() (terminal.PTYChannel, error) { return terminal.NewMockEchoPTY(80, 24), nil },
+	)
+
+	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+		EndpointURL:   "ws://relay.production.domain/connector/v1/terminal-data",
+		DialTimeout:   1 * time.Second,
+		AllowInsecure: false, // production
+	}, session)
+	defer client.Close()
+
+	err := client.DialAndAttach(context.Background())
+	if err == nil {
+		t.Fatal("expected DialAndAttach to fail for ws:// in production, got nil")
+	}
+	if !strings.Contains(err.Error(), "prohibited in production") {
+		t.Fatalf("expected error mentioning prohibited in production, got: %v", err)
+	}
+}
+
+func TestDataWSSClient_OversizedFrame_Fails(t *testing.T) {
+	// 1 MiB 초과 프레임 수신 시 ReadLimit 초과로 세션 에러/종료 검증
+	relay := mock.NewTerminalRelay()
+	defer relay.Close()
+
+	mgr := terminal.NewSessionManager(5*time.Second, nil)
+	pty := terminal.NewMockEchoPTY(80, 24)
+
+	session, _, err := mgr.GetOrCreateSession(
+		protocol.TerminalOpenPayload{TargetVmKey: "vm-1", ProviderServerID: "srv-1", Cols: 80, Rows: 24},
+		protocol.BaseEnvelope{TerminalSessionID: "sess-oversized", LabInstanceID: "inst-1", Generation: 1},
+		func() (terminal.PTYChannel, error) { return pty, nil },
+	)
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+
+	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "rt-oversized",
+		DialTimeout:   2 * time.Second,
+		AllowInsecure: true,
+	}, session)
+	defer client.Close()
+
+	if err := client.ConnectAndStream(); err != nil {
+		t.Fatalf("ConnectAndStream failed: %v", err)
+	}
+	_, _ = relay.WaitForAttach(2 * time.Second)
+
+	// 1 MiB + 1024 바이트 바이너리 전송 (ReadLimit 초과)
+	oversized := make([]byte, protocol.MaxJSONMessageSize+1024)
+	_ = relay.SendBinary(oversized)
+
+	// 클라이언트 측에서 ReadLimit 에러가 발생하여 세션이 종료되거나 에러 상태로 전이되는지 대기
+	time.Sleep(300 * time.Millisecond)
+
+	if session.Status != terminal.StatusClosed && session.Status != terminal.StatusDetached {
+		t.Fatalf("expected session to be closed or detached on oversized frame, got %s", session.Status)
+	}
+}
+
+func TestDataWSSClient_InvalidResizeDimensions_Rejected(t *testing.T) {
+	relay := mock.NewTerminalRelay()
+	defer relay.Close()
+
+	mgr := terminal.NewSessionManager(5*time.Second, nil)
+	pty := terminal.NewMockEchoPTY(80, 24)
+
+	session, _, err := mgr.GetOrCreateSession(
+		protocol.TerminalOpenPayload{TargetVmKey: "vm-1", ProviderServerID: "srv-1", Cols: 80, Rows: 24},
+		protocol.BaseEnvelope{TerminalSessionID: "sess-invalid-resize", LabInstanceID: "inst-1", Generation: 1},
+		func() (terminal.PTYChannel, error) { return pty, nil },
+	)
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+
+	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "rt-resize-bad",
+		DialTimeout:   2 * time.Second,
+		AllowInsecure: true,
+	}, session)
+	defer client.Close()
+
+	if err := client.ConnectAndStream(); err != nil {
+		t.Fatalf("ConnectAndStream failed: %v", err)
+	}
+	_, _ = relay.WaitForAttach(2 * time.Second)
+
+	// 유효하지 않은 크기 전송 (cols: 0, rows: -5)
+	_ = relay.SendResize(0, -5)
+
+	time.Sleep(100 * time.Millisecond)
+
+	// 원래 크기 유지 확인
+	if session.Cols != 80 || session.Rows != 24 {
+		t.Fatalf("session dimensions should remain 80x24, got %dx%d", session.Cols, session.Rows)
+	}
+}
+
+func TestDataWSSClient_EmptyCloseReason_Rejected(t *testing.T) {
+	// Empty close reason in TERMINAL_DATA_CLOSE should be rejected without closing the session
+	upgrader := websocket.Upgrader{
+		CheckOrigin:  func(r *http.Request) bool { return true },
+		Subprotocols: []string{protocol.SubprotocolTerminalData},
+	}
+	var serverConn *websocket.Conn
+	var connMu sync.Mutex
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		connMu.Lock()
+		serverConn = conn
+		connMu.Unlock()
+		defer conn.Close()
+
+		_, data, _ := conn.ReadMessage()
+		var attachMsg protocol.TerminalDataAttachMessage
+		_ = json.Unmarshal(data, &attachMsg)
+
+		resp := protocol.TerminalDataAttachedMessage{
+			BaseEnvelope: protocol.BaseEnvelope{
+				Type:              protocol.MessageTypeTerminalDataAttached,
+				MessageID:         "msg-resp",
+				ReplyToMessageID:  attachMsg.MessageID,
+				TerminalSessionID: attachMsg.TerminalSessionID,
+				LabInstanceID:     attachMsg.LabInstanceID,
+				Generation:        attachMsg.Generation,
+			},
+			Payload: protocol.TerminalDataAttachedPayload{
+				HistoryAvailable: false,
+			},
+		}
+		_ = conn.WriteJSON(resp)
+
+		// Keep connection open
+		for {
+			if _, _, err := conn.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}))
+	defer server.Close()
+
+	mgr := terminal.NewSessionManager(5*time.Second, nil)
+	pty := terminal.NewMockEchoPTY(80, 24)
+
+	session, _, err := mgr.GetOrCreateSession(
+		protocol.TerminalOpenPayload{TargetVmKey: "vm-1", ProviderServerID: "srv-1", Cols: 80, Rows: 24},
+		protocol.BaseEnvelope{TerminalSessionID: "sess-empty-close", LabInstanceID: "inst-1", Generation: 1},
+		func() (terminal.PTYChannel, error) { return pty, nil },
+	)
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+
+	wsURL := "ws" + server.URL[len("http"):]
+	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+		EndpointURL:   wsURL,
+		DialTimeout:   1 * time.Second,
+		AllowInsecure: true,
+	}, session)
+	defer client.Close()
+
+	if err := client.ConnectAndStream(); err != nil {
+		t.Fatalf("ConnectAndStream failed: %v", err)
+	}
+
+	time.Sleep(50 * time.Millisecond)
+
+	// Send TERMINAL_DATA_CLOSE with empty reason
+	badCloseMsg := protocol.TerminalDataCloseMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:              protocol.MessageTypeTerminalDataClose,
+			MessageID:         "msg-bad-close",
+			TerminalSessionID: "sess-empty-close",
+			LabInstanceID:     "inst-1",
+			Generation:        1,
+		},
+		Payload: protocol.TerminalDataClosePayload{
+			Reason: "", // invalid empty reason
+		},
+	}
+	connMu.Lock()
+	if serverConn != nil {
+		_ = serverConn.WriteJSON(badCloseMsg)
+	}
+	connMu.Unlock()
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Session should NOT be closed
+	if session.Status == terminal.StatusClosed {
+		t.Fatal("session should not be closed on invalid empty close reason")
 	}
 }

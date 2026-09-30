@@ -7,21 +7,24 @@ import (
 	"io"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
 // SSHConfig는 대상 Workspace VM 접속을 위한 SSH 클라이언트 설정입니다.
 type SSHConfig struct {
-	Username        string
-	PrivateKey      []byte
-	PrivateKeyFile  string
-	KnownHostsFile  string
-	DialTimeout     time.Duration
-	InsecureHostKey bool // 테스트 및 초기 구축용 호스트키 허용 플래그
-	AddressResolver func(targetVmKey string, serverID string) (string, error)
+	Username             string
+	PrivateKey           []byte
+	PrivateKeyFile       string
+	KnownHostsFile       string
+	HostKeyCallback      ssh.HostKeyCallback
+	AllowInsecureHostKey bool // 테스트 전용: 명시적 설정 시에만 비보안 호스트키 허용
+	DialTimeout          time.Duration
+	AddressResolver      func(ctx context.Context, targetVmKey, serverID string) (string, error)
 }
 
 // SSHPTY는 실제 SSH 세션과 PTY 채널을 래핑하여 PTYChannel 인터페이스를 구현합니다.
@@ -31,10 +34,13 @@ type SSHPTY struct {
 	stdin   io.WriteCloser
 	stdout  io.Reader
 
-	mu     sync.Mutex
-	cols   int
-	rows   int
-	closed bool
+	mu       sync.Mutex
+	cols     int
+	rows     int
+	closed   bool
+	waitDone chan struct{}
+	exitCode *int
+	waitErr  error
 }
 
 // NewSSHPTY는 기존 활성 SSH 클라이언트로부터 PTY 세션을 생성하고 셸을 시작합니다.
@@ -83,14 +89,47 @@ func NewSSHPTY(client *ssh.Client, cols, rows int) (*SSHPTY, error) {
 		return nil, fmt.Errorf("failed to start shell: %w", err)
 	}
 
-	return &SSHPTY{
-		client:  client,
-		session: session,
-		stdin:   stdin,
-		stdout:  stdout,
-		cols:    cols,
-		rows:    rows,
-	}, nil
+	pty := &SSHPTY{
+		client:   client,
+		session:  session,
+		stdin:    stdin,
+		stdout:   stdout,
+		cols:     cols,
+		rows:     rows,
+		waitDone: make(chan struct{}),
+	}
+
+	go func() {
+		defer close(pty.waitDone)
+		waitErr := session.Wait()
+		pty.mu.Lock()
+		defer pty.mu.Unlock()
+		pty.waitErr = waitErr
+		if waitErr == nil {
+			zero := 0
+			pty.exitCode = &zero
+		} else {
+			var exitErr *ssh.ExitError
+			if errors.As(waitErr, &exitErr) {
+				code := exitErr.ExitStatus()
+				pty.exitCode = &code
+			}
+		}
+	}()
+
+	return pty, nil
+}
+
+// ExitStatus 는 관측된 원격 프로세스의 종료 코드를 반환합니다.
+func (p *SSHPTY) ExitStatus() (exitCode *int, exited bool) {
+	select {
+	case <-p.waitDone:
+		p.mu.Lock()
+		defer p.mu.Unlock()
+		return p.exitCode, true
+	default:
+		return nil, false
+	}
 }
 
 // Read는 PTY stdout 출력을 읽습니다.
@@ -178,15 +217,25 @@ func DialSSHPTY(ctx context.Context, address string, sshConfig *ssh.ClientConfig
 // NewSSHPTYFactory는 SSHConfig를 기반으로 targetVmKey/serverId를 SSH PTY로 변환하는 팩토리 함수를 생성합니다.
 func NewSSHPTYFactory(cfg SSHConfig) func(targetVmKey string, serverID string, cols, rows int) (PTYChannel, error) {
 	return func(targetVmKey string, serverID string, cols, rows int) (PTYChannel, error) {
-		var address string
-		if cfg.AddressResolver != nil {
-			addr, err := cfg.AddressResolver(targetVmKey, serverID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to resolve address for target %s (server %s): %w", targetVmKey, serverID, err)
-			}
-			address = addr
-		} else {
-			address = targetVmKey
+		if cfg.AddressResolver == nil {
+			return nil, fmt.Errorf("management address resolver is required: cannot resolve target VM %q without resolver", targetVmKey)
+		}
+
+		timeout := cfg.DialTimeout
+		if timeout <= 0 {
+			timeout = 10 * time.Second
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		address, err := cfg.AddressResolver(ctx, targetVmKey, serverID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve management address for target %s (server %s): %w", targetVmKey, serverID, err)
+		}
+		address = strings.TrimSpace(address)
+		if address == "" {
+			return nil, fmt.Errorf("resolved management address is empty for target %s (server %s)", targetVmKey, serverID)
 		}
 
 		if _, _, err := net.SplitHostPort(address); err != nil {
@@ -213,11 +262,21 @@ func NewSSHPTYFactory(cfg SSHConfig) func(targetVmKey string, serverID string, c
 			authMethods = append(authMethods, ssh.PublicKeys(signer))
 		}
 
-		hostKeyCallback := ssh.InsecureIgnoreHostKey()
-
-		timeout := cfg.DialTimeout
-		if timeout <= 0 {
-			timeout = 10 * time.Second
+		var hostKeyCallback ssh.HostKeyCallback
+		if cfg.HostKeyCallback != nil {
+			hostKeyCallback = cfg.HostKeyCallback
+		} else if cfg.KnownHostsFile != "" {
+			cb, err := knownhosts.New(cfg.KnownHostsFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load known_hosts file: %w", err)
+			}
+			hostKeyCallback = cb
+		} else if cfg.AllowInsecureHostKey {
+			hostKeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+				return nil
+			}
+		} else {
+			return nil, fmt.Errorf("ssh host key verification required: known_hosts file must be configured in production")
 		}
 
 		clientCfg := &ssh.ClientConfig{
@@ -226,9 +285,6 @@ func NewSSHPTYFactory(cfg SSHConfig) func(targetVmKey string, serverID string, c
 			HostKeyCallback: hostKeyCallback,
 			Timeout:         timeout,
 		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
 
 		return DialSSHPTY(ctx, address, clientCfg, cols, rows)
 	}

@@ -124,3 +124,9 @@ type Provider interface {
 	Cleanup(context.Context, CleanupRequest) (OperationResult, error)
 	Reconcile(context.Context, ReconcileRequest) (ReconcileResult, error)
 }
+
+// ServerAddressResolver 는 Workspace VM의 논리 키 및 Provider Server ID를 기반으로
+// 실제 관리망 IP/호스트 주소를 조회하는 인터페이스입니다.
+type ServerAddressResolver interface {
+	ResolveServerAddress(ctx context.Context, targetVmKey, serverID string) (string, error)
+}

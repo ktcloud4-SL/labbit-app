@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,10 +18,11 @@ import (
 
 // DataWSSClientConfig 는 Terminal Data WSS 클라이언트 설정입니다.
 type DataWSSClientConfig struct {
-	EndpointURL string
-	Credential  string
-	RuntimeID   string
-	DialTimeout time.Duration
+	EndpointURL   string
+	Credential    string
+	RuntimeID     string
+	DialTimeout   time.Duration
+	AllowInsecure bool // Test 전용: localhost 및 비보안 ws:// 연결 허용
 }
 
 // DataWSSClient 는 단일 터미널 세션을 위한 Terminal Data WebSocket 연결 및 입출력 스트리머입니다.
@@ -27,8 +30,7 @@ type DataWSSClient struct {
 	config  DataWSSClientConfig
 	session *Session
 
-	conn    *websocket.Conn
-	writeMu sync.Mutex
+	conn *websocket.Conn
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -58,6 +60,24 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 		return errors.New("terminal data wss endpoint URL is empty")
 	}
 
+	u, err := url.Parse(c.config.EndpointURL)
+	if err != nil {
+		return fmt.Errorf("invalid endpoint URL: %w", err)
+	}
+
+	host := u.Hostname()
+	isLoopback := host == "localhost" || host == "127.0.0.1" || host == "::1"
+	switch u.Scheme {
+	case "wss":
+		// 보안 WebSocket 허용
+	case "ws":
+		if !c.config.AllowInsecure || !isLoopback {
+			return fmt.Errorf("insecure scheme %q is prohibited in production: TLS (wss://) is required", u.Scheme)
+		}
+	default:
+		return fmt.Errorf("unsupported URL scheme %q: only wss is allowed", u.Scheme)
+	}
+
 	dialer := websocket.Dialer{
 		HandshakeTimeout: c.config.DialTimeout,
 		Subprotocols:     []string{protocol.SubprotocolTerminalData},
@@ -76,6 +96,14 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 		return fmt.Errorf("dial failed: %w", err)
 	}
 
+	// Subprotocol 협상 결과 검증 (Reviewer 3번 지적 사항)
+	if sub := conn.Subprotocol(); sub != protocol.SubprotocolTerminalData {
+		_ = conn.Close()
+		return fmt.Errorf("negotiated subprotocol %q does not match required %q", sub, protocol.SubprotocolTerminalData)
+	}
+
+	// JSON 메시지 1 MiB 수신 한도 강제 (Reviewer 3번 지적 사항)
+	conn.SetReadLimit(protocol.MaxJSONMessageSize)
 	c.conn = conn
 
 	// 1. TERMINAL_DATA_ATTACH 핸드셰이크 발송
@@ -94,10 +122,7 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 		},
 	}
 
-	c.writeMu.Lock()
-	err = c.conn.WriteJSON(attachReq)
-	c.writeMu.Unlock()
-	if err != nil {
+	if err := c.conn.WriteJSON(attachReq); err != nil {
 		_ = c.conn.Close()
 		return fmt.Errorf("failed to send ATTACH message: %w", err)
 	}
@@ -120,29 +145,33 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 		return fmt.Errorf("expected text JSON response, got binary frame")
 	}
 
-	var baseEnv protocol.BaseEnvelope
-	if parseErr := json.Unmarshal(data, &baseEnv); parseErr != nil {
+	var attachedMsg protocol.TerminalDataAttachedMessage
+	if parseErr := json.Unmarshal(data, &attachedMsg); parseErr != nil {
 		_ = c.conn.Close()
 		return fmt.Errorf("malformed JSON from relay: %w", parseErr)
 	}
 
-	if baseEnv.Type != protocol.MessageTypeTerminalDataAttached {
+	if attachedMsg.Type != protocol.MessageTypeTerminalDataAttached {
 		_ = c.conn.Close()
-		return fmt.Errorf("unexpected message type: %s (expected TERMINAL_DATA_ATTACHED)", baseEnv.Type)
+		return fmt.Errorf("unexpected message type: %s (expected TERMINAL_DATA_ATTACHED)", attachedMsg.Type)
 	}
 
-	// Correlation 검증 (Reviewer 3, 6번 지적 사항)
-	if baseEnv.ReplyToMessageID != attachMsgID {
+	// Correlation 및 Payload 검증 (Reviewer 3, 6번 지적 사항)
+	if attachedMsg.ReplyToMessageID != attachMsgID {
 		_ = c.conn.Close()
-		return fmt.Errorf("replyToMessageId mismatch: want %s, got %s", attachMsgID, baseEnv.ReplyToMessageID)
+		return fmt.Errorf("replyToMessageId mismatch: want %s, got %s", attachMsgID, attachedMsg.ReplyToMessageID)
 	}
-	if baseEnv.TerminalSessionID != c.session.SessionID ||
-		baseEnv.LabInstanceID != c.session.LabInstanceID ||
-		baseEnv.Generation != c.session.Generation {
+	if attachedMsg.TerminalSessionID != c.session.SessionID ||
+		attachedMsg.LabInstanceID != c.session.LabInstanceID ||
+		attachedMsg.Generation != c.session.Generation {
 		_ = c.conn.Close()
 		return fmt.Errorf("correlation mismatch: want session=%s lab=%s gen=%d, got session=%s lab=%s gen=%d",
 			c.session.SessionID, c.session.LabInstanceID, c.session.Generation,
-			baseEnv.TerminalSessionID, baseEnv.LabInstanceID, baseEnv.Generation)
+			attachedMsg.TerminalSessionID, attachedMsg.LabInstanceID, attachedMsg.Generation)
+	}
+	if attachedMsg.Payload.HistoryAvailable {
+		_ = c.conn.Close()
+		return fmt.Errorf("invalid attached payload: historyAvailable must be false")
 	}
 
 	// 3. 세션에 WebSocket 연결 바인딩
@@ -199,6 +228,7 @@ func (c *DataWSSClient) pumpFromWebSocketToPTY() {
 			// JSON 제어 프레임 (RESIZE, CLOSE, ERROR 등)
 			var baseEnv protocol.BaseEnvelope
 			if jsonErr := json.Unmarshal(payload, &baseEnv); jsonErr != nil {
+				c.sendError(protocol.TerminalErrProtocolError, "malformed JSON frame", false)
 				continue
 			}
 
@@ -213,20 +243,36 @@ func (c *DataWSSClient) pumpFromWebSocketToPTY() {
 			switch baseEnv.Type {
 			case protocol.MessageTypeTerminalDataResize:
 				var resizeMsg protocol.TerminalDataResizeMessage
-				if err := json.Unmarshal(payload, &resizeMsg); err == nil {
-					_ = c.session.Resize(resizeMsg.Payload.Cols, resizeMsg.Payload.Rows)
+				if err := json.Unmarshal(payload, &resizeMsg); err != nil {
+					c.sendError(protocol.TerminalErrProtocolError, "malformed RESIZE frame payload", false)
+					continue
 				}
+				if resizeMsg.Payload.Cols <= 0 || resizeMsg.Payload.Rows <= 0 {
+					c.sendError(protocol.TerminalErrProtocolError, "invalid resize dimensions: cols and rows must be > 0", false)
+					continue
+				}
+				_ = c.session.Resize(resizeMsg.Payload.Cols, resizeMsg.Payload.Rows)
 
 			case protocol.MessageTypeTerminalDataClose:
 				var closeMsg protocol.TerminalDataCloseMessage
-				if err := json.Unmarshal(payload, &closeMsg); err == nil {
-					c.session.Close(closeMsg.Payload.Reason, nil, nil)
-					return
+				if err := json.Unmarshal(payload, &closeMsg); err != nil {
+					c.sendError(protocol.TerminalErrProtocolError, "malformed CLOSE frame payload", false)
+					continue
 				}
+				if strings.TrimSpace(closeMsg.Payload.Reason) == "" {
+					c.sendError(protocol.TerminalErrProtocolError, "close reason cannot be empty", false)
+					continue
+				}
+				c.session.Close(closeMsg.Payload.Reason, nil, nil)
+				return
 
 			case protocol.MessageTypeError:
 				var errMsg protocol.TerminalDataErrorMessage
-				if err := json.Unmarshal(payload, &errMsg); err == nil && errMsg.Payload.Fatal {
+				if err := json.Unmarshal(payload, &errMsg); err != nil {
+					c.sendError(protocol.TerminalErrProtocolError, "malformed ERROR frame payload", false)
+					continue
+				}
+				if errMsg.Payload.Fatal {
 					c.session.Close(errMsg.Payload.Code, nil, errors.New(errMsg.Payload.Message))
 					return
 				}
@@ -251,11 +297,9 @@ func (c *DataWSSClient) sendError(code, message string, fatal bool) {
 			Fatal:   fatal,
 		},
 	}
-	c.writeMu.Lock()
-	if c.conn != nil {
-		_ = c.conn.WriteJSON(errMsg)
+	if c.session != nil {
+		_ = c.session.WriteJSON(errMsg)
 	}
-	c.writeMu.Unlock()
 }
 
 // Close 는 클라이언트를 종료합니다.

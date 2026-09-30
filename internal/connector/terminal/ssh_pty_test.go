@@ -5,19 +5,23 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
-	"encoding/binary"
+	"encoding/pem"
+	"fmt"
 	"io"
 	"net"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-func generateTestEd25519Key(t *testing.T) (ssh.Signer, []byte) {
+func generateTestEd25519Key(t *testing.T) (ssh.Signer, ed25519.PrivateKey) {
 	t.Helper()
-	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatalf("failed to generate ed25519 key: %v", err)
 	}
@@ -25,16 +29,17 @@ func generateTestEd25519Key(t *testing.T) (ssh.Signer, []byte) {
 	if err != nil {
 		t.Fatalf("failed to create signer: %v", err)
 	}
-	_ = pub
 	return signer, priv
 }
 
 // startTestSSHServer는 테스트용 인프로세스 SSH 서버를 구동하여 실제 PTY, 윈도우 리사이즈, 셸 I/O를 시뮬레이션합니다.
-func startTestSSHServer(t *testing.T) (address string, clientSigner ssh.Signer, cleanup func()) {
+func startTestSSHServer(t *testing.T) (address string, clientSigner ssh.Signer, clientPriv ed25519.PrivateKey, serverSigner ssh.Signer, cleanup func()) {
 	t.Helper()
 
-	serverSigner, _ := generateTestEd25519Key(t)
-	clientSigner, _ = generateTestEd25519Key(t)
+	var serverPriv ed25519.PrivateKey
+	serverSigner, serverPriv = generateTestEd25519Key(t)
+	_ = serverPriv
+	clientSigner, clientPriv = generateTestEd25519Key(t)
 
 	serverConfig := &ssh.ServerConfig{
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
@@ -123,17 +128,17 @@ func startTestSSHServer(t *testing.T) (address string, clientSigner ssh.Signer, 
 		_ = ctx
 	}
 
-	return listener.Addr().String(), clientSigner, cleanup
+	return listener.Addr().String(), clientSigner, clientPriv, serverSigner, cleanup
 }
 
 func TestSSHPTY_RealSSH_EchoAndResize(t *testing.T) {
-	addr, clientSigner, cleanup := startTestSSHServer(t)
+	addr, clientSigner, _, serverSigner, cleanup := startTestSSHServer(t)
 	defer cleanup()
 
 	clientCfg := &ssh.ClientConfig{
 		User:            "testuser",
 		Auth:            []ssh.AuthMethod{ssh.PublicKeys(clientSigner)},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: ssh.FixedHostKey(serverSigner.PublicKey()),
 		Timeout:         5 * time.Second,
 	}
 
@@ -180,32 +185,143 @@ func TestSSHPTY_RealSSH_EchoAndResize(t *testing.T) {
 	}
 }
 
-func TestSSHPTYFactory(t *testing.T) {
-	addr, clientSigner, cleanup := startTestSSHServer(t)
+func TestSSHPTYFactory_ProductionKnownHosts_Success(t *testing.T) {
+	addr, _, clientPriv, serverSigner, cleanup := startTestSSHServer(t)
 	defer cleanup()
 
-	host, port, _ := net.SplitHostPort(addr)
-	_ = port
+	// 1. Client Private Key PEM 직렬화
+	block, err := ssh.MarshalPrivateKey(clientPriv, "")
+	if err != nil {
+		t.Fatalf("failed to marshal private key: %v", err)
+	}
+	privKeyBytes := pem.EncodeToMemory(block)
 
+	// 2. Known_hosts 파일 생성
+	knownHostsDir := t.TempDir()
+	knownHostsPath := filepath.Join(knownHostsDir, "known_hosts")
+	hostKeyLine := knownhosts.Line([]string{addr}, serverSigner.PublicKey()) + "\n"
+	if err := os.WriteFile(knownHostsPath, []byte(hostKeyLine), 0600); err != nil {
+		t.Fatalf("failed to write known_hosts: %v", err)
+	}
+
+	// 3. Factory 생성 및 호출 검증
 	factory := NewSSHPTYFactory(SSHConfig{
-		Username:        "testuser",
-		InsecureHostKey: true,
-		DialTimeout:     5 * time.Second,
-		AddressResolver: func(targetVmKey, serverID string) (string, error) {
+		Username:       "testuser",
+		PrivateKey:     privKeyBytes,
+		KnownHostsFile: knownHostsPath,
+		DialTimeout:    5 * time.Second,
+		AddressResolver: func(ctx context.Context, targetVmKey, serverID string) (string, error) {
+			if serverID != "srv-1" {
+				return "", fmt.Errorf("unknown server %s", serverID)
+			}
 			return addr, nil
 		},
 	})
 
-	// clientSigner를 주입하기 위해 custom dialer 대신 mock AddressResolver 활용
-	_ = host
-	_ = clientSigner
-	_ = factory
+	pty, err := factory("vm-1", "srv-1", 80, 24)
+	if err != nil {
+		t.Fatalf("factory call failed: %v", err)
+	}
+	defer pty.Close()
+
+	// PTY I/O, Resize, Close 동작 검증
+	_, err = pty.Write([]byte("factory echo test\n"))
+	if err != nil {
+		t.Fatalf("pty.Write failed: %v", err)
+	}
+
+	buf := make([]byte, 1024)
+	n, err := pty.Read(buf)
+	if err != nil && err != io.EOF {
+		t.Fatalf("pty.Read failed: %v", err)
+	}
+	if !bytes.Contains(buf[:n], []byte("factory echo test")) {
+		t.Fatalf("expected echo, got: %q", string(buf[:n]))
+	}
+
+	if err := pty.Resize(100, 30); err != nil {
+		t.Fatalf("pty.Resize failed: %v", err)
+	}
 }
 
-func parseWindowChangePayload(b []byte) (cols, rows uint32) {
-	if len(b) >= 8 {
-		cols = binary.BigEndian.Uint32(b[0:4])
-		rows = binary.BigEndian.Uint32(b[4:8])
+func TestSSHPTYFactory_FailClosed_NoKnownHosts(t *testing.T) {
+	addr, _, clientPriv, _, cleanup := startTestSSHServer(t)
+	defer cleanup()
+
+	block, _ := ssh.MarshalPrivateKey(clientPriv, "")
+	privKeyBytes := pem.EncodeToMemory(block)
+
+	// KnownHostsFile 이 없고 AllowInsecureHostKey 가 false 인 프로덕션 모드
+	factory := NewSSHPTYFactory(SSHConfig{
+		Username:             "testuser",
+		PrivateKey:           privKeyBytes,
+		KnownHostsFile:       "",
+		AllowInsecureHostKey: false,
+		DialTimeout:          2 * time.Second,
+		AddressResolver: func(ctx context.Context, targetVmKey, serverID string) (string, error) {
+			return addr, nil
+		},
+	})
+
+	_, err := factory("vm-1", "srv-1", 80, 24)
+	if err == nil {
+		t.Fatalf("expected error when known_hosts is not configured in production, got nil")
 	}
-	return
+}
+
+func TestSSHPTYFactory_FailClosed_MismatchedKnownHosts(t *testing.T) {
+	addr, _, clientPriv, _, cleanup := startTestSSHServer(t)
+	defer cleanup()
+
+	block, _ := ssh.MarshalPrivateKey(clientPriv, "")
+	privKeyBytes := pem.EncodeToMemory(block)
+
+	// 다른 공개키를 가진 bogus known_hosts 파일 생성
+	_, bogusPriv := generateTestEd25519Key(t)
+	bogusSigner, _ := ssh.NewSignerFromKey(bogusPriv)
+
+	knownHostsPath := filepath.Join(t.TempDir(), "known_hosts")
+	hostKeyLine := knownhosts.Line([]string{addr}, bogusSigner.PublicKey()) + "\n"
+	_ = os.WriteFile(knownHostsPath, []byte(hostKeyLine), 0600)
+
+	factory := NewSSHPTYFactory(SSHConfig{
+		Username:       "testuser",
+		PrivateKey:     privKeyBytes,
+		KnownHostsFile: knownHostsPath,
+		DialTimeout:    2 * time.Second,
+		AddressResolver: func(ctx context.Context, targetVmKey, serverID string) (string, error) {
+			return addr, nil
+		},
+	})
+
+	_, err := factory("vm-1", "srv-1", 80, 24)
+	if err == nil {
+		t.Fatalf("expected host key verification error on mismatched known_hosts, got nil")
+	}
+}
+
+func TestSSHPTYFactory_Fail_AddressResolver(t *testing.T) {
+	t.Run("resolver returns error", func(t *testing.T) {
+		factory := NewSSHPTYFactory(SSHConfig{
+			Username: "testuser",
+			AddressResolver: func(ctx context.Context, targetVmKey, serverID string) (string, error) {
+				return "", fmt.Errorf("server %s not found in provider", serverID)
+			},
+		})
+		_, err := factory("vm-1", "unknown-srv", 80, 24)
+		if err == nil {
+			t.Fatalf("expected resolver error, got nil")
+		}
+	})
+
+	t.Run("missing resolver rejects targetVmKey fallback", func(t *testing.T) {
+		factory := NewSSHPTYFactory(SSHConfig{
+			Username:        "testuser",
+			AddressResolver: nil,
+		})
+		_, err := factory("vm-logical-key", "srv-1", 80, 24)
+		if err == nil {
+			t.Fatalf("expected error when address resolver is nil, got nil")
+		}
+	})
 }

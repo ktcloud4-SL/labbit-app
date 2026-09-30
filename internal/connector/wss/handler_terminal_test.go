@@ -30,9 +30,10 @@ func TestHandler_TerminalOpenAndClose(t *testing.T) {
 	h.SetTerminalManager(mgr, func(targetVmKey, serverId string, cols, rows int) (terminal.PTYChannel, error) {
 		return terminal.NewMockEchoPTY(cols, rows), nil
 	}, terminal.DataWSSClientConfig{
-		EndpointURL: relay.URL(),
-		RuntimeID:   "runtime-test-handler",
-		DialTimeout: 2 * time.Second,
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "runtime-test-handler",
+		DialTimeout:   2 * time.Second,
+		AllowInsecure: true,
 	})
 
 	// 1. TERMINAL_OPEN 메시지 전송
@@ -285,5 +286,92 @@ func TestHandler_TerminalOpen_InvalidEnvelopeOrPayload_Fails(t *testing.T) {
 		}
 	case <-time.After(1 * time.Second):
 		t.Fatalf("timeout waiting for response")
+	}
+}
+
+func TestHandler_TerminalClose_StaleGeneration_Rejected(t *testing.T) {
+	relay := mock.NewTerminalRelay()
+	defer relay.Close()
+
+	mockProv := &provider.MockProvider{}
+	sentMessages := make(chan interface{}, 10)
+	sender := wss.SendMessageFunc(func(ctx context.Context, msg interface{}) error {
+		sentMessages <- msg
+		return nil
+	})
+
+	h := wss.NewHandler(mockProv, sender)
+	mgr := terminal.NewSessionManager(5*time.Second, nil)
+	h.SetTerminalManager(mgr, func(targetVmKey, serverId string, cols, rows int) (terminal.PTYChannel, error) {
+		return terminal.NewMockEchoPTY(cols, rows), nil
+	}, terminal.DataWSSClientConfig{
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "runtime-stale-gen",
+		DialTimeout:   2 * time.Second,
+		AllowInsecure: true,
+	})
+
+	// 1. Generation = 2 세션 생성 (TERMINAL_OPEN)
+	openReq := protocol.TerminalOpenMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:              protocol.MessageTypeTerminalOpen,
+			MessageID:         "open-gen-2",
+			SentAt:            time.Now().UTC(),
+			TerminalSessionID: "sess-stale-gen-1",
+			LabInstanceID:     "inst-1",
+			Generation:        2,
+		},
+		Payload: protocol.TerminalOpenPayload{
+			TargetVmKey:      "vm-web-1",
+			ProviderServerID: "srv-uuid-1",
+			Cols:             80,
+			Rows:             24,
+		},
+	}
+	openRaw, _ := json.Marshal(openReq)
+	if err := h.HandleMessage(context.Background(), openRaw); err != nil {
+		t.Fatalf("HandleMessage(TERMINAL_OPEN) failed: %v", err)
+	}
+
+	// OPEN_RESULT 수신 확인
+	select {
+	case <-sentMessages:
+	case <-time.After(2 * time.Second):
+		t.Fatalf("timeout waiting for TERMINAL_OPEN_RESULT")
+	}
+
+	session, exists := mgr.GetSession("sess-stale-gen-1")
+	if !exists || session.Status != terminal.StatusActive {
+		t.Fatalf("expected session to be active, got exists=%v", exists)
+	}
+
+	// 2. Generation = 1 (stale, 1 < 2) 로 TERMINAL_CLOSE 전송
+	staleCloseReq := protocol.TerminalCloseMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:              protocol.MessageTypeTerminalClose,
+			MessageID:         "close-stale-1",
+			SentAt:            time.Now().UTC(),
+			TerminalSessionID: "sess-stale-gen-1",
+			LabInstanceID:     "inst-1",
+			Generation:        1, // stale generation
+		},
+		Payload: protocol.TerminalClosePayload{
+			Reason: protocol.TerminalReasonSessionClosed,
+		},
+	}
+	staleCloseRaw, _ := json.Marshal(staleCloseReq)
+
+	err := h.HandleMessage(context.Background(), staleCloseRaw)
+	if err == nil {
+		t.Fatal("expected HandleMessage to return error on stale generation TERMINAL_CLOSE, got nil")
+	}
+
+	// 3. 세션이 닫히지 않고 여전히 Active 상태로 유지되는지 확인
+	sessionAfter, existsAfter := mgr.GetSession("sess-stale-gen-1")
+	if !existsAfter {
+		t.Fatal("session should still exist in manager")
+	}
+	if sessionAfter.Status == terminal.StatusClosed {
+		t.Fatal("session should NOT be closed by stale generation TERMINAL_CLOSE")
 	}
 }

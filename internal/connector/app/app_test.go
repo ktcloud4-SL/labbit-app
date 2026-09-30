@@ -3,6 +3,9 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -121,5 +124,113 @@ func TestConnectorApp_GracefulShutdown(t *testing.T) {
 	}
 	if connectorApp.TerminalManager.ActiveCount() != 0 {
 		t.Fatalf("expected active count 0, got %d", connectorApp.TerminalManager.ActiveCount())
+	}
+}
+
+type bareProvider struct{}
+
+func (b *bareProvider) Provision(ctx context.Context, req provider.ProvisionRequest) (provider.OperationResult, error) {
+	return provider.OperationResult{}, nil
+}
+func (b *bareProvider) Reset(ctx context.Context, req provider.ResetRequest) (provider.OperationResult, error) {
+	return provider.OperationResult{}, nil
+}
+func (b *bareProvider) Cleanup(ctx context.Context, req provider.CleanupRequest) (provider.OperationResult, error) {
+	return provider.OperationResult{}, nil
+}
+func (b *bareProvider) Reconcile(ctx context.Context, req provider.ReconcileRequest) (provider.ReconcileResult, error) {
+	return provider.ReconcileResult{}, nil
+}
+
+func TestBuildConnector_ProductionContract_Validation(t *testing.T) {
+	sender := &recordSender{}
+
+	// Create temp dir for credentials and known_hosts
+	tmpDir := t.TempDir()
+	credFile := filepath.Join(tmpDir, "connector.credential")
+	if err := os.WriteFile(credFile, []byte("prod-secret-token"), 0600); err != nil {
+		t.Fatalf("failed to write cred file: %v", err)
+	}
+	knownHostsFile := filepath.Join(tmpDir, "known_hosts")
+	if err := os.WriteFile(knownHostsFile, []byte("# empty known hosts\n"), 0600); err != nil {
+		t.Fatalf("failed to write known_hosts: %v", err)
+	}
+
+	// 1. LABBIT_ENV=production, missing LABBIT_SAAS_BASE_URL
+	t.Setenv("LABBIT_ENV", "production")
+	t.Setenv("LABBIT_SAAS_BASE_URL", "")
+	t.Setenv("LABBIT_CONNECTOR_CREDENTIAL_FILE", credFile)
+	t.Setenv("LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE", knownHostsFile)
+
+	_, err := BuildConnector(&provider.MockProvider{}, sender)
+	if err == nil || !strings.Contains(err.Error(), "LABBIT_SAAS_BASE_URL is required in production") {
+		t.Fatalf("expected error for missing LABBIT_SAAS_BASE_URL in production, got: %v", err)
+	}
+
+	// 2. HTTP prohibited in production (TLS required)
+	t.Setenv("LABBIT_SAAS_BASE_URL", "http://saas.example.com")
+	_, err = BuildConnector(&provider.MockProvider{}, sender)
+	if err == nil || !strings.Contains(err.Error(), "http scheme is prohibited in production") {
+		t.Fatalf("expected error for http scheme in production, got: %v", err)
+	}
+
+	// 3. Missing credential in production
+	t.Setenv("LABBIT_SAAS_BASE_URL", "https://saas.example.com")
+	t.Setenv("LABBIT_CONNECTOR_CREDENTIAL_FILE", "")
+	t.Setenv("LABBIT_CONNECTOR_CREDENTIAL", "")
+	_, err = BuildConnector(&provider.MockProvider{}, sender)
+	if err == nil || !strings.Contains(err.Error(), "connector credential is required in production") {
+		t.Fatalf("expected error for missing credential in production, got: %v", err)
+	}
+
+	// 4. Missing known_hosts in production
+	t.Setenv("LABBIT_CONNECTOR_CREDENTIAL_FILE", credFile)
+	t.Setenv("LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE", "")
+	_, err = BuildConnector(&provider.MockProvider{}, sender)
+	if err == nil || !strings.Contains(err.Error(), "LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE is required in production") {
+		t.Fatalf("expected error for missing known hosts in production, got: %v", err)
+	}
+
+	// 5. Provider without ServerAddressResolver in production
+	t.Setenv("LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE", knownHostsFile)
+	_, err = BuildConnector(&bareProvider{}, sender)
+	if err == nil || !strings.Contains(err.Error(), "does not implement ServerAddressResolver") {
+		t.Fatalf("expected error for provider missing ServerAddressResolver, got: %v", err)
+	}
+
+	// 6. Complete valid production configuration
+	mockProv := &provider.MockProvider{}
+	app, err := BuildConnector(mockProv, sender)
+	if err != nil {
+		t.Fatalf("expected BuildConnector to succeed with valid production config, got: %v", err)
+	}
+	if app == nil {
+		t.Fatal("expected non-nil app")
+	}
+}
+
+func TestBuildConnector_AddressResolver_Wiring(t *testing.T) {
+	sender := &recordSender{}
+	resolved := false
+	mockProv := &provider.MockProvider{
+		ResolveServerAddressFunc: func(ctx context.Context, targetVmKey, serverID string) (string, error) {
+			resolved = true
+			if targetVmKey != "vm-test-resolver" || serverID != "srv-test-resolver" {
+				t.Errorf("unexpected args: targetVmKey=%s, serverID=%s", targetVmKey, serverID)
+			}
+			// Return dummy port unreachable address
+			return "127.0.0.1:59998", nil
+		},
+	}
+
+	app, err := BuildConnector(mockProv, sender)
+	if err != nil {
+		t.Fatalf("BuildConnector failed: %v", err)
+	}
+
+	// Invoking PTYFactory should call ResolveServerAddressFunc
+	_, _ = app.PTYFactory("vm-test-resolver", "srv-test-resolver", 80, 24)
+	if !resolved {
+		t.Fatal("expected ResolveServerAddressFunc to be called during PTYFactory invocation")
 	}
 }

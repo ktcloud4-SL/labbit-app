@@ -855,7 +855,18 @@ func (h *Handler) handleTerminalClose(ctx context.Context, env protocol.BaseEnve
 	h.mu.RUnlock()
 
 	if mgr != nil && sessionID != "" {
-		_ = mgr.CloseSession(sessionID, closeMsg.Payload.Reason)
+		session, exists := mgr.GetSession(sessionID)
+		if exists {
+			// 활성 세션의 labInstanceId 및 generation 일치성 검증 (Reviewer 5번 지적 사항: stale generation 방어)
+			if session.LabInstanceID != closeMsg.LabInstanceID || session.Generation != closeMsg.Generation {
+				return fmt.Errorf("stale or mismatched TERMINAL_CLOSE: session has lab=%s gen=%d, got lab=%s gen=%d",
+					session.LabInstanceID, session.Generation, closeMsg.LabInstanceID, closeMsg.Generation)
+			}
+			_ = mgr.CloseSession(sessionID, closeMsg.Payload.Reason)
+		} else {
+			// 세션이 이미 정리된 경우 멱등적으로 TERMINAL_ENDED 회신
+			h.sendTerminalEndedRaw(closeMsg.MessageID, sessionID, closeMsg.LabInstanceID, closeMsg.Generation, closeMsg.Payload.Reason, nil, nil)
+		}
 	} else {
 		// 세션 매니저가 없거나 세션이 이미 정리된 경우에도 멱등적으로 TERMINAL_ENDED 회신
 		h.sendTerminalEndedRaw(closeMsg.MessageID, sessionID, closeMsg.LabInstanceID, closeMsg.Generation, closeMsg.Payload.Reason, nil, nil)

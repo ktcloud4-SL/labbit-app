@@ -62,8 +62,10 @@ type ConnectorRepository interface {
 	ConnectorCredentialByHash(ctx context.Context, credentialHash []byte) (ConnectorCredentialWithConnector, error)
 	// RecordConnectorHeartbeat는 connectors.last_seen_at을 seenAt으로 갱신하고 갱신했으면 true를 반환한다.
 	// credentialID가 connectorID의 Credential이고 Credential과 Connector가 모두 revoke되지 않았을 때만 갱신하며,
-	// 그렇지 않으면 아무것도 바꾸지 않고 false다. 판정과 갱신은 하나의 statement라서 revoke와 경쟁해도
-	// revoke가 반영된 뒤에는 갱신되지 않는다. seenAt은 Application이 정한 서버 수신 시각이다.
+	// 그렇지 않으면 아무것도 바꾸지 않고 false다. 구현은 Connector와 Credential row를 잠근 채 revoke 여부를
+	// 확인하고 갱신하므로, commit되지 않은 revoke가 있으면 그 결과를 기다린다. revoke가 commit된 뒤에는 갱신되지 않고
+	// rollback되면 갱신된다. 이 lock과 순서(connectors → connector_credentials)는 구현 계약이므로
+	// 두 row를 함께 revoke하는 writer도 같은 순서를 지켜야 한다. seenAt은 Application이 정한 서버 수신 시각이다.
 	RecordConnectorHeartbeat(ctx context.Context, connectorID, credentialID uuid.UUID, seenAt time.Time) (bool, error)
 }
 

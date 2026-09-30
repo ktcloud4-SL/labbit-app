@@ -47,6 +47,12 @@ func NewStore(pool *pgxpool.Pool) *Store {
 // WithinTransaction은 READ COMMITTED transaction 하나에서 fn을 실행한다.
 // 계약은 repository.Transactor를 따른다.
 func (s *Store) WithinTransaction(ctx context.Context, fn func(ctx context.Context, repos repository.Repositories) error) error {
+	return s.inTransaction(ctx, func(ctx context.Context, q queries) error { return fn(ctx, q) })
+}
+
+// inTransaction은 WithinTransaction과 같은 규칙으로 transaction을 열고 그 transaction에 묶인 queries를 fn에 전달한다.
+// Repositories에 속하지 않는 adapter 내부 query(예: 여러 row를 순서대로 lock해야 하는 단일 use case)가 사용한다.
+func (s *Store) inTransaction(ctx context.Context, fn func(ctx context.Context, q queries) error) error {
 	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return normalize("BeginTransaction", err)

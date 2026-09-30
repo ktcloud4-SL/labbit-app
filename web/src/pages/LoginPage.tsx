@@ -36,6 +36,10 @@ export function LoginPage() {
     mutationFn: async () => {
       await api.login({ username, password })
 
+      // Login 성공 시 server-side Session은 새 사용자 문맥으로 교체된다.
+      // /me 검증이 실패하더라도 이전 사용자의 query cache가 남지 않게 먼저 비운다.
+      queryClient.clear()
+
       try {
         return await api.getMe()
       } catch (error) {
@@ -43,7 +47,6 @@ export function LoginPage() {
       }
     },
     onSuccess: (me) => {
-      queryClient.removeQueries()
       queryClient.setQueryData(labbitQueryKeys.me, me)
 
       const destination = isSafeInternalPath(state?.from) ? state.from : '/classes'

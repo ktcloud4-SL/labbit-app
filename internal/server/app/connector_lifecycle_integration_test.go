@@ -39,6 +39,8 @@ type lifecycleEnv struct {
 	dsn         string
 	url         string
 	registry    *connector.Registry
+	router      *connector.Router
+	events      *routedEvents
 	handler     *connectorwss.Handler
 	db          *pgx.Conn
 	connectorID uuid.UUID
@@ -58,10 +60,16 @@ func startLifecycleEnv(t *testing.T) *lifecycleEnv {
 
 	service := connector.NewService(postgres.NewStore(pool))
 	registry := connector.NewRegistry()
+	events := &routedEvents{}
+	router, err := connector.NewRouter(connector.RouterOptions{Registry: registry, Sink: events})
+	if err != nil {
+		t.Fatalf("connector.NewRouter() error = %v", err)
+	}
 	handler, err := connectorwss.New(connectorwss.Options{
 		Auth:              service,
 		Heartbeats:        service,
 		Registry:          registry,
+		Router:            router,
 		HeartbeatInterval: lifecycleHeartbeat,
 		OfflineTimeout:    lifecycleOffline,
 	})
@@ -81,7 +89,7 @@ func startLifecycleEnv(t *testing.T) *lifecycleEnv {
 	})
 
 	return &lifecycleEnv{
-		t: t, dsn: dsn, url: server.URL, registry: registry, handler: handler,
+		t: t, dsn: dsn, url: server.URL, registry: registry, router: router, events: events, handler: handler,
 		db: postgrestest.Connect(t, dsn), connectorID: connectorID,
 	}
 }

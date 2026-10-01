@@ -137,11 +137,20 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 
 			// Connector Control WSS는 API/Control(api role)이 소유한다. Terminal/Live WebSocket을 처리하는 realtime role과 별개다.
+			// Router는 protocol-ready Connector connection으로 command를 보내고 응답을 correlation으로 연결하는 경계다.
+			// Registry는 Router와 handler가 같은 것을 써야 한다. 아직 event를 받는 Operation Worker(LBT-18)가 없으므로
+			// Sink 없이 두며, 이 프로세스가 보내는 command가 없으면 도착하는 응답은 모두 unmatched로 기록만 남는다.
 			connectorService := connector.NewService(store)
+			connectorRegistry := connector.NewRegistry()
+			connectorRouter, err := connector.NewRouter(connector.RouterOptions{Registry: connectorRegistry, Logger: logger})
+			if err != nil {
+				return err
+			}
 			connectorWSS, err = connectorwss.New(connectorwss.Options{
 				Auth:       connectorService,
 				Heartbeats: connectorService,
-				Registry:   connector.NewRegistry(),
+				Registry:   connectorRegistry,
+				Router:     connectorRouter,
 				Logger:     logger,
 			})
 			if err != nil {

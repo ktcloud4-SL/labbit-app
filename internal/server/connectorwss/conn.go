@@ -72,7 +72,13 @@ func (c *controlConn) writeJSON(v any) error {
 	if err != nil {
 		return fmt.Errorf("connectorwss: message marshal: %w", err)
 	}
+	return c.writeText(data)
+}
 
+// writeText는 이미 직렬화된 JSON text message 하나를 보낸다. writeJSON과 같은 mutex 아래에서 closing을 확인하므로
+// server의 모든 application write(ERROR, HELLO_ACK, command)와 close frame은 이 connection에서 하나의 순서로 직렬화된다.
+// 종료가 시작되었다면 아무것도 쓰지 않고 errConnClosing을 반환한다.
+func (c *controlConn) writeText(data []byte) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.closing.Load() {
@@ -80,6 +86,16 @@ func (c *controlConn) writeJSON(v any) error {
 	}
 	_ = c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 	return c.conn.WriteMessage(websocket.TextMessage, data)
+}
+
+// route는 HELLO_ACK를 마친 이 connection의 command writer다. Registration.MarkReady로 등록해 Router가 exact Session의
+// connection에만 쓰게 한다. 종료 중이라 쓰지 못했다면 아무 byte도 나가지 않았으므로 connector.ErrRouteClosed를 반환한다.
+func (c *controlConn) route(data []byte) error {
+	err := c.writeText(data)
+	if errors.Is(err, errConnClosing) {
+		return connector.ErrRouteClosed
+	}
+	return err
 }
 
 // close는 code/reason의 close frame을 보내고 closeGrace 뒤에 TCP connection을 닫는다.

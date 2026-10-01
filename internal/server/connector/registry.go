@@ -1,6 +1,8 @@
 package connector
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
@@ -17,9 +19,32 @@ const (
 	CloseRevoked
 )
 
+// Route는 protocol-ready(HELLO_ACK 완료)인 Session 하나의 control writer다. data는 JSON text message 하나이며
+// 직렬화된 write와 close의 순서는 transport가 소유한다. 종료가 시작된 connection이라 아무것도 쓰지 않았다면
+// ErrRouteClosed를 반환해야 한다. 그 외의 오류는 일부가 전송되었을 수도 있는 실패다.
+type Route func(data []byte) error
+
+// ErrRouteClosed는 Route가 종료 중인 connection에 아무것도 쓰지 않고 거절했음을 나타낸다.
+var ErrRouteClosed = errors.New("connector: route closed before write")
+
+// ErrConnectorUnavailable은 지금 Connector에 message를 보낼 수 있는 Control connection이 없음을 나타낸다.
+// 호출자는 이 오류를 이유로 같은 command를 다른 connection으로 자동 재전송하지 않는다.
+var ErrConnectorUnavailable = errors.New("connector: Control connection을 사용할 수 없음")
+
+var (
+	// ErrNotConnected는 Connector의 current Control connection이 없음을 나타낸다.
+	ErrNotConnected = fmt.Errorf("%w: current connection 없음", ErrConnectorUnavailable)
+	// ErrNotReady는 current connection이 있지만 HELLO_ACK 전이라 protocol-ready가 아님을 나타낸다.
+	// 교체된 새 connection이 HELLO_ACK를 마치기 전에도 이전 connection으로 보내지 않으므로 이 오류가 된다.
+	ErrNotReady = fmt.Errorf("%w: HELLO_ACK 완료 전", ErrConnectorUnavailable)
+	// ErrConnectionClosing은 current connection이 종료 중이라 아무것도 쓰지 못했음을 나타낸다.
+	ErrConnectionClosing = fmt.Errorf("%w: connection 종료 중", ErrConnectorUnavailable)
+)
+
 // Session은 인증과 WebSocket Upgrade를 마친 Control connection 하나를 식별한다.
 // 같은 Connector의 connection이 다시 붙어도 Session.ID는 서로 다르다.
 // Session은 connection의 소유자일 뿐 protocol-ready가 아니다. HELLO_ACK가 끝나기 전의 connection도 포함한다.
+// protocol-ready 여부는 Registration.MarkReady와 Registry.WithReadyRoute가 별도로 표현한다.
 type Session struct {
 	ID           uuid.UUID
 	ConnectorID  uuid.UUID
@@ -31,8 +56,10 @@ type Session struct {
 //
 //   - 같은 Connector의 새 Session이 등록되면 새 Session이 current가 되고 이전 Session의 종료를 요청한다.
 //     이 교체는 새 connection이 HELLO를 보내기 전에 일어난다(contracts/connector/README.md §4).
-//   - current는 소유자이지 protocol-ready(HELLO_ACK 완료)가 아니다. Registry는 message를 보내는 경로를 노출하지 않으며,
-//     command routing은 HELLO_ACK 이후에만 Session의 connection을 사용해야 한다.
+//   - current는 소유자이지 protocol-ready(HELLO_ACK 완료)가 아니다. Current는 message를 보내는 경로를 노출하지 않는다.
+//     command routing은 WithReadyRoute만 사용한다. 이 경로는 그 Session이 MarkReady를 마친 뒤에만 열리고,
+//     교체·revoke가 시작되면(Register/Revoke가 반환하기 전에) 닫히며, 새 Session은 자신의 MarkReady 전까지 열리지 않는다.
+//     따라서 교체된 이전 Session과 HELLO_ACK 전의 새 Session 어느 쪽으로도 command가 나가지 않는다.
 //   - Session 종료와 release는 그 Session만 다룬다. 이미 교체된 Session의 늦은 release는 새 Session을 지우지 않는다.
 //   - 종료 요청(closeFn)은 항상 Registry lock 밖에서 호출한다. lock을 잡은 채 network I/O를 하지 않는다.
 //
@@ -51,6 +78,14 @@ type entry struct {
 	// 그 이후에는 이 Session이 fn을 시작하지 못한다.
 	mu      sync.Mutex
 	retired bool
+
+	// routeMu는 route와 sealed를 보호한다. WithReadyRoute는 RLock을 잡은 채 fn(pending 등록과 write 포함)을 실행하고,
+	// retire는 Lock으로 진행 중인 fn이 끝나기를 기다린 뒤 route를 제거한다. 그래서 retire가 끝난 뒤에는 이 Session의
+	// connection에 새 write가 시작되지 않는다. IfCurrent의 mu와 분리해 heartbeat 기록이 command 전송을 막지 않고,
+	// IfCurrent 안(event sink)에서 전송을 시작해도 self-deadlock이 없다.
+	routeMu sync.RWMutex
+	route   Route
+	sealed  bool
 }
 
 func NewRegistry() *Registry {
@@ -137,6 +172,12 @@ func (e *entry) retire(reason CloseReason) {
 	e.retired = true
 	e.mu.Unlock()
 
+	// 진행 중인 command write가 끝난 뒤에 route를 닫는다. 이 뒤로는 이 Session에 새 write가 시작되지 않는다.
+	e.routeMu.Lock()
+	e.route = nil
+	e.sealed = true
+	e.routeMu.Unlock()
+
 	if e.closeFn != nil {
 		e.closeFn(reason)
 	}
@@ -158,6 +199,22 @@ func (g *Registration) IfCurrent(fn func() error) (bool, error) {
 	return true, fn()
 }
 
+// MarkReady는 이 Session이 protocol-ready(HELLO_ACK 전송 완료)가 되었음을 알리고 이 Session의 control writer를 등록한다.
+// 이미 교체·revoke된 Session이면 등록하지 않고 false를 반환한다. 성공하면 WithReadyRoute가 이 Session의 route를 사용할 수 있다.
+func (g *Registration) MarkReady(route Route) bool {
+	if route == nil {
+		return false
+	}
+	e := g.entry
+	e.routeMu.Lock()
+	defer e.routeMu.Unlock()
+	if e.sealed {
+		return false
+	}
+	e.route = route
+	return true
+}
+
 // Release는 이 Session이 아직 current일 때만 registry에서 제거한다. 여러 번 호출해도 안전하다.
 // 이미 다른 Session이 current가 되었다면 그것을 지우지 않는다.
 func (g *Registration) Release() {
@@ -167,4 +224,27 @@ func (g *Registration) Release() {
 	if r.current[g.entry.session.ConnectorID] == g.entry {
 		delete(r.current, g.entry.session.ConnectorID)
 	}
+}
+
+// WithReadyRoute는 connectorID의 current Session이 protocol-ready일 때만 fn을 실행한다.
+// current가 없으면 ErrNotConnected, current가 HELLO_ACK 전이거나 이미 교체·revoke되었다면 ErrNotReady를 반환하고
+// fn을 호출하지 않는다. 그 밖에는 fn의 결과를 반환한다.
+//
+// fn에는 그 exact Session과 route를 준다. fn이 실행되는 동안 그 Session의 교체와 revoke는 fn의 완료를 기다린다.
+// 그래서 Register/Revoke가 반환한 뒤에는 그 Session의 route로 새 write가 시작되지 않는다. fn은 pending 등록과 write 한 번처럼
+// 짧아야 하며(write는 transport의 write timeout이 상한이다), 다른 Session의 Register/Revoke를 기다리면 안 된다.
+func (r *Registry) WithReadyRoute(connectorID uuid.UUID, fn func(Session, Route) error) error {
+	r.mu.RLock()
+	e := r.current[connectorID]
+	r.mu.RUnlock()
+	if e == nil {
+		return ErrNotConnected
+	}
+
+	e.routeMu.RLock()
+	defer e.routeMu.RUnlock()
+	if e.route == nil {
+		return ErrNotReady
+	}
+	return fn(e.session, e.route)
 }

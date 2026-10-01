@@ -84,3 +84,44 @@ func TestControlWSSFailedResetTracksPartialGenerationForTeardown(t *testing.T) {
 		})
 	}
 }
+
+func TestRecordingProviderFailedProvisionTracksPartialResourcesForTeardown(t *testing.T) {
+	for _, outcome := range []coreprovider.Outcome{coreprovider.OutcomeFailed, coreprovider.OutcomeUnknown} {
+		t.Run(string(outcome), func(t *testing.T) {
+			partial := []coreprovider.ResourceResult{
+				{ResourceRef: coreprovider.ResourceRef{ResourceType: coreprovider.ResourceTypeNetwork, ProviderID: "g1-network", Generation: 1, LogicalName: "lab-network"}},
+				{ResourceRef: coreprovider.ResourceRef{ResourceType: coreprovider.ResourceTypePort, ProviderID: "g1-port", Generation: 1, LogicalName: "workspace:management"}},
+			}
+			recorder := newRecordingProvider(&coreprovider.MockProvider{
+				ProvisionFunc: func(context.Context, coreprovider.ProvisionRequest) (coreprovider.OperationResult, error) {
+					return coreprovider.OperationResult{Outcome: outcome, ProviderResources: partial}, nil
+				},
+			})
+			result, err := recorder.Provision(context.Background(), coreprovider.ProvisionRequest{})
+			if err != nil || result.Outcome != outcome {
+				t.Fatalf("unexpected partial Provision result: outcome=%s error=%v", result.Outcome, err)
+			}
+			deleted := map[string]bool{}
+			adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+				id := request.URL.Path[strings.LastIndex(request.URL.Path, "/")+1:]
+				if id != "g1-network" && id != "g1-port" {
+					t.Errorf("teardown tried to mutate an untracked resource: %s", id)
+					response.WriteHeader(http.StatusForbidden)
+					return
+				}
+				if request.Method == http.MethodDelete {
+					deleted[id] = true
+					response.WriteHeader(http.StatusNoContent)
+					return
+				}
+				http.NotFound(response, request)
+			}))
+			cleanupM2Resources(t, adapter, recorder.resources())
+			for _, id := range []string{"g1-network", "g1-port"} {
+				if !deleted[id] {
+					t.Errorf("teardown omitted %s after Provision outcome %s", id, outcome)
+				}
+			}
+		})
+	}
+}

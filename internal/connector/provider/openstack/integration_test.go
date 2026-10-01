@@ -235,25 +235,23 @@ func TestOpenStackM3LifecycleIntegration(t *testing.T) {
 		},
 	}
 
-	tracked := []coreprovider.ResourceResult{}
-	t.Cleanup(func() { cleanupM2Resources(t, adapter, tracked) })
-	provision, err := adapter.Provision(ctx, coreprovider.ProvisionRequest{
+	recorder := newRecordingProvider(adapter)
+	t.Cleanup(func() { cleanupM2Resources(t, adapter, recorder.resources()) })
+	provision, err := recorder.Provision(ctx, coreprovider.ProvisionRequest{
 		Correlation:      coreprovider.Correlation{OperationID: "m3-provision-" + runID, LabInstanceID: labInstanceID, Generation: 1},
 		CreationSnapshot: snapshot,
 	})
 	if err != nil || provision.Outcome != coreprovider.OutcomeSucceeded {
 		t.Fatalf("M3 initial Provision = %+v, %v", provision, err)
 	}
-	tracked = append(tracked, provision.ProviderResources...)
 	oldResources := resourceRefs(provision.ProviderResources, 1)
 
-	reset, err := adapter.Reset(ctx, coreprovider.ResetRequest{
+	reset, err := recorder.Reset(ctx, coreprovider.ResetRequest{
 		Correlation:       coreprovider.Correlation{OperationID: "m3-reset-" + runID, LabInstanceID: labInstanceID, Generation: 2},
 		CreationSnapshot:  snapshot,
 		ProviderResources: oldResources,
 	})
 	newResources := resourceResultsForGeneration(reset.ProviderResources, 2)
-	tracked = append(tracked, newResources...)
 	if err != nil || reset.Outcome != coreprovider.OutcomeSucceeded {
 		t.Fatalf("M3 Reset = %+v, %v", reset, err)
 	}
@@ -275,7 +273,7 @@ func TestOpenStackM3LifecycleIntegration(t *testing.T) {
 		}
 	}
 
-	cleanup, err := adapter.Cleanup(ctx, coreprovider.CleanupRequest{
+	cleanup, err := recorder.Cleanup(ctx, coreprovider.CleanupRequest{
 		Correlation:       coreprovider.Correlation{OperationID: "m3-cleanup-" + runID, LabInstanceID: labInstanceID, Generation: 2},
 		ProviderResources: resourceRefs(newResources, 2),
 	})

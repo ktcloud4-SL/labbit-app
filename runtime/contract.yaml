@@ -395,6 +395,52 @@ connector:
       note: >-
         고객 환경에만 존재하는 Provider 설정 파일 경로입니다. 파일에 OpenStack Credential이
         포함될 수 있으며, 내용은 중앙 SaaS나 log로 보내지 않습니다.
+    OS_CLOUD:
+      required: true
+      secret: false
+      note: "LABBIT_PROVIDER_CONFIG_FILE 안에서 사용할 OpenStack cloud 이름입니다."
+    LABBIT_PROVIDER_CONNECTION_ID:
+      required: true
+      secret: false
+      note: "이 Connector 설정이 담당하는 SaaS ProviderConnection ID이며 CreationSnapshot의 연결 affinity를 검증합니다."
+    OS_PROJECT_ID:
+      required: true
+      secret: false
+      note: "Nova/Neutron quota preflight에 사용하는 현재 Provider project ID입니다."
+    LABBIT_OPENSTACK_MANAGEMENT_NETWORK_ID:
+      required: true
+      secret: false
+    LABBIT_OPENSTACK_MANAGEMENT_SECURITY_GROUP_ID:
+      required: true
+      secret: false
+      note: "D-18의 ProviderConnection 공용 Management SG입니다. stateful이어야 하며 Connector CIDR의 TCP/22 ingress 한 개만 허용하고 egress rule은 없어야 합니다."
+    LABBIT_OPENSTACK_EXTERNAL_NETWORK_ID:
+      required: false
+      secret: false
+      note: "CreationSnapshot.internetOutbound=true일 때 필수이며 generation별 Lab Router의 external gateway입니다."
+    LABBIT_OPENSTACK_KEYPAIR_NAME:
+      required: true
+      secret: false
+      note: "D-18의 Connector 전용 공용 Ed25519 관리 keypair 이름입니다. 설치/등록 단계가 생성한 public key를 Nova에 등록하며, Lab Provision/Reset/Cleanup은 이 keypair를 생성·회전·삭제하지 않고 local private key와의 일치만 검증합니다."
+    LABBIT_OPENSTACK_SSH_ALLOWED_CIDR:
+      required: true
+      secret: false
+      note: "공용 Management security group에서 Connector의 SSH 접근만 허용하는 IPv4 CIDR입니다."
+    LABBIT_OPENSTACK_LAB_SUBNET_CIDR:
+      required: true
+      secret: false
+    LABBIT_OPENSTACK_SSH_USERNAME:
+      required: true
+      secret: false
+      note: "D-18의 Connector→VM SSH Ready 확인에 필수입니다. 이미지에 맞는 관리 사용자 이름이며 Terminal 사용자 입력과 분리합니다."
+    LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE:
+      required: true
+      secret: false
+      note: "D-18에 따라 Connector 설치/등록 단계가 생성한 Ed25519 관리 private key 파일 경로입니다. 파일은 Connector 로컬 Secret 경계에만 두고 log/중앙 SaaS로 보내지 않습니다."
+    LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE:
+      required: true
+      secret: false
+      note: "모든 Provision의 SSH Ready 확인에 필수입니다. 동적 VM host key를 ProviderConnection+Server ID 단위 TOFU로 고정하고 이후 불일치를 거부하는 Connector 로컬 파일 경로입니다."
     LABBIT_LOG_LEVEL:
       required: false
       secret: false

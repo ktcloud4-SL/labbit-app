@@ -46,7 +46,7 @@ func DispatchOperation(ctx context.Context, p Provider, command OperationCommand
 		})
 		return safeOperationResult(result, err)
 	case MutationReset:
-		if command.CreationSnapshot == nil {
+		if command.CreationSnapshot == nil || len(command.ProviderResources) == 0 {
 			return OperationResult{}, ErrInvalidCommand
 		}
 		result, err := p.Reset(ctx, ResetRequest{

@@ -88,10 +88,10 @@ server:
 	LABBIT_PUBLIC_ORIGIN='$(LABBIT_DEV_PUBLIC_ORIGIN)' \
 	$(GO) run ./cmd/labbit-server
 
-# Connector 기능은 아직 스켈레톤이며 public inbound listener를 열지 않는다.
+# Connector는 public inbound listener 없이, 외부에서 주입한 Runtime Contract
+# 설정으로 SaaS Control WSS와 고객 로컬 OpenStack Provider를 연결한다.
 connector:
 	LABBIT_ENVIRONMENT=development \
-	LABBIT_CONNECTOR_ID=dev-connector \
 	$(GO) run ./cmd/labbit-connector
 
 web:

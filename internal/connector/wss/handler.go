@@ -3,13 +3,17 @@ package wss
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // MessageSender 는 SaaS 로 WSS 메시지를 전송하는 인터페이스입니다.
@@ -71,12 +75,19 @@ func (h *Handler) OnError() func(err error) {
 
 // HandleMessage 는 수신된 raw JSON 메시지를 Envelope 기준으로 판별하여 적절한 처리기로 분기합니다.
 func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
+	normalized, err := normalizeOptionalTraceMetadata(raw)
+	if err != nil {
+		return fmt.Errorf("failed to normalize optional trace metadata: %w", err)
+	}
+	raw = normalized
 	var env protocol.BaseEnvelope
 	if err := json.Unmarshal(raw, &env); err != nil {
 		return fmt.Errorf("failed to unmarshal base envelope: %w", err)
 	}
 
 	switch env.Type {
+	case protocol.MessageTypeProviderRequest:
+		return h.handleProviderRequest(ctx, env, raw)
 	case protocol.MessageTypeOperationCommand:
 		return h.handleOperationCommand(ctx, env, raw)
 	case protocol.MessageTypeReconcileRequest:
@@ -101,6 +112,187 @@ func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
 		}
 		return nil
 	}
+}
+
+// normalizeOptionalTraceMetadata removes only invalid optional W3C Trace
+// Context fields before strongly typed decoding. Trace metadata is
+// observational and must never turn an otherwise valid Provider request or
+// operation into a business failure.
+func normalizeOptionalTraceMetadata(raw []byte) ([]byte, error) {
+	var envelope map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &envelope); err != nil || envelope == nil {
+		return raw, nil
+	}
+
+	changed := false
+	for name := range envelope {
+		if name != "traceparent" && name != "tracestate" &&
+			(strings.EqualFold(name, "traceparent") || strings.EqualFold(name, "tracestate")) {
+			delete(envelope, name)
+			changed = true
+		}
+	}
+
+	traceParent, parentPresent := jsonStringField(envelope["traceparent"])
+	parentValid := parentPresent && len(traceParent) <= 512
+	if parentValid {
+		carrier := propagation.MapCarrier{"traceparent": traceParent}
+		spanContext := trace.SpanContextFromContext(propagation.TraceContext{}.Extract(context.Background(), carrier))
+		parentValid = spanContext.IsValid()
+	}
+	if rawParent, exists := envelope["traceparent"]; exists && (!parentPresent || traceParent == "" || !parentValid || len(rawParent) == 0) {
+		delete(envelope, "traceparent")
+		changed = true
+	}
+
+	if !parentValid {
+		if _, exists := envelope["tracestate"]; exists {
+			delete(envelope, "tracestate")
+			changed = true
+		}
+	} else if traceState, exists := envelope["tracestate"]; exists {
+		value, validString := jsonStringField(traceState)
+		if !validString || value == "" || len(value) > 1024 {
+			delete(envelope, "tracestate")
+			changed = true
+		} else if _, err := trace.ParseTraceState(value); err != nil {
+			delete(envelope, "tracestate")
+			changed = true
+		}
+	}
+
+	if !changed {
+		return raw, nil
+	}
+	return json.Marshal(envelope)
+}
+
+func jsonStringField(raw json.RawMessage) (string, bool) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return "", false
+	}
+	var value string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return "", false
+	}
+	return value, true
+}
+
+func validateProviderRequest(request *protocol.ProviderRequestMessage) error {
+	if request.MessageID == "" {
+		return fmt.Errorf("missing required messageId in envelope")
+	}
+	if strings.TrimSpace(request.Payload.ProviderConnectionID) == "" {
+		return fmt.Errorf("providerConnectionId is required")
+	}
+	switch request.Payload.RequestType {
+	case protocol.ProviderRequestValidateConnection,
+		protocol.ProviderRequestListImages,
+		protocol.ProviderRequestListFlavors:
+		return nil
+	default:
+		return fmt.Errorf("unsupported provider requestType")
+	}
+}
+
+func (h *Handler) handleProviderRequest(ctx context.Context, _ protocol.BaseEnvelope, raw []byte) error {
+	var request protocol.ProviderRequestMessage
+	if err := json.Unmarshal(raw, &request); err != nil {
+		return fmt.Errorf("failed to unmarshal PROVIDER_REQUEST: %w", err)
+	}
+	if err := validateProviderRequest(&request); err != nil {
+		if sender := h.Sender(); sender != nil && request.MessageID != "" {
+			_ = sender.SendMessage(ctx, protocol.ProtocolErrorMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:             protocol.MessageTypeError,
+					MessageID:        generateUUID(),
+					ReplyToMessageID: request.MessageID,
+					SentAt:           time.Now().UTC(),
+					RequestID:        request.RequestID,
+					TraceParent:      request.TraceParent,
+					TraceState:       request.TraceState,
+				},
+				Payload: protocol.ProtocolErrorPayload{
+					Code:    "INVALID_MESSAGE",
+					Message: "Provider request is invalid",
+				},
+			})
+		}
+		return fmt.Errorf("invalid provider request: %w", err)
+	}
+
+	response := protocol.ProviderResponseMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:             protocol.MessageTypeProviderResponse,
+			MessageID:        generateUUID(),
+			ReplyToMessageID: request.MessageID,
+			SentAt:           time.Now().UTC(),
+			RequestID:        request.RequestID,
+			TraceParent:      request.TraceParent,
+			TraceState:       request.TraceState,
+		},
+		Payload: protocol.ProviderResponsePayload{
+			RequestType: request.Payload.RequestType,
+			Outcome:     protocol.OutcomeSucceeded,
+		},
+	}
+
+	queryProvider, ok := h.provider.(provider.QueryProvider)
+	if !ok || queryProvider == nil {
+		response.Payload.Outcome = protocol.OutcomeFailed
+		response.Payload.Error = &protocol.SafeError{
+			Code:    "ERR_CONNECTOR_INTERNAL",
+			Message: "Connector Provider query support is unavailable",
+		}
+	} else if queryProvider.ProviderConnectionID() == "" || queryProvider.ProviderConnectionID() != request.Payload.ProviderConnectionID {
+		response.Payload.Outcome = protocol.OutcomeFailed
+		response.Payload.Error = &protocol.SafeError{
+			Code:    "ERR_INFRA_OPENSTACK",
+			Message: "OpenStack Provider connection is unavailable",
+		}
+	} else {
+		var queryErr error
+		switch request.Payload.RequestType {
+		case protocol.ProviderRequestValidateConnection:
+			queryErr = queryProvider.ValidateConnection(ctx)
+		case protocol.ProviderRequestListImages:
+			var images []provider.Image
+			images, queryErr = queryProvider.ListImages(ctx)
+			for _, image := range images {
+				response.Payload.Items = append(response.Payload.Items, protocol.ProviderImage{
+					Kind: "IMAGE", ID: image.ID, Name: image.Name, Status: image.Status,
+				})
+			}
+		case protocol.ProviderRequestListFlavors:
+			var flavors []provider.Flavor
+			flavors, queryErr = queryProvider.ListFlavors(ctx)
+			for _, flavor := range flavors {
+				response.Payload.Items = append(response.Payload.Items, protocol.ProviderFlavor{
+					Kind: "FLAVOR", ID: flavor.ID, Name: flavor.Name,
+					VCPUs: flavor.VCPUs, RAMMiB: flavor.RAMMiB, DiskGiB: flavor.DiskGiB,
+				})
+			}
+		}
+		if queryErr != nil {
+			response.Payload.Outcome = protocol.OutcomeFailed
+			response.Payload.Items = nil
+			response.Payload.Error = &protocol.SafeError{
+				Code:    "ERR_INFRA_OPENSTACK",
+				Message: "OpenStack Provider request could not be completed",
+			}
+			if errors.Is(queryErr, provider.ErrMockNotConfigured) {
+				response.Payload.Error.Code = "ERR_CONNECTOR_INTERNAL"
+				response.Payload.Error.Message = "Connector Provider query is not configured"
+			}
+		}
+	}
+
+	if sender := h.Sender(); sender != nil {
+		if err := sender.SendMessage(ctx, response); err != nil {
+			return fmt.Errorf("failed to send PROVIDER_RESPONSE: %w", err)
+		}
+	}
+	return nil
 }
 
 // validateOperationCommand 는 connector.schema.json 기준 필수 Correlation 및 Payload 필드를 Provider 호출 전에 사전 검증합니다.
@@ -174,6 +366,25 @@ func validateOperationCommand(cmd *protocol.OperationCommandMessage) error {
 			// content는 string이며 Schema에 minLength가 없다. 빈 문자열도 유효하므로 계약보다 엄격하게 거절하지 않는다.
 			if len(snap.StartupScript.SHA256) != 64 {
 				return fmt.Errorf("startupScript sha256 must be 64-character hex string")
+			}
+		}
+		if cmd.Payload.MutationType == protocol.MutationTypeReset {
+			if len(cmd.Payload.ProviderResources) == 0 {
+				return fmt.Errorf("providerResources must contain the complete previous generation for RESET")
+			}
+			for i, resource := range cmd.Payload.ProviderResources {
+				if resource.ResourceType == "" {
+					return fmt.Errorf("resourceType is required for reset provider resource at index %d", i)
+				}
+				if resource.ProviderID == "" {
+					return fmt.Errorf("providerId is required for reset provider resource at index %d", i)
+				}
+				if resource.LogicalName == "" {
+					return fmt.Errorf("logicalName is required for reset provider resource at index %d", i)
+				}
+				if resource.Generation != cmd.Generation-1 {
+					return fmt.Errorf("reset provider resource at index %d must belong to generation %d", i, cmd.Generation-1)
+				}
 			}
 		}
 
@@ -349,8 +560,8 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 			Outcome:           provider.OutcomeFailed,
 			ProviderResources: []provider.ResourceResult{},
 			Error: &provider.SafeError{
-				Code:    "DISPATCH_ERROR",
-				Message: err.Error(),
+				Code:    "ERR_CONNECTOR_INTERNAL",
+				Message: "Connector could not dispatch the Provider operation",
 			},
 		}
 	}
@@ -523,8 +734,8 @@ func (h *Handler) handleReconcileRequest(ctx context.Context, env protocol.BaseE
 		result = provider.ReconcileResult{
 			Observations: []provider.ResourceObservation{},
 			Error: &provider.SafeError{
-				Code:    "DISPATCH_ERROR",
-				Message: err.Error(),
+				Code:    "ERR_CONNECTOR_INTERNAL",
+				Message: "Connector could not dispatch Provider reconciliation",
 			},
 		}
 	}
@@ -577,20 +788,30 @@ func (h *Handler) handleReconcileRequest(ctx context.Context, env protocol.BaseE
 
 // Listen 은 연결된 WebSocket 으로부터 메시지를 지속 수신하여 Handler 로 처리합니다.
 func (h *Handler) Listen(ctx context.Context, conn *websocket.Conn) error {
+	return h.listenWithOperationContext(ctx, ctx, conn)
+}
+
+// listenWithOperationContext separates transport reads from accepted operation
+// execution. Reconnect cancels the old reader, not the already accepted work;
+// application shutdown still cancels both. No mutation or response is replayed.
+func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Context, conn *websocket.Conn) error {
 	if conn == nil {
 		return fmt.Errorf("connector wss: cannot listen on nil websocket connection")
 	}
 	for {
 		select {
-		case <-ctx.Done():
-			return ctx.Err()
+		case <-readCtx.Done():
+			return readCtx.Err()
 		default:
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
 				return err
 			}
+			if err := readCtx.Err(); err != nil {
+				return err
+			}
 			// HandleMessage 에러를 무시하지 않고 등록된 onError 콜백으로 전달 (팀장님 리뷰 6번)
-			if handleErr := h.HandleMessage(ctx, msg); handleErr != nil {
+			if handleErr := h.HandleMessage(operationCtx, msg); handleErr != nil {
 				h.mu.RLock()
 				onErr := h.onError
 				h.mu.RUnlock()

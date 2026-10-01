@@ -114,9 +114,9 @@ func TestValidateConnectionRequiresAuthenticatedClient(t *testing.T) {
 		t.Fatalf("nil adapter error = %v", err)
 	}
 
-	adapter := newTestAdapter(t, nil)
-	if err := adapter.ValidateConnection(context.Background()); err != nil {
-		t.Fatalf("ValidateConnection() error = %v", err)
+	adapter := &Adapter{}
+	if err := adapter.ValidateConnection(context.Background()); !errors.Is(err, ErrClientUnavailable) {
+		t.Fatalf("uninitialized adapter error = %v", err)
 	}
 
 	cancelled, cancel := context.WithCancel(context.Background())

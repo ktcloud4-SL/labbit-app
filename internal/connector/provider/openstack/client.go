@@ -12,17 +12,19 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack"
 	openstackconfig "github.com/gophercloud/gophercloud/v2/openstack/config"
 	"github.com/gophercloud/gophercloud/v2/openstack/config/clouds"
+	"github.com/gophercloud/gophercloud/v2/openstack/identity/v3/tokens"
 )
 
 var (
-	ErrConfigRequired     = errors.New("OpenStack provider config file and cloud name are required")
-	ErrConfigUnavailable  = errors.New("OpenStack provider config file is not accessible")
-	ErrConfigInvalid      = errors.New("OpenStack provider config is invalid")
-	ErrInsecureTLS        = errors.New("OpenStack provider config disables TLS certificate verification")
-	ErrAuthentication     = errors.New("OpenStack authentication failed")
-	ErrServiceUnavailable = errors.New("OpenStack service catalog is unavailable")
-	ErrClientUnavailable  = errors.New("OpenStack provider client is unavailable")
-	ErrMutationRejected   = errors.New("OpenStack rejected the mutation request")
+	ErrConfigRequired        = errors.New("OpenStack provider config file and cloud name are required")
+	ErrConfigUnavailable     = errors.New("OpenStack provider config file is not accessible")
+	ErrConfigInvalid         = errors.New("OpenStack provider config is invalid")
+	ErrInsecureTLS           = errors.New("OpenStack provider config disables TLS certificate verification")
+	ErrAuthentication        = errors.New("OpenStack authentication failed")
+	ErrServiceUnavailable    = errors.New("OpenStack service catalog is unavailable")
+	ErrClientUnavailable     = errors.New("OpenStack provider client is unavailable")
+	ErrConnectionUnavailable = errors.New("OpenStack connection validation is unavailable")
+	ErrMutationRejected      = errors.New("OpenStack rejected the mutation request")
 )
 
 // Config identifies a single cloud entry in the customer-local clouds.yaml.
@@ -216,15 +218,44 @@ func newAdapter(
 	}
 }
 
-// ValidateConnection reports whether this adapter was successfully
-// authenticated. Subsequent service calls remain responsible for normal
-// token reauthentication performed by Gophercloud.
+// ValidateConnection checks the current token against Keystone rather than
+// treating a cached token as proof of connectivity. It is read-only and does
+// not claim that Nova, Neutron, or Glance are healthy. SDK reauthentication, when
+// configured, is preserved; a refreshed subject token is checked once more, bounded by
+// the same deadline. Provider response bodies and endpoints never escape here.
 func (a *Adapter) ValidateConnection(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if a == nil || a.provider == nil || a.provider.Token() == "" {
+	if a == nil || a.provider == nil || strings.TrimSpace(a.provider.Token()) == "" || strings.TrimSpace(a.provider.IdentityBase) == "" {
 		return ErrClientUnavailable
+	}
+	identity, err := openstack.NewIdentityV3(a.provider, gophercloud.EndpointOpts{})
+	if err != nil {
+		return ErrClientUnavailable
+	}
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	token := a.provider.Token()
+	valid, err := tokens.Validate(ctx, identity, token)
+	// Gophercloud retries a 401 with a new X-Auth-Token, but its original
+	// X-Subject-Token is unchanged. Validate the refreshed token explicitly.
+	if current := a.provider.Token(); current != token && strings.TrimSpace(current) != "" {
+		valid, err = tokens.Validate(ctx, identity, current)
+	}
+	if contextErr := ctx.Err(); contextErr != nil {
+		return contextErr
+	}
+	var reauthError *gophercloud.ErrUnableToReauthenticate
+	var afterReauth *gophercloud.ErrErrorAfterReauthentication
+	if errors.As(err, &afterReauth) {
+		err = afterReauth.ErrOriginal
+	}
+	if errors.As(err, &reauthError) || gophercloud.ResponseCodeIs(err, 401) || gophercloud.ResponseCodeIs(err, 403) || (err == nil && !valid) {
+		return ErrAuthentication
+	}
+	if err != nil {
+		return ErrConnectionUnavailable
 	}
 	return nil
 }

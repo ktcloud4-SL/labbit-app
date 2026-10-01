@@ -148,6 +148,10 @@ describe('LabPage Workspace 진입 상태', () => {
     expect(
       screen.getByText('활성 실습과 내 실습 환경 할당 상태를 확인해 주세요.'),
     ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '← 수업 상세' })).toHaveAttribute(
+      'href',
+      '/classes/class-workspace',
+    )
   })
 
   it.each(['PENDING', 'PROVISIONING'])(
@@ -188,6 +192,19 @@ describe('LabPage Workspace 진입 상태', () => {
     ).toBeInTheDocument()
   })
 
+  it('알 수 없는 LabInstance 상태이면 안전한 fallback으로 안내한다', async () => {
+    renderLabPage(classWithLabStatus('PAUSED'))
+
+    expect(
+      await screen.findByText('알 수 없는 LabInstance 상태입니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '새 상태가 추가되었을 수 있습니다. 현재 실습 운영 상태를 확인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+  })
+
   it('LabInstance가 READY이면 현재 Workspace Shell을 노출한다', async () => {
     const { getClass } = renderLabPage(readyClassDetail)
 
@@ -197,6 +214,12 @@ describe('LabPage Workspace 진입 상태', () => {
     expect(screen.getByText('편집기 준비 중')).toBeInTheDocument()
     expect(screen.getByText('실행 중인 미리보기가 없습니다.')).toBeInTheDocument()
     expect(screen.getByText('터미널 연결 준비 중')).toBeInTheDocument()
+    expect(screen.getByText('수강생')).toBeInTheDocument()
+    expect(screen.getByText('사용 가능')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '← 수업 상세' })).toHaveAttribute(
+      'href',
+      '/classes/class-workspace',
+    )
     expect(getClass).toHaveBeenCalledWith('class-workspace')
   })
 })

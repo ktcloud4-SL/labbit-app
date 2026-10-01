@@ -1,0 +1,2 @@
+# Keep evidence bytes stable across Windows/Linux checkout for SHA256 checks.
+* -text whitespace=cr-at-eol

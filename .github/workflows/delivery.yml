@@ -4,15 +4,12 @@ on:
   push:
     branches:
       - main
+    tags: 
+      - 'v*'
     paths:
       - 'web/**'
       - '.github/workflows/delivery.yml'
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Image tag (e.g. v0.1.0, latest)'
-        required: false
-        default: 'v0.1.0'
 
 env:
   REGISTRY: ghcr.io
@@ -45,7 +42,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ inputs.tag || 'v0.1.0' }}
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,format=short
             type=ref,event=branch
 

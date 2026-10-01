@@ -4,7 +4,7 @@ WORKDIR /app
 
 # 의존성 설치
 COPY package*.json ./
-RUN npm ci || npm install
+RUN npm ci 
 
 # 소스 복사 및 정적 파일 빌드 (dist 생성)
 COPY . .

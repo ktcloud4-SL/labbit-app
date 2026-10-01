@@ -198,16 +198,14 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 		resources = upsertResource(resources, refreshedManagementResource)
 		managementPort = refreshedManagementPort
 
-		if vm.VMKey == request.CreationSnapshot.WorkspaceVMKey || request.CreationSnapshot.StartupScript != nil {
-			sshContext, cancelSSH := context.WithTimeout(ctx, config.SSHReadyTimeout)
-			err = a.waitSSHReady(sshContext, managementPort, server.ID)
-			cancelSSH()
-			if err != nil {
-				if (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) && ctx.Err() != nil {
-					return unknownResult(resources, "Workspace VM SSH state could not be verified"), nil
-				}
-				return failedResult(resources, errorBootTimeout, "Workspace VM SSH did not become ready"), nil
+		sshContext, cancelSSH := context.WithTimeout(ctx, config.SSHReadyTimeout)
+		err = a.waitSSHReady(sshContext, managementPort, server.ID)
+		cancelSSH()
+		if err != nil {
+			if (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) && ctx.Err() != nil {
+				return unknownResult(resources, "VM SSH state could not be verified"), nil
 			}
+			return failedResult(resources, errorBootTimeout, "VM SSH did not become ready"), nil
 		}
 		if request.CreationSnapshot.StartupScript != nil {
 			startupContext, cancelStartup := context.WithTimeout(ctx, config.StartupReadyTimeout)

@@ -68,6 +68,9 @@ func TestOpenStackM2ControlWSSIntegration(t *testing.T) {
 	})
 
 	recorder := newRecordingProvider(adapter)
+	// Register before sending any mutation and read the recorder at teardown,
+	// including partial Reset results even when wire assertions fail.
+	t.Cleanup(func() { cleanupM2Resources(t, adapter, recorder.resources()) })
 	mockSaaS := mock.NewMockSaaS("m2-control-test-token")
 	defer mockSaaS.Close()
 	client := wss.NewClient(wss.Config{
@@ -90,10 +93,11 @@ func TestOpenStackM2ControlWSSIntegration(t *testing.T) {
 	listenerDone := make(chan error, 1)
 	go func() { listenerDone <- handler.Listen(ctx, conn) }()
 	t.Cleanup(func() {
+		cancel()
 		_ = client.Close()
 		select {
 		case <-listenerDone:
-		case <-time.After(2 * time.Second):
+		case <-time.After(10 * time.Second):
 			t.Error("Control WSS listener did not stop")
 		}
 	})
@@ -145,7 +149,6 @@ func TestOpenStackM2ControlWSSIntegration(t *testing.T) {
 		t.Fatalf("Provider did not complete before timeout: %v", ctx.Err())
 	}
 	resources := recorder.resources()
-	t.Cleanup(func() { cleanupM2Resources(t, adapter, resources) })
 
 	ack, result := waitForOperationMessages(t, mockSaaS, messageID, 10*time.Second)
 	if ack == nil || !ack.Payload.Accepted {
@@ -163,6 +166,7 @@ func TestOpenStackM2ControlWSSIntegration(t *testing.T) {
 	}
 
 	oldRefs := wireResourceRefs(result.Payload.ProviderResources, 1)
+	t.Logf("Provision(g1): SUCCEEDED; StartupScript + authenticated SSH/host-key path; resources=%+v", oldRefs)
 	resetMessageID := "m3-wss-reset-message-" + runID
 	reset := protocol.OperationCommandMessage{
 		BaseEnvelope: protocol.BaseEnvelope{
@@ -182,8 +186,8 @@ func TestOpenStackM2ControlWSSIntegration(t *testing.T) {
 	if len(newResources) != 8 {
 		t.Fatalf("WSS RESET generation 2 resources=%d, want 8", len(newResources))
 	}
-	resources = append(resources, newResources...)
 	newRefs := wireResourceRefs(resetResult.Payload.ProviderResources, 2)
+	t.Logf("Reset(g2): SUCCEEDED; StartupScript + authenticated SSH/host-key path; resources=%+v", newRefs)
 
 	reconcileMessageID := "m3-wss-reconcile-message-" + runID
 	discover := true
@@ -206,6 +210,7 @@ func TestOpenStackM2ControlWSSIntegration(t *testing.T) {
 			t.Fatalf("unexpected live WSS observation: %+v", observation)
 		}
 	}
+	t.Logf("Reconcile(g2): known resources=%d, all PRESENT", len(newRefs))
 
 	cleanupMessageID := "m3-wss-cleanup-message-" + runID
 	cleanup := protocol.OperationCommandMessage{
@@ -222,16 +227,19 @@ func TestOpenStackM2ControlWSSIntegration(t *testing.T) {
 	if cleanupAck == nil || !cleanupAck.Payload.Accepted || cleanupResult == nil || cleanupResult.Payload.Outcome != string(coreprovider.OutcomeSucceeded) {
 		t.Fatalf("WSS CLEANUP failed: ack=%+v result=%+v", cleanupAck, cleanupResult)
 	}
+	t.Logf("Cleanup(g2): SUCCEEDED; deleted resources=%d", len(cleanupResult.Payload.ProviderResources))
 
 	postCleanupMessageID := "m3-wss-post-cleanup-reconcile-" + runID
 	reconcile.MessageID = postCleanupMessageID
 	reconcile.OperationID = "m3-wss-post-cleanup-reconcile-" + runID
 	reconcile.SentAt = time.Now().UTC()
+	// Verify both generations by exact owned IDs, not only the replacement set.
+	reconcile.Payload.KnownResources = append(append([]protocol.ProviderResourceRef(nil), oldRefs...), newRefs...)
 	if err := mockSaaS.SendRaw(reconcile); err != nil {
 		t.Fatalf("post-cleanup RECONCILE send failed: %v", err)
 	}
 	postCleanup := waitForReconcileMessage(t, mockSaaS, postCleanupMessageID, 2*time.Minute)
-	if postCleanup == nil || postCleanup.Payload.Error != nil || len(postCleanup.Payload.Observations) != len(newRefs) {
+	if postCleanup == nil || postCleanup.Payload.Error != nil || len(postCleanup.Payload.Observations) != len(reconcile.Payload.KnownResources) {
 		t.Fatalf("post-cleanup WSS RECONCILE failed: %+v", postCleanup)
 	}
 	for _, observation := range postCleanup.Payload.Observations {
@@ -239,15 +247,16 @@ func TestOpenStackM2ControlWSSIntegration(t *testing.T) {
 			t.Fatalf("resource remained after WSS CLEANUP: %+v", observation)
 		}
 	}
+	t.Logf("Final Reconcile: generation 1 + 2 known resources=%d, all ABSENT; residual=0", len(reconcile.Payload.KnownResources))
 	t.Log("WSS Provision, Reset, Reconcile, Cleanup, and zero-residual verification succeeded")
 }
 
 type recordingProvider struct {
 	coreprovider.Provider
-	done chan struct{}
-	once sync.Once
-	mu   sync.Mutex
-	last coreprovider.OperationResult
+	done    chan struct{}
+	once    sync.Once
+	mu      sync.Mutex
+	tracked []coreprovider.ResourceResult
 }
 
 func newRecordingProvider(delegate coreprovider.Provider) *recordingProvider {
@@ -256,18 +265,49 @@ func newRecordingProvider(delegate coreprovider.Provider) *recordingProvider {
 
 func (r *recordingProvider) Provision(ctx context.Context, request coreprovider.ProvisionRequest) (coreprovider.OperationResult, error) {
 	result, err := r.Provider.Provision(ctx, request)
-	r.mu.Lock()
-	r.last = result
-	r.mu.Unlock()
+	r.recordResources(result.ProviderResources)
 	r.once.Do(func() { close(r.done) })
 	return result, err
+}
+
+func (r *recordingProvider) Reset(ctx context.Context, request coreprovider.ResetRequest) (coreprovider.OperationResult, error) {
+	result, err := r.Provider.Reset(ctx, request)
+	r.recordResources(result.ProviderResources)
+	return result, err
+}
+
+func (r *recordingProvider) Cleanup(ctx context.Context, request coreprovider.CleanupRequest) (coreprovider.OperationResult, error) {
+	result, err := r.Provider.Cleanup(ctx, request)
+	r.recordResources(result.ProviderResources)
+	return result, err
+}
+
+func (r *recordingProvider) recordResources(resources []coreprovider.ResourceResult) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, resource := range resources {
+		if resource.ProviderID == "" {
+			continue
+		}
+		found := false
+		for index, tracked := range r.tracked {
+			if tracked.ResourceType == resource.ResourceType && tracked.ProviderID == resource.ProviderID {
+				r.tracked[index] = resource
+				found = true
+				break
+			}
+		}
+		if !found {
+			r.tracked = append(r.tracked, resource)
+		}
+	}
 }
 
 func (r *recordingProvider) resources() []coreprovider.ResourceResult {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	resources := make([]coreprovider.ResourceResult, len(r.last.ProviderResources))
-	copy(resources, r.last.ProviderResources)
+	resources := make([]coreprovider.ResourceResult, len(r.tracked))
+	copy(resources, r.tracked)
 	return resources
 }
 

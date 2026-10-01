@@ -73,6 +73,10 @@ func (a *Adapter) runSSHCommand(ctx context.Context, address, hostIdentity, comm
 		return ErrStartupNotReady
 	}
 	defer connection.Close()
+	// DialContext only cancels connection establishment. Once connected, also
+	// close the socket on cancellation to interrupt SSH handshake/exec reads.
+	stopCancelClose := context.AfterFunc(ctx, func() { _ = connection.Close() })
+	defer stopCancelClose()
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = connection.SetDeadline(deadline)
 	}
@@ -94,6 +98,9 @@ func (a *Adapter) runSSHCommand(ctx context.Context, address, hostIdentity, comm
 	defer session.Close()
 	if err := session.Run(command); err != nil {
 		return ErrStartupNotReady
+	}
+	if err := ctx.Err(); err != nil {
+		return errors.Join(ErrStartupNotReady, err)
 	}
 	return nil
 }

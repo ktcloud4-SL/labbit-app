@@ -338,7 +338,6 @@ func TestOpenStackInternetPolicyIntegration(t *testing.T) {
 	if err != nil || targetPort < 1 || targetPort > 65535 {
 		t.Fatalf("LABBIT_OPENSTACK_TEST_INTERNET_TARGET port is invalid")
 	}
-	command := fmt.Sprintf("python3 -c \"import socket; socket.create_connection(('%s',%d),5).close()\"", targetHost, targetPort)
 	startupContent := "#!/bin/sh\nset -eu\necho labbit-internet-policy-ready\n"
 	startupDigest := sha256.Sum256([]byte(startupContent))
 
@@ -404,16 +403,27 @@ func TestOpenStackInternetPolicyIntegration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = adapter.runSSHCommand(ctx, net.JoinHostPort(managementIP, "22"), hostIdentity, command)
-			if test.internetOutbound && err != nil {
-				t.Fatalf("Internet ON connection failed: %v", err)
-			}
-			if !test.internetOutbound && err == nil {
-				t.Fatal("Internet OFF unexpectedly reached the external target")
+			command := integrationInternetReachabilityCommand(targetHost, targetPort, test.internetOutbound)
+			if err := adapter.runSSHCommand(ctx, net.JoinHostPort(managementIP, "22"), hostIdentity, command); err != nil {
+				t.Fatalf("Internet reachability assertion failed (internetOutbound=%t); SSH/exec errors are not evidence of blocked egress: %v", test.internetOutbound, err)
 			}
 			t.Logf("Internet policy verified: internetOutbound=%t expectedReachable=%t", test.internetOutbound, test.internetOutbound)
 		})
 	}
+}
+
+func integrationInternetReachabilityCommand(host string, port int, expectedReachable bool) string {
+	family := "socket.AF_INET"
+	if strings.Contains(host, ":") {
+		family = "socket.AF_INET6"
+	}
+	expectation := "False"
+	if expectedReachable {
+		expectation = "True"
+	}
+	// Both policies must finish an authenticated SSH exec successfully. In
+	// particular, an SSH transport failure cannot masquerade as Internet OFF.
+	return fmt.Sprintf("python3 -c \"import socket; s=socket.socket(%s, socket.SOCK_STREAM); s.settimeout(5); code=s.connect_ex(('%s',%d)); s.close(); assert (code == 0) == %s, 'unexpected Internet reachability'\"", family, host, port, expectation)
 }
 
 func providerResourceID(t *testing.T, resources []coreprovider.ResourceResult, resourceType, logicalName string) string {

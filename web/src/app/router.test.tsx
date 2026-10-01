@@ -216,6 +216,25 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(router.state.location.pathname).toBe('/classes')
   })
 
+  it('보호 route의 예상하지 못한 응답 파싱 오류도 로그인 실패로 오인하지 않는다', async () => {
+    const router = renderRoute(
+      '/classes',
+      createApi({
+        getMe: async () => {
+          throw new SyntaxError('Unexpected token < in JSON')
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText('로그인 상태를 확인하지 못했습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: 'Labbit에 로그인' }),
+    ).not.toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/classes')
+  })
+
   it('보호 화면 사용 중 API 401은 세션 만료 재로그인으로 안내한다', async () => {
     renderRoute(
       '/classes/class-kubernetes-basic',

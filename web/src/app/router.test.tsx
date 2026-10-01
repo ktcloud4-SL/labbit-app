@@ -1521,6 +1521,67 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByText('Editor')).toBeInTheDocument()
     expect(screen.getByText('미리보기')).toBeInTheDocument()
     expect(screen.getByText('Terminal / Live')).toBeInTheDocument()
+    expect(screen.getByText('강사')).toBeInTheDocument()
+    expect(screen.getByText('사용 가능')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '← 수업 상세' })).toHaveAttribute(
+      'href',
+      '/classes/class-kubernetes-basic',
+    )
+  })
+
+  it('Workspace URL에서 내 LabInstance가 없으면 환경 미할당 상태를 안내한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          myLabInstance: undefined,
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByText('현재 사용할 수 있는 실습 환경이 없습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('직접 Workspace URL의 Class 404를 찾을 수 없음 상태로 표시한다', async () => {
+    renderRoute(
+      '/classes/missing/lab',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(404)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText('Class를 찾을 수 없습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('직접 Workspace URL의 일반 Backend 오류는 진입 조건 확인 실패로 표시한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(503)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText('Workspace 진입 조건을 확인하지 못했습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
+    ).not.toBeInTheDocument()
   })
 
   it('직접 Workspace URL에서도 PROVISIONING 상태는 진입을 막는다', async () => {

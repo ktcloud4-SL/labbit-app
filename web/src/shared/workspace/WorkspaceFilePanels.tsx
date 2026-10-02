@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import type {
   VersionedWorkspaceFileContent,
@@ -19,7 +19,8 @@ interface WorkspaceFileEditorProps {
   labInstanceId: string
   generation: number
   versionedFile: VersionedWorkspaceFileContent
-  onReload(): void
+  onReload(): Promise<unknown>
+  onDirtyChange(dirty: boolean): void
 }
 
 function parentDirectory(path: string) {
@@ -128,6 +129,7 @@ function WorkspaceFileEditor({
   generation,
   versionedFile,
   onReload,
+  onDirtyChange,
 }: WorkspaceFileEditorProps) {
   const api = useLabbitApi()
   const [draft, setDraft] = useState(versionedFile.file.content)
@@ -147,6 +149,7 @@ function WorkspaceFileEditor({
       setEtag(saved.etag)
       setSavedContent(draft)
       setSaveError(null)
+      onDirtyChange(false)
     },
     onError: (error) => {
       setSaveError(error)
@@ -154,11 +157,28 @@ function WorkspaceFileEditor({
   })
 
   const dirty = draft !== savedContent
+
+  useEffect(() => {
+    if (!dirty) return
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [dirty])
+
   const staleSave =
     saveError instanceof HttpError &&
     (saveError.status === 412 ||
       saveError.problem?.code === 'file_save_outcome_unknown' ||
       saveError.problem?.code === 'workspace_target_changed')
+
+  if (saveError instanceof HttpError && saveError.status === 401) {
+    return <LoginRedirect reason="sessionExpired" />
+  }
 
   return (
     <div className="workspace-editor-body">
@@ -184,7 +204,10 @@ function WorkspaceFileEditor({
             <button
               className="workspace-file-action"
               type="button"
-              onClick={onReload}
+              onClick={() => {
+                onDirtyChange(false)
+                void onReload().then(() => setSaveError(null))
+              }}
             >
               파일 다시 읽기
             </button>
@@ -198,7 +221,9 @@ function WorkspaceFileEditor({
         spellCheck={false}
         value={draft}
         onChange={(event) => {
-          setDraft(event.target.value)
+          const next = event.target.value
+          setDraft(next)
+          onDirtyChange(next !== savedContent)
           if (saveError) setSaveError(null)
         }}
       />
@@ -218,6 +243,7 @@ export function WorkspaceFilePanels({
   const api = useLabbitApi()
   const [directoryPath, setDirectoryPath] = useState('')
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null)
+  const [editorDirty, setEditorDirty] = useState(false)
 
   const treeQuery = useQuery({
     queryKey: labbitQueryKeys.workspaceFileTree(
@@ -249,7 +275,19 @@ export function WorkspaceFilePanels({
     return <LoginRedirect reason="sessionExpired" />
   }
 
+  function canLeaveEditor() {
+    if (!editorDirty) return true
+    return window.confirm(
+      '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 다른 파일로 이동할까요?',
+    )
+  }
+
   function openEntry(entry: WorkspaceFileEntry) {
+    if (entry.path === selectedFilePath) return
+    if (!canLeaveEditor()) return
+
+    setEditorDirty(false)
+
     if (entry.kind === 'directory') {
       setDirectoryPath(entry.path)
       setSelectedFilePath(null)
@@ -260,6 +298,9 @@ export function WorkspaceFilePanels({
   }
 
   function goUp() {
+    if (!canLeaveEditor()) return
+
+    setEditorDirty(false)
     setDirectoryPath(parentDirectory(directoryPath))
     setSelectedFilePath(null)
   }
@@ -367,8 +408,10 @@ export function WorkspaceFilePanels({
             labInstanceId={labInstanceId}
             generation={generation}
             versionedFile={fileQuery.data}
-            onReload={() => {
-              void fileQuery.refetch()
+            onDirtyChange={setEditorDirty}
+            onReload={async () => {
+              setEditorDirty(false)
+              return fileQuery.refetch()
             }}
           />
         )}

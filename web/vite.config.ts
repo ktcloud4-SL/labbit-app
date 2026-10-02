@@ -13,6 +13,11 @@ export default defineConfig(({ mode }) => {
           target: backendTarget,
           changeOrigin: true,
         },
+        '/realtime/v1': {
+          target: backendTarget,
+          changeOrigin: true,
+          ws: true,
+        },
       },
     },
   }

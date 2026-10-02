@@ -1596,6 +1596,48 @@ describe('Auth·Class·LabSpec routing', () => {
     )
   })
 
+  it('Terminal target 503은 Workspace 전체를 가리지 않고 panel에서 다시 불러올 수 있다', async () => {
+    const listTerminalTargets = vi
+      .fn()
+      .mockRejectedValueOnce(new HttpError(503))
+      .mockResolvedValue({
+        generation: 1,
+        workspaceVmKey: 'vm-control-opaque',
+        items: [
+          {
+            vmKey: 'vm-control-opaque',
+            role: 'control',
+            instanceIndex: 0,
+          },
+        ],
+      })
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listTerminalTargets,
+      }),
+    )
+
+    expect(
+      await screen.findByText(
+        '터미널 연결 경로를 지금 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: 'Lab Workspace Shell' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'VM 목록 다시 불러오기' }),
+    )
+
+    expect(await screen.findByRole('combobox', { name: 'VM' })).toHaveValue(
+      'vm-control-opaque',
+    )
+    expect(listTerminalTargets).toHaveBeenCalledTimes(2)
+  })
+
   it('Workspace URL에서 내 LabInstance가 없으면 환경 미할당 상태를 안내한다', async () => {
     renderRoute(
       '/classes/class-kubernetes-basic/lab',

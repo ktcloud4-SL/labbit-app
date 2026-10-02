@@ -682,8 +682,8 @@ a {
 
 .terminal-consumer {
   display: grid;
-  grid-template-rows: auto auto minmax(130px, 1fr) auto;
-  min-height: 205px;
+  grid-template-rows: auto auto minmax(160px, 1fr);
+  min-height: 240px;
   height: calc(100% - 44px);
   background: #202531;
   color: #f4f5f8;
@@ -700,8 +700,7 @@ a {
 }
 
 .terminal-target-control,
-.terminal-toolbar-actions,
-.terminal-input-row {
+.terminal-toolbar-actions {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -804,43 +803,26 @@ a {
   color: #ffbdc3;
 }
 
-.terminal-output {
-  min-height: 130px;
-  margin: 0;
-  overflow: auto;
-  padding: 12px 14px;
+.terminal-xterm-shell {
+  min-height: 160px;
+  overflow: hidden;
+  padding: 8px 6px 6px;
   background: #171b23;
-  color: #e7ebf2;
-  font-family:
-    "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
-.terminal-input-row {
-  padding: 8px 10px;
-  border-top: 1px solid #313744;
-  background: #202631;
-  color: #8ee0bd;
-  font-family:
-    "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+.terminal-xterm {
+  width: 100%;
+  height: 100%;
+  min-height: 146px;
 }
 
-.terminal-input-row input {
-  min-width: 0;
-  flex: 1;
-  border: 0;
-  outline: none;
-  padding: 6px 4px;
-  background: transparent;
-  color: #f4f5f8;
-  font: inherit;
+.terminal-xterm .xterm {
+  height: 100%;
 }
 
-.terminal-input-row input::placeholder {
-  color: #6f7787;
+.terminal-xterm .xterm-viewport,
+.terminal-xterm .xterm-screen {
+  width: 100% !important;
 }
 
 @media (max-width: 720px) {
@@ -854,15 +836,8 @@ a {
   }
 
   .terminal-toolbar-actions {
-    justify-content: space-between;
-  }
-
-  .terminal-input-row {
     flex-wrap: wrap;
-  }
-
-  .terminal-input-row input {
-    flex-basis: calc(100% - 26px);
+    justify-content: space-between;
   }
 }
 

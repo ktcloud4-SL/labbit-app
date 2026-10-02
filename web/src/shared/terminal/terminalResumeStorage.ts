@@ -28,18 +28,32 @@ function isResumeState(value: unknown): value is TerminalResumeState {
 }
 
 export function saveTerminalResumeState(state: TerminalResumeState) {
-  window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  try {
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function clearTerminalResumeState() {
-  window.sessionStorage.removeItem(STORAGE_KEY)
+  try {
+    window.sessionStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // Browser storage가 차단된 환경에서는 in-memory session만 사용한다.
+  }
 }
 
 export function readTerminalResumeState(
   expected: Pick<TerminalResumeState, 'labInstanceId' | 'generation'>,
   now = Date.now(),
 ): TerminalResumeState | null {
-  const raw = window.sessionStorage.getItem(STORAGE_KEY)
+  let raw: string | null
+  try {
+    raw = window.sessionStorage.getItem(STORAGE_KEY)
+  } catch {
+    return null
+  }
   if (!raw) return null
 
   let parsed: unknown

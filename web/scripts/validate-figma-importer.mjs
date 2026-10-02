@@ -49,6 +49,9 @@ async function main() {
   requireText(code, "message?.type !== 'IMPORT_BUNDLE'", 'code.js')
   requireText(code, "Editable · DOM", 'code.js')
   requireText(code, 'editableData', 'code.js')
+  requireText(code, 'setPrototypeNavigation', 'code.js')
+  requireText(code, 'setReactionsAsync', 'code.js')
+  requireText(code, 'Component 후보 자동 분류', 'code.js')
   forbidText(code, 'figma.currentPage =', 'code.js')
 
   requireText(ui, "type: 'IMPORT_BUNDLE'", 'ui.html')
@@ -78,6 +81,8 @@ async function main() {
   console.log('- dynamic-page 페이지 전환')
   console.log('- UI ↔ plugin 메시지 계약')
   console.log('- editable DOM import 경계')
+  console.log('- Prototype 연결 경계')
+  console.log('- Component 후보 자동 분류')
   console.log('- capture/bundle/plugin JavaScript 문법')
 }
 

@@ -1,4 +1,4 @@
-// Package terminal은 TerminalSession의 생성·종료·attach 권한 판정 use case와 Connector lifecycle Control이다.
+// Package terminal은 Terminal 대상 VM 조회(Targets)와 TerminalSession의 생성·종료·attach 권한 판정 use case, Connector lifecycle Control이다.
 //
 // Browser/Connector의 WebSocket byte stream은 realtime.Relay가 중계하고, 이 package는 그 Relay가 필요로 하는
 // DB-backed authority(realtime.Control)를 제공한다. 현재 User, Class 권한, LabInstance 소유, 현재 generation, 대상 VM은
@@ -221,8 +221,9 @@ type target struct {
 
 // Create는 현재 사용자의 LabInstance VM에 TerminalSession을 만든다.
 //
-//  1. 현재 DB 상태에서 LabInstance 소유, 현재 ClassMembership, READY, 현재 generation의 대상 VM을 결정한다. 하나라도 맞지 않으면
-//     side effect 없이 거절한다. transaction은 LabInstance를 FOR SHARE로 잠가 그 사이 generation이 바뀌지 않게 한다.
+//  1. 현재 DB 상태에서 LabInstance 소유, 현재 ClassMembership, READY, targetVmKey가 immutable CreationSnapshot의 VM인지,
+//     현재 generation의 대상 VM을 결정한다. 하나라도 맞지 않으면 side effect 없이 거절한다. Targets가 돌려준 목록을 근거로 신뢰하지 않고
+//     매번 다시 판정한다. transaction은 LabInstance를 FOR SHARE로 잠가 그 사이 generation이 바뀌지 않게 한다.
 //  2. OPENING TerminalSession과 attach token digest를 저장한다(transaction은 외부 I/O 전에 끝낸다).
 //  3. Relay에 예상 correlation을 등록한 뒤 Connector에 TERMINAL_OPEN을 보낸다.
 //  4. TERMINAL_OPEN_RESULT SUCCEEDED를 받고 같은 TerminalSession의 Terminal Data WSS가 실제로 bind되었을 때만 성공한다.
@@ -369,32 +370,20 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 
 // resolveTarget은 transaction 안에서 현재 DB 상태로 대상 LabInstance, Connector, VM을 결정한다. side effect는 없다.
 func (s *Service) resolveTarget(ctx context.Context, repos repository.Repositories, user repository.User, labID uuid.UUID, targetVMKey string) (target, error) {
-	lab, err := repos.LabInstanceForShare(ctx, labID)
-	if errors.Is(err, repository.ErrNotFound) {
-		return target{}, ErrNotFound
-	}
+	// 소유, 현재 ClassMembership, READY 판정은 target 조회(Targets)와 같은 경계를 쓴다.
+	lab, err := authorizeLabInstance(ctx, repos, user, labID)
 	if err != nil {
-		return target{}, fmt.Errorf("terminal: LabInstance 조회: %w", err)
-	}
-	// 강사가 학생 LabInstance의 Terminal을 여는 기능은 없다. 본인 것만 허용한다.
-	if lab.OrganizationID != user.OrganizationID || lab.UserID != user.ID {
-		return target{}, ErrForbidden
+		return target{}, err
 	}
 
-	membership, err := repos.ClassMembership(ctx, lab.ClassID, user.ID)
-	if errors.Is(err, repository.ErrNotFound) {
-		return target{}, ErrForbidden
-	}
+	// Browser가 보낸 targetVmKey는 target 조회가 돌려준 immutable CreationSnapshot의 VM이어야 한다. 현재 generation에 우연히 같은 이름의
+	// SERVER ProviderResource가 있어도 snapshot에 없는 key는 target이 아니다. 최신 LabSpec이 아니라 snapshot 기준이다.
+	catalog, err := snapshotTargets(ctx, repos, lab)
 	if err != nil {
-		return target{}, fmt.Errorf("terminal: Membership 조회: %w", err)
+		return target{}, err
 	}
-	if membership.ClassID != lab.ClassID || membership.UserID != user.ID ||
-		membership.OrganizationID != lab.OrganizationID || !membership.Role.Valid() {
-		return target{}, ErrInconsistentData
-	}
-
-	if lab.Status != LabInstanceStatusReady {
-		return target{}, ErrLabInstanceNotReady
+	if !catalog.hasTarget(targetVMKey) {
+		return target{}, ErrTargetNotFound
 	}
 
 	connectorID, err := repos.ConnectorIDForLabInstance(ctx, lab.ID)
@@ -411,7 +400,9 @@ func (s *Service) resolveTarget(ctx context.Context, repos repository.Repositori
 		return target{}, fmt.Errorf("terminal: 대상 VM 조회: %w", err)
 	}
 	if len(servers) == 0 {
-		return target{}, ErrTargetNotFound
+		// snapshot에는 있는 VM인데 현재 generation에 SERVER ProviderResource가 없다(Reset 진행·Provider drift 등). Browser가 잘못 보낸
+		// 값이 아니라 지금 사용할 수 없는 것이다.
+		return target{}, ErrTargetUnavailable
 	}
 	var present []repository.ProviderServer
 	for _, server := range servers {

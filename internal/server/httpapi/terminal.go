@@ -29,6 +29,7 @@ const (
 
 // Terminals는 handler가 사용하는 TerminalSession use case다. *terminal.Service가 구현한다.
 type Terminals interface {
+	Targets(ctx context.Context, user repository.User, labInstanceID string) (terminal.TargetCatalog, error)
 	Create(ctx context.Context, user repository.User, in terminal.CreateInput) (terminal.Created, error)
 	Close(ctx context.Context, user repository.User, terminalSessionID string) error
 }
@@ -36,6 +37,10 @@ type Terminals interface {
 // unavailableTerminals는 Terminal Relay가 없는 배포 구성(예: realtime role 없이 api만 enabled)의 Terminals다.
 // 인증과 Origin 검증을 거친 뒤 503(terminal_unavailable)으로 명확히 알린다.
 type unavailableTerminals struct{}
+
+func (unavailableTerminals) Targets(context.Context, repository.User, string) (terminal.TargetCatalog, error) {
+	return terminal.TargetCatalog{}, terminal.ErrUnavailable
+}
 
 func (unavailableTerminals) Create(context.Context, repository.User, terminal.CreateInput) (terminal.Created, error) {
 	return terminal.Created{}, terminal.ErrUnavailable
@@ -82,6 +87,42 @@ type terminalSessionResponse struct {
 	Generation     int64     `json:"generation"`
 	SessionToken   string    `json:"sessionToken"`
 	TokenExpiresAt time.Time `json:"tokenExpiresAt"`
+}
+
+// terminalTargetResponse는 OpenAPI TerminalTarget이다. 이 밖의 field(Provider ID, Connector ID, 주소, 이미지·flavor)는 만들 수 없다.
+type terminalTargetResponse struct {
+	VMKey         string `json:"vmKey"`
+	Role          string `json:"role"`
+	InstanceIndex int64  `json:"instanceIndex"`
+}
+
+// terminalTargetListResponse는 OpenAPI TerminalTargetList다.
+type terminalTargetListResponse struct {
+	Generation     int64                    `json:"generation"`
+	WorkspaceVMKey string                   `json:"workspaceVmKey"`
+	Items          []terminalTargetResponse `json:"items"`
+}
+
+func (a *api) listTerminalTargets(w http.ResponseWriter, r *http.Request) {
+	principal, ok := PrincipalFrom(r.Context())
+	if !ok {
+		a.internalError(w, r, "list_terminal_targets", errors.New("인증 context가 없습니다"))
+		return
+	}
+	catalog, err := a.terminals.Targets(r.Context(), principal.User, r.PathValue("labInstanceId"))
+	if err != nil {
+		a.terminalError(w, r, "list_terminal_targets", err)
+		return
+	}
+	items := make([]terminalTargetResponse, 0, len(catalog.Items))
+	for _, item := range catalog.Items {
+		items = append(items, terminalTargetResponse{VMKey: item.VMKey, Role: item.Role, InstanceIndex: item.InstanceIndex})
+	}
+	writeJSON(w, http.StatusOK, terminalTargetListResponse{
+		Generation:     catalog.Generation,
+		WorkspaceVMKey: catalog.WorkspaceVMKey,
+		Items:          items,
+	})
 }
 
 func (a *api) createTerminalSession(w http.ResponseWriter, r *http.Request) {

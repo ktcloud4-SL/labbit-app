@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -20,6 +21,71 @@ import (
 // Credential은 Fixture Connector의 Credential이다. 실제 Secret이 아니다.
 const Credential = "terminaltest-connector-credential-7d41"
 
+// Browser에 나가면 안 되는 snapshot 값이다. Snapshot이 모든 VM에 넣어, 응답에 하나라도 나타나면 test가 실패한다.
+// 실제 Provider 값이 아니다.
+const (
+	SnapshotImageIDMarker    = "image-marker-5e2a91c4"
+	SnapshotFlavorIDMarker   = "flavor-marker-71c0d8be"
+	SnapshotPrivateIPMarker  = "10.77.3.9"
+	SnapshotStartupMarker    = "startup-script-marker-93bd04f7"
+	SnapshotProviderConnMark = "snapshot-provider-connection-marker-c2e8"
+)
+
+// VM은 CreationSnapshot의 vms[] 한 원소(Terminal target에 관련된 값)다.
+type VM struct {
+	Key   string
+	Role  string
+	Index int
+}
+
+// DefaultVMs는 기본 Fixture CreationSnapshot의 VM이다. retired와 ghost는 snapshot에는 있지만 ProviderResource가 PRESENT가 아니다.
+func DefaultVMs() []VM {
+	return []VM{
+		{Key: "workspace", Role: "workspace", Index: 0},
+		{Key: "db", Role: "db", Index: 0},
+		{Key: "retired", Role: "worker", Index: 0},
+		{Key: "ghost", Role: "worker", Index: 1},
+	}
+}
+
+// Snapshot은 실제 Connector 계약(connector.schema.json CreationSnapshot)의 모양을 가진 snapshot JSON이다.
+// Browser에 나가면 안 되는 resolve된 Provider 정보(imageId, flavorId, flavorSpec, 주소, startupScript)를 vm마다 포함한다.
+func Snapshot(workspaceVMKey string, vms []VM) string {
+	type flavorSpec struct {
+		VCPUs   int `json:"vcpus"`
+		RAMMiB  int `json:"ramMiB"`
+		DiskGiB int `json:"diskGiB"`
+	}
+	type resolvedVM struct {
+		VMKey         string     `json:"vmKey"`
+		Role          string     `json:"role"`
+		InstanceIndex int        `json:"instanceIndex"`
+		ImageID       string     `json:"imageId"`
+		FlavorID      string     `json:"flavorId"`
+		FlavorSpec    flavorSpec `json:"flavorSpec"`
+		PrivateIP     string     `json:"privateIp"`
+	}
+	resolved := make([]resolvedVM, 0, len(vms))
+	for _, vm := range vms {
+		resolved = append(resolved, resolvedVM{
+			VMKey: vm.Key, Role: vm.Role, InstanceIndex: vm.Index,
+			ImageID: SnapshotImageIDMarker, FlavorID: SnapshotFlavorIDMarker, FlavorSpec: flavorSpec{VCPUs: 2, RAMMiB: 2048, DiskGiB: 20},
+			PrivateIP: SnapshotPrivateIPMarker,
+		})
+	}
+	raw, err := json.Marshal(map[string]any{
+		"providerConnectionId": SnapshotProviderConnMark,
+		"vms":                  resolved,
+		"workspaceVmKey":       workspaceVMKey,
+		"internetOutbound":     false,
+		"startupScript":        map[string]string{"content": SnapshotStartupMarker, "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"},
+	})
+	if err != nil {
+		panic(err)
+	}
+	return string(raw)
+}
+
 // Server는 Fixture의 SERVER ProviderResource다.
 type Server struct {
 	ResourceID uuid.UUID
@@ -31,7 +97,7 @@ type Server struct {
 //	Organization
 //	  ├─ Class ─ INSTRUCTOR Instructor, STUDENT Owner, STUDENT Peer
 //	  ├─ OtherClass ─ STUDENT Outsider (Class의 Membership 없음)
-//	  └─ Connector ─ ProviderConnection ─ CreationSnapshot ─ LabExecution(Class)
+//	  └─ Connector ─ ProviderConnection ─ CreationSnapshot(vms: workspace, db, retired, ghost) ─ LabExecution(Class)
 //	       ├─ LabInstance(Owner, READY, generation 1): SERVER workspace/db(PRESENT), retired(DELETED), ghost(MISSING)
 //	       └─ LabInstance(Peer, READY, generation 1): SERVER workspace(PRESENT)
 //	OtherOrganization ─ Foreign
@@ -60,7 +126,7 @@ type Fixture struct {
 	PeerServer Server
 }
 
-// New는 conn이 가리키는 (Migration이 적용된) database에 Fixture를 만든다.
+// New는 conn이 가리키는 (Migration이 적용된) database에 Fixture를 만든다. CreationSnapshot은 DefaultVMs이고 workspace가 Workspace VM이다.
 func New(t *testing.T, conn *pgx.Conn) *Fixture {
 	t.Helper()
 	f := &Fixture{
@@ -103,7 +169,7 @@ func New(t *testing.T, conn *pgx.Conn) *Fixture {
 	exec(`INSERT INTO lab_executions (id, organization_id, class_id, lab_spec_id, instructor_user_id, status)
 	      VALUES ($1, $2, $3, $4, $5, 'ACTIVE')`, f.LabExecutionID, f.OrganizationID, f.ClassID, f.LabSpecID, f.InstructorID)
 	exec(`INSERT INTO creation_snapshots (id, organization_id, lab_execution_id, source_lab_spec_id, source_lab_spec_revision, provider_connection_id, snapshot)
-	      VALUES ($1, $2, $3, $4, 1, $5, '{}'::jsonb)`, uuid.New(), f.OrganizationID, f.LabExecutionID, f.LabSpecID, f.ProviderConnectionID)
+	      VALUES ($1, $2, $3, $4, 1, $5, $6::jsonb)`, uuid.New(), f.OrganizationID, f.LabExecutionID, f.LabSpecID, f.ProviderConnectionID, Snapshot("workspace", DefaultVMs()))
 	for _, li := range []struct{ id, user uuid.UUID }{{f.LabInstanceID, f.OwnerID}, {f.PeerLabInstanceID, f.PeerID}} {
 		exec(`INSERT INTO lab_instances (id, organization_id, lab_execution_id, user_id, participant_role, status, generation)
 		      VALUES ($1, $2, $3, $4, 'STUDENT', 'READY', 1)`, li.id, f.OrganizationID, f.LabExecutionID, li.user)
@@ -117,6 +183,21 @@ func New(t *testing.T, conn *pgx.Conn) *Fixture {
 	f.AddResource(t, conn, f.LabInstanceID, 1, "NETWORK", "workspace", "PRESENT")
 	f.PeerServer = f.AddResource(t, conn, f.PeerLabInstanceID, 1, "SERVER", "workspace", "PRESENT")
 	return f
+}
+
+// AddLabInstanceWithSnapshot은 Owner의 READY LabInstance(generation 1)를 별도의 종료된 LabExecution과 snapshot JSON 그대로의
+// CreationSnapshot과 함께 추가한다. creation_snapshots는 생성 뒤 UPDATE할 수 없으므로 다른 VM 구성이나 손상된 snapshot은 이렇게 따로 만든다.
+// ProviderResource는 만들지 않는다. 종료된 LabExecution이라 Class의 active LabExecution unique 제약과 겹치지 않는다.
+func (f *Fixture) AddLabInstanceWithSnapshot(t *testing.T, conn *pgx.Conn, snapshot string) uuid.UUID {
+	t.Helper()
+	execution, instance := uuid.New(), uuid.New()
+	Exec(t, conn, `INSERT INTO lab_executions (id, organization_id, class_id, lab_spec_id, instructor_user_id, status, finished_at)
+	               VALUES ($1, $2, $3, $4, $5, 'FINISHED', now())`, execution, f.OrganizationID, f.ClassID, f.LabSpecID, f.InstructorID)
+	Exec(t, conn, `INSERT INTO creation_snapshots (id, organization_id, lab_execution_id, source_lab_spec_id, source_lab_spec_revision, provider_connection_id, snapshot)
+	               VALUES ($1, $2, $3, $4, 1, $5, $6::jsonb)`, uuid.New(), f.OrganizationID, execution, f.LabSpecID, f.ProviderConnectionID, snapshot)
+	Exec(t, conn, `INSERT INTO lab_instances (id, organization_id, lab_execution_id, user_id, participant_role, status, generation)
+	               VALUES ($1, $2, $3, $4, 'STUDENT', 'READY', 1)`, instance, f.OrganizationID, execution, f.OwnerID)
+	return instance
 }
 
 // AddResource는 LabInstance의 generation에 ProviderResource를 추가한다.

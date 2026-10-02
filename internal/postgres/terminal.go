@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -59,6 +61,64 @@ func (q queries) ConnectorIDForLabInstance(ctx context.Context, labInstanceID uu
 		return uuid.UUID{}, normalize(op, err)
 	}
 	return connectorID, nil
+}
+
+// snapshotVM은 creation_snapshots.snapshot의 vms[] 원소 중 Repository가 읽는 field다. 나머지(imageId, flavorId 등)는 읽지 않는다.
+// instanceIndex는 누락(nil)과 0을 구분하기 위해 pointer다.
+type snapshotVM struct {
+	VMKey         string `json:"vmKey"`
+	Role          string `json:"role"`
+	InstanceIndex *int64 `json:"instanceIndex"`
+}
+
+func (q queries) CreationSnapshotTargets(ctx context.Context, labInstanceID uuid.UUID) (repository.CreationSnapshotTargets, error) {
+	const op = "CreationSnapshotTargets"
+
+	// 필요한 두 key만 jsonb로 꺼낸다. startupScript 같은 나머지 snapshot은 DB 밖으로 읽어 오지 않는다.
+	// pgx는 jsonb를 string으로 scan하면 JSON 원문(따옴표 포함)을 주므로 raw로 받아 직접 decode한다.
+	var rawVMs, rawWorkspace []byte
+	err := q.db.QueryRow(ctx,
+		`SELECT cs.snapshot -> 'vms', cs.snapshot -> 'workspaceVmKey'
+		 FROM lab_instances li
+		 JOIN creation_snapshots cs ON cs.organization_id = li.organization_id AND cs.lab_execution_id = li.lab_execution_id
+		 WHERE li.id = $1`,
+		labInstanceID,
+	).Scan(&rawVMs, &rawWorkspace)
+	if err != nil {
+		return repository.CreationSnapshotTargets{}, normalize(op, err)
+	}
+
+	// 읽을 수 없는 shape의 오류에는 snapshot의 값을 담지 않는다. 어느 field인지만 남긴다.
+	unreadable := func(field string) error {
+		return &repository.Error{Kind: repository.KindInternal, Op: op, Cause: errors.New(field + "를 projection 타입으로 읽을 수 없음")}
+	}
+
+	// SQL NULL(key 없음)과 JSON null은 빈 값이다. 의미 검증은 Application이 한다.
+	var workspaceVMKey *string
+	if len(rawWorkspace) > 0 {
+		if err := json.Unmarshal(rawWorkspace, &workspaceVMKey); err != nil {
+			return repository.CreationSnapshotTargets{}, unreadable("workspaceVmKey")
+		}
+	}
+	var vms []snapshotVM
+	if len(rawVMs) > 0 {
+		if err := json.Unmarshal(rawVMs, &vms); err != nil {
+			return repository.CreationSnapshotTargets{}, unreadable("vms")
+		}
+	}
+
+	targets := repository.CreationSnapshotTargets{VMs: make([]repository.SnapshotVM, 0, len(vms))}
+	if workspaceVMKey != nil {
+		targets.WorkspaceVMKey = *workspaceVMKey
+	}
+	for _, vm := range vms {
+		if vm.InstanceIndex == nil {
+			// 0과 누락을 구분하지 못한 채 0으로 해석하면 key는 있지만 shape가 틀린 snapshot이 유효해 보인다.
+			return repository.CreationSnapshotTargets{}, unreadable("vms[].instanceIndex")
+		}
+		targets.VMs = append(targets.VMs, repository.SnapshotVM{VMKey: vm.VMKey, Role: vm.Role, InstanceIndex: *vm.InstanceIndex})
+	}
+	return targets, nil
 }
 
 func (q queries) ProviderServers(ctx context.Context, labInstanceID uuid.UUID, generation int64, logicalName string) ([]repository.ProviderServer, error) {

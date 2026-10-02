@@ -42,7 +42,7 @@ type Classes interface {
 type Options struct {
 	Auth    Authenticator
 	Classes Classes
-	// Terminals가 nil이면 Terminal Relay가 없는 구성으로 보고 TerminalSession 생성/종료를 503(terminal_unavailable)으로 응답한다.
+	// Terminals가 nil이면 Terminal Relay가 없는 구성으로 보고 Terminal target 조회와 TerminalSession 생성/종료를 503(terminal_unavailable)으로 응답한다.
 	Terminals Terminals
 	// PublicOrigin은 unsafe method의 trusted origin(LABBIT_PUBLIC_ORIGIN)이다. ParseOrigin 형식을 따른다.
 	PublicOrigin string
@@ -87,6 +87,7 @@ func New(opts Options) (http.Handler, error) {
 	mux.Handle("GET /api/v1/me", a.authenticated(http.HandlerFunc(a.me)))
 	mux.Handle("GET /api/v1/classes", a.authenticated(http.HandlerFunc(a.listClasses)))
 	mux.Handle("GET /api/v1/classes/{classId}", a.authenticated(http.HandlerFunc(a.getClass)))
+	mux.Handle("GET /api/v1/lab-instances/{labInstanceId}/terminal-targets", a.authenticated(http.HandlerFunc(a.listTerminalTargets)))
 	mux.Handle("POST /api/v1/lab-instances/{labInstanceId}/terminal-sessions", a.authenticated(http.HandlerFunc(a.createTerminalSession)))
 	mux.Handle("DELETE /api/v1/terminal-sessions/{terminalSessionId}", a.authenticated(http.HandlerFunc(a.closeTerminalSession)))
 

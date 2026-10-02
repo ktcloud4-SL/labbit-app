@@ -145,6 +145,21 @@ type LabInstance struct {
 	Generation     int64
 }
 
+// SnapshotVM은 immutable CreationSnapshot의 vms[] 한 원소 중 Terminal target 판정에 필요한 field다.
+// imageId, flavorId, flavorSpec 같은 resolve된 Provider 정보는 Repository 밖으로 나오지 않는다.
+type SnapshotVM struct {
+	VMKey         string
+	Role          string
+	InstanceIndex int64
+}
+
+// CreationSnapshotTargets는 LabInstance의 LabExecution에 고정된 immutable resolved CreationSnapshot에서 읽은 Terminal target projection이다.
+// 저장된 값을 그대로 담으며 의미 검증(빈 값, 중복, workspaceVmKey가 vms에 있는지)은 Application이 한다.
+type CreationSnapshotTargets struct {
+	WorkspaceVMKey string
+	VMs            []SnapshotVM
+}
+
 // ProviderServer는 provider_resources 중 resource_type이 SERVER인 row다.
 // LifecycleStatus가 PRESENT인지 판단하는 것은 Application이다.
 type ProviderServer struct {

@@ -94,11 +94,20 @@ func TestCreateTerminalSessionIsDeniedBeforeAnySideEffect(t *testing.T) {
 		{name: "unknown target vm", cookie: owner, labID: ownLab, body: target("nope"), wantStatus: 422, wantCode: "invalid_terminal_target"},
 		{name: "a network with the same name is not a server", cookie: owner, labID: ownLab, body: target("net"), wantStatus: 422, wantCode: "invalid_terminal_target"},
 		{name: "another user's vm key", cookie: owner, labID: ownLab, body: target("peer-only"), wantStatus: 422, wantCode: "invalid_terminal_target"},
+		{
+			// 현재 generation에 PRESENT SERVER ProviderResource가 있어도 immutable CreationSnapshot의 VM이 아니면 target이 아니다.
+			// Browser가 GET terminal-targets에 없는 임의의 logical name을 보낼 수 없다.
+			name: "present provider resource that is not in the creation snapshot", cookie: owner, labID: ownLab, body: target("hidden-server"), wantStatus: 422, wantCode: "invalid_terminal_target",
+			setup: func(e *terminalEnv) {
+				e.fixture.AddResource(t, e.conn, e.fixture.LabInstanceID, 1, "SERVER", "hidden-server", "PRESENT")
+			},
+		},
 		{name: "deleted provider resource", cookie: owner, labID: ownLab, body: target("retired"), wantStatus: 409, wantCode: "terminal_target_unavailable"},
 		{name: "missing provider resource", cookie: owner, labID: ownLab, body: target("ghost"), wantStatus: 409, wantCode: "terminal_target_unavailable"},
 		{
 			// Reset으로 generation이 올랐지만 새 generation에 아직 VM이 없다. 이전 generation의 리소스는 현재 대상이 아니다.
-			name: "resource only exists in a previous generation", cookie: owner, labID: ownLab, wantStatus: 422, wantCode: "invalid_terminal_target",
+			// workspace는 CreationSnapshot의 VM이므로 잘못된 입력(422)이 아니라 지금 사용할 수 없는 target(409)이다.
+			name: "resource only exists in a previous generation", cookie: owner, labID: ownLab, wantStatus: 409, wantCode: "terminal_target_unavailable",
 			setup: func(e *terminalEnv) {
 				terminaltest.Exec(t, e.conn, `UPDATE lab_instances SET generation = 2 WHERE id = $1`, e.fixture.LabInstanceID)
 			},

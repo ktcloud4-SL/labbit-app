@@ -45,7 +45,7 @@
   <h1>Labbit UX Importer</h1>
   <p>
     <code>npm run capture:figma</code> 실행 후 생성된
-    <code>web/ui-captures</code> 폴더에서 <b>manifest.json + PNG 전체</b>를 한 번에 선택하세요.
+    <code>web/ui-captures</code> 폴더에서 <b>manifest.json + editable-dom.json + PNG 전체</b>를 한 번에 선택하세요.
   </p>
 
   <div class="box">
@@ -53,7 +53,7 @@
     <button id="import" type="button">새 UX Review 페이지 만들기</button>
   </div>
 
-  <div id="status">파일을 선택하면 화면을 자동 분류하고 Jira/상태 메모까지 함께 배치합니다.</div>
+  <div id="status">스크린샷과 editable DOM 데이터를 함께 읽어 Reference + 수정 가능한 화면을 나란히 만듭니다.</div>
   <button id="close" type="button">닫기</button>
 
   <script>
@@ -73,9 +73,15 @@
         const manifestFile = selected.find((file) => file.name === 'manifest.json')
         if (!manifestFile) throw new Error('manifest.json을 함께 선택해 주세요.')
 
-        setStatus('manifest와 스크린샷을 읽는 중...')
+        setStatus('manifest와 editable DOM 데이터를 읽는 중...')
 
         const manifest = JSON.parse(await manifestFile.text())
+        const editableFileName = manifest.editableDataFile || 'editable-dom.json'
+        const editableFile = selected.find((file) => file.name === editableFileName)
+        if (!editableFile) {
+          throw new Error(editableFileName + '을 함께 선택해 주세요. capture:figma를 다시 실행하면 생성됩니다.')
+        }
+        const editableData = JSON.parse(await editableFile.text())
         const required = new Set(
           (manifest.groups ?? []).flatMap((group) =>
             (group.screens ?? []).map((screen) => screen.file),
@@ -109,6 +115,7 @@
             pluginMessage: {
               type: 'IMPORT_BUNDLE',
               manifest,
+              editableData,
               files,
             },
           },
@@ -129,7 +136,7 @@
 
       if (message.type === 'IMPORT_DONE') {
         setStatus(
-          `완료! "${message.pageName}" 페이지에 화면 ${message.screenCount}개와 계획 상태 ${message.plannedCount}개를 배치했습니다.`,
+          `완료! "${message.pageName}" 페이지에 화면 ${message.screenCount}개, editable 화면 ${message.editableCount}개, 계획 상태 ${message.plannedCount}개를 배치했습니다.`,
           'ok',
         )
       }

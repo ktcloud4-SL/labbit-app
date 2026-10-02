@@ -33,9 +33,9 @@ function createCardBase(name) {
   const card = figma.createFrame()
   card.name = name
   card.layoutMode = 'VERTICAL'
+  card.resize(CARD_WIDTH, 100)
   card.primaryAxisSizingMode = 'AUTO'
   card.counterAxisSizingMode = 'FIXED'
-  card.resize(CARD_WIDTH, 100)
   card.paddingTop = 20
   card.paddingRight = 20
   card.paddingBottom = 20

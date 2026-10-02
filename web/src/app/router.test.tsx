@@ -160,6 +160,29 @@ function createApi(overrides: Partial<LabbitApi> = {}): LabbitApi {
       },
     }),
     getOperation: async () => operationFixture,
+    listTerminalTargets: async () => ({
+      generation: 1,
+      workspaceVmKey: 'vm-control-opaque',
+      items: [
+        {
+          vmKey: 'vm-control-opaque',
+          role: 'control',
+          instanceIndex: 0,
+        },
+        {
+          vmKey: 'vm-worker-opaque',
+          role: 'worker',
+          instanceIndex: 0,
+        },
+      ],
+    }),
+    createTerminalSession: async () => ({
+      id: 'terminal-session-1',
+      generation: 1,
+      sessionToken: 'test-terminal-session-token',
+      tokenExpiresAt: '2026-10-03T00:00:00Z',
+    }),
+    closeTerminalSession: async () => {},
     ...overrides,
   }
 }
@@ -1558,7 +1581,13 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByText('파일')).toBeInTheDocument()
     expect(screen.getByText('Editor')).toBeInTheDocument()
     expect(screen.getByText('미리보기')).toBeInTheDocument()
-    expect(screen.getByText('Terminal / Live')).toBeInTheDocument()
+    expect(screen.getByText('Terminal')).toBeInTheDocument()
+    expect(await screen.findByRole('combobox', { name: 'VM' })).toHaveValue(
+      'vm-control-opaque',
+    )
+    expect(
+      screen.getByRole('button', { name: '터미널 연결' }),
+    ).toBeInTheDocument()
     expect(screen.getByText('강사')).toBeInTheDocument()
     expect(screen.getByText('사용 가능')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '← 수업 상세' })).toHaveAttribute(

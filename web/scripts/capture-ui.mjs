@@ -308,6 +308,16 @@ async function collectEditableSnapshot(cdp, filename) {
         };
 
         if (controlTags.has(tag)) {
+          let href = null;
+          if (tag === 'A') {
+            try {
+              const rawHref = element.getAttribute('href');
+              if (rawHref) href = new URL(rawHref, location.origin).pathname;
+            } catch {
+              href = null;
+            }
+          }
+
           elements.push({
             ...common,
             kind: 'control',
@@ -316,6 +326,7 @@ async function collectEditableSnapshot(cdp, filename) {
                 ? (element.getAttribute('type') || 'text').toLowerCase()
                 : tag.toLowerCase(),
             text: valueForControl(element),
+            href,
           });
           continue;
         }

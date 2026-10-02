@@ -105,17 +105,21 @@ type harness struct {
 	logs    *bytes.Buffer
 }
 
-func newHarness(t *testing.T) *harness {
+func newHarness(t *testing.T, mods ...func(*Options)) *harness {
 	t.Helper()
 	fake := newFakeAuth()
 	classes := &fakeClasses{}
 	logs := &bytes.Buffer{}
-	handler, err := New(Options{
+	opts := Options{
 		Auth:         fake,
 		Classes:      classes,
 		PublicOrigin: trustedOrigin,
 		Logger:       slog.New(slog.NewJSONHandler(logs, nil)),
-	})
+	}
+	for _, mod := range mods {
+		mod(&opts)
+	}
+	handler, err := New(opts)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}

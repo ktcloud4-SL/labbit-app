@@ -13,9 +13,11 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
@@ -47,7 +49,8 @@ type Options struct {
 	// PublicOrigin은 unsafe method의 trusted origin(LABBIT_PUBLIC_ORIGIN)이다. ParseOrigin 형식을 따른다.
 	PublicOrigin string
 	// Logger가 nil이면 로그를 남기지 않는다.
-	Logger *slog.Logger
+	Logger  *slog.Logger
+	Metrics *observability.HTTPMetrics
 }
 
 type api struct {
@@ -82,16 +85,22 @@ func New(opts Options) (http.Handler, error) {
 
 	a := &api{auth: opts.Auth, classes: opts.Classes, terminals: terminals, origin: origin, logger: logger}
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/auth/login", a.login)
-	mux.Handle("POST /api/v1/auth/logout", a.authenticated(http.HandlerFunc(a.logout)))
-	mux.Handle("GET /api/v1/me", a.authenticated(http.HandlerFunc(a.me)))
-	mux.Handle("GET /api/v1/classes", a.authenticated(http.HandlerFunc(a.listClasses)))
-	mux.Handle("GET /api/v1/classes/{classId}", a.authenticated(http.HandlerFunc(a.getClass)))
-	mux.Handle("GET /api/v1/lab-instances/{labInstanceId}/terminal-targets", a.authenticated(http.HandlerFunc(a.listTerminalTargets)))
-	mux.Handle("POST /api/v1/lab-instances/{labInstanceId}/terminal-sessions", a.authenticated(http.HandlerFunc(a.createTerminalSession)))
-	mux.Handle("DELETE /api/v1/terminal-sessions/{terminalSessionId}", a.authenticated(http.HandlerFunc(a.closeTerminalSession)))
+	routes := make(map[string]string)
+	handle := func(pattern string, handler http.Handler) {
+		mux.Handle(pattern, handler)
+		_, route, _ := strings.Cut(pattern, " ")
+		routes[pattern] = route
+	}
+	handle("POST /api/v1/auth/login", http.HandlerFunc(a.login))
+	handle("POST /api/v1/auth/logout", a.authenticated(http.HandlerFunc(a.logout)))
+	handle("GET /api/v1/me", a.authenticated(http.HandlerFunc(a.me)))
+	handle("GET /api/v1/classes", a.authenticated(http.HandlerFunc(a.listClasses)))
+	handle("GET /api/v1/classes/{classId}", a.authenticated(http.HandlerFunc(a.getClass)))
+	handle("GET /api/v1/lab-instances/{labInstanceId}/terminal-targets", a.authenticated(http.HandlerFunc(a.listTerminalTargets)))
+	handle("POST /api/v1/lab-instances/{labInstanceId}/terminal-sessions", a.authenticated(http.HandlerFunc(a.createTerminalSession)))
+	handle("DELETE /api/v1/terminal-sessions/{terminalSessionId}", a.authenticated(http.HandlerFunc(a.closeTerminalSession)))
 
-	return withRequestID(noStore(a.originGuard(mux))), nil
+	return withMetrics(opts.Metrics, mux, routes, withRequestID(noStore(a.originGuard(mux)))), nil
 }
 
 // noStore는 인증 응답이 Browser나 중간 cache에 저장되지 않게 한다.

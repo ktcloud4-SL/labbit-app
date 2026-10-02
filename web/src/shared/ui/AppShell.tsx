@@ -6,6 +6,7 @@ import type { Me } from '../api/contracts'
 import { HttpError } from '../api/httpClient'
 import { useLabbitApi } from '../api/LabbitApiProvider'
 import type { LoginLocationState } from '../routing/loginNavigation'
+import { clearTerminalResumeState } from '../terminal/terminalResumeStorage'
 
 interface AppShellProps extends PropsWithChildren {
   me: Me
@@ -18,6 +19,8 @@ export function AppShell({ me, children }: AppShellProps) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
+      clearTerminalResumeState()
+
       try {
         await api.logout()
       } catch (error) {

@@ -93,6 +93,11 @@ func (r *TerminalRelay) handleWebSocket(w http.ResponseWriter, req *http.Request
 
 	r.attachRecv <- attachMsg
 
+	r.mu.Lock()
+	isResume := (r.activeSess == attachMsg.TerminalSessionID && r.activeSess != "")
+	r.mu.Unlock()
+
+	f := false
 	// 2. TERMINAL_DATA_ATTACHED 회신
 	attachedResp := protocol.TerminalDataAttachedMessage{
 		BaseEnvelope: protocol.BaseEnvelope{
@@ -105,8 +110,8 @@ func (r *TerminalRelay) handleWebSocket(w http.ResponseWriter, req *http.Request
 			Generation:        attachMsg.Generation,
 		},
 		Payload: protocol.TerminalDataAttachedPayload{
-			Resumed:          false,
-			HistoryAvailable: false,
+			Resumed:          &isResume,
+			HistoryAvailable: &f,
 		},
 	}
 
@@ -124,9 +129,15 @@ func (r *TerminalRelay) handleWebSocket(w http.ResponseWriter, req *http.Request
 			return
 		}
 		if mType == websocket.BinaryMessage {
-			r.binRecv <- p
+			select {
+			case r.binRecv <- p:
+			default:
+			}
 		} else if mType == websocket.TextMessage {
-			r.textRecv <- p
+			select {
+			case r.textRecv <- p:
+			default:
+			}
 		}
 	}
 }
@@ -149,6 +160,16 @@ func (r *TerminalRelay) SendBinary(data []byte) error {
 		return fmt.Errorf("no active connection")
 	}
 	return r.conn.WriteMessage(websocket.BinaryMessage, data)
+}
+
+// SendText 는 제어 텍스트 프레임(JSON 등)을 커넥터로 보냅니다.
+func (r *TerminalRelay) SendText(data []byte) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.conn == nil {
+		return fmt.Errorf("no active connection")
+	}
+	return r.conn.WriteMessage(websocket.TextMessage, data)
 }
 
 // ReadBinary 는 커넥터 PTY 에서 전달된 출력 바이트를 대기하여 수신합니다.

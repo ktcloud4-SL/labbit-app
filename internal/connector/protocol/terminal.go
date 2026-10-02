@@ -103,8 +103,8 @@ type TerminalDataAttachMessage struct {
 
 // TerminalDataAttachedPayload 는 TERMINAL_DATA_ATTACHED 메시지의 본문입니다.
 type TerminalDataAttachedPayload struct {
-	Resumed          bool `json:"resumed"`
-	HistoryAvailable bool `json:"historyAvailable"`
+	Resumed          *bool `json:"resumed"`
+	HistoryAvailable *bool `json:"historyAvailable"`
 }
 
 // TerminalDataAttachedMessage 는 Relay -> Connector attach 수락 메시지입니다.

@@ -53,6 +53,11 @@ func NewDataWSSClient(cfg DataWSSClientConfig, session *Session) *DataWSSClient 
 	}
 }
 
+// MaxBinaryMessageSize 는 PTY 바이너리 스트림의 상한 (4 MiB)입니다.
+const MaxBinaryMessageSize int64 = 4 * 1024 * 1024
+
+var ErrAuthenticationFailed = errors.New("terminal data authentication failed")
+
 // DialAndAttach 는 Relay 로 WebSocket 연결을 맺고, ATTACH 핸드셰이크 및 응답 correlation 검증을 완료한 후
 // 세션에 활성 데이터 연결을 바인딩합니다. 실패 시 연결을 닫고 에러를 반환합니다.
 func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
@@ -91,6 +96,9 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 	conn, resp, err := dialer.DialContext(ctx, c.config.EndpointURL, header)
 	if err != nil {
 		if resp != nil {
+			if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+				return fmt.Errorf("%w: HTTP %d", ErrAuthenticationFailed, resp.StatusCode)
+			}
 			return fmt.Errorf("dial failed with HTTP %d: %w", resp.StatusCode, err)
 		}
 		return fmt.Errorf("dial failed: %w", err)
@@ -102,8 +110,8 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 		return fmt.Errorf("negotiated subprotocol %q does not match required %q", sub, protocol.SubprotocolTerminalData)
 	}
 
-	// JSON 메시지 1 MiB 수신 한도 강제 (Reviewer 3번 지적 사항)
-	conn.SetReadLimit(protocol.MaxJSONMessageSize)
+	// Connection-wide 읽기 한도 설정 (PTY Binary 4 MiB 상한 허용)
+	conn.SetReadLimit(MaxBinaryMessageSize)
 	c.conn = conn
 
 	// 1. TERMINAL_DATA_ATTACH 핸드셰이크 발송
@@ -145,10 +153,21 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 		return fmt.Errorf("expected text JSON response, got binary frame")
 	}
 
+	if int64(len(data)) > protocol.MaxJSONMessageSize {
+		_ = c.conn.Close()
+		return fmt.Errorf("attached message size %d exceeds 1 MiB limit", len(data))
+	}
+
 	var attachedMsg protocol.TerminalDataAttachedMessage
 	if parseErr := json.Unmarshal(data, &attachedMsg); parseErr != nil {
 		_ = c.conn.Close()
 		return fmt.Errorf("malformed JSON from relay: %w", parseErr)
+	}
+
+	// BaseEnvelope 필수 필드 검증 (Reviewer 5번 지적 사항)
+	if err := validateBaseEnvelope(attachedMsg.BaseEnvelope); err != nil {
+		_ = c.conn.Close()
+		return fmt.Errorf("invalid attached envelope: %w", err)
 	}
 
 	if attachedMsg.Type != protocol.MessageTypeTerminalDataAttached {
@@ -156,7 +175,7 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 		return fmt.Errorf("unexpected message type: %s (expected TERMINAL_DATA_ATTACHED)", attachedMsg.Type)
 	}
 
-	// Correlation 및 Payload 검증 (Reviewer 3, 6번 지적 사항)
+	// Correlation 및 Payload 검증 (Reviewer 3, 5, 6번 지적 사항)
 	if attachedMsg.ReplyToMessageID != attachMsgID {
 		_ = c.conn.Close()
 		return fmt.Errorf("replyToMessageId mismatch: want %s, got %s", attachMsgID, attachedMsg.ReplyToMessageID)
@@ -169,7 +188,15 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 			c.session.SessionID, c.session.LabInstanceID, c.session.Generation,
 			attachedMsg.TerminalSessionID, attachedMsg.LabInstanceID, attachedMsg.Generation)
 	}
-	if attachedMsg.Payload.HistoryAvailable {
+	if attachedMsg.Payload.Resumed == nil {
+		_ = c.conn.Close()
+		return fmt.Errorf("missing required field in attached payload: resumed")
+	}
+	if attachedMsg.Payload.HistoryAvailable == nil {
+		_ = c.conn.Close()
+		return fmt.Errorf("missing required field in attached payload: historyAvailable")
+	}
+	if *attachedMsg.Payload.HistoryAvailable {
 		_ = c.conn.Close()
 		return fmt.Errorf("invalid attached payload: historyAvailable must be false")
 	}
@@ -179,9 +206,9 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 	return nil
 }
 
-// StartStreaming 은 Attach 성공 후 WebSocket 과 PTY 간의 양방향 수신 루프를 시작합니다.
+// StartStreaming 은 Attach 성공 후 WebSocket 과 PTY 간의 양방향 수신 루프 및 자동 재연결 오너를 시작합니다.
 func (c *DataWSSClient) StartStreaming() {
-	go c.pumpFromWebSocketToPTY()
+	go c.runStreaming()
 }
 
 // ConnectAndStream 은 호환성을 위해 DialAndAttach 후 StartStreaming 을 수행합니다.
@@ -190,6 +217,130 @@ func (c *DataWSSClient) ConnectAndStream() error {
 		return err
 	}
 	c.StartStreaming()
+	return nil
+}
+
+// runStreaming 은 connection 단절 시 production 자동 재연결 오너 루프를 수행합니다.
+func (c *DataWSSClient) runStreaming() {
+	for {
+		c.pumpFromWebSocketToPTY()
+
+		c.mu.Lock()
+		closed := c.closed
+		c.mu.Unlock()
+		if closed || c.ctx.Err() != nil {
+			return
+		}
+
+		c.session.mu.Lock()
+		status := c.session.Status
+		c.session.mu.Unlock()
+		if status == StatusClosed {
+			return
+		}
+
+		// 연결 단절 및 세션 DETACHED 상태 -> 지수 백오프 자동 재연결 시도
+		if !c.reconnect() {
+			return
+		}
+	}
+}
+
+// reconnect 는 Data WSS 단절 후 세션 Grace Period 안에서 자동 재연결을 시도합니다.
+func (c *DataWSSClient) reconnect() bool {
+	backoff := 500 * time.Millisecond
+	maxBackoff := 5 * time.Second
+	factor := 2.0
+	jitter := 0.2 // ±20%
+
+	for {
+		c.mu.Lock()
+		if c.closed {
+			c.mu.Unlock()
+			return false
+		}
+		c.mu.Unlock()
+
+		c.session.mu.Lock()
+		status := c.session.Status
+		c.session.mu.Unlock()
+		if status == StatusClosed {
+			return false
+		}
+
+		sleepDuration := jitterDuration(backoff, jitter)
+		select {
+		case <-c.ctx.Done():
+			return false
+		case <-time.After(sleepDuration):
+		}
+
+		c.mu.Lock()
+		if c.closed {
+			c.mu.Unlock()
+			return false
+		}
+		c.mu.Unlock()
+
+		c.session.mu.Lock()
+		status = c.session.Status
+		c.session.mu.Unlock()
+		if status == StatusClosed {
+			return false
+		}
+
+		dialCtx, dialCancel := context.WithTimeout(c.ctx, c.config.DialTimeout)
+		err := c.DialAndAttach(dialCtx)
+		dialCancel()
+
+		if err == nil {
+			// 재연결 및 attach 성공 (동일 PTY 유지, resumed=true 확인)
+			return true
+		}
+
+		if errors.Is(err, ErrAuthenticationFailed) {
+			// 자격증명 신뢰 상실 시 무한 재시도 중단 및 세션 종료
+			c.session.Close(protocol.TerminalErrForbidden, nil, err)
+			return false
+		}
+
+		backoff = time.Duration(float64(backoff) * factor)
+		if backoff > maxBackoff {
+			backoff = maxBackoff
+		}
+	}
+}
+
+func jitterDuration(base time.Duration, jitterPct float64) time.Duration {
+	if jitterPct <= 0 {
+		return base
+	}
+	var b [2]byte
+	_, _ = rand.Read(b[:])
+	n := float64(int(b[0])<<8|int(b[1])) / 65535.0 // 0.0 ~ 1.0
+	factor := (1.0 - jitterPct) + (2.0 * jitterPct * n)
+	return time.Duration(float64(base) * factor)
+}
+
+func validateBaseEnvelope(env protocol.BaseEnvelope) error {
+	if strings.TrimSpace(env.Type) == "" {
+		return errors.New("missing required field: type")
+	}
+	if strings.TrimSpace(env.MessageID) == "" {
+		return errors.New("missing required field: messageId")
+	}
+	if env.SentAt.IsZero() {
+		return errors.New("missing required field: sentAt")
+	}
+	if strings.TrimSpace(env.TerminalSessionID) == "" {
+		return errors.New("missing required field: terminalSessionId")
+	}
+	if strings.TrimSpace(env.LabInstanceID) == "" {
+		return errors.New("missing required field: labInstanceId")
+	}
+	if env.Generation < 1 {
+		return errors.New("invalid generation: must be >= 1")
+	}
 	return nil
 }
 
@@ -225,10 +376,22 @@ func (c *DataWSSClient) pumpFromWebSocketToPTY() {
 			}
 
 		case websocket.TextMessage:
+			// JSON Text 1 MiB 초과 여부 분리 검증 (Reviewer 3번 지적 사항)
+			if int64(len(payload)) > protocol.MaxJSONMessageSize {
+				c.sendError(protocol.TerminalErrProtocolError, "json text message exceeds 1 MiB limit", false)
+				continue
+			}
+
 			// JSON 제어 프레임 (RESIZE, CLOSE, ERROR 등)
 			var baseEnv protocol.BaseEnvelope
 			if jsonErr := json.Unmarshal(payload, &baseEnv); jsonErr != nil {
 				c.sendError(protocol.TerminalErrProtocolError, "malformed JSON frame", false)
+				continue
+			}
+
+			// BaseEnvelope 필수 필드 검증 (Reviewer 5번 지적 사항)
+			if err := validateBaseEnvelope(baseEnv); err != nil {
+				c.sendError(protocol.TerminalErrProtocolError, fmt.Sprintf("invalid base envelope: %v", err), false)
 				continue
 			}
 
@@ -270,6 +433,10 @@ func (c *DataWSSClient) pumpFromWebSocketToPTY() {
 				var errMsg protocol.TerminalDataErrorMessage
 				if err := json.Unmarshal(payload, &errMsg); err != nil {
 					c.sendError(protocol.TerminalErrProtocolError, "malformed ERROR frame payload", false)
+					continue
+				}
+				if strings.TrimSpace(errMsg.Payload.Code) == "" {
+					c.sendError(protocol.TerminalErrProtocolError, "error code cannot be empty", false)
 					continue
 				}
 				if errMsg.Payload.Fatal {

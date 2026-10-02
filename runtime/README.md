@@ -195,6 +195,9 @@ Connector는 고객망 내부에서 실행하며 **SaaS가 Connector로 inbound 
 - `LABBIT_CONNECTOR_CREDENTIAL_FILE`
 - `LABBIT_PROVIDER_CONFIG_FILE`
 - `LABBIT_LOG_LEVEL`
+- `LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE` (Terminal 활성화 및 프로덕션 시 필수)
+- `LABBIT_OPENSTACK_SSH_USERNAME` (기본값: ubuntu)
+- `LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE` (Private Key 인증 시 필수, Secret)
 
 Connector Credential과 Provider/OpenStack Credential 원문은 고객 환경 Secret 경계에 남습니다. Connector는 SaaS 공개 443으로 outbound WSS를 생성합니다. Control path/subprotocol과 Terminal Data framing은 `contracts/connector`의 Git 계약이 원본입니다.
 

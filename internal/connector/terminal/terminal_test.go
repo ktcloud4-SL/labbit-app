@@ -150,45 +150,52 @@ func TestTerminal_GracePeriod_Resume(t *testing.T) {
 		t.Fatalf("failed to create session: %v", err)
 	}
 
-	client1 := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
 		EndpointURL:   relay.URL(),
 		RuntimeID:     "rt-1",
+		DialTimeout:   2 * time.Second,
 		AllowInsecure: true,
 	}, session)
+	defer client.Close()
 
-	if err := client1.ConnectAndStream(); err != nil {
+	if err := client.ConnectAndStream(); err != nil {
 		t.Fatalf("initial connect failed: %v", err)
 	}
-	_, _ = relay.WaitForAttach(2 * time.Second)
+	initialAttach, err := relay.WaitForAttach(2 * time.Second)
+	if err != nil {
+		t.Fatalf("initial attach failed: %v", err)
+	}
+	if initialAttach.TerminalSessionID != "sess-grace-1" {
+		t.Fatalf("unexpected session ID in attach: %s", initialAttach.TerminalSessionID)
+	}
 
-	// 브라우저 탭 닫힘 / 일시적 단절 시뮬레이션
+	// 1. 브라우저 탭 닫힘 / 일시적 네트워크 단절 시뮬레이션
 	relay.DisconnectConnection()
-	client1.Close()
 
-	// Detached 상태 확인
-	time.Sleep(50 * time.Millisecond)
-	if session.Status != terminal.StatusDetached {
-		t.Fatalf("expected StatusDetached, got %s", session.Status)
+	// 2. Connector 프로덕션 자동 재연결 오너에 의해 백그라운드에서 동일 세션으로 re-dial/attach 요청 도착 대기
+	reconnectedAttach, err := relay.WaitForAttach(3 * time.Second)
+	if err != nil {
+		t.Fatalf("expected auto-reconnect attach from client, but got error: %v", err)
+	}
+	if reconnectedAttach.TerminalSessionID != "sess-grace-1" {
+		t.Fatalf("expected same session ID %q on reconnect, got %q", "sess-grace-1", reconnectedAttach.TerminalSessionID)
 	}
 
-	// 60초 만료 전에 브라우저 새로고침으로 재접속 시뮬레이션
-	client2 := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
-		EndpointURL:   relay.URL(),
-		RuntimeID:     "rt-1",
-		AllowInsecure: true,
-	}, session)
-	defer client2.Close()
-
-	if err := client2.ConnectAndStream(); err != nil {
-		t.Fatalf("reconnect failed: %v", err)
+	// 3. 재연결 완료 후 세션 상태가 StatusActive 로 복원되었는지 확인
+	var active bool
+	for i := 0; i < 20; i++ {
+		if session.Status == terminal.StatusActive {
+			active = true
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !active {
+		t.Fatalf("expected session status to resume to StatusActive, got %s", session.Status)
 	}
 
-	if session.Status != terminal.StatusActive {
-		t.Fatalf("expected session to resume to StatusActive, got %s", session.Status)
-	}
-
-	// 재연결 후에도 PTY 입출력이 살아있는지 확인
-	testBytes := []byte("still alive\n")
+	// 4. 재연결 후에도 동일 PTY 입출력이 유지되는지 확인
+	testBytes := []byte("still alive after auto-reconnect\n")
 	if err := relay.SendBinary(testBytes); err != nil {
 		t.Fatalf("SendBinary after resume failed: %v", err)
 	}
@@ -401,18 +408,21 @@ func TestDataWSSClient_AttachCorrelationMismatch_Fails(t *testing.T) {
 		// Read attach
 		_, _, _ = conn.ReadMessage()
 
+		f := false
 		// Write malformed replyTo
 		badResp := protocol.TerminalDataAttachedMessage{
 			BaseEnvelope: protocol.BaseEnvelope{
 				Type:              protocol.MessageTypeTerminalDataAttached,
 				MessageID:         "msg-resp",
+				SentAt:            time.Now().UTC(),
 				ReplyToMessageID:  "WRONG-REPLY-TO-ID", // mismatch
 				TerminalSessionID: "sess-bad-attach",
 				LabInstanceID:     "inst-1",
 				Generation:        1,
 			},
 			Payload: protocol.TerminalDataAttachedPayload{
-				HistoryAvailable: false,
+				Resumed:          &f,
+				HistoryAvailable: &f,
 			},
 		}
 		_ = conn.WriteJSON(badResp)
@@ -509,6 +519,87 @@ func TestSession_SingleWriter_Concurrency(t *testing.T) {
 	wg.Wait()
 }
 
+func TestSession_Close_ConcurrentWrite_NoDeadlock(t *testing.T) {
+	// Binary output, JSON error, ENDED, and Close concurrent execution stress test
+	// Verifies no lock-order inversion deadlock between s.mu and s.writeMu
+	relay := mock.NewTerminalRelay()
+	defer relay.Close()
+
+	mgr := terminal.NewSessionManager(5*time.Second, nil)
+	pty := terminal.NewMockEchoPTY(80, 24)
+
+	session, _, err := mgr.GetOrCreateSession(
+		protocol.TerminalOpenPayload{TargetVmKey: "vm-1", ProviderServerID: "srv-1", Cols: 80, Rows: 24},
+		protocol.BaseEnvelope{TerminalSessionID: "sess-deadlock-test", LabInstanceID: "inst-1", Generation: 1},
+		func() (terminal.PTYChannel, error) { return pty, nil },
+	)
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+
+	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "rt-deadlock",
+		DialTimeout:   2 * time.Second,
+		AllowInsecure: true,
+	}, session)
+	defer client.Close()
+
+	if err := client.ConnectAndStream(); err != nil {
+		t.Fatalf("ConnectAndStream failed: %v", err)
+	}
+	_, _ = relay.WaitForAttach(2 * time.Second)
+
+	done := make(chan struct{})
+	go func() {
+		var wg sync.WaitGroup
+		const writers = 20
+		const iterations = 100
+
+		for i := 0; i < writers; i++ {
+			wg.Add(1)
+			go func(id int) {
+				defer wg.Done()
+				for j := 0; j < iterations; j++ {
+					_ = session.WriteMessage(websocket.BinaryMessage, []byte(fmt.Sprintf("bin-%d-%d", id, j)))
+				}
+			}(i)
+		}
+
+		for i := 0; i < writers; i++ {
+			wg.Add(1)
+			go func(id int) {
+				defer wg.Done()
+				for j := 0; j < iterations; j++ {
+					_ = session.WriteJSON(map[string]int{"writer": id, "iter": j})
+				}
+			}(i)
+		}
+
+		// Close concurrently during active writes
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			time.Sleep(5 * time.Millisecond)
+			session.Close("CONCURRENT_STRESS_CLOSE", nil, nil)
+		}()
+
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Succeeded with no deadlock
+	case <-time.After(5 * time.Second):
+		t.Fatal("DEADLOCK DETECTED: timeout waiting for concurrent writes and Close to complete")
+	}
+
+	if session.Status != terminal.StatusClosed {
+		t.Fatalf("expected StatusClosed, got %s", session.Status)
+	}
+}
+
 func TestDataWSSClient_SubprotocolMismatch_Fails(t *testing.T) {
 	// 하위 프로토콜 협상이 안 되거나 다른 프로토콜로 회신하는 경우 DialAndAttach 실패 검증
 	upgrader := websocket.Upgrader{
@@ -572,18 +663,21 @@ func TestDataWSSClient_HistoryAvailableTrue_Fails(t *testing.T) {
 		var attachMsg protocol.TerminalDataAttachMessage
 		_ = json.Unmarshal(data, &attachMsg)
 
+		f := false
+		tr := true
 		resp := protocol.TerminalDataAttachedMessage{
 			BaseEnvelope: protocol.BaseEnvelope{
 				Type:              protocol.MessageTypeTerminalDataAttached,
 				MessageID:         "msg-resp",
+				SentAt:            time.Now().UTC(),
 				ReplyToMessageID:  attachMsg.MessageID,
 				TerminalSessionID: attachMsg.TerminalSessionID,
 				LabInstanceID:     attachMsg.LabInstanceID,
 				Generation:        attachMsg.Generation,
 			},
 			Payload: protocol.TerminalDataAttachedPayload{
-				Resumed:          false,
-				HistoryAvailable: true, // Phase 1 forbidden
+				Resumed:          &f,
+				HistoryAvailable: &tr, // Phase 1 forbidden
 			},
 		}
 		_ = conn.WriteJSON(resp)
@@ -643,7 +737,7 @@ func TestDataWSSClient_InsecureScheme_RejectedInProduction(t *testing.T) {
 }
 
 func TestDataWSSClient_OversizedFrame_Fails(t *testing.T) {
-	// 1 MiB 초과 프레임 수신 시 ReadLimit 초과로 세션 에러/종료 검증
+	// JSON Text 1 MiB 상한과 PTY Binary 상한(4 MiB)이 정상 분리 동작하는지 검증 (Reviewer 3번 지적 사항)
 	relay := mock.NewTerminalRelay()
 	defer relay.Close()
 
@@ -672,15 +766,47 @@ func TestDataWSSClient_OversizedFrame_Fails(t *testing.T) {
 	}
 	_, _ = relay.WaitForAttach(2 * time.Second)
 
-	// 1 MiB + 1024 바이트 바이너리 전송 (ReadLimit 초과)
-	oversized := make([]byte, protocol.MaxJSONMessageSize+1024)
-	_ = relay.SendBinary(oversized)
+	// 1. JSON Text 1 MiB 초과 전송 -> client가 protocol error 회신하고 무시함
+	oversizedJSON := make([]byte, protocol.MaxJSONMessageSize+1024)
+	_ = relay.SendText(oversizedJSON)
 
-	// 클라이언트 측에서 ReadLimit 에러가 발생하여 세션이 종료되거나 에러 상태로 전이되는지 대기
-	time.Sleep(300 * time.Millisecond)
+	// 에러 프레임 회신 확인
+	errFrame, err := relay.ReadText(2 * time.Second)
+	if err != nil {
+		t.Fatalf("expected PROTOCOL_ERROR frame for oversized JSON text, got err: %v", err)
+	}
+	if !strings.Contains(string(errFrame), "exceeds 1 MiB limit") {
+		t.Fatalf("expected error message to mention 1 MiB limit, got %s", string(errFrame))
+	}
 
-	if session.Status != terminal.StatusClosed && session.Status != terminal.StatusDetached {
-		t.Fatalf("expected session to be closed or detached on oversized frame, got %s", session.Status)
+	// 2. Binary 1.1 MiB 전송 (JSON 1 MiB 한도를 넘지만 Binary 4 MiB 한도 이내) -> 정상 수신 및 Echo 성공
+	binaryOver1MB := make([]byte, protocol.MaxJSONMessageSize+64*1024)
+	copy(binaryOver1MB, "large-binary-ok")
+	if err := relay.SendBinary(binaryOver1MB); err != nil {
+		t.Fatalf("SendBinary > 1MB failed: %v", err)
+	}
+	output, err := relay.ReadBinary(3 * time.Second)
+	if err != nil {
+		t.Fatalf("ReadBinary for binary frame > 1 MiB failed: %v", err)
+	}
+	if len(output) == 0 {
+		t.Fatalf("expected non-empty binary echo, got %d", len(output))
+	}
+	if session.Status != terminal.StatusActive {
+		t.Fatalf("session should remain StatusActive after binary frame > 1 MiB, got %s", session.Status)
+	}
+
+	// 3. Binary 4 MiB 초과 전송 (MaxBinaryMessageSize 초과) -> Connection ReadLimit 초과로 소켓 단절
+	oversizedBinary := make([]byte, terminal.MaxBinaryMessageSize+1024)
+	_ = relay.SendBinary(oversizedBinary)
+
+	// ReadLimit 초과로 소켓이 끊기면, 클라이언트는 세션을 detach하고 백그라운드에서 자동 재연결(re-attach)을 수행함
+	reconnectedAttach, err := relay.WaitForAttach(3 * time.Second)
+	if err != nil {
+		t.Fatalf("expected client connection to drop and auto-reconnect on >4 MiB frame, got error: %v", err)
+	}
+	if reconnectedAttach.TerminalSessionID != "sess-oversized" {
+		t.Fatalf("expected same session ID on reconnect, got %s", reconnectedAttach.TerminalSessionID)
 	}
 }
 
@@ -746,17 +872,20 @@ func TestDataWSSClient_EmptyCloseReason_Rejected(t *testing.T) {
 		var attachMsg protocol.TerminalDataAttachMessage
 		_ = json.Unmarshal(data, &attachMsg)
 
+		f := false
 		resp := protocol.TerminalDataAttachedMessage{
 			BaseEnvelope: protocol.BaseEnvelope{
 				Type:              protocol.MessageTypeTerminalDataAttached,
 				MessageID:         "msg-resp",
+				SentAt:            time.Now().UTC(),
 				ReplyToMessageID:  attachMsg.MessageID,
 				TerminalSessionID: attachMsg.TerminalSessionID,
 				LabInstanceID:     attachMsg.LabInstanceID,
 				Generation:        attachMsg.Generation,
 			},
 			Payload: protocol.TerminalDataAttachedPayload{
-				HistoryAvailable: false,
+				Resumed:          &f,
+				HistoryAvailable: &f,
 			},
 		}
 		_ = conn.WriteJSON(resp)
@@ -801,6 +930,7 @@ func TestDataWSSClient_EmptyCloseReason_Rejected(t *testing.T) {
 		BaseEnvelope: protocol.BaseEnvelope{
 			Type:              protocol.MessageTypeTerminalDataClose,
 			MessageID:         "msg-bad-close",
+			SentAt:            time.Now().UTC(),
 			TerminalSessionID: "sess-empty-close",
 			LabInstanceID:     "inst-1",
 			Generation:        1,
@@ -820,5 +950,147 @@ func TestDataWSSClient_EmptyCloseReason_Rejected(t *testing.T) {
 	// Session should NOT be closed
 	if session.Status == terminal.StatusClosed {
 		t.Fatal("session should not be closed on invalid empty close reason")
+	}
+}
+
+func TestTerminalData_MissingRequiredFields_Fails(t *testing.T) {
+	// BaseEnvelope 필수 필드(messageId, sentAt, terminalSessionId, labInstanceId, generation) 및
+	// ATTACHED payload(resumed, historyAvailable) 누락 시 검증 실패 확인 (Reviewer 5번 지적 사항)
+
+	upgrader := websocket.Upgrader{
+		CheckOrigin:  func(r *http.Request) bool { return true },
+		Subprotocols: []string{protocol.SubprotocolTerminalData},
+	}
+
+	testCases := []struct {
+		name        string
+		attachedMsg func(attachMsg protocol.TerminalDataAttachMessage) interface{}
+		wantErr     string
+	}{
+		{
+			name: "missing messageId in BaseEnvelope",
+			attachedMsg: func(attachMsg protocol.TerminalDataAttachMessage) interface{} {
+				f := false
+				return map[string]interface{}{
+					"type":              protocol.MessageTypeTerminalDataAttached,
+					"sentAt":            time.Now().UTC().Format(time.RFC3339),
+					"replyToMessageId":  attachMsg.MessageID,
+					"terminalSessionId": attachMsg.TerminalSessionID,
+					"labInstanceId":     attachMsg.LabInstanceID,
+					"generation":        attachMsg.Generation,
+					"payload": map[string]interface{}{
+						"resumed":          f,
+						"historyAvailable": f,
+					},
+				}
+			},
+			wantErr: "missing required field: messageId",
+		},
+		{
+			name: "missing sentAt in BaseEnvelope",
+			attachedMsg: func(attachMsg protocol.TerminalDataAttachMessage) interface{} {
+				f := false
+				return map[string]interface{}{
+					"type":              protocol.MessageTypeTerminalDataAttached,
+					"messageId":         "msg-1",
+					"replyToMessageId":  attachMsg.MessageID,
+					"terminalSessionId": attachMsg.TerminalSessionID,
+					"labInstanceId":     attachMsg.LabInstanceID,
+					"generation":        attachMsg.Generation,
+					"payload": map[string]interface{}{
+						"resumed":          f,
+						"historyAvailable": f,
+					},
+				}
+			},
+			wantErr: "missing required field: sentAt",
+		},
+		{
+			name: "missing resumed in AttachedPayload",
+			attachedMsg: func(attachMsg protocol.TerminalDataAttachMessage) interface{} {
+				f := false
+				return map[string]interface{}{
+					"type":              protocol.MessageTypeTerminalDataAttached,
+					"messageId":         "msg-1",
+					"sentAt":            time.Now().UTC().Format(time.RFC3339),
+					"replyToMessageId":  attachMsg.MessageID,
+					"terminalSessionId": attachMsg.TerminalSessionID,
+					"labInstanceId":     attachMsg.LabInstanceID,
+					"generation":        attachMsg.Generation,
+					"payload": map[string]interface{}{
+						"historyAvailable": f,
+					},
+				}
+			},
+			wantErr: "missing required field in attached payload: resumed",
+		},
+		{
+			name: "missing historyAvailable in AttachedPayload",
+			attachedMsg: func(attachMsg protocol.TerminalDataAttachMessage) interface{} {
+				f := false
+				return map[string]interface{}{
+					"type":              protocol.MessageTypeTerminalDataAttached,
+					"messageId":         "msg-1",
+					"sentAt":            time.Now().UTC().Format(time.RFC3339),
+					"replyToMessageId":  attachMsg.MessageID,
+					"terminalSessionId": attachMsg.TerminalSessionID,
+					"labInstanceId":     attachMsg.LabInstanceID,
+					"generation":        attachMsg.Generation,
+					"payload": map[string]interface{}{
+						"resumed": f,
+					},
+				}
+			},
+			wantErr: "missing required field in attached payload: historyAvailable",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				conn, err := upgrader.Upgrade(w, r, nil)
+				if err != nil {
+					return
+				}
+				defer conn.Close()
+
+				_, data, err := conn.ReadMessage()
+				if err != nil {
+					return
+				}
+				var attachMsg protocol.TerminalDataAttachMessage
+				_ = json.Unmarshal(data, &attachMsg)
+
+				resp := tc.attachedMsg(attachMsg)
+				_ = conn.WriteJSON(resp)
+			}))
+			defer server.Close()
+
+			mgr := terminal.NewSessionManager(5*time.Second, nil)
+			session, _, err := mgr.GetOrCreateSession(
+				protocol.TerminalOpenPayload{TargetVmKey: "vm-1", ProviderServerID: "srv-1", Cols: 80, Rows: 24},
+				protocol.BaseEnvelope{TerminalSessionID: "sess-schema-test", LabInstanceID: "inst-1", Generation: 1},
+				func() (terminal.PTYChannel, error) { return terminal.NewMockEchoPTY(80, 24), nil },
+			)
+			if err != nil {
+				t.Fatalf("GetOrCreateSession failed: %v", err)
+			}
+
+			wsURL := "ws" + server.URL[len("http"):]
+			client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+				EndpointURL:   wsURL,
+				DialTimeout:   1 * time.Second,
+				AllowInsecure: true,
+			}, session)
+			defer client.Close()
+
+			err = client.DialAndAttach(context.Background())
+			if err == nil {
+				t.Fatalf("expected DialAndAttach to fail with error containing %q, got nil", tc.wantErr)
+			}
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("expected error containing %q, got: %v", tc.wantErr, err)
+			}
+		})
 	}
 }

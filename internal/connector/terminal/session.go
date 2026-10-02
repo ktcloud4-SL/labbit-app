@@ -214,9 +214,8 @@ func (sm *SessionManager) removeSession(sessionID string) {
 // 이전에 Detached 상태(Grace period 중)였다면 재연결(resumed = true)로 처리하고 타이머를 취소합니다.
 func (s *Session) AttachDataConn(conn *websocket.Conn) (resumed bool) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if s.Status == StatusClosed {
+		s.mu.Unlock()
 		return false
 	}
 
@@ -232,15 +231,19 @@ func (s *Session) AttachDataConn(conn *websocket.Conn) (resumed bool) {
 		resumed = false
 	}
 
-	// 기존 연결이 있다면 정리
-	if s.DataConn != nil && s.DataConn != conn {
-		_ = s.DataConn.Close()
-	}
-
+	oldConn := s.DataConn
 	s.DataConn = conn
 	s.Status = StatusActive
 	s.wasActive = true
 	s.detachChan = make(chan struct{})
+	s.mu.Unlock()
+
+	// 이전 활성 연결이 남아있다면 s.mu 밖에서 안전하게 닫기
+	if oldConn != nil && oldConn != conn {
+		s.writeMu.Lock()
+		_ = oldConn.Close()
+		s.writeMu.Unlock()
+	}
 
 	return resumed
 }
@@ -256,21 +259,19 @@ func (s *Session) WasActive() bool {
 // conn 파라미터가 제공된 경우 현재 활성 연결과 일치할 때만 분리를 수행합니다.
 func (s *Session) DetachDataConn(conn *websocket.Conn) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if conn != nil && s.DataConn != conn {
+		s.mu.Unlock()
 		return
 	}
 
 	if s.Status != StatusActive {
+		s.mu.Unlock()
 		return
 	}
 
 	s.Status = StatusDetached
-	if s.DataConn != nil {
-		_ = s.DataConn.Close()
-		s.DataConn = nil
-	}
+	oldConn := s.DataConn
+	s.DataConn = nil
 
 	// detachChan 시그널링으로 진행 중인 스트리밍 고루틴 중단
 	select {
@@ -290,6 +291,13 @@ func (s *Session) DetachDataConn(conn *websocket.Conn) {
 		}
 		s.mu.Unlock()
 	})
+	s.mu.Unlock()
+
+	if oldConn != nil {
+		s.writeMu.Lock()
+		_ = oldConn.Close()
+		s.writeMu.Unlock()
+	}
 }
 
 // Close 는 세션을 완전히 종료하고 리소스를 해제합니다.
@@ -309,7 +317,16 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 			close(s.detachChan)
 		}
 
-		if s.DataConn != nil {
+		conn := s.DataConn
+		s.DataConn = nil
+
+		pty := s.PTY
+		s.PTY = nil
+
+		callback := s.onEnded
+		s.mu.Unlock()
+
+		if conn != nil {
 			endedMsg := protocol.TerminalDataEndedMessage{
 				BaseEnvelope: protocol.BaseEnvelope{
 					Type:              protocol.MessageTypeTerminalDataEnded,
@@ -331,18 +348,14 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 				}
 			}
 			s.writeMu.Lock()
-			_ = s.DataConn.WriteJSON(endedMsg)
-			_ = s.DataConn.Close()
-			s.DataConn = nil
+			_ = conn.WriteJSON(endedMsg)
+			_ = conn.Close()
 			s.writeMu.Unlock()
 		}
 
-		if s.PTY != nil {
-			_ = s.PTY.Close()
+		if pty != nil {
+			_ = pty.Close()
 		}
-
-		callback := s.onEnded
-		s.mu.Unlock()
 
 		if callback != nil {
 			callback(s, reason, exitCode, err)
@@ -351,10 +364,8 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 }
 
 // WriteMessage 는 활성 WebSocket 연결로 메시지를 단일 뮤텍스 직렬화하여 전송합니다.
+// s.mu 와 s.writeMu 를 중첩 획득하지 않고, s.mu 아래에서 상태/conn 을 스냅샷 후 s.writeMu 에서 전송합니다.
 func (s *Session) WriteMessage(messageType int, data []byte) error {
-	s.writeMu.Lock()
-	defer s.writeMu.Unlock()
-
 	s.mu.Lock()
 	conn := s.DataConn
 	status := s.Status
@@ -363,14 +374,16 @@ func (s *Session) WriteMessage(messageType int, data []byte) error {
 	if status != StatusActive || conn == nil {
 		return net.ErrClosed
 	}
+
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
 	return conn.WriteMessage(messageType, data)
 }
 
 // WriteJSON 은 활성 WebSocket 연결로 JSON 메시지를 단일 뮤텍스 직렬화하여 전송합니다.
+// s.mu 와 s.writeMu 를 중첩 획득하지 않고, s.mu 아래에서 상태/conn 을 스냅샷 후 s.writeMu 에서 전송합니다.
 func (s *Session) WriteJSON(v interface{}) error {
-	s.writeMu.Lock()
-	defer s.writeMu.Unlock()
-
 	s.mu.Lock()
 	conn := s.DataConn
 	status := s.Status
@@ -379,6 +392,10 @@ func (s *Session) WriteJSON(v interface{}) error {
 	if status != StatusActive || conn == nil {
 		return net.ErrClosed
 	}
+
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
 	return conn.WriteJSON(v)
 }
 

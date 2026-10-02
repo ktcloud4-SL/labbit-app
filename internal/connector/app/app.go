@@ -36,16 +36,19 @@ func BuildConnector(p provider.Provider, sender wss.MessageSender) (*ConnectorAp
 	}
 
 	var credential string
-	if credFile := strings.TrimSpace(os.Getenv("LABBIT_CONNECTOR_CREDENTIAL_FILE")); credFile != "" {
+	credFile := strings.TrimSpace(os.Getenv("LABBIT_CONNECTOR_CREDENTIAL_FILE"))
+	if credFile != "" {
 		data, err := os.ReadFile(credFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read connector credential file: %w", err)
 		}
 		credential = strings.TrimSpace(string(data))
-	} else if cred := strings.TrimSpace(os.Getenv("LABBIT_CONNECTOR_CREDENTIAL")); cred != "" {
-		credential = cred
 	} else if isProduction {
+		// 프로덕션 모드에서는 Runtime Contract SSOT에 따라 반드시 LABBIT_CONNECTOR_CREDENTIAL_FILE 파일 주입만 허용
 		return nil, fmt.Errorf("connector credential is required in production: set LABBIT_CONNECTOR_CREDENTIAL_FILE")
+	} else if cred := strings.TrimSpace(os.Getenv("LABBIT_CONNECTOR_CREDENTIAL")); cred != "" {
+		// 개발/테스트 환경에서 편의를 위해 제한적으로 리터럴 허용
+		credential = cred
 	} else {
 		credential = "local-dev-credential"
 	}
@@ -126,6 +129,8 @@ func BuildConnector(p provider.Provider, sender wss.MessageSender) (*ConnectorAp
 }
 
 // Run 은 Connector 프로세스의 lifecycle과 Graceful Shutdown을 제공합니다.
+// 주의: Run() 내의 MockProvider 사용은 LBT-82 OpenStack Provider 실제 배선 전 단계의 Skeleton/Bootstrap 경계입니다.
+// 실제 프로덕션 구동 시에는 구체 OpenStack Provider 구현체가 주입되어야 합니다.
 func Run(ctx context.Context) error {
 	environment := envOrDefault("LABBIT_ENVIRONMENT", "development")
 	logLevel := envOrDefault("LABBIT_LOG_LEVEL", "info")
@@ -135,7 +140,7 @@ func Run(ctx context.Context) error {
 		"connector_id", strings.TrimSpace(os.Getenv("LABBIT_CONNECTOR_ID")),
 	)
 
-	// Production Wiring 초기화
+	// Production Wiring 초기화 (후속 Provider 배선 전까지 MockProvider 스켈레톤 사용)
 	connectorApp, err := BuildConnector(&provider.MockProvider{}, nil)
 	if err != nil {
 		return err

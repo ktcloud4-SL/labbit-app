@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   clearTerminalResumeState,
@@ -15,6 +15,7 @@ describe('terminalResumeStorage', () => {
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
     window.sessionStorage.clear()
   })
 
@@ -99,6 +100,35 @@ describe('terminalResumeStorage', () => {
       ),
     ).toBeNull()
     expect(window.sessionStorage.length).toBe(0)
+  })
+
+  it('sessionStorage가 차단되면 현재 Terminal 연결 자체는 막지 않는다', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError')
+    })
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError')
+    })
+
+    expect(
+      saveTerminalResumeState({
+        labInstanceId: 'lab-instance-1',
+        generation: 3,
+        terminalSessionId: 'terminal-session-1',
+        sessionToken: 'opaque-token',
+        tokenExpiresAt: future,
+      }),
+    ).toBe(false)
+
+    expect(
+      readTerminalResumeState(
+        {
+          labInstanceId: 'lab-instance-1',
+          generation: 3,
+        },
+        now,
+      ),
+    ).toBeNull()
   })
 
   it('명시적으로 resume credential을 제거한다', () => {

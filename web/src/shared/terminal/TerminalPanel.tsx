@@ -64,8 +64,29 @@ const unrecoverableCloseCodes = new Set([
 
 function stripAnsi(value: string) {
   // MVP fallback renderer: transport는 raw PTY byte stream을 유지하고,
-  // 화면에는 흔한 ANSI control sequence만 제거한 text를 표시한다.
-  return value.replace(/\u001B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '')
+  // 화면에는 흔한 ESC/CSI control sequence만 제거한 text를 표시한다.
+  let result = ''
+  let escaping = false
+
+  for (const character of value) {
+    const code = character.charCodeAt(0)
+
+    if (!escaping && code === 27) {
+      escaping = true
+      continue
+    }
+
+    if (escaping) {
+      if (code >= 0x40 && code <= 0x7e) {
+        escaping = false
+      }
+      continue
+    }
+
+    result += character
+  }
+
+  return result
 }
 
 function appendBounded(current: string, next: string) {
@@ -178,10 +199,17 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     () => {},
   )
 
+  const [initialResume] = useState(() =>
+    readTerminalResumeState({ labInstanceId, generation }),
+  )
   const [selectedVmKey, setSelectedVmKey] = useState('')
-  const [status, setStatus] = useState<TerminalUiStatus>('idle')
+  const [status, setStatus] = useState<TerminalUiStatus>(
+    initialResume ? 'reconnecting' : 'idle',
+  )
   const [statusMessage, setStatusMessage] = useState(
-    'VM을 선택하고 터미널 연결을 시작하세요.',
+    initialResume
+      ? '새로고침 전 TerminalSession으로 다시 연결합니다.'
+      : 'VM을 선택하고 터미널 연결을 시작하세요.',
   )
   const [output, setOutput] = useState('')
   const [command, setCommand] = useState('')
@@ -192,11 +220,6 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     queryFn: () => api.listTerminalTargets(labInstanceId),
     retry: false,
   })
-
-  useEffect(() => {
-    if (!targetsQuery.data || selectedVmKey) return
-    setSelectedVmKey(targetsQuery.data.workspaceVmKey)
-  }, [selectedVmKey, targetsQuery.data])
 
   const clearRetryTimer = useCallback(() => {
     if (retryTimerRef.current !== null) {
@@ -312,8 +335,10 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
       })
 
       clientRef.current = client
-      setStatus(reconnect ? 'reconnecting' : 'connecting')
-      if (!reconnect) setStatusMessage('터미널 WebSocket에 연결하고 있습니다.')
+      if (!reconnect) {
+        setStatus('connecting')
+        setStatusMessage('터미널 WebSocket에 연결하고 있습니다.')
+      }
 
       const size = measureTerminal(viewportRef.current)
       client.connect({
@@ -326,14 +351,14 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     [clearRetryTimer, invalidateResume, scheduleReconnect],
   )
 
-  connectRef.current = connectSocket
+  useEffect(() => {
+    connectRef.current = connectSocket
+  }, [connectSocket])
 
   useEffect(() => {
-    const saved = readTerminalResumeState({ labInstanceId, generation })
-    if (saved) {
-      resumeRef.current = saved
-      setStatusMessage('새로고침 전 TerminalSession으로 다시 연결합니다.')
-      connectSocket(saved, true)
+    if (initialResume) {
+      resumeRef.current = initialResume
+      connectSocket(initialResume, true)
     }
 
     return () => {
@@ -343,7 +368,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
       clientRef.current?.disconnect()
       clientRef.current = null
     }
-  }, [clearRetryTimer, connectSocket, generation, labInstanceId])
+  }, [clearRetryTimer, connectSocket, initialResume])
 
   useEffect(() => {
     if (status !== 'attached' || !viewportRef.current) return
@@ -364,13 +389,15 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedVmKey) {
+      const targetVmKey =
+        selectedVmKey || targetsQuery.data?.workspaceVmKey || ''
+      if (!targetVmKey) {
         throw new Error('Terminal target이 선택되지 않았습니다.')
       }
 
       const size = measureTerminal(viewportRef.current)
       return api.createTerminalSession(labInstanceId, {
-        targetVmKey: selectedVmKey,
+        targetVmKey,
         cols: size.cols,
         rows: size.rows,
       })
@@ -455,6 +482,8 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     }
   }
 
+  const effectiveSelectedVmKey =
+    selectedVmKey || targetsQuery.data?.workspaceVmKey || ''
   const targetGenerationMismatch =
     Boolean(targetsQuery.data) && targetsQuery.data?.generation !== generation
 
@@ -465,7 +494,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
           <label htmlFor="terminal-target">VM</label>
           <select
             id="terminal-target"
-            value={selectedVmKey}
+            value={effectiveSelectedVmKey}
             disabled={
               !targetsQuery.data ||
               targetGenerationMismatch ||
@@ -513,7 +542,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
               disabled={
                 targetsQuery.isPending ||
                 targetGenerationMismatch ||
-                !selectedVmKey ||
+                !effectiveSelectedVmKey ||
                 status === 'creating' ||
                 status === 'connecting' ||
                 status === 'closing'

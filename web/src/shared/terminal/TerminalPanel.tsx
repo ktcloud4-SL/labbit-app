@@ -526,13 +526,25 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     }
   }
 
+  const targetAuthExpired =
+    targetsQuery.error instanceof HttpError && targetsQuery.error.status === 401
+
+  useEffect(() => {
+    if (!targetAuthExpired) return
+
+    suppressReconnectRef.current = true
+    clearRetryTimer()
+    connectionSequenceRef.current += 1
+    clientRef.current?.disconnect()
+    clientRef.current = null
+    invalidateResume()
+    setAuthExpired(true)
+  }, [clearRetryTimer, invalidateResume, targetAuthExpired])
+
   const effectiveSelectedVmKey =
     selectedVmKey || targetsQuery.data?.workspaceVmKey || ''
   const targetGenerationMismatch =
     Boolean(targetsQuery.data) && targetsQuery.data?.generation !== generation
-  const targetAuthExpired =
-    targetsQuery.error instanceof HttpError && targetsQuery.error.status === 401
-
   if (authExpired || targetAuthExpired) {
     return <LoginRedirect reason="sessionExpired" />
   }

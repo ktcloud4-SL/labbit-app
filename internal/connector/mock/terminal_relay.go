@@ -19,12 +19,12 @@ type TerminalRelay struct {
 	server   *httptest.Server
 	upgrader websocket.Upgrader
 
-	mu          sync.Mutex
-	conn        *websocket.Conn
-	activeSess  string
-	activeLabID string
-	activeGen   int64
-	attachRecv  chan protocol.TerminalDataAttachMessage
+	mu             sync.Mutex
+	conn           *websocket.Conn
+	activeSess     string
+	activeLabID    string
+	activeGen      int64
+	attachRecv     chan protocol.TerminalDataAttachMessage
 	binRecv        chan []byte
 	textRecv       chan []byte
 	closeRecv      chan int

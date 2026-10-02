@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import type {
   LoginLocationState,
@@ -26,6 +26,7 @@ describe('LoginRedirect', () => {
   it.each<LoginReason>(['authRequired', 'sessionExpired'])(
     '%s 상태에서 사용자 query cache를 제거하고 기존 경로를 보존한 채 Login으로 replace 이동한다',
     async (reason) => {
+      const removeItem = vi.spyOn(Storage.prototype, 'removeItem')
       const queryClient = new QueryClient()
       queryClient.setQueryData(['previous-user-sensitive-data'], {
         className: 'previous-user-class',
@@ -62,6 +63,8 @@ describe('LoginRedirect', () => {
       expect(
         queryClient.getQueryData(['previous-user-sensitive-data']),
       ).toBeUndefined()
+      expect(removeItem).toHaveBeenCalledWith('labbit.terminal.resume.v1')
+      removeItem.mockRestore()
     },
   )
 })

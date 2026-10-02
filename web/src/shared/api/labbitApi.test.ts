@@ -367,14 +367,17 @@ describe('httpLabbitApi', () => {
         },
       ],
     }
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(tree), {
-        status: 200,
-        headers: {
-          'content-type': 'application/json',
-        },
-      }),
-    )
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(
+        async () =>
+          new Response(JSON.stringify(tree), {
+            status: 200,
+            headers: {
+              'content-type': 'application/json',
+            },
+          }),
+      )
     vi.stubGlobal('fetch', fetchMock)
 
     await httpLabbitApi.listWorkspaceFiles('lab-instance/demo')

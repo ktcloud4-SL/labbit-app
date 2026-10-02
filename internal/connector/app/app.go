@@ -111,11 +111,12 @@ func BuildConnector(p provider.Provider, sender wss.MessageSender) (*ConnectorAp
 	sessionMgr := terminal.NewSessionManager(60*time.Second, nil)
 
 	termCfg := terminal.DataWSSClientConfig{
-		EndpointURL:   terminalRelayURL,
-		Credential:    credential,
-		RuntimeID:     runtimeID,
-		DialTimeout:   10 * time.Second,
-		AllowInsecure: !isProduction,
+		EndpointURL:    terminalRelayURL,
+		Credential:     credential,
+		CredentialFile: credFile,
+		RuntimeID:      runtimeID,
+		DialTimeout:    10 * time.Second,
+		AllowInsecure:  !isProduction,
 	}
 
 	handler := wss.NewHandler(p, sender)

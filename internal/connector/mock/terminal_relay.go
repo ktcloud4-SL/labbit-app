@@ -2,6 +2,7 @@ package mock
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -24,9 +25,12 @@ type TerminalRelay struct {
 	activeLabID string
 	activeGen   int64
 	attachRecv  chan protocol.TerminalDataAttachMessage
-	binRecv     chan []byte
-	textRecv    chan []byte
-	closed      bool
+	binRecv        chan []byte
+	textRecv       chan []byte
+	closeRecv      chan int
+	authValidator  func(req *http.Request) int
+	beforeAttached func(attachMsg protocol.TerminalDataAttachMessage)
+	closed         bool
 }
 
 // NewTerminalRelay 는 로컬 테스트용 Mock Terminal Relay 서버를 시작합니다.
@@ -39,6 +43,7 @@ func NewTerminalRelay() *TerminalRelay {
 		attachRecv: make(chan protocol.TerminalDataAttachMessage, 10),
 		binRecv:    make(chan []byte, 100),
 		textRecv:   make(chan []byte, 10),
+		closeRecv:  make(chan int, 10),
 	}
 
 	mux := http.NewServeMux()
@@ -64,7 +69,44 @@ func (r *TerminalRelay) Close() {
 	r.server.Close()
 }
 
+// SetAuthValidator 는 WSS 업그레이드 전 HTTP 인증 검증 콜백을 설정합니다.
+func (r *TerminalRelay) SetAuthValidator(fn func(req *http.Request) int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.authValidator = fn
+}
+
+// SetBeforeAttached 는 ATTACHED 회신 발송 직전에 실행할 인터리빙 훅을 설정합니다.
+func (r *TerminalRelay) SetBeforeAttached(fn func(attachMsg protocol.TerminalDataAttachMessage)) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.beforeAttached = fn
+}
+
+// CloseWithCode 는 특정 WebSocket Close 코드로 활성 연결을 종료합니다.
+func (r *TerminalRelay) CloseWithCode(code int, reason string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.conn != nil {
+		_ = r.conn.WriteControl(websocket.CloseMessage,
+			websocket.FormatCloseMessage(code, reason),
+			time.Now().Add(time.Second))
+		_ = r.conn.Close()
+		r.conn = nil
+	}
+}
+
 func (r *TerminalRelay) handleWebSocket(w http.ResponseWriter, req *http.Request) {
+	r.mu.Lock()
+	authFn := r.authValidator
+	r.mu.Unlock()
+	if authFn != nil {
+		if code := authFn(req); code != http.StatusOK {
+			http.Error(w, "unauthorized", code)
+			return
+		}
+	}
+
 	conn, err := r.upgrader.Upgrade(w, req, nil)
 	if err != nil {
 		return
@@ -92,6 +134,13 @@ func (r *TerminalRelay) handleWebSocket(w http.ResponseWriter, req *http.Request
 	}
 
 	r.attachRecv <- attachMsg
+
+	r.mu.Lock()
+	hook := r.beforeAttached
+	r.mu.Unlock()
+	if hook != nil {
+		hook(attachMsg)
+	}
 
 	r.mu.Lock()
 	isResume := (r.activeSess == attachMsg.TerminalSessionID && r.activeSess != "")
@@ -126,6 +175,15 @@ func (r *TerminalRelay) handleWebSocket(w http.ResponseWriter, req *http.Request
 	for {
 		mType, p, rErr := conn.ReadMessage()
 		if rErr != nil {
+			var closeCode int
+			var closeErr *websocket.CloseError
+			if errors.As(rErr, &closeErr) {
+				closeCode = closeErr.Code
+			}
+			select {
+			case r.closeRecv <- closeCode:
+			default:
+			}
 			return
 		}
 		if mType == websocket.BinaryMessage {
@@ -139,6 +197,16 @@ func (r *TerminalRelay) handleWebSocket(w http.ResponseWriter, req *http.Request
 			default:
 			}
 		}
+	}
+}
+
+// WaitForClose 는 Connector 로부터 소켓 Close 프레임이 수신될 때까지 대기합니다.
+func (r *TerminalRelay) WaitForClose(timeout time.Duration) (int, error) {
+	select {
+	case code := <-r.closeRecv:
+		return code, nil
+	case <-time.After(timeout):
+		return 0, fmt.Errorf("timeout waiting for connection close")
 	}
 }
 

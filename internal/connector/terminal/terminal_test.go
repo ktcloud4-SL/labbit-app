@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -766,17 +768,23 @@ func TestDataWSSClient_OversizedFrame_Fails(t *testing.T) {
 	}
 	_, _ = relay.WaitForAttach(2 * time.Second)
 
-	// 1. JSON Text 1 MiB 초과 전송 -> client가 protocol error 회신하고 무시함
+	// 1. JSON Text 1 MiB 초과 전송 -> Bounded Read로 감지되어 1009(Message Too Big) Close 및 자동 재연결
 	oversizedJSON := make([]byte, protocol.MaxJSONMessageSize+1024)
 	_ = relay.SendText(oversizedJSON)
 
-	// 에러 프레임 회신 확인
-	errFrame, err := relay.ReadText(2 * time.Second)
+	// Close code 1009 수신 확인
+	closeCode, err := relay.WaitForClose(2 * time.Second)
 	if err != nil {
-		t.Fatalf("expected PROTOCOL_ERROR frame for oversized JSON text, got err: %v", err)
+		t.Fatalf("expected 1009 close for oversized JSON text, got err: %v", err)
 	}
-	if !strings.Contains(string(errFrame), "exceeds 1 MiB limit") {
-		t.Fatalf("expected error message to mention 1 MiB limit, got %s", string(errFrame))
+	if closeCode != websocket.CloseMessageTooBig {
+		t.Fatalf("expected close code %d (1009 Message Too Big), got %d", websocket.CloseMessageTooBig, closeCode)
+	}
+
+	// 1009 로 끊긴 후 백그라운드 재연결(re-attach) 확인
+	_, err = relay.WaitForAttach(3 * time.Second)
+	if err != nil {
+		t.Fatalf("expected auto-reconnect after 1009 close, got: %v", err)
 	}
 
 	// 2. Binary 1.1 MiB 전송 (JSON 1 MiB 한도를 넘지만 Binary 4 MiB 한도 이내) -> 정상 수신 및 Echo 성공
@@ -1092,5 +1100,216 @@ func TestTerminalData_MissingRequiredFields_Fails(t *testing.T) {
 				t.Fatalf("expected error containing %q, got: %v", tc.wantErr, err)
 			}
 		})
+	}
+}
+
+// TestTerminal_CredentialRevoke_ReattachPreservesPTY 는 Data WSS 연결이 Credential revoke로 인해 4001로 종료되고,
+// 재접속 시 이전 토큰이 401로 거부될 때, PTY와 세션이 종료되지 않고 Grace Period 안에서 유지되며,
+// Credential 갱신 후 동일한 terminalSessionId로 reattach(resumed=true)하여 동일 PTY 세션이 유지되는지 검증합니다.
+func TestTerminal_CredentialRevoke_ReattachPreservesPTY(t *testing.T) {
+	relay := mock.NewTerminalRelay()
+	defer relay.Close()
+
+	var credMu sync.Mutex
+	validToken := "token-initial"
+	relay.SetAuthValidator(func(req *http.Request) int {
+		auth := req.Header.Get("Authorization")
+		credMu.Lock()
+		cur := validToken
+		credMu.Unlock()
+		if auth == "Bearer "+cur {
+			return http.StatusOK
+		}
+		return http.StatusUnauthorized
+	})
+
+	pty := terminal.NewMockEchoPTY(80, 24)
+	mgr := terminal.NewSessionManager(10*time.Second, nil)
+	session, _, err := mgr.GetOrCreateSession(
+		protocol.TerminalOpenPayload{TargetVmKey: "vm-revoked", ProviderServerID: "srv-revoked", Cols: 80, Rows: 24},
+		protocol.BaseEnvelope{TerminalSessionID: "sess-revoked-test", LabInstanceID: "lab-1", Generation: 1},
+		func() (terminal.PTYChannel, error) { return pty, nil },
+	)
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+
+	// 임시 Credential 파일 생성
+	tmpCredFile := filepath.Join(t.TempDir(), "connector_cred.txt")
+	if err := os.WriteFile(tmpCredFile, []byte("token-initial"), 0600); err != nil {
+		t.Fatalf("failed to write tmp cred file: %v", err)
+	}
+
+	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+		EndpointURL:    relay.URL(),
+		CredentialFile: tmpCredFile,
+		RuntimeID:      "rt-revoke-test",
+		DialTimeout:    2 * time.Second,
+		AllowInsecure:  true,
+	}, session)
+	defer client.Close()
+
+	if err := client.ConnectAndStream(); err != nil {
+		t.Fatalf("ConnectAndStream failed: %v", err)
+	}
+
+	// 1. 초기 Attach 성공 확인
+	firstAttach, err := relay.WaitForAttach(2 * time.Second)
+	if err != nil {
+		t.Fatalf("WaitForAttach failed: %v", err)
+	}
+	if firstAttach.TerminalSessionID != "sess-revoked-test" {
+		t.Fatalf("expected session ID sess-revoked-test, got %s", firstAttach.TerminalSessionID)
+	}
+
+	// PTY 입력 및 에코 검증
+	if err := relay.SendBinary([]byte("echo-before-revoke")); err != nil {
+		t.Fatalf("SendBinary failed: %v", err)
+	}
+	out, err := relay.ReadBinary(2 * time.Second)
+	if err != nil || string(out) != "echo-before-revoke" {
+		t.Fatalf("expected initial echo, got %s, err: %v", string(out), err)
+	}
+
+	// 2. Data connection 4001 종료 및 토큰 revoke (이전 토큰 무효화)
+	credMu.Lock()
+	validToken = "token-renewed-v2"
+	credMu.Unlock()
+
+	const closeCredentialRevoked = 4001
+	relay.CloseWithCode(closeCredentialRevoked, "credential revoked")
+
+	// 3. 잠시 대기하여 reconnect()가 기존 토큰으로 401을 받는 상태 확인
+	time.Sleep(300 * time.Millisecond)
+
+	// 검증: 401을 받았더라도 PTY와 세션이 종료(StatusClosed)되지 않고 StatusDetached로 유지되어야 함!
+	status := session.GetStatus()
+	if status == terminal.StatusClosed {
+		t.Fatalf("session should NOT be closed on 401 auth failure, must remain detached")
+	}
+
+	// 4. Credential 파일 갱신 (새로운 유효 토큰 주입)
+	if err := os.WriteFile(tmpCredFile, []byte("token-renewed-v2"), 0600); err != nil {
+		t.Fatalf("failed to update cred file: %v", err)
+	}
+
+	// 5. 클라이언트가 파일 갱신을 감지하고 새 토큰으로 reattach 성공하는지 대기
+	secondAttach, err := relay.WaitForAttach(4 * time.Second)
+	if err != nil {
+		t.Fatalf("expected successful reattach with renewed credential, got: %v", err)
+	}
+	if secondAttach.TerminalSessionID != "sess-revoked-test" {
+		t.Fatalf("expected same session ID on reattach, got %s", secondAttach.TerminalSessionID)
+	}
+
+	// 6. 동일 PTY 유지 검증: 재연결된 소켓으로 키 입력 전달 시 동일한 PTY가 계속 에코 회신
+	if err := relay.SendBinary([]byte("echo-after-renew")); err != nil {
+		t.Fatalf("SendBinary after reattach failed: %v", err)
+	}
+	outAfter, err := relay.ReadBinary(2 * time.Second)
+	if err != nil || string(outAfter) != "echo-after-renew" {
+		t.Fatalf("expected PTY to remain alive and echo, got %s, err: %v", string(outAfter), err)
+	}
+}
+
+// TestTerminal_Reconnect_RaceWithSessionClose_NoOrphanConn 은 Reconnect 핸드셰이크 중
+// Grace Timeout 또는 Session.Close()가 인터리빙되어 세션이 CLOSED 될 때,
+// 새로 맺어진 커넥션이 바인딩되지 않고 즉시 회수(Close)되어 orphan WebSocket이 남지 않는지 검증합니다.
+func TestTerminal_Reconnect_RaceWithSessionClose_NoOrphanConn(t *testing.T) {
+	relay := mock.NewTerminalRelay()
+	defer relay.Close()
+
+	pty := terminal.NewMockEchoPTY(80, 24)
+	mgr := terminal.NewSessionManager(10*time.Second, nil)
+	session, _, err := mgr.GetOrCreateSession(
+		protocol.TerminalOpenPayload{TargetVmKey: "vm-race", ProviderServerID: "srv-race", Cols: 80, Rows: 24},
+		protocol.BaseEnvelope{TerminalSessionID: "sess-race-test", LabInstanceID: "lab-1", Generation: 1},
+		func() (terminal.PTYChannel, error) { return pty, nil },
+	)
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+
+	// ATTACH 메시지 수신 직후 (클라이언트가 ATTACHED 응답을 받기 직전),
+	// 다른 고루틴에서 session.Close()가 실행되는 경쟁 상황을 인터리빙
+	relay.SetBeforeAttached(func(attachMsg protocol.TerminalDataAttachMessage) {
+		session.Close("shutdown-race", nil, nil)
+	})
+
+	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "rt-race-test",
+		DialTimeout:   2 * time.Second,
+		AllowInsecure: true,
+	}, session)
+	defer client.Close()
+
+	// DialAndAttach 실행 -> ATTACHED 수신 후 AttachDataConn 호출 시 session이 이미 CLOSED 상태
+	err = client.DialAndAttach(context.Background())
+	if err == nil {
+		t.Fatalf("expected DialAndAttach to fail when session was closed concurrently, got nil")
+	}
+	if !errors.Is(err, terminal.ErrSessionClosed) {
+		t.Fatalf("expected ErrSessionClosed, got: %v", err)
+	}
+
+	// 세션이 계속 CLOSED 상태인지 확인
+	status := session.GetStatus()
+	dataConn := session.GetDataConn()
+	if status != terminal.StatusClosed {
+		t.Fatalf("session status must remain StatusClosed, got %s", status)
+	}
+	if dataConn != nil {
+		t.Fatalf("session.DataConn must be nil, but orphan conn found: %v", dataConn)
+	}
+}
+
+// TestTerminal_JSONText_BoundedRead_RejectsOversized 는 1 MiB를 초과하는 JSON Text 프레임이
+// 메모리에 전체 적재되지 않고 pre-decode bounded read 단계에서 1009로 차단되는지 검증합니다.
+func TestTerminal_JSONText_BoundedRead_RejectsOversized(t *testing.T) {
+	relay := mock.NewTerminalRelay()
+	defer relay.Close()
+
+	pty := terminal.NewMockEchoPTY(80, 24)
+	mgr := terminal.NewSessionManager(10*time.Second, nil)
+	session, _, err := mgr.GetOrCreateSession(
+		protocol.TerminalOpenPayload{TargetVmKey: "vm-bounded", ProviderServerID: "srv-bounded", Cols: 80, Rows: 24},
+		protocol.BaseEnvelope{TerminalSessionID: "sess-bounded-test", LabInstanceID: "lab-1", Generation: 1},
+		func() (terminal.PTYChannel, error) { return pty, nil },
+	)
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+
+	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+		EndpointURL:   relay.URL(),
+		RuntimeID:     "rt-bounded-test",
+		DialTimeout:   2 * time.Second,
+		AllowInsecure: true,
+	}, session)
+	defer client.Close()
+
+	if err := client.ConnectAndStream(); err != nil {
+		t.Fatalf("ConnectAndStream failed: %v", err)
+	}
+	_, err = relay.WaitForAttach(2 * time.Second)
+	if err != nil {
+		t.Fatalf("WaitForAttach failed: %v", err)
+	}
+
+	// 1.5 MiB Text frame 전송 (1 MiB 상한 초과)
+	oversizedPayload := make([]byte, 1500*1024)
+	for i := range oversizedPayload {
+		oversizedPayload[i] = 'A'
+	}
+	_ = relay.SendText(oversizedPayload)
+
+	// Close 1009 수신 확인
+	closeCode, err := relay.WaitForClose(3 * time.Second)
+	if err != nil {
+		t.Fatalf("expected close code 1009 from client bounded read, got error: %v", err)
+	}
+	if closeCode != websocket.CloseMessageTooBig {
+		t.Fatalf("expected close code %d (1009 Message Too Big), got %d", websocket.CloseMessageTooBig, closeCode)
 	}
 }

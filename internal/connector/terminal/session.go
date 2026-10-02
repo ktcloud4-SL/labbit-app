@@ -25,6 +25,7 @@ const (
 var (
 	ErrSessionNotFound      = errors.New("terminal session not found")
 	ErrSessionAlreadyClosed = errors.New("terminal session already closed")
+	ErrSessionClosed        = errors.New("terminal session is closed")
 	ErrStaleGeneration      = errors.New("stale generation drop")
 	ErrSessionConflict      = errors.New("terminal session conflict")
 )
@@ -212,11 +213,15 @@ func (sm *SessionManager) removeSession(sessionID string) {
 
 // AttachDataConn 은 WebSocket 데이터 연결을 세션에 바인딩합니다.
 // 이전에 Detached 상태(Grace period 중)였다면 재연결(resumed = true)로 처리하고 타이머를 취소합니다.
-func (s *Session) AttachDataConn(conn *websocket.Conn) (resumed bool) {
+// 세션이 이미 Closed 상태이면 conn을 즉시 닫고 ErrSessionClosed 에러를 반환합니다.
+func (s *Session) AttachDataConn(conn *websocket.Conn) (resumed bool, err error) {
 	s.mu.Lock()
 	if s.Status == StatusClosed {
 		s.mu.Unlock()
-		return false
+		if conn != nil {
+			_ = conn.Close()
+		}
+		return false, ErrSessionClosed
 	}
 
 	// 기존 Grace Period 타이머가 돌고 있다면 정지
@@ -245,7 +250,7 @@ func (s *Session) AttachDataConn(conn *websocket.Conn) (resumed bool) {
 		s.writeMu.Unlock()
 	}
 
-	return resumed
+	return resumed, nil
 }
 
 // WasActive 는 세션이 한 번이라도 활성화(Data WSS attach 완료)되었는지 여부를 반환합니다.
@@ -253,6 +258,20 @@ func (s *Session) WasActive() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.wasActive
+}
+
+// GetStatus 는 세션의 현재 라이프사이클 상태를 스레드 안전하게 반환합니다.
+func (s *Session) GetStatus() SessionStatus {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.Status
+}
+
+// GetDataConn 은 현재 바인딩된 활성 WebSocket 연결을 스레드 안전하게 반환합니다.
+func (s *Session) GetDataConn() *websocket.Conn {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.DataConn
 }
 
 // DetachDataConn 은 WebSocket 데이터 연결이 비정상 종료되거나 닫혔을 때 호출됩니다.

@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -18,11 +20,31 @@ import (
 
 // DataWSSClientConfig 는 Terminal Data WSS 클라이언트 설정입니다.
 type DataWSSClientConfig struct {
-	EndpointURL   string
-	Credential    string
-	RuntimeID     string
-	DialTimeout   time.Duration
-	AllowInsecure bool // Test 전용: localhost 및 비보안 ws:// 연결 허용
+	EndpointURL        string
+	Credential         string
+	CredentialFile     string                 // Bearer 토큰 파일 경로 (주입/갱신 동적 로딩)
+	CredentialProvider func() (string, error) // 동적 토큰 제공자 (테스트/커스텀)
+	RuntimeID          string
+	DialTimeout        time.Duration
+	AllowInsecure      bool // Test 전용: localhost 및 비보안 ws:// 연결 허용
+}
+
+// GetCredential 은 CredentialProvider, CredentialFile, 또는 Credential 순으로 최신 유효 Bearer 토큰을 가져옵니다.
+func (cfg *DataWSSClientConfig) GetCredential() (string, error) {
+	if cfg.CredentialProvider != nil {
+		return cfg.CredentialProvider()
+	}
+	if cfg.CredentialFile != "" {
+		data, err := os.ReadFile(cfg.CredentialFile)
+		if err != nil {
+			return "", fmt.Errorf("failed to read credential file %s: %w", cfg.CredentialFile, err)
+		}
+		return strings.TrimSpace(string(data)), nil
+	}
+	if cfg.Credential != "" {
+		return strings.TrimSpace(cfg.Credential), nil
+	}
+	return "", nil
 }
 
 // DataWSSClient 는 단일 터미널 세션을 위한 Terminal Data WebSocket 연결 및 입출력 스트리머입니다.
@@ -56,7 +78,32 @@ func NewDataWSSClient(cfg DataWSSClientConfig, session *Session) *DataWSSClient 
 // MaxBinaryMessageSize 는 PTY 바이너리 스트림의 상한 (4 MiB)입니다.
 const MaxBinaryMessageSize int64 = 4 * 1024 * 1024
 
-var ErrAuthenticationFailed = errors.New("terminal data authentication failed")
+var (
+	ErrAuthenticationFailed = errors.New("terminal data authentication failed")
+	errJSONTooLarge         = errors.New("json text message exceeds 1 MiB limit")
+)
+
+// readBoundedMessage 는 message 하나를 읽습니다.
+// JSON Text는 maxText(1 MiB)를 넘는 만큼을 메모리에 적재하지 않고 errJSONTooLarge를 반환합니다.
+// Binary는 connection의 read limit(SetReadLimit 4 MiB)이 bounded read를 보장합니다.
+func readBoundedMessage(ws *websocket.Conn, maxText int64) (kind int, data []byte, err error) {
+	kind, r, err := ws.NextReader()
+	if err != nil {
+		return 0, nil, err
+	}
+	if kind != websocket.TextMessage {
+		data, err = io.ReadAll(r)
+		return kind, data, err
+	}
+	data, err = io.ReadAll(io.LimitReader(r, maxText+1))
+	if err != nil {
+		return kind, nil, err
+	}
+	if int64(len(data)) > maxText {
+		return kind, nil, errJSONTooLarge
+	}
+	return kind, data, nil
+}
 
 // DialAndAttach 는 Relay 로 WebSocket 연결을 맺고, ATTACH 핸드셰이크 및 응답 correlation 검증을 완료한 후
 // 세션에 활성 데이터 연결을 바인딩합니다. 실패 시 연결을 닫고 에러를 반환합니다.
@@ -88,9 +135,14 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 		Subprotocols:     []string{protocol.SubprotocolTerminalData},
 	}
 
+	cred, err := c.config.GetCredential()
+	if err != nil {
+		return fmt.Errorf("failed to get credential: %w", err)
+	}
+
 	header := http.Header{}
-	if c.config.Credential != "" {
-		header.Set("Authorization", "Bearer "+c.config.Credential)
+	if cred != "" {
+		header.Set("Authorization", "Bearer "+cred)
 	}
 
 	conn, resp, err := dialer.DialContext(ctx, c.config.EndpointURL, header)
@@ -135,13 +187,13 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 		return fmt.Errorf("failed to send ATTACH message: %w", err)
 	}
 
-	// 2. TERMINAL_DATA_ATTACHED 응답 대기 및 검증
+	// 2. TERMINAL_DATA_ATTACHED 응답 대기 및 검증 (Bounded Read 적용)
 	readTimeout := c.config.DialTimeout
 	if readTimeout <= 0 {
 		readTimeout = 10 * time.Second
 	}
 	_ = c.conn.SetReadDeadline(time.Now().Add(readTimeout))
-	msgType, data, err := c.conn.ReadMessage()
+	msgType, data, err := readBoundedMessage(c.conn, protocol.MaxJSONMessageSize)
 	if err != nil {
 		_ = c.conn.Close()
 		return fmt.Errorf("failed to read ATTACHED response: %w", err)
@@ -151,11 +203,6 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 	if msgType != websocket.TextMessage {
 		_ = c.conn.Close()
 		return fmt.Errorf("expected text JSON response, got binary frame")
-	}
-
-	if int64(len(data)) > protocol.MaxJSONMessageSize {
-		_ = c.conn.Close()
-		return fmt.Errorf("attached message size %d exceeds 1 MiB limit", len(data))
 	}
 
 	var attachedMsg protocol.TerminalDataAttachedMessage
@@ -201,8 +248,13 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 		return fmt.Errorf("invalid attached payload: historyAvailable must be false")
 	}
 
-	// 3. 세션에 WebSocket 연결 바인딩
-	_ = c.session.AttachDataConn(c.conn)
+	// 3. 세션에 WebSocket 연결 바인딩 (CLOSED 세션 거절 시 새 연결 즉시 정리)
+	_, attachErr := c.session.AttachDataConn(c.conn)
+	if attachErr != nil {
+		_ = c.conn.Close()
+		c.conn = nil
+		return fmt.Errorf("failed to attach data conn to session: %w", attachErr)
+	}
 	return nil
 }
 
@@ -253,6 +305,8 @@ func (c *DataWSSClient) reconnect() bool {
 	factor := 2.0
 	jitter := 0.2 // ±20%
 
+	var lastAuthFailedCred string
+
 	for {
 		c.mu.Lock()
 		if c.closed {
@@ -289,6 +343,23 @@ func (c *DataWSSClient) reconnect() bool {
 			return false
 		}
 
+		// Credential 확인: 직전에 인증 실패한 동일한 Credential 이면 다이얼 스팸 방지
+		currentCred, credErr := c.config.GetCredential()
+		if credErr != nil {
+			backoff = time.Duration(float64(backoff) * factor)
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+			continue
+		}
+		if lastAuthFailedCred != "" && currentCred == lastAuthFailedCred {
+			backoff = time.Duration(float64(backoff) * factor)
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+			continue
+		}
+
 		dialCtx, dialCancel := context.WithTimeout(c.ctx, c.config.DialTimeout)
 		err := c.DialAndAttach(dialCtx)
 		dialCancel()
@@ -298,11 +369,21 @@ func (c *DataWSSClient) reconnect() bool {
 			return true
 		}
 
-		if errors.Is(err, ErrAuthenticationFailed) {
-			// 자격증명 신뢰 상실 시 무한 재시도 중단 및 세션 종료
-			c.session.Close(protocol.TerminalErrForbidden, nil, err)
+		if errors.Is(err, ErrSessionClosed) {
+			// 세션이 이미 종료됨 (Grace timeout 만료 또는 Shutdown) -> 재시도 즉시 중단
 			return false
 		}
+
+		if errors.Is(err, ErrAuthenticationFailed) {
+			// 자격증명 신뢰 상실 (401/403):
+			// PTY 및 TerminalSession 은 60초 Grace Period 동안 유지되어야 하므로 세션을 강제 종료하지 않음.
+			// 동일 토큰으로 무한 다이얼을 시도하지 않도록 기록하고, 토큰 갱신을 대기함.
+			lastAuthFailedCred = currentCred
+			continue
+		}
+
+		// 인증 실패가 아닌 일반 네트워크/서버 에러 시 lastAuthFailedCred 리셋
+		lastAuthFailedCred = ""
 
 		backoff = time.Duration(float64(backoff) * factor)
 		if backoff > maxBackoff {
@@ -359,9 +440,16 @@ func (c *DataWSSClient) pumpFromWebSocketToPTY() {
 		default:
 		}
 
-		msgType, payload, err := c.conn.ReadMessage()
+		msgType, payload, err := readBoundedMessage(c.conn, protocol.MaxJSONMessageSize)
 		if err != nil {
-			// 연결 끊김 (브라우저 탭 닫힘 / 네트워크 단절)
+			if errors.Is(err, errJSONTooLarge) {
+				// 계약(1009): 1 MiB 초과 Text는 메모리에 적재하지 않고 WebSocket Close 1009 로 연결 종료
+				_ = c.conn.WriteControl(websocket.CloseMessage,
+					websocket.FormatCloseMessage(websocket.CloseMessageTooBig, "message too big"),
+					time.Now().Add(time.Second))
+				_ = c.conn.Close()
+			}
+			// 연결 끊김 또는 1009 종료 -> 세션 Detach 및 재연결/유예 루프로 전환
 			return
 		}
 
@@ -376,12 +464,6 @@ func (c *DataWSSClient) pumpFromWebSocketToPTY() {
 			}
 
 		case websocket.TextMessage:
-			// JSON Text 1 MiB 초과 여부 분리 검증 (Reviewer 3번 지적 사항)
-			if int64(len(payload)) > protocol.MaxJSONMessageSize {
-				c.sendError(protocol.TerminalErrProtocolError, "json text message exceeds 1 MiB limit", false)
-				continue
-			}
-
 			// JSON 제어 프레임 (RESIZE, CLOSE, ERROR 등)
 			var baseEnv protocol.BaseEnvelope
 			if jsonErr := json.Unmarshal(payload, &baseEnv); jsonErr != nil {

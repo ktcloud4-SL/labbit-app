@@ -1638,7 +1638,9 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(listTerminalTargets).toHaveBeenCalledTimes(2)
   })
 
-  it('Terminal target 401은 panel에 숨기지 않고 global sessionExpired Login으로 올린다', async () => {
+  it('Terminal target 401은 resume credential을 지우고 global sessionExpired Login으로 올린다', async () => {
+    const removeItem = vi.spyOn(Storage.prototype, 'removeItem')
+
     renderRoute(
       '/classes/class-kubernetes-basic/lab',
       createApi({
@@ -1656,6 +1658,9 @@ describe('Auth·Class·LabSpec routing', () => {
         '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
       ),
     ).toBeInTheDocument()
+    expect(removeItem).toHaveBeenCalledWith('labbit.terminal.resume.v1')
+
+    removeItem.mockRestore()
   })
 
   it('Terminal target 403은 Workspace를 유지한 채 Terminal panel 오류로 표시한다', async () => {

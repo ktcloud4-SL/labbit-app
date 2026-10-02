@@ -216,7 +216,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
   const [resumed, setResumed] = useState(false)
 
   const targetsQuery = useQuery({
-    queryKey: labbitQueryKeys.terminalTargets(labInstanceId),
+    queryKey: labbitQueryKeys.terminalTargets(labInstanceId, generation),
     queryFn: () => api.listTerminalTargets(labInstanceId),
     retry: false,
   })

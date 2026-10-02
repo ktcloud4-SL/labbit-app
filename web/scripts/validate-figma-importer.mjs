@@ -50,6 +50,7 @@ async function main() {
   requireText(code, "Editable · DOM", 'code.js')
   requireText(code, 'editableData', 'code.js')
   requireText(code, 'setPrototypeNavigation', 'code.js')
+  requireText(code, 'Prototype 연결 요약', 'code.js')
   requireText(code, 'setReactionsAsync', 'code.js')
   requireText(code, 'Component 후보 자동 분류', 'code.js')
   forbidText(code, 'figma.currentPage =', 'code.js')

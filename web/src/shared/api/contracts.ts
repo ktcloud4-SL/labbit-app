@@ -32,6 +32,31 @@ export interface LabInstanceSummary {
   generation: number
 }
 
+export interface TerminalTarget {
+  vmKey: string
+  role: string
+  instanceIndex: number
+}
+
+export interface TerminalTargetList {
+  generation: number
+  workspaceVmKey: string
+  items: TerminalTarget[]
+}
+
+export interface CreateTerminalSessionRequest {
+  targetVmKey: string
+  cols: number
+  rows: number
+}
+
+export interface TerminalSession {
+  id: ResourceId
+  generation: number
+  sessionToken: string
+  tokenExpiresAt: string
+}
+
 export interface ClassSummary {
   id: ResourceId
   name: string

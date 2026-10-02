@@ -10,6 +10,7 @@ import {
 import { HttpError } from '../api/httpClient'
 import { useLabbitApi } from '../api/LabbitApiProvider'
 import { labbitQueryKeys } from '../api/labbitApi'
+import { LoginRedirect } from '../ui/LoginRedirect'
 import {
   BrowserTerminalClient,
   type TerminalProtocolError,
@@ -214,6 +215,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
   const [output, setOutput] = useState('')
   const [command, setCommand] = useState('')
   const [resumed, setResumed] = useState(false)
+  const [authExpired, setAuthExpired] = useState(false)
 
   const targetsQuery = useQuery({
     queryKey: labbitQueryKeys.terminalTargets(labInstanceId, generation),
@@ -306,6 +308,9 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
           if (sequence !== connectionSequenceRef.current) return
 
           setStatusMessage(wssErrorMessage(error))
+          if (error.code === 'AUTH_REQUIRED') {
+            setAuthExpired(true)
+          }
           if (error.fatal || unrecoverableCodes.has(error.code)) {
             suppressReconnectRef.current = true
             invalidateResume()
@@ -436,6 +441,10 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     },
     onError: (error) => {
       invalidateResume()
+      if (error instanceof HttpError && error.status === 401) {
+        setAuthExpired(true)
+        return
+      }
       setStatus('error')
       setStatusMessage(httpTerminalError(error))
     },
@@ -486,6 +495,12 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     selectedVmKey || targetsQuery.data?.workspaceVmKey || ''
   const targetGenerationMismatch =
     Boolean(targetsQuery.data) && targetsQuery.data?.generation !== generation
+  const targetAuthExpired =
+    targetsQuery.error instanceof HttpError && targetsQuery.error.status === 401
+
+  if (authExpired || targetAuthExpired) {
+    return <LoginRedirect reason="sessionExpired" />
+  }
 
   return (
     <div className="terminal-consumer">

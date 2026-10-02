@@ -14,7 +14,8 @@
     "test": "vitest run",
     "preview": "vite preview",
     "capture:ui": "node scripts/capture-ui.mjs",
-    "capture:figma": "node scripts/prepare-figma-bundle.mjs"
+    "capture:figma": "npm run check:figma && node scripts/prepare-figma-bundle.mjs",
+    "check:figma": "node scripts/validate-figma-importer.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "5.103.2",

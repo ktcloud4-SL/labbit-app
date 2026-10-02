@@ -1586,6 +1586,29 @@ describe('Auth·Class·LabSpec routing', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('직접 Workspace URL의 Class 조회 401은 세션 만료 Login으로 처리한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('직접 Workspace URL의 Class 404를 찾을 수 없음 상태로 표시한다', async () => {
     renderRoute(
       '/classes/missing/lab',
@@ -1622,27 +1645,30 @@ describe('Auth·Class·LabSpec routing', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('직접 Workspace URL에서도 PROVISIONING 상태는 진입을 막는다', async () => {
-    renderRoute(
-      '/classes/class-kubernetes-basic/lab',
-      createApi({
-        getClass: async () => ({
-          ...classDetailFixture,
-          myLabInstance: {
-            ...classDetailFixture.myLabInstance!,
-            status: 'PROVISIONING',
-          },
+  it.each(['PENDING', 'PROVISIONING'] as const)(
+    '직접 Workspace URL에서도 %s 상태는 진입을 막는다',
+    async (status) => {
+      renderRoute(
+        '/classes/class-kubernetes-basic/lab',
+        createApi({
+          getClass: async () => ({
+            ...classDetailFixture,
+            myLabInstance: {
+              ...classDetailFixture.myLabInstance!,
+              status,
+            },
+          }),
         }),
-      }),
-    )
+      )
 
-    expect(
-      await screen.findByText('실습 환경을 준비하고 있습니다.'),
-    ).toBeInTheDocument()
-    expect(
-      screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
-    ).not.toBeInTheDocument()
-  })
+      expect(
+        await screen.findByText('실습 환경을 준비하고 있습니다.'),
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
+      ).not.toBeInTheDocument()
+    },
+  )
 
   it('직접 Workspace URL의 DELETING 상태를 정리 중으로 표시한다', async () => {
     renderRoute(

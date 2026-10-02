@@ -155,16 +155,16 @@ labbit-app/
   * PR #53 APPROVE 후 squash merge 완료 (`3616611e0922b6f1cef3c84eb16249ac2afc0e6c`)
 * **검증 경계**:
   * 위 PASS는 repository/Mock Relay/RFC 4254 in-process evidence입니다.
-  * Jira LBT-20 완료 조건인 **실제 Workspace VM PTY INPUT/OUTPUT 및 resize/close**는 아직 별도 C2 integration checkpoint에서 검증해야 하므로 LBT-20은 `진행 중`을 유지합니다.
+  * **실제 Workspace VM PTY INPUT/OUTPUT 및 resize/close** 검증은 공동 통합 Task인 **LBT-22(C2)**에서 수행합니다. 해당 C2 Evidence가 LBT-20의 남은 실제 VM Acceptance를 충족하는 근거가 되므로, 그 Evidence가 확보되기 전까지 LBT-20은 `진행 중`을 유지합니다.
 
 ---
 
 ## 6. 다음 개발 진행 계획 (C2 실제 VM 통합 / M4 Preview)
 
-* **LBT-20 / C2 실제 Workspace VM 검증**:
+* **LBT-22(C2) 공동 실제 Workspace VM 검증 — LBT-20 Acceptance 연계**:
   * 최신 `main`의 Connector Terminal Transport와 OpenStack Provider 경로를 결합해 실제 management address 기준 SSH/PTY를 연결합니다.
-  * 실제 Workspace VM에서 PTY INPUT/OUTPUT, resize, close, reconnect/grace를 검증하고 Jira LBT-20 Evidence로 남깁니다.
-  * 이 evidence가 확보되기 전에는 PR merge만으로 LBT-20을 Done 처리하지 않습니다.
+  * 실제 Workspace VM에서 PTY INPUT/OUTPUT, resize, close, reconnect/grace를 검증하고 LBT-22(C2)에 공동 통합 Evidence를 남깁니다.
+  * 해당 Evidence를 LBT-20의 남은 실제 VM Acceptance 근거로 연결하며, 확보 전에는 PR merge만으로 LBT-20을 Done 처리하지 않습니다.
 * **Milestone M4 착수 (웹 애플리케이션 미리보기 Preview)**:
   * 준비 5에서 합의한 `PREVIEW_OPEN`/`PREVIEW_CLOSE` 및 `labbit.connector-preview.v1` WSS 파이프라인 구축
 

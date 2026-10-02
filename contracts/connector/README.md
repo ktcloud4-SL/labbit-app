@@ -279,7 +279,7 @@ attach 뒤에는 각 방향으로 frame이 정확히 이 순서로 오갑니다.
 
 ### 수명, 취소, 정리
 
-- `FILE_OPEN`을 보낸 뒤 attach가 시간 안에 오지 않거나, HTTP 요청이 취소되거나, 결과가 시간 안에 오지 않거나, `FILE_OPEN_RESULT=FAILED`이면 SaaS는 그 요청의 상태를 지우고 `FILE_CLOSE`를 보냅니다(보낼 수 있는 경우). 이미 정리된 요청의 늦은 attach/frame은 어떤 요청에도 연결되지 않으며 연결은 종료됩니다.
+- `FILE_OPEN`을 보낸 뒤 attach가 시간 안에 오지 않거나, HTTP 요청이 취소되거나, 결과가 시간 안에 오지 않거나, `FILE_OPEN` 전송 결과가 불명확하거나, SaaS가 종료 중이면 SaaS는 그 요청의 상태를 지우고 Data WSS를 닫은 뒤 `FILE_CLOSE`를 보냅니다(보낼 수 있는 경우). Connector가 `FILE_OPEN_RESULT=FAILED`로 이미 실패를 알린 요청은 SaaS가 상태만 지우고 `FILE_CLOSE`를 보내지 않으며, Data WSS의 계약 위반·단절로 실패한 요청도 Data WSS 종료(`1008` 등)로 알리고 `FILE_CLOSE`를 따로 보내지 않을 수 있습니다. 그래서 Connector는 `FILE_CLOSE`뿐 아니라 Data WSS 종료로도 그 요청의 작업을 정리해야 합니다. 이미 정리된 요청의 늦은 attach/frame은 어떤 요청에도 연결되지 않으며 연결은 종료됩니다.
 - Data WSS가 중간에 끊기면 요청은 실패하고 자동으로 재연결·재전송하지 않습니다. Connector는 `FILE_CLOSE`나 연결 종료를 받으면 그 요청의 SFTP 작업을 정리합니다. 이미 시작한 Save 쓰기를 되돌린다고 보장하지 않습니다.
 - Connector Credential이 revoke되면 §2에 따라 그 Credential로 인증된 File Data WSS도 close `4001`로 종료하며 진행 중이던 요청은 실패합니다. 같은 Credential의 새 Upgrade는 `401`입니다.
 - 서로 다른 요청은 서로 다른 `fileRequestId`와 Data WSS를 가지므로 한 Connector에 동시에 여러 요청이 진행돼도 서로 섞이지 않습니다. 이 pending 상태는 SaaS process 안의 ephemeral 상태이며 PostgreSQL에 저장하지 않습니다.

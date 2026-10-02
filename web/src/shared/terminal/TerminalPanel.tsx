@@ -342,6 +342,14 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
           if (sequence !== connectionSequenceRef.current) return
 
           const decision = decideTerminalClose(event.code)
+
+          if (suppressReconnectRef.current) {
+            if (decision.action !== 'reconnect') {
+              setStatusMessage(decision.message)
+            }
+            return
+          }
+
           setStatusMessage(decision.message)
 
           if (decision.action !== 'reconnect') {
@@ -352,7 +360,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
           }
 
           const current = resumeRef.current
-          if (current && !suppressReconnectRef.current) {
+          if (current) {
             scheduleReconnect(current)
           }
         },

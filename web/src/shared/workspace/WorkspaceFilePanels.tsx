@@ -355,7 +355,6 @@ export function WorkspaceFilePanels({
                     (entry.path === selectedFilePath ? ' workspace-file-entry-selected' : '')
                   }
                   type="button"
-                  role="listitem"
                   onClick={() => openEntry(entry)}
                 >
                   <span aria-hidden="true">

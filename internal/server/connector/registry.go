@@ -27,6 +27,11 @@ type Route func(data []byte) error
 // ErrRouteClosed는 Route가 종료 중인 connection에 아무것도 쓰지 않고 거절했음을 나타낸다.
 var ErrRouteClosed = errors.New("connector: route closed before write")
 
+// ErrCapabilityUnsupported는 Connector가 protocol-ready인 current Control connection을 가지고 있지만 요청한 선택 기능(HELLO capability)을
+// 선언하지 않았음을 나타낸다. Connector는 연결되어 있으므로 ErrConnectorUnavailable이 아니다. 아무것도 쓰지 않았고 pending도 없다.
+// 호출자는 Connector 버전으로 capability를 추론하거나 이 오류를 이유로 기능 message를 보내지 않는다.
+var ErrCapabilityUnsupported = errors.New("connector: Connector가 이 기능(capability)을 선언하지 않음")
+
 // ErrConnectorUnavailable은 지금 Connector에 message를 보낼 수 있는 Control connection이 없음을 나타낸다.
 // 호출자는 이 오류를 이유로 같은 command를 다른 connection으로 자동 재전송하지 않는다.
 var ErrConnectorUnavailable = errors.New("connector: Control connection을 사용할 수 없음")
@@ -100,6 +105,8 @@ type entry struct {
 	routeMu sync.RWMutex
 	route   Route
 	sealed  bool
+	// capabilities는 이 Session의 HELLO가 선언한 선택 기능이다. route와 같은 routeMu로 보호한다. MarkReady 전에 정한다.
+	capabilities map[string]struct{}
 }
 
 func NewRegistry() *Registry {
@@ -238,6 +245,22 @@ func (g *Registration) IfCurrent(fn func() error) (bool, error) {
 	return true, fn()
 }
 
+// SetCapabilities는 이 Session의 HELLO가 선언한 capability를 기록한다. HELLO를 검증한 뒤 MarkReady 전에 호출한다.
+// 이미 교체·revoke된 Session이면 기록하지 않는다. 이 Session의 capability는 이 connection이 다시 HELLO하지 않는 한 바뀌지 않는다.
+func (g *Registration) SetCapabilities(capabilities []string) {
+	set := make(map[string]struct{}, len(capabilities))
+	for _, capability := range capabilities {
+		set[capability] = struct{}{}
+	}
+	e := g.entry
+	e.routeMu.Lock()
+	defer e.routeMu.Unlock()
+	if e.sealed {
+		return
+	}
+	e.capabilities = set
+}
+
 // MarkReady는 이 Session이 protocol-ready(HELLO_ACK 전송 완료)가 되었음을 알리고 이 Session의 control writer를 등록한다.
 // 이미 교체·revoke된 Session이면 등록하지 않고 false를 반환한다. 성공하면 WithReadyRoute가 이 Session의 route를 사용할 수 있다.
 func (g *Registration) MarkReady(route Route) bool {
@@ -273,6 +296,17 @@ func (g *Registration) Release() {
 // 그래서 Register/Revoke가 반환한 뒤에는 그 Session의 route로 새 write가 시작되지 않는다. fn은 pending 등록과 write 한 번처럼
 // 짧아야 하며(write는 transport의 write timeout이 상한이다), 다른 Session의 Register/Revoke를 기다리면 안 된다.
 func (r *Registry) WithReadyRoute(connectorID uuid.UUID, fn func(Session, Route) error) error {
+	return r.withReadyRoute(connectorID, "", fn)
+}
+
+// WithReadyRouteCapability는 WithReadyRoute와 같지만 그 protocol-ready Session이 HELLO에서 capability를 선언했을 때만 fn을 실행한다.
+// 선언하지 않았으면 ErrCapabilityUnsupported이고 fn을 호출하지 않는다. 판정과 fn은 같은 Session에 대해 하나의 잠금 안에서 일어나므로
+// 판정한 Session과 다른 Session의 route로 보내는 일이 없다.
+func (r *Registry) WithReadyRouteCapability(connectorID uuid.UUID, capability string, fn func(Session, Route) error) error {
+	return r.withReadyRoute(connectorID, capability, fn)
+}
+
+func (r *Registry) withReadyRoute(connectorID uuid.UUID, capability string, fn func(Session, Route) error) error {
 	r.mu.RLock()
 	e := r.current[connectorID]
 	r.mu.RUnlock()
@@ -284,6 +318,11 @@ func (r *Registry) WithReadyRoute(connectorID uuid.UUID, fn func(Session, Route)
 	defer e.routeMu.RUnlock()
 	if e.route == nil {
 		return ErrNotReady
+	}
+	if capability != "" {
+		if _, ok := e.capabilities[capability]; !ok {
+			return ErrCapabilityUnsupported
+		}
 	}
 	return fn(e.session, e.route)
 }

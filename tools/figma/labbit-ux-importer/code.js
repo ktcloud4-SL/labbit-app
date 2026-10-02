@@ -437,6 +437,41 @@ function createGroupTitle(title) {
   return node
 }
 
+function createPrototypeSummaryCard(items) {
+  const card = createCardBase('06 · Prototype 연결 요약')
+  card.appendChild(textNode('06 · Prototype 연결 요약', 24, true))
+
+  const description = textNode(
+    '투명 hotspot으로 실제 Figma Prototype navigation이 연결된 항목입니다. Present 모드에서 해당 버튼/링크를 클릭해 확인할 수 있습니다.',
+    14,
+  )
+  description.fills = [{ type: 'SOLID', color: rgb('#6B7280') }]
+  description.resize(CARD_WIDTH - 40, 40)
+  description.textAutoResize = 'HEIGHT'
+  card.appendChild(description)
+
+  if (!items.length) {
+    const empty = textNode('연결된 Prototype이 없습니다. 최신 capture/plugin 설치 여부를 확인해 주세요.', 14)
+    empty.fills = [{ type: 'SOLID', color: rgb('#AD3D3D') }]
+    empty.resize(CARD_WIDTH - 40, 28)
+    empty.textAutoResize = 'HEIGHT'
+    card.appendChild(empty)
+    return card
+  }
+
+  for (const item of items.slice(0, 40)) {
+    const row = textNode(
+      `${item.sourceFile} · ${item.label || 'control'} → ${item.targetFile || item.targetRoute || 'target'}`,
+      14,
+    )
+    row.resize(CARD_WIDTH - 40, 24)
+    row.textAutoResize = 'HEIGHT'
+    card.appendChild(row)
+  }
+
+  return card
+}
+
 function createComponentCandidatesCard(editableData) {
   const counts = new Map()
 
@@ -592,10 +627,13 @@ async function importBundle(manifest, files, editableData) {
   }
 
   let prototypeLinkCount = 0
+  const prototypeSummary = []
   const hints = Array.isArray(manifest.prototypeHints) ? manifest.prototypeHints : []
 
   for (const interaction of interactions) {
     let target = interaction.href ? routeMap.get(interaction.href) : null
+    let targetFile = null
+    let targetRoute = interaction.href ?? null
 
     if (!target) {
       const hint = hints.find(
@@ -603,15 +641,31 @@ async function importBundle(manifest, files, editableData) {
           item.sourceFile === interaction.sourceFile &&
           item.controlText === interaction.text,
       )
-      if (hint) target = screenMap.get(hint.targetFile)
+      if (hint) {
+        target = screenMap.get(hint.targetFile)
+        targetFile = hint.targetFile
+      }
     }
 
     if (!target) continue
     await setPrototypeNavigation(interaction.node, target)
     prototypeLinkCount += 1
+    prototypeSummary.push({
+      sourceFile: interaction.sourceFile,
+      label: interaction.text || interaction.href || 'control',
+      targetFile,
+      targetRoute,
+    })
   }
 
+  const prototypeAudit = createPrototypeSummaryCard(prototypeSummary)
+  prototypeAudit.x = 0
+  prototypeAudit.y = groupY
+  page.appendChild(prototypeAudit)
+  groupY += prototypeAudit.height + GROUP_GAP
+
   const componentAudit = createComponentCandidatesCard(editableData)
+  componentAudit.card.name = '07 · Component 후보'
   componentAudit.card.x = 0
   componentAudit.card.y = groupY
   page.appendChild(componentAudit.card)

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
@@ -24,7 +25,9 @@ type stackOptions struct {
 	// PublicOrigin은 httpapi.ParseOrigin으로 정규화한 trusted origin이다. HTTP unsafe method와 Browser WSS Upgrade의 Origin 검증에 쓴다.
 	PublicOrigin string
 	// Realtime이 true이면 Terminal Relay와 TerminalSession 생성/종료를 함께 조립한다(api와 realtime role이 같은 process).
-	Realtime bool
+	Realtime        bool
+	HTTPMetrics     *observability.HTTPMetrics
+	RealtimeMetrics *observability.RealtimeMetrics
 
 	Clock         realtime.Clock
 	Grace         time.Duration
@@ -87,6 +90,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 			AllowOrigin:   func(origin string) bool { return httpapi.OriginMatches(trusted, origin) },
 			Clock:         opts.Clock,
 			Logger:        logger,
+			Metrics:       opts.RealtimeMetrics,
 			Grace:         opts.Grace,
 			AttachTimeout: opts.AttachTimeout,
 			CloseGrace:    opts.CloseGrace,
@@ -108,6 +112,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		Terminals:    terminals,
 		PublicOrigin: opts.PublicOrigin,
 		Logger:       logger,
+		Metrics:      opts.HTTPMetrics,
 	})
 	if err != nil {
 		return nil, err

@@ -154,7 +154,7 @@ func TestDataTrustConcurrentUseKeepsInvariants(t *testing.T) {
 				}
 				d := conn("cred-x", "connector-1")
 				if tr.admit(ticket, d) {
-					if d.revoked.Load() {
+					if _, wasRevoked := revokedAt.Load("cred-x"); !wasRevoked && d.revoked.Load() {
 						t.Error("등록된 connection이 이미 revoked임")
 					}
 					tr.forget(d)

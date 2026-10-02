@@ -51,16 +51,17 @@ const (
 
 // BaseEnvelope 는 v1 Control WSS의 공통 Envelope입니다.
 type BaseEnvelope struct {
-	Type             string    `json:"type"`
-	MessageID        string    `json:"messageId"`
-	SentAt           time.Time `json:"sentAt"`
-	ReplyToMessageID string    `json:"replyToMessageId,omitempty"`
-	RequestID        string    `json:"requestId,omitempty"`
-	OperationID      string    `json:"operationId,omitempty"`
-	LabInstanceID    string    `json:"labInstanceId,omitempty"`
-	Generation       int64     `json:"generation,omitempty"`
-	TraceParent      string    `json:"traceparent,omitempty"`
-	TraceState       string    `json:"tracestate,omitempty"`
+	Type              string    `json:"type"`
+	MessageID         string    `json:"messageId"`
+	SentAt            time.Time `json:"sentAt"`
+	ReplyToMessageID  string    `json:"replyToMessageId,omitempty"`
+	RequestID         string    `json:"requestId,omitempty"`
+	OperationID       string    `json:"operationId,omitempty"`
+	TerminalSessionID string    `json:"terminalSessionId,omitempty"`
+	LabInstanceID     string    `json:"labInstanceId,omitempty"`
+	Generation        int64     `json:"generation,omitempty"`
+	TraceParent       string    `json:"traceparent,omitempty"`
+	TraceState        string    `json:"tracestate,omitempty"`
 }
 
 // 메시지 크기 및 WebSocket Close 코드 상수 (최신 contracts/connector SSOT)

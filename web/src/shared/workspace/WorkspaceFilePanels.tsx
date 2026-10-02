@@ -206,7 +206,7 @@ function WorkspaceFileEditor({
               type="button"
               onClick={() => {
                 onDirtyChange(false)
-                void onReload().then(() => setSaveError(null))
+                void onReload()
               }}
             >
               파일 다시 읽기
@@ -404,7 +404,7 @@ export function WorkspaceFilePanels({
 
         {selectedFilePath && fileQuery.data && (
           <WorkspaceFileEditor
-            key={`${fileQuery.data.file.path}:${fileQuery.data.etag}`}
+            key={`${fileQuery.data.file.path}:${fileQuery.data.etag}:${fileQuery.dataUpdatedAt}`}
             labInstanceId={labInstanceId}
             generation={generation}
             versionedFile={fileQuery.data}

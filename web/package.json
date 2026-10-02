@@ -13,7 +13,8 @@
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
     "preview": "vite preview",
-    "capture:ui": "node scripts/capture-ui.mjs"
+    "capture:ui": "node scripts/capture-ui.mjs",
+    "capture:figma": "node scripts/prepare-figma-bundle.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "5.103.2",

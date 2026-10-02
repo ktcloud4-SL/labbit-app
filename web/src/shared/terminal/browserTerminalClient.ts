@@ -145,8 +145,23 @@ export class BrowserTerminalClient {
       return
     }
 
-    if (data instanceof ArrayBuffer) {
-      this.handlers.onOutput(this.decoder.decode(new Uint8Array(data), { stream: true }))
+    if (
+      data instanceof ArrayBuffer ||
+      Object.prototype.toString.call(data) === '[object ArrayBuffer]'
+    ) {
+      this.handlers.onOutput(
+        this.decoder.decode(new Uint8Array(data as ArrayBuffer), { stream: true }),
+      )
+      return
+    }
+
+    if (ArrayBuffer.isView(data)) {
+      this.handlers.onOutput(
+        this.decoder.decode(
+          new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
+          { stream: true },
+        ),
+      )
       return
     }
 

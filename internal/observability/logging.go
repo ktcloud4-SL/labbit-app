@@ -1,11 +1,25 @@
 package observability
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"os"
 	"strings"
 )
+
+type requestIDKey struct{}
+
+// ContextWithRequestID는 HTTP 경계에서 결정한 요청 ID를 application 호출에 연결한다. ID를 생성하지 않는다.
+func ContextWithRequestID(ctx context.Context, id string) context.Context {
+	return context.WithValue(ctx, requestIDKey{}, id)
+}
+
+// RequestIDFromContext는 요청 ID가 알려져 있지 않으면 빈 문자열을 반환한다.
+func RequestIDFromContext(ctx context.Context) string {
+	id, _ := ctx.Value(requestIDKey{}).(string)
+	return id
+}
 
 // NewJSONLogger는 Runtime Contract의 stdout JSON 로그 형식을 위한 기본 로거를 만든다.
 // 실제 correlation field는 각 요청/작업/세션의 식별자를 알게 된 시점에 With로 추가한다.

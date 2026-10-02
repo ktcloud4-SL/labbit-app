@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 )
@@ -114,7 +115,7 @@ func newHarness(t *testing.T, mods ...func(*Options)) *harness {
 		Auth:         fake,
 		Classes:      classes,
 		PublicOrigin: trustedOrigin,
-		Logger:       slog.New(slog.NewJSONHandler(logs, nil)),
+		Logger:       observability.NewJSONLoggerTo(logs, "labbit-server", "httpapi", "development", "info"),
 	}
 	for _, mod := range mods {
 		mod(&opts)
@@ -691,6 +692,11 @@ func TestInternalErrorLogKeepsClassificationButNeverRawCause(t *testing.T) {
 	)
 	rawText := fmt.Sprintf("%s hash=%s token=%s", rawDetail, fakeHash, fakeToken)
 	secrets := []string{rawDetail, "password authentication failed", fakeHash, "argon2id", fakeToken, "28P01"}
+	// Synthetic forbidden-content markers exercise the actual safe-error boundary.
+	for _, marker := range []string{"OPENSTACK-CREDENTIAL-MARKER", "KEYSTONE-TOKEN-MARKER", "PROVIDER-PAYLOAD-MARKER", "LIVE-OUTPUT-MARKER", "WORKSPACE-SOURCE-MARKER"} {
+		rawText += " " + marker
+		secrets = append(secrets, marker)
+	}
 
 	repoErr := &repository.Error{
 		Kind: repository.KindInternal, Op: "CreateAuthSession",
@@ -812,6 +818,11 @@ func logRecords(t *testing.T, logs *bytes.Buffer) []map[string]any {
 		if err := json.Unmarshal([]byte(line), &record); err != nil {
 			t.Fatalf("log line이 JSON이 아닙니다: %q (%v)", line, err)
 		}
+		for _, field := range []string{"timestamp", "level", "message", "service", "component", "version", "environment"} {
+			if value, ok := record[field].(string); !ok || value == "" {
+				t.Fatalf("HTTP log lacks Runtime base field %s", field)
+			}
+		}
 		records = append(records, record)
 	}
 	return records
@@ -821,19 +832,21 @@ func logRecords(t *testing.T, logs *bytes.Buffer) []map[string]any {
 func TestLogsDoNotContainPasswordOrSessionToken(t *testing.T) {
 	h := newHarness(t)
 	const presented = "presented-session-token-value"
+	const authorization = "Bearer AUTHORIZATION-MARKER"
+	const query = "URL-QUERY-MARKER"
 
 	h.auth.loginErr = errors.New("boom")
-	h.login("alice", testPassword, withCookie(presented))
+	h.login("alice", testPassword, withCookie(presented), withHeader("Authorization", authorization))
 	h.auth.loginErr = nil
 
 	h.auth.authErr = errors.New("boom")
-	h.send(http.MethodGet, "/api/v1/me", "", withCookie(presented))
+	h.send(http.MethodGet, "/api/v1/me?source="+query, "", withCookie(presented), withHeader("Authorization", authorization))
 
 	logs := h.logs.String()
 	if logs == "" {
 		t.Fatal("내부 오류가 log에 남아야 합니다")
 	}
-	for _, secret := range []string{testPassword, presented} {
+	for _, secret := range []string{testPassword, presented, authorization, query} {
 		if strings.Contains(logs, secret) {
 			t.Fatalf("log가 민감한 값(%q)을 포함합니다: %s", secret, logs)
 		}

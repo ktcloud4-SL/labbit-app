@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -22,6 +21,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
@@ -100,7 +100,7 @@ func newTerminalEnv(t *testing.T, mods ...func(*stackOptions)) *terminalEnv {
 	t.Cleanup(pool.Close)
 
 	opts := stackOptions{
-		Logger:        slog.New(slog.NewJSONHandler(e.logs, &slog.HandlerOptions{Level: slog.LevelDebug})),
+		Logger:        observability.NewJSONLoggerTo(e.logs, "labbit-server", "test", "development", "debug"),
 		PublicOrigin:  terminalTrustedOrigin,
 		Realtime:      true,
 		Clock:         e.clock,

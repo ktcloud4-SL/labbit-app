@@ -1,12 +1,49 @@
 package realtime
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 	"testing"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext"
 )
+
+func TestWithTraceLogsOnlyNormalizedTraceID(t *testing.T) {
+	for _, variant := range []struct {
+		name, parent, state, wantID string
+	}{
+		{"none", "", "", ""},
+		{"valid", tpSampled, tsValid, traceIDHex},
+		{"unsampled", tpUnsampled, tsValid, traceIDHex},
+		{"invalid parent", "invalid-traceparent-marker-" + strings.Repeat("x", 40), tsValid, ""},
+		{"state only", "", tsValid, ""},
+		{"invalid state", tpSampled, "invalid-tracestate-marker", traceIDHex},
+	} {
+		t.Run(variant.name, func(t *testing.T) {
+			var output bytes.Buffer
+			logger := observability.NewJSONLoggerTo(&output, "labbit-server", "realtime", "development", "info")
+			withTrace(logger, tracecontext.Context{Traceparent: variant.parent, Tracestate: variant.state}).Info("control event")
+			var event map[string]any
+			if err := json.Unmarshal(output.Bytes(), &event); err != nil {
+				t.Fatal("control log is not JSON")
+			}
+			if id, present := event["trace_id"]; variant.wantID == "" {
+				if present {
+					t.Fatal("control log invented trace_id")
+				}
+			} else if id != variant.wantID {
+				t.Fatal("control log lost normalized trace_id")
+			}
+			for _, raw := range []string{variant.parent, variant.state} {
+				if raw != "" && strings.Contains(output.String(), raw) {
+					t.Fatal("control log contains raw Trace metadata")
+				}
+			}
+		})
+	}
+}
 
 // contracts/connector/README.md §9(D-25)와 contracts/realtime/README.md: Terminal JSON control message의 optional traceparent/tracestate는
 // 표준 parser로 정상화해 유효한 값만 보존하고, 유효하지 않은 값은 그 관측 field만 버린다. 업무 message는 Trace 때문에 거절되지 않는다.

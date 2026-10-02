@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      font-family: Inter, system-ui, sans-serif;
+      color: var(--figma-color-text);
+      background: var(--figma-color-bg);
+    }
+    body { margin: 0; padding: 16px; }
+    h1 { font-size: 18px; margin: 0 0 8px; }
+    p { font-size: 13px; line-height: 1.5; margin: 0 0 12px; color: var(--figma-color-text-secondary); }
+    .box {
+      border: 1px solid var(--figma-color-border);
+      border-radius: 10px;
+      padding: 14px;
+      margin: 14px 0;
+    }
+    input[type=file] { width: 100%; font-size: 12px; }
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    #import { background: var(--figma-color-bg-brand); color: var(--figma-color-text-onbrand); }
+    #close { background: var(--figma-color-bg-secondary); color: var(--figma-color-text); }
+    #status {
+      white-space: pre-wrap;
+      font-size: 12px;
+      line-height: 1.5;
+      min-height: 42px;
+    }
+    .ok { color: var(--figma-color-text-success); }
+    .error { color: var(--figma-color-text-danger); }
+    code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <h1>Labbit UX Importer</h1>
+  <p>
+    <code>npm run capture:figma</code> 실행 후 생성된
+    <code>web/ui-captures</code> 폴더에서 <b>manifest.json + PNG 전체</b>를 한 번에 선택하세요.
+  </p>
+
+  <div class="box">
+    <input id="files" type="file" multiple accept=".json,image/png" />
+    <button id="import" type="button">새 UX Review 페이지 만들기</button>
+  </div>
+
+  <div id="status">파일을 선택하면 화면을 자동 분류하고 Jira/상태 메모까지 함께 배치합니다.</div>
+  <button id="close" type="button">닫기</button>
+
+  <script>
+    const filesInput = document.getElementById('files')
+    const importButton = document.getElementById('import')
+    const closeButton = document.getElementById('close')
+    const status = document.getElementById('status')
+
+    function setStatus(message, type = '') {
+      status.className = type
+      status.textContent = message
+    }
+
+    importButton.addEventListener('click', async () => {
+      try {
+        const selected = [...filesInput.files]
+        const manifestFile = selected.find((file) => file.name === 'manifest.json')
+        if (!manifestFile) throw new Error('manifest.json을 함께 선택해 주세요.')
+
+        setStatus('manifest와 스크린샷을 읽는 중...')
+
+        const manifest = JSON.parse(await manifestFile.text())
+        const required = new Set(
+          (manifest.groups ?? []).flatMap((group) =>
+            (group.screens ?? []).map((screen) => screen.file),
+          ),
+        )
+
+        const pngFiles = selected.filter(
+          (file) => file.type === 'image/png' && required.has(file.name),
+        )
+        const missing = [...required].filter(
+          (name) => !pngFiles.some((file) => file.name === name),
+        )
+
+        if (missing.length) {
+          throw new Error('필요한 PNG가 없습니다:\n' + missing.join('\n'))
+        }
+
+        const files = []
+        for (let i = 0; i < pngFiles.length; i += 1) {
+          const file = pngFiles[i]
+          setStatus(`이미지 읽는 중... ${i + 1}/${pngFiles.length} · ${file.name}`)
+          files.push({
+            name: file.name,
+            bytes: new Uint8Array(await file.arrayBuffer()),
+          })
+        }
+
+        setStatus('Figma 페이지를 구성하는 중...')
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: 'IMPORT_BUNDLE',
+              manifest,
+              files,
+            },
+          },
+          '*',
+        )
+      } catch (error) {
+        setStatus(error instanceof Error ? error.message : String(error), 'error')
+      }
+    })
+
+    closeButton.addEventListener('click', () => {
+      parent.postMessage({ pluginMessage: { type: 'CLOSE' } }, '*')
+    })
+
+    onmessage = (event) => {
+      const message = event.data.pluginMessage
+      if (!message) return
+
+      if (message.type === 'IMPORT_DONE') {
+        setStatus(
+          `완료! "${message.pageName}" 페이지에 화면 ${message.screenCount}개와 계획 상태 ${message.plannedCount}개를 배치했습니다.`,
+          'ok',
+        )
+      }
+
+      if (message.type === 'IMPORT_ERROR') {
+        setStatus('Figma 구성 실패: ' + message.message, 'error')
+      }
+    }
+  </script>
+</body>
+</html>

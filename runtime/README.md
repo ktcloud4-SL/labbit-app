@@ -8,6 +8,8 @@
 
 Runtime Contract는 HTTP/OpenAPI나 WSS 메시지 계약을 다시 정의하지 않습니다. 애플리케이션이 **어떻게 실행되고, 어떤 포트·설정·Probe·로그·종료 동작을 제공해야 하는지**와 플랫폼이 무엇을 주입·구성해야 하는지를 고정합니다.
 
+**v0.1.4 변경:** LBT-99에 따라 Browser Terminal/Live WSS Upgrade도 strict Origin 검증이 필요하므로 `LABBIT_PUBLIC_ORIGIN`을 `api` 또는 `realtime` role이 enabled된 process에서 요구합니다. `realtime` role은 이 때문에 PostgreSQL DSN을 요구하지 않으며 여전히 DB를 직접 사용하지 않습니다. v0.1에서 Terminal 기능은 DB-backed authority를 같은 process에서 제공하는 `api` role과 `realtime` role의 co-location을 전제로 하며, 별도 realtime workload용 internal RPC나 multi-replica Terminal owner routing은 제공하지 않습니다(아래 *Realtime 역할의 v0.1 제약*).
+
 **v0.1.3 변경:** LBT-64에 따라 one-shot Migration runner `labbit-migrate`, api/worker role 기준의 DB DSN 요구, rolling deployment의 schema 호환 invariant를 추가했습니다. v0.1.2의 LABBIT_PUBLIC_ORIGIN, v0.1.1의 SaaS OTel/OTLP, durable Context, Connector propagation-only 계약은 유지합니다. 아래 요구사항은 구현 기준이며, 기존 스켈레톤이 이미 이를 제공한다는 뜻은 아닙니다.
 
 ## v0.1에서 확정하는 경계
@@ -24,6 +26,18 @@ Runtime Contract는 HTTP/OpenAPI나 WSS 메시지 계약을 다시 정의하지 
 이 네 역할이 곧 네 개의 Kubernetes Deployment라는 뜻은 아닙니다. v0.1은 하나의 `labbit-server` 실행 파일이 `LABBIT_RUNTIME_ROLES`로 하나 이상 역할을 켤 수 있게 계약하고, 실제 workload 분리·Replica/HPA는 부하·장애·배포 검증 후 Platform/GitOps에서 결정합니다.
 
 Schema Migration은 application rollout 전에 한 번 실행하는 별도 `labbit-migrate` 실행 단위가 담당합니다. 고객 환경 Connector는 별도 `labbit-connector` 실행 단위입니다.
+
+### Realtime 역할의 v0.1 제약
+
+`realtime` role은 PostgreSQL을 application dependency로 요구하지 않습니다. Browser Session, 현재 Class 권한, TerminalSession lifecycle, Connector credential 인증, Connector Control 경로는 DB-backed authority이며 realtime 구현은 이를 직접 조회하지 않고 process에 주입된 좁은 interface로만 사용합니다.
+
+v0.1에서는 이 authority를 같은 process의 `api` role이 제공합니다. 그래서 Terminal이 동작하려면 `LABBIT_RUNTIME_ROLES=api,realtime`처럼 두 role이 함께 enabled되어야 합니다.
+
+- `realtime`만 enabled된 process는 authority가 없으므로 Terminal route를 열지 않고 `/readyz`가 실패합니다. DB DSN을 새로 요구하거나 인증 없이 동작하는 route를 열지 않습니다.
+- `api`만 enabled된 process에서 TerminalSession 생성/종료 HTTP는 503(`terminal_unavailable`)입니다.
+- 별도 realtime workload용 internal authorization RPC, service discovery, Valkey 기반 Terminal owner routing, multi-replica Terminal owner routing은 이번 계약 범위가 아닙니다. Relay의 attachment 상태는 process 안의 ephemeral 상태이며 process 비정상 종료 시 복구하지 않습니다.
+
+workload를 분리하려면 위 제약을 해소하는 internal authorization/routing 경계를 먼저 Runtime Contract에 추가해야 합니다.
 
 ## Listener
 
@@ -54,7 +68,7 @@ Schema Migration은 application rollout 전에 한 번 실행하는 별도 `labb
 | `LABBIT_RUNTIME_ROLES` | `api,worker,realtime,preview` 중 enabled role | No |
 | `LABBIT_ENVIRONMENT` | environment 식별 | No |
 | `LABBIT_HTTP_ADDR` | application listen address | No |
-| `LABBIT_PUBLIC_ORIGIN` | Browser Auth/CSRF 검증의 trusted public app origin | No |
+| `LABBIT_PUBLIC_ORIGIN` | Browser Auth/CSRF와 Browser WSS Upgrade Origin 검증의 trusted public app origin (`api` 또는 `realtime` role) | No |
 | `LABBIT_ADMIN_ADDR` | health/metrics listen address | No |
 | `LABBIT_DATABASE_DSN_FILE` | production DB DSN secret file 경로 (api/worker process, `labbit-migrate`) | 경로 자체 No / 파일 내용 Yes |
 | `LABBIT_DATABASE_DSN` | local development용 직접 DSN | **Yes** |
@@ -103,7 +117,7 @@ grace 만료 시 종료
 
 - **API**: 새로운 Provider mutation 등록을 중단하고 이미 수락한 bounded HTTP 요청을 안전한 범위에서 마무리합니다.
 - **Worker**: 새 `PENDING operation_items`를 claim하지 않습니다. Provider 결과가 불명확하면 lease 만료만 보고 재실행하지 않고 재시작 후 Reconciliation합니다.
-- **Realtime**: 종료 대상 인스턴스가 새 WSS upgrade를 받지 않고 기존 연결을 drain합니다.
+- **Realtime**: 종료 대상 인스턴스가 새 WSS upgrade를 받지 않고 기존 연결을 drain합니다. drain 시 active TerminalSession은 `SERVICE_RESTARTING` 사유로 종료하고 Browser에 `TERMINAL_SESSION_ENDED`를 전달합니다.
 - **Preview**: 새 proxy/session을 받지 않고 현재 연결을 가능한 범위에서 drain합니다.
 
 중앙 Realtime workload의 Connection Draining과 D-21의 **Connector PTY 60초 grace**는 서로 다른 정책입니다.

@@ -197,6 +197,44 @@ describe('Auth·Class·LabSpec routing', () => {
     ).toBeInTheDocument()
   })
 
+  it('보호 route의 /me 일반 오류는 401로 오인하지 않고 현재 route에서 오류로 표시한다', async () => {
+    const router = renderRoute(
+      '/classes',
+      createApi({
+        getMe: async () => {
+          throw new HttpError(502)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText('로그인 상태를 확인하지 못했습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: 'Labbit에 로그인' }),
+    ).not.toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/classes')
+  })
+
+  it('보호 route의 예상하지 못한 응답 파싱 오류도 로그인 실패로 오인하지 않는다', async () => {
+    const router = renderRoute(
+      '/classes',
+      createApi({
+        getMe: async () => {
+          throw new SyntaxError('Unexpected token < in JSON')
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText('로그인 상태를 확인하지 못했습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: 'Labbit에 로그인' }),
+    ).not.toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/classes')
+  })
+
   it('보호 화면 사용 중 API 401은 세션 만료 재로그인으로 안내한다', async () => {
     renderRoute(
       '/classes/class-kubernetes-basic',
@@ -348,6 +386,64 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByText('로그아웃했습니다.')).toBeInTheDocument()
   })
 
+  it('Class 목록 조회 중 세션이 만료되면 Login으로 이동한다', async () => {
+    renderRoute(
+      '/classes',
+      createApi({
+        listClasses: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('Class 목록 Backend 오류는 일반 오류 상태로 표시한다', async () => {
+    renderRoute(
+      '/classes',
+      createApi({
+        listClasses: async () => {
+          throw new HttpError(500)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText('수업 목록을 불러오지 못했습니다.'),
+    ).toBeInTheDocument()
+  })
+
+  it('현재 Backend 최소 Class 목록 응답만으로도 화면을 렌더링한다', async () => {
+    renderRoute(
+      '/classes',
+      createApi({
+        listClasses: async () => ({
+          items: [
+            {
+              id: 'class-minimal',
+              name: 'Minimal Class',
+              myRole: 'STUDENT',
+            },
+          ],
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Minimal Class' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('수강생')).toBeInTheDocument()
+    expect(screen.getByText('진행 중인 실습 없음')).toBeInTheDocument()
+  })
+
   it('Class 목록이 비어 있으면 Empty 상태를 렌더링한다', async () => {
     renderRoute(
       '/classes',
@@ -421,6 +517,224 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(
       screen.queryByRole('link', { name: 'Lab Workspace 열기' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('Class 상세 Backend 오류는 일반 오류 상태로 표시한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(500)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText('수업 정보를 불러오지 못했습니다.'),
+    ).toBeInTheDocument()
+  })
+
+  it('Class 상세 조회 중 세션이 만료되면 Login으로 이동한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('현재 Backend 최소 Class 상세 응답만으로도 화면을 렌더링한다', async () => {
+    renderRoute(
+      '/classes/class-minimal',
+      createApi({
+        getClass: async () => ({
+          id: 'class-minimal',
+          name: 'Minimal Class',
+          myRole: 'STUDENT',
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Minimal Class' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('진행 중인 실습 없음')).toBeInTheDocument()
+    expect(screen.getByText('환경 없음')).toBeInTheDocument()
+    expect(screen.getByText('입장 대기')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'Lab Workspace 열기' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('Organization ADMIN이어도 Class Membership이 없으면 목록은 Empty로 표시한다', async () => {
+    const adminMe: Me = {
+      ...meFixture,
+      id: 'user-dev-admin',
+      username: 'dev-admin',
+      organizationRole: 'ADMIN',
+    }
+
+    renderRoute(
+      '/classes',
+      createApi({
+        getMe: async () => adminMe,
+        listClasses: async () => ({ items: [] }),
+      }),
+    )
+
+    expect(await screen.findByText('dev-admin')).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: '참여 중인 수업이 없습니다.' }),
+    ).toBeInTheDocument()
+  })
+
+  it('Organization ADMIN이어도 Membership 없는 Class 상세 접근은 403으로 표시한다', async () => {
+    const adminMe: Me = {
+      ...meFixture,
+      id: 'user-dev-admin',
+      username: 'dev-admin',
+      organizationRole: 'ADMIN',
+    }
+
+    renderRoute(
+      '/classes/class-alpha',
+      createApi({
+        getMe: async () => adminMe,
+        getClass: async () => {
+          throw new HttpError(403)
+        },
+      }),
+    )
+
+    expect(await screen.findByText('dev-admin')).toBeInTheDocument()
+    expect(
+      await screen.findByText('이 수업을 볼 권한이 없습니다.'),
+    ).toBeInTheDocument()
+  })
+
+  it('같은 MEMBER 사용자도 Class별 INSTRUCTOR/STUDENT role을 각각 표시한다', async () => {
+    renderRoute(
+      '/classes',
+      createApi({
+        getMe: async () => ({
+          ...meFixture,
+          id: 'user-dev-instructor',
+          username: 'dev-instructor',
+          organizationRole: 'MEMBER',
+        }),
+        listClasses: async () => ({
+          items: [
+            {
+              id: 'class-alpha',
+              name: 'Class Alpha',
+              myRole: 'INSTRUCTOR',
+            },
+            {
+              id: 'class-bravo',
+              name: 'Class Bravo',
+              myRole: 'STUDENT',
+            },
+          ],
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Class Alpha' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Class Bravo' })).toBeInTheDocument()
+    expect(screen.getByText('강사')).toBeInTheDocument()
+    expect(screen.getByText('수강생')).toBeInTheDocument()
+  })
+
+  it('STUDENT Class 상세에서는 Instructor 전용 동작을 노출하지 않는다', async () => {
+    renderRoute(
+      '/classes/class-bravo',
+      createApi({
+        getMe: async () => ({
+          ...meFixture,
+          id: 'user-dev-instructor',
+          username: 'dev-instructor',
+          organizationRole: 'MEMBER',
+        }),
+        getClass: async () => ({
+          id: 'class-bravo',
+          name: 'Class Bravo',
+          myRole: 'STUDENT',
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Class Bravo' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('수강생')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: '실습 정의 관리' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: '새 환경 생성' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('dev-student는 Alpha에서 STUDENT로 보이고 Membership 없는 Bravo는 403 처리한다', async () => {
+    const studentMe: Me = {
+      ...meFixture,
+      id: 'user-dev-student',
+      username: 'dev-student',
+      organizationRole: 'MEMBER',
+    }
+
+    const studentApi = createApi({
+      getMe: async () => studentMe,
+      listClasses: async () => ({
+        items: [
+          {
+            id: 'class-alpha',
+            name: 'Class Alpha',
+            myRole: 'STUDENT',
+          },
+        ],
+      }),
+      getClass: async (classId) => {
+        if (classId === 'class-alpha') {
+          return {
+            id: 'class-alpha',
+            name: 'Class Alpha',
+            myRole: 'STUDENT',
+          }
+        }
+
+        throw new HttpError(403)
+      },
+    })
+
+    const alphaRouter = renderRoute('/classes/class-alpha', studentApi)
+
+    expect(
+      await screen.findByRole('heading', { name: 'Class Alpha' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('수강생')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: '실습 정의 관리' }),
+    ).not.toBeInTheDocument()
+
+    await alphaRouter.navigate('/classes/class-bravo')
+
+    expect(
+      await screen.findByText('이 수업을 볼 권한이 없습니다.'),
+    ).toBeInTheDocument()
   })
 
   it('Class 상세 403은 권한 없음 상태로 표시한다', async () => {
@@ -1245,29 +1559,116 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByText('Editor')).toBeInTheDocument()
     expect(screen.getByText('미리보기')).toBeInTheDocument()
     expect(screen.getByText('Terminal / Live')).toBeInTheDocument()
+    expect(screen.getByText('강사')).toBeInTheDocument()
+    expect(screen.getByText('사용 가능')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '← 수업 상세' })).toHaveAttribute(
+      'href',
+      '/classes/class-kubernetes-basic',
+    )
   })
 
-  it('직접 Workspace URL에서도 PROVISIONING 상태는 진입을 막는다', async () => {
+  it('Workspace URL에서 내 LabInstance가 없으면 환경 미할당 상태를 안내한다', async () => {
     renderRoute(
       '/classes/class-kubernetes-basic/lab',
       createApi({
         getClass: async () => ({
           ...classDetailFixture,
-          myLabInstance: {
-            ...classDetailFixture.myLabInstance!,
-            status: 'PROVISIONING',
-          },
+          myLabInstance: undefined,
         }),
       }),
     )
 
     expect(
-      await screen.findByText('실습 환경을 준비하고 있습니다.'),
+      await screen.findByText('현재 사용할 수 있는 실습 환경이 없습니다.'),
     ).toBeInTheDocument()
     expect(
       screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
     ).not.toBeInTheDocument()
   })
+
+  it('직접 Workspace URL의 Class 조회 401은 세션 만료 Login으로 처리한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('직접 Workspace URL의 Class 404를 찾을 수 없음 상태로 표시한다', async () => {
+    renderRoute(
+      '/classes/missing/lab',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(404)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText('Class를 찾을 수 없습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('직접 Workspace URL의 일반 Backend 오류는 진입 조건 확인 실패로 표시한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        getClass: async () => {
+          throw new HttpError(503)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText('Workspace 진입 조건을 확인하지 못했습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it.each(['PENDING', 'PROVISIONING'] as const)(
+    '직접 Workspace URL에서도 %s 상태는 진입을 막는다',
+    async (status) => {
+      renderRoute(
+        '/classes/class-kubernetes-basic/lab',
+        createApi({
+          getClass: async () => ({
+            ...classDetailFixture,
+            myLabInstance: {
+              ...classDetailFixture.myLabInstance!,
+              status,
+            },
+          }),
+        }),
+      )
+
+      expect(
+        await screen.findByText('실습 환경을 준비하고 있습니다.'),
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByRole('region', { name: 'Lab Workspace Shell' }),
+      ).not.toBeInTheDocument()
+    },
+  )
 
   it('직접 Workspace URL의 DELETING 상태를 정리 중으로 표시한다', async () => {
     renderRoute(

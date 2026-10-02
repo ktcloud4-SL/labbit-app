@@ -22,3 +22,10 @@ export function resolveLabbitApiMode(
     `지원하지 않는 VITE_LABBIT_API_MODE 값입니다: ${configuredMode}`,
   )
 }
+
+export function shouldShowMockAccountHint(
+  isDev: boolean,
+  configuredMode?: string,
+): boolean {
+  return isDev && resolveLabbitApiMode(isDev, configuredMode) === 'mock'
+}

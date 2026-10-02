@@ -178,7 +178,12 @@ func TestLoadConfigPublicOrigin(t *testing.T) {
 		{name: "userinfo is rejected", roles: "api", origin: "https://user@labbit.example.com", wantErr: "LABBIT_PUBLIC_ORIGIN 형식 오류"},
 		{name: "non-http scheme is rejected", roles: "api", origin: "ftp://labbit.example.com", wantErr: "LABBIT_PUBLIC_ORIGIN 형식 오류"},
 		{name: "relative value is rejected", roles: "api", origin: "labbit.example.com", wantErr: "LABBIT_PUBLIC_ORIGIN 형식 오류"},
-		{name: "non-api role does not need origin", roles: "worker,realtime", want: ""},
+		{name: "worker alone does not need origin", roles: "worker", want: ""},
+		// Browser Terminal/Live WSS Upgrade도 strict Origin 검증이 필요하다. realtime 때문에 필요한 것이며 DB DSN 요구와 무관하다.
+		{name: "realtime requires origin", roles: "realtime", wantErr: "realtime role에는 LABBIT_PUBLIC_ORIGIN이 필요합니다"},
+		{name: "worker and realtime requires origin", roles: "worker,realtime", wantErr: "realtime role에는 LABBIT_PUBLIC_ORIGIN이 필요합니다"},
+		{name: "realtime accepts normalized origin", roles: "realtime", origin: "HTTPS://Labbit.Example.com:443", want: "https://labbit.example.com"},
+		{name: "realtime with api reports api requirement first", roles: "api,realtime", wantErr: "api role에는 LABBIT_PUBLIC_ORIGIN이 필요합니다"},
 	}
 
 	for _, tt := range tests {
@@ -210,17 +215,103 @@ func TestLoadConfigPublicOrigin(t *testing.T) {
 func TestApplicationHandlerMountsAPIOnlyWhenProvided(t *testing.T) {
 	api := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
 
-	withAPI := applicationHandler(api)
+	withAPI := applicationHandler(routes{API: api})
 	rec := httptest.NewRecorder()
 	withAPI.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/me", nil))
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("api role /api/v1/me status = %d, want %d", rec.Code, http.StatusNoContent)
 	}
 
-	withoutAPI := applicationHandler(nil)
+	withoutAPI := applicationHandler(routes{})
 	rec = httptest.NewRecorder()
 	withoutAPI.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/me", nil))
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("non-api role /api/v1/me status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+}
+
+func TestApplicationHandlerMountsConnectorControlOnlyWhenProvided(t *testing.T) {
+	control := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+
+	serve := func(h http.Handler, method string) int {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(method, "/connector/v1/control", nil))
+		return rec.Code
+	}
+
+	mounted := applicationHandler(routes{ConnectorControl: control})
+	if got := serve(mounted, http.MethodGet); got != http.StatusNoContent {
+		t.Fatalf("GET /connector/v1/control status = %d, want %d", got, http.StatusNoContent)
+	}
+	// WebSocket Upgrade는 GET이다. 다른 method는 method 무관 catch-all("/")로 가므로 handler에 도달하지 않는다.
+	if got := serve(mounted, http.MethodPost); got != http.StatusNotFound {
+		t.Fatalf("POST /connector/v1/control status = %d, want %d", got, http.StatusNotFound)
+	}
+
+	if got := serve(applicationHandler(routes{}), http.MethodGet); got != http.StatusNotFound {
+		t.Fatalf("Connector Control 미제공 status = %d, want %d", got, http.StatusNotFound)
+	}
+}
+
+func TestApplicationHandlerMountsTerminalWSSOnlyWhenProvided(t *testing.T) {
+	browser := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusAccepted) })
+	data := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNonAuthoritativeInfo) })
+
+	serve := func(h http.Handler, method, path string) int {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(method, path, nil))
+		return rec.Code
+	}
+
+	mounted := applicationHandler(routes{BrowserTerminal: browser, ConnectorTerminalData: data})
+	if got := serve(mounted, http.MethodGet, "/realtime/v1/terminal"); got != http.StatusAccepted {
+		t.Fatalf("GET /realtime/v1/terminal status = %d, want %d", got, http.StatusAccepted)
+	}
+	if got := serve(mounted, http.MethodGet, "/connector/v1/terminal-data"); got != http.StatusNonAuthoritativeInfo {
+		t.Fatalf("GET /connector/v1/terminal-data status = %d, want %d", got, http.StatusNonAuthoritativeInfo)
+	}
+	// WebSocket Upgrade는 GET이다.
+	if got := serve(mounted, http.MethodPost, "/realtime/v1/terminal"); got != http.StatusNotFound {
+		t.Fatalf("POST /realtime/v1/terminal status = %d, want %d", got, http.StatusNotFound)
+	}
+
+	// authority(api role)가 없는 process는 인증 없는 Terminal route를 열지 않는다.
+	unmounted := applicationHandler(routes{})
+	for _, path := range []string{"/realtime/v1/terminal", "/connector/v1/terminal-data"} {
+		if got := serve(unmounted, http.MethodGet, path); got != http.StatusNotFound {
+			t.Fatalf("Terminal 미제공 GET %s status = %d, want %d", path, got, http.StatusNotFound)
+		}
+	}
+}
+
+func TestAdminHandlerReadinessRequiresEveryCheck(t *testing.T) {
+	ready := &atomic.Bool{}
+	ready.Store(true)
+
+	ok := func(context.Context) error { return nil }
+	fail := func(context.Context) error { return errors.New("not usable") }
+
+	tests := []struct {
+		name   string
+		checks []func(context.Context) error
+		want   int
+	}{
+		{name: "no checks", want: http.StatusOK},
+		{name: "nil check is skipped", checks: []func(context.Context) error{nil}, want: http.StatusOK},
+		{name: "all pass", checks: []func(context.Context) error{ok, ok}, want: http.StatusOK},
+		// realtime role만 enabled된 process는 authority가 없어 not-ready다.
+		{name: "one failing check", checks: []func(context.Context) error{ok, fail}, want: http.StatusServiceUnavailable},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			adminHandler(ready, tt.checks...).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+			if rec.Code != tt.want {
+				t.Fatalf("/readyz status = %d, want %d", rec.Code, tt.want)
+			}
+			if strings.Contains(rec.Body.String(), "not usable") {
+				t.Fatalf("/readyz body exposes the check error: %q", rec.Body.String())
+			}
+		})
 	}
 }

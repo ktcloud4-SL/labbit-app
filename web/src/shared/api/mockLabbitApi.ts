@@ -12,6 +12,7 @@ import type {
   Operation,
   TerminalSession,
   TerminalTargetList,
+  WorkspaceFileTree,
 } from './contracts'
 import { HttpError } from './httpClient'
 import type { LabbitApi } from './labbitApi'
@@ -219,6 +220,14 @@ let nextExecutionId = 1
 let nextTerminalSessionId = 1
 const closedTerminalSessions = new Set<string>()
 
+const initialWorkspaceFiles = new Map<string, string>([
+  ['README.md', '# Kubernetes Basic\n'],
+  ['src/main.ts', "console.log('Labbit workspace')\n"],
+  ['src/styles.css', 'body { margin: 0; }\n'],
+])
+let workspaceFiles = new Map<string, string>()
+let workspaceFileVersions = new Map<string, number>()
+
 
 function cloneClassDetail(classDetail: ClassDetail): ClassDetail {
   return {
@@ -273,10 +282,14 @@ function resetMockData() {
   nextExecutionId = 1
   nextTerminalSessionId = 1
   closedTerminalSessions.clear()
+  workspaceFiles = new Map(initialWorkspaceFiles)
+  workspaceFileVersions = new Map(
+    [...initialWorkspaceFiles.keys()].map((path) => [path, 1]),
+  )
   mockDataInitialized = true
 }
 
-function terminalTargetsFor(labInstanceId: string): TerminalTargetList {
+function requireOwnedReadyWorkspace(labInstanceId: string) {
   const execution = labExecutions.find((item) =>
     item.labInstances.some((instance) => instance.id === labInstanceId),
   )
@@ -284,15 +297,49 @@ function terminalTargetsFor(labInstanceId: string): TerminalTargetList {
     (instance) => instance.id === labInstanceId,
   )
 
-  if (!execution || !labInstance) {
+  if (!execution || !labInstance) throw new HttpError(404)
+  if (labInstance.userId !== mockMe.id) throw new HttpError(403)
+  if (labInstance.status !== 'READY') throw new HttpError(409)
+
+  return labInstance
+}
+
+function mockWorkspaceFileEtag(path: string) {
+  return `"mock-file-${workspaceFileVersions.get(path) ?? 1}"`
+}
+
+function listMockWorkspaceFiles(path = ''): WorkspaceFileTree {
+  const prefix = path ? `${path}/` : ''
+  const entries = new Map<string, 'file' | 'directory'>()
+
+  for (const filePath of workspaceFiles.keys()) {
+    if (!filePath.startsWith(prefix)) continue
+
+    const remainder = filePath.slice(prefix.length)
+    if (!remainder) continue
+
+    const [name, ...rest] = remainder.split('/')
+    entries.set(name, rest.length ? 'directory' : 'file')
+  }
+
+  if (path && entries.size === 0) {
     throw new HttpError(404)
   }
-  if (labInstance.userId !== mockMe.id) {
-    throw new HttpError(403)
+
+  return {
+    path,
+    items: [...entries.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, kind]) => ({
+        name,
+        path: prefix + name,
+        kind,
+      })),
   }
-  if (labInstance.status !== 'READY') {
-    throw new HttpError(409)
-  }
+}
+
+function terminalTargetsFor(labInstanceId: string): TerminalTargetList {
+  const labInstance = requireOwnedReadyWorkspace(labInstanceId)
 
   return {
     generation: labInstance.generation,
@@ -704,6 +751,44 @@ export const mockLabbitApi: LabbitApi = {
   async closeTerminalSession(terminalSessionId) {
     requireSession()
     closedTerminalSessions.add(terminalSessionId)
+  },
+
+  async listWorkspaceFiles(labInstanceId, path = '') {
+    requireSession()
+    requireOwnedReadyWorkspace(labInstanceId)
+    return listMockWorkspaceFiles(path)
+  },
+
+  async readWorkspaceFile(labInstanceId, path) {
+    requireSession()
+    requireOwnedReadyWorkspace(labInstanceId)
+
+    const content = workspaceFiles.get(path)
+    if (content === undefined) throw new HttpError(404)
+
+    return {
+      file: {
+        path,
+        content,
+      },
+      etag: mockWorkspaceFileEtag(path),
+    }
+  },
+
+  async saveWorkspaceFile(labInstanceId, path, content, etag) {
+    requireSession()
+    requireOwnedReadyWorkspace(labInstanceId)
+
+    if (!workspaceFiles.has(path)) throw new HttpError(404)
+    if (etag !== mockWorkspaceFileEtag(path)) throw new HttpError(412)
+
+    workspaceFiles.set(path, content)
+    workspaceFileVersions.set(path, (workspaceFileVersions.get(path) ?? 1) + 1)
+
+    return {
+      file: { path },
+      etag: mockWorkspaceFileEtag(path),
+    }
   },
 
   async getOperation(operationId) {

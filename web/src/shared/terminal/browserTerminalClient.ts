@@ -16,7 +16,7 @@ export interface TerminalProtocolError {
 
 export interface BrowserTerminalClientHandlers {
   onAttached(result: TerminalAttachResult): void
-  onOutput(text: string): void
+  onOutput(data: Uint8Array): void
   onEnded(event: TerminalEndedEvent): void
   onProtocolError(error: TerminalProtocolError): void
   onClose(event: CloseEvent): void
@@ -50,7 +50,6 @@ function controlEnvelope(type: string, terminalSessionId: string, payload: objec
 
 export class BrowserTerminalClient {
   private socket: WebSocket | null = null
-  private decoder = new TextDecoder()
   private attached = false
   private closing = false
   private input: BrowserTerminalConnectInput | null = null
@@ -62,7 +61,6 @@ export class BrowserTerminalClient {
     this.input = input
     this.attached = false
     this.closing = false
-    this.decoder = new TextDecoder()
 
     const socket = new WebSocket(terminalWebSocketUrl(), TERMINAL_SUBPROTOCOL)
     socket.binaryType = 'arraybuffer'
@@ -149,18 +147,13 @@ export class BrowserTerminalClient {
       data instanceof ArrayBuffer ||
       Object.prototype.toString.call(data) === '[object ArrayBuffer]'
     ) {
-      this.handlers.onOutput(
-        this.decoder.decode(new Uint8Array(data as ArrayBuffer), { stream: true }),
-      )
+      this.handlers.onOutput(new Uint8Array(data as ArrayBuffer))
       return
     }
 
     if (ArrayBuffer.isView(data)) {
       this.handlers.onOutput(
-        this.decoder.decode(
-          new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
-          { stream: true },
-        ),
+        new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
       )
       return
     }
@@ -168,9 +161,7 @@ export class BrowserTerminalClient {
     if (data instanceof Blob) {
       void data.arrayBuffer().then((buffer) => {
         if (this.socket !== sourceSocket || this.closing) return
-        this.handlers.onOutput(
-          this.decoder.decode(new Uint8Array(buffer), { stream: true }),
-        )
+        this.handlers.onOutput(new Uint8Array(buffer))
       })
     }
   }

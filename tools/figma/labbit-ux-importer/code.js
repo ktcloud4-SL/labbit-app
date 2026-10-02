@@ -119,7 +119,7 @@ async function importBundle(manifest, files) {
   const fileMap = new Map(files.map((file) => [file.name, file.bytes]))
   const page = figma.createPage()
   page.name = manifest.pageName || 'Labbit UX Review'
-  figma.currentPage = page
+  await figma.setCurrentPageAsync(page)
 
   const title = textNode(manifest.pageName || 'Labbit UX Review', 44, true)
   title.x = 0

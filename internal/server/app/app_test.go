@@ -8,6 +8,9 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func TestAdminHandlerReadiness(t *testing.T) {
@@ -53,7 +56,7 @@ func TestAdminHandlerReadiness(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ready := &atomic.Bool{}
 			ready.Store(tt.startupDone)
-			handler := adminHandler(ready, tt.checkDatabase)
+			handler := adminHandler(ready, emptyMetricsHandler(), tt.checkDatabase)
 
 			readyz := httptest.NewRecorder()
 			handler.ServeHTTP(readyz, httptest.NewRequest(http.MethodGet, "/readyz", nil))
@@ -78,7 +81,7 @@ func TestAdminHandlerReadinessCheckHasDeadline(t *testing.T) {
 	ready := &atomic.Bool{}
 	ready.Store(true)
 	var hasDeadline bool
-	handler := adminHandler(ready, func(ctx context.Context) error {
+	handler := adminHandler(ready, emptyMetricsHandler(), func(ctx context.Context) error {
 		_, hasDeadline = ctx.Deadline()
 		return nil
 	})
@@ -305,7 +308,7 @@ func TestAdminHandlerReadinessRequiresEveryCheck(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
-			adminHandler(ready, tt.checks...).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+			adminHandler(ready, emptyMetricsHandler(), tt.checks...).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/readyz", nil))
 			if rec.Code != tt.want {
 				t.Fatalf("/readyz status = %d, want %d", rec.Code, tt.want)
 			}
@@ -314,4 +317,8 @@ func TestAdminHandlerReadinessRequiresEveryCheck(t *testing.T) {
 			}
 		})
 	}
+}
+
+func emptyMetricsHandler() http.Handler {
+	return promhttp.HandlerFor(prometheus.NewRegistry(), promhttp.HandlerOpts{})
 }

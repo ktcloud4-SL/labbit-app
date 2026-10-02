@@ -12,6 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	migrationfiles "github.com/ktcloud4-SL/labbit-app/db/migrations"
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
@@ -103,6 +106,7 @@ func LoadConfig() (Config, error) {
 func Run(ctx context.Context, cfg Config) error {
 	logger := observability.NewJSONLogger("labbit-server", "bootstrap", cfg.Environment, cfg.LogLevel)
 	ready := &atomic.Bool{}
+	registry, httpMetrics, realtimeMetrics := applicationMetrics(cfg.Roles)
 
 	var (
 		checks []func(context.Context) error
@@ -131,9 +135,11 @@ func Run(ctx context.Context, cfg Config) error {
 			// 같은 Connector Registry/Router 위에 Terminal Relay와 TerminalSession 생성/종료를 조립한다.
 			// 아직 Operation 결과를 받는 durable Worker(LBT-18)가 없으므로 Operation Sink는 두지 않는다.
 			stack, err = newControlStack(postgres.NewStore(pool), stackOptions{
-				Logger:       logger,
-				PublicOrigin: cfg.PublicOrigin,
-				Realtime:     slices.Contains(cfg.Roles, "realtime"),
+				Logger:          logger,
+				PublicOrigin:    cfg.PublicOrigin,
+				Realtime:        slices.Contains(cfg.Roles, "realtime"),
+				HTTPMetrics:     httpMetrics,
+				RealtimeMetrics: realtimeMetrics,
 			})
 			if err != nil {
 				return err
@@ -163,7 +169,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	adminServer := &http.Server{
 		Addr:              cfg.AdminAddr,
-		Handler:           adminHandler(ready, checks...),
+		Handler:           adminHandler(ready, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}), checks...),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -191,6 +197,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// D-22/Runtime Contract에 따라 먼저 readiness를 내리고 신규 트래픽을 받지 않도록 한다.
 	ready.Store(false)
+	if realtimeMetrics != nil {
+		realtimeMetrics.Draining.Set(1)
+	}
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownGrace)
 	defer cancel()
@@ -247,7 +256,7 @@ func applicationHandler(rt routes) http.Handler {
 
 // adminHandler의 checks는 role이 새 작업을 안전하게 받을 수 있는지 확인하는 함수들이다(예: DB와 schema 호환성).
 // nil은 건너뛴다. 하나라도 실패하면 /readyz가 실패한다.
-func adminHandler(ready *atomic.Bool, checks ...func(context.Context) error) http.Handler {
+func adminHandler(ready *atomic.Bool, metrics http.Handler, checks ...func(context.Context) error) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /livez", func(w http.ResponseWriter, _ *http.Request) {
@@ -278,14 +287,22 @@ func adminHandler(ready *atomic.Bool, checks ...func(context.Context) error) htt
 		_, _ = w.Write([]byte("ok\n"))
 	})
 
-	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, _ *http.Request) {
-		// 지표 이름과 label은 실제 구현에서 D-23/D-25 기준으로 추가한다.
-		// 스켈레톤 단계에서는 endpoint 존재만 보장하고 가짜 제품 지표는 만들지 않는다.
-		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-		w.WriteHeader(http.StatusOK)
-	})
+	mux.Handle("GET /metrics", metrics)
 
 	return mux
+}
+
+func applicationMetrics(roles []string) (*prometheus.Registry, *observability.HTTPMetrics, *observability.RealtimeMetrics) {
+	registry := prometheus.NewRegistry()
+	var httpMetrics *observability.HTTPMetrics
+	var realtimeMetrics *observability.RealtimeMetrics
+	if slices.Contains(roles, "api") {
+		httpMetrics = observability.NewHTTPMetrics(registry)
+	}
+	if slices.Contains(roles, "realtime") {
+		realtimeMetrics = observability.NewRealtimeMetrics(registry)
+	}
+	return registry, httpMetrics, realtimeMetrics
 }
 
 func serve(logger *slog.Logger, name string, server *http.Server, errCh chan<- error) {

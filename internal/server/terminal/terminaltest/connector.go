@@ -83,7 +83,8 @@ func (l *dataLink) write(kind int, data []byte) error {
 }
 
 // Connector는 고객 환경 Connector를 흉내 내는 contract peer다. 실제 WebSocket으로 Control WSS와 Terminal Data WSS에 연결하고
-// contracts/connector/의 message를 주고받는다. 실제 OpenStack/SSH/PTY는 없다(그 검증은 LBT-22 C2 범위다).
+// contracts/connector/의 message를 주고받는다. 이 helper에는 실제 OpenStack/SSH/PTY가 없다.
+// Connector→실제 Workspace VM SSH/PTY acceptance는 LBT-20, Browser/SaaS까지 포함한 full-stack 공동 통합은 LBT-22(C2)에서 검증한다.
 type Connector struct {
 	t          *testing.T
 	base       string

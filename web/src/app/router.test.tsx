@@ -1619,12 +1619,7 @@ describe('Auth·Class·LabSpec routing', () => {
 
   it('Workspace File Tree에서 파일을 읽고 ETag 기반으로 저장한다', async () => {
     const saveWorkspaceFile = vi.fn(
-      async (
-        _labInstanceId: string,
-        path: string,
-        content: string,
-        _etag: string,
-      ) => ({
+      async (_labInstanceId: string, path: string) => ({
         file: { path },
         etag: '"file-v2"',
       }),

@@ -24,6 +24,24 @@ web/ui-captures/
 └─ manifest.json
 ```
 
+## 기존 Figma TypeScript template에 바로 설치하기 (Windows 권장)
+
+Figma에서 **New plugin**으로 만든 기본 TypeScript template은 `code.ts`를 빌드해 `code.js`를 생성하기 전에는 실행 시 오류가 납니다. Labbit은 별도 TypeScript build를 쓰지 않고 이 저장소의 완성된 `code.js` / `ui.html`을 그대로 사용합니다.
+
+Figma가 만든 폴더가 예를 들어 다음이라면:
+
+```text
+C:\Users\user\Downloads\Labbit UX Importer
+```
+
+저장소 루트에서 한 번만 실행합니다.
+
+```powershell
+node tools\figma\labbit-ux-importer\install-dev-plugin.mjs "$env:USERPROFILE\Downloads\Labbit UX Importer" <FIGMA_PLUGIN_ID>
+```
+
+이 스크립트는 기존 `manifest.json`을 `manifest.figma-template.backup.json`으로 한 번 백업한 뒤 Labbit용 `manifest.json`, `code.js`, `ui.html`을 설치합니다. 이후 Figma에서 기존 **Labbit UX Importer**를 닫았다가 다시 실행하면 됩니다.
+
 ## 2. Figma 개발 Plugin ID 한 번만 만들기
 
 Figma는 Plugin ID를 Figma에서 발급합니다. 처음 한 번만 **Plugins > Development > New plugin**에서 Custom UI 개발 Plugin을 만든 뒤 생성된 manifest의 `id` 값을 확인합니다.

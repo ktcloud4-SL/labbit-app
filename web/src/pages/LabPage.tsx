@@ -226,6 +226,7 @@ export function LabPage() {
             <span>Browser WSS · multi-VM</span>
           </div>
           <TerminalPanel
+            key={`${labInstance.id}:${labInstance.generation}`}
             labInstanceId={labInstance.id}
             generation={labInstance.generation}
           />

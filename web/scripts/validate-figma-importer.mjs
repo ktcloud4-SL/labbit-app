@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
+import { spawnSync } from 'node:child_process'
 
 const root = path.resolve('..')
 const pluginDir = path.join(root, 'tools', 'figma', 'labbit-ux-importer')
@@ -46,17 +47,38 @@ async function main() {
   requireText(code, "type: 'IMPORT_DONE'", 'code.js')
   requireText(code, "type: 'IMPORT_ERROR'", 'code.js')
   requireText(code, "message?.type !== 'IMPORT_BUNDLE'", 'code.js')
+  requireText(code, "Editable · DOM", 'code.js')
+  requireText(code, 'editableData', 'code.js')
   forbidText(code, 'figma.currentPage =', 'code.js')
 
   requireText(ui, "type: 'IMPORT_BUNDLE'", 'ui.html')
   requireText(ui, "message.type === 'IMPORT_DONE'", 'ui.html')
   requireText(ui, "message.type === 'IMPORT_ERROR'", 'ui.html')
   requireText(ui, 'manifest.json', 'ui.html')
+  requireText(ui, 'editable-dom.json', 'ui.html')
+  requireText(ui, 'editableData', 'ui.html')
+
+  for (const script of [
+    path.join('scripts', 'capture-ui.mjs'),
+    path.join('scripts', 'prepare-figma-bundle.mjs'),
+  ]) {
+    const result = spawnSync(process.execPath, ['--check', script], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+    })
+    if (result.status !== 0) {
+      throw new Error(`${script}: 문법 검사 실패\n${result.stderr || result.stdout}`)
+    }
+  }
+
+  new Function(code)
 
   console.log('✓ Labbit UX Importer 정적 검증 PASS')
   console.log('- manifest 형식')
   console.log('- dynamic-page 페이지 전환')
   console.log('- UI ↔ plugin 메시지 계약')
+  console.log('- editable DOM import 경계')
+  console.log('- capture/bundle/plugin JavaScript 문법')
 }
 
 main().catch((error) => {

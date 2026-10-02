@@ -60,7 +60,8 @@ func (b *lockedBuffer) String() string {
 }
 
 // terminalEnv는 실제 PostgreSQL, 실제 Connector Control WSS, Terminal Relay, HTTP API를 모두 조립한 환경이다.
-// Connector 쪽은 계약대로 동작하는 contract peer이며 실제 OpenStack/SSH/PTY는 없다(LBT-22 C2 범위).
+// Connector 쪽은 계약대로 동작하는 contract peer이며 실제 OpenStack/SSH/PTY는 없다.
+// Connector→실제 Workspace VM SSH/PTY acceptance는 LBT-20, Browser/SaaS까지 포함한 full-stack 공동 통합은 LBT-22(C2)에서 검증한다.
 type terminalEnv struct {
 	t       *testing.T
 	dsn     string

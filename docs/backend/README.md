@@ -135,7 +135,7 @@ Session의 구체 lifecycle/CSRF 기준은 auth-session.md를 따릅니다.
 - Application rule: Repository/Port fake를 사용한 Go unit test
 - HTTP transport: httptest 기반 request/response 계약 test
 - PostgreSQL constraint/session/query: 실제 PostgreSQL Integration Test
-- Terminal WSS: 실제 WebSocket peer와 주입한 `Clock`으로 protocol/auth/grace를 검증합니다(60초를 기다리지 않습니다). Connector 쪽은 계약대로 동작하는 contract peer(`terminal/terminaltest`)이며 실제 OpenStack/SSH/PTY 검증은 LBT-22(C2) 범위입니다.
+- Terminal WSS: 실제 WebSocket peer와 주입한 `Clock`으로 protocol/auth/grace를 검증합니다(60초를 기다리지 않습니다). Connector 쪽은 계약대로 동작하는 contract peer(`terminal/terminaltest`)입니다. 실제 VM 검증은 두 단계로 구분합니다: LBT-20에서 Connector→실제 Workspace VM SSH/PTY INPUT/OUTPUT·resize·close를 먼저 검증하고, 이후 LBT-22(C2)에서 Browser/SaaS → Connector → 실제 VM 전체 왕복과 reconnect/close를 공동 통합 검증합니다.
 - Frontend 실제 consumer: LBT-12에서 HTTP mode E2E
 
 테스트 원칙 전체는 ../../TESTING.md를 따릅니다.

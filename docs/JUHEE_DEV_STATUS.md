@@ -4,8 +4,9 @@
 > **Confluence 문서**: [Connector > 이주희](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/15892482)  
 > **Jira 에픽 Task 정리**: [이주희 - Task 정리](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/19333228/-+Task) (9/27 리더 회의용)  
 > **기준 계획서**: [Connector MVP 개발 실행 계획](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/12845071/Connector+MVP)  
-> **세부 의사결정**: [결정 완료 사안](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/11075640) · [추가 결정 사안](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/18055175)  
-> **작업 브랜치**: `feat/SL-connector-control-wss` (PR #27 리뷰 반영 완료, CI 통과) / `feat/SL-connector-terminal-stream` (M3 완료)  
+> **결정 완료 사안 (SSOT)**: [결정 완료 사안](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/11075640)  
+> **추가 결정 사안 (마일스톤별 계획)**: [추가 결정 사안](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/18055175)  
+> **현재 Git 상태**: `main`에 PR #27(Control WSS)과 PR #53(Terminal Transport) merge 완료. PR #53 merge commit `3616611e0922b6f1cef3c84eb16249ac2afc0e6c`.  
 > **Git SSOT 저장소**: [ktcloud4-SL/labbit-app](https://github.com/ktcloud4-SL/labbit-app.git)
 
 ---
@@ -122,13 +123,52 @@ labbit-app/
   * `Supervisor`: WSS 연결 ➔ `HELLO` 핸드셰이크 ➔ `Heartbeat` 가동 ➔ `Handler.Listen` 수명 관리 및 비정상 단절 시 자동 재접속
   * `reconnect_test.go`: 백오프 Jitter 범위 검증, 비정상 단절 후 자동 재접속 및 `HELLO` 재협상 검증 통과 (PASS)
 
+### ✅ [M3] 실시간 웹 터미널(Terminal Stream) 구현 및 PR merge 완료 — 실제 Workspace VM E2E 잔여
+* **터미널 프로토콜 모델 (`internal/connector/protocol/terminal.go`)**:
+  * `contracts/connector/terminal-control.schema.json` 및 `terminal-data.schema.json` 준수
+  * Control 메시지: `TERMINAL_OPEN`, `TERMINAL_OPEN_RESULT`, `TERMINAL_CLOSE`, `TERMINAL_ENDED`
+  * Data WSS 제어 프레임: `TERMINAL_DATA_ATTACH`, `TERMINAL_DATA_ATTACHED`, `TERMINAL_DATA_RESIZE`, `TERMINAL_DATA_CLOSE`, `TERMINAL_DATA_ENDED`
+* **터미널 세션 관리자 & 60초 Grace Period (`internal/connector/terminal/session.go`, `pty.go`)**:
+  * `SessionManager`: `terminalSessionId` 기준 Thread-safe 레지스트리 및 멱등성 보장 (동일 세션 재오픈 방어)
+  * `Session`: 단일 PTY 입출력 파이프라인 관리 및 생명주기 관리
+  * **60초 Grace Period**: WebSocket 단절 시 PTY를 즉시 종료하지 않고 60초간 보존, 기한 내 재접속 시 무중단 복구 (`resumed: true`)
+  * 타임아웃 경과 시 자동 안전 종료 (`protocol.TerminalReasonGraceTimeout`)
+* **Terminal Data WSS 클라이언트 (`internal/connector/terminal/client.go`)**:
+  * 별도 전용 데이터 WebSocket (`labbit.connector-terminal.v1`) 아웃바운드 연결
+  * `TERMINAL_DATA_ATTACH` ➔ `TERMINAL_DATA_ATTACHED` 핸드셰이크 수행
+  * PTY stdout ➔ WebSocket Binary Frame 1:1 고속 스트리밍
+  * WebSocket Binary Frame ➔ PTY stdin 및 Text Frame (`RESIZE`, `CLOSE`) 디스패치
+* **Control WSS Handler 연동 (`internal/connector/wss/handler.go`)**:
+  * `TERMINAL_OPEN` 수신 ➔ 세션 획득 ➔ `TERMINAL_OPEN_RESULT (SUCCEEDED/FAILED)` 회신
+  * `TERMINAL_CLOSE` 수신 ➔ 세션 정리 ➔ `TERMINAL_ENDED` 회신
+* **Mock Relay 및 검증 테스트 통과 (`internal/connector/terminal/terminal_test.go`, `handler_terminal_test.go`)**:
+  * `TestTerminal_OpenAndEchoStreaming`: 바이너리 에코 스트리밍 검증 (PASS)
+  * `TestTerminal_Resize`: 120x40 창 크기 조절 제어 프레임 검증 (PASS)
+  * `TestTerminal_GracePeriod_Resume`: 단절 후 60초 내 재연결 및 세션 복구 검증 (PASS)
+  * `TestTerminal_GracePeriod_Timeout`: Grace Period 만료 후 자동 정리 검증 (PASS)
+  * `TestTerminal_Close_Idempotent`: 멱등적 세션 닫기 검증 (PASS)
+  * `TestHandler_TerminalOpenAndClose`: Control WSS 연동 E2E 검증 (PASS)
+  * Credential revoke 회귀: old credential `401`을 deterministic하게 관측한 뒤 `StatusDetached` 유지, credential 갱신, 동일 `terminalSessionId`/동일 PTY reattach 검증 (PASS)
+  * JSON Text bounded read, Host Key 검증, stale generation CLOSE 방어, reconnect/close lifecycle 회귀 검증 (PASS)
+* **PR #53 최종 상태**:
+  * 최신 `main` 반영 후 HEAD `4803a4f`에서 Go / Web / Contracts / CodeQL / Analyze 전체 PASS
+  * PR #53 APPROVE 후 squash merge 완료 (`3616611e0922b6f1cef3c84eb16249ac2afc0e6c`)
+* **검증 경계**:
+  * 위 PASS는 repository/Mock Relay/RFC 4254 in-process evidence입니다.
+  * LBT-20 자체 완료 조건인 **실제 Workspace VM 대상 Connector→SSH/PTY INPUT/OUTPUT 및 resize/close**는 아직 `not verified`입니다. 이 Connector-side 실제 VM Evidence를 LBT-20에서 먼저 확보한 뒤 LBT-20을 Done 처리합니다.
+  * 이후 **LBT-22(C2)**에서 BE-06 · CC-02 · OP-02를 결합해 Browser/SaaS TerminalSession → Connector Transport → 실제 VM SSH/PTY 전체 왕복과 reconnect/close 대표 흐름을 공동 검증합니다.
+
 ---
 
-## 6. 다음 개발 진행 계획 (M1 Checkpoint #1 및 M3 터미널 스트리밍)
+## 6. 다음 개발 진행 계획 (LBT-20 실제 VM Acceptance / C2 / M4 Preview)
 
-* **M1 Integration Checkpoint #1 (서빈 님 협업)**:
-  * 서빈 님 PC에서 주희 님 브랜치(`feat/SL-connector-control-wss`)를 당겨 받아 OpenStack Provider와 단일 프로세스 결합 검증
-* **Milestone M3 착수 (실시간 터미널 세션 스트리밍)**:
-  * SaaS `TERMINAL_OPEN` 수신 및 관리망 VM(22번 포트) SSH PTY 셸 연결
-  * 별도 Terminal Data WSS(`labbit.connector-terminal.v1`) 연결 및 1:1 양방향 PTY 바이너리 스트리밍
-  * 브라우저 탭 닫힘 시 60초 유예기간(Grace Period) 및 재접속 복구 구현
+* **LBT-20 Connector-side 실제 Workspace VM 검증**:
+  * 최신 `main`의 Connector Terminal Transport와 OpenStack Provider의 management address 경계를 이용해 실제 Workspace VM SSH/PTY를 연결합니다.
+  * 실제 VM에서 PTY INPUT/OUTPUT, resize, close를 실측하고 LBT-20 Evidence로 남깁니다.
+  * 이 Acceptance가 완료되면 LBT-20을 Done 처리할 수 있습니다.
+* **LBT-22(C2) 공동 통합**:
+  * LBT-20 및 BE-06/OP-02 선행조건 완료 후 Browser/SaaS TerminalSession → Connector Transport → 실제 VM SSH/PTY 전체 왕복을 검증합니다.
+  * reconnect/close 대표 흐름의 공동 Evidence를 LBT-22에 남깁니다.
+* **Milestone M4 착수 (웹 애플리케이션 미리보기 Preview)**:
+  * 준비 5에서 합의한 `PREVIEW_OPEN`/`PREVIEW_CLOSE` 및 `labbit.connector-preview.v1` WSS 파이프라인 구축
+

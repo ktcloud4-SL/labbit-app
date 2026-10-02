@@ -10,13 +10,15 @@ var ErrMockNotConfigured = errors.New("mock provider method not configured")
 // MockProvider lets Control tests supply outcomes without OpenStack or Gophercloud.
 // An unconfigured method fails explicitly instead of reporting a false success.
 type MockProvider struct {
-	ProvisionFunc func(context.Context, ProvisionRequest) (OperationResult, error)
-	ResetFunc     func(context.Context, ResetRequest) (OperationResult, error)
-	CleanupFunc   func(context.Context, CleanupRequest) (OperationResult, error)
-	ReconcileFunc func(context.Context, ReconcileRequest) (ReconcileResult, error)
+	ProvisionFunc            func(context.Context, ProvisionRequest) (OperationResult, error)
+	ResetFunc                func(context.Context, ResetRequest) (OperationResult, error)
+	CleanupFunc              func(context.Context, CleanupRequest) (OperationResult, error)
+	ReconcileFunc            func(context.Context, ReconcileRequest) (ReconcileResult, error)
+	ResolveServerAddressFunc func(ctx context.Context, targetVmKey, serverID string) (string, error)
 }
 
 var _ Provider = (*MockProvider)(nil)
+var _ ServerAddressResolver = (*MockProvider)(nil)
 
 func (m *MockProvider) Provision(ctx context.Context, request ProvisionRequest) (OperationResult, error) {
 	if m == nil || m.ProvisionFunc == nil {
@@ -44,4 +46,11 @@ func (m *MockProvider) Reconcile(ctx context.Context, request ReconcileRequest) 
 		return ReconcileResult{}, ErrMockNotConfigured
 	}
 	return m.ReconcileFunc(ctx, request)
+}
+
+func (m *MockProvider) ResolveServerAddress(ctx context.Context, targetVmKey, serverID string) (string, error) {
+	if m == nil || m.ResolveServerAddressFunc == nil {
+		return "", ErrMockNotConfigured
+	}
+	return m.ResolveServerAddressFunc(ctx, targetVmKey, serverID)
 }

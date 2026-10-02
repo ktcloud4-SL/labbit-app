@@ -138,7 +138,7 @@ Session의 구체 lifecycle/CSRF 기준은 auth-session.md를 따릅니다.
 - HTTP transport: httptest 기반 request/response 계약 test
 - PostgreSQL constraint/session/query: 실제 PostgreSQL Integration Test
 - Workspace file: `workspacefile`은 Repository/Transport fake로 경로 규칙·권한 판정·Reset race·본문 검증을, `filetransport`는 실제 Connector Control handler와 `connector.Router`/`Registry` 위에서 contract peer(`filetest`)로 capability·correlation·framing·취소/시간 초과/revoke 정리를, `httpapi`는 handler의 query/If-Match/body/Problem Details를, `app`의 integration test는 실제 PostgreSQL과 contract peer로 HTTP → 권한 → target 결정 → Control → File Data WSS → HTTP 전체를 검증합니다. 이 검증은 실제 Workspace VM의 SSH/SFTP가 동작한다는 뜻이 아닙니다(LBT-21).
-- Terminal WSS: 실제 WebSocket peer와 주입한 `Clock`으로 protocol/auth/grace를 검증합니다(60초를 기다리지 않습니다). Connector 쪽은 계약대로 동작하는 contract peer(`terminal/terminaltest`)이며 실제 OpenStack/SSH/PTY 검증은 LBT-22(C2) 범위입니다.
+- Terminal WSS: 실제 WebSocket peer와 주입한 `Clock`으로 protocol/auth/grace를 검증합니다(60초를 기다리지 않습니다). Connector 쪽은 계약대로 동작하는 contract peer(`terminal/terminaltest`)입니다. 실제 VM 검증은 두 단계로 구분합니다: LBT-20에서 Connector→실제 Workspace VM SSH/PTY INPUT/OUTPUT·resize·close를 먼저 검증하고, 이후 LBT-22(C2)에서 Browser/SaaS → Connector → 실제 VM 전체 왕복과 reconnect/close를 공동 통합 검증합니다.
 - Frontend 실제 consumer: LBT-12에서 HTTP mode E2E
 
 테스트 원칙 전체는 ../../TESTING.md를 따릅니다.

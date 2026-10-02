@@ -473,6 +473,19 @@ connector:
       required: false
       secret: false
       default: "info"
+    LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE:
+      required_when: "production terminal sessions are enabled"
+      secret: false
+      note: "OpenStack VM SSH Host Key 검증용 known_hosts 파일 경로입니다. 프로덕션 환경에서 필수입니다."
+    LABBIT_OPENSTACK_SSH_USERNAME:
+      required: false
+      secret: false
+      default: "ubuntu"
+      note: "OpenStack VM SSH 접속에 사용할 기본 사용자 계정입니다."
+    LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE:
+      required_when: "production terminal sessions are enabled with private key auth"
+      secret: true
+      note: "OpenStack VM SSH 접속에 사용할 Private Key 파일 경로입니다."
   heartbeat:
     interval: "15s"
     saas_offline_after: "45s"

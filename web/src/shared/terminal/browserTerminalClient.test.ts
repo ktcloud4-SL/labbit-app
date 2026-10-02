@@ -5,7 +5,7 @@ import {
   terminalTransport,
 } from './browserTerminalClient'
 
-type Listener = (event: any) => void
+type Listener = (event: unknown) => void
 
 class FakeWebSocket {
   static readonly CONNECTING = 0

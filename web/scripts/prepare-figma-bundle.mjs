@@ -29,7 +29,8 @@ function captureManifest() {
   const generatedAt = new Date().toISOString()
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    editableDataFile: 'editable-dom.json',
     project: 'Labbit',
     source: 'npm run capture:figma',
     captureMode: 'mock',
@@ -135,7 +136,7 @@ async function main() {
   const manifestPath = path.join(outputDir, 'manifest.json')
   await writeFile(manifestPath, JSON.stringify(captureManifest(), null, 2) + '\n')
   console.log(`✓ ${manifestPath}`)
-  console.log('\n완료: Figma plugin에서 ui-captures 폴더의 manifest.json과 PNG를 함께 선택하세요.')
+  console.log('\n완료: Figma plugin에서 ui-captures 폴더의 manifest.json, editable-dom.json, PNG 전체를 함께 선택하세요.')
 }
 
 main().catch((error) => {

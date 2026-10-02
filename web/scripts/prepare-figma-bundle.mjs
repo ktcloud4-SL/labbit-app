@@ -6,8 +6,11 @@ const outputDir = path.resolve(process.env.LABBIT_CAPTURE_DIR ?? 'ui-captures')
 
 function runCapture() {
   return new Promise((resolve, reject) => {
-    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
-    const child = spawn(npm, ['run', 'capture:ui'], {
+    // Windows에서 .cmd 파일을 child_process.spawn으로 직접 실행하면
+    // Node/환경 조합에 따라 EINVAL이 날 수 있습니다.
+    // npm을 한 번 더 띄우지 않고 같은 Node 런타임으로 capture script를 직접 실행합니다.
+    const captureScript = path.resolve('scripts', 'capture-ui.mjs')
+    const child = spawn(process.execPath, [captureScript], {
       cwd: process.cwd(),
       env: process.env,
       stdio: 'inherit',

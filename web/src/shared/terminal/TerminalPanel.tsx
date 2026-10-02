@@ -610,7 +610,9 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
             >
               {status === 'creating' || status === 'connecting'
                 ? '연결 중...'
-                : '터미널 연결'}
+                : status === 'ended' || status === 'error'
+                  ? '새 터미널 열기'
+                  : '터미널 연결'}
             </button>
           )}
         </div>
@@ -618,7 +620,15 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
 
       {targetsQuery.error && (
         <div className="terminal-notice terminal-notice-error" role="alert">
-          {httpTerminalError(targetsQuery.error)}
+          <span>{httpTerminalError(targetsQuery.error)}</span>
+          <button
+            className="terminal-button terminal-button-secondary"
+            type="button"
+            disabled={targetsQuery.isFetching}
+            onClick={() => void targetsQuery.refetch()}
+          >
+            {targetsQuery.isFetching ? '다시 확인 중...' : 'VM 목록 다시 불러오기'}
+          </button>
         </div>
       )}
 

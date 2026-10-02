@@ -155,16 +155,20 @@ labbit-app/
   * PR #53 APPROVE 후 squash merge 완료 (`3616611e0922b6f1cef3c84eb16249ac2afc0e6c`)
 * **검증 경계**:
   * 위 PASS는 repository/Mock Relay/RFC 4254 in-process evidence입니다.
-  * **실제 Workspace VM PTY INPUT/OUTPUT 및 resize/close** 검증은 공동 통합 Task인 **LBT-22(C2)**에서 수행합니다. 해당 C2 Evidence가 LBT-20의 남은 실제 VM Acceptance를 충족하는 근거가 되므로, 그 Evidence가 확보되기 전까지 LBT-20은 `진행 중`을 유지합니다.
+  * LBT-20 자체 완료 조건인 **실제 Workspace VM 대상 Connector→SSH/PTY INPUT/OUTPUT 및 resize/close**는 아직 `not verified`입니다. 이 Connector-side 실제 VM Evidence를 LBT-20에서 먼저 확보한 뒤 LBT-20을 Done 처리합니다.
+  * 이후 **LBT-22(C2)**에서 BE-06 · CC-02 · OP-02를 결합해 Browser/SaaS TerminalSession → Connector Transport → 실제 VM SSH/PTY 전체 왕복과 reconnect/close 대표 흐름을 공동 검증합니다.
 
 ---
 
-## 6. 다음 개발 진행 계획 (C2 실제 VM 통합 / M4 Preview)
+## 6. 다음 개발 진행 계획 (LBT-20 실제 VM Acceptance / C2 / M4 Preview)
 
-* **LBT-22(C2) 공동 실제 Workspace VM 검증 — LBT-20 Acceptance 연계**:
-  * 최신 `main`의 Connector Terminal Transport와 OpenStack Provider 경로를 결합해 실제 management address 기준 SSH/PTY를 연결합니다.
-  * 실제 Workspace VM에서 PTY INPUT/OUTPUT, resize, close, reconnect/grace를 검증하고 LBT-22(C2)에 공동 통합 Evidence를 남깁니다.
-  * 해당 Evidence를 LBT-20의 남은 실제 VM Acceptance 근거로 연결하며, 확보 전에는 PR merge만으로 LBT-20을 Done 처리하지 않습니다.
+* **LBT-20 Connector-side 실제 Workspace VM 검증**:
+  * 최신 `main`의 Connector Terminal Transport와 OpenStack Provider의 management address 경계를 이용해 실제 Workspace VM SSH/PTY를 연결합니다.
+  * 실제 VM에서 PTY INPUT/OUTPUT, resize, close를 실측하고 LBT-20 Evidence로 남깁니다.
+  * 이 Acceptance가 완료되면 LBT-20을 Done 처리할 수 있습니다.
+* **LBT-22(C2) 공동 통합**:
+  * LBT-20 및 BE-06/OP-02 선행조건 완료 후 Browser/SaaS TerminalSession → Connector Transport → 실제 VM SSH/PTY 전체 왕복을 검증합니다.
+  * reconnect/close 대표 흐름의 공동 Evidence를 LBT-22에 남깁니다.
 * **Milestone M4 착수 (웹 애플리케이션 미리보기 Preview)**:
   * 준비 5에서 합의한 `PREVIEW_OPEN`/`PREVIEW_CLOSE` 및 `labbit.connector-preview.v1` WSS 파이프라인 구축
 

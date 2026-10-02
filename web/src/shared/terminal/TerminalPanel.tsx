@@ -67,24 +67,28 @@ function stripAnsi(value: string) {
   // MVP fallback renderer: transport는 raw PTY byte stream을 유지하고,
   // 화면에는 흔한 ESC/CSI control sequence만 제거한 text를 표시한다.
   let result = ''
-  let escaping = false
+  let mode: 'text' | 'escape' | 'csi' = 'text'
 
   for (const character of value) {
     const code = character.charCodeAt(0)
 
-    if (!escaping && code === 27) {
-      escaping = true
-      continue
-    }
-
-    if (escaping) {
-      if (code >= 0x40 && code <= 0x7e) {
-        escaping = false
+    if (mode === 'text') {
+      if (code === 27) {
+        mode = 'escape'
+      } else {
+        result += character
       }
       continue
     }
 
-    result += character
+    if (mode === 'escape') {
+      mode = character === '[' ? 'csi' : 'text'
+      continue
+    }
+
+    if (code >= 0x40 && code <= 0x7e) {
+      mode = 'text'
+    }
   }
 
   return result
@@ -361,12 +365,19 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
   }, [connectSocket])
 
   useEffect(() => {
+    let resumeTimer: number | null = null
+
     if (initialResume) {
       resumeRef.current = initialResume
-      connectSocket(initialResume, true)
+      resumeTimer = window.setTimeout(() => {
+        connectSocket(initialResume, true)
+      }, 0)
     }
 
     return () => {
+      if (resumeTimer !== null) {
+        window.clearTimeout(resumeTimer)
+      }
       clearRetryTimer()
       suppressReconnectRef.current = true
       connectionSequenceRef.current += 1

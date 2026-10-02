@@ -8,6 +8,8 @@
 
 Runtime Contract는 HTTP/OpenAPI나 WSS 메시지 계약을 다시 정의하지 않습니다. 애플리케이션이 **어떻게 실행되고, 어떤 포트·설정·Probe·로그·종료 동작을 제공해야 하는지**와 플랫폼이 무엇을 주입·구성해야 하는지를 고정합니다.
 
+**v0.1.5 변경:** LBT-100에 따라 Workspace File Tree/Read/Save를 `api` role이 소유한다는 경계(`saas.file`)를 추가했습니다. Connector File Data WSS(`/connector/v1/file-data`)는 같은 process의 Connector Control Registry/Router와 함께 `api` role에 있으며 `realtime` role이 필요하지 않습니다. 요청별 pending 상태는 process memory의 ephemeral 상태이고 파일 본문·디렉터리 목록·경로는 저장하거나 기록하지 않습니다. 파일 크기 한도는 구성값이며 수치를 계약으로 고정하지 않습니다. multi-replica File owner routing은 제공하지 않습니다.
+
 **v0.1.4 변경:** LBT-99에 따라 Browser Terminal/Live WSS Upgrade도 strict Origin 검증이 필요하므로 `LABBIT_PUBLIC_ORIGIN`을 `api` 또는 `realtime` role이 enabled된 process에서 요구합니다. `realtime` role은 이 때문에 PostgreSQL DSN을 요구하지 않으며 여전히 DB를 직접 사용하지 않습니다. v0.1에서 Terminal 기능은 DB-backed authority를 같은 process에서 제공하는 `api` role과 `realtime` role의 co-location을 전제로 하며, 별도 realtime workload용 internal RPC나 multi-replica Terminal owner routing은 제공하지 않습니다(아래 *Realtime 역할의 v0.1 제약*).
 
 **v0.1.3 변경:** LBT-64에 따라 one-shot Migration runner `labbit-migrate`, api/worker role 기준의 DB DSN 요구, rolling deployment의 schema 호환 invariant를 추가했습니다. v0.1.2의 LABBIT_PUBLIC_ORIGIN, v0.1.1의 SaaS OTel/OTLP, durable Context, Connector propagation-only 계약은 유지합니다. 아래 요구사항은 구현 기준이며, 기존 스켈레톤이 이미 이를 제공한다는 뜻은 아닙니다.

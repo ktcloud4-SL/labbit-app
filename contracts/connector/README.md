@@ -6,10 +6,12 @@
 - 기본 Control 메시지: `connector.schema.json`
 - TerminalSession lifecycle Control 메시지: `terminal-control.schema.json`
 - Terminal Data WSS JSON control frame: `terminal-data.schema.json`
+- Workspace File 요청 lifecycle Control 메시지: `file-control.schema.json`
+- Workspace File Data WSS JSON control frame: `file-data.schema.json`
 
 Terminal/Live의 Browser-facing 계약은 `contracts/realtime/README.md` + `terminal-live.schema.json`이 원본입니다.
 
-Terminal/Live INPUT/OUTPUT과 Preview 본문은 **persistent Control WSS에 싣지 않습니다.** Control에는 lifecycle/metadata만 전달하고 실제 PTY byte stream은 별도 Terminal Data WSS를 사용합니다.
+Terminal/Live INPUT/OUTPUT, Preview 본문, Workspace file 본문과 디렉터리 목록은 **persistent Control WSS에 싣지 않습니다.** Control에는 lifecycle/metadata만 전달하고 실제 PTY byte stream은 별도 Terminal Data WSS, Workspace file 내용은 요청별 File Data WSS를 사용합니다.
 
 ## 1. Control 연결 경계
 
@@ -57,23 +59,34 @@ Control WebSocket subprotocol은 `labbit.connector.v1`입니다.
 - 새 message/action을 기존 Connector가 안전하게 처리할 수 없는 경우 capability negotiation 또는 새 major protocol을 사용합니다.
 - SaaS와 고객 환경 Connector가 항상 동시에 배포된다고 가정하지 않습니다.
 
-Control WSS의 JSON message validation은 다음 두 Schema 집합을 사용합니다.
+Control WSS의 JSON message validation은 다음 Schema 집합을 사용합니다.
 
 ```text
 connector.schema.json
 + terminal-control.schema.json
++ file-control.schema.json
 ```
 
-Terminal Data WSS는 별도 `terminal-data.schema.json`을 사용합니다.
+Terminal Data WSS는 별도 `terminal-data.schema.json`, File Data WSS는 별도 `file-data.schema.json`을 사용합니다.
+
+### Capability 협상
+
+기존 Connector가 새 message/action을 모두 이해한다고 가정하지 않습니다. Connector는 `HELLO.payload.capabilities`로 지원하는 선택 기능을 선언하고, SaaS는 **현재 protocol-ready Control connection이 선언한 capability에만 해당 기능의 Control message를 보냅니다.** 버전 문자열(`connectorVersion`)로 capability를 추론하지 않습니다. capability는 connection마다 HELLO로 다시 선언하며 재접속한 connection이 선언하지 않으면 사용할 수 없습니다.
+
+| capability | 의미 |
+| --- | --- |
+| `file-v1` | [§7a](#7a-workspace-file-transport)의 Workspace File transport(`FILE_OPEN`/`FILE_OPEN_RESULT`/`FILE_CLOSE`와 File Data WSS)를 지원합니다. |
+
+`file-v1`을 선언하지 않은 Connector에는 `FILE_OPEN`/`FILE_CLOSE`를 보내지 않으며, SaaS는 그 Workspace File 요청을 사용 불가(HTTP `503`)로 처리합니다.
 
 ### JSON Text application message 크기 제한
 
-Control WSS와 Terminal lifecycle/Data WSS의 **JSON Text application message는 WebSocket fragmentation 재조립 후 최대 1 MiB(1,048,576 bytes)** 입니다. 이 제한은 JSON decode, Schema validation, 선택 Trace metadata 정상화보다 먼저 적용합니다.
+Control WSS와 Terminal lifecycle/Data WSS, File lifecycle/Data WSS의 **JSON Text application message는 WebSocket fragmentation 재조립 후 최대 1 MiB(1,048,576 bytes)** 입니다. 이 제한은 JSON decode, Schema validation, 선택 Trace metadata 정상화보다 먼저 적용합니다.
 
 - 수신 구현은 read limit을 먼저 설정해 최대 크기를 넘는 JSON Text message 전체를 메모리에 무제한 적재하지 않습니다.
 - 1 MiB를 넘으면 해당 message를 파싱하거나 `traceparent`/`tracestate`를 제거해 계속 처리하지 않고 WebSocket close code **1009 (Message Too Big)** 로 연결을 종료할 수 있습니다. 별도 `ERROR` frame 전송은 요구하지 않습니다.
 - Schema의 `traceparent` 512자 / `tracestate` 1024자 제한은 이 전체 message guard를 통과한 뒤 적용되는 field 수준 검증입니다.
-- Terminal PTY Binary byte stream은 이 JSON Text 한도의 대상이 아닙니다. Binary transport도 구현에서 bounded read/write를 사용하지만 별도 application payload 한도는 부하 테스트와 Runtime에서 검증합니다.
+- Terminal PTY Binary byte stream과 File Data WSS의 파일 본문 Binary frame은 이 JSON Text 한도의 대상이 아닙니다. Terminal Binary transport도 구현에서 bounded read/write를 사용하지만 별도 application payload 한도는 부하 테스트와 Runtime에서 검증합니다. File 본문 Binary frame의 크기는 요청 frame이 선언한 byte 수(Save의 `size`, Read의 `maxBytes`와 결과의 `size`)로 제한하며 선언과 다른 크기의 frame은 protocol 오류입니다.
 
 이 한도를 넘는 정상 control payload가 필요해지면 v1 구현마다 임의 값을 키우지 않고 Connector 계약을 먼저 변경합니다.
 
@@ -202,6 +215,80 @@ Terminal Data WSS의 transport가 비정상 종료되어도 PTY 자체 종료로
 
 SaaS는 Terminal Data WSS가 자신의 heartbeat를 갖지 않으므로 저장소 상태를 바꾼 것을 관측한 Control 경로(HEARTBEAT 기록 실패, revoke lifecycle hook)에서 Data WSS에 revoke를 전달합니다. PTY Binary frame마다 Credential을 다시 검증하지 않습니다.
 
+## 7a. Workspace File transport
+
+Browser가 Workspace VM의 SFTP나 private network에 직접 접근하지 않고 SaaS File HTTP API(`contracts/http/openapi.yaml`)가 Connector를 거쳐 Workspace VM의 파일을 읽고 쓰는 경계입니다. VM 안에서는 Workspace VM SSH Connection의 SFTP Channel을 사용합니다(D-18). 이 절은 SaaS ↔ Connector 구간의 wire만 정하며 실제 SSH/SFTP 구현, VM 안의 Workspace root 절대 경로, symlink가 root를 벗어나지 않는지의 검증은 Connector 구현(OP-02, `LBT-21`)이 닫습니다.
+
+Control에는 요청의 lifecycle/correlation만 싣고 경로·디렉터리 목록·파일 본문은 별도의 **File Data WSS**로 전달합니다. 1 HTTP File 요청은 1 File Data WSS이며 여러 요청을 하나의 연결에 multiplex하지 않습니다.
+
+```text
+HTTP File 요청 (Tree/Read/Save)
+  → SaaS: 권한 검증, Workspace VM 결정
+  → Control:  FILE_OPEN            (SaaS → Connector)   lifecycle/correlation만
+  → Connector outbound File Data WSS 연결
+  → FILE_DATA_ATTACH               (Connector → SaaS)
+  → FILE_DATA_ATTACHED             (SaaS → Connector)
+  → FILE_TREE | FILE_READ | FILE_SAVE (+ Binary)  (SaaS → Connector)  요청 frame 하나
+  → FILE_*_RESULT (+ Binary)       (Connector → SaaS)  결과 frame 하나
+  → SaaS가 WSS를 정상 종료(close 1000)
+```
+
+```text
+wss://<saas-host>/connector/v1/file-data
+Sec-WebSocket-Protocol: labbit.connector-file.v1
+Authorization: Bearer <connector-credential>
+```
+
+### Control message
+
+`file-control.schema.json`이 원본입니다. 모든 message는 `fileRequestId`(SaaS가 요청마다 발급하는 ID), `labInstanceId`, `generation`을 포함합니다.
+
+| Message | 방향 | 의미 |
+| --- | --- | --- |
+| `FILE_OPEN` | SaaS → Connector | 권한 검증을 마친 resolved Workspace VM(`targetVmKey`, `providerServerId`)에 대해 이 `fileRequestId`의 File Data WSS를 열라는 요청. `operation`(`TREE`/`READ`/`SAVE`)만 알리며 경로와 본문은 싣지 않습니다. |
+| `FILE_OPEN_RESULT` | Connector → SaaS | Connector가 이 요청을 진행하지 못하면(`FAILED`) 알립니다. `SUCCEEDED`는 attach 성립 통지일 뿐이며 SaaS는 실제 Data WSS attach만 근거로 삼습니다. |
+| `FILE_CLOSE` | SaaS → Connector | 요청을 더 이상 기다리지 않음(취소, 시간 초과, Workspace 변경, 서비스 재시작). Connector는 진행 중인 작업과 Data WSS를 정리합니다. idempotent이며 응답이 없습니다. |
+
+Browser Session Cookie, Password, Session Token은 Connector로 전달하지 않습니다. `FILE_OPEN`은 `fileRequestId`로 요청 하나만 가리키며, 같은 `fileRequestId`의 중복 `FILE_OPEN`은 두 번째 Data WSS를 만들지 않습니다.
+
+### File Data WSS
+
+`file-data.schema.json`이 원본입니다. Connector가 `FILE_OPEN`을 받으면 위 endpoint에 outbound로 연결합니다. WSS Upgrade에서 SaaS가 Connector Credential을 인증하고(Connector identity는 이 인증 결과이며 message가 주장하는 값이 아닙니다), Connector는 첫 application message로 `FILE_DATA_ATTACH`를 보냅니다.
+
+SaaS는 다음이 **모두** 기대한 값과 같을 때만 attach를 성립시킵니다. 하나라도 다르면 다른 요청으로 fallback하지 않고 연결을 거절하며 기다리던 요청은 그대로 남습니다.
+
+- 인증된 Connector (요청을 `FILE_OPEN`으로 보낸 그 Connector)
+- `fileRequestId`, `labInstanceId`, `generation`
+- `payload.targetVmKey`, `payload.providerServerId` (Workspace VM 식별)
+
+attach 뒤에는 각 방향으로 frame이 정확히 이 순서로 오갑니다. 요청과 응답의 모든 JSON frame은 같은 `fileRequestId`, `labInstanceId`, `generation`을 가지며 응답은 요청의 `messageId`를 `replyToMessageId`로 돌려줍니다. 어긋난 frame은 성공으로 처리하지 않고 연결을 종료하며(close `1008`) 요청은 실패합니다.
+
+| 작업 | SaaS → Connector | Connector → SaaS |
+| --- | --- | --- |
+| Tree | `FILE_TREE` `{path}` | `FILE_TREE_RESULT` `{outcome, entries[{name, kind}]}` |
+| Read | `FILE_READ` `{path, maxBytes}` | `FILE_READ_RESULT` `{outcome, revision, size}` + **Binary frame 하나(`size` byte)** |
+| Save | `FILE_SAVE` `{path, expectedRevision, size}` + **Binary frame 하나(`size` byte)** | `FILE_SAVE_RESULT` `{outcome, revision}` |
+
+- 파일 본문은 JSON에 감싸지 않고 raw byte로 전달합니다. 본문이 비어 있어도 Binary frame을 보냅니다(빈 frame). 본문이 UTF-8 text인지, NUL을 포함하는지, 크기 한도를 넘는지는 SaaS가 판단합니다. Connector는 본문을 해석하지 않습니다.
+- `path`는 SaaS가 HTTP 경로 규칙으로 검증하고 URL decoding이 끝난 **canonical workspace-relative POSIX path**입니다. Connector는 다시 URL decode하거나 정규화하지 않고 값 그대로 Workspace root에 붙이며, canonical하지 않거나(절대 경로, `..`, 빈 segment, 백슬래시, NUL 등) root 밖을 가리키면 `INVALID_PATH`로 실패시킵니다. SaaS의 검증은 Connector의 검증을 대체하지 않습니다.
+- `revision`은 opaque이며 생성 방식은 호환성 계약이 아닙니다(문자 집합과 길이만 Schema가 제한). Save에서 Connector는 **쓰기 직전**에 현재 파일의 revision과 `expectedRevision`을 비교해 같을 때만 쓰고, 다르면 파일을 바꾸지 않고 `REVISION_CONFLICT`로 실패시킵니다. 파일이 없으면 만들지 않고 `NOT_FOUND`로 실패시킵니다. Read의 `revision`은 반환한 본문과 같은 시점의 값이어야 합니다.
+- 결과 `outcome`이 `FAILED`이면 `error.code`로 이유를 알립니다. 이 계약이 쓰는 code는 `NOT_FOUND`, `NOT_A_FILE`, `NOT_A_DIRECTORY`, `TOO_LARGE`, `REVISION_CONFLICT`, `PERMISSION_DENIED`, `INVALID_PATH`, `UNAVAILABLE`, `INTERNAL_ERROR`이며 알 수 없는 code는 SaaS가 `UNAVAILABLE`로 취급합니다. `error.message`에 경로, 파일 본문, SSH/SFTP raw 오류를 싣지 않습니다.
+- Tree의 `entries`는 직계 항목만이고 `kind`는 `file`, `directory`뿐입니다. 그 밖의 종류(symlink, device 등)는 Connector가 포함하지 않습니다. 목록이 JSON Text 1 MiB 한도를 넘으면 일부만 보내지 않고 `TOO_LARGE`로 실패시킵니다. SaaS는 HTTP 경로 규칙으로 표현할 수 없는 이름을 목록에서 제외하며 그 때문에 요청을 실패시키지 않습니다.
+- `FILE_READ`의 `maxBytes`보다 큰 파일은 본문을 보내지 않고 `TOO_LARGE`로 실패시킵니다. 한도의 수치는 SaaS 구성이며 이 계약의 값이 아닙니다.
+- 결과를 받은 SaaS가 연결을 정상 종료(close `1000`)합니다. SaaS는 `FILE_SAVE`를 보낸 뒤 결과를 받지 못해도 자동으로 다시 보내지 않으며, 저장 여부를 알 수 없는 상태로 HTTP 요청에 알립니다.
+
+### 수명, 취소, 정리
+
+- `FILE_OPEN`을 보낸 뒤 attach가 시간 안에 오지 않거나, HTTP 요청이 취소되거나, 결과가 시간 안에 오지 않거나, `FILE_OPEN_RESULT=FAILED`이면 SaaS는 그 요청의 상태를 지우고 `FILE_CLOSE`를 보냅니다(보낼 수 있는 경우). 이미 정리된 요청의 늦은 attach/frame은 어떤 요청에도 연결되지 않으며 연결은 종료됩니다.
+- Data WSS가 중간에 끊기면 요청은 실패하고 자동으로 재연결·재전송하지 않습니다. Connector는 `FILE_CLOSE`나 연결 종료를 받으면 그 요청의 SFTP 작업을 정리합니다. 이미 시작한 Save 쓰기를 되돌린다고 보장하지 않습니다.
+- Connector Credential이 revoke되면 §2에 따라 그 Credential로 인증된 File Data WSS도 close `4001`로 종료하며 진행 중이던 요청은 실패합니다. 같은 Credential의 새 Upgrade는 `401`입니다.
+- 서로 다른 요청은 서로 다른 `fileRequestId`와 Data WSS를 가지므로 한 Connector에 동시에 여러 요청이 진행돼도 서로 섞이지 않습니다. 이 pending 상태는 SaaS process 안의 ephemeral 상태이며 PostgreSQL에 저장하지 않습니다.
+- v0.1은 `FILE_OPEN`을 보낸 SaaS process가 Data WSS도 받는다고 가정합니다(같은 process의 api role). multi-replica owner routing은 이 계약이 제공하지 않습니다.
+
+### 민감정보
+
+파일 본문, 디렉터리 목록, 경로를 persistent Control WSS, PostgreSQL, 구조화 log, trace, metric label에 남기지 않습니다. 허용되는 관측 metadata는 `fileRequestId`, `requestId`, `labInstanceId`, `connectorId`, `generation`, 작업 종류(`operation`), 안전한 `error_code`, `duration_ms`입니다.
+
 ## 8. Live와 Connector의 경계
 
 Connector는 학생별 Live connection을 알 필요가 없습니다.
@@ -231,6 +318,7 @@ Live fan-out, STUDENT 권한, 학생별 bounded Queue, slow consumer 처리는 �
 - `labInstanceId`: 실제 실습 환경
 - `generation`: Provider Resource 세대
 - `terminalSessionId`: PTY/TerminalSession lifecycle correlation
+- `fileRequestId`: Workspace File 요청 하나(File Data WSS 하나)의 lifecycle correlation
 - `requestId`: 원본 HTTP control request와 연결 가능한 경우
 - `traceparent` / `tracestate`: W3C Trace Context
 
@@ -327,6 +415,7 @@ UNKNOWN
 - Browser Session Cookie / Password / Terminal Session Token
 - Provider raw request/response
 - Terminal/Live INPUT/OUTPUT 본문
+- Workspace file 본문, 디렉터리 목록, 경로, SSH/SFTP raw 오류
 
 중앙에서는 Heartbeat, version, reconnect, Operation stage/result, Terminal lifecycle, `error_code`, duration 같은 운영 metadata를 관측하고 필요하면 같은 correlation ID로 Connector 로컬 구조화 로그를 대조합니다.
 
@@ -343,6 +432,8 @@ persistent Control connection의 v1 application close code는 다음을 사용�
 | `4003` | 지원하지 않는 protocol/subprotocol |
 | `4004` | 복구 불가능한 protocol message 오류 |
 
+File Data WSS는 정상 완료 `1000`, protocol 위반·correlation 불일치 `1008`, 메시지 크기 초과 `1009`, Connector Credential revoke `4001`을 사용합니다([§7a](#7a-workspace-file-transport)).
+
 Terminal Data WSS의 Session 종료 의미는 `terminal-data.schema.json`과 Browser realtime 계약을 따릅니다. 다만 Connector Credential revoke로 Data WSS를 종료할 때는 위 `4001`을 같은 의미로 사용합니다([Data WSS와 Credential revoke](#data-wss와-credential-revoke)).
 
 ## 16. 검증 기준
@@ -358,6 +449,11 @@ Terminal Data WSS의 Session 종료 의미는 `terminal-data.schema.json`과 Bro
 - Reset/Cleanup은 관련 TerminalSession을 terminal lifecycle 종료로 처리할 수 있습니다.
 - Live 학생 fan-out이 Connector Data protocol로 확산되지 않습니다.
 - Credential/Token/Authorization/Provider raw payload/Terminal 본문이 메시지·로그에 남지 않습니다.
+- `file-v1`을 선언하지 않은 Connector에는 `FILE_OPEN`/`FILE_CLOSE`를 보내지 않고 그 Workspace File 요청은 사용 불가로 처리합니다. 버전 문자열로 capability를 추론하지 않습니다.
+- Workspace File 요청마다 독립 File Data WSS를 열고, 인증된 Connector·`fileRequestId`·`labInstanceId`·`generation`·Workspace VM 식별이 하나라도 다른 attach/frame은 다른 요청을 완료시키지 않습니다.
+- 동시에 진행되는 Workspace File 요청이 서로 섞이지 않으며, 취소·시간 초과·연결 단절 뒤 pending 상태가 남지 않습니다.
+- Save 결과를 받지 못해도 `FILE_SAVE`를 자동으로 다시 보내지 않습니다.
+- Workspace file 본문, 디렉터리 목록, 경로가 Control WSS, PostgreSQL, log, trace, metric label에 남지 않습니다.
 - 각 JSON Schema 정상/비정상 message validation이 동작합니다.
 - 명령별 유효한 Trace Context가 ACK/PROGRESS/RESULT에 유지되고 병렬 item/다른 generation과 섞이지 않습니다.
 - 1 MiB 이하의 message에서 Context 없음/잘못된 타입·길이·W3C 값, 잘못된 tracestate만 존재하는 경우에도 정상 업무 Envelope는 처리됩니다. 전체 JSON Text message 한도 초과, 인증·업무 필드 오류는 계속 거부합니다.

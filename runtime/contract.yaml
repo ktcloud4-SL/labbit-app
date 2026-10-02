@@ -1,4 +1,4 @@
-version: "0.1.4"
+version: "0.1.5"
 kind: "LabbitRuntimeContract"
 
 scope:
@@ -285,6 +285,37 @@ saas:
         process가 비정상 종료되면 이 상태를 복구하지 않습니다. 정상 종료에서는 active TerminalSession을 SERVICE_RESTARTING으로 종료합니다.
         workload 분리와 multi-replica routing은 후속 Platform/Runtime 결정 전까지 지원한다고 주장하지 않습니다.
 
+  file:
+    owner_role: "api"
+    endpoints:
+      browser_http:
+        base_path: "/api/v1/lab-instances/{labInstanceId}/files"
+        contract: "contracts/http/openapi.yaml"
+      connector_file_data:
+        path: "/connector/v1/file-data"
+        subprotocol: "labbit.connector-file.v1"
+        contract: "contracts/connector/README.md#7a-workspace-file-transport"
+    database_required: true
+    note: >-
+      Workspace File Tree/Read/Save는 api role이 소유합니다. realtime role이 필요하지 않으며 Browser HTTP 요청, 권한 판정,
+      Connector Control Registry/Router, Connector File Data WSS가 같은 process에 있습니다. 요청마다 pending 상태(요청 ID, 대기 중인
+      attach, 진행 중인 Data WSS)를 process 안의 memory에만 두며 PostgreSQL이나 별도 FileSession table에 저장하지 않습니다.
+      process가 비정상 종료되면 진행 중인 요청은 실패하며 복구하지 않고, 정상 종료에서는 새 요청을 받지 않고 진행 중인 요청의 Data WSS를
+      닫습니다. 파일 본문, 디렉터리 목록, 경로는 persistent Control WSS, PostgreSQL, log, trace, metric label에 남기지 않습니다.
+    v0_1_topology:
+      not_provided:
+        - "multi-replica File owner routing과 session affinity"
+        - "service discovery / Valkey 기반 Control connection owner 조회"
+      note: >-
+        Connector File Data WSS는 해당 요청의 FILE_OPEN을 보낸 process에 도착해야 합니다. 여러 replica에서 이를 보장하는 routing은
+        후속 Platform/Runtime 결정 전까지 지원한다고 주장하지 않습니다.
+    limits:
+      max_file_bytes:
+        configurable: true
+        note: >-
+          Workspace file 크기 한도(HTTP 413)는 process 구성이며 이 contract가 수치를 고정하지 않습니다. 현재 구현은 보수적인 기본값을
+          사용하고 테스트에서 주입할 수 있습니다. 이 값은 API compatibility guarantee가 아닙니다.
+
   shutdown:
     signals:
       - SIGTERM
@@ -357,6 +388,7 @@ saas:
         - "Terminal INPUT/OUTPUT"
         - "Live OUTPUT"
         - "workspace file 본문/source code"
+        - "workspace file 경로와 디렉터리 목록"
     tracing:
       instrumentation: "OpenTelemetry"
       propagation: "W3C Trace Context"

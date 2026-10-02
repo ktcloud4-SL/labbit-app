@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labbit.local/contracts/connector/file-control.schema.json",
+  "title": "Labbit Connector Workspace File Control Contract v0.1",
+  "description": "기존 Connector persistent Control WSS 위에서 Workspace File 요청 하나의 lifecycle/correlation을 전달하는 추가 JSON 메시지 계약입니다. 파일 본문, 디렉터리 목록, 경로는 이 Schema에 싣지 않으며 별도의 File Data WSS(file-data.schema.json)에서 전달합니다. SaaS는 HELLO capabilities에 file-v1을 선언한 Connector에게만 이 메시지를 보냅니다.",
+  "oneOf": [
+    { "$ref": "#/$defs/FileOpenMessage" },
+    { "$ref": "#/$defs/FileOpenResultMessage" },
+    { "$ref": "#/$defs/FileCloseMessage" }
+  ],
+  "$defs": {
+    "ResourceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "MessageId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "SafeError": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "안정적인 기계 판독 오류 코드입니다."
+        },
+        "message": {
+          "type": "string",
+          "description": "Credential, Token, 파일 본문, 파일 경로, SSH/SFTP raw 오류를 포함하지 않는 안전한 설명입니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "BaseEnvelope": {
+      "type": "object",
+      "required": ["type", "messageId", "sentAt", "fileRequestId", "labInstanceId", "generation", "payload"],
+      "properties": {
+        "type": { "type": "string" },
+        "messageId": { "$ref": "#/$defs/MessageId" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "replyToMessageId": { "$ref": "#/$defs/MessageId" },
+        "requestId": {
+          "$ref": "#/$defs/ResourceId",
+          "description": "원본 HTTP request와 연결할 수 있는 correlation입니다."
+        },
+        "fileRequestId": {
+          "$ref": "#/$defs/ResourceId",
+          "description": "Workspace File 요청 하나(Tree/Read/Save 중 하나)를 식별하는 SaaS 발급 ID입니다. 요청 하나는 File Data WSS 하나와 1:1입니다."
+        },
+        "labInstanceId": { "$ref": "#/$defs/ResourceId" },
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "traceparent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "tracestate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "payload": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "FileOpenPayload": {
+      "type": "object",
+      "required": ["operation", "targetVmKey", "providerServerId"],
+      "properties": {
+        "operation": {
+          "type": "string",
+          "enum": ["TREE", "READ", "SAVE"],
+          "description": "이 요청이 수행할 Workspace File 작업의 종류입니다. 경로와 본문은 File Data WSS의 요청 frame에 있습니다."
+        },
+        "targetVmKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "CreationSnapshot의 workspaceVmKey입니다. Browser가 고른 값이 아니라 SaaS가 현재 DB 상태에서 결정한 Workspace VM의 논리 키입니다."
+        },
+        "providerServerId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "현재 generation에서 Workspace VM을 가리키는 OpenStack Server ID입니다. Connector는 실제 Provider 상태와 관리 주소를 확인할 수 있습니다."
+        }
+      },
+      "additionalProperties": true,
+      "description": "SaaS가 권한 검증을 완료한 뒤 Connector에게 전달하는 resolved Workspace target입니다. Browser Cookie/Password/Session Token, 파일 경로와 본문은 포함하지 않습니다."
+    },
+    "FileOpenResultPayload": {
+      "type": "object",
+      "required": ["outcome"],
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": ["SUCCEEDED", "FAILED"],
+          "description": "FAILED는 Connector가 File Data WSS를 붙이지 못하거나 Workspace VM에 접근할 수 없어 이 요청을 진행하지 않음을 뜻합니다. SaaS는 FAILED를 받으면 요청을 즉시 실패시킵니다. SUCCEEDED는 File Data WSS attach가 성립했음을 뜻하는 통지일 뿐이며 SaaS는 실제 Data WSS attach만 근거로 삼습니다."
+        },
+        "error": { "$ref": "#/$defs/SafeError" }
+      },
+      "additionalProperties": true
+    },
+    "FileClosePayload": {
+      "type": "object",
+      "required": ["reason"],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "REQUEST_CANCELED, REQUEST_TIMEOUT, WORKSPACE_CHANGED, SERVICE_RESTARTING 등 종료 원인입니다. 새 값이 추가될 수 있습니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "FileOpenMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "FILE_OPEN" },
+            "payload": { "$ref": "#/$defs/FileOpenPayload" }
+          }
+        }
+      ],
+      "description": "SaaS → Connector. 이 fileRequestId의 File Data WSS를 열어 FILE_DATA_ATTACH를 보내라는 요청입니다. 같은 fileRequestId의 중복 FILE_OPEN은 두 번째 Data WSS를 만들지 않습니다."
+    },
+    "FileOpenResultMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "replyToMessageId", "payload"],
+          "properties": {
+            "type": { "const": "FILE_OPEN_RESULT" },
+            "payload": { "$ref": "#/$defs/FileOpenResultPayload" }
+          }
+        }
+      ],
+      "description": "Connector → SaaS. replyToMessageId는 응답하는 FILE_OPEN의 messageId입니다. fileRequestId, labInstanceId, generation, replyToMessageId가 모두 맞는 pending FILE_OPEN에만 연결하며 맞지 않으면 다른 요청으로 fallback하지 않습니다."
+    },
+    "FileCloseMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "FILE_CLOSE" },
+            "payload": { "$ref": "#/$defs/FileClosePayload" }
+          }
+        }
+      ],
+      "description": "SaaS → Connector. 이 fileRequestId의 요청을 더 이상 기다리지 않으니 진행 중인 작업과 File Data WSS를 정리하라는 idempotent 통지입니다. 응답을 기다리지 않으며 반복 전달돼도 같은 상태를 유지합니다."
+    }
+  }
+}

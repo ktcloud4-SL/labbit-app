@@ -8,6 +8,7 @@
 - SaaS ↔ Connector Control WSS 계약: `contracts/connector/README.md` + `contracts/connector/connector.schema.json`
 - Connector TerminalSession lifecycle Control: `contracts/connector/terminal-control.schema.json`
 - Connector Terminal Data WSS: `contracts/connector/terminal-data.schema.json`
+- Connector Workspace File lifecycle Control / File Data WSS: `contracts/connector/file-control.schema.json`, `contracts/connector/file-data.schema.json`
 - Browser Terminal/Live WSS: `contracts/realtime/README.md` + `contracts/realtime/terminal-live.schema.json`
 - PostgreSQL Physical Schema 초안: `db/migrations/*.sql` + `db/migrations/README.md`
 - Application Runtime Contract: `runtime/contract.yaml` + `runtime/README.md`
@@ -23,7 +24,8 @@
 - **Domain/Data Model 확정** — Organization/User/Class/LabSpec/LabExecution/LabInstance/Operation/OperationItem/ProviderResource/TerminalSession/LiveSession의 핵심 관계와 ownership, 주요 불변조건을 확정.
 - **PostgreSQL Physical Schema Draft v0.1 작성됨** — 초기 5개 SQL Migration과 D-25의 additive `000006` 초안. 별도 Migration runner와 폐기 가능한 PostgreSQL 16의 전체/`000005→000006` 적용 Integration Test에 더해, Auth/Class 다음 Vertical Slice용 최소 pgx Repository/Transaction 경계와 실제 PostgreSQL 제약(FK/Unique/Check/partial unique) Integration Test가 있으나, 공용 개발 DB 적용과 나머지 도메인 Repository는 아직이며 최초 공용 개발 DB 적용 전까지 구현 피드백에 따라 정리할 수 있음.
 - **Auth/Session 구현 계약 v0.1 준비됨** — docs/backend/auth-session.md에서 8시간 absolute Session, fresh login token, Argon2id Password hash, raw Session token 비저장, Origin/Referer 검증 기준을 정의합니다. 실제 Handler와 Auth use case 구현은 LBT-10에서 추적합니다.
-- **HTTP 후속 범위** — Organization/Provider 관리, File, Preview, LiveSession 생성·종료 control API. Terminal 대상 VM 조회와 TerminalSession 생성·종료 control API는 정의되어 있습니다.
+- **Workspace File HTTP/Connector transport 정의됨** — Tree/Read/Save HTTP(`ETag`/`If-Match`), workspace-relative canonical path 규칙, Control(`file-v1` capability, lifecycle/correlation만)과 요청별 File Data WSS(JSON control + 파일 본문 Binary frame) 분리. 실제 SSH/SFTP·Workspace root·symlink containment 구현과 실제 VM 검증은 Connector OP-02(LBT-21) 범위입니다.
+- **HTTP 후속 범위** — Organization/Provider 관리, Preview, LiveSession 생성·종료 control API. Terminal 대상 VM 조회와 TerminalSession 생성·종료 control API는 정의되어 있습니다.
 - **Runtime Contract v0.1.3 정의됨** — 기존 실행 경계에 SaaS OpenTelemetry/OTLP, Operation의 durable Trace Context, Connector propagation-only, 관측 장애의 업무 격리 계약 추가. v0.1.3에서 one-shot `labbit-migrate`, api/worker role 기준 DB DSN 요구, rolling deployment schema 호환 invariant 추가. 실제 계측·전파·Tempo E2E 구현 완료는 아님.
 
 HTTP의 장시간 Provision/Reset/Cleanup은 durable `Operation`으로 노출하고 `Idempotency-Key`로 중복 요청을 제어합니다. DB 초안에서는 Browser가 보는 `operations`와 LabInstance별 실행 단위 `operation_items`를 분리하고, LabInstance당 active Mutation 최대 1개를 partial unique index로 표현합니다. 결과가 불명확한 Provider 작업은 동일 Create/Delete를 자동 반복하지 않고 Reconciliation을 먼저 수행합니다.

@@ -84,7 +84,7 @@ export class BrowserTerminalClient {
 
     socket.addEventListener('message', (event) => {
       if (this.socket !== socket) return
-      this.handleMessage(event.data)
+      this.handleMessage(event.data, socket)
     })
 
     socket.addEventListener('close', (event) => {
@@ -95,7 +95,7 @@ export class BrowserTerminalClient {
     })
   }
 
-  private handleMessage(data: unknown) {
+  private handleMessage(data: unknown, sourceSocket: WebSocket) {
     if (typeof data === 'string') {
       let message: Record<string, unknown>
       try {
@@ -167,7 +167,7 @@ export class BrowserTerminalClient {
 
     if (data instanceof Blob) {
       void data.arrayBuffer().then((buffer) => {
-        if (!this.socket) return
+        if (this.socket !== sourceSocket || this.closing) return
         this.handlers.onOutput(
           this.decoder.decode(new Uint8Array(buffer), { stream: true }),
         )

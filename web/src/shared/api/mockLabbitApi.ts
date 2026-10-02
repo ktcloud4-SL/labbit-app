@@ -2,6 +2,7 @@ import type {
   ClassDetail,
   ClassList,
   ClassMembershipList,
+  CreateTerminalSessionRequest,
   LabSpec,
   LabSpecList,
   LabExecution,
@@ -9,6 +10,8 @@ import type {
   LoginRequest,
   Me,
   Operation,
+  TerminalSession,
+  TerminalTargetList,
 } from './contracts'
 import { HttpError } from './httpClient'
 import type { LabbitApi } from './labbitApi'
@@ -213,6 +216,9 @@ let labExecutions: LabExecution[] = []
 let operations = new Map<string, Operation>()
 let operationReads = new Map<string, number>()
 let nextExecutionId = 1
+let nextTerminalSessionId = 1
+const closedTerminalSessions = new Set<string>()
+
 
 function cloneClassDetail(classDetail: ClassDetail): ClassDetail {
   return {
@@ -265,7 +271,71 @@ function resetMockData() {
   operations = new Map()
   operationReads = new Map()
   nextExecutionId = 1
+  nextTerminalSessionId = 1
+  closedTerminalSessions.clear()
   mockDataInitialized = true
+}
+
+function terminalTargetsFor(labInstanceId: string): TerminalTargetList {
+  const execution = labExecutions.find((item) =>
+    item.labInstances.some((instance) => instance.id === labInstanceId),
+  )
+  const labInstance = execution?.labInstances.find(
+    (instance) => instance.id === labInstanceId,
+  )
+
+  if (!execution || !labInstance) {
+    throw new HttpError(404)
+  }
+  if (labInstance.userId !== mockMe.id) {
+    throw new HttpError(403)
+  }
+  if (labInstance.status !== 'READY') {
+    throw new HttpError(409)
+  }
+
+  return {
+    generation: labInstance.generation,
+    workspaceVmKey: 'vm-control-opaque',
+    items: [
+      {
+        vmKey: 'vm-control-opaque',
+        role: 'control',
+        instanceIndex: 0,
+      },
+      {
+        vmKey: 'vm-worker-a-opaque',
+        role: 'worker',
+        instanceIndex: 0,
+      },
+      {
+        vmKey: 'vm-worker-b-opaque',
+        role: 'worker',
+        instanceIndex: 1,
+      },
+    ],
+  }
+}
+
+function createMockTerminalSession(
+  labInstanceId: string,
+  input: CreateTerminalSessionRequest,
+): TerminalSession {
+  const targets = terminalTargetsFor(labInstanceId)
+  if (!targets.items.some((item) => item.vmKey === input.targetVmKey)) {
+    throw new HttpError(422)
+  }
+  if (input.cols < 1 || input.rows < 1) {
+    throw new HttpError(400)
+  }
+
+  const id = `terminal-session-${nextTerminalSessionId++}`
+  return {
+    id,
+    generation: targets.generation,
+    sessionToken: `mock-terminal-token-${id}`,
+    tokenExpiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+  }
 }
 
 function requireSession() {
@@ -619,6 +689,21 @@ export const mockLabbitApi: LabbitApi = {
         id: labInstanceId,
       },
     }
+  },
+
+  async listTerminalTargets(labInstanceId) {
+    requireSession()
+    return terminalTargetsFor(labInstanceId)
+  },
+
+  async createTerminalSession(labInstanceId, input) {
+    requireSession()
+    return createMockTerminalSession(labInstanceId, input)
+  },
+
+  async closeTerminalSession(terminalSessionId) {
+    requireSession()
+    closedTerminalSessions.add(terminalSessionId)
   },
 
   async getOperation(operationId) {

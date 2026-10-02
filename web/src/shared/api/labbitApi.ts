@@ -28,8 +28,8 @@ export const labbitQueryKeys = {
   labExecution: (labExecutionId: string) =>
     ['lab-executions', labExecutionId] as const,
   operation: (operationId: string) => ['operations', operationId] as const,
-  terminalTargets: (labInstanceId: string) =>
-    ['lab-instances', labInstanceId, 'terminal-targets'] as const,
+  terminalTargets: (labInstanceId: string, generation: number) =>
+    ['lab-instances', labInstanceId, 'terminal-targets', generation] as const,
 }
 
 export interface LabbitApi {

@@ -81,14 +81,13 @@ describe('terminalReconnectPolicy', () => {
   })
 
   it('알 수 없는 non-fatal code는 generic fallback으로 reconnect 가능 상태를 유지한다', () => {
-    expect(
-      decideTerminalProtocolError({
-        code: 'NEW_SERVER_CODE',
-      }),
-    ).toMatchObject({
-      action: undefined,
-      clearResume: undefined,
+    const decision = decideTerminalProtocolError({
+      code: 'NEW_SERVER_CODE',
     })
+
+    expect(decision.message).toContain('기존 세션으로 다시 연결')
+    expect(decision).not.toHaveProperty('action')
+    expect(decision).not.toHaveProperty('clearResume')
   })
 
   it('알 수 없는 fatal code는 무한 reconnect를 막고 새 연결을 요구한다', () => {

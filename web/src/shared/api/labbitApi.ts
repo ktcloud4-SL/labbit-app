@@ -3,6 +3,7 @@ import type {
   ClassList,
   ClassMembershipList,
   CreateLabExecutionRequest,
+  CreateTerminalSessionRequest,
   LabExecution,
   LabSpec,
   LabSpecList,
@@ -11,6 +12,8 @@ import type {
   Me,
   Operation,
   OperationAccepted,
+  TerminalSession,
+  TerminalTargetList,
   VersionedLabSpec,
 } from './contracts'
 import { request, requestWithMetadata } from './httpClient'
@@ -25,6 +28,8 @@ export const labbitQueryKeys = {
   labExecution: (labExecutionId: string) =>
     ['lab-executions', labExecutionId] as const,
   operation: (operationId: string) => ['operations', operationId] as const,
+  terminalTargets: (labInstanceId: string) =>
+    ['lab-instances', labInstanceId, 'terminal-targets'] as const,
 }
 
 export interface LabbitApi {
@@ -57,6 +62,12 @@ export interface LabbitApi {
     idempotencyKey: string,
   ): Promise<OperationAccepted>
   getOperation(operationId: string): Promise<Operation>
+  listTerminalTargets(labInstanceId: string): Promise<TerminalTargetList>
+  createTerminalSession(
+    labInstanceId: string,
+    input: CreateTerminalSessionRequest,
+  ): Promise<TerminalSession>
+  closeTerminalSession(terminalSessionId: string): Promise<void>
 }
 
 export const httpLabbitApi: LabbitApi = {
@@ -176,5 +187,30 @@ export const httpLabbitApi: LabbitApi = {
 
   getOperation(operationId) {
     return request<Operation>(`/operations/${encodeURIComponent(operationId)}`)
+  },
+
+  listTerminalTargets(labInstanceId) {
+    return request<TerminalTargetList>(
+      `/lab-instances/${encodeURIComponent(labInstanceId)}/terminal-targets`,
+    )
+  },
+
+  createTerminalSession(labInstanceId, input) {
+    return request<TerminalSession>(
+      `/lab-instances/${encodeURIComponent(labInstanceId)}/terminal-sessions`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    )
+  },
+
+  closeTerminalSession(terminalSessionId) {
+    return request<void>(
+      `/terminal-sessions/${encodeURIComponent(terminalSessionId)}`,
+      {
+        method: 'DELETE',
+      },
+    )
   },
 }

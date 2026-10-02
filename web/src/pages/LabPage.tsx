@@ -8,6 +8,7 @@ import { LoginRedirect } from '../shared/ui/LoginRedirect'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 import { TerminalPanel } from '../shared/terminal/TerminalPanel'
+import { WorkspaceFilePanels } from '../shared/workspace/WorkspaceFilePanels'
 
 const roleLabel = (role: string) => {
   if (role === 'INSTRUCTOR') return '강사'
@@ -178,33 +179,10 @@ export function LabPage() {
       </header>
 
       <section className="workspace-shell" aria-label="Lab Workspace Shell">
-        <aside className="workspace-panel workspace-files">
-          <div className="workspace-panel-heading">
-            <strong>파일</strong>
-            <span>Workspace VM</span>
-          </div>
-          <div className="workspace-placeholder">
-            <span className="workspace-placeholder-mark" aria-hidden="true">F</span>
-            <p>파일 탐색기 준비 중</p>
-            <small>
-              파일 연결 기능이 제공되면 Workspace VM의 파일을 이곳에서 확인할 수 있습니다.
-            </small>
-          </div>
-        </aside>
-
-        <section className="workspace-panel workspace-editor">
-          <div className="workspace-panel-heading">
-            <strong>Editor</strong>
-            <span>Workspace</span>
-          </div>
-          <div className="workspace-placeholder">
-            <span className="workspace-placeholder-mark" aria-hidden="true">&lt;/&gt;</span>
-            <p>편집기 준비 중</p>
-            <small>
-              파일을 선택하면 이 영역에서 내용을 확인하고 편집할 수 있도록 연결할 예정입니다.
-            </small>
-          </div>
-        </section>
+        <WorkspaceFilePanels
+          labInstanceId={labInstance.id}
+          generation={labInstance.generation}
+        />
 
         <section className="workspace-panel workspace-preview">
           <div className="workspace-panel-heading">

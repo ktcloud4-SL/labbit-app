@@ -28,6 +28,7 @@ type TerminalRelay struct {
 	binRecv        chan []byte
 	textRecv       chan []byte
 	closeRecv      chan int
+	authRejectRecv chan string
 	authValidator  func(req *http.Request) int
 	beforeAttached func(attachMsg protocol.TerminalDataAttachMessage)
 	closed         bool
@@ -40,10 +41,11 @@ func NewTerminalRelay() *TerminalRelay {
 			CheckOrigin:  func(req *http.Request) bool { return true },
 			Subprotocols: []string{protocol.SubprotocolTerminalData},
 		},
-		attachRecv: make(chan protocol.TerminalDataAttachMessage, 10),
-		binRecv:    make(chan []byte, 100),
-		textRecv:   make(chan []byte, 10),
-		closeRecv:  make(chan int, 10),
+		attachRecv:     make(chan protocol.TerminalDataAttachMessage, 10),
+		binRecv:        make(chan []byte, 100),
+		textRecv:       make(chan []byte, 10),
+		closeRecv:      make(chan int, 10),
+		authRejectRecv: make(chan string, 10),
 	}
 
 	mux := http.NewServeMux()
@@ -96,12 +98,26 @@ func (r *TerminalRelay) CloseWithCode(code int, reason string) {
 	}
 }
 
+// WaitForAuthReject 는 인증 실패(401/403)로 거절된 요청의 Authorization 헤더를 수신 대기합니다.
+func (r *TerminalRelay) WaitForAuthReject(timeout time.Duration) (string, error) {
+	select {
+	case auth := <-r.authRejectRecv:
+		return auth, nil
+	case <-time.After(timeout):
+		return "", fmt.Errorf("timeout waiting for auth rejection")
+	}
+}
+
 func (r *TerminalRelay) handleWebSocket(w http.ResponseWriter, req *http.Request) {
 	r.mu.Lock()
 	authFn := r.authValidator
 	r.mu.Unlock()
 	if authFn != nil {
 		if code := authFn(req); code != http.StatusOK {
+			select {
+			case r.authRejectRecv <- req.Header.Get("Authorization"):
+			default:
+			}
 			http.Error(w, "unauthorized", code)
 			return
 		}

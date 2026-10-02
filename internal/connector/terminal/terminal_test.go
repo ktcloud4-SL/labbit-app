@@ -1179,21 +1179,27 @@ func TestTerminal_CredentialRevoke_ReattachPreservesPTY(t *testing.T) {
 	const closeCredentialRevoked = 4001
 	relay.CloseWithCode(closeCredentialRevoked, "credential revoked")
 
-	// 3. 잠시 대기하여 reconnect()가 기존 토큰으로 401을 받는 상태 확인
-	time.Sleep(300 * time.Millisecond)
-
-	// 검증: 401을 받았더라도 PTY와 세션이 종료(StatusClosed)되지 않고 StatusDetached로 유지되어야 함!
-	status := session.GetStatus()
-	if status == terminal.StatusClosed {
-		t.Fatalf("session should NOT be closed on 401 auth failure, must remain detached")
+	// 3. reconnect()가 이전 토큰(token-initial)으로 재접속을 시도하여 실제 401로 거절되는 시점을 deterministic하게 대기
+	rejectedAuth, err := relay.WaitForAuthReject(3 * time.Second)
+	if err != nil {
+		t.Fatalf("expected reconnect attempt with old credential to be rejected with 401: %v", err)
+	}
+	if rejectedAuth != "Bearer token-initial" {
+		t.Fatalf("expected 401 rejection for 'Bearer token-initial', got %q", rejectedAuth)
 	}
 
-	// 4. Credential 파일 갱신 (새로운 유효 토큰 주입)
+	// 4. 검증: 실제 401을 수신한 후에도 세션이 StatusClosed가 아니라 StatusDetached로 유지되어야 함!
+	status := session.GetStatus()
+	if status != terminal.StatusDetached {
+		t.Fatalf("session should NOT be closed on 401 auth failure, must remain StatusDetached, got %s", status)
+	}
+
+	// 5. Credential 파일 갱신 (새로운 유효 토큰 주입)
 	if err := os.WriteFile(tmpCredFile, []byte("token-renewed-v2"), 0600); err != nil {
 		t.Fatalf("failed to update cred file: %v", err)
 	}
 
-	// 5. 클라이언트가 파일 갱신을 감지하고 새 토큰으로 reattach 성공하는지 대기
+	// 6. 클라이언트가 파일 갱신을 감지하고 새 토큰으로 reattach 성공하는지 대기
 	secondAttach, err := relay.WaitForAttach(4 * time.Second)
 	if err != nil {
 		t.Fatalf("expected successful reattach with renewed credential, got: %v", err)
@@ -1202,7 +1208,20 @@ func TestTerminal_CredentialRevoke_ReattachPreservesPTY(t *testing.T) {
 		t.Fatalf("expected same session ID on reattach, got %s", secondAttach.TerminalSessionID)
 	}
 
-	// 6. 동일 PTY 유지 검증: 재연결된 소켓으로 키 입력 전달 시 동일한 PTY가 계속 에코 회신
+	// 재연결 완료 후 세션 상태가 StatusActive 로 복원되었는지 확인
+	var active bool
+	for i := 0; i < 20; i++ {
+		if session.GetStatus() == terminal.StatusActive {
+			active = true
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !active {
+		t.Fatalf("expected session status to resume to StatusActive, got %s", session.GetStatus())
+	}
+
+	// 7. 동일 PTY 유지 검증: 재연결된 소켓으로 키 입력 전달 시 동일한 PTY가 계속 에코 회신
 	if err := relay.SendBinary([]byte("echo-after-renew")); err != nil {
 		t.Fatalf("SendBinary after reattach failed: %v", err)
 	}

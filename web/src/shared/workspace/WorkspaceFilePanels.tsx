@@ -197,7 +197,7 @@ function WorkspaceFileEditor({
         </button>
       </div>
 
-      {saveError && (
+      {saveError !== null && (
         <div className="workspace-editor-error" role="alert">
           <span>{fileErrorMessage(saveError, 'save')}</span>
           {staleSave && (

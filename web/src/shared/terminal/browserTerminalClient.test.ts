@@ -178,6 +178,61 @@ describe('BrowserTerminalClient', () => {
     })
   })
 
+  it('reconnect 뒤 이전 socket의 늦은 Blob OUTPUT을 버린다', async () => {
+    vi.stubGlobal('WebSocket', FakeWebSocket)
+
+    const onOutput = vi.fn()
+    const client = new BrowserTerminalClient({
+      onAttached: vi.fn(),
+      onOutput,
+      onEnded: vi.fn(),
+      onProtocolError: vi.fn(),
+      onClose: vi.fn(),
+    })
+
+    client.connect({
+      terminalSessionId: 'terminal-session-1',
+      sessionToken: 'opaque-token',
+      cols: 80,
+      rows: 20,
+    })
+
+    const first = FakeWebSocket.instances[0]
+    first.open()
+    first.message(
+      JSON.stringify({
+        type: 'TERMINAL_ATTACHED',
+        terminalSessionId: 'terminal-session-1',
+        payload: {
+          resumed: false,
+          historyAvailable: false,
+        },
+      }),
+    )
+
+    let resolveBlob!: (buffer: ArrayBuffer) => void
+    const delayedBlob = new Blob(['stale'])
+    vi.spyOn(delayedBlob, 'arrayBuffer').mockReturnValue(
+      new Promise<ArrayBuffer>((resolve) => {
+        resolveBlob = resolve
+      }),
+    )
+    first.message(delayedBlob)
+
+    client.connect({
+      terminalSessionId: 'terminal-session-1',
+      sessionToken: 'opaque-token',
+      cols: 80,
+      rows: 20,
+    })
+
+    resolveBlob(new TextEncoder().encode('stale').buffer as ArrayBuffer)
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(onOutput).not.toHaveBeenCalled()
+  })
+
   it('server ERROR와 TERMINAL_SESSION_ENDED를 handler로 전달한다', () => {
     vi.stubGlobal('WebSocket', FakeWebSocket)
 

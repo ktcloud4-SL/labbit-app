@@ -172,4 +172,25 @@ func TestTerminalSessionEndToEnd(t *testing.T) {
 	if code2 != "SESSION_EXPIRED" || close2 != 4003 {
 		t.Fatalf("종료된 session attach = %s %d, want SESSION_EXPIRED 4003", code2, close2)
 	}
+
+	// Production JSON logger를 쓰는 실제 HTTP/WSS 조립에서 각 event의 correlation을 확인한다.
+	requireLogFields(t, e.logEvent("Connector Control connection 수립", ""), map[string]any{
+		"connector_id": f.ConnectorID.String(), "trace_id": nil,
+	})
+	for _, message := range []string{"TerminalSession 생성", "Connector TERMINAL_OPEN 전송", "Connector Terminal Data attach", "Browser Terminal attach", "TerminalSession 종료", "Connector TERMINAL_CLOSE 전송"} {
+		event := e.logEvent(message, s.ID)
+		requireLogFields(t, event, map[string]any{
+			"terminal_session_id": s.ID, "lab_instance_id": f.LabInstanceID.String(),
+			"connector_id": f.ConnectorID.String(), "trace_id": nil, "operation_id": nil,
+		})
+	}
+	for _, message := range []string{"TerminalSession 생성", "Connector TERMINAL_OPEN 전송"} {
+		requireLogFields(t, e.logEvent(message, s.ID), map[string]any{"request_id": open.RequestID})
+	}
+	closeEvent := e.logEvent("TerminalSession 종료", s.ID)
+	closeRequestID, _ := closeEvent["request_id"].(string)
+	if closeRequestID == "" || closeRequestID == open.RequestID {
+		t.Fatal("DELETE log must carry its own request_id")
+	}
+	requireLogFields(t, e.logEvent("Connector TERMINAL_CLOSE 전송", s.ID), map[string]any{"request_id": closeRequestID})
 }

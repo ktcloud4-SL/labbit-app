@@ -3,11 +3,13 @@ package connector
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 )
 
 // 이 file은 TerminalSession lifecycle Control(contracts/connector/terminal-control.schema.json)의 routing이다.
@@ -244,13 +246,7 @@ func (r *Router) SendTerminalOpen(ctx context.Context, open TerminalOpen) (SentM
 	}
 
 	key := terminalKey{connectorID: open.ConnectorID, terminalSessionID: open.Correlation.TerminalSessionID}
-	log := r.logger.With(
-		"connector_id", open.ConnectorID.String(),
-		"terminal_session_id", boundID(open.Correlation.TerminalSessionID),
-		"lab_instance_id", boundID(open.Correlation.LabInstanceID),
-		"generation", open.Correlation.Generation,
-		"message_type", protocol.MessageTypeTerminalOpen,
-	)
+	log := r.terminalLog(open.ConnectorID, open.Correlation, open.RequestID, "", open.Trace).With("message_type", protocol.MessageTypeTerminalOpen)
 	err = r.registry.WithReadyRoute(open.ConnectorID, func(_ Session, route Route) error {
 		// pending을 write보다 먼저 등록한다. Connector는 OPEN을 받자마자 Data WSS를 붙이고 OPEN_RESULT를 보낼 수 있다.
 		r.mu.Lock()
@@ -296,13 +292,11 @@ func (r *Router) SendTerminalClose(ctx context.Context, cl TerminalClose) (SentM
 		return SentMessage{}, err
 	}
 
-	log := r.logger.With(
-		"connector_id", cl.ConnectorID.String(),
-		"terminal_session_id", boundID(cl.Correlation.TerminalSessionID),
-		"lab_instance_id", boundID(cl.Correlation.LabInstanceID),
-		"generation", cl.Correlation.Generation,
-		"message_type", protocol.MessageTypeTerminalClose,
-	)
+	requestID := cl.RequestID
+	if requestID == "" {
+		requestID = observability.RequestIDFromContext(ctx)
+	}
+	log := r.terminalLog(cl.ConnectorID, cl.Correlation, requestID, cl.OperationID, cl.Trace).With("message_type", protocol.MessageTypeTerminalClose)
 	err = r.registry.WithReadyRoute(cl.ConnectorID, func(_ Session, route Route) error {
 		return r.write(route, data, func() {})
 	})
@@ -312,6 +306,26 @@ func (r *Router) SendTerminalClose(ctx context.Context, cl TerminalClose) (SentM
 	}
 	log.Debug("Connector TERMINAL_CLOSE 전송")
 	return SentMessage{MessageID: messageID}, nil
+}
+
+func (r *Router) terminalLog(connectorID uuid.UUID, c TerminalCorrelation, requestID, operationID string, trace TraceContext) *slog.Logger {
+	log := r.logger.With(
+		"connector_id", connectorID.String(),
+		"terminal_session_id", boundID(c.TerminalSessionID),
+		"lab_instance_id", boundID(c.LabInstanceID),
+		"generation", c.Generation,
+	)
+	if requestID != "" {
+		log = log.With("request_id", boundID(requestID))
+	}
+	if operationID != "" {
+		log = log.With("operation_id", boundID(operationID))
+	}
+	trace = NormalizeTrace(trace.Traceparent, trace.Tracestate)
+	if id := trace.TraceID(); id != "" {
+		log = log.With("trace_id", id)
+	}
+	return log
 }
 
 // removeTerminalOpen은 messageID가 일치하는 pending만 제거한다.
@@ -416,7 +430,12 @@ func (r *Router) terminalUnmatched(connectorID uuid.UUID, messageType string, in
 		LabInstanceID:     boundID(in.Correlation.LabInstanceID),
 		Generation:        in.Correlation.Generation,
 	}
-	r.logger.Warn("Connector TerminalSession message를 pending에 연결하지 못함",
+	trace := NormalizeTrace(in.Trace.Traceparent, in.Trace.Tracestate)
+	log := r.logger
+	if id := trace.TraceID(); id != "" {
+		log = log.With("trace_id", id)
+	}
+	log.Warn("Connector TerminalSession message를 pending에 연결하지 못함",
 		"connector_id", connectorID.String(),
 		"message_type", messageType,
 		"reason", string(reason),

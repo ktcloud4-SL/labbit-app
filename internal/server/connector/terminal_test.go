@@ -169,6 +169,39 @@ func TestSendTerminalOpenPropagatesOnlyValidTrace(t *testing.T) {
 	if msg := decodeFrame(t, frames.last(t)); msg["traceparent"] != nil || msg["tracestate"] != nil {
 		t.Fatalf("유효하지 않은 Trace가 전달됨: %v", msg)
 	}
+	// 같은 connection의 다음 command가 앞선 Trace/request ID를 재사용하지 않는다.
+	open = openFor(p.ConnectorID, "s-none")
+	open.RequestID = ""
+	if _, err := f.router.SendTerminalOpen(context.Background(), open); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(f.logs.String()), "\n")
+	if len(lines) != 3 {
+		t.Fatalf("log event count = %d, want 3", len(lines))
+	}
+	for i, line := range lines {
+		event := decodeFrame(t, []byte(line))
+		if event["connector_id"] != p.ConnectorID.String() || event["lab_instance_id"] != "lab-1" {
+			t.Fatal("Terminal command log lacks known correlation")
+		}
+		if i == 0 {
+			if event["trace_id"] != "4bf92f3577b34da6a3ce929d0e0e4736" || event["request_id"] != "request-1" {
+				t.Fatal("Terminal command log lacks valid Trace/request ID")
+			}
+		} else if _, present := event["trace_id"]; present {
+			t.Fatal("Terminal command log invented or reused a trace_id")
+		}
+		if i == 2 {
+			if _, present := event["request_id"]; present {
+				t.Fatal("Terminal command log invented a request_id")
+			}
+		}
+	}
+	for _, raw := range []string{traceparent, "vendor=value", "not-a-traceparent", "x=y", "srv-1"} {
+		if strings.Contains(f.logs.String(), raw) {
+			t.Fatal("Terminal command log contains raw Trace or payload")
+		}
+	}
 }
 
 func TestSendTerminalOpenRejectsInvalidCommands(t *testing.T) {
@@ -449,6 +482,20 @@ func TestSendTerminalClose(t *testing.T) {
 	}
 	if msg := decodeFrame(t, frames.last(t)); msg["operationId"] != nil {
 		t.Fatalf("operationId가 비어 있을 때 전달됨: %v", msg)
+	}
+	for i, line := range strings.Split(strings.TrimSpace(f.logs.String()), "\n") {
+		event := decodeFrame(t, []byte(line))
+		if event["request_id"] != cl.RequestID {
+			t.Fatal("TERMINAL_CLOSE log lost request_id")
+		}
+		if i < 2 && event["operation_id"] != "op-1" {
+			t.Fatal("TERMINAL_CLOSE log lost supplied operation_id")
+		}
+		if i == 2 {
+			if _, present := event["operation_id"]; present {
+				t.Fatal("TERMINAL_CLOSE log invented operation_id")
+			}
+		}
 	}
 }
 

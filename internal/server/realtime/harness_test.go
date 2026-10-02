@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext"
@@ -293,7 +293,7 @@ func newEnv(t *testing.T, mods ...func(*realtime.Options)) *env {
 		Connectors:    e.connectors,
 		AllowOrigin:   func(origin string) bool { return origin == trustedOrigin },
 		Clock:         e.clock,
-		Logger:        slog.New(slog.NewJSONHandler(e.logs, &slog.HandlerOptions{Level: slog.LevelDebug})),
+		Logger:        observability.NewJSONLoggerTo(e.logs, "labbit-server", "realtime", "development", "debug"),
 		AttachTimeout: 2 * time.Second,
 		WriteTimeout:  2 * time.Second,
 		CloseGrace:    200 * time.Millisecond,

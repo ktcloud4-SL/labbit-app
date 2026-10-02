@@ -331,6 +331,16 @@ func TestCredentialRevokeEndsInFlightRequestsAndRejectsNewUpgrades(t *testing.T)
 			if h.broker.trust.size() != 0 {
 				t.Fatal("revoke된 Data WSS가 추적 목록에 남음")
 			}
+			// 계약(README §2): revoke된 Credential의 Data WSS는 close code 4001로 종료한다.
+			waitFor(t, "두 Data WSS가 4001로 종료", func() bool {
+				codes := 0
+				for _, code := range p.DataCloseCodes() {
+					if code == 4001 {
+						codes++
+					}
+				}
+				return codes == 2
+			})
 
 			// revoke된 Credential은 새 Upgrade가 거절된다(401).
 			_, resp, err := h.rawData(credentialA, "labbit.connector-file.v1")

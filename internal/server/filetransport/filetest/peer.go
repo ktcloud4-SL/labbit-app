@@ -3,6 +3,7 @@ package filetest
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"sync"
 	"testing"
@@ -97,6 +98,7 @@ type Peer struct {
 	closes        []Close
 	controlFrames [][]byte
 	dataFrames    []DataFrame
+	dataCloses    []int
 	dialFailures  int
 	inflight      map[string]context.CancelFunc
 	active        int
@@ -193,6 +195,13 @@ func (p *Peer) DataFrames() []DataFrame {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return append([]DataFrame(nil), p.dataFrames...)
+}
+
+// DataCloseCodes는 SaaS가 File Data WSS를 닫을 때 보낸 close code다. close frame 없이 끊겼으면 -1이다.
+func (p *Peer) DataCloseCodes() []int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]int(nil), p.dataCloses...)
 }
 
 // Active는 지금 FILE_OPEN을 처리 중인 goroutine 수다.
@@ -359,14 +368,50 @@ func (p *Peer) serveOpen(ctx context.Context, open Open, beh Behavior) {
 		_ = ws.SetWriteDeadline(time.Now().Add(5 * time.Second))
 		return ws.WriteMessage(kind, data) == nil
 	}
+	// 이 connection의 reader는 goroutine 하나다. 요청을 처리하는 동안(stall 포함) SaaS가 close frame을 보내거나 연결을 끊는 것을
+	// 놓치지 않기 위해 읽기를 한 곳에 모아 channel로 넘긴다.
+	type incoming struct {
+		kind int
+		data []byte
+	}
+	frames := make(chan incoming, 16)
+	closed := make(chan struct{})
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		defer close(closed)
+		defer close(frames)
+		for {
+			kind, data, err := ws.ReadMessage()
+			if err != nil {
+				code := -1
+				var closeErr *websocket.CloseError
+				if errors.As(err, &closeErr) {
+					code = closeErr.Code
+				}
+				p.mu.Lock()
+				p.dataCloses = append(p.dataCloses, code)
+				p.mu.Unlock()
+				return
+			}
+			p.recordData(true, kind == websocket.BinaryMessage, data)
+			select {
+			case frames <- incoming{kind: kind, data: data}:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 	read := func() (int, []byte, bool) {
-		_ = ws.SetReadDeadline(time.Now().Add(10 * time.Second))
-		kind, data, err := ws.ReadMessage()
-		if err != nil {
+		select {
+		case f, ok := <-frames:
+			if !ok {
+				return 0, nil, false
+			}
+			return f.kind, f.data, true
+		case <-time.After(10 * time.Second):
 			return 0, nil, false
 		}
-		p.recordData(true, kind == websocket.BinaryMessage, data)
-		return kind, data, true
 	}
 	send := func(f Frame) bool {
 		data, err := json.Marshal(f)
@@ -422,6 +467,8 @@ func (p *Peer) serveOpen(ctx context.Context, open Open, beh Behavior) {
 		case <-beh.Stall:
 		case <-ctx.Done():
 			return
+		case <-closed:
+			return // 기다리는 동안 SaaS가 연결을 닫았다.
 		}
 	}
 

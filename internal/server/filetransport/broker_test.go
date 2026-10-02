@@ -613,7 +613,9 @@ func TestMalformedResultPayloadsAreRejected(t *testing.T) {
 		{"Read size 소수", "read", setPayload(func(p map[string]any) { p["size"] = 1.5 })},
 		{"Read size가 본문보다 작음", "read", setPayload(func(p map[string]any) { p["size"] = p["size"].(int) - 1 })},
 		{"Read size가 본문보다 큼", "read", setPayload(func(p map[string]any) { p["size"] = p["size"].(int) + 1 })},
-		// Save
+		// Save: 본문을 보낸 뒤의 Schema 위반은 확정된 실패가 아니라 저장 여부를 알 수 없는 상태다.
+		{"Save FAILED인데 error 없음", "save", failed(nil)},
+		{"Save FAILED error.code 빈 문자열", "save", failed(map[string]any{"code": ""})},
 		{"Save revision 없음", "save", setPayload(func(p map[string]any) { delete(p, "revision") })},
 		{"Save revision 형식 위반", "save", setPayload(func(p map[string]any) { p["revision"] = "a b" })},
 	}

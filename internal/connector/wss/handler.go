@@ -200,9 +200,7 @@ func validateOperationCommand(cmd *protocol.OperationCommandMessage) error {
 			return fmt.Errorf("workspaceVmKey %q does not match any VM in creationSnapshot", snap.WorkspaceVMKey)
 		}
 		if snap.StartupScript != nil {
-			if snap.StartupScript.Content == "" {
-				return fmt.Errorf("startupScript content cannot be empty")
-			}
+			// content는 string이며 Schema에 minLength가 없다. 빈 문자열도 유효하므로 계약보다 엄격하게 거절하지 않는다.
 			if len(snap.StartupScript.SHA256) != 64 {
 				return fmt.Errorf("startupScript sha256 must be 64-character hex string")
 			}
@@ -360,6 +358,9 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 	}
 
 	if cmdMsg.Payload.ProviderResources != nil {
+		// 빈 배열([])은 Schema-valid이며 property 누락(nil)과 구분되어야 한다. nil로 바뀌면 DispatchOperation이
+		// 누락으로 보고 CLEANUP을 거절하므로, 명시적으로 받은 빈 목록은 빈 non-nil slice로 넘긴다.
+		internalCmd.ProviderResources = make([]provider.ResourceRef, 0, len(cmdMsg.Payload.ProviderResources))
 		for _, r := range cmdMsg.Payload.ProviderResources {
 			internalCmd.ProviderResources = append(internalCmd.ProviderResources, provider.ResourceRef{
 				ResourceType: r.ResourceType,

@@ -53,6 +53,40 @@ describe('httpLabbitApi', () => {
     )
   })
 
+  it('login 401 응답을 HttpError로 그대로 전달한다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          type: 'about:blank',
+          title: 'Unauthorized',
+          status: 401,
+          code: 'UNAUTHORIZED',
+          requestId: 'req-login-401',
+        }),
+        {
+          status: 401,
+          headers: {
+            'content-type': 'application/problem+json',
+          },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      httpLabbitApi.login({
+        username: 'unknown-user',
+        password: 'wrong-password',
+      }),
+    ).rejects.toMatchObject({
+      status: 401,
+      problem: {
+        code: 'UNAUTHORIZED',
+        requestId: 'req-login-401',
+      },
+    })
+  })
+
   it('logout 요청을 세션 Cookie 포함 POST로 전송한다', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
     vi.stubGlobal('fetch', fetchMock)

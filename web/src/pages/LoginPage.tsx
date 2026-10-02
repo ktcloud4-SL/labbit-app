@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
+import { shouldShowMockAccountHint } from '../shared/api/apiMode'
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
@@ -9,6 +10,13 @@ import {
   isSafeInternalPath,
   type LoginLocationState,
 } from '../shared/routing/loginNavigation'
+
+class PostLoginVerificationError extends Error {
+  constructor(public readonly cause: unknown) {
+    super('로그인 후 사용자 정보 확인 실패')
+    this.name = 'PostLoginVerificationError'
+  }
+}
 
 export function LoginPage() {
   const api = useLabbitApi()
@@ -19,14 +27,27 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
   const state = location.state as LoginLocationState | null
+  const showMockAccountHint = shouldShowMockAccountHint(
+    import.meta.env.DEV,
+    import.meta.env.VITE_LABBIT_API_MODE,
+  )
 
   const loginMutation = useMutation({
     mutationFn: async () => {
       await api.login({ username, password })
-      return api.getMe()
+
+      // Login 성공 시 server-side Session은 새 사용자 문맥으로 교체된다.
+      // /me 검증이 실패하더라도 이전 사용자의 query cache가 남지 않게 먼저 제거한다.
+      // 진행 중인 login mutation 자체는 유지한다.
+      queryClient.removeQueries()
+
+      try {
+        return await api.getMe()
+      } catch (error) {
+        throw new PostLoginVerificationError(error)
+      }
     },
     onSuccess: (me) => {
-      queryClient.removeQueries()
       queryClient.setQueryData(labbitQueryKeys.me, me)
 
       const destination = isSafeInternalPath(state?.from) ? state.from : '/classes'
@@ -51,9 +72,11 @@ export function LoginPage() {
   const loginError =
     loginMutation.error instanceof HttpError && loginMutation.error.status === 401
       ? '사용자 이름 또는 비밀번호를 확인해 주세요.'
-      : loginMutation.error
-        ? '로그인 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'
-        : null
+      : loginMutation.error instanceof PostLoginVerificationError
+        ? '로그인 후 사용자 정보를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+        : loginMutation.error
+          ? '로그인 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+          : null
 
   return (
     <main className="login-shell">
@@ -113,7 +136,7 @@ export function LoginPage() {
           </button>
         </form>
 
-        {import.meta.env.DEV && (
+        {showMockAccountHint && (
           <p className="dev-hint">개발 Mock 계정: heechul / password</p>
         )}
       </section>

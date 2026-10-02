@@ -9,7 +9,6 @@ import (
 const (
 	SubprotocolControl      = "labbit.connector.v1"
 	SubprotocolTerminalData = "labbit.connector-terminal.v1"
-	SubprotocolFileData     = "labbit.connector-file.v1"
 	// SubprotocolPreviewData는 Preview Data WSS의 subprotocol이다(preview-data.schema.json).
 	SubprotocolPreviewData = "labbit.connector-preview.v1"
 )
@@ -96,6 +95,7 @@ type BaseEnvelope struct {
 	RequestID         string    `json:"requestId,omitempty"`
 	OperationID       string    `json:"operationId,omitempty"`
 	TerminalSessionID string    `json:"terminalSessionId,omitempty"`
+	PreviewSessionID  string    `json:"previewSessionId,omitempty"`
 	LabInstanceID     string    `json:"labInstanceId,omitempty"`
 	Generation        int64     `json:"generation,omitempty"`
 	TraceParent       string    `json:"traceparent,omitempty"`

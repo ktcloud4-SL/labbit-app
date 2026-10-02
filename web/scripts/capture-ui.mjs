@@ -9,6 +9,7 @@ const outputDir = path.resolve(process.env.LABBIT_CAPTURE_DIR ?? 'ui-captures')
 const port = Number(process.env.LABBIT_CAPTURE_DEBUG_PORT ?? '9333')
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const editableSnapshots = []
 
 function chromeCandidates() {
   const candidates = []
@@ -225,6 +226,155 @@ async function navigateAuthenticated(cdp, screen) {
   )
 }
 
+async function collectEditableSnapshot(cdp, filename) {
+  const snapshot = await evaluate(
+    cdp,
+    `(() => {
+      const visible = (element, rect, style) =>
+        rect.width > 1 &&
+        rect.height > 1 &&
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        Number(style.opacity || 1) > 0;
+
+      const directText = (element) =>
+        [...element.childNodes]
+          .filter((node) => node.nodeType === Node.TEXT_NODE)
+          .map((node) => node.textContent?.replace(/\\s+/g, ' ').trim() ?? '')
+          .filter(Boolean)
+          .join(' ');
+
+      const valueForControl = (element) => {
+        if (element.tagName === 'INPUT') {
+          const type = (element.getAttribute('type') || 'text').toLowerCase();
+          if (type === 'password') return '••••••••';
+          if (type === 'checkbox' || type === 'radio') {
+            return element.checked ? '✓' : '';
+          }
+          return element.value || element.getAttribute('placeholder') || '';
+        }
+        if (element.tagName === 'TEXTAREA') {
+          return element.value || element.getAttribute('placeholder') || '';
+        }
+        if (element.tagName === 'SELECT') {
+          return element.selectedOptions?.[0]?.textContent?.trim() || '';
+        }
+        return element.innerText?.replace(/\\s+/g, ' ').trim() || '';
+      };
+
+      const stylePayload = (style) => ({
+        color: style.color,
+        backgroundColor: style.backgroundColor,
+        borderColor: style.borderColor,
+        borderWidth: Number.parseFloat(style.borderWidth) || 0,
+        borderRadius: Number.parseFloat(style.borderRadius) || 0,
+        fontSize: Number.parseFloat(style.fontSize) || 14,
+        fontWeight: Number.parseInt(style.fontWeight, 10) || 400,
+        lineHeight: Number.parseFloat(style.lineHeight) || 0,
+        textAlign: style.textAlign,
+        opacity: Number.parseFloat(style.opacity) || 1,
+      });
+
+      const toRect = (rect) => ({
+        x: rect.left + window.scrollX,
+        y: rect.top + window.scrollY,
+        width: rect.width,
+        height: rect.height,
+      });
+
+      const textTags = new Set([
+        'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+        'P', 'LABEL', 'STRONG', 'SMALL', 'SPAN', 'DT', 'DD', 'TH', 'TD',
+      ]);
+      const controlTags = new Set(['BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'A']);
+      const containerTags = new Set(['DIV', 'FORM', 'SECTION', 'ARTICLE', 'NAV', 'HEADER', 'MAIN', 'ASIDE']);
+
+      const elements = [];
+      const all = [...document.querySelectorAll('body *')];
+
+      for (let index = 0; index < all.length; index += 1) {
+        const element = all[index];
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        if (!visible(element, rect, style)) continue;
+
+        const tag = element.tagName;
+        const common = {
+          order: index,
+          tag: tag.toLowerCase(),
+          className: typeof element.className === 'string' ? element.className : '',
+          rect: toRect(rect),
+          style: stylePayload(style),
+        };
+
+        if (controlTags.has(tag)) {
+          elements.push({
+            ...common,
+            kind: 'control',
+            controlType:
+              tag === 'INPUT'
+                ? (element.getAttribute('type') || 'text').toLowerCase()
+                : tag.toLowerCase(),
+            text: valueForControl(element),
+          });
+          continue;
+        }
+
+        if (textTags.has(tag)) {
+          if (element.closest('button, a, input, textarea, select')) continue;
+
+          let text = directText(element);
+          if (!text && tag !== 'SPAN') {
+            text = element.innerText?.replace(/\\s+/g, ' ').trim() || '';
+          }
+          if (!text || text.length > 500) continue;
+
+          const parentTextTag = element.parentElement && textTags.has(element.parentElement.tagName);
+          if (tag === 'SPAN' && parentTextTag && !directText(element)) continue;
+
+          elements.push({
+            ...common,
+            kind: 'text',
+            text,
+          });
+          continue;
+        }
+
+        if (containerTags.has(tag)) {
+          const hasClass = typeof element.className === 'string' && element.className.trim().length > 0;
+          const hasVisibleBackground =
+            style.backgroundColor !== 'rgba(0, 0, 0, 0)' &&
+            style.backgroundColor !== 'transparent';
+          const hasBorder = (Number.parseFloat(style.borderWidth) || 0) > 0;
+          const hasRadius = (Number.parseFloat(style.borderRadius) || 0) > 0;
+          const area = rect.width * rect.height;
+
+          if (hasClass && area >= 400 && (hasVisibleBackground || hasBorder || hasRadius)) {
+            elements.push({
+              ...common,
+              kind: 'container',
+            });
+          }
+        }
+
+        if (elements.length >= 300) break;
+      }
+
+      const rootStyle = getComputedStyle(document.body);
+      return {
+        file: ${JSON.stringify(filename)},
+        route: location.pathname,
+        width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, 1280),
+        height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, 900),
+        backgroundColor: rootStyle.backgroundColor,
+        elements,
+      };
+    })()`,
+  );
+
+  editableSnapshots.push(snapshot);
+}
+
 async function capture(cdp, filename) {
   await evaluate(
     cdp,
@@ -241,6 +391,7 @@ async function capture(cdp, filename) {
   })
   const destination = path.join(outputDir, filename)
   await writeFile(destination, Buffer.from(result.data, 'base64'))
+  await collectEditableSnapshot(cdp, filename)
   console.log(`✓ ${filename}`)
 }
 
@@ -624,6 +775,11 @@ async function main() {
     }
 
     await captureLabExecutionConfirmations(cdp)
+    await writeFile(
+      path.join(outputDir, 'editable-dom.json'),
+      JSON.stringify({ schemaVersion: 1, screens: editableSnapshots }, null, 2) + '\n',
+    )
+    console.log('✓ editable-dom.json')
 
     console.log(`\n완료: ${outputDir}`)
   } finally {

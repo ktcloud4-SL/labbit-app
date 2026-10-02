@@ -538,7 +538,6 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     clientRef.current?.disconnect()
     clientRef.current = null
     invalidateResume()
-    setAuthExpired(true)
   }, [clearRetryTimer, invalidateResume, targetAuthExpired])
 
   const effectiveSelectedVmKey =

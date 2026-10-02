@@ -355,6 +355,100 @@ describe('httpLabbitApi', () => {
     const init = fetchMock.mock.calls[0][1] as RequestInit
     expect(new Headers(init.headers).get('Idempotency-Key')).toBe('idem-test-1')
   })
+
+  it('Terminal target 목록을 opaque LabInstance 경로에서 조회한다', async () => {
+    const targetList = {
+      generation: 3,
+      workspaceVmKey: 'vk-web-opaque',
+      items: [
+        {
+          vmKey: 'vk-web-opaque',
+          role: 'web',
+          instanceIndex: 0,
+        },
+        {
+          vmKey: 'vk-worker-opaque',
+          role: 'worker',
+          instanceIndex: 0,
+        },
+      ],
+    }
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(targetList), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      httpLabbitApi.listTerminalTargets('lab-instance/demo'),
+    ).resolves.toEqual(targetList)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/lab-instances/lab-instance%2Fdemo/terminal-targets',
+      expect.objectContaining({
+        credentials: 'include',
+      }),
+    )
+  })
+
+  it('TerminalSession 생성은 서버가 준 vmKey를 targetVmKey로 그대로 전달한다', async () => {
+    const session = {
+      id: 'terminal-session-1',
+      generation: 3,
+      sessionToken: 'opaque-attach-token',
+      tokenExpiresAt: '2026-10-03T00:00:00Z',
+    }
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(session), {
+        status: 201,
+        headers: {
+          'content-type': 'application/json',
+        },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      httpLabbitApi.createTerminalSession('lab-instance/demo', {
+        targetVmKey: 'vk-worker-opaque',
+        cols: 120,
+        rows: 32,
+      }),
+    ).resolves.toEqual(session)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/lab-instances/lab-instance%2Fdemo/terminal-sessions',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({
+          targetVmKey: 'vk-worker-opaque',
+          cols: 120,
+          rows: 32,
+        }),
+      }),
+    )
+  })
+
+  it('TerminalSession 명시 종료는 DELETE를 사용한다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpLabbitApi.closeTerminalSession('terminal/session')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/terminal-sessions/terminal%2Fsession',
+      expect.objectContaining({
+        method: 'DELETE',
+        credentials: 'include',
+      }),
+    )
+  })
+
 })
 
 describe('mockLabbitApi', () => {
@@ -391,6 +485,25 @@ describe('mockLabbitApi', () => {
     await expect(mockLabbitApi.getClass('missing-class')).rejects.toMatchObject({
       status: 404,
     })
+  })
+
+  it('Mock Terminal target은 workspace hint와 multi-VM opaque key를 반환한다', async () => {
+    await mockLabbitApi.login(mockCredentials)
+
+    const targets = await mockLabbitApi.listTerminalTargets(
+      'lab-instance-heechul',
+    )
+
+    expect(targets.generation).toBe(1)
+    expect(targets.items).toHaveLength(3)
+    expect(targets.items.some((item) => item.vmKey === targets.workspaceVmKey)).toBe(
+      true,
+    )
+    expect(targets.items.map((item) => item.role)).toEqual([
+      'control',
+      'worker',
+      'worker',
+    ])
   })
 
   it('Mock Reset 완료 후 대상 LabInstance generation이 증가한다', async () => {

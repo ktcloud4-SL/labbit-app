@@ -40,7 +40,7 @@ node setup-manifest.mjs <FIGMA_PLUGIN_ID>
 node setup-manifest.mjs 1234567890123456789
 ```
 
-그러면 Git에 올라가지 않는 로컬 `manifest.json`이 생성됩니다.
+그러면 로컬 `manifest.json`이 생성됩니다. 이 파일에는 개인 개발 Plugin ID가 들어가므로 commit하지 않습니다.
 
 ## 3. Plugin 연결
 
@@ -69,4 +69,4 @@ Plugin은 새 Figma Page를 만들고 다음을 자동 처리합니다.
 
 ## 로컬 파일
 
-Figma가 발급한 ID가 들어간 `manifest.json`은 개인 개발 환경 파일이므로 Git에 commit하지 않습니다. Git에는 `manifest.template.json`만 유지합니다.
+Figma가 발급한 ID가 들어간 `manifest.json`은 개인 개발 환경 파일이므로 **Git에 commit하지 않습니다.** Git에는 `manifest.template.json`만 유지합니다. `git status`에 보이면 그대로 untracked 상태로 두면 됩니다.

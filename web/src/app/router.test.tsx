@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -1615,6 +1615,146 @@ describe('Auth·Class·LabSpec routing', () => {
       'href',
       '/classes/class-kubernetes-basic',
     )
+  })
+
+  it('Workspace File Tree에서 파일을 읽고 ETag 기반으로 저장한다', async () => {
+    const saveWorkspaceFile = vi.fn(
+      async (
+        _labInstanceId: string,
+        path: string,
+        content: string,
+        _etag: string,
+      ) => ({
+        file: { path },
+        etag: '"file-v2"',
+      }),
+    )
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+          path,
+          items:
+            path === ''
+              ? [
+                  {
+                    name: 'README.md',
+                    path: 'README.md',
+                    kind: 'file',
+                  },
+                ]
+              : [],
+        }),
+        readWorkspaceFile: async (_labInstanceId, path) => ({
+          file: {
+            path,
+            content: '# Original\n',
+          },
+          etag: '"file-v1"',
+        }),
+        saveWorkspaceFile,
+      }),
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'README.md' }),
+    )
+
+    const editor = await screen.findByLabelText('파일 편집기')
+    expect(editor).toHaveValue('# Original\n')
+
+    fireEvent.change(editor, {
+      target: {
+        value: '# Updated\n',
+      },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '저장' }))
+
+    await waitFor(() => {
+      expect(saveWorkspaceFile).toHaveBeenCalledWith(
+        'lab-instance-heechul',
+        'README.md',
+        '# Updated\n',
+        '"file-v1"',
+      )
+    })
+
+    expect(screen.getByText('저장됨')).toBeInTheDocument()
+  })
+
+  it('Workspace File stale save는 덮어쓰지 않고 다시 읽기 UX를 표시한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+          path,
+          items: [
+            {
+              name: 'README.md',
+              path: 'README.md',
+              kind: 'file',
+            },
+          ],
+        }),
+        readWorkspaceFile: async (_labInstanceId, path) => ({
+          file: {
+            path,
+            content: '# Original\n',
+          },
+          etag: '"file-v1"',
+        }),
+        saveWorkspaceFile: async () => {
+          throw new HttpError(412, {
+            type: 'about:blank',
+            title: 'Precondition Failed',
+            status: 412,
+            code: 'stale_revision',
+            requestId: 'req-stale',
+          })
+        },
+      }),
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'README.md' }),
+    )
+    const editor = await screen.findByLabelText('파일 편집기')
+    fireEvent.change(editor, {
+      target: {
+        value: '# My change\n',
+      },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '저장' }))
+
+    expect(
+      await screen.findByText(
+        '다른 변경이 먼저 저장되었습니다. 파일을 다시 읽고 변경 내용을 확인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: '파일 다시 읽기' }),
+    ).toBeInTheDocument()
+  })
+
+  it('Workspace File API 401은 Editor panel에 숨기지 않고 sessionExpired Login으로 올린다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('Workspace URL에서 내 LabInstance가 없으면 환경 미할당 상태를 안내한다', async () => {

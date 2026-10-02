@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "web/**"
+      - "tools/figma/labbit-ux-importer/**"
       - "Makefile"
       - ".github/workflows/web.yml"
 
@@ -53,6 +54,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Figma importer smoke
+        run: npm run check:figma
 
       - name: Test
         run: npm run test

@@ -7,6 +7,7 @@ import { labbitQueryKeys } from '../shared/api/labbitApi'
 import { LoginRedirect } from '../shared/ui/LoginRedirect'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
+import { TerminalPanel } from '../shared/terminal/TerminalPanel'
 
 const roleLabel = (role: string) => {
   if (role === 'INSTRUCTOR') return '강사'
@@ -221,21 +222,13 @@ export function LabPage() {
 
         <section className="workspace-panel workspace-terminal">
           <div className="workspace-panel-heading">
-            <strong>Terminal / Live</strong>
-            <span>Shell</span>
+            <strong>Terminal</strong>
+            <span>Browser WSS · multi-VM</span>
           </div>
-          <div className="workspace-placeholder workspace-terminal-placeholder">
-            <span
-              className="workspace-placeholder-mark workspace-placeholder-mark-dark"
-              aria-hidden="true"
-            >
-              &gt;_
-            </span>
-            <p>터미널 연결 준비 중</p>
-            <small>
-              실습 환경과 터미널 연결이 준비되면 이곳에서 명령을 실행하고 Live 화면을 확인할 수 있습니다.
-            </small>
-          </div>
+          <TerminalPanel
+            labInstanceId={labInstance.id}
+            generation={labInstance.generation}
+          />
         </section>
       </section>
     </main>

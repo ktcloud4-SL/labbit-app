@@ -16,6 +16,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/filetransport"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
 )
@@ -213,6 +214,8 @@ type routes struct {
 	API http.Handler
 	// ConnectorControl은 Connector Control WSS다(api role이 소유).
 	ConnectorControl http.Handler
+	// ConnectorFileData는 Workspace File 요청별 File Data WSS다(api role이 소유, Control과 같은 process).
+	ConnectorFileData http.Handler
 	// BrowserTerminal과 ConnectorTerminalData는 Terminal Relay의 WSS다(realtime role, 같은 process의 api role이 authority를 제공할 때만).
 	BrowserTerminal       http.Handler
 	ConnectorTerminalData http.Handler
@@ -229,6 +232,9 @@ func applicationHandler(rt routes) http.Handler {
 	}
 	if rt.ConnectorControl != nil {
 		mux.Handle("GET "+connectorwss.Path, rt.ConnectorControl)
+	}
+	if rt.ConnectorFileData != nil {
+		mux.Handle("GET "+filetransport.DataPath, rt.ConnectorFileData)
 	}
 	if rt.BrowserTerminal != nil {
 		mux.Handle("GET "+realtime.BrowserPath, rt.BrowserTerminal)

@@ -73,6 +73,9 @@ type RouterOptions struct {
 	// TerminalSink는 TerminalSession lifecycle 결과(TERMINAL_OPEN_RESULT, TERMINAL_ENDED)를 받는다. Operation 결과를 받는 Sink와
 	// 별개이며 nil이면 그 결과를 버린다.
 	TerminalSink TerminalSink
+	// FileSink는 Workspace File lifecycle 결과(FILE_OPEN_RESULT)를 받는다. Operation 결과를 받는 Sink, Terminal 결과를 받는 TerminalSink와
+	// 별개이며 nil이면 그 결과를 버린다.
+	FileSink FileSink
 	// Logger가 nil이면 로그를 남기지 않는다.
 	Logger *slog.Logger
 }
@@ -93,6 +96,7 @@ type Router struct {
 	registry     *Registry
 	sink         EventSink
 	terminalSink TerminalSink
+	fileSink     FileSink
 	logger       *slog.Logger
 
 	mu         sync.Mutex
@@ -100,6 +104,8 @@ type Router struct {
 	reconciles map[reconcileKey]pendingReconcile
 	// terminals는 진행 중인 TERMINAL_OPEN이다. 이것도 process 안의 ephemeral routing 상태이며 TerminalSession의 durable 상태가 아니다.
 	terminals map[terminalKey]pendingTerminalOpen
+	// files는 진행 중인 FILE_OPEN이다. 이것도 process 안의 ephemeral routing 상태이며 File 요청의 durable 상태가 아니다.
+	files map[fileKey]pendingFileOpen
 }
 
 type operationKey struct {
@@ -137,10 +143,12 @@ func NewRouter(opts RouterOptions) (*Router, error) {
 		registry:     opts.Registry,
 		sink:         opts.Sink,
 		terminalSink: opts.TerminalSink,
+		fileSink:     opts.FileSink,
 		logger:       logger,
 		operations:   make(map[operationKey]pendingOperation),
 		reconciles:   make(map[reconcileKey]pendingReconcile),
 		terminals:    make(map[terminalKey]pendingTerminalOpen),
+		files:        make(map[fileKey]pendingFileOpen),
 	}, nil
 }
 
@@ -492,6 +500,8 @@ func sendFailureReason(err error) string {
 		return "not_ready"
 	case errors.Is(err, ErrConnectionClosing):
 		return "connection_closing"
+	case errors.Is(err, ErrCapabilityUnsupported):
+		return "capability_unsupported"
 	case errors.Is(err, ErrDuplicateCorrelation):
 		return "duplicate_correlation"
 	case errors.Is(err, ErrInvalidCommand):

@@ -12,6 +12,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/client_golang/prometheus/testutil"
+
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile"
 )
@@ -64,7 +69,7 @@ type fileHarness struct {
 	files *fakeFiles
 }
 
-func newFileHarness(t *testing.T) *fileHarness {
+func newFileHarness(t *testing.T, mods ...func(*Options)) *fileHarness {
 	t.Helper()
 	fake := newFakeAuth()
 	fake.sessions[fileCookie] = fake.principal
@@ -78,13 +83,17 @@ func newFileHarness(t *testing.T) *fileHarness {
 		file:  workspacefile.File{Path: "src/app.py", Content: "print('안녕')\n", Revision: "rev-1"},
 		saved: workspacefile.Saved{Path: "src/app.py", Revision: "rev-2"},
 	}
-	handler, err := New(Options{
+	opts := Options{
 		Auth:         fake,
 		Classes:      &fakeClasses{},
 		Files:        files,
 		PublicOrigin: trustedOrigin,
 		Logger:       slog.New(slog.NewJSONHandler(logs, nil)),
-	})
+	}
+	for _, mod := range mods {
+		mod(&opts)
+	}
+	handler, err := New(opts)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
@@ -607,6 +616,42 @@ func TestHasLoneSurrogateEscape(t *testing.T) {
 	} {
 		if got := hasLoneSurrogateEscape([]byte(body)); got != want {
 			t.Errorf("hasLoneSurrogateEscape(%q) = %v, want %v", body, got, want)
+		}
+	}
+}
+
+// HTTP metric의 route label은 등록된 pattern뿐이다. 파일 경로(query), LabInstance ID, 본문은 label이나 값에 나타나지 않는다.
+func TestWorkspaceFileMetricsUseRouteTemplatesOnly(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	m := observability.NewHTTPMetrics(reg)
+	h := newFileHarness(t, func(o *Options) { o.Metrics = m })
+	secretPath := "secret-dir-" + leakMarker + "/notes.txt"
+
+	h.tree("?path=" + secretPath)
+	h.read("?path=" + secretPath)
+	h.save("?path="+secretPath, `{"content":"`+leakMarker+`"}`)
+	h.files.readErr = workspacefile.ErrPathNotFound
+	h.read("?path=" + secretPath)
+
+	for _, want := range []struct {
+		method, route, status string
+		count                 float64
+	}{
+		{"GET", "/api/v1/lab-instances/{labInstanceId}/files/tree", "2xx", 1},
+		{"GET", "/api/v1/lab-instances/{labInstanceId}/files/content", "2xx", 1},
+		{"GET", "/api/v1/lab-instances/{labInstanceId}/files/content", "4xx", 1},
+		{"PUT", "/api/v1/lab-instances/{labInstanceId}/files/content", "2xx", 1},
+	} {
+		if got := testutil.ToFloat64(m.Requests.WithLabelValues(want.method, want.route, want.status)); got != want.count {
+			t.Errorf("requests{%s,%s,%s} = %g, want %g", want.method, want.route, want.status, got, want.count)
+		}
+	}
+	rec := httptest.NewRecorder()
+	promhttp.HandlerFor(reg, promhttp.HandlerOpts{}).ServeHTTP(rec, httptest.NewRequest("GET", "/metrics", nil))
+	body := rec.Body.String()
+	for _, forbidden := range []string{leakMarker, "secret-dir", "notes.txt", labInstanceID, "path="} {
+		if strings.Contains(body, forbidden) {
+			t.Errorf("metrics에 민감한 값이 있음: %q", forbidden)
 		}
 	}
 }

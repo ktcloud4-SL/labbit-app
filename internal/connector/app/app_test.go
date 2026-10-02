@@ -139,6 +139,9 @@ func TestBuildConnector_ProductionTerminalWiring(t *testing.T) {
 	if connectorApp.PTYFactory == nil {
 		t.Fatal("expected PTYFactory to be initialized, got nil")
 	}
+	if connectorApp.PreviewManager == nil {
+		t.Fatal("expected PreviewManager to be initialized, got nil")
+	}
 
 	// TERMINAL_OPEN 요청을 Handler로 전달했을 때
 	// "terminal manager or PTY factory not configured" 오류가 발생하지 않음을 검증

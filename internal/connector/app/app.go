@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
@@ -25,6 +26,7 @@ type ConnectorApp struct {
 	Handler         *wss.Handler
 	TerminalManager *terminal.SessionManager
 	PTYFactory      wss.PTYFactoryFunc
+	PreviewManager  *preview.SessionManager
 }
 
 // BuildConnector 는 환경변수 및 Provider를 바탕으로 실제 Production 컴포넌트(SessionManager, SSHPTY, TerminalDataWSS)를 Wiring합니다.
@@ -166,13 +168,50 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 		AllowInsecure:  !isProduction,
 	}
 
+	// 5. Preview Gateway Endpoint 및 SessionManager 배선
+	previewGatewayURL := strings.TrimSpace(os.Getenv("LABBIT_PREVIEW_GATEWAY_URL"))
+	if previewGatewayURL == "" {
+		u, err := url.Parse(saasBaseURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid LABBIT_SAAS_BASE_URL: %w", err)
+		}
+		switch u.Scheme {
+		case "https":
+			u.Scheme = "wss"
+		case "http":
+			if isProduction {
+				return nil, fmt.Errorf("http scheme is prohibited in production: TLS is required")
+			}
+			u.Scheme = "ws"
+		default:
+			if !strings.HasPrefix(u.Scheme, "ws") {
+				u.Scheme = "wss"
+			}
+		}
+		u.Path = "/connector/v1/preview-data"
+		previewGatewayURL = u.String()
+	}
+
+	forwarder := preview.NewDirectTCPForwarder(addressResolver)
+	previewMgr := preview.NewSessionManager(forwarder, nil)
+	prevCfg := preview.DataWSSClientConfig{
+		EndpointURL:    previewGatewayURL,
+		Credential:     credential,
+		CredentialFile: credFile,
+		RuntimeID:      runtimeID,
+		DialTimeout:    10 * time.Second,
+		AllowInsecure:  !isProduction,
+	}
+
 	handler := wss.NewHandler(p, sender)
 	handler.SetTerminalManager(sessionMgr, ptyFactory, termCfg)
+	handler.SetPreviewManager(previewMgr, prevCfg)
 
 	return &ConnectorApp{
 		Handler:         handler,
 		TerminalManager: sessionMgr,
 		PTYFactory:      ptyFactory,
+		PreviewManager:  previewMgr,
 	}, nil
 }
 
@@ -224,6 +263,9 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
 		return err
 	}
 	defer connectorApp.TerminalManager.CloseAll("SERVICE_RESTARTING")
+	if connectorApp.PreviewManager != nil {
+		defer connectorApp.PreviewManager.CloseAll("SERVICE_RESTARTING")
+	}
 	handler := connectorApp.Handler
 	handler.SetOnError(func(error) {
 		logger.Warn("Connector Control 메시지 처리 실패", "connector_id", connectorID)

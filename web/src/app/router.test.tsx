@@ -183,6 +183,27 @@ function createApi(overrides: Partial<LabbitApi> = {}): LabbitApi {
       tokenExpiresAt: '2026-10-03T00:00:00Z',
     }),
     closeTerminalSession: async () => {},
+    listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+      path,
+      items: [
+        {
+          name: 'README.md',
+          path: 'README.md',
+          kind: 'file',
+        },
+      ],
+    }),
+    readWorkspaceFile: async (_labInstanceId, path) => ({
+      file: {
+        path,
+        content: '# mock file\n',
+      },
+      etag: '"mock-file-1"',
+    }),
+    saveWorkspaceFile: async (_labInstanceId, path) => ({
+      file: { path },
+      etag: '"mock-file-2"',
+    }),
     ...overrides,
   }
 }

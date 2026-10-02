@@ -10,9 +10,10 @@ var (
 	ErrForbidden = errors.New("terminal: 접근 권한 없음")
 	// ErrLabInstanceNotReady는 LabInstance가 READY가 아니라 TerminalSession을 만들 수 없음이다.
 	ErrLabInstanceNotReady = errors.New("terminal: LabInstance가 READY가 아님")
-	// ErrTargetNotFound는 targetVmKey가 현재 generation의 SERVER ProviderResource를 가리키지 않음이다.
+	// ErrTargetNotFound는 targetVmKey가 LabInstance의 immutable CreationSnapshot에 있는 VM이 아님이다(Targets가 돌려주지 않은 key).
 	ErrTargetNotFound = errors.New("terminal: 대상 VM을 찾을 수 없음")
-	// ErrTargetUnavailable은 대상 VM이 있지만 PRESENT가 아니라 지금 사용할 수 없음이다.
+	// ErrTargetUnavailable은 targetVmKey는 CreationSnapshot의 VM이지만 현재 generation에 PRESENT SERVER ProviderResource가 없어
+	// 지금 사용할 수 없음이다.
 	ErrTargetUnavailable = errors.New("terminal: 대상 VM을 사용할 수 없음")
 	// ErrConnectorUnavailable은 Connector의 Control connection을 사용할 수 없어 TERMINAL_OPEN을 보내지 못했음이다.
 	ErrConnectorUnavailable = errors.New("terminal: Connector를 사용할 수 없음")

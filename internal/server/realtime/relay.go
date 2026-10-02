@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 )
 
 // Relay가 Control과 주고받는 I/O 하나의 상한이다. 저장소 호출이 이 시간을 넘으면 실패로 처리한다.
@@ -72,7 +73,8 @@ type Options struct {
 	// Clock이 nil이면 SystemClock이다.
 	Clock Clock
 	// Logger가 nil이면 로그를 남기지 않는다. Terminal 본문과 token은 어떤 경우에도 기록하지 않는다.
-	Logger *slog.Logger
+	Logger  *slog.Logger
+	Metrics *observability.RealtimeMetrics
 
 	// Grace는 Browser 단절(또는 첫 attach 전) 뒤 같은 TerminalSession에 attach할 수 있는 시간이다. 0이면 DefaultGrace다.
 	Grace time.Duration
@@ -100,6 +102,7 @@ type Relay struct {
 	allowOrigin func(string) bool
 	clock       Clock
 	logger      *slog.Logger
+	metrics     *observability.RealtimeMetrics
 
 	grace         time.Duration
 	attachTimeout time.Duration
@@ -142,6 +145,7 @@ func New(opts Options) (*Relay, error) {
 		allowOrigin:          opts.AllowOrigin,
 		clock:                opts.Clock,
 		logger:               opts.Logger,
+		metrics:              opts.Metrics,
 		grace:                durationOr(opts.Grace, DefaultGrace),
 		attachTimeout:        durationOr(opts.AttachTimeout, defaultAttachTimeout),
 		writeTimeout:         durationOr(opts.WriteTimeout, defaultWriteTimeout),
@@ -175,11 +179,13 @@ func New(opts Options) (*Relay, error) {
 		Subprotocols:     []string{BrowserSubprotocol},
 		HandshakeTimeout: r.writeTimeout,
 		CheckOrigin:      func(*http.Request) bool { return true },
+		Error:            r.upgradeRejected,
 	}
 	// Connector는 Browser가 아니므로 Origin을 보내지 않는다. 기본 검사를 유지해 cross-origin Browser의 Upgrade는 거절한다.
 	r.dataUpgrader = websocket.Upgrader{
 		Subprotocols:     []string{DataSubprotocol},
 		HandshakeTimeout: r.writeTimeout,
+		Error:            r.upgradeRejected,
 	}
 	return r, nil
 }
@@ -224,6 +230,9 @@ func (r *Relay) Close() {
 	defer r.mu.Unlock()
 	if !r.closed {
 		r.closed = true
+		if r.metrics != nil {
+			r.metrics.Draining.Set(1)
+		}
 		close(r.done)
 	}
 }

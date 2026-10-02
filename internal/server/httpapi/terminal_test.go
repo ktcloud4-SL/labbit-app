@@ -28,13 +28,23 @@ const (
 
 // fakeTerminals는 use case의 결과를 HTTP로 옮기는 방식만 검증하기 위한 fake다.
 type fakeTerminals struct {
-	createIn  []terminal.CreateInput
-	createFor []repository.User
-	closeIDs  []string
+	targetsIDs []string
+	targetsFor []repository.User
+	createIn   []terminal.CreateInput
+	createFor  []repository.User
+	closeIDs   []string
 
-	created   terminal.Created
-	createErr error
-	closeErr  error
+	targets    terminal.TargetCatalog
+	targetsErr error
+	created    terminal.Created
+	createErr  error
+	closeErr   error
+}
+
+func (f *fakeTerminals) Targets(_ context.Context, user repository.User, labInstanceID string) (terminal.TargetCatalog, error) {
+	f.targetsIDs = append(f.targetsIDs, labInstanceID)
+	f.targetsFor = append(f.targetsFor, user)
+	return f.targets, f.targetsErr
 }
 
 func (f *fakeTerminals) Create(_ context.Context, user repository.User, in terminal.CreateInput) (terminal.Created, error) {
@@ -70,6 +80,14 @@ func newTerminalHarness(t *testing.T) *terminalHarness {
 	h.terminals.created = terminal.Created{
 		ID: h.sessionID, Generation: 3, Token: realtime.AttachToken(issuedAttachToken), TokenExpiresAt: h.expires,
 	}
+	h.terminals.targets = terminal.TargetCatalog{
+		Generation: 3, WorkspaceVMKey: "vk-web",
+		Items: []terminal.Target{
+			{VMKey: "vk-web", Role: "web", InstanceIndex: 0},
+			{VMKey: "vk-worker-a", Role: "worker", InstanceIndex: 0},
+			{VMKey: "vk-worker-b", Role: "worker", InstanceIndex: 1},
+		},
+	}
 	handler, err := New(Options{
 		Auth:         fake,
 		Classes:      classes,
@@ -89,6 +107,11 @@ const validCreateBody = `{"targetVmKey":"workspace","cols":120,"rows":40}`
 func (h *terminalHarness) create(body string, mods ...func(*http.Request)) *httptest.ResponseRecorder {
 	base := []func(*http.Request){withCookie(terminalCookie), withHeader("Origin", trustedOrigin), withHeader("Content-Type", "application/json")}
 	return h.send(http.MethodPost, "/api/v1/lab-instances/"+labInstanceID+"/terminal-sessions", body, append(base, mods...)...)
+}
+
+func (h *terminalHarness) listTargets(mods ...func(*http.Request)) *httptest.ResponseRecorder {
+	base := []func(*http.Request){withCookie(terminalCookie)}
+	return h.send(http.MethodGet, "/api/v1/lab-instances/"+labInstanceID+"/terminal-targets", "", append(base, mods...)...)
 }
 
 func (h *terminalHarness) remove(id string, mods ...func(*http.Request)) *httptest.ResponseRecorder {
@@ -409,5 +432,159 @@ func TestTerminalSessionHasNoOtherOperations(t *testing.T) {
 	}
 	if len(h.terminals.createIn)+len(h.terminals.closeIDs) != 0 {
 		t.Fatal("정의되지 않은 endpoint가 use case를 호출함")
+	}
+}
+
+func TestListTerminalTargetsReturnsTheCatalog(t *testing.T) {
+	h := newTerminalHarness(t)
+
+	rec := h.listTargets()
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("Content-Type"); got != "application/json" {
+		t.Fatalf("Content-Type = %q", got)
+	}
+	if got := rec.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("Cache-Control = %q, want no-store", got)
+	}
+
+	// OpenAPI TerminalTargetList와 TerminalTarget의 field만 나간다. 이 밖의 field(Provider ID, Connector ID, 주소 등)는 없다.
+	const want = `{"generation":3,"workspaceVmKey":"vk-web","items":[` +
+		`{"vmKey":"vk-web","role":"web","instanceIndex":0},` +
+		`{"vmKey":"vk-worker-a","role":"worker","instanceIndex":0},` +
+		`{"vmKey":"vk-worker-b","role":"worker","instanceIndex":1}]}`
+	if got := strings.TrimSpace(rec.Body.String()); got != want {
+		t.Fatalf("body = %s\nwant   %s", got, want)
+	}
+
+	// use case에는 경로의 LabInstance ID와 현재 인증된 사용자만 전달한다.
+	if len(h.terminals.targetsIDs) != 1 || h.terminals.targetsIDs[0] != labInstanceID {
+		t.Fatalf("Targets 호출 = %v, want [%s]", h.terminals.targetsIDs, labInstanceID)
+	}
+	if h.terminals.targetsFor[0].ID != h.auth.principal.User.ID {
+		t.Fatal("현재 인증된 사용자가 use case에 전달되지 않음")
+	}
+}
+
+// Workspace VM 하나가 아니라 모든 target을 그대로 전달하고, workspaceVmKey는 기본 선택 hint일 뿐이다.
+func TestListTerminalTargetsKeepsEveryTargetAndTheDefaultHint(t *testing.T) {
+	h := newTerminalHarness(t)
+	h.terminals.targets.WorkspaceVMKey = "vk-worker-b"
+
+	rec := h.listTargets()
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		WorkspaceVMKey string `json:"workspaceVmKey"`
+		Items          []struct {
+			VMKey string `json:"vmKey"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.Items) != 3 || body.WorkspaceVMKey != "vk-worker-b" {
+		t.Fatalf("body = %s", rec.Body.String())
+	}
+}
+
+// GET은 상태를 바꾸지 않으므로 mutation용 Origin 검증을 새로 만들지 않는다. 인증은 필요하다.
+func TestListTerminalTargetsRequiresAuthenticationButNotOrigin(t *testing.T) {
+	t.Run("without origin or referer", func(t *testing.T) {
+		h := newTerminalHarness(t)
+		if rec := h.listTargets(withoutSource); rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body.String())
+		}
+	})
+	t.Run("without session", func(t *testing.T) {
+		h := newTerminalHarness(t)
+		rec := h.send(http.MethodGet, "/api/v1/lab-instances/"+labInstanceID+"/terminal-targets", "")
+		if rec.Code != http.StatusUnauthorized || decodeProblem(t, rec).Code != codeUnauthenticated {
+			t.Fatalf("status = %d, want 401 unauthenticated: %s", rec.Code, rec.Body.String())
+		}
+		if len(h.terminals.targetsIDs) != 0 {
+			t.Fatal("인증 없는 요청이 use case까지 전달됨")
+		}
+	})
+	t.Run("unknown session clears the stale cookie", func(t *testing.T) {
+		h := newTerminalHarness(t)
+		rec := h.listTargets(func(r *http.Request) {
+			r.Header.Del("Cookie")
+			r.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "unknown"})
+		})
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("status = %d, want 401", rec.Code)
+		}
+		if stale := sessionCookieFrom(t, rec); stale.MaxAge != -1 {
+			t.Fatalf("stale Cookie가 제거되지 않음: %+v", stale)
+		}
+		if len(h.terminals.targetsIDs) != 0 {
+			t.Fatal("유효하지 않은 Session의 요청이 use case까지 전달됨")
+		}
+	})
+}
+
+func TestListTerminalTargetsErrorsMapToOpenAPIStatus(t *testing.T) {
+	dbError := &repository.Error{Kind: repository.KindInternal, Op: "CreationSnapshotTargets", SQLState: "XX000", Constraint: "fk_secret_constraint", Cause: errors.New("dsn=postgres://user:secret-password@db/labbit")}
+
+	tests := []struct {
+		name       string
+		err        error
+		wantStatus int
+		wantCode   string
+	}{
+		{name: "lab instance not found", err: terminal.ErrNotFound, wantStatus: 404, wantCode: codeNotFound},
+		{name: "not the owner or no class membership", err: terminal.ErrForbidden, wantStatus: 403, wantCode: codeForbidden},
+		{name: "lab instance not ready", err: terminal.ErrLabInstanceNotReady, wantStatus: 409, wantCode: codeLabInstanceNotReady},
+		{name: "relay unavailable in this topology", err: terminal.ErrUnavailable, wantStatus: 503, wantCode: codeTerminalUnavailable},
+		{name: "wrapped typed error", err: fmt.Errorf("wrapped: %w", terminal.ErrForbidden), wantStatus: 403, wantCode: codeForbidden},
+		// 저장된 snapshot이 모순이면 임의로 일부를 돌려주지 않고 내부 오류로 닫는다. 원문은 응답과 log에 나오지 않는다.
+		{name: "inconsistent snapshot fails closed", err: fmt.Errorf("%w: vms[1].vmKey가 중복됨", terminal.ErrInconsistentData), wantStatus: 500, wantCode: codeInternal},
+		{name: "repository error", err: fmt.Errorf("terminal: CreationSnapshot target 조회: %w", dbError), wantStatus: 500, wantCode: codeInternal},
+		{name: "unclassified error", err: errors.New("boom: secret-detail"), wantStatus: 500, wantCode: codeInternal},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := newTerminalHarness(t)
+			h.terminals.targets = terminal.TargetCatalog{}
+			h.terminals.targetsErr = tt.err
+			rec := h.listTargets()
+			h.assertProblem(t, rec, tt.wantStatus, tt.wantCode)
+			if got := rec.Header().Get("Cache-Control"); got != "no-store" {
+				t.Fatalf("Cache-Control = %q, want no-store", got)
+			}
+		})
+	}
+}
+
+// Terminal Relay가 없는 배포 구성은 인증을 거친 뒤 명확한 503이다.
+func TestListTerminalTargetsWithoutRelayIsUnavailable(t *testing.T) {
+	h := newHarness(t) // Terminals를 주입하지 않는다.
+	h.auth.sessions[terminalCookie] = h.auth.principal
+
+	rec := h.send(http.MethodGet, "/api/v1/lab-instances/"+labInstanceID+"/terminal-targets", "", withCookie(terminalCookie))
+	if rec.Code != http.StatusServiceUnavailable || decodeProblem(t, rec).Code != codeTerminalUnavailable {
+		t.Fatalf("status = %d, want 503 terminal_unavailable: %s", rec.Code, rec.Body.String())
+	}
+	rec = h.send(http.MethodGet, "/api/v1/lab-instances/"+labInstanceID+"/terminal-targets", "")
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated status = %d, want 401", rec.Code)
+	}
+}
+
+// terminal-targets는 조회 전용이다. 다른 method는 use case에 도달하지 않는다.
+func TestTerminalTargetsIsReadOnly(t *testing.T) {
+	h := newTerminalHarness(t)
+	for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete} {
+		rec := h.send(method, "/api/v1/lab-instances/"+labInstanceID+"/terminal-targets", `{}`,
+			withCookie(terminalCookie), withHeader("Origin", trustedOrigin), withHeader("Content-Type", "application/json"))
+		if rec.Code != http.StatusNotFound && rec.Code != http.StatusMethodNotAllowed {
+			t.Errorf("%s status = %d, want 404 or 405", method, rec.Code)
+		}
+	}
+	if len(h.terminals.targetsIDs)+len(h.terminals.createIn)+len(h.terminals.closeIDs) != 0 {
+		t.Fatal("조회 전용 endpoint의 다른 method가 use case를 호출함")
 	}
 }

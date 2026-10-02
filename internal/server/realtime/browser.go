@@ -18,29 +18,36 @@ import (
 // 인증되지 않은 요청은 WebSocket connection이 되지 못한다. Session token은 URL query로 받지 않는다.
 func (r *Relay) serveBrowserHTTP(w http.ResponseWriter, req *http.Request) {
 	if !r.enter() {
+		if r.metrics != nil {
+			r.metrics.DrainingRejected.Inc()
+		}
 		http.Error(w, "unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	defer r.leave()
 
 	if !websocket.IsWebSocketUpgrade(req) {
+		r.rejected(http.StatusBadRequest)
 		http.Error(w, "websocket upgrade required", http.StatusBadRequest)
 		return
 	}
 	// 허용된 Origin이 정확히 하나 있어야 한다. Referer로 대체하지 않는다.
 	origins := req.Header.Values("Origin")
 	if len(origins) != 1 || !r.allowOrigin(origins[0]) {
+		r.rejected(http.StatusForbidden)
 		r.logger.Warn("Browser Terminal 거절", "reason", "origin_not_allowed")
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 	cookie, err := req.Cookie(SessionCookieName)
 	if err != nil || cookie.Value == "" {
+		r.rejected(http.StatusUnauthorized)
 		r.logger.Warn("Browser Terminal 거절", "reason", "missing_session_cookie")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 	if !offersSubprotocol(req, BrowserSubprotocol) {
+		r.rejected(http.StatusBadRequest)
 		r.logger.Warn("Browser Terminal 거절", "reason", "unsupported_subprotocol")
 		http.Error(w, "unsupported subprotocol", http.StatusBadRequest)
 		return
@@ -52,10 +59,12 @@ func (r *Relay) serveBrowserHTTP(w http.ResponseWriter, req *http.Request) {
 	cancel()
 	switch {
 	case errors.Is(err, ErrUnauthenticated):
+		r.rejected(http.StatusUnauthorized)
 		r.logger.Warn("Browser Terminal 거절", "reason", "unauthenticated")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	case err != nil:
+		r.rejected(http.StatusServiceUnavailable)
 		r.logger.Error("Browser Terminal 인증 의존성 오류", "error_code", codeInternalError)
 		http.Error(w, "unavailable", http.StatusServiceUnavailable)
 		return
@@ -74,9 +83,14 @@ func (r *Relay) serveBrowserHTTP(w http.ResponseWriter, req *http.Request) {
 func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken) {
 	ws.SetReadLimit(r.readLimit)
 	p := newPeer(ws, r.browserQueueBytes, r.browserQueueMessages, r.writeTimeout, r.closeGrace)
-	defer p.shutdown()
 
 	var attached atomic.Bool
+	defer func() {
+		p.shutdown()
+		if attached.Load() && r.metrics != nil {
+			r.metrics.BrowserConnections.Dec()
+		}
+	}()
 	finished := make(chan struct{})
 	defer close(finished)
 	go func() {
@@ -125,6 +139,12 @@ func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken) {
 		r.rejectAttach(p, withTrace(s.log, msg.Trace), err, msg.MessageID, msg.Trace)
 		return
 	}
+	if r.metrics != nil {
+		r.metrics.BrowserConnections.Inc()
+		if resumed {
+			r.metrics.BrowserReconnects.Inc()
+		}
+	}
 	attached.Store(true)
 	withTrace(s.log, msg.Trace).Info("Browser Terminal attach", "resumed", resumed)
 
@@ -162,12 +182,23 @@ func attachFailure(err error) (code string, closeCode int) {
 // rejectAttach는 고정된 설명의 fatal ERROR를 보내고 close한다. 입력 값(token, ID)은 응답과 log에 복사하지 않는다.
 func (r *Relay) rejectAttach(p *peer, log *slog.Logger, err error, replyTo string, trace tracecontext.Context) {
 	code, closeCode := attachFailure(err)
+	switch closeCode {
+	case closeAuth:
+		r.rejected(http.StatusUnauthorized)
+	case closeForbidden:
+		r.rejected(http.StatusForbidden)
+	case closeInternal:
+		r.rejected(http.StatusInternalServerError)
+	default:
+		r.rejected(http.StatusBadRequest)
+	}
 	log.Warn("Browser Terminal attach 거절", "error_code", code)
 	p.closeWithError(browserError(code, "terminal attach was rejected", true, replyTo, trace), closeCode, "attach rejected")
 }
 
 // protocolViolation은 계약을 어긴 Browser connection을 ERROR(PROTOCOL_ERROR)와 close 1008로 끝낸다.
 func (r *Relay) protocolViolation(p *peer, log *slog.Logger, reason string) {
+	r.rejected(http.StatusBadRequest)
 	log.Warn("Browser Terminal protocol 위반", "reason", reason)
 	p.closeWithError(browserError(codeProtocolError, "protocol violation", true, "", noTrace), closePolicy, "protocol violation")
 }
@@ -176,9 +207,11 @@ func (r *Relay) protocolViolation(p *peer, log *slog.Logger, reason string) {
 func (r *Relay) closeOnReadError(p *peer, err error, log *slog.Logger) {
 	switch {
 	case errors.Is(err, errJSONTooLarge):
+		r.rejected(http.StatusBadRequest)
 		log.Warn("WebSocket protocol 위반", "reason", "message_too_big")
 		p.close(closeTooBig, "message too big", false)
 	case isTimeout(err):
+		r.rejected(http.StatusBadRequest)
 		log.Warn("WebSocket attach 시간 초과")
 		p.close(closePolicy, "attach timeout", false)
 	}

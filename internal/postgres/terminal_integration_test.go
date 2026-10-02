@@ -460,3 +460,136 @@ func TestTerminalSessionsTableHasOnlyLifecycleColumns(t *testing.T) {
 		t.Fatalf("terminal_sessions columns = %v, want %v", got, want)
 	}
 }
+
+// CreationSnapshotTargets는 LabExecution에 고정된 immutable snapshot에서 vmKey, role, instanceIndex와 workspaceVmKey만 읽는다.
+func TestCreationSnapshotTargetsReadsTheImmutableSnapshot(t *testing.T) {
+	e := newTerminalEnv(t)
+	f := e.fixture
+
+	got, err := e.store.CreationSnapshotTargets(t.Context(), f.LabInstanceID)
+	if err != nil {
+		t.Fatalf("CreationSnapshotTargets() error = %v", err)
+	}
+	want := repository.CreationSnapshotTargets{
+		WorkspaceVMKey: "workspace",
+		VMs: []repository.SnapshotVM{
+			{VMKey: "workspace", Role: "workspace", InstanceIndex: 0},
+			{VMKey: "db", Role: "db", InstanceIndex: 0},
+			{VMKey: "retired", Role: "worker", InstanceIndex: 0},
+			{VMKey: "ghost", Role: "worker", InstanceIndex: 1},
+		},
+	}
+	if got.WorkspaceVMKey != want.WorkspaceVMKey || len(got.VMs) != len(want.VMs) {
+		t.Fatalf("CreationSnapshotTargets() = %+v, want %+v", got, want)
+	}
+	for i := range want.VMs {
+		if got.VMs[i] != want.VMs[i] {
+			t.Fatalf("VMs[%d] = %+v, want %+v (vms[] 순서 유지)", i, got.VMs[i], want.VMs[i])
+		}
+	}
+
+	// 같은 LabExecution의 다른 LabInstance도 같은 snapshot을 본다. ProviderResource나 generation과 무관하다.
+	conn := postgrestest.Connect(t, e.dsn)
+	f.BumpGeneration(t, conn, f.LabInstanceID)
+	peer, err := e.store.CreationSnapshotTargets(t.Context(), f.PeerLabInstanceID)
+	if err != nil || peer.WorkspaceVMKey != want.WorkspaceVMKey || len(peer.VMs) != len(want.VMs) {
+		t.Fatalf("peer = %+v, %v", peer, err)
+	}
+	after, err := e.store.CreationSnapshotTargets(t.Context(), f.LabInstanceID)
+	if err != nil || len(after.VMs) != len(want.VMs) {
+		t.Fatalf("Reset(generation 증가) 뒤 = %+v, %v, want 같은 snapshot", after, err)
+	}
+}
+
+func TestCreationSnapshotTargetsNotFound(t *testing.T) {
+	e := newTerminalEnv(t)
+	f := e.fixture
+
+	if _, err := e.store.CreationSnapshotTargets(t.Context(), uuid.New()); !errors.Is(err, repository.ErrNotFound) {
+		t.Fatalf("없는 LabInstance error = %v, want ErrNotFound", err)
+	}
+
+	// CreationSnapshot이 없는 LabExecution의 LabInstance다.
+	conn := postgrestest.Connect(t, e.dsn)
+	execution, instance := uuid.New(), uuid.New()
+	terminaltest.Exec(t, conn, `UPDATE lab_executions SET finished_at = now() WHERE id = $1`, f.LabExecutionID)
+	terminaltest.Exec(t, conn, `INSERT INTO lab_executions (id, organization_id, class_id, lab_spec_id, instructor_user_id, status)
+		VALUES ($1, $2, $3, $4, $5, 'ACTIVE')`, execution, f.OrganizationID, f.ClassID, f.LabSpecID, f.InstructorID)
+	terminaltest.Exec(t, conn, `INSERT INTO lab_instances (id, organization_id, lab_execution_id, user_id, participant_role, status, generation)
+		VALUES ($1, $2, $3, $4, 'STUDENT', 'READY', 1)`, instance, f.OrganizationID, execution, f.OwnerID)
+	if _, err := e.store.CreationSnapshotTargets(t.Context(), instance); !errors.Is(err, repository.ErrNotFound) {
+		t.Fatalf("snapshot 없는 LabInstance error = %v, want ErrNotFound", err)
+	}
+}
+
+// Repository는 저장된 값을 해석하지 않고 그대로 돌려준다(빈 값 포함, 검증은 Application). 단, projection의 타입으로 읽을 수 없는
+// shape는 일부만 채워 성공시키지 않고 ErrInternal로 거절한다. 원문 값은 오류에 담지 않는다.
+func TestCreationSnapshotTargetsWithUnusualSnapshots(t *testing.T) {
+	const marker = "snapshot-value-marker-6c1f"
+	e := newTerminalEnv(t)
+	conn := postgrestest.Connect(t, e.dsn)
+
+	t.Run("values that are readable are returned as stored", func(t *testing.T) {
+		for name, snapshot := range map[string]string{
+			"empty object":     `{}`,
+			"vms null":         `{"vms":null,"workspaceVmKey":"w"}`,
+			"vms empty":        `{"vms":[],"workspaceVmKey":"w"}`,
+			"workspace null":   `{"vms":[{"vmKey":"w","role":"r","instanceIndex":0}],"workspaceVmKey":null}`,
+			"workspace absent": `{"vms":[{"vmKey":"w","role":"r","instanceIndex":0}]}`,
+		} {
+			t.Run(name, func(t *testing.T) {
+				got, err := e.store.CreationSnapshotTargets(t.Context(), e.fixture.AddLabInstanceWithSnapshot(t, conn, snapshot))
+				if err != nil {
+					t.Fatalf("error = %v", err)
+				}
+				// 비어 있거나 없는 값은 빈 값으로 돌아오고 Application이 거절한다.
+				switch name {
+				case "empty object", "vms null", "vms empty":
+					if len(got.VMs) != 0 {
+						t.Fatalf("VMs = %+v, want empty", got.VMs)
+					}
+				default:
+					if got.WorkspaceVMKey != "" || len(got.VMs) != 1 {
+						t.Fatalf("got = %+v", got)
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("values that cannot be read fail instead of being partially filled", func(t *testing.T) {
+		for name, snapshot := range map[string]string{
+			"vms is a string":             `{"vms":"` + marker + `","workspaceVmKey":"w"}`,
+			"vms is an object":            `{"vms":{"vmKey":"` + marker + `"},"workspaceVmKey":"w"}`,
+			"vm is null":                  `{"vms":[null],"workspaceVmKey":"w"}`,
+			"vm is a string":              `{"vms":["` + marker + `"],"workspaceVmKey":"w"}`,
+			"vmKey is a number":           `{"vms":[{"vmKey":7,"role":"r","instanceIndex":0}],"workspaceVmKey":"w"}`,
+			"role is an object":           `{"vms":[{"vmKey":"w","role":{"x":"` + marker + `"},"instanceIndex":0}],"workspaceVmKey":"w"}`,
+			"instanceIndex is missing":    `{"vms":[{"vmKey":"w","role":"r"}],"workspaceVmKey":"w"}`,
+			"instanceIndex is null":       `{"vms":[{"vmKey":"w","role":"r","instanceIndex":null}],"workspaceVmKey":"w"}`,
+			"instanceIndex is a string":   `{"vms":[{"vmKey":"w","role":"r","instanceIndex":"` + marker + `"}],"workspaceVmKey":"w"}`,
+			"instanceIndex is a fraction": `{"vms":[{"vmKey":"w","role":"r","instanceIndex":1.5}],"workspaceVmKey":"w"}`,
+			"workspaceVmKey is a number":  `{"vms":[{"vmKey":"w","role":"r","instanceIndex":0}],"workspaceVmKey":7}`,
+			"workspaceVmKey is an object": `{"vms":[{"vmKey":"w","role":"r","instanceIndex":0}],"workspaceVmKey":{"x":"` + marker + `"}}`,
+			"second vm is unreadable":     `{"vms":[{"vmKey":"w","role":"r","instanceIndex":0},{"vmKey":"x","role":"r","instanceIndex":"bad"}],"workspaceVmKey":"w"}`,
+		} {
+			t.Run(name, func(t *testing.T) {
+				got, err := e.store.CreationSnapshotTargets(t.Context(), e.fixture.AddLabInstanceWithSnapshot(t, conn, snapshot))
+				if !errors.Is(err, repository.ErrInternal) {
+					t.Fatalf("CreationSnapshotTargets() = %+v, %v, want ErrInternal", got, err)
+				}
+				if got.WorkspaceVMKey != "" || got.VMs != nil {
+					t.Fatalf("읽을 수 없는 snapshot에서 일부를 반환함: %+v", got)
+				}
+				// 오류 문자열과 log 값에 snapshot의 원문 값이 없다.
+				var repoErr *repository.Error
+				if !errors.As(err, &repoErr) {
+					t.Fatalf("error type = %T", err)
+				}
+				if strings.Contains(err.Error(), marker) || strings.Contains(repoErr.LogValue().String(), marker) {
+					t.Fatalf("오류가 snapshot 값을 포함함: %v / %v", err, repoErr.LogValue())
+				}
+			})
+		}
+	})
+}

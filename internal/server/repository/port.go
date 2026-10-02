@@ -81,6 +81,12 @@ type TerminalRepository interface {
 	// ConnectorIDForLabInstance는 LabInstance의 LabExecution CreationSnapshot이 가리키는 ProviderConnection의 Connector를 반환한다.
 	// 그 관계가 하나라도 없으면 ErrNotFound다.
 	ConnectorIDForLabInstance(ctx context.Context, labInstanceID uuid.UUID) (uuid.UUID, error)
+	// CreationSnapshotTargets는 LabInstance의 LabExecution CreationSnapshot에서 vms[](vmKey, role, instanceIndex)와
+	// workspaceVmKey만 읽어 반환한다. LabInstance나 CreationSnapshot이 없으면 ErrNotFound다.
+	// 저장된 값을 해석하지 않고 그대로 반환하며(빈 vms, 빈 key, 중복 포함) 검증은 Application이 한다.
+	// 필요한 field의 JSON 타입이 맞지 않아 projection으로 읽을 수 없으면 ErrInternal이다.
+	// snapshot은 생성 후 변경되지 않으므로 최신 LabSpec이 아니라 그 LabExecution 시점의 값이다.
+	CreationSnapshotTargets(ctx context.Context, labInstanceID uuid.UUID) (CreationSnapshotTargets, error)
 	// ProviderServers는 LabInstance의 generation에 속한 SERVER ProviderResource 중 logical_name이 일치하는 row를 모든
 	// lifecycle_status와 함께 반환한다. 없으면 빈 목록이며 오류가 아니다.
 	ProviderServers(ctx context.Context, labInstanceID uuid.UUID, generation int64, logicalName string) ([]ProviderServer, error)

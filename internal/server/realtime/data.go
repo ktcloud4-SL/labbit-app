@@ -17,22 +17,28 @@ import (
 // serveDataHTTP는 Upgrade 전에 Connector credential과 subprotocol을 확인한다. 인증되지 않은 요청은 WebSocket connection이 되지 못한다.
 func (r *Relay) serveDataHTTP(w http.ResponseWriter, req *http.Request) {
 	if !r.enter() {
+		if r.metrics != nil {
+			r.metrics.DrainingRejected.Inc()
+		}
 		http.Error(w, "unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	defer r.leave()
 
 	if !websocket.IsWebSocketUpgrade(req) {
+		r.rejected(http.StatusBadRequest)
 		http.Error(w, "websocket upgrade required", http.StatusBadRequest)
 		return
 	}
 	credential, ok := bearerCredential(req.Header)
 	if !ok {
+		r.rejected(http.StatusUnauthorized)
 		r.logger.Warn("Connector Terminal Data 인증 거절", "reason", "missing_or_malformed_authorization")
 		unauthorized(w)
 		return
 	}
 	if !offersSubprotocol(req, DataSubprotocol) {
+		r.rejected(http.StatusBadRequest)
 		r.logger.Warn("Connector Terminal Data subprotocol 거절", "reason", "unsupported_subprotocol")
 		http.Error(w, "unsupported subprotocol", http.StatusBadRequest)
 		return
@@ -48,10 +54,12 @@ func (r *Relay) serveDataHTTP(w http.ResponseWriter, req *http.Request) {
 	cancel()
 	switch {
 	case errors.Is(err, ErrUnauthenticated):
+		r.rejected(http.StatusUnauthorized)
 		r.logger.Warn("Connector Terminal Data 인증 거절", "reason", "unauthenticated")
 		unauthorized(w)
 		return
 	case err != nil:
+		r.rejected(http.StatusServiceUnavailable)
 		r.logger.Error("Connector Terminal Data 인증 의존성 오류", "error_code", codeInternalError)
 		http.Error(w, "unavailable", http.StatusServiceUnavailable)
 		return
@@ -69,12 +77,19 @@ func (r *Relay) serveDataHTTP(w http.ResponseWriter, req *http.Request) {
 func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket *trustTicket) {
 	ws.SetReadLimit(r.readLimit)
 	p := newPeer(ws, r.dataQueueBytes, r.dataQueueMessages, r.writeTimeout, r.closeGrace)
-	defer p.shutdown()
+	var attached atomic.Bool
+	defer func() {
+		p.shutdown()
+		if attached.Load() && r.metrics != nil {
+			r.metrics.ConnectorConnections.Dec()
+		}
+	}()
 	log := r.logger.With("connector_id", identity.ConnectorID)
 
 	// attach 전부터 trust를 추적한다. TERMINAL_DATA_ATTACH를 기다리는 connection도 Credential이 revoke되면 종료 대상이다.
 	d := &dataConn{p: p, credentialID: identity.CredentialID, connectorID: identity.ConnectorID}
 	if !r.trust.admit(ticket, d) {
+		r.rejected(http.StatusUnauthorized)
 		// 인증한 뒤 등록하기 전에 같은 Credential/Connector가 revoke되었다. 오래된 trust로 connection을 열어 두지 않는다.
 		log.Warn("Connector Terminal Data 인증 직후 trust 상실", "reason", "revoked_during_upgrade")
 		p.close(closeCredentialRevoked, "credential revoked", false)
@@ -82,7 +97,6 @@ func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket
 	}
 	defer r.trust.forget(d)
 
-	var attached atomic.Bool
 	finished := make(chan struct{})
 	defer close(finished)
 	go func() {
@@ -102,6 +116,7 @@ func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket
 		return
 	}
 	if kind != websocket.TextMessage {
+		r.rejected(http.StatusBadRequest)
 		log.Warn("Connector Terminal Data protocol 위반", "reason", "binary_before_attach")
 		p.close(closePolicy, "protocol violation", false)
 		return
@@ -136,6 +151,7 @@ func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket
 	d.runtimeID = msg.RuntimeID
 	resumed, err := r.bindData(s, d, msg.MessageID, msg.Trace)
 	if errors.Is(err, errDataRevoked) {
+		r.rejected(http.StatusUnauthorized)
 		// attach를 기다리는 동안 Credential이 revoke되었다. 이미 종료가 요청되었으므로 사유만 남긴다.
 		log.Warn("Connector Terminal Data attach 거절", "reason", "credential_revoked")
 		p.close(closeCredentialRevoked, "credential revoked", false)
@@ -145,6 +161,12 @@ func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket
 		log.Warn("Connector Terminal Data attach 거절", "error_code", codeDataInvalidSession)
 		r.rejectData(p, msg, codeDataInvalidSession, "terminal data attach was rejected", msg.MessageID)
 		return
+	}
+	if r.metrics != nil {
+		r.metrics.ConnectorConnections.Inc()
+		if resumed {
+			r.metrics.ConnectorReconnects.Inc()
+		}
 	}
 	attached.Store(true)
 	log.Info("Connector Terminal Data attach", "resumed", resumed)
@@ -159,6 +181,11 @@ func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket
 // rejectData는 attach를 거절하고 close 1008로 끝낸다. ERROR는 terminal-data.schema.json의 Envelope가 요구하는
 // correlation을 message에서 안전하게 되돌려 줄 수 있을 때만 보낸다(길이가 긴 값을 되돌려 보내지 않는다).
 func (r *Relay) rejectData(p *peer, msg dataMessage, code, message, replyTo string) {
+	if code == codeForbidden {
+		r.rejected(http.StatusForbidden)
+	} else {
+		r.rejected(http.StatusBadRequest)
+	}
 	if msg.TerminalSessionID != "" && len(msg.TerminalSessionID) <= 128 && len(msg.LabInstanceID) > 0 && len(msg.LabInstanceID) <= 128 && msg.Generation >= 1 {
 		c := correlation{TerminalSessionID: msg.TerminalSessionID, LabInstanceID: msg.LabInstanceID, Generation: msg.Generation}
 		p.closeWithError(dataError(c, code, message, true, replyTo, msg.Trace), closePolicy, "rejected")

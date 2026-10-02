@@ -72,6 +72,13 @@ func TestAPIOnlyProcessReportsTerminalUnavailable(t *testing.T) {
 	if got := statusOf(t, probeClient, http.MethodPost, create, auth, createBody); got != http.StatusServiceUnavailable {
 		t.Fatalf("create = %d, want 503", got)
 	}
+	targets := application + "/api/v1/lab-instances/" + f.LabInstanceID.String() + "/terminal-targets"
+	if got := statusOf(t, probeClient, http.MethodGet, targets, auth, ""); got != http.StatusServiceUnavailable {
+		t.Fatalf("terminal-targets = %d, want 503", got)
+	}
+	if got := statusOf(t, probeClient, http.MethodGet, targets, nil, ""); got != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated terminal-targets = %d, want 401", got)
+	}
 	if got := statusOf(t, probeClient, http.MethodDelete, application+"/api/v1/terminal-sessions/"+f.LabInstanceID.String(), auth, ""); got != http.StatusServiceUnavailable {
 		t.Fatalf("delete = %d, want 503", got)
 	}
@@ -127,10 +134,22 @@ func TestRunComposesTheTerminalStackWhenAPIAndRealtimeAreCoLocated(t *testing.T)
 		return apiResponse{Status: resp.StatusCode, Header: resp.Header, Body: data}
 	}
 
+	// Browser는 공식 GET으로 target을 얻는다. 이 조회는 Connector를 쓰지 않으므로 Connector가 준비되기 전에도 성공한다.
+	discovered := request(http.MethodGet, "/api/v1/lab-instances/"+f.LabInstanceID.String()+"/terminal-targets", "")
+	if discovered.Status != http.StatusOK {
+		t.Fatalf("terminal-targets = %d, want 200: %s", discovered.Status, discovered.Body)
+	}
+	targets := discovered.json(t)
+	workspaceKey, _ := targets["workspaceVmKey"].(string)
+	if items, _ := targets["items"].([]any); workspaceKey == "" || len(items) != len(terminaltest.DefaultVMs()) {
+		t.Fatalf("terminal-targets = %s", discovered.Body)
+	}
+	createFromDiscovery := `{"targetVmKey":"` + workspaceKey + `","cols":120,"rows":40}`
+
 	// Connector가 protocol-ready가 될 때까지 기다린다(그 전에는 503 connector_unavailable이다).
 	var resp apiResponse
 	eventually(t, "TerminalSession 생성", 15*time.Second, func() bool {
-		resp = request(http.MethodPost, "/api/v1/lab-instances/"+f.LabInstanceID.String()+"/terminal-sessions", createBody)
+		resp = request(http.MethodPost, "/api/v1/lab-instances/"+f.LabInstanceID.String()+"/terminal-sessions", createFromDiscovery)
 		return resp.Status != http.StatusServiceUnavailable
 	})
 	if resp.Status != http.StatusCreated {

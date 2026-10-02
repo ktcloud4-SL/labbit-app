@@ -142,9 +142,12 @@ func TestServerLoginClassesLogoutFlow(t *testing.T) {
 }
 
 // api role이 아닌 process는 Auth endpoint를 열지 않는다.
+// realtime role만 enabled된 process는 DB DSN 없이 시작하지만(liveness 성공) v0.1에서는 authority를 제공하는 api role이 없어
+// Terminal을 제공할 수 없으므로 readiness는 실패한다(runtime/contract.yaml saas.realtime.v0_1_topology).
 func TestNonAPIRoleDoesNotServeAuthEndpoints(t *testing.T) {
 	admin, application := startServerWithApplication(t, "development", "realtime", "", "")
-	waitForStatus(t, admin+"/readyz", http.StatusOK)
+	waitForStatus(t, admin+"/livez", http.StatusOK)
+	waitForStatus(t, admin+"/readyz", http.StatusServiceUnavailable)
 
 	got := send(t, http.MethodGet, application+"/api/v1/me", "", nil)
 

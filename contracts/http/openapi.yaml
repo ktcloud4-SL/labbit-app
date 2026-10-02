@@ -1,7 +1,7 @@
 openapi: 3.1.2
 info:
   title: Labbit HTTP API
-  version: 0.1.2
+  version: 0.1.3
   description: |
     Labbit Browser ↔ SaaS HTTP 계약의 기계 판독 가능한 SSOT입니다.
 
@@ -34,6 +34,8 @@ tags:
     description: 사용자별 실습 환경 상태 조회와 Reset
   - name: Operations
     description: Provision, Reset, Cleanup 같은 비동기 변경 작업 추적
+  - name: TerminalSessions
+    description: 본인 LabInstance VM의 TerminalSession 생성·종료와 Browser Terminal WSS attach token 발급
 
 paths:
   /auth/login:
@@ -481,6 +483,102 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
+  /lab-instances/{labInstanceId}/terminal-sessions:
+    post:
+      tags: [TerminalSessions]
+      summary: 본인 LabInstance의 VM에 TerminalSession 생성
+      operationId: createTerminalSession
+      description: |
+        현재 사용자가 소유한 LabInstance의 현재 generation에 있는 VM 하나에 새 TerminalSession을 만들고,
+        Browser Terminal WSS(`/realtime/v1/terminal`)에 attach할 때 사용하는 terminal-scoped opaque
+        `sessionToken`을 발급합니다.
+
+        서버는 요청의 `targetVmKey`만 받아 현재 DB 상태에서 대상 VM과 Connector를 결정합니다.
+        Provider Server ID, Connector ID, generation은 요청으로 받지 않으며 신뢰하지 않습니다.
+        다음을 모두 만족해야 TerminalSession을 만들 수 있고, 하나라도 맞지 않으면 어떤 side effect도 만들기 전에 거절합니다.
+
+        - LabInstance가 현재 사용자의 것이며 같은 Organization에 속합니다(`403`).
+        - 사용자가 LabInstance가 속한 Class의 현재 ClassMembership(INSTRUCTOR 또는 STUDENT)을 가집니다(`403`).
+        - LabInstance status가 `READY`입니다(`409`, code `lab_instance_not_ready`).
+        - `targetVmKey`가 현재 generation의 SERVER ProviderResource를 가리킵니다(`422`, code `invalid_terminal_target`).
+          가리키는 리소스가 있지만 `PRESENT`가 아니면 `409`, code `terminal_target_unavailable`입니다.
+
+        강사가 학생 LabInstance의 Terminal을 직접 여는 기능은 이 계약 범위가 아닙니다.
+
+        TerminalSession 생성은 동기적으로 완료됩니다. 서버가 Connector에 PTY 준비를 요청하고, Connector의 Terminal Data
+        채널이 실제로 연결된 것을 확인한 뒤에만 `201`을 반환합니다. Connector를 사용할 수 없거나 준비에 실패하거나
+        시간 안에 끝나지 않으면 TerminalSession은 성공 상태로 남지 않고 `503`으로 실패합니다
+        (code `connector_unavailable` 또는 `terminal_open_failed`).
+
+        이 배포 구성이 Terminal Relay를 제공하지 않으면 `503`(code `terminal_unavailable`)입니다.
+
+        응답에는 Browser가 연결하는 데 필요한 최소 정보만 포함합니다. WSS endpoint와 subprotocol은 고정이며
+        세션마다 URL을 돌려주지 않습니다. 응답은 `Cache-Control: no-store`입니다.
+      parameters:
+        - $ref: '#/components/parameters/LabInstanceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTerminalSessionRequest'
+      responses:
+        '201':
+          description: TerminalSession이 만들어졌고 Browser가 attach할 수 있습니다.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalSession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /terminal-sessions/{terminalSessionId}:
+    delete:
+      tags: [TerminalSessions]
+      summary: TerminalSession 명시적 종료
+      operationId: closeTerminalSession
+      description: |
+        사용자가 자신의 TerminalSession을 명시적으로 종료합니다. Browser WSS의 일시적 단절과 달리
+        60초 reconnect grace를 시작하지 않고 즉시 `ENDED`로 전환하며, 이 TerminalSession의 attach token은
+        더 이상 사용할 수 없습니다. 열려 있는 Browser WSS에는 `TERMINAL_SESSION_ENDED`(reason `SESSION_CLOSED`)를 전달합니다.
+
+        이미 종료된 TerminalSession에 대한 반복 요청도 `204`입니다(멱등).
+
+        서버는 Connector에 PTY 종료(`TERMINAL_CLOSE`)를 요청합니다. Connector를 사용할 수 없어 전달하지 못해도
+        Labbit의 TerminalSession은 `ENDED`이며 이후 attach할 수 없습니다. 남은 PTY 정리는 Connector lifecycle의 책임입니다.
+      parameters:
+        - $ref: '#/components/parameters/TerminalSessionId'
+      responses:
+        '204':
+          description: TerminalSession이 종료되었습니다(이미 종료된 경우 포함).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
   /operations/{operationId}:
     get:
       tags: [Operations]
@@ -579,6 +677,14 @@ components:
       schema:
         $ref: '#/components/schemas/ResourceId'
 
+    TerminalSessionId:
+      name: terminalSessionId
+      in: path
+      required: true
+      description: 종료할 TerminalSession의 opaque ID입니다.
+      schema:
+        $ref: '#/components/schemas/ResourceId'
+
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -626,6 +732,11 @@ components:
       schema:
         type: string
 
+    NoStore:
+      description: 응답(예를 들어 발급한 token)을 Browser나 중간 cache가 저장하지 않게 합니다. 값은 `no-store`입니다.
+      schema:
+        type: string
+
   responses:
     BadRequest:
       description: 요청 JSON의 문법이나 기본 형식이 올바르지 않습니다.
@@ -670,6 +781,8 @@ components:
         - Class에 이미 활성 LabExecution이 존재함
         - 같은 LabInstance에 다른 변경 Operation이 진행 중임
         - 같은 Idempotency-Key를 다른 의미의 요청에 재사용함
+        - LabInstance가 아직 `READY`가 아니라 TerminalSession을 만들 수 없음(code `lab_instance_not_ready`)
+        - 대상 VM이 현재 사용할 수 없는 상태임(code `terminal_target_unavailable`)
       content:
         application/problem+json:
           schema:
@@ -1175,6 +1288,61 @@ components:
           description: '대상 리소스 유형입니다. 예: LAB_EXECUTION, LAB_INSTANCE.'
         id:
           $ref: '#/components/schemas/ResourceId'
+
+    CreateTerminalSessionRequest:
+      type: object
+      description: |
+        TerminalSession을 만들 VM과 Browser terminal의 초기 크기입니다.
+        Provider Server ID, Connector ID, generation은 받지 않습니다. 서버가 현재 상태에서 결정합니다.
+      required: [targetVmKey, cols, rows]
+      additionalProperties: false
+      properties:
+        targetVmKey:
+          type: string
+          minLength: 1
+          description: 현재 LabInstance generation에서 대상 VM을 식별하는 논리 키입니다(LabSpec의 VM key).
+        cols:
+          type: integer
+          minimum: 1
+          description: Browser terminal의 초기 column 수입니다. PTY 초기 크기로 Connector에 전달합니다.
+        rows:
+          type: integer
+          minimum: 1
+          description: Browser terminal의 초기 row 수입니다. PTY 초기 크기로 Connector에 전달합니다.
+
+    TerminalSession:
+      type: object
+      description: |
+        만들어진 TerminalSession과 Browser Terminal WSS attach token입니다.
+        Browser는 `/realtime/v1/terminal`(subprotocol `labbit.terminal.v1`)에 연결한 뒤
+        첫 JSON control frame `TERMINAL_ATTACH`에 `sessionToken`을 실어 attach합니다.
+        WSS endpoint와 subprotocol은 고정이므로 이 응답에 포함하지 않습니다.
+      required: [id, generation, sessionToken, tokenExpiresAt]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+        generation:
+          type: integer
+          minimum: 1
+          description: 이 TerminalSession이 속한 LabInstance의 Provider 리소스 세대입니다. Reset으로 generation이 바뀌면 이 TerminalSession은 더 이상 사용할 수 없습니다.
+        sessionToken:
+          type: string
+          minLength: 1
+          description: |
+            이 TerminalSession과 현재 사용자에 scope된 opaque attach token입니다. 클라이언트는 값의 내부 구조에 의존하지 않습니다.
+            일반 로그인 Session token이 아니며 다른 TerminalSession에 사용할 수 없습니다.
+
+            - CSPRNG가 만든 32 bytes를 padding 없는 canonical Base64URL 문자열로 전달합니다.
+            - 서버는 원문을 저장하지 않고 SHA-256 digest만 `terminal_sessions.attach_token_hash`에 저장합니다.
+            - 절대 만료 시간은 발급 시점부터 8시간(`tokenExpiresAt`)입니다. 이 MVP는 token을 주기적으로 회전하거나 갱신하지 않으며
+              refresh endpoint도 없습니다. 만료 전에도 TerminalSession이 `ENDED`가 되면 즉시 사용할 수 없습니다.
+            - token만으로 attach할 수 없습니다. 매 attach/re-attach마다 현재 로그인 세션, 현재 사용자, 현재 Class 권한,
+              LabInstance 소유, 현재 generation, TerminalSession lifecycle, token digest를 다시 확인합니다.
+            - URL query string에 넣지 않습니다. 로그·trace에 기록하지 않습니다.
+        tokenExpiresAt:
+          type: string
+          format: date-time
+          description: '`sessionToken`의 절대 만료 시각입니다.'
 
     ProblemDetails:
       type: object

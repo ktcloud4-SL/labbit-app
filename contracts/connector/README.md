@@ -194,6 +194,14 @@ Terminal Data WSS의 transport가 비정상 종료되어도 PTY 자체 종료로
 
 같은 TerminalSession의 새 인증 Data WSS attach가 성공하면 새 data connection을 current connection으로 사용할 수 있습니다.
 
+### Data WSS와 Credential revoke
+
+[§2](#2-tls와-인증)의 Credential revoke는 Terminal Data WSS에도 적용됩니다. SaaS는 revoke를 관측하면 그 Credential로 인증한 모든 Terminal Data WSS를 더 이상 신뢰하지 않고 close code **`4001`** (§15, Connector Credential revoke)로 종료합니다. 다른 Credential이나 다른 Connector의 Data WSS는 종료하지 않습니다. 이후 종료된 connection으로는 INPUT, OUTPUT, resize를 처리하지 않으며 같은 Credential의 새 Upgrade는 `401`로 거절합니다.
+
+이 종료는 **Data connection의 trust 상실**이며 TerminalSession이나 PTY의 종료가 아닙니다. 위 재접속 규칙을 그대로 따라, TerminalSession이 살아 있는 동안 Connector는 **유효한** Credential로 같은 TerminalSession에 다시 attach할 수 있습니다. revoke된 Credential로 재연결을 반복하지 않습니다.
+
+SaaS는 Terminal Data WSS가 자신의 heartbeat를 갖지 않으므로 저장소 상태를 바꾼 것을 관측한 Control 경로(HEARTBEAT 기록 실패, revoke lifecycle hook)에서 Data WSS에 revoke를 전달합니다. PTY Binary frame마다 Credential을 다시 검증하지 않습니다.
+
 ## 8. Live와 Connector의 경계
 
 Connector는 학생별 Live connection을 알 필요가 없습니다.
@@ -335,7 +343,7 @@ persistent Control connection의 v1 application close code는 다음을 사용�
 | `4003` | 지원하지 않는 protocol/subprotocol |
 | `4004` | 복구 불가능한 protocol message 오류 |
 
-Terminal Data WSS의 Session 종료 의미는 `terminal-data.schema.json`과 Browser realtime 계약을 따릅니다.
+Terminal Data WSS의 Session 종료 의미는 `terminal-data.schema.json`과 Browser realtime 계약을 따릅니다. 다만 Connector Credential revoke로 Data WSS를 종료할 때는 위 `4001`을 같은 의미로 사용합니다([Data WSS와 Credential revoke](#data-wss와-credential-revoke)).
 
 ## 16. 검증 기준
 
@@ -346,6 +354,7 @@ Terminal Data WSS의 Session 종료 의미는 `terminal-data.schema.json`과 Bro
 - TerminalSession마다 독립 Data WSS를 열고 Binary INPUT/OUTPUT을 중계할 수 있습니다.
 - Browser detach만으로 PTY가 즉시 종료되지 않습니다.
 - Data WSS 재연결에서 과거 OUTPUT replay를 제공하지 않습니다.
+- Credential revoke 뒤 그 Credential의 Control과 Data 연결이 모두 `4001`로 종료되고, 다른 Credential/Connector의 연결은 유지되며, 종료된 Data connection으로 PTY byte가 오가지 않습니다. TerminalSession은 끝나지 않고 유효한 Credential의 재attach로 이어질 수 있습니다.
 - Reset/Cleanup은 관련 TerminalSession을 terminal lifecycle 종료로 처리할 수 있습니다.
 - Live 학생 fan-out이 Connector Data protocol로 확산되지 않습니다.
 - Credential/Token/Authorization/Provider raw payload/Terminal 본문이 메시지·로그에 남지 않습니다.

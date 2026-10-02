@@ -894,10 +894,10 @@ func TestOutboundTraceIsPropagatedOrDroppedWithoutFailingCommand(t *testing.T) {
 		wantParent string
 		wantState  string
 	}{
-		{"valid sampled", TraceContext{sampledParent, validTraceStat}, sampledParent, validTraceStat},
-		{"valid not sampled", TraceContext{unsampledPrnt, ""}, unsampledPrnt, ""},
-		{"invalid tracestate only", TraceContext{sampledParent, "not valid"}, sampledParent, ""},
-		{"invalid traceparent drops tracestate", TraceContext{"garbage", validTraceStat}, "", ""},
+		{"valid sampled", TraceContext{Traceparent: sampledParent, Tracestate: validTraceStat}, sampledParent, validTraceStat},
+		{"valid not sampled", TraceContext{Traceparent: unsampledPrnt}, unsampledPrnt, ""},
+		{"invalid tracestate only", TraceContext{Traceparent: sampledParent, Tracestate: "not valid"}, sampledParent, ""},
+		{"invalid traceparent drops tracestate", TraceContext{Traceparent: "garbage", Tracestate: validTraceStat}, "", ""},
 		{"none", TraceContext{}, "", ""},
 	}
 	for _, tt := range tests {

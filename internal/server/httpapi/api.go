@@ -19,6 +19,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
 )
 
 // maxLoginBodyBytes는 Login 요청 body 상한이다. Argon2id에 과도하게 긴 입력이 전달되지 않게 한다.
@@ -41,6 +42,8 @@ type Classes interface {
 type Options struct {
 	Auth    Authenticator
 	Classes Classes
+	// Terminals가 nil이면 Terminal Relay가 없는 구성으로 보고 TerminalSession 생성/종료를 503(terminal_unavailable)으로 응답한다.
+	Terminals Terminals
 	// PublicOrigin은 unsafe method의 trusted origin(LABBIT_PUBLIC_ORIGIN)이다. ParseOrigin 형식을 따른다.
 	PublicOrigin string
 	// Logger가 nil이면 로그를 남기지 않는다.
@@ -48,10 +51,11 @@ type Options struct {
 }
 
 type api struct {
-	auth    Authenticator
-	classes Classes
-	origin  string
-	logger  *slog.Logger
+	auth      Authenticator
+	classes   Classes
+	terminals Terminals
+	origin    string
+	logger    *slog.Logger
 }
 
 // New는 /api/v1 아래 Auth와 Class endpoint를 제공하는 http.Handler를 만든다.
@@ -71,13 +75,20 @@ func New(opts Options) (http.Handler, error) {
 		logger = slog.New(slog.DiscardHandler)
 	}
 
-	a := &api{auth: opts.Auth, classes: opts.Classes, origin: origin, logger: logger}
+	terminals := opts.Terminals
+	if terminals == nil {
+		terminals = unavailableTerminals{}
+	}
+
+	a := &api{auth: opts.Auth, classes: opts.Classes, terminals: terminals, origin: origin, logger: logger}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/auth/login", a.login)
 	mux.Handle("POST /api/v1/auth/logout", a.authenticated(http.HandlerFunc(a.logout)))
 	mux.Handle("GET /api/v1/me", a.authenticated(http.HandlerFunc(a.me)))
 	mux.Handle("GET /api/v1/classes", a.authenticated(http.HandlerFunc(a.listClasses)))
 	mux.Handle("GET /api/v1/classes/{classId}", a.authenticated(http.HandlerFunc(a.getClass)))
+	mux.Handle("POST /api/v1/lab-instances/{labInstanceId}/terminal-sessions", a.authenticated(http.HandlerFunc(a.createTerminalSession)))
+	mux.Handle("DELETE /api/v1/terminal-sessions/{terminalSessionId}", a.authenticated(http.HandlerFunc(a.closeTerminalSession)))
 
 	return withRequestID(noStore(a.originGuard(mux))), nil
 }
@@ -167,7 +178,7 @@ func errorClassification(err error) []any {
 		return attrs
 	case errors.Is(err, auth.ErrMalformedPasswordHash):
 		return []any{"error_kind", "unusable_password_hash"}
-	case errors.Is(err, class.ErrInconsistentData):
+	case errors.Is(err, class.ErrInconsistentData), errors.Is(err, terminal.ErrInconsistentData):
 		return []any{"error_kind", "inconsistent_data"}
 	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 		return []any{"error_kind", "context"}

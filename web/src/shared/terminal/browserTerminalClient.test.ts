@@ -158,8 +158,10 @@ describe('BrowserTerminalClient', () => {
     socket.message(new TextEncoder().encode('hello ').buffer)
     socket.message(new TextEncoder().encode('world').buffer)
 
-    expect(onOutput).toHaveBeenNthCalledWith(1, 'hello ')
-    expect(onOutput).toHaveBeenNthCalledWith(2, 'world')
+    expect([...onOutput.mock.calls[0][0]]).toEqual([
+      104, 101, 108, 108, 111, 32,
+    ])
+    expect([...onOutput.mock.calls[1][0]]).toEqual([119, 111, 114, 108, 100])
 
     expect(client.sendInput('ls\r')).toBe(true)
     const binaryInput = socket.sent.at(-1) as Uint8Array

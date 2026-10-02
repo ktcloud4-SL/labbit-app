@@ -1,10 +1,12 @@
+import { FitAddon } from '@xterm/addon-fit'
+import { Terminal } from '@xterm/xterm'
+import '@xterm/xterm/css/xterm.css'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
-  type FormEvent,
 } from 'react'
 
 import { HttpError } from '../api/httpClient'
@@ -27,6 +29,10 @@ interface TerminalPanelProps {
   generation: number
 }
 
+interface Disposable {
+  dispose(): void
+}
+
 type TerminalUiStatus =
   | 'idle'
   | 'creating'
@@ -40,7 +46,6 @@ type TerminalUiStatus =
 const DEFAULT_COLS = 100
 const DEFAULT_ROWS = 24
 const RECONNECT_GRACE_MS = 60_000
-const MAX_OUTPUT_CHARS = 120_000
 
 const unrecoverableCodes = new Set([
   'AUTH_REQUIRED',
@@ -63,44 +68,6 @@ const unrecoverableCloseCodes = new Set([
   4004,
   4006,
 ])
-
-function stripAnsi(value: string) {
-  // MVP fallback renderer: transport는 raw PTY byte stream을 유지하고,
-  // 화면에는 흔한 ESC/CSI control sequence만 제거한 text를 표시한다.
-  let result = ''
-  let mode: 'text' | 'escape' | 'csi' = 'text'
-
-  for (const character of value) {
-    const code = character.charCodeAt(0)
-
-    if (mode === 'text') {
-      if (code === 27) {
-        mode = 'escape'
-      } else {
-        result += character
-      }
-      continue
-    }
-
-    if (mode === 'escape') {
-      mode = character === '[' ? 'csi' : 'text'
-      continue
-    }
-
-    if (code >= 0x40 && code <= 0x7e) {
-      mode = 'text'
-    }
-  }
-
-  return result
-}
-
-function appendBounded(current: string, next: string) {
-  const combined = current + stripAnsi(next)
-  return combined.length > MAX_OUTPUT_CHARS
-    ? combined.slice(combined.length - MAX_OUTPUT_CHARS)
-    : combined
-}
 
 function statusLabel(status: TerminalUiStatus) {
   switch (status) {
@@ -171,7 +138,7 @@ function wssErrorMessage(error: TerminalProtocolError) {
     case 'LAB_MUTATION':
       return '실습 환경이 초기화되거나 정리되어 기존 터미널을 더 이상 사용할 수 없습니다.'
     case 'SERVICE_RESTARTING':
-      return '터미널 서비스가 재시작 중입니다. 기존 세션으로 다시 연결합니다.'
+      return '터미널 서비스가 재시작 중입니다.'
     case 'INTERNAL_ERROR':
       return '터미널 서비스에서 일시적인 오류가 발생했습니다.'
     case 'PROTOCOL_ERROR':
@@ -181,20 +148,8 @@ function wssErrorMessage(error: TerminalProtocolError) {
   }
 }
 
-function measureTerminal(element: HTMLElement | null) {
-  if (!element) return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS }
-
-  const width = Math.max(320, element.clientWidth - 28)
-  const height = Math.max(150, element.clientHeight - 28)
-  return {
-    cols: Math.max(20, Math.floor(width / 8.4)),
-    rows: Math.max(8, Math.floor(height / 18)),
-  }
-}
-
 export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps) {
   const api = useLabbitApi()
-  const viewportRef = useRef<HTMLPreElement | null>(null)
   const clientRef = useRef<BrowserTerminalClient | null>(null)
   const resumeRef = useRef<TerminalResumeState | null>(null)
   const retryTimerRef = useRef<number | null>(null)
@@ -204,6 +159,13 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
   const connectRef = useRef<(state: TerminalResumeState, reconnect: boolean) => void>(
     () => {},
   )
+
+  const terminalHostRef = useRef<HTMLDivElement | null>(null)
+  const terminalRef = useRef<Terminal | null>(null)
+  const fitAddonRef = useRef<FitAddon | null>(null)
+  const terminalDataRef = useRef<Disposable | null>(null)
+  const terminalResizeRef = useRef<Disposable | null>(null)
+  const hostResizeObserverRef = useRef<ResizeObserver | null>(null)
 
   const [initialResume] = useState(() =>
     readTerminalResumeState({ labInstanceId, generation }),
@@ -217,8 +179,6 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
       ? '새로고침 전 TerminalSession으로 다시 연결합니다.'
       : 'VM을 선택하고 터미널 연결을 시작하세요.',
   )
-  const [output, setOutput] = useState('')
-  const [command, setCommand] = useState('')
   const [resumed, setResumed] = useState(false)
   const [authExpired, setAuthExpired] = useState(false)
 
@@ -240,6 +200,100 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     resumeRef.current = null
     reconnectStartedAtRef.current = null
   }, [])
+
+  const ensureTerminal = useCallback(() => {
+    if (terminalRef.current) return terminalRef.current
+
+    const host = terminalHostRef.current
+    if (!host) return null
+
+    const terminal = new Terminal({
+      cursorBlink: true,
+      cursorStyle: 'block',
+      fontFamily:
+        '"Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace',
+      fontSize: 12,
+      lineHeight: 1.15,
+      scrollback: 5_000,
+      allowProposedApi: false,
+      theme: {
+        background: '#171b23',
+        foreground: '#e7ebf2',
+        cursor: '#8ee0bd',
+        cursorAccent: '#171b23',
+        selectionBackground: '#4a526380',
+        black: '#171b23',
+        brightBlack: '#6f7787',
+        red: '#ff7f87',
+        brightRed: '#ffabb2',
+        green: '#78d9ad',
+        brightGreen: '#9be7c6',
+        yellow: '#e8c85f',
+        brightYellow: '#f3d36d',
+        blue: '#8c8aee',
+        brightBlue: '#aaa8f4',
+        magenta: '#c58be8',
+        brightMagenta: '#d8a7f2',
+        cyan: '#72ced6',
+        brightCyan: '#9ce0e5',
+        white: '#d8dde7',
+        brightWhite: '#ffffff',
+      },
+    })
+    const fitAddon = new FitAddon()
+
+    terminal.loadAddon(fitAddon)
+    terminal.open(host)
+
+    terminalRef.current = terminal
+    fitAddonRef.current = fitAddon
+
+    try {
+      fitAddon.fit()
+    } catch {
+      // 첫 layout 전 fit 실패는 이후 ResizeObserver에서 다시 맞춘다.
+    }
+
+    terminalDataRef.current = terminal.onData((data) => {
+      clientRef.current?.sendInput(data)
+    })
+
+    terminalResizeRef.current = terminal.onResize(({ cols, rows }) => {
+      clientRef.current?.resize(cols, rows)
+    })
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => {
+        try {
+          fitAddon.fit()
+        } catch {
+          // 숨겨진 panel처럼 크기를 계산할 수 없는 순간은 다음 resize를 기다린다.
+        }
+      })
+      observer.observe(host)
+      hostResizeObserverRef.current = observer
+    }
+
+    return terminal
+  }, [])
+
+  const terminalSize = useCallback(() => {
+    const terminal = ensureTerminal()
+    if (!terminal) {
+      return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS }
+    }
+
+    try {
+      fitAddonRef.current?.fit()
+    } catch {
+      // 현재 계산된 xterm 크기를 그대로 사용한다.
+    }
+
+    return {
+      cols: Math.max(1, terminal.cols || DEFAULT_COLS),
+      rows: Math.max(1, terminal.rows || DEFAULT_ROWS),
+    }
+  }, [ensureTerminal])
 
   const scheduleReconnect = useCallback(
     (state: TerminalResumeState) => {
@@ -277,6 +331,13 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
       clearRetryTimer()
       suppressReconnectRef.current = false
 
+      const terminal = ensureTerminal()
+      if (!terminal) {
+        setStatus('error')
+        setStatusMessage('터미널 화면을 준비하지 못했습니다. 페이지를 다시 열어 주세요.')
+        return
+      }
+
       const sequence = ++connectionSequenceRef.current
       clientRef.current?.disconnect()
 
@@ -292,10 +353,11 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
               ? '기존 TerminalSession과 같은 PTY에 다시 연결되었습니다. 끊긴 동안의 출력은 재생되지 않습니다.'
               : '터미널에 연결되었습니다.',
           )
+          terminal.focus()
         },
         onOutput(text) {
           if (sequence !== connectionSequenceRef.current) return
-          setOutput((current) => appendBounded(current, text))
+          terminal.write(text)
         },
         onEnded(event) {
           if (sequence !== connectionSequenceRef.current) return
@@ -354,7 +416,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
         setStatusMessage('터미널 WebSocket에 연결하고 있습니다.')
       }
 
-      const size = measureTerminal(viewportRef.current)
+      const size = terminalSize()
       client.connect({
         terminalSessionId: state.terminalSessionId,
         sessionToken: state.sessionToken,
@@ -362,7 +424,13 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
         rows: size.rows,
       })
     },
-    [clearRetryTimer, invalidateResume, scheduleReconnect],
+    [
+      clearRetryTimer,
+      ensureTerminal,
+      invalidateResume,
+      scheduleReconnect,
+      terminalSize,
+    ],
   )
 
   useEffect(() => {
@@ -391,22 +459,20 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     }
   }, [clearRetryTimer, connectSocket, initialResume])
 
-  useEffect(() => {
-    if (status !== 'attached' || !viewportRef.current) return
-
-    const viewport = viewportRef.current
-    const sendResize = () => {
-      const size = measureTerminal(viewport)
-      clientRef.current?.resize(size.cols, size.rows)
-    }
-
-    sendResize()
-    if (typeof ResizeObserver === 'undefined') return
-
-    const observer = new ResizeObserver(sendResize)
-    observer.observe(viewport)
-    return () => observer.disconnect()
-  }, [status])
+  useEffect(
+    () => () => {
+      hostResizeObserverRef.current?.disconnect()
+      hostResizeObserverRef.current = null
+      terminalDataRef.current?.dispose()
+      terminalDataRef.current = null
+      terminalResizeRef.current?.dispose()
+      terminalResizeRef.current = null
+      terminalRef.current?.dispose()
+      terminalRef.current = null
+      fitAddonRef.current = null
+    },
+    [],
+  )
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -416,7 +482,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
         throw new Error('Terminal target이 선택되지 않았습니다.')
       }
 
-      const size = measureTerminal(viewportRef.current)
+      const size = terminalSize()
       return api.createTerminalSession(labInstanceId, {
         targetVmKey,
         cols: size.cols,
@@ -428,8 +494,11 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
       clearRetryTimer()
       setStatus('creating')
       setStatusMessage('TerminalSession과 PTY를 준비하고 있습니다.')
-      setOutput('')
       setResumed(false)
+
+      const terminal = ensureTerminal()
+      terminal?.reset()
+      terminal?.clear()
     },
     onSuccess: (session) => {
       if (session.generation !== generation) {
@@ -489,21 +558,15 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
       setStatus('ended')
       setStatusMessage('터미널을 종료했습니다.')
     } catch (error) {
+      if (error instanceof HttpError && error.status === 401) {
+        setAuthExpired(true)
+        return
+      }
+
       setStatus('error')
       setStatusMessage(
         `로컬 재접속 정보는 삭제했습니다. 서버 종료 요청은 확인이 필요합니다. ${httpTerminalError(error)}`,
       )
-    }
-  }
-
-  function submitCommand(event: FormEvent) {
-    event.preventDefault()
-    if (!command) return
-
-    if (clientRef.current?.sendInput(`${command}\r`)) {
-      setCommand('')
-    } else {
-      setStatusMessage('터미널이 연결된 뒤 명령을 입력할 수 있습니다.')
     }
   }
 
@@ -558,6 +621,15 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
             {status === 'attached' && resumed ? ' · resumed' : ''}
           </span>
 
+          <button
+            className="terminal-button terminal-button-secondary"
+            type="button"
+            disabled={status !== 'attached'}
+            onClick={() => terminalRef.current?.clear()}
+          >
+            화면 지우기
+          </button>
+
           {status === 'attached' || status === 'reconnecting' ? (
             <button
               className="terminal-button terminal-button-danger"
@@ -605,55 +677,13 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
         {statusMessage}
       </div>
 
-      <pre
-        ref={viewportRef}
-        className="terminal-output"
-        aria-label="터미널 출력"
-        tabIndex={0}
-      >
-        {output || '$ '}
-      </pre>
-
-      <form className="terminal-input-row" onSubmit={submitCommand}>
-        <span aria-hidden="true">$</span>
-        <input
-          aria-label="터미널 명령 입력"
-          autoComplete="off"
-          spellCheck={false}
-          value={command}
-          disabled={status !== 'attached'}
-          placeholder={status === 'attached' ? '명령을 입력하세요' : '터미널 연결 대기'}
-          onChange={(event) => setCommand(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.ctrlKey && event.key.toLowerCase() === 'c') {
-              event.preventDefault()
-              clientRef.current?.sendInput('\u0003')
-            }
-          }}
+      <div className="terminal-xterm-shell">
+        <div
+          ref={terminalHostRef}
+          className="terminal-xterm"
+          aria-label="터미널 입력 및 출력"
         />
-        <button
-          className="terminal-button terminal-button-secondary"
-          type="submit"
-          disabled={status !== 'attached' || !command}
-        >
-          보내기
-        </button>
-        <button
-          className="terminal-button terminal-button-secondary"
-          type="button"
-          disabled={status !== 'attached'}
-          onClick={() => clientRef.current?.sendInput('\u0003')}
-        >
-          Ctrl+C
-        </button>
-        <button
-          className="terminal-button terminal-button-secondary"
-          type="button"
-          onClick={() => setOutput('')}
-        >
-          화면 지우기
-        </button>
-      </form>
+      </div>
     </div>
   )
 }

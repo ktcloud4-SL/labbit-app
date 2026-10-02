@@ -1638,6 +1638,49 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(listTerminalTargets).toHaveBeenCalledTimes(2)
   })
 
+  it('Terminal target 401은 panel에 숨기지 않고 global sessionExpired Login으로 올린다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listTerminalTargets: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('Terminal target 403은 Workspace를 유지한 채 Terminal panel 오류로 표시한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listTerminalTargets: async () => {
+          throw new HttpError(403)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText(
+        '현재 계정에는 이 터미널을 사용할 권한이 없습니다.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: 'Lab Workspace Shell' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'VM 목록 다시 불러오기' }),
+    ).toBeInTheDocument()
+  })
+
   it('Workspace URL에서 내 LabInstance가 없으면 환경 미할당 상태를 안내한다', async () => {
     renderRoute(
       '/classes/class-kubernetes-basic/lab',

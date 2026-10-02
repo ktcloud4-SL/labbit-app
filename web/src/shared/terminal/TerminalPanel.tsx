@@ -56,6 +56,7 @@ const unrecoverableCloseCodes = new Set([
   1000,
   1008,
   1009,
+  1012,
   4001,
   4002,
   4003,
@@ -315,7 +316,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
           if (error.code === 'AUTH_REQUIRED') {
             setAuthExpired(true)
           }
-          if (error.fatal || unrecoverableCodes.has(error.code)) {
+          if (unrecoverableCodes.has(error.code)) {
             suppressReconnectRef.current = true
             invalidateResume()
             setStatus('error')
@@ -331,6 +332,10 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
             if (event.code === 4004) {
               setStatusMessage(
                 '이 TerminalSession이 다른 Browser 연결로 대체되었습니다.',
+              )
+            } else if (event.code === 1012) {
+              setStatusMessage(
+                '터미널 서비스가 재시작되어 기존 TerminalSession이 종료되었습니다. 새 터미널을 열어 주세요.',
               )
             }
             return

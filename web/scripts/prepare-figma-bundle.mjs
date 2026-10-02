@@ -37,6 +37,16 @@ function captureManifest() {
     generatedAt,
     viewport: { width: 1600, height: 1000 },
     pageName: `Labbit UX Review · ${generatedAt.slice(0, 10)}`,
+    prototypeHints: [
+      { sourceFile: '01-login.png', controlText: '로그인', targetFile: '02-class-list.png' },
+      { sourceFile: '07-provision-select.png', controlText: '생성 내용 확인', targetFile: '10-provision-confirm.png' },
+      { sourceFile: '10-provision-confirm.png', controlText: '다시 선택', targetFile: '07-provision-select.png' },
+      { sourceFile: '10-provision-confirm.png', controlText: '환경 생성 시작', targetFile: '11-operation.png' },
+      { sourceFile: '08-lab-execution.png', controlText: '전체 실습 정리', targetFile: '16-cleanup-confirm.png' },
+      { sourceFile: '08-lab-execution.png', controlText: '초기화', targetFile: '17-reset-confirm.png' },
+      { sourceFile: '16-cleanup-confirm.png', controlText: '취소', targetFile: '08-lab-execution.png' },
+      { sourceFile: '17-reset-confirm.png', controlText: '취소', targetFile: '08-lab-execution.png' },
+    ],
     groups: [
       {
         id: 'auth-class',

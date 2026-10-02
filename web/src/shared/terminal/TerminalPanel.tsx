@@ -355,9 +355,9 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
           )
           terminal.focus()
         },
-        onOutput(text) {
+        onOutput(data) {
           if (sequence !== connectionSequenceRef.current) return
-          terminal.write(text)
+          terminal.write(data)
         },
         onEnded(event) {
           if (sequence !== connectionSequenceRef.current) return

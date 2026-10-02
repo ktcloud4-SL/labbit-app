@@ -680,6 +680,192 @@ a {
   color: #b7bdc9;
 }
 
+.terminal-consumer {
+  display: grid;
+  grid-template-rows: auto auto minmax(130px, 1fr) auto;
+  min-height: 205px;
+  height: calc(100% - 44px);
+  background: #202531;
+  color: #f4f5f8;
+}
+
+.terminal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #353b48;
+  background: #272d39;
+}
+
+.terminal-target-control,
+.terminal-toolbar-actions,
+.terminal-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-target-control label {
+  color: #b7bdc9;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.terminal-target-control select {
+  min-width: 180px;
+  border: 1px solid #485063;
+  border-radius: 7px;
+  padding: 6px 28px 6px 9px;
+  background: #1c212b;
+  color: #f4f5f8;
+  font: inherit;
+  font-size: 12px;
+}
+
+.terminal-status {
+  display: inline-flex;
+  min-height: 25px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 9px;
+  background: #39404f;
+  color: #d6dae3;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.terminal-status-success {
+  background: #173d31;
+  color: #7ae0b8;
+}
+
+.terminal-status-reconnecting,
+.terminal-status-connecting,
+.terminal-status-creating {
+  background: #413b20;
+  color: #f3d36d;
+}
+
+.terminal-status-error {
+  background: #4d2529;
+  color: #ffabb2;
+}
+
+.terminal-button {
+  min-height: 30px;
+  border: 1px solid #665de0;
+  border-radius: 7px;
+  padding: 0 10px;
+  background: #6259d8;
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.terminal-button:hover:not(:disabled) {
+  background: #746ce2;
+}
+
+.terminal-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.terminal-button-secondary {
+  border-color: #4a5263;
+  background: #303745;
+  color: #dce0e8;
+}
+
+.terminal-button-danger {
+  border-color: #8d4850;
+  background: #6f343b;
+}
+
+.terminal-notice,
+.terminal-status-message {
+  padding: 8px 12px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.terminal-status-message {
+  border-bottom: 1px solid #313744;
+  color: #b7bdc9;
+}
+
+.terminal-notice-error {
+  border-bottom: 1px solid #71373d;
+  background: #4d2529;
+  color: #ffbdc3;
+}
+
+.terminal-output {
+  min-height: 130px;
+  margin: 0;
+  overflow: auto;
+  padding: 12px 14px;
+  background: #171b23;
+  color: #e7ebf2;
+  font-family:
+    "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.terminal-input-row {
+  padding: 8px 10px;
+  border-top: 1px solid #313744;
+  background: #202631;
+  color: #8ee0bd;
+  font-family:
+    "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+.terminal-input-row input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: none;
+  padding: 6px 4px;
+  background: transparent;
+  color: #f4f5f8;
+  font: inherit;
+}
+
+.terminal-input-row input::placeholder {
+  color: #6f7787;
+}
+
+@media (max-width: 720px) {
+  .terminal-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .terminal-target-control select {
+    flex: 1;
+  }
+
+  .terminal-toolbar-actions {
+    justify-content: space-between;
+  }
+
+  .terminal-input-row {
+    flex-wrap: wrap;
+  }
+
+  .terminal-input-row input {
+    flex-basis: calc(100% - 26px);
+  }
+}
+
 @media (max-width: 980px) {
   .workspace-shell {
     grid-template-columns: 220px 1fr;

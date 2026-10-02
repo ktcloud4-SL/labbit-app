@@ -162,9 +162,9 @@ describe('BrowserTerminalClient', () => {
     expect(onOutput).toHaveBeenNthCalledWith(2, 'world')
 
     expect(client.sendInput('ls\r')).toBe(true)
-    const binaryInput = socket.sent.at(-1)
-    expect(binaryInput).toBeInstanceOf(Uint8Array)
-    expect(new TextDecoder().decode(binaryInput as Uint8Array)).toBe('ls\r')
+    const binaryInput = socket.sent.at(-1) as Uint8Array
+    expect(ArrayBuffer.isView(binaryInput)).toBe(true)
+    expect([...binaryInput]).toEqual([108, 115, 13])
 
     expect(client.resize(120, 32)).toBe(true)
     const resize = JSON.parse(String(socket.sent.at(-1)))

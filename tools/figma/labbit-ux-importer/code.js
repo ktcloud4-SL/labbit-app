@@ -155,13 +155,33 @@ function createEditableText(element, scale) {
   const node = textNode(value, fontSize, medium)
   node.name = `Text · ${value.slice(0, 40)}`
   applyTextColor(node, element.style.color)
-  node.x = element.rect.x * scale
-  node.y = element.rect.y * scale
-  node.resize(
-    Math.max(20, element.rect.width * scale),
-    Math.max(fontSize + 2, element.rect.height * scale),
+
+  const x = element.rect.x * scale
+  const y = element.rect.y * scale
+  const originalWidth = Math.max(20, element.rect.width * scale)
+  const originalHeight = Math.max(fontSize + 2, element.rect.height * scale)
+  const availableWidth = Math.max(24, PANEL_WIDTH - x - 4)
+  const likelySingleLine = originalHeight <= fontSize * 1.9
+  const oneLineEstimate = value.length * fontSize * 0.58 + 10
+  const longestToken = value.split(/\s+/).reduce((max, token) => Math.max(max, token.length), 1)
+  const minimumReadableWidth = longestToken * fontSize * 0.62 + 8
+  const targetWidth = Math.min(
+    availableWidth,
+    Math.max(
+      originalWidth,
+      likelySingleLine ? oneLineEstimate : Math.min(minimumReadableWidth, availableWidth),
+    ),
   )
+
+  node.x = x
+  node.y = y
+  node.resize(targetWidth, originalHeight)
   node.textAutoResize = 'HEIGHT'
+
+  const cssLineHeight = Number(element.style.lineHeight || 0) * scale
+  if (cssLineHeight > fontSize * 0.9) {
+    node.lineHeight = { unit: 'PIXELS', value: cssLineHeight }
+  }
 
   if (element.style.textAlign === 'center') node.textAlignHorizontal = 'CENTER'
   if (element.style.textAlign === 'right') node.textAlignHorizontal = 'RIGHT'
@@ -169,13 +189,20 @@ function createEditableText(element, scale) {
   return node
 }
 
-function createControlNodes(element, scale) {
+function createControlNodes(element, scale, sourceFile) {
   const nodes = []
   const x = element.rect.x * scale
   const y = element.rect.y * scale
-  const width = Math.max(2, element.rect.width * scale)
+  const rawWidth = Math.max(2, element.rect.width * scale)
   const height = Math.max(2, element.rect.height * scale)
   const type = element.controlType
+  const text = String(element.text ?? '').trim()
+  const textFontSize = Math.max(6, Math.min(40, (element.style.fontSize || 14) * scale))
+  const estimatedTextWidth = text ? text.length * textFontSize * 0.58 + 12 : rawWidth
+  const width =
+    type === 'a'
+      ? Math.min(Math.max(24, PANEL_WIDTH - x - 4), Math.max(rawWidth, estimatedTextWidth))
+      : rawWidth
 
   if (type === 'checkbox' || type === 'radio') {
     const shape = type === 'radio' ? figma.createEllipse() : figma.createRectangle()
@@ -191,8 +218,8 @@ function createControlNodes(element, scale) {
     if (type === 'checkbox') shape.cornerRadius = Math.max(1, element.style.borderRadius * scale)
     nodes.push(shape)
 
-    if (element.text) {
-      const mark = textNode(element.text, Math.max(7, height * 0.7), true)
+    if (text) {
+      const mark = textNode(text, Math.max(7, height * 0.7), true)
       mark.name = 'Control value'
       mark.x = x + width * 0.12
       mark.y = y + height * 0.02
@@ -200,7 +227,7 @@ function createControlNodes(element, scale) {
       mark.textAlignHorizontal = 'CENTER'
       nodes.push(mark)
     }
-    return nodes
+    return { nodes, interaction: null }
   }
 
   const hasBox =
@@ -224,17 +251,16 @@ function createControlNodes(element, scale) {
     nodes.push(rect)
   }
 
-  const text = String(element.text ?? '').trim()
   if (text) {
-    const fontSize = Math.max(6, Math.min(40, (element.style.fontSize || 14) * scale))
-    const node = textNode(text, fontSize, Number(element.style.fontWeight || 400) >= 600)
+    const node = textNode(text, textFontSize, Number(element.style.fontWeight || 400) >= 600)
     node.name = `Control text · ${text.slice(0, 40)}`
     applyTextColor(node, element.style.color)
-    node.x = x + (hasBox ? Math.min(8, width * 0.08) : 0)
-    node.y = y + Math.max(0, (height - fontSize * 1.25) / 2)
+    const inset = hasBox ? Math.min(8, width * 0.08) : 0
+    node.x = x + inset
+    node.y = y + Math.max(0, (height - textFontSize * 1.25) / 2)
     node.resize(
-      Math.max(10, width - (hasBox ? Math.min(16, width * 0.16) : 0)),
-      Math.max(fontSize + 2, height),
+      Math.max(10, width - inset * 2),
+      Math.max(textFontSize + 2, height),
     )
     node.textAutoResize = 'HEIGHT'
     if (element.style.textAlign === 'center' || type === 'button') {
@@ -245,13 +271,33 @@ function createControlNodes(element, scale) {
     nodes.push(node)
   }
 
-  return nodes
+  let interaction = null
+  if ((type === 'a' || type === 'button') && (text || element.href)) {
+    const hotspot = figma.createRectangle()
+    hotspot.name = element.href
+      ? `Prototype · ${text || type} → ${element.href}`
+      : `Prototype · ${text || type}`
+    hotspot.x = x
+    hotspot.y = y
+    hotspot.resize(width, height)
+    hotspot.fills = [{ type: 'SOLID', color: rgb('#FFFFFF'), opacity: 0.001 }]
+    hotspot.strokes = []
+    nodes.push(hotspot)
+    interaction = {
+      node: hotspot,
+      href: element.href ?? null,
+      text,
+      sourceFile,
+    }
+  }
+
+  return { nodes, interaction }
 }
 
 function createEditableScreen(snapshot) {
   const scale = PANEL_WIDTH / Math.max(1, snapshot.width || 1600)
   const frame = figma.createFrame()
-  frame.name = 'Editable · DOM reconstruction'
+  frame.name = `Editable · ${snapshot.file ?? 'DOM reconstruction'}`
   frame.layoutMode = 'NONE'
   frame.clipsContent = true
   frame.resize(
@@ -266,6 +312,7 @@ function createEditableScreen(snapshot) {
   frame.cornerRadius = 8
 
   const elements = Array.isArray(snapshot.elements) ? snapshot.elements : []
+  const interactions = []
   const containers = elements
     .filter((element) => element.kind === 'container')
     .sort(
@@ -279,9 +326,9 @@ function createEditableScreen(snapshot) {
   }
 
   for (const element of elements.filter((element) => element.kind === 'control')) {
-    for (const node of createControlNodes(element, scale)) {
-      frame.appendChild(node)
-    }
+    const result = createControlNodes(element, scale, snapshot.file)
+    for (const node of result.nodes) frame.appendChild(node)
+    if (result.interaction) interactions.push(result.interaction)
   }
 
   for (const element of elements.filter((element) => element.kind === 'text')) {
@@ -289,7 +336,7 @@ function createEditableScreen(snapshot) {
     if (node) frame.appendChild(node)
   }
 
-  return frame
+  return { frame, interactions }
 }
 
 function createEditableColumn(snapshot) {
@@ -312,11 +359,16 @@ function createEditableColumn(snapshot) {
     missing.resize(PANEL_WIDTH, 60)
     missing.textAutoResize = 'HEIGHT'
     holder.appendChild(missing)
-    return holder
+    return { holder, editableFrame: null, interactions: [] }
   }
 
-  holder.appendChild(createEditableScreen(snapshot))
-  return holder
+  const editable = createEditableScreen(snapshot)
+  holder.appendChild(editable.frame)
+  return {
+    holder,
+    editableFrame: editable.frame,
+    interactions: editable.interactions,
+  }
 }
 
 async function createScreenCard(screen, fileBytes, snapshot) {
@@ -344,10 +396,16 @@ async function createScreenCard(screen, fileBytes, snapshot) {
   const reference = createReferenceFrame(fileBytes)
   await reference.attach()
   comparison.appendChild(reference.holder)
-  comparison.appendChild(createEditableColumn(snapshot))
+
+  const editable = createEditableColumn(snapshot)
+  comparison.appendChild(editable.holder)
   card.appendChild(comparison)
 
-  return card
+  return {
+    card,
+    editableFrame: editable.editableFrame,
+    interactions: editable.interactions,
+  }
 }
 
 function createPlannedCard(item) {
@@ -379,6 +437,67 @@ function createGroupTitle(title) {
   return node
 }
 
+function createComponentCandidatesCard(editableData) {
+  const counts = new Map()
+
+  for (const snapshot of editableData?.screens ?? []) {
+    for (const element of snapshot.elements ?? []) {
+      if (!['control', 'container'].includes(element.kind)) continue
+      const firstClass = String(element.className ?? '').trim().split(/\s+/).filter(Boolean)[0]
+      if (!firstClass) continue
+      const key = `${element.kind} · .${firstClass}`
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+  }
+
+  const candidates = [...counts.entries()]
+    .filter(([, count]) => count >= 3)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 16)
+
+  const card = createCardBase('06 · Component 후보')
+  card.appendChild(textNode('06 · Component 후보 자동 분류', 24, true))
+
+  const description = textNode(
+    '여러 화면에서 3회 이상 반복된 class를 기준으로 만든 후보입니다. 실제 Component 변환 전 검토용입니다.',
+    14,
+  )
+  description.fills = [{ type: 'SOLID', color: rgb('#6B7280') }]
+  description.resize(CARD_WIDTH - 40, 40)
+  description.textAutoResize = 'HEIGHT'
+  card.appendChild(description)
+
+  if (!candidates.length) {
+    card.appendChild(textNode('반복 횟수 3회 이상인 후보가 없습니다.', 14))
+  } else {
+    for (const [name, count] of candidates) {
+      const row = textNode(`${name}  ·  ${count}회`, 15)
+      row.resize(CARD_WIDTH - 40, 24)
+      row.textAutoResize = 'HEIGHT'
+      card.appendChild(row)
+    }
+  }
+
+  return { card, candidateCount: candidates.length }
+}
+
+async function setPrototypeNavigation(node, targetFrame) {
+  await node.setReactionsAsync([
+    {
+      trigger: { type: 'ON_CLICK' },
+      actions: [
+        {
+          type: 'NODE',
+          destinationId: targetFrame.id,
+          navigation: 'NAVIGATE',
+          transition: null,
+          preserveScrollPosition: false,
+        },
+      ],
+    },
+  ])
+}
+
 async function importBundle(manifest, files, editableData) {
   if (!manifest || ![1, 2].includes(manifest.schemaVersion)) {
     throw new Error('지원하지 않는 manifest 형식입니다.')
@@ -399,7 +518,7 @@ async function importBundle(manifest, files, editableData) {
   page.appendChild(title)
 
   const subtitle = textNode(
-    `자동 캡처 + editable DOM 기반 UX 검토 보드 · ${manifest.captureMode ?? 'unknown'} · ${manifest.generatedAt ?? ''}`,
+    `자동 캡처 + editable DOM + Prototype 기반 UX 검토 보드 · ${manifest.captureMode ?? 'unknown'} · ${manifest.generatedAt ?? ''}`,
     16,
   )
   subtitle.fills = [{ type: 'SOLID', color: rgb('#6B7280') }]
@@ -407,6 +526,9 @@ async function importBundle(manifest, files, editableData) {
   subtitle.y = 64
   page.appendChild(subtitle)
 
+  const screenMap = new Map()
+  const routeMap = new Map()
+  const interactions = []
   let groupY = 140
 
   for (const group of manifest.groups ?? []) {
@@ -426,12 +548,19 @@ async function importBundle(manifest, files, editableData) {
         throw new Error(`스크린샷 파일이 없습니다: ${screen.file}`)
       }
 
-      const card = await createScreenCard(screen, bytes, snapshotMap.get(screen.file))
-      card.x = x
-      card.y = y
-      page.appendChild(card)
+      const snapshot = snapshotMap.get(screen.file)
+      const result = await createScreenCard(screen, bytes, snapshot)
+      result.card.x = x
+      result.card.y = y
+      page.appendChild(result.card)
 
-      rowHeight = Math.max(rowHeight, card.height)
+      if (result.editableFrame) {
+        screenMap.set(screen.file, result.editableFrame)
+        if (snapshot?.route) routeMap.set(snapshot.route, result.editableFrame)
+      }
+      interactions.push(...result.interactions)
+
+      rowHeight = Math.max(rowHeight, result.card.height)
       index += 1
 
       if (index % 2 === 0) {
@@ -462,6 +591,32 @@ async function importBundle(manifest, files, editableData) {
     groupY = y + GROUP_GAP
   }
 
+  let prototypeLinkCount = 0
+  const hints = Array.isArray(manifest.prototypeHints) ? manifest.prototypeHints : []
+
+  for (const interaction of interactions) {
+    let target = interaction.href ? routeMap.get(interaction.href) : null
+
+    if (!target) {
+      const hint = hints.find(
+        (item) =>
+          item.sourceFile === interaction.sourceFile &&
+          item.controlText === interaction.text,
+      )
+      if (hint) target = screenMap.get(hint.targetFile)
+    }
+
+    if (!target) continue
+    await setPrototypeNavigation(interaction.node, target)
+    prototypeLinkCount += 1
+  }
+
+  const componentAudit = createComponentCandidatesCard(editableData)
+  componentAudit.card.x = 0
+  componentAudit.card.y = groupY
+  page.appendChild(componentAudit.card)
+  groupY += componentAudit.card.height + GROUP_GAP
+
   const allNodes = page.children
   if (allNodes.length) {
     figma.viewport.scrollAndZoomIntoView(allNodes)
@@ -475,6 +630,8 @@ async function importBundle(manifest, files, editableData) {
       0,
     ),
     editableCount: snapshotMap.size,
+    prototypeLinkCount,
+    componentCandidateCount: componentAudit.candidateCount,
     plannedCount: manifest.plannedStates?.length ?? 0,
   })
 }

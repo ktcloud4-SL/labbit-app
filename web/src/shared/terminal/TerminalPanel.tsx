@@ -13,10 +13,11 @@ import { HttpError } from '../api/httpClient'
 import { useLabbitApi } from '../api/LabbitApiProvider'
 import { labbitQueryKeys } from '../api/labbitApi'
 import { LoginRedirect } from '../ui/LoginRedirect'
+import { BrowserTerminalClient } from './browserTerminalClient'
 import {
-  BrowserTerminalClient,
-  type TerminalProtocolError,
-} from './browserTerminalClient'
+  decideTerminalClose,
+  decideTerminalProtocolError,
+} from './terminalReconnectPolicy'
 import {
   clearTerminalResumeState,
   readTerminalResumeState,
@@ -46,28 +47,6 @@ type TerminalUiStatus =
 const DEFAULT_COLS = 100
 const DEFAULT_ROWS = 24
 const RECONNECT_GRACE_MS = 60_000
-
-const unrecoverableCodes = new Set([
-  'AUTH_REQUIRED',
-  'INVALID_SESSION_TOKEN',
-  'FORBIDDEN',
-  'SESSION_NOT_FOUND',
-  'SESSION_EXPIRED',
-  'LAB_MUTATION',
-  'PROTOCOL_ERROR',
-])
-
-const unrecoverableCloseCodes = new Set([
-  1000,
-  1008,
-  1009,
-  1012,
-  4001,
-  4002,
-  4003,
-  4004,
-  4006,
-])
 
 function statusLabel(status: TerminalUiStatus) {
   switch (status) {
@@ -118,34 +97,6 @@ function httpTerminalError(error: unknown) {
   }
 
   return '터미널 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'
-}
-
-function wssErrorMessage(error: TerminalProtocolError) {
-  switch (error.code) {
-    case 'AUTH_REQUIRED':
-      return '로그인 세션을 다시 확인해 주세요.'
-    case 'INVALID_SESSION_TOKEN':
-    case 'SESSION_EXPIRED':
-      return '터미널 재접속 정보가 만료되었습니다. 새 터미널을 열어 주세요.'
-    case 'FORBIDDEN':
-      return '현재 계정에는 이 터미널을 사용할 권한이 없습니다.'
-    case 'SESSION_NOT_FOUND':
-      return '기존 터미널 세션의 재접속 시간이 지났습니다. 새 터미널을 열어 주세요.'
-    case 'CONNECTOR_UNAVAILABLE':
-      return '실습 VM 연결 경로가 일시적으로 준비되지 않았습니다.'
-    case 'SLOW_CONSUMER':
-      return '브라우저가 터미널 출력을 충분히 빠르게 처리하지 못해 다시 연결합니다.'
-    case 'LAB_MUTATION':
-      return '실습 환경이 초기화되거나 정리되어 기존 터미널을 더 이상 사용할 수 없습니다.'
-    case 'SERVICE_RESTARTING':
-      return '터미널 서비스가 재시작 중입니다.'
-    case 'INTERNAL_ERROR':
-      return '터미널 서비스에서 일시적인 오류가 발생했습니다.'
-    case 'PROTOCOL_ERROR':
-      return '터미널 연결 규칙을 처리하지 못했습니다.'
-    default:
-      return error.message ?? '터미널 연결 중 알 수 없는 오류가 발생했습니다.'
-  }
 }
 
 export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps) {
@@ -374,37 +325,42 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
         onProtocolError(error) {
           if (sequence !== connectionSequenceRef.current) return
 
-          setStatusMessage(wssErrorMessage(error))
-          if (error.code === 'AUTH_REQUIRED') {
+          const decision = decideTerminalProtocolError(error)
+          setStatusMessage(decision.message)
+
+          if (decision.authExpired) {
             setAuthExpired(true)
           }
-          if (unrecoverableCodes.has(error.code)) {
+
+          if (decision.action) {
             suppressReconnectRef.current = true
-            invalidateResume()
-            setStatus('error')
+            if (decision.clearResume) invalidateResume()
+            setStatus(decision.action)
           }
         },
         onClose(event) {
           if (sequence !== connectionSequenceRef.current) return
 
-          if (unrecoverableCloseCodes.has(event.code)) {
-            suppressReconnectRef.current = true
-            invalidateResume()
-            setStatus(event.code === 1000 ? 'ended' : 'error')
-            if (event.code === 4004) {
-              setStatusMessage(
-                '이 TerminalSession이 다른 Browser 연결로 대체되었습니다.',
-              )
-            } else if (event.code === 1012) {
-              setStatusMessage(
-                '터미널 서비스가 재시작되어 기존 TerminalSession이 종료되었습니다. 새 터미널을 열어 주세요.',
-              )
+          const decision = decideTerminalClose(event.code)
+
+          if (suppressReconnectRef.current) {
+            if (decision.action !== 'reconnect') {
+              setStatusMessage(decision.message)
             }
             return
           }
 
+          setStatusMessage(decision.message)
+
+          if (decision.action !== 'reconnect') {
+            suppressReconnectRef.current = true
+            if (decision.clearResume) invalidateResume()
+            setStatus(decision.action)
+            return
+          }
+
           const current = resumeRef.current
-          if (current && !suppressReconnectRef.current) {
+          if (current) {
             scheduleReconnect(current)
           }
         },
@@ -570,13 +526,24 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     }
   }
 
+  const targetAuthExpired =
+    targetsQuery.error instanceof HttpError && targetsQuery.error.status === 401
+
+  useEffect(() => {
+    if (!targetAuthExpired) return
+
+    suppressReconnectRef.current = true
+    clearRetryTimer()
+    connectionSequenceRef.current += 1
+    clientRef.current?.disconnect()
+    clientRef.current = null
+    invalidateResume()
+  }, [clearRetryTimer, invalidateResume, targetAuthExpired])
+
   const effectiveSelectedVmKey =
     selectedVmKey || targetsQuery.data?.workspaceVmKey || ''
   const targetGenerationMismatch =
     Boolean(targetsQuery.data) && targetsQuery.data?.generation !== generation
-  const targetAuthExpired =
-    targetsQuery.error instanceof HttpError && targetsQuery.error.status === 401
-
   if (authExpired || targetAuthExpired) {
     return <LoginRedirect reason="sessionExpired" />
   }
@@ -654,7 +621,9 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
             >
               {status === 'creating' || status === 'connecting'
                 ? '연결 중...'
-                : '터미널 연결'}
+                : status === 'ended' || status === 'error'
+                  ? '새 터미널 열기'
+                  : '터미널 연결'}
             </button>
           )}
         </div>
@@ -662,7 +631,15 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
 
       {targetsQuery.error && (
         <div className="terminal-notice terminal-notice-error" role="alert">
-          {httpTerminalError(targetsQuery.error)}
+          <span>{httpTerminalError(targetsQuery.error)}</span>
+          <button
+            className="terminal-button terminal-button-secondary"
+            type="button"
+            disabled={targetsQuery.isFetching}
+            onClick={() => void targetsQuery.refetch()}
+          >
+            {targetsQuery.isFetching ? '다시 확인 중...' : 'VM 목록 다시 불러오기'}
+          </button>
         </div>
       )}
 

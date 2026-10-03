@@ -798,6 +798,10 @@ a {
 }
 
 .terminal-notice-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   border-bottom: 1px solid #71373d;
   background: #4d2529;
   color: #ffbdc3;

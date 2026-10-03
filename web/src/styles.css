@@ -680,6 +680,363 @@ a {
   color: #b7bdc9;
 }
 
+.workspace-file-browser,
+.workspace-editor-body {
+  min-height: calc(100% - 44px);
+}
+
+.workspace-file-browser {
+  display: flex;
+  flex-direction: column;
+  background: #fbfbfd;
+}
+
+.workspace-file-up {
+  border: 0;
+  border-bottom: 1px solid #eceef4;
+  padding: 10px 12px;
+  background: #fff;
+  color: #5850c8;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workspace-file-list {
+  display: grid;
+  align-content: start;
+  padding: 6px;
+}
+
+.workspace-file-entry {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 7px;
+  padding: 8px 9px;
+  background: transparent;
+  color: #4f5665;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workspace-file-entry:hover {
+  background: #f0efff;
+  color: #5148bb;
+}
+
+.workspace-file-entry-selected {
+  background: #e9e7ff;
+  color: #443bb2;
+  font-weight: 800;
+}
+
+.workspace-file-entry span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-file-state {
+  display: grid;
+  gap: 10px;
+  place-items: center;
+  padding: 22px 14px;
+  color: #777f8f;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.workspace-file-state p {
+  margin: 0;
+}
+
+.workspace-file-state-error {
+  color: #9b3c44;
+}
+
+.workspace-file-state-editor {
+  min-height: calc(100% - 44px);
+}
+
+.workspace-file-action {
+  min-height: 30px;
+  border: 1px solid #d8dce5;
+  border-radius: 7px;
+  padding: 0 10px;
+  background: #fff;
+  color: #555d6d;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.workspace-file-action:hover:not(:disabled) {
+  border-color: #c8c3fb;
+  color: #5148bb;
+}
+
+.workspace-file-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.workspace-file-action-primary {
+  border-color: #5850c8;
+  background: #5850c8;
+  color: #fff;
+}
+
+.workspace-file-action-primary:hover:not(:disabled) {
+  background: #665ed2;
+  color: #fff;
+}
+
+.workspace-editor-body {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  background: #fff;
+}
+
+.workspace-editor-toolbar,
+.workspace-editor-error,
+.workspace-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workspace-editor-toolbar {
+  min-height: 48px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #eceef4;
+}
+
+.workspace-editor-toolbar > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.workspace-editor-toolbar strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-editor-toolbar span,
+.workspace-editor-footer {
+  color: #818897;
+  font-size: 10px;
+}
+
+.workspace-editor-error {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f0d0d3;
+  background: #fff4f4;
+  color: #9b3c44;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.workspace-code-editor {
+  width: 100%;
+  min-height: 285px;
+  resize: none;
+  border: 0;
+  outline: none;
+  padding: 16px;
+  background: #fcfcfe;
+  color: #252a34;
+  font-family:
+    "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  tab-size: 2;
+}
+
+.workspace-editor-footer {
+  min-height: 32px;
+  padding: 0 12px;
+  border-top: 1px solid #eceef4;
+  background: #fafbfc;
+}
+
+.terminal-consumer {
+  display: grid;
+  grid-template-rows: auto auto minmax(160px, 1fr);
+  min-height: 240px;
+  height: calc(100% - 44px);
+  background: #202531;
+  color: #f4f5f8;
+}
+
+.terminal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #353b48;
+  background: #272d39;
+}
+
+.terminal-target-control,
+.terminal-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-target-control label {
+  color: #b7bdc9;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.terminal-target-control select {
+  min-width: 180px;
+  border: 1px solid #485063;
+  border-radius: 7px;
+  padding: 6px 28px 6px 9px;
+  background: #1c212b;
+  color: #f4f5f8;
+  font: inherit;
+  font-size: 12px;
+}
+
+.terminal-status {
+  display: inline-flex;
+  min-height: 25px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 9px;
+  background: #39404f;
+  color: #d6dae3;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.terminal-status-success {
+  background: #173d31;
+  color: #7ae0b8;
+}
+
+.terminal-status-reconnecting,
+.terminal-status-connecting,
+.terminal-status-creating {
+  background: #413b20;
+  color: #f3d36d;
+}
+
+.terminal-status-error {
+  background: #4d2529;
+  color: #ffabb2;
+}
+
+.terminal-button {
+  min-height: 30px;
+  border: 1px solid #665de0;
+  border-radius: 7px;
+  padding: 0 10px;
+  background: #6259d8;
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.terminal-button:hover:not(:disabled) {
+  background: #746ce2;
+}
+
+.terminal-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.terminal-button-secondary {
+  border-color: #4a5263;
+  background: #303745;
+  color: #dce0e8;
+}
+
+.terminal-button-danger {
+  border-color: #8d4850;
+  background: #6f343b;
+}
+
+.terminal-notice,
+.terminal-status-message {
+  padding: 8px 12px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.terminal-status-message {
+  border-bottom: 1px solid #313744;
+  color: #b7bdc9;
+}
+
+.terminal-notice-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #71373d;
+  background: #4d2529;
+  color: #ffbdc3;
+}
+
+.terminal-xterm-shell {
+  min-height: 160px;
+  overflow: hidden;
+  padding: 8px 6px 6px;
+  background: #171b23;
+}
+
+.terminal-xterm {
+  width: 100%;
+  height: 100%;
+  min-height: 146px;
+}
+
+.terminal-xterm .xterm {
+  height: 100%;
+}
+
+.terminal-xterm .xterm-viewport,
+.terminal-xterm .xterm-screen {
+  width: 100% !important;
+}
+
+@media (max-width: 720px) {
+  .terminal-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .terminal-target-control select {
+    flex: 1;
+  }
+
+  .terminal-toolbar-actions {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+}
+
 @media (max-width: 980px) {
   .workspace-shell {
     grid-template-columns: 220px 1fr;

@@ -6,6 +6,7 @@ import type {
   LoginLocationState,
   LoginReason,
 } from '../routing/loginNavigation'
+import { clearTerminalResumeState } from '../terminal/terminalResumeStorage'
 
 interface LoginRedirectProps {
   reason: LoginReason
@@ -18,6 +19,7 @@ export function LoginRedirect({ reason }: LoginRedirectProps) {
   const from = `${location.pathname}${location.search}`
 
   useEffect(() => {
+    clearTerminalResumeState()
     queryClient.clear()
 
     const state: LoginLocationState = {

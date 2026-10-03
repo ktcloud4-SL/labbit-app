@@ -32,6 +32,63 @@ export interface LabInstanceSummary {
   generation: number
 }
 
+export type WorkspaceFileKind = 'file' | 'directory'
+
+export interface WorkspaceFileEntry {
+  name: string
+  path: string
+  kind: WorkspaceFileKind
+}
+
+export interface WorkspaceFileTree {
+  path: string
+  items: WorkspaceFileEntry[]
+}
+
+export interface WorkspaceFileContent {
+  path: string
+  content: string
+}
+
+export interface WorkspaceFileSaved {
+  path: string
+}
+
+export interface VersionedWorkspaceFileContent {
+  file: WorkspaceFileContent
+  etag: string
+}
+
+export interface VersionedWorkspaceFileSaved {
+  file: WorkspaceFileSaved
+  etag: string
+}
+
+export interface TerminalTarget {
+  vmKey: string
+  role: string
+  instanceIndex: number
+}
+
+export interface TerminalTargetList {
+  generation: number
+  workspaceVmKey: string
+  items: TerminalTarget[]
+}
+
+export interface CreateTerminalSessionRequest {
+  targetVmKey: string
+  cols: number
+  rows: number
+}
+
+export interface TerminalSession {
+  id: ResourceId
+  generation: number
+  sessionToken: string
+  tokenExpiresAt: string
+}
+
 export interface ClassSummary {
   id: ResourceId
   name: string

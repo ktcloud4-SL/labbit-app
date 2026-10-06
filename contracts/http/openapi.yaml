@@ -1,7 +1,7 @@
 openapi: 3.1.2
 info:
   title: Labbit HTTP API
-  version: 0.1.4
+  version: 0.1.5
   description: |
     Labbit Browser ↔ SaaS HTTP 계약의 기계 판독 가능한 SSOT입니다.
 
@@ -38,6 +38,11 @@ tags:
     description: 본인 LabInstance의 Terminal 대상 VM 조회, TerminalSession 생성·종료와 Browser Terminal WSS attach token 발급
   - name: WorkspaceFiles
     description: 본인 LabInstance의 Workspace VM 파일 Tree 조회, UTF-8 text 파일 Read와 낙관적 동시성 Save
+  - name: PreviewSessions
+    description: |
+      본인 LabInstance의 Workspace VM application port로의 PreviewSession 생성·종료와, 사용자 코드가 실행되는
+      별도 Preview Origin의 Browser bootstrap·인증. PreviewSession 생성·종료는 이 API의 SaaS Origin(`/api/v1`)이고
+      bootstrap·인증은 Preview Origin입니다.
 
 paths:
   /auth/login:
@@ -823,6 +828,208 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
+  /lab-instances/{labInstanceId}/preview-sessions:
+    post:
+      tags: [PreviewSessions]
+      summary: 본인 Workspace VM application port에 PreviewSession 생성
+      operationId: createPreviewSession
+      description: |
+        현재 사용자가 소유한 LabInstance의 Workspace VM에서 실행 중인 application의 TCP port 하나에 대한 PreviewSession을 만들고,
+        사용자 코드가 실행되는 **SaaS 본 서비스 Origin과 분리된 Preview Origin**의 `previewUrl`을 발급합니다.
+
+        요청에는 `targetPort`만 있습니다. Browser는 VM, Connector, Provider Server, generation, private address를 선택하거나 알 필요가 없으며
+        서버가 LabExecution의 immutable CreationSnapshot의 `workspaceVmKey`와 현재 generation의 `PRESENT` `SERVER` ProviderResource로 대상 VM을
+        결정합니다. 응답과 `previewUrl`에는 VM IP/port, Provider Server ID, Connector ID가 없습니다.
+
+        다음을 모두 만족해야 PreviewSession을 만들 수 있고, 하나라도 맞지 않으면 어떤 side effect도 만들기 전에 거절합니다
+        (Connector에 어떤 Control/Data message도 보내지 않습니다).
+
+        - LabInstance가 현재 사용자의 것이며 같은 Organization에 속합니다(`403`). 강사나 Organization `ADMIN`도
+          다른 사용자의 LabInstance를 Preview할 수 없습니다.
+        - 사용자가 LabInstance가 속한 Class의 현재 ClassMembership(INSTRUCTOR 또는 STUDENT)을 가집니다(`403`).
+        - LabInstance status가 `READY`입니다(`409`, code `lab_instance_not_ready`).
+        - 현재 generation에 Workspace VM의 `PRESENT` `SERVER` ProviderResource가 정확히 하나 있습니다. 없으면 `409`,
+          code `workspace_target_unavailable`입니다. 저장된 CreationSnapshot이나 ProviderResource 관계가 모순이면 `500`입니다.
+        - `targetPort`가 Backend가 **명시적으로 설정한 허용 목록**(Runtime Contract `LABBIT_PREVIEW_ALLOWED_PORTS`)에 있습니다.
+          숫자 범위만으로 자동 승인하지 않으며 SSH 관리 port(`22`)는 허용 목록에 있어도 거절합니다(`403`, code `preview_port_not_allowed`).
+          허용 목록의 값 자체는 이 계약이 정하지 않으며 응답에도 노출하지 않습니다. 승인은 이 PreviewSession의 정확한 port 하나에 bind되며
+          Connector에는 승인한 port만 전달합니다.
+
+        PreviewSession 생성은 동기적으로 완료됩니다. 서버가 Connector에 TCP forwarding 준비를 요청하고 Connector의 Preview Data 채널이
+        실제로 연결된 것을 확인한 뒤에만 `201`을 반환합니다. 생성 도중 LabInstance의 generation이 바뀌었거나 `READY`를 벗어나면
+        성공으로 처리하지 않고 `409`(code `workspace_target_changed`)로 실패합니다. 생성에 실패하면 PreviewSession은 남지 않습니다.
+
+        생성 실패의 의미는 다음과 같습니다. 응답에 Connector나 SSH/provider 오류 원문은 포함하지 않습니다.
+
+        - `502` `preview_app_not_running`: Workspace VM에는 도달했지만 그 port에서 listen하는 application이 없습니다.
+        - `403` `preview_port_rejected`: Connector가 그 port의 forwarding을 거절했습니다.
+        - `504` `preview_target_unreachable`: Workspace VM 또는 SSH Connection에 도달할 수 없습니다.
+        - `504` `preview_open_timeout`: Connector가 시간 안에 준비를 끝내지 못했습니다.
+        - `503` `connector_unavailable`: Connector Control connection이 없습니다.
+        - `503` `preview_transport_unavailable`: 연결된 Connector가 Preview transport를 지원하지 않습니다.
+        - `503` `preview_open_failed`: 그 밖에 Connector가 PreviewSession을 열지 못했습니다.
+        - `503` `preview_unavailable`: 이 배포 구성이 Preview Gateway를 제공하지 않습니다.
+
+        `previewUrl`은 Preview Origin의 bootstrap 경로이며 **fragment에 일회용 bootstrap credential**을 포함합니다. credential은 이 응답에서만
+        원문으로 나가며 서버에는 digest만 남습니다. fragment는 HTTP request target, `Referer`, 서버·proxy access log에 전송되지 않습니다.
+        클라이언트는 `previewUrl`을 그대로 열기만 하며(새 탭 또는 iframe) credential을 URL query/path로 옮기거나 log·저장하지 않습니다.
+        Preview Origin이 credential을 교환해 Preview 전용 Cookie를 발급하는 절차는 `/__labbit/bootstrap`과 `/__labbit/exchange`를 따릅니다.
+        응답은 `Cache-Control: no-store`입니다.
+
+        PreviewSession은 서버 구성의 TTL 뒤 만료됩니다(`expiresAt`). 만료, 명시적 종료, Workspace tunnel 종료 뒤에는 Preview Origin의 모든 요청이
+        `401`입니다. PreviewSession은 process 안의 ephemeral 상태이며 서버 재시작 뒤 복구하지 않습니다.
+      parameters:
+        - $ref: '#/components/parameters/LabInstanceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePreviewSessionRequest'
+      responses:
+        '201':
+          description: PreviewSession이 만들어졌고 `previewUrl`을 열 수 있습니다.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreviewSession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /preview-sessions/{previewSessionId}:
+    delete:
+      tags: [PreviewSessions]
+      summary: PreviewSession 명시적 종료
+      operationId: closePreviewSession
+      description: |
+        사용자가 자신의 PreviewSession을 명시적으로 종료합니다. 즉시 Preview Origin의 Cookie 인증이 무효가 되고(이후 요청은 `401`)
+        열려 있는 Workspace tunnel이 닫힙니다.
+
+        이미 종료되었거나 만료된 PreviewSession에 대한 반복 요청도 `204`입니다(멱등). 서버가 기억하지 못하는 ID(알 수 없는 ID,
+        서버 재시작 뒤)는 `404`, 다른 사용자의 PreviewSession은 `403`입니다.
+
+        서버는 Connector에 TCP forwarding 종료(`PREVIEW_CLOSE`)를 요청합니다. Connector를 사용할 수 없어 전달하지 못해도
+        Labbit의 PreviewSession은 종료된 상태이며 이후 사용할 수 없습니다.
+      parameters:
+        - $ref: '#/components/parameters/PreviewSessionId'
+      responses:
+        '204':
+          description: PreviewSession이 종료되었습니다(이미 종료된 경우 포함).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /__labbit/bootstrap:
+    servers:
+      - url: 'https://{previewSessionId}.preview.example.invalid'
+        description: |
+          Preview Origin입니다. 실제 host는 서버 구성(`LABBIT_PREVIEW_ORIGIN_TEMPLATE`)이 정하며 `createPreviewSession`이 돌려준 `previewUrl`의
+          origin입니다. SaaS 본 서비스 Origin과 다르고 PreviewSession마다 다른 host입니다. `.invalid` host는 예시일 뿐입니다.
+        variables:
+          previewSessionId:
+            default: 00000000-0000-0000-0000-000000000000
+            description: PreviewSession의 ID가 host의 첫 label입니다.
+    get:
+      tags: [PreviewSessions]
+      summary: Preview Origin의 bootstrap 페이지
+      operationId: getPreviewBootstrap
+      security: []
+      description: |
+        `previewUrl`이 가리키는 페이지입니다. 모든 PreviewSession에 같은 정적 HTML이며 credential이나 사용자 정보를 담지 않습니다.
+        Browser JavaScript가 `location.hash`의 일회용 bootstrap credential을 읽어 fragment를 주소에서 지운 뒤
+        `POST /__labbit/exchange`로 교환하고, 성공하면 Workspace application의 `/`로 이동합니다.
+
+        Preview Origin은 이 두 경로(`/__labbit/` prefix)를 제외한 모든 요청을 Preview 전용 Cookie로 인증한 뒤 PreviewSession의
+        Workspace application으로 proxy합니다. `/__labbit/` prefix는 예약되어 Workspace application으로 전달하지 않습니다.
+
+        PreviewSession이 없거나 종료·만료되었으면 `401`입니다. 응답은 `Cache-Control: no-store`, `Referrer-Policy: no-referrer`이며
+        inline script를 제한하는 `Content-Security-Policy`를 포함합니다.
+      responses:
+        '200':
+          description: bootstrap 페이지입니다.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            text/html:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/PreviewUnauthorized'
+        '503':
+          $ref: '#/components/responses/PreviewUnavailable'
+
+  /__labbit/exchange:
+    servers:
+      - url: 'https://{previewSessionId}.preview.example.invalid'
+        description: Preview Origin입니다(`/__labbit/bootstrap`의 설명과 같음).
+        variables:
+          previewSessionId:
+            default: 00000000-0000-0000-0000-000000000000
+    post:
+      tags: [PreviewSessions]
+      summary: bootstrap credential을 Preview 전용 Cookie로 교환
+      operationId: exchangePreviewCredential
+      security: []
+      description: |
+        `previewUrl`의 fragment에 있던 일회용 bootstrap credential을 Preview Origin의 Preview 전용 Cookie로 교환합니다.
+        `Origin` header가 이 Preview Origin과 정확히 같아야 하며(다르면 `403` code `csrf_rejected`) 같은 Origin의 JavaScript만 호출할 수 있습니다.
+
+        credential은 암호학적으로 안전한 난수이고 **단 한 번만** 성공하며 짧은 시간(서버 구성, PreviewSession TTL보다 길지 않음) 안에
+        교환해야 합니다. 알 수 없거나 이미 사용했거나 만료된 credential, 종료·만료된 PreviewSession은 모두 같은 `401`입니다. 서버에는
+        credential의 digest만 있고 성공하면 즉시 무효가 됩니다. credential은 URL query/path에 넣지 않으며 request body로만 전달합니다.
+
+        성공하면 `204`이고 `previewCookie`를 발급합니다. 이 Cookie는 Preview Origin 전용이고 Workspace application으로 전달되지 않으며
+        PreviewSession이 만료·종료되면 서버에서 즉시 무효가 됩니다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreviewExchangeRequest'
+      responses:
+        '204':
+          description: credential을 교환했고 Preview 전용 Cookie를 발급했습니다.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/PreviewSetCookie'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/PreviewUnauthorized'
+        '403':
+          $ref: '#/components/responses/CsrfRejected'
+        '503':
+          $ref: '#/components/responses/PreviewUnavailable'
+
   /operations/{operationId}:
     get:
       tags: [Operations]
@@ -879,6 +1086,26 @@ components:
         Origin이 없는 경우 Referer의 origin을 fallback으로 확인하며
         둘 다 없거나 일치하지 않으면 403으로 거절합니다.
         구체 구현 기준은 docs/backend/auth-session.md를 따릅니다.
+    previewCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-labbit-preview
+      description: |
+        **Preview Origin(SaaS 본 서비스 Origin과 다른 host)에서만** 쓰는 Preview 전용 Cookie입니다. 로그인 Session Cookie와 별개이며
+        SaaS 본 서비스 Origin의 인증에 쓰이지 않습니다. 이 API의 `/api/v1` 경로에는 적용되지 않습니다.
+
+        `POST /__labbit/exchange`가 일회용 bootstrap credential을 교환할 때 발급하며 값은 CSPRNG가 만든 32 bytes의 padding 없는
+        Base64URL 문자열입니다. 서버는 원문을 저장하지 않고 SHA-256 digest만 보관하고 constant time으로 비교합니다.
+
+        속성은 HttpOnly, Path=/, SameSite=Lax이며 **Domain을 지정하지 않는** host-only Cookie입니다. HTTPS Preview Origin(production 필수)에서는
+        Secure이고 이름이 `__Host-labbit-preview`입니다. 개발용 HTTP Preview Origin에서만 `__Host-` prefix를 쓸 수 없으므로
+        `labbit-preview`이고 Secure가 아닙니다. 만료 시각은 PreviewSession의 `expiresAt`이며 서버가 PreviewSession의 만료·종료를 즉시 반영합니다.
+        Cookie 값만으로 인증하지 않고 매 요청마다 PreviewSession의 상태(활성, 만료 전)와 digest를 확인합니다.
+
+        Preview Origin의 Gateway는 이 Cookie와 로그인 Session Cookie를 Workspace application으로 전달하지 않습니다(Workspace application이 설정한
+        그 밖의 Cookie는 전달합니다). 사용자 코드가 설정하는 Cookie의 `Domain` attribute는 제거해 PreviewSession마다 host-only로 유지합니다.
+        Preview Origin을 SaaS 본 서비스 Origin과 same-site로 두거나 새 탭으로 열 때 Cookie가 전송됩니다. cross-site iframe 삽입에는
+        `SameSite=None; Partitioned`가 필요하며 이 계약은 지원하지 않습니다.
 
   parameters:
     ClassId:
@@ -926,6 +1153,14 @@ components:
       in: path
       required: true
       description: 종료할 TerminalSession의 opaque ID입니다.
+      schema:
+        $ref: '#/components/schemas/ResourceId'
+
+    PreviewSessionId:
+      name: previewSessionId
+      in: path
+      required: true
+      description: 종료할 PreviewSession의 opaque ID입니다.
       schema:
         $ref: '#/components/schemas/ResourceId'
 
@@ -1013,6 +1248,11 @@ components:
       schema:
         type: string
 
+    PreviewSetCookie:
+      description: '새 opaque token으로 HttpOnly; SameSite=Lax; Path=/, Domain 미지정의 Preview 전용 Cookie를 발급합니다(HTTPS Preview Origin에서는 Secure, 이름 `__Host-labbit-preview`).'
+      schema:
+        type: string
+
     ETag:
       description: 조건부 수정에 사용하는 opaque 엔터티 버전 값입니다.
       schema:
@@ -1035,6 +1275,8 @@ components:
 
         Workspace file API에서는 code `invalid_request`(query/body 형식 오류, 필수 `path` 누락, `path` 중복), `invalid_path`(경로 규칙 위반),
         `if_match_required`, `invalid_if_match`입니다.
+
+        PreviewSession 생성과 bootstrap 교환에서는 code `invalid_request`(body 형식 오류, `targetPort`가 1~65535의 정수가 아님 등)입니다.
       content:
         application/problem+json:
           schema:
@@ -1052,13 +1294,18 @@ components:
         인증은 되었지만 이 리소스나 동작에 필요한 권한이 없습니다.
 
         Workspace file API에서 Workspace VM 파일 시스템이 접근을 거절한 경우는 Labbit 권한 판정과 구분해 code `file_permission_denied`입니다.
+
+        PreviewSession 생성에서 Labbit 권한 판정은 code `forbidden`, Backend 허용 목록에 없거나 SSH 관리 port인 `targetPort`는 code `preview_port_not_allowed`,
+        Connector가 그 port의 forwarding을 거절한 경우는 code `preview_port_rejected`입니다.
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
 
     CsrfRejected:
-      description: Browser unsafe-method 요청의 Origin/Referer가 trusted public origin과 일치하지 않아 요청을 거절했습니다.
+      description: |
+        Browser unsafe-method 요청의 Origin/Referer가 trusted public origin과 일치하지 않아 요청을 거절했습니다.
+        Preview Origin의 `POST /__labbit/exchange`에서는 `Origin`이 그 Preview Origin과 정확히 같지 않은 경우입니다.
       content:
         application/problem+json:
           schema:
@@ -1087,6 +1334,9 @@ components:
         - LabInstance가 아직 `READY`가 아니라 Workspace file Tree/Read/Save를 할 수 없음(code `lab_instance_not_ready`)
         - 현재 generation에 Workspace VM의 `PRESENT` `SERVER` ProviderResource가 없어 file API를 사용할 수 없음(code `workspace_target_unavailable`)
         - file 요청을 처리하는 동안 Workspace VM의 generation이 바뀌었거나 LabInstance가 `READY`를 벗어나 결과를 성공으로 처리하지 않음(code `workspace_target_changed`)
+        - LabInstance가 아직 `READY`가 아니라 PreviewSession을 만들 수 없음(code `lab_instance_not_ready`)
+        - 현재 generation에 Workspace VM의 `PRESENT` `SERVER` ProviderResource가 없어 PreviewSession을 만들 수 없음(code `workspace_target_unavailable`)
+        - PreviewSession을 만드는 동안 Workspace VM의 generation이 바뀌었거나 LabInstance가 `READY`를 벗어나 성공으로 처리하지 않음(code `workspace_target_changed`)
       content:
         application/problem+json:
           schema:
@@ -1128,10 +1378,49 @@ components:
         (Connector가 File transport를 지원하지 않거나 시간 안에 응답하지 않거나 Workspace VM/SFTP를 사용할 수 없음),
         `file_save_outcome_unknown`(Save 요청을 보낸 뒤 결과를 받지 못해 저장 여부를 알 수 없음)입니다. 응답에 Connector나 SSH/SFTP
         오류 원문은 포함하지 않습니다.
+
+        PreviewSession 생성/종료에서는 code `connector_unavailable`(Connector Control connection 없음), `preview_transport_unavailable`(Connector가
+        Preview transport를 지원하지 않음), `preview_open_failed`(Connector가 PreviewSession을 열지 못함), `preview_unavailable`(이 배포 구성이
+        Preview Gateway를 제공하지 않음)입니다.
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
+
+    BadGateway:
+      description: |
+        PreviewSession 생성에서 Workspace VM에는 도달했지만 요청한 port에서 listen하는 application이 없습니다(code `preview_app_not_running`).
+        응답에 Connector나 SSH 오류 원문은 포함하지 않습니다.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+    GatewayTimeout:
+      description: |
+        PreviewSession 생성에서 Workspace VM 또는 SSH Connection에 도달할 수 없습니다(code `preview_target_unreachable`).
+        Connector가 시간 안에 PreviewSession을 열지 못한 경우는 code `preview_open_timeout`입니다.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+    PreviewUnauthorized:
+      description: |
+        Preview Origin에서 인증되지 않았습니다. credential/Cookie가 없거나 유효하지 않거나, 이미 사용한 bootstrap credential이거나,
+        PreviewSession이 없거나 종료·만료되었습니다(code `preview_unauthenticated`). 이유를 구분하지 않으며 응답은 Workspace application의
+        응답이 아닙니다. Preview Origin의 오류 응답은 `PreviewGatewayProblem`입니다.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/PreviewGatewayProblem'
+
+    PreviewUnavailable:
+      description: Preview Gateway가 종료 중이거나 사용할 수 없습니다(code `preview_unavailable`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/PreviewGatewayProblem'
 
     InternalServerError:
       description: |
@@ -1718,6 +2007,96 @@ components:
           type: string
           format: date-time
           description: '`sessionToken`의 절대 만료 시각입니다.'
+
+    CreatePreviewSessionRequest:
+      type: object
+      description: |
+        PreviewSession을 만들 Workspace VM application의 TCP port입니다.
+        VM, Provider Server ID, Connector ID, generation, private address는 받지 않습니다. 서버가 현재 상태에서 결정합니다.
+      required: [targetPort]
+      additionalProperties: false
+      properties:
+        targetPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: |
+            Preview할 application이 listen하는 TCP port입니다. 서버는 Backend가 명시적으로 설정한 허용 목록에 이 값이 있을 때만
+            승인하며(그렇지 않으면 `403` `preview_port_not_allowed`) 이 계약이 어떤 port를 기본값으로 정하지 않습니다.
+            SSH 관리 port(`22`)는 항상 거절합니다.
+
+    PreviewSession:
+      type: object
+      description: |
+        만들어진 PreviewSession과 Preview Origin의 `previewUrl`입니다. VM IP/port, Provider Server ID, Connector ID를 포함하지 않습니다.
+      required: [id, targetPort, previewUrl, expiresAt]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+        targetPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: 서버가 승인한 정확한 application TCP port입니다. 요청한 `targetPort`와 같습니다.
+        previewUrl:
+          type: string
+          format: uri
+          description: |
+            Preview Origin의 bootstrap 경로(`/__labbit/bootstrap`)이며 **fragment**에 일회용 bootstrap credential이 있습니다.
+            host는 SaaS 본 서비스 Origin과 다르고 PreviewSession마다 다릅니다. 클라이언트는 이 URL을 그대로 열기만 하며(새 탭 또는 iframe)
+            fragment를 파싱하거나 query/path로 옮기거나 log·저장·analytics로 보내지 않습니다. 이 응답에서만 나가며 다시 조회할 수 없습니다.
+        expiresAt:
+          type: string
+          format: date-time
+          description: |
+            PreviewSession의 절대 만료 시각입니다. 서버 구성의 TTL(생성 완료 시점부터)이며 갱신하지 않습니다. 만료·종료 뒤 Preview Origin의
+            모든 요청은 `401`입니다. 만료 전에도 Workspace tunnel이 끝나면 즉시 사용할 수 없습니다.
+
+    PreviewExchangeRequest:
+      type: object
+      description: Preview Origin의 `POST /__labbit/exchange` 요청입니다.
+      required: [credential]
+      additionalProperties: false
+      properties:
+        credential:
+          type: string
+          minLength: 1
+          description: '`previewUrl`의 fragment에 있던 일회용 bootstrap credential입니다. URL query/path로 전달하지 않으며 log·저장하지 않습니다.'
+
+    PreviewGatewayProblem:
+      description: |
+        Preview Origin의 Gateway가 직접 만든 오류 응답입니다(Workspace application의 응답이 아닙니다). `ProblemDetails`와 같은 형식이며
+        `code`는 다음 값 중 하나이고 클라이언트는 `detail`을 parsing하지 않습니다. PreviewSession 생성의 오류 code와는 별개 집합입니다.
+
+        - `preview_unauthenticated`(`401`): Cookie/credential이 없거나 유효하지 않음, 이미 사용·만료된 bootstrap credential, 없거나 종료·만료된 PreviewSession
+        - `preview_tunnel_closed`(`502`): 요청을 처리하는 동안 Workspace tunnel이 닫힘(application이 연결을 닫음, Connector 단절, 종료). PreviewSession도 끝남
+        - `preview_upstream_error`(`502`): Workspace application의 응답을 HTTP/1.1로 해석할 수 없음
+        - `preview_upstream_timeout`(`504`): Workspace application이 서버 구성의 시간 안에 응답하지 않음
+        - `preview_upgrade_unsupported`(`501`): HTTP Upgrade(예: Workspace application의 WebSocket)는 MVP에서 지원하지 않음
+        - `method_not_allowed`(`405`): Gateway가 전달하지 않는 method(`CONNECT`, `TRACE`) 또는 예약 경로의 허용되지 않은 method
+        - `not_found`(`404`): 예약된 `/__labbit/` prefix의 알 수 없는 경로
+        - `invalid_request`(`400`): exchange 요청 body 형식 오류
+        - `csrf_rejected`(`403`): exchange 요청의 `Origin`이 Preview Origin과 다름
+        - `preview_unavailable`(`503`): Gateway가 종료 중이거나 사용할 수 없음
+
+        Workspace application이 보낸 `404`/`500` 같은 응답은 그대로 전달하며 Gateway의 오류로 바꾸지 않습니다.
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - preview_unauthenticated
+                - preview_tunnel_closed
+                - preview_upstream_error
+                - preview_upstream_timeout
+                - preview_upgrade_unsupported
+                - method_not_allowed
+                - not_found
+                - invalid_request
+                - csrf_rejected
+                - preview_unavailable
 
     WorkspaceFileTree:
       type: object

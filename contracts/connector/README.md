@@ -8,10 +8,12 @@
 - Terminal Data WSS JSON control frame: `terminal-data.schema.json`
 - Workspace File 요청 lifecycle Control 메시지: `file-control.schema.json`
 - Workspace File Data WSS JSON control frame: `file-data.schema.json`
+- PreviewSession lifecycle Control 메시지: `preview-control.schema.json`
+- Preview Data WSS JSON control frame(attach 핸드셰이크): `preview-data.schema.json`
 
-Terminal/Live의 Browser-facing 계약은 `contracts/realtime/README.md` + `terminal-live.schema.json`이 원본입니다.
+Terminal/Live의 Browser-facing 계약은 `contracts/realtime/README.md` + `terminal-live.schema.json`이 원본입니다. Preview의 Browser-facing 계약(PreviewSession HTTP, Preview Origin의 bootstrap/인증)은 `contracts/http/openapi.yaml`이 원본입니다.
 
-Terminal/Live INPUT/OUTPUT, Preview 본문, Workspace file 본문과 디렉터리 목록은 **persistent Control WSS에 싣지 않습니다.** Control에는 lifecycle/metadata만 전달하고 실제 PTY byte stream은 별도 Terminal Data WSS, Workspace file 내용은 요청별 File Data WSS를 사용합니다.
+Terminal/Live INPUT/OUTPUT, Preview 본문, Workspace file 본문과 디렉터리 목록은 **persistent Control WSS에 싣지 않습니다.** Control에는 lifecycle/metadata만 전달하고 실제 PTY byte stream은 별도 Terminal Data WSS, Workspace file 내용은 요청별 File Data WSS, Preview HTTP byte stream은 PreviewSession별 Preview Data WSS를 사용합니다.
 
 ## 1. Control 연결 경계
 
@@ -65,9 +67,10 @@ Control WSS의 JSON message validation은 다음 Schema 집합을 사용합니�
 connector.schema.json
 + terminal-control.schema.json
 + file-control.schema.json
++ preview-control.schema.json
 ```
 
-Terminal Data WSS는 별도 `terminal-data.schema.json`, File Data WSS는 별도 `file-data.schema.json`을 사용합니다.
+Terminal Data WSS는 별도 `terminal-data.schema.json`, File Data WSS는 별도 `file-data.schema.json`, Preview Data WSS는 별도 `preview-data.schema.json`을 사용합니다.
 
 ### Capability 협상
 
@@ -76,17 +79,18 @@ Terminal Data WSS는 별도 `terminal-data.schema.json`, File Data WSS는 별도
 | capability | 의미 |
 | --- | --- |
 | `file-v1` | [§7a](#7a-workspace-file-transport)의 Workspace File transport(`FILE_OPEN`/`FILE_OPEN_RESULT`/`FILE_CLOSE`와 File Data WSS)를 지원합니다. |
+| `preview-v1` | [§7b](#7b-preview-transport)의 Preview transport(`PREVIEW_OPEN`/`PREVIEW_OPEN_RESULT`/`PREVIEW_CLOSE`와 Preview Data WSS)를 지원합니다. |
 
-`file-v1`을 선언하지 않은 Connector에는 `FILE_OPEN`/`FILE_CLOSE`를 보내지 않으며, SaaS는 그 Workspace File 요청을 사용 불가(HTTP `503`)로 처리합니다.
+`file-v1`을 선언하지 않은 Connector에는 `FILE_OPEN`/`FILE_CLOSE`를 보내지 않으며, SaaS는 그 Workspace File 요청을 사용 불가(HTTP `503`)로 처리합니다. 같은 원칙으로 `preview-v1`을 선언하지 않은 Connector에는 `PREVIEW_OPEN`/`PREVIEW_CLOSE`를 보내지 않으며, SaaS는 그 PreviewSession 생성을 사용 불가(HTTP `503`)로 처리합니다.
 
 ### JSON Text application message 크기 제한
 
-Control WSS와 Terminal lifecycle/Data WSS, File lifecycle/Data WSS의 **JSON Text application message는 WebSocket fragmentation 재조립 후 최대 1 MiB(1,048,576 bytes)** 입니다. 이 제한은 JSON decode, Schema validation, 선택 Trace metadata 정상화보다 먼저 적용합니다.
+Control WSS와 Terminal lifecycle/Data WSS, File lifecycle/Data WSS, Preview lifecycle/Data WSS의 **JSON Text application message는 WebSocket fragmentation 재조립 후 최대 1 MiB(1,048,576 bytes)** 입니다. 이 제한은 JSON decode, Schema validation, 선택 Trace metadata 정상화보다 먼저 적용합니다.
 
 - 수신 구현은 read limit을 먼저 설정해 최대 크기를 넘는 JSON Text message 전체를 메모리에 무제한 적재하지 않습니다.
 - 1 MiB를 넘으면 해당 message를 파싱하거나 `traceparent`/`tracestate`를 제거해 계속 처리하지 않고 WebSocket close code **1009 (Message Too Big)** 로 연결을 종료할 수 있습니다. 별도 `ERROR` frame 전송은 요구하지 않습니다.
 - Schema의 `traceparent` 512자 / `tracestate` 1024자 제한은 이 전체 message guard를 통과한 뒤 적용되는 field 수준 검증입니다.
-- Terminal PTY Binary byte stream과 File Data WSS의 파일 본문 Binary frame은 이 JSON Text 한도의 대상이 아닙니다. Terminal Binary transport도 구현에서 bounded read/write를 사용하지만 별도 application payload 한도는 부하 테스트와 Runtime에서 검증합니다. File 본문 Binary frame의 크기는 요청 frame이 선언한 byte 수(Save의 `size`, Read의 `maxBytes`와 결과의 `size`)로 제한하며 선언과 다른 크기의 frame은 protocol 오류입니다.
+- Terminal PTY Binary byte stream, File Data WSS의 파일 본문 Binary frame, Preview Data WSS의 Binary byte stream은 이 JSON Text 한도의 대상이 아닙니다. Terminal Binary transport와 Preview Binary transport도 구현에서 bounded read/write를 사용하지만 별도 application payload 한도는 부하 테스트와 Runtime에서 검증합니다. Preview Binary frame 하나의 크기는 이 계약이 고정하지 않으며 한 frame이 byte stream의 임의 구간일 뿐 HTTP message 경계가 아닙니다. File 본문 Binary frame의 크기는 요청 frame이 선언한 byte 수(Save의 `size`, Read의 `maxBytes`와 결과의 `size`)로 제한하며 선언과 다른 크기의 frame은 protocol 오류입니다.
 
 이 한도를 넘는 정상 control payload가 필요해지면 v1 구현마다 임의 값을 키우지 않고 Connector 계약을 먼저 변경합니다.
 
@@ -289,6 +293,103 @@ attach 뒤에는 각 방향으로 frame이 정확히 이 순서로 오갑니다.
 
 파일 본문, 디렉터리 목록, 경로를 persistent Control WSS, PostgreSQL, 구조화 log, trace, metric label에 남기지 않습니다. 허용되는 관측 metadata는 `fileRequestId`, `requestId`, `labInstanceId`, `connectorId`, `generation`, 작업 종류(`operation`), 안전한 `error_code`, `duration_ms`입니다.
 
+## 7b. Preview transport
+
+Browser가 Workspace VM의 private IP/Port에 직접 접근하지 않고, 사용자 코드가 실행되는 **별도 Preview Origin**의 SaaS Preview Gateway가 Connector를 거쳐 Workspace VM SSH Connection의 TCP forwarding Channel로 허용된 application port에만 접근하는 경계입니다(D-18). 이 절은 SaaS ↔ Connector 구간의 wire만 정하며 Browser-facing PreviewSession HTTP와 Preview Origin의 인증은 `contracts/http/openapi.yaml`이, 실제 SSH TCP forwarding·VM 관리 주소 조회·Connector의 outbound Preview WSS 구현은 Connector 구현(CC-03 `LBT-23`, OP-03 `LBT-24`)이 닫습니다. 실제 Workspace VM 왕복 검증은 C3(`LBT-25`)입니다.
+
+Control에는 PreviewSession의 lifecycle/correlation과 승인된 target만 싣고, Preview HTTP 요청/응답 본문·경로·query·Cookie·header는 별도의 **Preview Data WSS**의 Binary byte stream으로만 전달합니다. MVP에서 **PreviewSession 하나는 Preview Data WSS 하나, 즉 Workspace VM application port로의 TCP 연결 하나**이며 여러 PreviewSession이나 여러 TCP 연결을 하나의 Data WSS에 multiplex하지 않습니다.
+
+```text
+PreviewSession 생성 (HTTP)
+  → SaaS: 권한 검증, Workspace VM 결정, Backend 허용 목록에 대한 targetPort 승인
+  → Control:  PREVIEW_OPEN           (SaaS → Connector)   lifecycle/correlation/승인된 target만
+  → Connector: Workspace VM의 targetPort로 TCP forwarding channel을 연다
+       열지 못함 → Control: PREVIEW_OPEN_RESULT FAILED {error.code}  (Data WSS를 열지 않음)
+  → Connector outbound Preview Data WSS 연결
+  → PREVIEW_ATTACH                   (Connector → SaaS)
+  → PREVIEW_ATTACHED                 (SaaS → Connector)
+  → Binary ↔ Binary                  (Preview HTTP byte stream)
+  → PREVIEW_CLOSE (Control) 또는 Data WSS 종료
+```
+
+```text
+wss://<saas-host>/connector/v1/preview-data
+Sec-WebSocket-Protocol: labbit.connector-preview.v1
+Authorization: Bearer <connector-credential>
+```
+
+### Control message
+
+`preview-control.schema.json`이 원본입니다. 모든 message는 `previewSessionId`(SaaS가 PreviewSession마다 발급하는 ID), `labInstanceId`, `generation`을 포함합니다.
+
+| Message | 방향 | 의미 |
+| --- | --- | --- |
+| `PREVIEW_OPEN` | SaaS → Connector | 권한 검증과 port 승인을 마친 resolved target(`targetVmKey`, `providerServerId`, `targetPort`)에 이 `previewSessionId`의 TCP forwarding channel과 Preview Data WSS를 열라는 요청. 경로·Cookie·본문은 싣지 않습니다. |
+| `PREVIEW_OPEN_RESULT` | Connector → SaaS | Connector가 이 PreviewSession을 열지 못하면(`FAILED`, `error.code`) 알립니다. `SUCCEEDED`는 TCP forwarding channel이 열렸고 Data WSS attach를 진행한다는 통지일 뿐이며 SaaS는 실제 Data WSS attach만 근거로 삼습니다. |
+| `PREVIEW_CLOSE` | SaaS → Connector | PreviewSession을 더 이상 유지하지 않음(명시적 종료, 만료, Reset/Cleanup, 생성 실패, 서비스 재시작). Connector는 TCP forwarding channel과 Data WSS를 정리합니다. idempotent이며 응답이 없습니다. |
+
+**Connector → SaaS의 별도 종료 통지 message(`PREVIEW_ENDED` 등)는 없습니다.** Preview Data WSS는 재접속하지 않는 TCP 연결 하나이므로(아래) tunnel의 종료는 Data WSS의 종료 자체로 표현되며, TerminalSession처럼 transport 단절과 세션 종료를 구분할 필요가 없습니다.
+
+`PREVIEW_OPEN`은 `labbit.connector.v1` Control에서 SaaS가 `preview-v1`을 선언한 protocol-ready Control connection으로만 보냅니다. Browser Session Cookie, Preview bootstrap credential, Preview Browser auth Cookie/token, Password, 사설 IP, SSH/OpenStack Credential은 Connector로 전달하지 않습니다. 같은 `previewSessionId`의 중복 `PREVIEW_OPEN`은 두 번째 tunnel을 만들지 않습니다. Connector는 SaaS가 보낸 `providerServerId`로 실제 Provider 상태와 관리 주소를 스스로 확인하며 Browser나 SaaS가 주장하는 VM IP를 신뢰하지 않습니다.
+
+### 허용 port
+
+`targetPort`는 Backend가 **명시적으로 설정한 허용 목록**(Runtime Contract `LABBIT_PREVIEW_ALLOWED_PORTS`)에 대해 SaaS가 PreviewSession마다 승인한 정확한 값 하나입니다. 숫자 범위로 자동 승인하지 않으며, 3000 같은 값도 기본값이 아닙니다. Connector는 SaaS의 승인을 대체하지 않는 심층 방어로 SSH 관리 port(`22`)를 거절하고 `PORT_REJECTED`로 실패시킵니다. Control이 승인한 `targetPort`와 다른 port를 forwarding하는 Data WSS attach는 거절됩니다.
+
+### `PREVIEW_OPEN_RESULT`의 error.code와 SaaS의 해석
+
+Connector는 Data WSS를 attach하기 **전에** TCP forwarding channel을 먼저 열고, 열지 못하면 attach하지 않고 `FAILED`로 알립니다. 그래야 PreviewSession이 "활성"인 시점에 application에 실제로 도달할 수 있음이 확인됩니다. 이 계약이 쓰는 `error.code`와 SaaS의 PreviewSession 생성 HTTP 결과는 다음과 같으며 알 수 없는 code는 `UNAVAILABLE`로 취급합니다.
+
+| `error.code` | 의미 | PreviewSession 생성 HTTP |
+| --- | --- | --- |
+| `APP_NOT_RUNNING` | Workspace VM에는 도달했지만 targetPort에서 listen하는 application이 없음(connection refused) | `502` `preview_app_not_running` |
+| `PORT_REJECTED` | Connector가 이 port를 forwarding하지 않음(예: SSH 관리 port) | `403` `preview_port_rejected` |
+| `VM_UNREACHABLE` | Workspace VM 또는 SSH Connection에 도달할 수 없음(시간 초과 포함) | `504` `preview_target_unreachable` |
+| `UNAVAILABLE`, `INTERNAL_ERROR` | 그 밖에 Connector가 열 수 없음 | `503` `preview_open_failed` |
+
+`error.message`에 Credential, Cookie, 경로, 응답 본문, SSH/provider raw 오류를 싣지 않습니다.
+
+### Preview Data WSS
+
+`preview-data.schema.json`이 원본입니다. Connector가 TCP forwarding channel을 연 뒤 위 endpoint에 outbound로 연결합니다. WSS Upgrade에서 SaaS가 Connector Credential을 인증하고(Connector identity는 이 인증 결과이며 message가 주장하는 값이 아닙니다), Connector는 첫 application message로 `PREVIEW_ATTACH`를 보냅니다.
+
+SaaS는 다음이 **모두** 기대한 값과 같을 때만 attach를 성립시킵니다. 하나라도 다르면 다른 PreviewSession으로 fallback하지 않고 그 connection만 거절(close `1008`)하며 기다리던 PreviewSession은 그대로 남습니다.
+
+- 인증된 Connector (`PREVIEW_OPEN`을 보낸 그 Connector)
+- 인증한 Credential이 `PREVIEW_OPEN`을 전달한 Control Session을 인증한 Credential과 같음 (Connector ID가 같다는 이유만으로 신뢰하지 않습니다)
+- `previewSessionId`, `labInstanceId`, `generation`
+- `payload.targetVmKey`, `payload.providerServerId`, `payload.targetPort` (Workspace VM과 승인된 port)
+
+attach가 성립하면 SaaS가 `PREVIEW_ATTACHED`를 보내고, **그 이후 양방향 모두 Binary frame의 raw byte stream만** 오갑니다.
+
+```text
+Gateway   → Connector : Workspace application으로 쓸 raw byte (HTTP request byte stream)
+Connector → Gateway   : Workspace application에서 읽은 raw byte (HTTP response byte stream)
+```
+
+- Binary frame 경계는 HTTP message, header, line 경계가 아닌 byte stream의 임의 구간입니다. SaaS도 Connector도 byte를 해석하지 않고 전달합니다.
+- attach 뒤의 JSON Text frame은 protocol 위반이며 SaaS는 연결을 `1008`로 종료합니다.
+- Connector는 TCP 연결이 끝나면(application이 연결을 닫거나 SSH channel이 끊김) 남은 byte를 모두 전달한 뒤 Data WSS를 정상 종료(`1000`)합니다. SaaS가 Data WSS를 종료하면 Connector는 TCP forwarding channel을 닫습니다.
+- Data WSS는 재접속하지 않습니다. **tunnel이 끝나면 그 PreviewSession도 끝납니다**(Browser는 새 PreviewSession을 만듭니다). 같은 PreviewSession에 새 Data WSS를 attach하거나 이전 연결의 byte를 이어 붙이지 않습니다.
+
+### 수명, 취소, 정리
+
+- `PREVIEW_OPEN`을 보낸 뒤 `PREVIEW_OPEN_RESULT=FAILED`가 오거나, attach가 시간 안에 오지 않거나, HTTP 요청이 취소되거나, `PREVIEW_OPEN` 전송 결과가 불명확하면 SaaS는 그 PreviewSession의 상태를 지우고 Data WSS를 닫은 뒤 `PREVIEW_CLOSE`를 보냅니다(보낼 수 있고 Connector가 `FAILED`를 이미 알리지 않은 경우). 이미 정리된 PreviewSession의 늦은 attach는 어떤 PreviewSession에도 연결되지 않으며 연결은 종료됩니다.
+- PreviewSession은 만료 시각을 가집니다. 명시적 종료, 만료, Reset/Cleanup, SaaS 종료에서는 Data WSS를 닫고 `PREVIEW_CLOSE`를 보냅니다. Connector가 알린 종료(Data WSS 종료)와 Credential revoke·Control Session 교체는 Connector가 이미 알고 있거나 보낼 수 없으므로 `PREVIEW_CLOSE`를 따로 보내지 않을 수 있고, 그래서 Connector는 `PREVIEW_CLOSE`뿐 아니라 Data WSS 종료로도 TCP forwarding channel을 정리해야 합니다.
+- Connector Credential이 revoke되면 §2에 따라 그 Credential로 인증된 Preview Data WSS도 close `4001`로 종료하고 해당 PreviewSession(attach를 기다리는 것 포함)을 끝냅니다. 같은 Credential의 새 Upgrade는 `401`입니다.
+- Connector의 새 Control connection이 기존 Control connection을 대체하면(§4, close `4002`) SaaS는 이전 Control Session으로 `PREVIEW_OPEN`을 보낸 PreviewSession을 trust 대상에서 제외합니다. attach를 기다리던 PreviewSession은 정리하고 이미 attach된 tunnel은 close `4002`로 종료합니다. 이전 Data WSS는 새 Control Session의 PreviewSession을 완료시키지 못하며 Connector ID가 같다는 이유로 다시 신뢰하지 않습니다.
+- 서로 다른 PreviewSession은 서로 다른 `previewSessionId`와 Data WSS를 가지므로 한 Connector에 동시에 여러 PreviewSession이 있어도 서로 섞이지 않습니다. 이 상태는 SaaS process 안의 ephemeral 상태이며 PostgreSQL에 저장하지 않습니다.
+- v0.1은 `PREVIEW_OPEN`을 보낸 SaaS process가 Data WSS와 Browser Preview 요청도 받는다고 가정합니다(같은 process의 `api`와 `preview` role). multi-replica owner routing은 이 계약이 제공하지 않습니다.
+
+### MVP 범위의 한계 (보장하지 않는 것)
+
+- HTTP/2 upstream, Workspace application의 WebSocket upgrade, SSE 완전 지원, 임의 TCP multiplexing, PreviewSession당 여러 upstream TCP 연결은 보장하지 않습니다.
+- application이 응답마다 TCP 연결을 닫으면(`Connection: close`, HTTP/1.0 서버, 짧은 keep-alive timeout) tunnel과 PreviewSession이 끝납니다. 일반 Web application과의 호환성은 C3(`LBT-25`)에서 검증하며 필요하면 `PREVIEW_OPEN`에 optional field를 추가하는 v1 호환 방식으로 확장합니다.
+
+### 민감정보
+
+Preview HTTP 요청/응답 본문, 경로, query, Cookie, Authorization header를 persistent Control WSS, PostgreSQL, 구조화 log, trace, metric label에 남기지 않습니다. 허용되는 관측 metadata는 `previewSessionId`, `requestId`, `labInstanceId`, `connectorId`, `generation`, 안전한 `error_code`, `duration_ms`입니다. `previewSessionId` 같은 고유 식별자를 Prometheus label로 쓰지 않습니다.
+
 ## 8. Live와 Connector의 경계
 
 Connector는 학생별 Live connection을 알 필요가 없습니다.
@@ -319,6 +420,7 @@ Live fan-out, STUDENT 권한, 학생별 bounded Queue, slow consumer 처리는 �
 - `generation`: Provider Resource 세대
 - `terminalSessionId`: PTY/TerminalSession lifecycle correlation
 - `fileRequestId`: Workspace File 요청 하나(File Data WSS 하나)의 lifecycle correlation
+- `previewSessionId`: PreviewSession 하나(Preview Data WSS 하나, TCP 연결 하나)의 lifecycle correlation
 - `requestId`: 원본 HTTP control request와 연결 가능한 경우
 - `traceparent` / `tracestate`: W3C Trace Context
 
@@ -416,6 +518,7 @@ UNKNOWN
 - Provider raw request/response
 - Terminal/Live INPUT/OUTPUT 본문
 - Workspace file 본문, 디렉터리 목록, 경로, SSH/SFTP raw 오류
+- Preview bootstrap credential, Preview Browser auth Cookie/token, Preview HTTP 요청/응답 본문·경로·query·Cookie
 
 중앙에서는 Heartbeat, version, reconnect, Operation stage/result, Terminal lifecycle, `error_code`, duration 같은 운영 metadata를 관측하고 필요하면 같은 correlation ID로 Connector 로컬 구조화 로그를 대조합니다.
 
@@ -433,6 +536,8 @@ persistent Control connection의 v1 application close code는 다음을 사용�
 | `4004` | 복구 불가능한 protocol message 오류 |
 
 File Data WSS는 정상 완료 `1000`, protocol 위반·correlation 불일치 `1008`, 메시지 크기 초과 `1009`, Connector Credential revoke `4001`을 사용합니다([§7a](#7a-workspace-file-transport)).
+
+Preview Data WSS는 정상 종료 `1000`(PreviewSession 종료 또는 TCP 연결 종료), SaaS 종료 `1001`, protocol 위반·attach 거절·correlation 불일치 `1008`, 메시지 크기 초과 `1009`, Connector Credential revoke `4001`, 이 PreviewSession에 `PREVIEW_OPEN`을 전달한 Control Session의 교체 `4002`를 사용합니다([§7b](#7b-preview-transport)).
 
 Terminal Data WSS의 Session 종료 의미는 `terminal-data.schema.json`과 Browser realtime 계약을 따릅니다. 다만 Connector Credential revoke로 Data WSS를 종료할 때는 위 `4001`을 같은 의미로 사용합니다([Data WSS와 Credential revoke](#data-wss와-credential-revoke)).
 
@@ -454,6 +559,12 @@ Terminal Data WSS의 Session 종료 의미는 `terminal-data.schema.json`과 Bro
 - 동시에 진행되는 Workspace File 요청이 서로 섞이지 않으며, 취소·시간 초과·연결 단절 뒤 pending 상태가 남지 않습니다.
 - Save 결과를 받지 못해도 `FILE_SAVE`를 자동으로 다시 보내지 않습니다.
 - Workspace file 본문, 디렉터리 목록, 경로가 Control WSS, PostgreSQL, log, trace, metric label에 남지 않습니다.
+- `preview-v1`을 선언하지 않은 Connector에는 `PREVIEW_OPEN`/`PREVIEW_CLOSE`를 보내지 않고 그 PreviewSession 생성은 사용 불가로 처리합니다. 버전 문자열로 capability를 추론하지 않습니다.
+- PreviewSession마다 독립 Preview Data WSS를 열고, 인증된 Connector·Credential·`previewSessionId`·`labInstanceId`·`generation`·Workspace VM 식별·승인된 `targetPort`가 하나라도 다른 attach는 다른 PreviewSession을 완료시키지 않습니다.
+- Control이 승인한 `targetPort`와 다른 port의 attach, SSH 관리 port(`22`)는 PreviewSession이 되지 않습니다.
+- Credential revoke와 Control Session 교체 뒤 이전 Preview Data WSS가 trust 대상으로 남지 않고, attach를 기다리던 PreviewSession과 진행 중인 tunnel이 정리됩니다.
+- 취소·시간 초과·`PREVIEW_OPEN_RESULT=FAILED`·연결 단절·shutdown 뒤 pending PreviewSession과 Preview Data WSS가 남지 않습니다.
+- Preview HTTP 본문, 경로, query, Cookie, bootstrap/auth credential이 Control WSS, PostgreSQL, log, trace, metric label에 남지 않습니다.
 - 각 JSON Schema 정상/비정상 message validation이 동작합니다.
 - 명령별 유효한 Trace Context가 ACK/PROGRESS/RESULT에 유지되고 병렬 item/다른 generation과 섞이지 않습니다.
 - 1 MiB 이하의 message에서 Context 없음/잘못된 타입·길이·W3C 값, 잘못된 tracestate만 존재하는 경우에도 정상 업무 Envelope는 처리됩니다. 전체 JSON Text message 한도 초과, 인증·업무 필드 오류는 계속 거부합니다.

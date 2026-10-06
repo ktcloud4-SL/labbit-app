@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labbit.local/contracts/connector/preview-data.schema.json",
+  "title": "Labbit Connector Preview Data WSS Contract v0.1",
+  "description": "SaaS Preview Gateway와 고객 환경 Connector 사이의 Preview Data WebSocket JSON control frame 계약입니다. Preview Data WSS 하나는 PreviewSession 하나, 즉 Workspace VM application port로의 TCP 연결 하나(tunnel)입니다. JSON frame은 attach 핸드셰이크 두 개뿐이며(PREVIEW_ATTACH, PREVIEW_ATTACHED), PREVIEW_ATTACHED 이후에는 양방향 모두 WebSocket Binary frame의 raw byte stream만 오갑니다. Preview HTTP 요청/응답 본문, 경로, query, Cookie, header는 persistent Control WSS(connector.schema.json, preview-control.schema.json)에 싣지 않습니다.",
+  "oneOf": [
+    { "$ref": "#/$defs/PreviewAttachMessage" },
+    { "$ref": "#/$defs/PreviewAttachedMessage" }
+  ],
+  "$defs": {
+    "ResourceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "MessageId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "BaseEnvelope": {
+      "type": "object",
+      "required": ["type", "messageId", "sentAt", "previewSessionId", "labInstanceId", "generation", "payload"],
+      "properties": {
+        "type": { "type": "string" },
+        "messageId": { "$ref": "#/$defs/MessageId" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "replyToMessageId": { "$ref": "#/$defs/MessageId" },
+        "previewSessionId": {
+          "$ref": "#/$defs/ResourceId",
+          "description": "PREVIEW_OPEN이 알려 준 PreviewSession ID입니다. 이 Data WSS에 bind된 PreviewSession과 모든 frame에서 같아야 합니다."
+        },
+        "labInstanceId": { "$ref": "#/$defs/ResourceId" },
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "traceparent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "tracestate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "payload": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "AttachPayload": {
+      "type": "object",
+      "required": ["runtimeId", "targetVmKey", "providerServerId", "targetPort"],
+      "properties": {
+        "runtimeId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "현재 Connector 프로세스 실행 인스턴스 ID입니다. Connector identity는 WSS Upgrade의 Connector Credential에서 결정합니다."
+        },
+        "targetVmKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "PREVIEW_OPEN이 알려 준 Workspace VM의 논리 키입니다. SaaS가 기대한 값과 같아야 attach가 성립합니다."
+        },
+        "providerServerId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "PREVIEW_OPEN이 알려 준 현재 generation의 Workspace VM Server ID입니다. SaaS가 기대한 값과 같아야 attach가 성립합니다."
+        },
+        "targetPort": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "PREVIEW_OPEN이 알려 준, SaaS가 승인한 정확한 application TCP port이자 이 Data WSS가 실제로 forwarding하는 port입니다. SaaS가 승인한 값과 다르면 attach가 성립하지 않습니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "AttachedPayload": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "PreviewAttachMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "PREVIEW_ATTACH" },
+            "payload": { "$ref": "#/$defs/AttachPayload" }
+          }
+        }
+      ],
+      "description": "Connector → SaaS. WSS Upgrade 인증 후 첫 application message로 이 Preview Data WSS를 previewSessionId의 PreviewSession에 bind합니다. Connector는 Workspace VM targetPort로의 TCP forwarding channel을 먼저 연 뒤에만 이 message를 보냅니다. SaaS는 인증된 Connector identity와 Credential(PREVIEW_OPEN을 전달한 Control Session을 인증한 그 Credential), previewSessionId, labInstanceId, generation, targetVmKey, providerServerId, targetPort가 모두 기대한 값과 같을 때만 bind합니다."
+    },
+    "PreviewAttachedMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "replyToMessageId", "payload"],
+          "properties": {
+            "type": { "const": "PREVIEW_ATTACHED" },
+            "payload": { "$ref": "#/$defs/AttachedPayload" }
+          }
+        }
+      ],
+      "description": "SaaS → Connector. attach가 성립했음을 알립니다. replyToMessageId는 PREVIEW_ATTACH의 messageId입니다. 이 뒤로 양방향 모두 Binary frame의 raw byte stream만 오가며 JSON Text frame은 protocol 위반입니다(close 1008)."
+    }
+  }
+}

@@ -1,4 +1,4 @@
-version: "0.1.5"
+version: "0.1.6"
 kind: "LabbitRuntimeContract"
 
 scope:
@@ -142,6 +142,35 @@ saas:
         Production에서 우선 사용하는 입력입니다. 참조된 파일에는 플랫폼의 Secret injection
         mechanism이 제공한 PostgreSQL DSN이 들어 있습니다. 두 DSN 입력이 모두 설정되면
         file form을 우선합니다. PostgreSQL을 사용하지 않는 realtime/preview 전용 process에는 요구하지 않습니다.
+    LABBIT_PREVIEW_ALLOWED_PORTS:
+      required_when: "preview role이 enabled된 process"
+      secret: false
+      format: "comma-separated decimal TCP port list (예: 3000,8080)"
+      note: >-
+        PreviewSession이 승인할 수 있는 Workspace VM application port의 **Backend 명시적 허용 목록**입니다. 이 목록이 trust root이며
+        숫자 범위로 자동 승인하지 않고(범위 표기는 형식 오류) 코드에 기본 port를 두지 않습니다. 3000 같은 값도 기본값이 아닙니다.
+        설정하지 않았거나 비어 있으면 startup에 실패합니다(fail closed). 중복은 정규화하고 1~65535가 아닌 값·정수가 아닌 값은 형식 오류입니다.
+        SSH 관리 port(22)는 목록에 있어도 Preview 대상으로 항상 거절합니다. 이 값은 process 전체의 global 정책이며 LabSpec별 port 정책이
+        아닙니다(LabSpec/CreationSnapshot에는 Preview port 목록이 없음). 승인은 PreviewSession마다 정확한 port 하나에 bind됩니다.
+    LABBIT_PREVIEW_SESSION_TTL:
+      required_when: "preview role이 enabled된 process"
+      secret: false
+      format: "Go duration (0보다 큰 값)"
+      note: >-
+        PreviewSession의 절대 TTL(생성이 끝난 시점부터)입니다. 명시해야 하며 기본값이 없습니다. 0, 음수, 해석할 수 없는 값은 startup에 실패합니다.
+        이 계약은 수치를 고정하지 않습니다.
+    LABBIT_PREVIEW_ORIGIN_TEMPLATE:
+      required_when: "preview role이 enabled된 process"
+      secret: false
+      format: "absolute origin URL template (scheme + host + optional port, no path/query/fragment), host의 첫 label이 {sessionId}"
+      examples:
+        - "https://{sessionId}.preview.example.com"
+        - "http://{sessionId}.localhost:8080"
+      note: >-
+        사용자 코드가 실행되는 Preview Origin입니다. `{sessionId}` placeholder는 host의 첫 label로 정확히 한 번 있어야 하며 PreviewSession ID로 치환됩니다.
+        SaaS 본 서비스 Origin(LABBIT_PUBLIC_ORIGIN)과 달라야 하고 본 서비스 host가 이 template에 일치해서도 안 됩니다. production에서는 https여야 합니다.
+        Browser에 VM IP/port, Provider Server ID, Connector ID를 노출하지 않습니다. 이 예시 hostname은 실제 값이 아니며 wildcard DNS, 인증서,
+        Ingress/Gateway route, production hostname은 Platform/IaC가 소유합니다. request Host는 이 template에 일치할 때만 Preview Gateway로 갑니다.
     LABBIT_SHUTDOWN_GRACE:
       required_in_production: true
       secret: false
@@ -316,6 +345,67 @@ saas:
           Workspace file 크기 한도(HTTP 413)는 process 구성이며 이 contract가 수치를 고정하지 않습니다. 현재 구현은 보수적인 기본값을
           사용하고 테스트에서 주입할 수 있습니다. 이 값은 API compatibility guarantee가 아닙니다.
 
+  preview:
+    owner_roles:
+      gateway: "preview"
+      session_authority: "api"
+    endpoints:
+      browser_http:
+        base_path: "/api/v1/lab-instances/{labInstanceId}/preview-sessions"
+        contract: "contracts/http/openapi.yaml"
+      preview_origin:
+        host_template_env: "LABBIT_PREVIEW_ORIGIN_TEMPLATE"
+        reserved_prefix: "/__labbit/"
+        bootstrap_path: "/__labbit/bootstrap"
+        exchange_path: "/__labbit/exchange"
+        contract: "contracts/http/openapi.yaml"
+      connector_preview_data:
+        path: "/connector/v1/preview-data"
+        subprotocol: "labbit.connector-preview.v1"
+        contract: "contracts/connector/README.md#7b-preview-transport"
+    connector_capability: "preview-v1"
+    database_required: false
+    note: >-
+      PreviewSession 생성·종료와 DB-backed authority(현재 User, LabInstance 소유, 현재 ClassMembership, READY, CreationSnapshot, 현재 generation의
+      ProviderResource, Connector)는 `api` role이, Preview Origin의 Browser 인증·Gateway proxy·Connector Preview Data tunnel은 `preview` role이 소유합니다.
+      preview role 구현은 PostgreSQL을 application dependency로 요구하지 않으며 DB DSN 입력도 요구하지 않습니다. DB-backed authority는 preview 구현이
+      직접 조회하지 않고 process에 주입된 좁은 interface로만 사용합니다. PreviewSession(session/bootstrap/Cookie digest, tunnel)은 process 안의 ephemeral
+      상태이며 PostgreSQL이나 별도 PreviewSession table에 저장하지 않고 process 비정상 종료 뒤 복구하지 않습니다. Preview 본문·경로·query·Cookie는
+      persistent Control WSS, PostgreSQL, log, trace, metric label에 남기지 않습니다. Preview Origin은 같은 application listener(LABBIT_HTTP_ADDR)에서
+      Host로 구분해 제공합니다(SaaS 본 서비스 요청과 섞이지 않음).
+    v0_1_topology:
+      required_co_located_roles:
+        - api
+      authority_provider: >-
+        v0.1에서 위 authority는 같은 process에서 api role이 제공합니다. 따라서 Preview 기능이 동작하려면 preview role과 api role이 같은 process에서
+        함께 enabled되어야 합니다(예: LABBIT_RUNTIME_ROLES=api,preview). 이것은 v0.1의 제약이며 PreviewSession ownership을 api에 두기로 한 영구 결정이 아닙니다.
+      preview_without_api: >-
+        preview만 enabled된 process는 authority가 없으므로 Preview route를 제공하지 않고 /readyz가 실패합니다. 인증 없는 route를 열지 않으며 PostgreSQL DSN을
+        새로 요구하지도 않습니다.
+      api_without_preview: >-
+        api만 enabled된 process에는 Preview Gateway가 없으므로 PreviewSession 생성/종료 HTTP가 503(code preview_unavailable)입니다.
+      not_provided:
+        - "Redis/Valkey 등 distributed PreviewSession store"
+        - "별도 preview workload용 internal authorization RPC"
+        - "multi-replica PreviewSession owner routing과 session affinity"
+        - "Preview Origin wildcard DNS/TLS/Ingress 구현 (Platform/IaC 소유)"
+      note: >-
+        Connector Preview Data WSS와 Browser Preview 요청은 해당 PreviewSession의 PREVIEW_OPEN을 보낸 process에 도착해야 합니다. 여러 replica에서 이를
+        보장하는 routing은 후속 Platform/Runtime 결정 전까지 지원한다고 주장하지 않습니다.
+    limits:
+      session_ttl:
+        configurable: true
+        env: "LABBIT_PREVIEW_SESSION_TTL"
+        note: "수치는 process 구성이며 API compatibility guarantee가 아닙니다."
+      allowed_ports:
+        configurable: true
+        env: "LABBIT_PREVIEW_ALLOWED_PORTS"
+        note: "global Backend 정책이며 LabSpec별 정책이 아닙니다."
+      bootstrap_credential:
+        note: >-
+          일회용이며 짧은 시간 안에 교환해야 합니다. 구현의 보수적인 기본 시간이 있고 테스트에서 주입할 수 있으며 이 값은 계약 수치가 아닙니다.
+          PreviewSession TTL보다 길지 않습니다.
+
   shutdown:
     signals:
       - SIGTERM
@@ -348,6 +438,9 @@ saas:
       rules:
         - "종료 중인 instance에서 새 Preview connection/session을 받지 않습니다."
         - "가능하면 shutdown budget 안에서 active proxy connection을 drain합니다."
+        - >-
+          drain 시 active PreviewSession은 SERVICE_RESTARTING 사유로 종료하고 Connector에 PREVIEW_CLOSE를 보낸 뒤(Control connection이 열려 있는 동안)
+          Preview Data WSS와 진행 중인 proxy 요청을 끝냅니다. Preview 상태는 process 안의 ephemeral 상태이므로 복구하지 않습니다.
 
   observability:
     logs:

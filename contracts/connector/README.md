@@ -383,6 +383,13 @@ Connector에는 Nova/Neutron raw request를 그대로 전달하지 않습니다.
 
 Provision/Reset에서 사용하는 `creationSnapshot`은 D-19의 immutable resolved CreationSnapshot입니다.
 
+RESET은 `creationSnapshot`과 **비어 있지 않은 `providerResources`**를 요구합니다. 각 resource는 `resourceType`, `providerId`, `generation`과 **빈 문자열이 아닌 `logicalName`**을 포함해야 합니다. 정확한 필드 타입·required·길이 제약은 `connector.schema.json`이 원본입니다.
+
+- RESET 명령의 `generation`은 새로 만들 generation(2 이상)이며 각 resource는 정확히 그 이전 generation(`command.generation - 1`, 1 이상)이어야 합니다.
+- 필드 존재·목록 크기·문자열 길이는 JSON Schema로 검증합니다. 명령 generation과 resource generation의 관계는 envelope와 payload 사이의 의미 조건이므로 Backend outbound validator와 Connector inbound validator에서 별도로 검증합니다.
+- 리소스 목록 누락·빈 목록·logicalName 누락·빈 문자열·이전 generation 불일치는 기존 환경이 없다는 뜻으로 해석하거나 새 Provision으로 대체하지 않습니다. Backend는 wire 전송 전에 거절(`ErrInvalidCommand`)하고 Connector는 Provider dispatch 전에 거절(`INVALID_COMMAND` ACK)합니다.
+- 이 변경은 Confluence 결정 **D-26(최초 지원 배포 전 RESET 안전성 계약 정정)**에 따른 pre-release contract correction입니다. 지원 배포가 시작된 이후의 변경에는 기존 `labbit.connector.v1` compatibility/capability/versioning 원칙이 그대로 적용됩니다.
+
 Reset에서 최신 LabSpec이나 비슷한 최신 Image를 다시 선택하지 않습니다. 기존 generation을 파괴하기 전에 원본 Image/Flavor/Provider 연결 등 재현 가능성을 Preflight하고 재현 불가하면 기존 환경을 먼저 삭제하지 않습니다.
 
 ## 12. Result와 결과 불명

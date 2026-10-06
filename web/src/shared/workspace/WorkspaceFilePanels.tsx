@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
+import { useBlocker } from 'react-router-dom'
 
 import type {
   VersionedWorkspaceFileContent,
@@ -159,6 +160,10 @@ function WorkspaceFileEditor({
   const dirty = draft !== savedContent
 
   useEffect(() => {
+    onDirtyChange(false)
+  }, [onDirtyChange, versionedFile.etag, versionedFile.file.path])
+
+  useEffect(() => {
     if (!dirty) return
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -205,7 +210,6 @@ function WorkspaceFileEditor({
               className="workspace-file-action"
               type="button"
               onClick={() => {
-                onDirtyChange(false)
                 void onReload()
               }}
             >
@@ -265,7 +269,30 @@ export function WorkspaceFilePanels({
     queryFn: () => api.readWorkspaceFile(labInstanceId, selectedPath),
     enabled: Boolean(selectedFilePath),
     retry: false,
+    // 편집 중 자동 refetch가 Editor를 새 revision으로 remount해
+    // 저장되지 않은 draft를 조용히 잃지 않도록 수동 reload만 허용한다.
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
+
+  const navigationBlocker = useBlocker(
+    ({ nextLocation }) => editorDirty && nextLocation.pathname !== '/login',
+  )
+
+  useEffect(() => {
+    if (navigationBlocker.state !== 'blocked') return
+
+    if (
+      window.confirm(
+        '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 페이지를 이동할까요?',
+      )
+    ) {
+      navigationBlocker.proceed()
+      return
+    }
+
+    navigationBlocker.reset()
+  }, [navigationBlocker])
 
   const authExpired =
     (treeQuery.error instanceof HttpError && treeQuery.error.status === 401) ||
@@ -408,10 +435,7 @@ export function WorkspaceFilePanels({
             generation={generation}
             versionedFile={fileQuery.data}
             onDirtyChange={setEditorDirty}
-            onReload={async () => {
-              setEditorDirty(false)
-              return fileQuery.refetch()
-            }}
+            onReload={() => fileQuery.refetch()}
           />
         )}
       </section>

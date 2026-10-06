@@ -137,7 +137,7 @@ export function decideTerminalProtocolError(
     case 'CONNECTOR_UNAVAILABLE':
       return {
         message:
-          '실습 VM 연결 경로가 일시적으로 준비되지 않았습니다. 기존 세션으로 다시 연결합니다.',
+          '실습 VM 연결 경로가 일시적으로 준비되지 않았습니다. 현재 TerminalSession은 유지하고 연결 경로 복구를 기다립니다.',
       }
     case 'SLOW_CONSUMER':
       return {
@@ -168,7 +168,7 @@ export function decideTerminalProtocolError(
     case 'INTERNAL_ERROR':
       return {
         message:
-          '터미널 서비스에서 일시적인 오류가 발생했습니다. 기존 세션으로 다시 연결합니다.',
+          '터미널 서비스에서 일시적인 오류가 발생했습니다. 현재 연결 상태를 확인하고, 연결이 끊기면 기존 TerminalSession으로 다시 연결합니다.',
       }
     default:
       if (error.fatal) {
@@ -182,7 +182,7 @@ export function decideTerminalProtocolError(
       return {
         message:
           error.message ??
-          '터미널 연결 중 알 수 없는 오류가 발생했습니다. 기존 세션으로 다시 연결합니다.',
+          '터미널 연결 중 알 수 없는 오류가 발생했습니다. 현재 연결 상태를 확인해 주세요.',
       }
   }
 }

@@ -1,6 +1,7 @@
 package realtime_test
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -210,6 +211,17 @@ func TestConnectorControlEventsPropagateTraceContext(t *testing.T) {
 		t.Fatalf("attach 응답 = %v", attached)
 	}
 	requireTrace(t, "TERMINAL_DATA_ATTACHED", attached, tpSampled, tsValid)
+	requireControlLogTrace(t, e, "Connector Terminal Data attach", s.ID, traceIDHex)
+
+	// ERROR는 attach와 다른 control event다. 자신의 Trace만 log에 쓰고 error 본문은 기록하지 않는다.
+	dp.writeText(dataAttachMessage(t, s, map[string]any{
+		"type": "ERROR", "traceparent": tpUnsampled,
+		"payload": map[string]any{"code": "SSH_FAILED", "message": "PROVIDER-ERROR-BODY-MARKER"},
+	}))
+	requireControlLogTrace(t, e, "Connector Terminal Data ERROR 수신", s.ID, "0af7651916cd43dd8448eb211c80319c")
+	if strings.Contains(e.logs.String(), "PROVIDER-ERROR-BODY-MARKER") {
+		t.Fatal("Data ERROR log contains raw payload")
+	}
 
 	// 같은 connection의 두 번째 attach는 fatal ERROR이며 그 요청의 Trace를 돌려준다.
 	dp.writeText(dataAttachMessage(t, s, map[string]any{"messageId": "data-attach-2", "traceparent": tpUnsampled}))
@@ -218,6 +230,7 @@ func TestConnectorControlEventsPropagateTraceContext(t *testing.T) {
 		t.Fatalf("중복 attach 응답 = %v, want ERROR replyTo data-attach-2", rejected)
 	}
 	requireTrace(t, "중복 attach의 ERROR", rejected, tpUnsampled, "")
+	requireControlLogTrace(t, e, "Connector Terminal Data protocol 위반", s.ID, "0af7651916cd43dd8448eb211c80319c")
 
 	// 종료 통지: Control 호출의 ctx, Control이 받는 End, Browser의 종료 통지에 같은 Trace가 이어진다.
 	live, liveData := e.liveSession()
@@ -241,6 +254,28 @@ func TestConnectorControlEventsPropagateTraceContext(t *testing.T) {
 	}
 	if len(closed) != 0 {
 		t.Fatalf("Connector가 알린 종료에서 CloseSession이 호출됨: %v", closed)
+	}
+	requireControlLogTrace(t, e, "TerminalSession Relay 정리", live.ID, "0af7651916cd43dd8448eb211c80319c")
+}
+
+func requireControlLogTrace(t *testing.T, e *env, message, sessionID, traceID string) {
+	t.Helper()
+	var found map[string]any
+	eventually(t, "control log: "+message, func() bool {
+		for _, line := range strings.Split(strings.TrimSpace(e.logs.String()), "\n") {
+			var event map[string]any
+			if err := json.Unmarshal([]byte(line), &event); err != nil {
+				t.Fatal("control log is not JSON")
+			}
+			if event["message"] == message && event["terminal_session_id"] == sessionID {
+				found = event
+				return true
+			}
+		}
+		return false
+	})
+	if found["trace_id"] != traceID {
+		t.Fatal("control log lost its own normalized trace_id")
 	}
 }
 

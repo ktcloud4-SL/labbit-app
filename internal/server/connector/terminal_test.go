@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 )
 
 // terminalRecorder는 Router가 넘긴 TerminalSession event를 순서대로 기록한다.
@@ -168,6 +169,39 @@ func TestSendTerminalOpenPropagatesOnlyValidTrace(t *testing.T) {
 	}
 	if msg := decodeFrame(t, frames.last(t)); msg["traceparent"] != nil || msg["tracestate"] != nil {
 		t.Fatalf("유효하지 않은 Trace가 전달됨: %v", msg)
+	}
+	// 같은 connection의 다음 command가 앞선 Trace/request ID를 재사용하지 않는다.
+	open = openFor(p.ConnectorID, "s-none")
+	open.RequestID = ""
+	if _, err := f.router.SendTerminalOpen(context.Background(), open); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(f.logs.String()), "\n")
+	if len(lines) != 3 {
+		t.Fatalf("log event count = %d, want 3", len(lines))
+	}
+	for i, line := range lines {
+		event := decodeFrame(t, []byte(line))
+		if event["connector_id"] != p.ConnectorID.String() || event["lab_instance_id"] != "lab-1" {
+			t.Fatal("Terminal command log lacks known correlation")
+		}
+		if i == 0 {
+			if event["trace_id"] != "4bf92f3577b34da6a3ce929d0e0e4736" || event["request_id"] != "request-1" {
+				t.Fatal("Terminal command log lacks valid Trace/request ID")
+			}
+		} else if _, present := event["trace_id"]; present {
+			t.Fatal("Terminal command log invented or reused a trace_id")
+		}
+		if i == 2 {
+			if _, present := event["request_id"]; present {
+				t.Fatal("Terminal command log invented a request_id")
+			}
+		}
+	}
+	for _, raw := range []string{traceparent, "vendor=value", "not-a-traceparent", "x=y", "srv-1"} {
+		if strings.Contains(f.logs.String(), raw) {
+			t.Fatal("Terminal command log contains raw Trace or payload")
+		}
 	}
 }
 
@@ -449,6 +483,71 @@ func TestSendTerminalClose(t *testing.T) {
 	}
 	if msg := decodeFrame(t, frames.last(t)); msg["operationId"] != nil {
 		t.Fatalf("operationId가 비어 있을 때 전달됨: %v", msg)
+	}
+	for i, line := range strings.Split(strings.TrimSpace(f.logs.String()), "\n") {
+		event := decodeFrame(t, []byte(line))
+		if event["request_id"] != cl.RequestID {
+			t.Fatal("TERMINAL_CLOSE log lost request_id")
+		}
+		if i < 2 && event["operation_id"] != "op-1" {
+			t.Fatal("TERMINAL_CLOSE log lost supplied operation_id")
+		}
+		if i == 2 {
+			if _, present := event["operation_id"]; present {
+				t.Fatal("TERMINAL_CLOSE log invented operation_id")
+			}
+		}
+	}
+}
+
+// TERMINAL_CLOSE의 requestId는 wire와 log가 같은 effective 값을 쓴다.
+// 우선순위는 명시한 RequestID > context request ID > 없음이며, 없으면 requestId를 만들지 않는다.
+func TestSendTerminalCloseRequestIDWireAndLog(t *testing.T) {
+	tests := []struct {
+		name      string
+		explicit  string
+		ctxID     string
+		wantEmpty bool
+		want      string
+	}{
+		{name: "explicit", explicit: "request-1", want: "request-1"},
+		{name: "context fallback", ctxID: "http-request-1", want: "http-request-1"},
+		{name: "explicit wins over context", explicit: "request-1", ctxID: "http-request-1", want: "request-1"},
+		{name: "absent", wantEmpty: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := newTerminalFixture(t)
+			p := newPrincipal()
+			_, frames := f.connect(p)
+
+			ctx := context.Background()
+			if tt.ctxID != "" {
+				ctx = observability.ContextWithRequestID(ctx, tt.ctxID)
+			}
+			cl := TerminalClose{ConnectorID: p.ConnectorID, RequestID: tt.explicit, Correlation: terminalCorr("s1"), Reason: "SESSION_CLOSED"}
+			if _, err := f.router.SendTerminalClose(ctx, cl); err != nil {
+				t.Fatalf("SendTerminalClose() error = %v", err)
+			}
+
+			wire := decodeFrame(t, frames.last(t))
+			event := decodeFrame(t, []byte(strings.TrimSpace(f.logs.String())))
+			if tt.wantEmpty {
+				if _, present := wire["requestId"]; present {
+					t.Fatalf("wire requestId = %v, want absent", wire["requestId"])
+				}
+				if _, present := event["request_id"]; present {
+					t.Fatalf("log request_id = %v, want absent", event["request_id"])
+				}
+				return
+			}
+			if wire["requestId"] != tt.want {
+				t.Fatalf("wire requestId = %v, want %q", wire["requestId"], tt.want)
+			}
+			if event["request_id"] != tt.want {
+				t.Fatalf("log request_id = %v, want %q", event["request_id"], tt.want)
+			}
+		})
 	}
 }
 

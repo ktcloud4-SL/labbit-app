@@ -287,6 +287,13 @@ func TestConnectorOpenFailuresLeaveNoSession(t *testing.T) {
 			if got := len(e.connector.Opens()); got != tt.wantOpens {
 				t.Fatalf("Connector가 받은 TERMINAL_OPEN = %d, want %d", got, tt.wantOpens)
 			}
+			if tt.name == "connector reports FAILED" {
+				open := e.connector.Opens()[0]
+				requireLogFields(t, e.logEvent("Connector TERMINAL_OPEN 실패 보고", open.TerminalSessionID), map[string]any{
+					"connector_id": e.fixture.ConnectorID.String(), "lab_instance_id": open.LabInstanceID,
+					"request_id": open.RequestID, "error_code": "SSH_UNREACHABLE", "trace_id": nil,
+				})
+			}
 			if tt.wantClose {
 				eventually(t, "TERMINAL_CLOSE", 10*time.Second, func() bool { return len(e.connector.Closes()) == 1 })
 				if closeMsg := e.connector.Closes()[0]; closeMsg.Reason != "SESSION_CLOSED" || closeMsg.Generation != 1 {

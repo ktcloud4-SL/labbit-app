@@ -52,6 +52,7 @@ type Open struct {
 // Close는 Connector가 받은 TERMINAL_CLOSE다.
 type Close struct {
 	MessageID         string
+	RequestID         string
 	OperationID       string
 	TerminalSessionID string
 	LabInstanceID     string
@@ -228,7 +229,7 @@ func (c *Connector) controlLoop() {
 			}
 			_ = json.Unmarshal(msg.Payload, &p)
 			closeMsg := Close{
-				MessageID: msg.MessageID, OperationID: msg.OperationID, TerminalSessionID: msg.TerminalSessionID,
+				MessageID: msg.MessageID, RequestID: msg.RequestID, OperationID: msg.OperationID, TerminalSessionID: msg.TerminalSessionID,
 				LabInstanceID: msg.LabInstanceID, Generation: msg.Generation, Reason: p.Reason,
 			}
 			c.mu.Lock()

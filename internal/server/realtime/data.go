@@ -270,7 +270,7 @@ func (r *Relay) dataLoop(s *session, d *dataConn, ws *websocket.Conn) (ended boo
 		}
 		// 이 connection은 하나의 TerminalSession에만 bind되어 있다. 다른 session을 가리키는 message를 그 session에 연결하지 않는다.
 		if msg.TerminalSessionID != s.corr.TerminalSessionID || msg.LabInstanceID != s.corr.LabInstanceID || msg.Generation != s.corr.Generation {
-			s.log.Warn("Connector Terminal Data correlation 불일치", "message_type", msg.Type)
+			withTrace(s.log, msg.Trace).Warn("Connector Terminal Data correlation 불일치", "message_type", msg.Type)
 			d.p.closeWithError(dataError(s.corr, codeDataInvalidSession, "message does not match the bound terminal session", true, msg.MessageID, msg.Trace), closePolicy, "correlation mismatch")
 			return false
 		}
@@ -280,10 +280,10 @@ func (r *Relay) dataLoop(s *session, d *dataConn, ws *websocket.Conn) (ended boo
 			return true
 		case typeError:
 			// Connector의 ERROR는 업무 결과가 아니다. 안전한 code만 남기고 TerminalSession 상태는 바꾸지 않는다.
-			s.log.Warn("Connector Terminal Data ERROR 수신", "error_code", safeErrorCode(msg.ErrorCode))
+			withTrace(s.log, msg.Trace).Warn("Connector Terminal Data ERROR 수신", "error_code", safeErrorCode(msg.ErrorCode))
 		default:
 			// 두 번째 TERMINAL_DATA_ATTACH다.
-			s.log.Warn("Connector Terminal Data protocol 위반", "reason", "duplicate_attach")
+			withTrace(s.log, msg.Trace).Warn("Connector Terminal Data protocol 위반", "reason", "duplicate_attach")
 			d.p.closeWithError(dataError(s.corr, codeProtocolError, "protocol violation", true, msg.MessageID, msg.Trace), closePolicy, "protocol violation")
 			return false
 		}

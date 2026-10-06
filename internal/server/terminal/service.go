@@ -20,6 +20,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
@@ -276,8 +277,8 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 		"lab_instance_id", corr.LabInstanceID,
 		"connector_id", resolved.connectorID.String(),
 		"generation", corr.Generation,
-		"request_id", in.RequestID,
 	)
+	log = withControlCorrelation(log, in.RequestID, connector.TraceFromContext(ctx))
 
 	// 정리는 요청 context가 취소되어도 끝까지 수행한다.
 	abort := func(sentOpen bool) {
@@ -505,11 +506,17 @@ func (s *Service) HandleTerminalEvent(event connector.TerminalEvent) {
 	switch e := event.(type) {
 	case connector.TerminalOpenResultEvent:
 		// Router가 인증된 ConnectorID, terminalSessionId, labInstanceId, generation, replyToMessageId를 모두 대조했다.
+		log := withControlCorrelation(s.logger.With(
+			"connector_id", e.ConnectorID.String(),
+			"terminal_session_id", e.Correlation.TerminalSessionID,
+			"lab_instance_id", e.Correlation.LabInstanceID,
+			"generation", e.Correlation.Generation,
+		), e.RequestID, e.Trace)
 		if e.Payload.Error != nil {
-			s.logger.Warn("Connector TERMINAL_OPEN 실패 보고", "terminal_session_id", e.Correlation.TerminalSessionID, "error_code", safeCode(e.Payload.Error.Code))
+			log.Warn("Connector TERMINAL_OPEN 실패 보고", "error_code", safeCode(e.Payload.Error.Code))
 		}
 		if !s.notifyOpen(e.Correlation.TerminalSessionID, openOutcome{succeeded: e.Payload.Outcome == connector.TerminalOutcomeSucceeded}) {
-			s.logger.Debug("기다리는 Create가 없는 TERMINAL_OPEN_RESULT", "terminal_session_id", e.Correlation.TerminalSessionID)
+			log.Debug("기다리는 Create가 없는 TERMINAL_OPEN_RESULT")
 		}
 	case connector.TerminalEndedEvent:
 		s.spawn(func() { s.handleConnectorEnded(e) })
@@ -535,6 +542,7 @@ func (s *Service) handleConnectorEnded(e connector.TerminalEndedEvent) {
 		"lab_instance_id", e.Correlation.LabInstanceID,
 		"generation", e.Correlation.Generation,
 	)
+	log = withControlCorrelation(log, "", e.Trace)
 
 	id, ok := parseID(e.Correlation.TerminalSessionID)
 	if !ok {
@@ -647,6 +655,11 @@ func (s *Service) closeLifecycle(ctx context.Context, rec repository.TerminalSes
 		"lab_instance_id", rec.LabInstanceID.String(),
 		"generation", rec.Generation,
 	)
+	requestID := observability.RequestIDFromContext(ctx)
+	log = withControlCorrelation(log, requestID, connector.TraceFromContext(ctx))
+	if operationID != "" {
+		log = log.With("operation_id", operationID)
+	}
 	connectorID, err := s.store.ConnectorIDForLabInstance(ctx, rec.LabInstanceID)
 	if err != nil {
 		log.Warn("TERMINAL_CLOSE 대상 Connector를 찾지 못함", "error_code", classify(err))
@@ -658,6 +671,18 @@ func (s *Service) closeLifecycle(ctx context.Context, rec repository.TerminalSes
 	}, "", operationID, reason)
 	log.Info("TerminalSession 종료", "reason", reason)
 	return nil
+}
+
+// withControlCorrelation은 이 control event가 실제로 가진 metadata만 기록한다.
+func withControlCorrelation(log *slog.Logger, requestID string, trace connector.TraceContext) *slog.Logger {
+	if requestID != "" {
+		log = log.With("request_id", requestID)
+	}
+	trace = connector.NormalizeTrace(trace.Traceparent, trace.Tracestate)
+	if id := trace.TraceID(); id != "" {
+		log = log.With("trace_id", id)
+	}
+	return log
 }
 
 // AuthenticateBrowser는 realtime.Control의 구현이다.
@@ -731,7 +756,9 @@ func (s *Service) AuthorizeAttach(ctx context.Context, session realtime.SessionT
 		// Reset 등으로 generation이 바뀌었다. 이 TerminalSession의 PTY는 이전 generation의 것이므로 더 이상 사용할 수 없다.
 		// 권한 판정만 하고 끝내지 않고 이 TerminalSession을 종료한다(다시 시도해도 같은 결과이므로 정리한다).
 		if err := s.closeLifecycle(ctx, rec, realtime.EndReasonLabReset, ""); err != nil {
-			s.logger.Error("stale TerminalSession 종료 실패", "terminal_session_id", rec.ID.String(), "error_code", classify(err))
+			withControlCorrelation(s.logger.With(
+				"terminal_session_id", rec.ID.String(), "lab_instance_id", rec.LabInstanceID.String(), "generation", rec.Generation,
+			), observability.RequestIDFromContext(ctx), connector.TraceFromContext(ctx)).Error("stale TerminalSession 종료 실패", "error_code", classify(err))
 		}
 		return realtime.AttachGrant{}, realtime.ErrLabMutation
 	}

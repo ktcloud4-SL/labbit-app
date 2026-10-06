@@ -442,7 +442,7 @@ func (r *Relay) finish(s *session, end End, notifyBrowser, notifyData bool) {
 	s.mu.Unlock()
 
 	r.remove(s.corr.TerminalSessionID, s)
-	s.log.Info("TerminalSession Relay 정리", "reason", end.Reason)
+	withTrace(s.log, end.Trace).Info("TerminalSession Relay 정리", "reason", end.Reason)
 
 	if b != nil {
 		code := closeCodeFor(end.Reason)

@@ -132,6 +132,18 @@ func TestTerminalControlEventsCarryValidTraceContextThroughTheRealStack(t *testi
 	}
 	requireMessageTrace(t, "TERMINAL_SESSION_ENDED", ended, traceUnsampled, traceStateOK)
 	e.waitStatus(s.ID, "ENDED")
+	requireLogFields(t, e.logEvent("Browser Terminal attach", s.ID), map[string]any{"trace_id": traceIDSampled})
+	for _, message := range []string{"TerminalSession 종료 수신", "TerminalSession Relay 정리"} {
+		requireLogFields(t, e.logEvent(message, s.ID), map[string]any{
+			"trace_id": "0af7651916cd43dd8448eb211c80319c", "terminal_session_id": s.ID,
+			"lab_instance_id": f.LabInstanceID.String(), "connector_id": f.ConnectorID.String(),
+		})
+	}
+	for _, raw := range []string{traceSampled, traceUnsampled, traceStateOK} {
+		if strings.Contains(e.logs.String(), raw) {
+			t.Fatal("log contains raw Trace metadata")
+		}
+	}
 
 	// Trace는 관측용 전파 metadata다. DB에 저장하지 않는다.
 	for _, needle := range []string{traceIDSampled, "0af7651916cd43dd8448eb211c80319c", traceStateOK, "tracestate"} {
@@ -190,6 +202,9 @@ func TestTerminalControlEventsWithInvalidTraceContextStillSucceedThroughTheRealS
 	if strings.Contains(logs, `"trace_id"`) {
 		t.Fatalf("유효한 Trace가 없는데 trace_id가 log에 남음:\n%s", logs)
 	}
+	for _, event := range applicationLogEvents(t, logs) {
+		requireLogFields(t, event, map[string]any{"trace_id": nil})
+	}
 }
 
 // Trace 때문이 아닌 attach 거절은 그대로 거절된다. Trace가 유효하다고 권한 판정이 달라지지 않는다.
@@ -237,6 +252,11 @@ func TestLabbitInitiatedEndCarriesTheCallersTraceContextToTheBrowser(t *testing.
 		t.Fatalf("종료 통지 = %v", ended)
 	}
 	requireMessageTrace(t, "명시적 종료의 TERMINAL_SESSION_ENDED", ended, traceUnsampled, traceStateOK)
+	for _, message := range []string{"TerminalSession 종료", "Connector TERMINAL_CLOSE 전송", "TerminalSession Relay 정리"} {
+		requireLogFields(t, e.logEvent(message, closed.ID), map[string]any{
+			"trace_id": "0af7651916cd43dd8448eb211c80319c", "request_id": nil,
+		})
+	}
 
 	// Reset/Cleanup 같은 Lab mutation
 	mutated := e.createSession(e.ownerCookie, f.LabInstanceID)
@@ -257,4 +277,7 @@ func TestLabbitInitiatedEndCarriesTheCallersTraceContextToTheBrowser(t *testing.
 		t.Fatalf("Close() error = %v", err)
 	}
 	requireMessageTrace(t, "Trace 없는 종료의 TERMINAL_SESSION_ENDED", b3.json(), "", "")
+	for _, message := range []string{"TerminalSession 종료", "Connector TERMINAL_CLOSE 전송", "TerminalSession Relay 정리"} {
+		requireLogFields(t, e.logEvent(message, plain.ID), map[string]any{"trace_id": nil, "request_id": nil})
+	}
 }

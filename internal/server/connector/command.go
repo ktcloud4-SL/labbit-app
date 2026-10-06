@@ -52,11 +52,16 @@ func validateOperationCommand(cmd OperationCommand) error {
 	}
 	payload := cmd.Payload
 	switch payload.MutationType {
-	case protocol.MutationTypeProvision, protocol.MutationTypeReset:
-		if payload.CreationSnapshot == nil {
-			return invalidCommand("%s에는 creationSnapshot이 필요합니다", payload.MutationType)
+	case protocol.MutationTypeProvision:
+		// PROVISION은 정리할 기존 리소스가 없으므로 providerResources를 요구하지 않는다.
+		if err := requireCreationSnapshot(payload); err != nil {
+			return err
 		}
-		if err := validateCreationSnapshot(payload.CreationSnapshot); err != nil {
+	case protocol.MutationTypeReset:
+		if err := requireCreationSnapshot(payload); err != nil {
+			return err
+		}
+		if err := validateResetResources(payload.ProviderResources, cmd.Correlation.Generation); err != nil {
 			return err
 		}
 	case protocol.MutationTypeCleanup:
@@ -70,6 +75,38 @@ func validateOperationCommand(cmd OperationCommand) error {
 		return invalidCommand("지원하지 않는 mutationType입니다")
 	}
 	return validateResourceRefs(payload.ProviderResources, "providerResources")
+}
+
+func requireCreationSnapshot(payload protocol.OperationCommandPayload) error {
+	if payload.CreationSnapshot == nil {
+		return invalidCommand("%s에는 creationSnapshot이 필요합니다", payload.MutationType)
+	}
+	return validateCreationSnapshot(payload.CreationSnapshot)
+}
+
+// validateResetResources는 RESET이 정리할 직전 generation 리소스 목록이 Schema 계약을 만족하는지 확인한다.
+// 기존 generation을 확정·정리하지 못한 채 다음 generation을 Provision하면 이전 리소스가 남으므로, 목록이 없거나 비었거나
+// 직전 generation의 것이 아니면 Connector로 보내지 않는다. resourceType/providerId는 이어지는 validateResourceRefs가 확인한다.
+func validateResetResources(refs []protocol.ProviderResourceRef, generation int64) error {
+	if generation < 2 {
+		return invalidCommand("RESET의 generation은 2 이상이어야 합니다(직전 generation이 있어야 합니다)")
+	}
+	if refs == nil {
+		return invalidCommand("RESET에는 providerResources가 필요합니다")
+	}
+	if len(refs) == 0 {
+		return invalidCommand("RESET의 providerResources에는 리소스가 하나 이상 필요합니다")
+	}
+	previous := generation - 1
+	for i, ref := range refs {
+		if ref.LogicalName == "" {
+			return invalidCommand("RESET providerResources[%d]에 logicalName이 필요합니다", i)
+		}
+		if ref.Generation != previous {
+			return invalidCommand("RESET providerResources[%d].generation은 직전 generation(%d)이어야 합니다", i, previous)
+		}
+	}
+	return nil
 }
 
 func validateCreationSnapshot(s *protocol.CreationSnapshot) error {

@@ -55,6 +55,17 @@ describe('terminalReconnectPolicy', () => {
     })
   })
 
+  it('CONNECTOR_UNAVAILABLE non-fatal ERROR는 Browser WSS 재접속을 강제로 시작하지 않는다', () => {
+    const decision = decideTerminalProtocolError({
+      code: 'CONNECTOR_UNAVAILABLE',
+      fatal: false,
+    })
+
+    expect(decision.message).toContain('TerminalSession은 유지')
+    expect(decision).not.toHaveProperty('action')
+    expect(decision).not.toHaveProperty('clearResume')
+  })
+
   it('LAB_MUTATION은 stale generation credential을 제거하고 ended로 수렴한다', () => {
     expect(
       decideTerminalProtocolError({
@@ -85,7 +96,7 @@ describe('terminalReconnectPolicy', () => {
       code: 'NEW_SERVER_CODE',
     })
 
-    expect(decision.message).toContain('기존 세션으로 다시 연결')
+    expect(decision.message).toContain('현재 연결 상태를 확인')
     expect(decision).not.toHaveProperty('action')
     expect(decision).not.toHaveProperty('clearResume')
   })

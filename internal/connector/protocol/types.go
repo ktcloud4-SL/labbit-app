@@ -249,16 +249,20 @@ type CreationSnapshot struct {
 
 // OperationCommandPayload 는 SaaS가 지시하는 Provision/Reset/Cleanup 명령 본문입니다.
 //
-// ProviderResources 는 nil 과 빈 목록을 구분합니다. Schema 에서 CLEANUP 은 providerResources property 가 required 이고
-// array 에 minItems 가 없으므로 `"providerResources": []` 는 유효합니다. 반대로 PROVISION/RESET 에서는 optional 입니다.
+// ProviderResources 의 required 여부와 JSON 제약은 connector.schema.json 을 따릅니다.
+// PROVISION 에서는 optional, RESET 에서는 required 이며 비어 있지 않아야 합니다.
+// RESET 의 각 리소스는 비어 있지 않은 logicalName 과 명령의 이전 generation 을 가져야 합니다.
+// CLEANUP 에서는 required 이지만 minItems 가 없으므로 `"providerResources": []` 는 유효합니다.
+// 직렬화는 아래와 같이 nil 과 빈 목록을 구분하며, 입력의 계약 유효성을 보장하지 않습니다.
 //
 //   - nil            → property 를 만들지 않습니다(누락). null 도 만들지 않습니다.
 //   - 빈 non-nil     → `"providerResources": []`
 //   - 항목이 있는 경우 → 그 목록
 //
 // 단순한 omitempty 는 빈 목록의 property 를 지워 유효한 빈 CLEANUP 을 Schema-invalid 로 만들고, omitempty 를 빼면
-// PROVISION/RESET 의 nil 이 null 로 나가 Schema-invalid 가 되므로 MarshalJSON 으로 구분합니다. decode 는 기본 동작이며
-// `[]` 는 빈 non-nil, 누락과 null 은 nil 입니다.
+// optional 인 PROVISION 의 nil 이 null 로 나가므로 MarshalJSON 으로 구분합니다. required 인 RESET/CLEANUP 의 nil 은
+// 누락으로 보존할 뿐 유효해지는 것이 아니며, Backend/Connector 검증 경계에서 거절해야 합니다.
+// decode 는 기본 동작이며 `[]` 는 빈 non-nil, 누락과 null 은 nil 입니다.
 type OperationCommandPayload struct {
 	MutationType      string                `json:"mutationType"` // PROVISION, RESET, CLEANUP
 	CreationSnapshot  *CreationSnapshot     `json:"creationSnapshot,omitempty"`

@@ -43,6 +43,8 @@ func requireMember(t *testing.T, m map[string]json.RawMessage, name, want string
 
 // CLEANUP의 providerResources는 property가 required이고 array에 minItems가 없다. 빈 non-nil 목록은 "[]"로 나가야 한다.
 // nil(누락)은 property를 만들지 않고 null도 만들지 않는다.
+// 이 테스트는 직렬화만 검증한다. RESET의 누락/빈 목록 및 CLEANUP의 누락은 계약상 invalid이며,
+// 그 입력을 그대로 직렬화할 수 있다는 사실은 outbound validation 성공을 뜻하지 않는다.
 func TestOperationCommandProviderResourcesWireEncoding(t *testing.T) {
 	cmd := func(p OperationCommandPayload) OperationCommandMessage { return OperationCommandMessage{Payload: p} }
 
@@ -63,7 +65,7 @@ func TestOperationCommandProviderResourcesWireEncoding(t *testing.T) {
 			}
 		}
 	})
-	t.Run("optional list of reset survives as an empty array too", func(t *testing.T) {
+	t.Run("schema-invalid empty reset list is preserved by serialization, not accepted as a command", func(t *testing.T) {
 		got := payloadMembers(t, cmd(OperationCommandPayload{MutationType: MutationTypeReset, ProviderResources: []ProviderResourceRef{}}))
 		requireMember(t, got, "providerResources", "[]")
 	})

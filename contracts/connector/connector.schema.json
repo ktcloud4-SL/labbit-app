@@ -566,7 +566,13 @@
                     {
                       "required": [
                         "logicalName"
-                      ]
+                      ],
+                      "properties": {
+                        "logicalName": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
                     }
                   ]
                 }

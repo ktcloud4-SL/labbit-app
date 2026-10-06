@@ -193,4 +193,8 @@ func TestTerminalSessionEndToEnd(t *testing.T) {
 		t.Fatal("DELETE log must carry its own request_id")
 	}
 	requireLogFields(t, e.logEvent("Connector TERMINAL_CLOSE 전송", s.ID), map[string]any{"request_id": closeRequestID})
+	// DELETE의 request ID는 log뿐 아니라 Connector peer가 실제로 받은 TERMINAL_CLOSE.requestId에도 같은 값으로 실린다.
+	if closeMsg.RequestID != closeRequestID {
+		t.Fatalf("TERMINAL_CLOSE.requestId = %q, want DELETE request_id %q", closeMsg.RequestID, closeRequestID)
+	}
 }

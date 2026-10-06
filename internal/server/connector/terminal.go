@@ -284,18 +284,21 @@ func (r *Router) SendTerminalClose(ctx context.Context, cl TerminalClose) (SentM
 		return SentMessage{}, invalidCommand("TERMINAL_CLOSE에는 reason이 필요합니다")
 	}
 
+	// effective request ID는 wire와 log가 같은 값을 쓰도록 marshal 전에 정한다. 명시한 값이 context 값보다 우선하고,
+	// 둘 다 없으면 requestId를 만들지 않는다.
+	requestID := cl.RequestID
+	if requestID == "" {
+		requestID = observability.RequestIDFromContext(ctx)
+	}
+
 	messageID := uuid.NewString()
-	msg := terminalCloseMessage{terminalEnvelope: newTerminalEnvelope(protocol.MessageTypeTerminalClose, messageID, cl.RequestID, cl.OperationID, cl.Correlation, cl.Trace)}
+	msg := terminalCloseMessage{terminalEnvelope: newTerminalEnvelope(protocol.MessageTypeTerminalClose, messageID, requestID, cl.OperationID, cl.Correlation, cl.Trace)}
 	msg.Payload.Reason = cl.Reason
 	data, err := marshalOutbound(msg)
 	if err != nil {
 		return SentMessage{}, err
 	}
 
-	requestID := cl.RequestID
-	if requestID == "" {
-		requestID = observability.RequestIDFromContext(ctx)
-	}
 	log := r.terminalLog(cl.ConnectorID, cl.Correlation, requestID, cl.OperationID, cl.Trace).With("message_type", protocol.MessageTypeTerminalClose)
 	err = r.registry.WithReadyRoute(cl.ConnectorID, func(_ Session, route Route) error {
 		return r.write(route, data, func() {})

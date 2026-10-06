@@ -235,6 +235,59 @@ describe('BrowserTerminalClient', () => {
     expect(onOutput).not.toHaveBeenCalled()
   })
 
+  it('TERMINAL_SESSION_ENDED 뒤 transport close는 authoritative 종료 상태를 다시 덮어쓰지 않는다', () => {
+    vi.stubGlobal('WebSocket', FakeWebSocket)
+
+    const onEnded = vi.fn()
+    const onClose = vi.fn()
+    const client = new BrowserTerminalClient({
+      onAttached: vi.fn(),
+      onOutput: vi.fn(),
+      onEnded,
+      onProtocolError: vi.fn(),
+      onClose,
+    })
+
+    client.connect({
+      terminalSessionId: 'terminal-session-1',
+      sessionToken: 'opaque-token',
+      cols: 80,
+      rows: 20,
+    })
+
+    const socket = FakeWebSocket.instances[0]
+    socket.open()
+    socket.message(
+      JSON.stringify({
+        type: 'TERMINAL_ATTACHED',
+        terminalSessionId: 'terminal-session-1',
+        payload: {
+          resumed: false,
+          historyAvailable: false,
+        },
+      }),
+    )
+
+    socket.message(
+      JSON.stringify({
+        type: 'TERMINAL_SESSION_ENDED',
+        terminalSessionId: 'terminal-session-1',
+        payload: {
+          reason: 'PTY_EXITED',
+          exitCode: 17,
+        },
+      }),
+    )
+    socket.remoteClose(1000)
+
+    expect(onEnded).toHaveBeenCalledWith({
+      reason: 'PTY_EXITED',
+      exitCode: 17,
+    })
+    expect(onClose).not.toHaveBeenCalled()
+    expect(client.sendInput('echo should-not-send\r')).toBe(false)
+  })
+
   it('server ERROR와 TERMINAL_SESSION_ENDED를 handler로 전달한다', () => {
     vi.stubGlobal('WebSocket', FakeWebSocket)
 

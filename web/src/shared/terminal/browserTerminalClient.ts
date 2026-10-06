@@ -123,7 +123,11 @@ export class BrowserTerminalClient {
       }
 
       if (type === 'TERMINAL_SESSION_ENDED') {
+        // TERMINAL_SESSION_ENDED가 authoritative lifecycle 종료다.
+        // 뒤따르는 WebSocket close는 transport cleanup일 뿐이므로 onClose가
+        // 종료 사유/exitCode UX를 다시 덮어쓰거나 reconnect를 시작하지 않게 한다.
         this.attached = false
+        this.closing = true
         this.handlers.onEnded({
           reason: typeof payload.reason === 'string' ? payload.reason : 'UNKNOWN',
           exitCode:

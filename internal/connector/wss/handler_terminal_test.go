@@ -371,7 +371,7 @@ func TestHandler_TerminalClose_StaleGeneration_Rejected(t *testing.T) {
 	if !existsAfter {
 		t.Fatal("session should still exist in manager")
 	}
-	if sessionAfter.Status == terminal.StatusClosed {
+	if sessionAfter.GetStatus() == terminal.StatusClosed {
 		t.Fatal("session should NOT be closed by stale generation TERMINAL_CLOSE")
 	}
 }

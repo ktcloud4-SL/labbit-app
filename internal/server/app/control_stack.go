@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
@@ -32,6 +33,8 @@ type stackOptions struct {
 	Realtime        bool
 	HTTPMetrics     *observability.HTTPMetrics
 	RealtimeMetrics *observability.RealtimeMetrics
+	// Tracer는 HTTP server Span과 Connector Control command/result Span을 만든다. nil이면 Span 없이 Trace Context만 전달한다.
+	Tracer trace.Tracer
 
 	Clock         realtime.Clock
 	Grace         time.Duration
@@ -115,7 +118,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		relayFwd := &relayForwarder{}
 		service, err := terminal.NewService(terminal.Options{
 			Store: store, Auth: authService, Connectors: router, Relay: relayFwd,
-			Clock: opts.Clock, Logger: logger, OpenTimeout: opts.OpenTimeout, Grace: opts.Grace,
+			Clock: opts.Clock, Logger: logger, OpenTimeout: opts.OpenTimeout, Grace: opts.Grace, Tracer: opts.Tracer,
 		})
 		if err != nil {
 			return nil, err
@@ -153,6 +156,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		PublicOrigin: opts.PublicOrigin,
 		Logger:       logger,
 		Metrics:      opts.HTTPMetrics,
+		Tracer:       opts.Tracer,
 	})
 	if err != nil {
 		return nil, err

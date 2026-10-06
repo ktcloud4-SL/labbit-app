@@ -114,6 +114,7 @@ Provision/Reset/Cleanup 같은 durable Operation은 HTTP request lifetime 이후
 - `internal/server/realtime`: Browser Terminal WSS(`/realtime/v1/terminal`)와 Connector Terminal Data WSS(`/connector/v1/terminal-data`)의 transport와 **ephemeral** relay 상태입니다. **PostgreSQL, repository, auth, connector package를 import하지 않으며**(경계 test가 전이 의존까지 검사) 자신이 정의한 좁은 interface(`Control`, `ConnectorAuthenticator`)로만 DB-backed authority를 받습니다. TerminalSession마다 active Browser attachment 하나와 Connector data channel 하나, 60초 grace timer(`Clock` 주입)를 가지며 connection마다 writer goroutine이 하나라 concurrent write가 없습니다. Browser attachment의 bounded queue는 전송 중인 byte를 잠시 담을 뿐 history가 아니며, 한도를 넘으면 그 attachment만 `SLOW_CONSUMER`/4005로 종료하고 PTY는 grace를 따릅니다. Terminal INPUT/OUTPUT·token은 저장·재생·log하지 않습니다. v0.1에서는 같은 process의 api role이 `Control` 구현을 제공합니다(runtime/contract.yaml `saas.realtime`).
 - `internal/server/jsonnum`: JSON Schema 2020-12의 integer 규칙(1.0, 1e2도 integer, maximum 없음)을 lexical하게 판정하는 작은 leaf package입니다. Schema에 없는 상한을 만들지 않으려고 cols/rows 원문을 그대로 전달하는 데 씁니다.
 - `internal/server/app`: `newControlStack`이 Auth, Class, Connector Control, Workspace file(`workspacefile.Service` + `filetransport.Broker`, api role만 필요)과(realtime role이 같은 process에 있을 때) Terminal Relay를 하나의 조립으로 묶습니다. Registry의 revoke observer 자리는 하나이므로 Terminal Data WSS와 File Data WSS에 함께 전달합니다. `Run`과 통합 test가 같은 조립을 씁니다. shutdown은 Relay가 active TerminalSession을 `SERVICE_RESTARTING`으로 종료해 Connector에 `TERMINAL_CLOSE`를 보낸 뒤에 Connector Control connection을 닫습니다. realtime role만 enabled된 process는 DB DSN 없이 시작하지만 Terminal route를 열지 않고 `/readyz`가 실패합니다.
+- `internal/observability/tracing`: SaaS의 OpenTelemetry SDK `TracerProvider`와 선택적 OTLP exporter(`grpc`, `http/protobuf`) 조립(LBT-144). SDK와 exporter module은 이 package와 `internal/server/app`만 import하며 제품 package는 `trace.Tracer`(API)와 `internal/observability/spanattr`의 attribute key만 씁니다. 아래 "Trace (OpenTelemetry) 구현"을 참고합니다.
 - `internal/server/bootstrap`: D-11 trusted operator Bootstrap use case. Migration이 아닌 이 경로로 Organization/User/Local Account/Class/ClassMembership을 하나의 transaction으로 생성합니다. 실행 command는 아직 없으며 추가할 때는 Runtime Contract `artifacts`와의 정합성을 함께 확인합니다.
 
 Repository는 Session 유효성, Class 접근 권한, 403/404를 판단하지 않고 저장된 값을 그대로 전달합니다. Transaction callback 안에서는 전달된 Repositories만 사용하고 Connector/OpenStack 같은 외부 I/O를 수행하지 않습니다.
@@ -131,6 +132,27 @@ Repository는 Session 유효성, Class 접근 권한, 403/404를 판단하지 �
       → PostgreSQL/API integration tests
 
 Session의 구체 lifecycle/CSRF 기준은 auth-session.md를 따릅니다.
+
+## Trace (OpenTelemetry) 구현 (LBT-144, 계약 아님)
+
+계약의 원본은 `runtime/contract.yaml`(`saas.config.OTEL_*`, `saas.observability.tracing`)과 D-25입니다. 이 절은 그 계약을 현재 코드가 어떻게 구현하는지의 기록이며 계약을 바꾸지 않습니다.
+
+- **조립**: `app.Run`이 `tracing.Start`로 `TracerProvider`를 만들고 `Tracer`만 `httpapi`와 `terminal.Service`에 넘깁니다. global `TracerProvider`와 global propagator는 쓰지 않습니다(`tracecontext` package가 W3C 정상화를 계속 소유). Connector binary는 SDK/exporter/gRPC를 포함하지 않으며 `internal/connector/app`의 dependency test가 이를 고정합니다.
+- **`none`과 `otlp`**: `none`(기본)은 외부 export만 끕니다. SDK `TracerProvider`와 유효한 `SpanContext`, Connector wire의 `traceparent`/`tracestate`, log의 `trace_id`는 그대로입니다. `otlp`는 `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`(userinfo 없는 http/https URL)와 `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL`(`grpc`, `http/protobuf`)이 모두 있어야 합니다. endpoint는 검증해 exporter에 명시로 넘기고, header·CA·client certificate/key·timeout은 official exporter가 표준 `OTEL_EXPORTER_OTLP_TRACES_*`에서 직접 읽습니다. 값은 코드에 hard-code하지 않습니다.
+- **오류는 업무 오류가 아님**: 잘못된 exporter 값, endpoint/protocol 누락·오류, 읽을 수 없는 인증서, 잘못된 header, exporter 생성 실패는 모두 `labbit-server` 시작을 막지 않고 안전한 진단(환경변수 **이름**과 분류 code) 뒤 export만 끕니다. 일부 설정으로 계속 export하지 않습니다(예: header 해석 실패 시 인증 없이 보내지 않음). `/livez`, `/readyz`, 업무 요청은 Collector와 무관합니다. PostgreSQL 같은 업무 의존성 실패는 그대로 `/readyz`에 드러납니다.
+- **진단과 Secret**: SDK/exporter는 process-global `otel.Handle`과 internal logger로 오류를 내보내며 기본 구현은 `err.Error()`나 입력 원문(header 한 쌍, 파일 경로, Collector 응답 본문)을 stderr로 출력합니다. `tracing`이 둘 다 분류 code(`collector_unreachable`, `export_timeout`, `export_rejected`, `invalid_headers` 등)만 기록하는 handler로 교체하고 같은 code는 1분에 한 번만 기록합니다. 이는 process-global 상태이므로 `tracing` package의 test는 병렬 실행하지 않습니다.
+- **Span 경계(현재 실제 경로)**: HTTP server Span(`httpapi`의 직접 구현 middleware, 이름 `HTTP {METHOD} {route template}`, `/api/v1` 아래만), `TERMINAL_OPEN`/`TERMINAL_CLOSE` Connector command client Span, `TERMINAL_OPEN_RESULT` 수신 Span(command Span의 자식, 계약 §9). OpenTelemetry HTTP 자동 계측(`otelhttp`)은 `url.query`를 수집해 Workspace file `path`가 trace에 남을 수 있어 쓰지 않습니다. Span attribute는 method, route template, status code, 제품 ID, 고정 분류뿐이며 raw URL·query·header·body·Terminal 내용은 없습니다. Terminal Binary frame, WSS connection, `/livez`·`/readyz`·`/metrics`, Workspace File Control(`FILE_OPEN`, HTTP Span의 Context는 wire로 전달됨)에는 별도 Span이 없습니다.
+- **Export와 종료**: `BatchSpanProcessor`(SDK 기본 queue/batch/timeout, 플랫폼은 표준 `OTEL_BSP_*`로 조정)라 요청 경로는 network I/O를 기다리지 않고 queue가 차면 Span을 버립니다. 종료는 업무 HTTP/WSS drain과 정리가 끝난 뒤 `LABBIT_SHUTDOWN_GRACE`의 **남은** budget 안에서만 flush하며 실패해도 `Run`의 결과를 바꾸지 않습니다. Collector가 응답하지 않으면(특히 gRPC exporter의 retry backoff) 종료가 남은 budget 전체까지 걸릴 수 있습니다. 그 상한을 줄이려면 표준 `OTEL_BSP_EXPORT_TIMEOUT`을 **정수 밀리초**로 씁니다(예: `300`; `300ms`는 무효 값이라 기본 30초로 돌아갑니다). Integration test가 gRPC Collector 불능에서 기본값 3초(= test의 grace) 대비 약 0.3초 종료를 확인합니다.
+- **아직 없는 경로**: Operation 등록 HTTP(LBT-17)와 durable Worker(LBT-18)가 없으므로 `operations.traceparent/tracestate` 저장·복원과 Worker Span은 구현하지 않았습니다. 그 경로는 같은 `Tracer`와 `tracecontext`를 재사용해 이어 붙입니다.
+
+로컬에서 Collector로 보내 보려면(예시는 현재 Local 플랫폼 measured 값이며 코드 기본값이 아닙니다. 실제 값은 플랫폼 상태를 다시 확인합니다):
+
+```bash
+OTEL_TRACES_EXPORTER=otlp \
+OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=http/protobuf \
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://alloy.observability.svc.cluster.local:4318/v1/traces \
+make server
+```
 
 ## 테스트
 

@@ -196,7 +196,10 @@ func validateResourceRefs(resources []coreprovider.ResourceRef, maxGeneration in
 		resource.ResourceType = strings.TrimSpace(resource.ResourceType)
 		resource.ProviderID = strings.TrimSpace(resource.ProviderID)
 		resource.LogicalName = strings.TrimSpace(resource.LogicalName)
-		if !supportedResourceType(resource.ResourceType) || resource.ProviderID == "" || len(resource.ProviderID) > 255 || resource.Generation < 1 || resource.Generation > maxGeneration || len(resource.LogicalName) > 255 {
+		// LogicalName is a snapshot label, not a Nova/Neutron resource name.
+		// Provision appends NIC suffixes to a valid 255-byte VM key; imposing
+		// the provider-name limit here would reject our own tracked resources.
+		if !supportedResourceType(resource.ResourceType) || resource.ProviderID == "" || len(resource.ProviderID) > 255 || resource.Generation < 1 || resource.Generation > maxGeneration {
 			return nil, ErrLifecycleRequest
 		}
 		if requireOlder && resource.Generation >= maxGeneration {

@@ -89,6 +89,7 @@ export class BrowserTerminalClient {
       if (this.socket !== socket) return
       this.socket = null
       this.attached = false
+      this.input = null
       if (!this.closing) this.handlers.onClose(event)
     })
   }
@@ -128,6 +129,7 @@ export class BrowserTerminalClient {
         // 종료 사유/exitCode UX를 다시 덮어쓰거나 reconnect를 시작하지 않게 한다.
         this.attached = false
         this.closing = true
+        this.input = null
         this.handlers.onEnded({
           reason: typeof payload.reason === 'string' ? payload.reason : 'UNKNOWN',
           exitCode:
@@ -205,6 +207,7 @@ export class BrowserTerminalClient {
     const socket = this.socket
     this.socket = null
     this.attached = false
+    this.input = null
 
     if (
       socket &&

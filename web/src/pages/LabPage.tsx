@@ -180,6 +180,7 @@ export function LabPage() {
 
       <section className="workspace-shell" aria-label="Lab Workspace Shell">
         <WorkspaceFilePanels
+          key={`${labInstance.id}:${labInstance.generation}`}
           labInstanceId={labInstance.id}
           generation={labInstance.generation}
         />

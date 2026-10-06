@@ -22,6 +22,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile"
 )
 
 // maxLoginBodyBytes는 Login 요청 body 상한이다. Argon2id에 과도하게 긴 입력이 전달되지 않게 한다.
@@ -46,6 +47,8 @@ type Options struct {
 	Classes Classes
 	// Terminals가 nil이면 Terminal Relay가 없는 구성으로 보고 Terminal target 조회와 TerminalSession 생성/종료를 503(terminal_unavailable)으로 응답한다.
 	Terminals Terminals
+	// Files가 nil이면 Workspace file use case가 없는 구성으로 보고 file Tree/Read/Save를 503(file_transport_unavailable)으로 응답한다.
+	Files Files
 	// PublicOrigin은 unsafe method의 trusted origin(LABBIT_PUBLIC_ORIGIN)이다. ParseOrigin 형식을 따른다.
 	PublicOrigin string
 	// Logger가 nil이면 로그를 남기지 않는다.
@@ -57,6 +60,7 @@ type api struct {
 	auth      Authenticator
 	classes   Classes
 	terminals Terminals
+	files     Files
 	origin    string
 	logger    *slog.Logger
 }
@@ -83,7 +87,12 @@ func New(opts Options) (http.Handler, error) {
 		terminals = unavailableTerminals{}
 	}
 
-	a := &api{auth: opts.Auth, classes: opts.Classes, terminals: terminals, origin: origin, logger: logger}
+	files := opts.Files
+	if files == nil {
+		files = unavailableFiles{}
+	}
+
+	a := &api{auth: opts.Auth, classes: opts.Classes, terminals: terminals, files: files, origin: origin, logger: logger}
 	mux := http.NewServeMux()
 	routes := make(map[string]string)
 	handle := func(pattern string, handler http.Handler) {
@@ -99,6 +108,9 @@ func New(opts Options) (http.Handler, error) {
 	handle("GET /api/v1/lab-instances/{labInstanceId}/terminal-targets", a.authenticated(http.HandlerFunc(a.listTerminalTargets)))
 	handle("POST /api/v1/lab-instances/{labInstanceId}/terminal-sessions", a.authenticated(http.HandlerFunc(a.createTerminalSession)))
 	handle("DELETE /api/v1/terminal-sessions/{terminalSessionId}", a.authenticated(http.HandlerFunc(a.closeTerminalSession)))
+	handle("GET /api/v1/lab-instances/{labInstanceId}/files/tree", a.authenticated(http.HandlerFunc(a.listWorkspaceFiles)))
+	handle("GET /api/v1/lab-instances/{labInstanceId}/files/content", a.authenticated(http.HandlerFunc(a.readWorkspaceFile)))
+	handle("PUT /api/v1/lab-instances/{labInstanceId}/files/content", a.authenticated(http.HandlerFunc(a.saveWorkspaceFile)))
 
 	return withMetrics(opts.Metrics, mux, routes, withRequestID(noStore(a.originGuard(mux)))), nil
 }
@@ -188,7 +200,7 @@ func errorClassification(err error) []any {
 		return attrs
 	case errors.Is(err, auth.ErrMalformedPasswordHash):
 		return []any{"error_kind", "unusable_password_hash"}
-	case errors.Is(err, class.ErrInconsistentData), errors.Is(err, terminal.ErrInconsistentData):
+	case errors.Is(err, class.ErrInconsistentData), errors.Is(err, terminal.ErrInconsistentData), errors.Is(err, workspacefile.ErrInconsistentData):
 		return []any{"error_kind", "inconsistent_data"}
 	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 		return []any{"error_kind", "context"}

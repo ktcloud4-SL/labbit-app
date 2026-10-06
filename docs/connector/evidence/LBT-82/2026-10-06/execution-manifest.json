@@ -1,0 +1,109 @@
+{
+  "sourceCommit": "0f8ca010ed45eea0db669937871006fa0e7e5a7b",
+  "sourceTree": "4f1ec21cd108456e309070237e57593d3865e400",
+  "integratedMain": "1bdb296358d856169735a71af01ca82907d80ac4",
+  "previousMainIntegrationSource": "26f2a36dde65fcb4c382c62ce19a8cdfeb58463f",
+  "remotePrHeadUnchanged": "f79f1c38264270525c4042c5ab0c9c39f5eb0a93",
+  "localOnly": true,
+  "sourceChangesThisPass": [
+    "internal/connector/terminal/terminal_test.go",
+    "internal/connector/wss/handler_terminal_test.go",
+    "tools/dev-auth-class-fixture/main_test.go"
+  ],
+  "executionEnvironment": {
+    "os": "Windows",
+    "go": "1.27.1",
+    "CGO_ENABLED": "1",
+    "CC": "gcc"
+  },
+  "baselineSource": "General checks ran on the identical three-file candidate before the local commit. No source file changed between those runs and 0f8ca010; real integration scripts require clean 0f8ca010 HEAD.",
+  "automatedTargets": [
+    "All tracked Go files: gofmt output comparison with CRLF normalized to Linux checkout LF",
+    "go vet ./...",
+    "go test -json -count=1 -timeout=5m ./...",
+    "go build ./...",
+    "go test -race -count=10 -timeout=5m -run ^(TestTerminal_Resize|TestTerminal_GracePeriod_Resume|TestDataWSSClient_EmptyCloseReason_Rejected)$ ./internal/connector/terminal",
+    "go test -race -json -count=1 -timeout=8m ./internal/connector/... ./internal/server/connector ./internal/server/connectorwss/...",
+    "Web: typecheck, lint, test, build via existing package scripts",
+    "Contracts: CI-pinned validators in .local/contract-validators"
+  ],
+  "postgres": {
+    "version": "16.15",
+    "distribution": "https://get.enterprisedb.com/postgresql/postgresql-16.15-1-windows-x64-binaries.zip",
+    "archiveSha256": "25e6fcdfb8caec38691bf461125e7564508760666f7b8e5dc6a5f0818f58f81e",
+    "server": "127.0.0.1:15432 (dedicated test server, not a Windows service)",
+    "runtimeDirectory": "<dedicated local PostgreSQL 16.15 runtime; ASCII path on Windows>",
+    "DSN": "LABBIT_TEST_DATABASE_DSN pointed at an isolated loopback PostgreSQL 16.15 instance; local disposable dummy credential only.",
+    "targets": "go vet -tags integration and go test -json -tags integration -mod=readonly -count=1 -timeout=8m on Makefile GO_INTEGRATION_PACKAGES",
+    "packages": [
+      "./internal/postgres",
+      "./internal/postgres/postgrestest",
+      "./internal/server/app",
+      "./internal/server/auth",
+      "./internal/server/httpapi"
+    ],
+    "log": "postgres-integration.jsonl",
+    "scope": "Real PostgreSQL and local real Backend listeners/client handshake. Terminal E2E uses Connector contract peer, not actual VM SSH or deployed SaaS."
+  },
+  "openstack": {
+    "providerConfigFile": "<customer-local clouds.yaml FILE>",
+    "OS_CLOUD": "labbit-test",
+    "LABBIT_OPENSTACK_SSH_USERNAME": "ubuntu",
+    "sshPrivateKeyFile": "<customer-local matching SSH private-key FILE>",
+    "execution": "Sequential opt-in targets at clean tested source SHA; no blind retry. Published reproduce.ps1 accepts caller-local paths.",
+    "targets": [
+      {
+        "name": "TestOpenStackInternetPolicyIntegration",
+        "gate": "LABBIT_OPENSTACK_INTERNET_POLICY_TEST=1",
+        "timeout": "25m",
+        "log": "real-internet-policy.jsonl"
+      },
+      {
+        "name": "TestOpenStackM2ControlWSSIntegration",
+        "gate": "LABBIT_OPENSTACK_M3_WSS_TEST=1",
+        "timeout": "20m",
+        "log": "real-wss-lifecycle.jsonl"
+      },
+      {
+        "name": "TestOpenStackM1Integration",
+        "gate": "LABBIT_OPENSTACK_INTEGRATION=1",
+        "timeout": "2m",
+        "log": "real-post-cleanup.jsonl"
+      }
+    ],
+    "scope": "Mock SaaS Control WSS -> Connector Handler -> real OpenStack. Not deployed SaaS/C2."
+  },
+  "reproduce": {
+    "steps": [
+      "Download reproduce.ps1 from the evidence-only commit and save it outside the repository.",
+      "Checkout clean tested source commit 0f8ca010ed45eea0db669937871006fa0e7e5a7b.",
+      "Prepare Go1.27.1, CGO/GCC for race checks, reachable OpenStack, customer-local clouds.yaml and matching SSH key FILES.",
+      "Optionally prepare isolated PostgreSQL16 with CREATE DATABASE permission; set LABBIT_TEST_DATABASE_DSN without sharing its value.",
+      "Run saved reproduce.ps1 from repository root with -ProviderConfigFile and -SSHPrivateKeyFile; add -WithPostgres for DB tests."
+    ],
+    "automaticChecks": [
+      "All tracked Go files: gofmt output comparison with CRLF normalized to Linux checkout LF",
+      "go vet ./...",
+      "go test -json -count=1 -timeout=5m ./...",
+      "go build ./...",
+      "go test -race -count=10 -timeout=5m -run ^(TestTerminal_Resize|TestTerminal_GracePeriod_Resume|TestDataWSSClient_EmptyCloseReason_Rejected)$ ./internal/connector/terminal",
+      "go test -race -json -count=1 -timeout=8m ./internal/connector/... ./internal/server/connector ./internal/server/connectorwss/...",
+      "Web: typecheck, lint, test, build via existing package scripts",
+      "Contracts: CI-pinned validators in .local/contract-validators"
+    ],
+    "logs": "OpenStack JSONL files and automated-logs.zip; baseline checks.json",
+    "warning": "The evidence-only HEAD is not falsely recorded as having rerun lifecycle. All listed source blobs must equal tested source SHA."
+  },
+  "notExecuted": [
+    "Deployed SaaS WSS/TLS/G1",
+    "Browser -> actual Connector runtime -> actual OpenStack Workspace SSH C2",
+    "Linux POSIX0600 execution",
+    "Windows ACL confidentiality"
+  ],
+  "excluded": "P1 Backend RESET outbound validator, deliberately unchanged",
+  "mergeApproval": false,
+  "evidencePackaging": {
+    "sourceCommit": "0f8ca010ed45eea0db669937871006fa0e7e5a7b",
+    "followUp": "Only docs/connector/evidence/LBT-82/2026-10-06 files added after tested source; public paths parameterized. Local-only/remoteWrites=false describe the original execution, not subsequent publication."
+  }
+}

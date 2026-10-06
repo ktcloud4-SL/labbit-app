@@ -89,6 +89,34 @@ func TestConfigFromEnv(t *testing.T) {
 			wantIssues: []Issue{{EnvEndpoint, IssueInvalidValue}},
 		},
 		{
+			name:         "유효한 sampler는 otlp export 허용",
+			env:          envMap{EnvExporter: "otlp", EnvEndpoint: httpEndpoint, EnvProtocol: "http/protobuf", EnvSampler: "always_on"},
+			wantExporter: ExporterOTLP, wantProtocol: ProtocolHTTPProtobuf, wantEndpoint: httpEndpoint, wantService: DefaultServiceName,
+		},
+		{
+			name:         "유효한 ratio sampler 및 arg",
+			env:          envMap{EnvExporter: "otlp", EnvEndpoint: httpEndpoint, EnvProtocol: "http/protobuf", EnvSampler: "traceidratio", EnvSamplerArg: "0.5"},
+			wantExporter: ExporterOTLP, wantProtocol: ProtocolHTTPProtobuf, wantEndpoint: httpEndpoint, wantService: DefaultServiceName,
+		},
+		{
+			name:         "잘못된 sampler 값은 export 비활성화",
+			env:          envMap{EnvExporter: "otlp", EnvEndpoint: httpEndpoint, EnvProtocol: "http/protobuf", EnvSampler: "invalid_sampler_typo"},
+			wantExporter: ExporterNone, wantService: DefaultServiceName,
+			wantIssues: []Issue{{EnvSampler, IssueInvalidValue}},
+		},
+		{
+			name:         "잘못된 sampler arg(숫자 아님)는 export 비활성화",
+			env:          envMap{EnvExporter: "otlp", EnvEndpoint: httpEndpoint, EnvProtocol: "http/protobuf", EnvSampler: "traceidratio", EnvSamplerArg: "not_a_number"},
+			wantExporter: ExporterNone, wantService: DefaultServiceName,
+			wantIssues: []Issue{{EnvSamplerArg, IssueInvalidValue}},
+		},
+		{
+			name:         "범위를 벗어난 sampler arg는 export 비활성화",
+			env:          envMap{EnvExporter: "otlp", EnvEndpoint: httpEndpoint, EnvProtocol: "http/protobuf", EnvSampler: "parentbased_traceidratio", EnvSamplerArg: "1.5"},
+			wantExporter: ExporterNone, wantService: DefaultServiceName,
+			wantIssues: []Issue{{EnvSamplerArg, IssueInvalidValue}},
+		},
+		{
 			name:         "none이면 endpoint나 protocol 오류를 평가하지 않음",
 			env:          envMap{EnvExporter: "none", EnvEndpoint: "::bad::", EnvProtocol: "bad"},
 			wantExporter: ExporterNone, wantService: DefaultServiceName,

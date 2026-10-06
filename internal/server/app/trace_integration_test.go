@@ -362,6 +362,96 @@ func TestConnectorResultTraceMismatchNeverChangesTheBusinessResult(t *testing.T)
 	}
 }
 
+// LBT-144 / Review blocker 2: Connector가 실패(FAILED)를 보고할 때도, Connector가 돌려준 Trace Context(echoed/omitted/foreign/invalid)와
+// 무관하게 SaaS의 authoritative command trace가 result Span과 failure structured log 양쪽의 trace_id로 일관되게 유지된다.
+func TestFailedConnectorResultMaintainsAuthoritativeCommandTraceInSpanAndLog(t *testing.T) {
+	const (
+		foreignTraceparent = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
+		foreignTraceID     = "0af7651916cd43dd8448eb211c80319c"
+		invalidTraceVal    = "INVALID-RESULT-TRACE-SENTINEL-1a2b"
+	)
+
+	tests := []struct {
+		name         string
+		setupTrace   func(e *terminalEnv)
+		wantRelation string
+	}{
+		{
+			name:         "echoed Trace",
+			setupTrace:   func(e *terminalEnv) { e.connector.EchoResultTrace() },
+			wantRelation: "same_trace",
+		},
+		{
+			name:         "omitted Trace",
+			setupTrace:   func(e *terminalEnv) { e.connector.OmitResultTrace() },
+			wantRelation: "absent",
+		},
+		{
+			name:         "foreign valid Trace",
+			setupTrace:   func(e *terminalEnv) { e.connector.ReplaceResultTrace(foreignTraceparent) },
+			wantRelation: "different_trace",
+		},
+		{
+			name:         "invalid Trace",
+			setupTrace:   func(e *terminalEnv) { e.connector.ReplaceResultTrace(invalidTraceVal) },
+			wantRelation: "absent",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			recorder, tracer := newRecordingTracer(t)
+			e := newTerminalEnv(t, withTracer(tracer))
+			e.connector.SetMode(terminaltest.OpenFails)
+			tt.setupTrace(e)
+
+			resp := e.request(http.MethodPost, e.createPath(e.fixture.LabInstanceID), e.ownerCookie, createBody, withIncomingTrace(traceSampled, ""))
+			if resp.Status != http.StatusServiceUnavailable {
+				t.Fatalf("status = %d, want 503: %s", resp.Status, resp.Body)
+			}
+
+			server := onlySpanNamed(t, recorder, serverSpanName)
+			open := onlySpanNamed(t, recorder, "Connector TERMINAL_OPEN")
+			result := onlySpanNamed(t, recorder, "Connector TERMINAL_OPEN_RESULT")
+
+			cmdTraceID := open.SpanContext().TraceID().String()
+			resultTraceID := result.SpanContext().TraceID().String()
+			serverTraceID := server.SpanContext().TraceID().String()
+
+			if cmdTraceID != traceIDSampled || resultTraceID != traceIDSampled || serverTraceID != traceIDSampled {
+				t.Fatalf("Trace ID 불일치: server=%s, open=%s, result=%s, want %s", serverTraceID, cmdTraceID, resultTraceID, traceIDSampled)
+			}
+			if result.Parent().SpanID() != open.SpanContext().SpanID() {
+				t.Fatalf("결과 Span의 parent(%s) != command Span ID(%s)", result.Parent().SpanID(), open.SpanContext().SpanID())
+			}
+
+			if got := attrString(result, "labbit.connector.result_trace"); got != tt.wantRelation {
+				t.Fatalf("result_trace = %q, want %q", got, tt.wantRelation)
+			}
+
+			sessionID := attrString(open, "labbit.terminal_session_id")
+			logEvent := e.logEvent("Connector TERMINAL_OPEN 실패 보고", sessionID)
+			if logEvent == nil {
+				t.Fatalf("Connector TERMINAL_OPEN 실패 보고 로그를 찾을 수 없음:\n%s", e.logs.String())
+			}
+			logTraceID, _ := logEvent["trace_id"].(string)
+			if logTraceID == "" {
+				t.Fatalf("실패 보고 로그에 trace_id가 누락됨 (SaaS authoritative trace가 유지되어야 함)")
+			}
+			if logTraceID != traceIDSampled {
+				t.Fatalf("실패 보고 로그 trace_id = %q, want SaaS command/result trace %q", logTraceID, traceIDSampled)
+			}
+			if logTraceID == foreignTraceID {
+				t.Fatalf("실패 보고 로그 trace_id가 Connector의 foreign trace로 교체됨: %s", foreignTraceID)
+			}
+
+			// invalid trace sentinel 원문이 log나 span에 누출되지 않음을 보증
+			requireNoneOf(t, "Span", dumpSpans(recorder.Ended()), invalidTraceVal)
+			requireNoneOf(t, "log", e.logs.String(), invalidTraceVal)
+		})
+	}
+}
+
 // Connector가 실패를 보고하면 결과 Span과 command Span이 모두 오류로 끝나고 Connector가 준 오류 문구가 아닌 고정 code만 남는다.
 func TestFailedOpenResultMarksTheTraceAsErrorWithoutRawDetail(t *testing.T) {
 	recorder, tracer := newRecordingTracer(t)

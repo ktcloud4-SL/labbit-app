@@ -71,11 +71,26 @@ func Start(ctx context.Context, cfg Config, opts Options) *Runtime {
 		exporter = newExporter(ctx, cfg, logger)
 	}
 
+	sharedDiagnostics.startCapture()
 	providerOptions := []sdktrace.TracerProviderOption{sdktrace.WithResource(newResource(cfg, opts))}
 	if exporter != nil {
 		providerOptions = append(providerOptions, sdktrace.WithBatcher(exporter))
 	}
 	provider := sdktrace.NewTracerProvider(providerOptions...)
+	captured := sharedDiagnostics.stopCapture()
+
+	if len(captured) > 0 {
+		if exporter != nil {
+			logger.Warn("Trace 설정 오류로 외부 export를 비활성화합니다", "reason", captured[0])
+			_ = exporter.Shutdown(ctx)
+			exporter = nil
+			sharedDiagnostics.startCapture()
+			provider = sdktrace.NewTracerProvider(sdktrace.WithResource(newResource(cfg, opts)))
+			_ = sharedDiagnostics.stopCapture()
+		} else if len(cfg.Issues) == 0 {
+			logger.Warn("Trace 설정 오류로 외부 export를 비활성화합니다", "reason", captured[0])
+		}
+	}
 
 	if exporter != nil {
 		logger.Info("Trace OTLP export 활성화", "protocol", string(cfg.Protocol))

@@ -288,6 +288,122 @@ func TestUnreadableCertificateEnvironmentDisablesExportWithoutLoggingThePath(t *
 	_, _ = shutdownWithin(t, rt, time.Second)
 }
 
+// 잘못된 sampler 설정은 Runtime Contract failure policy에 따라 안전한 진단 후 외부 export를 비활성화(fail-closed)한다.
+// fallback으로 AlwaysSample + OTLP export가 활성화되는 것을 막는다.
+func TestInvalidSamplerDisablesExternalExportAndFailsClosed(t *testing.T) {
+	isolateOTelEnv(t)
+	const (
+		invalidSamplerSentinel = "INVALID-SAMPLER-SENTINEL-999"
+		invalidArgSentinel     = "INVALID-ARG-SENTINEL-888"
+	)
+
+	t.Run("ConfigFromEnv를 통한 잘못된 sampler 차단", func(t *testing.T) {
+		isolateOTelEnv(t)
+		t.Setenv("OTEL_TRACES_SAMPLER", invalidSamplerSentinel)
+		var c collector
+		srv := newHTTPCollector(t, &c, http.StatusOK, "")
+		cfg := ConfigFromEnv(envMap{
+			EnvExporter: "otlp", EnvProtocol: "http/protobuf", EnvEndpoint: srv.URL + "/v1/traces",
+			EnvSampler: invalidSamplerSentinel,
+		}.get)
+
+		var logs lockedBuffer
+		rt := Start(context.Background(), cfg, newTestLogger(&logs))
+		if rt.Exporting() {
+			t.Fatal("잘못된 sampler인데 exporter가 활성화됨 (fail-closed 위반)")
+		}
+
+		// Tracing Context는 사용 가능해야 한다.
+		_, span := startSpan(rt, context.Background(), "test-span")
+		sc := span.SpanContext()
+		span.End()
+		if !sc.IsValid() || !sc.TraceID().IsValid() {
+			t.Fatalf("Tracing Context가 유효하지 않음: %+v", sc)
+		}
+
+		if _, err := shutdownWithin(t, rt, time.Second); err != nil {
+			t.Fatalf("Shutdown() error = %v", err)
+		}
+		if got := c.spans(); len(got) != 0 {
+			t.Fatalf("Collector가 Span을 수신함 (hit count != 0): %d개", len(got))
+		}
+
+		out := logs.String()
+		if !strings.Contains(out, `"reason":"invalid_value"`) || !strings.Contains(out, `"env":"OTEL_TRACES_SAMPLER"`) {
+			t.Fatalf("로그에 안전한 진단이 없음:\n%s", out)
+		}
+		mustNotContain(t, "log", out, invalidSamplerSentinel)
+	})
+
+	t.Run("ConfigFromEnv를 통한 잘못된 sampler arg 차단", func(t *testing.T) {
+		isolateOTelEnv(t)
+		t.Setenv("OTEL_TRACES_SAMPLER", "traceidratio")
+		t.Setenv("OTEL_TRACES_SAMPLER_ARG", invalidArgSentinel)
+		var c collector
+		srv := newHTTPCollector(t, &c, http.StatusOK, "")
+		cfg := ConfigFromEnv(envMap{
+			EnvExporter: "otlp", EnvProtocol: "http/protobuf", EnvEndpoint: srv.URL + "/v1/traces",
+			EnvSampler: "traceidratio", EnvSamplerArg: invalidArgSentinel,
+		}.get)
+
+		var logs lockedBuffer
+		rt := Start(context.Background(), cfg, newTestLogger(&logs))
+		if rt.Exporting() {
+			t.Fatal("잘못된 sampler arg인데 exporter가 활성화됨")
+		}
+
+		_, span := startSpan(rt, context.Background(), "test-span")
+		span.End()
+
+		_, _ = shutdownWithin(t, rt, time.Second)
+		if got := c.spans(); len(got) != 0 {
+			t.Fatalf("Collector가 Span을 수신함: %d개", len(got))
+		}
+
+		out := logs.String()
+		if !strings.Contains(out, `"env":"OTEL_TRACES_SAMPLER_ARG"`) {
+			t.Fatalf("진단에 OTEL_TRACES_SAMPLER_ARG가 없음:\n%s", out)
+		}
+		mustNotContain(t, "log", out, invalidArgSentinel)
+	})
+
+	t.Run("Start 레벨에서 SDK 내부 env 진단 capture를 통한 export 비활성화 (심층 방어)", func(t *testing.T) {
+		isolateOTelEnv(t)
+		const directSentinel = "INVALID-DIRECT-SENTINEL-777"
+		t.Setenv("OTEL_TRACES_SAMPLER", directSentinel)
+		var c collector
+		srv := newHTTPCollector(t, &c, http.StatusOK, "")
+
+		// ConfigFromEnv를 거치지 않고 직접 ExporterOTLP로 설정된 Config 전달
+		cfg := Config{
+			ServiceName: "test",
+			Exporter:    ExporterOTLP,
+			Protocol:    ProtocolHTTPProtobuf,
+			Endpoint:    srv.URL + "/v1/traces",
+		}
+
+		var logs lockedBuffer
+		rt := Start(context.Background(), cfg, newTestLogger(&logs))
+		if rt.Exporting() {
+			t.Fatal("SDK 진단에서 sampler 오류가 감지되었는데 exporter가 활성화됨")
+		}
+
+		_, span := startSpan(rt, context.Background(), "test-span")
+		span.End()
+
+		_, _ = shutdownWithin(t, rt, time.Second)
+		if got := c.spans(); len(got) != 0 {
+			t.Fatalf("Collector가 Span을 수신함: %d개", len(got))
+		}
+
+		out := logs.String()
+		if !strings.Contains(out, `"reason":"invalid_sampler"`) {
+			t.Fatalf("진단에 reason=invalid_sampler가 없음:\n%s", out)
+		}
+		mustNotContain(t, "log", out, directSentinel)
+	})
+}
+
 // Collector 장애(연결 거절)는 Span 생성과 Shutdown을 막지 않는다.
 func TestCollectorConnectionRefusedDoesNotBlockTracing(t *testing.T) {
 	isolateOTelEnv(t)

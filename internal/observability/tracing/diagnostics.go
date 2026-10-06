@@ -40,6 +40,7 @@ const (
 	codeInvalidCertificate   = "invalid_certificate"
 	codeInvalidEndpoint      = "invalid_endpoint"
 	codeInvalidTimeout       = "invalid_timeout"
+	codeInvalidSampler       = "invalid_sampler"
 	codeTraceInternal        = "trace_internal"
 )
 
@@ -105,7 +106,12 @@ func (d *diagnostics) stopCapture() []string {
 
 // handleExportError는 otel.Handle의 목적지다. 비동기 export 오류를 분류해 기록한다. err 원문은 버린다.
 func (d *diagnostics) handleExportError(err error) {
-	d.report("OTLP export 실패", classifyError(err))
+	code := classifyError(err)
+	msg := "OTLP export 실패"
+	if code == codeInvalidSampler {
+		msg = "OpenTelemetry 진단"
+	}
+	d.report(msg, code)
 }
 
 func (d *diagnostics) report(message, code string) {
@@ -154,6 +160,8 @@ func (s diagnosticSink) Error(err error, msg string, _ ...any) {
 // classifyLibraryError는 exporter/SDK가 internal logger로 보고한 오류를 분류한다. 환경변수 해석 실패는 설정 오류 code다.
 func classifyLibraryError(msg string, err error) string {
 	switch {
+	case strings.Contains(msg, "sampler"):
+		return codeInvalidSampler
 	case strings.Contains(msg, "header"):
 		return codeInvalidHeaders
 	case strings.Contains(msg, "tls"), strings.Contains(msg, "cert"):
@@ -185,6 +193,10 @@ func classifyError(err error) string {
 	switch {
 	case err == nil:
 		return codeTraceInternal
+	case strings.Contains(err.Error(), "unsupported sampler") ||
+		strings.Contains(err.Error(), "parsing sampler argument") ||
+		strings.Contains(err.Error(), "invalid trace ID ratio"):
+		return codeInvalidSampler
 	case errors.Is(err, context.DeadlineExceeded):
 		return codeExportTimeout
 	case errors.Is(err, context.Canceled):

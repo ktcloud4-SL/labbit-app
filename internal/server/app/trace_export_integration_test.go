@@ -407,6 +407,14 @@ func TestServerStartupAndProbesIgnoreTraceConfigurationAndCollectorOutage(t *tes
 			"OTEL_TRACES_EXPORTER": "otlp", "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL": "http/protobuf", "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "https://127.0.0.1:1/v1/traces",
 			"OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE": "/nonexistent/ca.pem",
 		}},
+		{"잘못된 sampler 값", map[string]string{
+			"OTEL_TRACES_EXPORTER": "otlp", "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL": "http/protobuf", "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://127.0.0.1:1/v1/traces",
+			"OTEL_TRACES_SAMPLER": "INVALID-SAMPLER",
+		}},
+		{"잘못된 sampler arg 값", map[string]string{
+			"OTEL_TRACES_EXPORTER": "otlp", "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL": "http/protobuf", "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://127.0.0.1:1/v1/traces",
+			"OTEL_TRACES_SAMPLER": "traceidratio", "OTEL_TRACES_SAMPLER_ARG": "INVALID-ARG",
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -475,6 +483,45 @@ func TestServerFlushesTheTraceOfARealRequestOnGracefulShutdown(t *testing.T) {
 		}
 	}
 	requireNoneOf(t, "export된 Span", span.String(), "QUERY-SENTINEL", "?path")
+}
+
+// 잘못된 sampler가 주어져도 실제 서버 Run() 기동, /livez, /readyz, 업무 요청은 정상 동작하며,
+// external OTLP exporter는 비활성화되어 수신기에 어떤 Span도 전송되지 않는다.
+func TestInvalidSamplerDisablesOTLPExportOnRealServer(t *testing.T) {
+	isolateOTelEnv(t)
+	const invalidSamplerVal = "INVALID-SAMPLER-SENTINEL-real-server-123"
+	receiver := newOTLPReceiver(t, false)
+	t.Setenv("OTEL_SERVICE_NAME", "labbit-server-invalid-sampler")
+	t.Setenv("OTEL_TRACES_SAMPLER", invalidSamplerVal)
+	setTraceEnv(t, "otlp", "http/protobuf", receiver.endpoint())
+
+	admin, application, stop := runTraceServer(t, migratedDSN(t), 5*time.Second)
+
+	waitForStatus(t, admin+"/readyz", http.StatusOK)
+	assertStatus(t, admin+"/livez", http.StatusOK)
+
+	req, err := http.NewRequest(http.MethodGet, application+"/api/v1/me", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Traceparent", traceSampled)
+	resp, err := probeClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", resp.StatusCode)
+	}
+
+	if _, err := stop(); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	// invalid sampler 때문에 external export가 꺼져 Collector hit count == 0이어야 한다.
+	if receiver.hitCount() != 0 {
+		t.Fatalf("잘못된 sampler인데 Collector에 Span이 export됨: hitCount = %d", receiver.hitCount())
+	}
 }
 
 // gRPC exporter는 연결할 수 없는 Collector에 retry backoff로 대기하므로 종료 flush가 남은 budget 전체를 쓸 수 있다(budget은 넘지 않는다).

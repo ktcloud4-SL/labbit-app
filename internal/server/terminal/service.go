@@ -600,11 +600,7 @@ func finishControlSpan(span trace.Span, outcome string, failed bool) {
 // Connector가 돌려준 Context로 parent를 바꾸지 않는다. 기다리는 Create가 없는 늦은 결과는 연결할 command Span이 없으므로 만들지 않고,
 // 다른 command의 Context에 붙이지 않는다. Connector가 Context를 돌려주지 않았거나 달라도 업무 결과는 바뀌지 않으며
 // result_trace attribute로만 남긴다.
-func (s *Service) recordOpenResult(e connector.TerminalOpenResultEvent) {
-	command, ok := s.openCommandSpan(e.Correlation.TerminalSessionID)
-	if !ok {
-		return
-	}
+func (s *Service) recordOpenResult(e connector.TerminalOpenResultEvent, command trace.SpanContext) {
 	succeeded := e.Payload.Outcome == connector.TerminalOutcomeSucceeded
 	outcome := "FAILED"
 	if succeeded {
@@ -633,15 +629,18 @@ func (s *Service) recordOpenResult(e connector.TerminalOpenResultEvent) {
 }
 
 // resultTraceRelation은 Connector가 돌려준 결과의 Trace Context를 보낸 command의 Trace와 비교한다.
+// Connector는 propagation-only이므로 W3C propagation 형태로 normalize한 context가 보낸 command context와
+// trace ID, span ID, flags, tracestate까지 완전히 일치할 때만 same_trace로 본다.
 func resultTraceRelation(command trace.SpanContext, got connector.TraceContext) string {
-	switch {
-	case !got.Valid():
+	got = connector.NormalizeTrace(got.Traceparent, got.Tracestate)
+	if !got.Valid() {
 		return "absent"
-	case got.TraceID() == command.TraceID().String():
-		return "same_trace"
-	default:
-		return "different_trace"
 	}
+	expected := connector.TraceFromContext(trace.ContextWithSpanContext(context.Background(), command))
+	if got == expected {
+		return "same_trace"
+	}
+	return "different_trace"
 }
 
 // HandleTerminalEvent는 Router가 Connector Session의 read loop fence 안에서 호출한다. 짧게 반환한다.
@@ -649,16 +648,27 @@ func (s *Service) HandleTerminalEvent(event connector.TerminalEvent) {
 	switch e := event.(type) {
 	case connector.TerminalOpenResultEvent:
 		// Router가 인증된 ConnectorID, terminalSessionId, labInstanceId, generation, replyToMessageId를 모두 대조했다.
-		log := withControlCorrelation(s.logger.With(
+		command, hasCommand := s.openCommandSpan(e.Correlation.TerminalSessionID)
+		log := s.logger.With(
 			"connector_id", e.ConnectorID.String(),
 			"terminal_session_id", e.Correlation.TerminalSessionID,
 			"lab_instance_id", e.Correlation.LabInstanceID,
 			"generation", e.Correlation.Generation,
-		), e.RequestID, e.Trace)
+		)
+		if e.RequestID != "" {
+			log = log.With("request_id", e.RequestID)
+		}
+		// pending command가 실제로 존재할 때는 SaaS local command TraceContext가 권위 있는 상관관계다(LBT-144).
+		// Connector가 돌려준 Trace는 전파 검증용 메타데이터일 뿐 로그의 trace_id를 교체하지 않는다.
+		if hasCommand && command.HasTraceID() {
+			log = log.With("trace_id", command.TraceID().String())
+		}
 		if e.Payload.Error != nil {
 			log.Warn("Connector TERMINAL_OPEN 실패 보고", "error_code", safeCode(e.Payload.Error.Code))
 		}
-		s.recordOpenResult(e)
+		if hasCommand {
+			s.recordOpenResult(e, command)
+		}
 		if !s.notifyOpen(e.Correlation.TerminalSessionID, openOutcome{succeeded: e.Payload.Outcome == connector.TerminalOutcomeSucceeded}) {
 			log.Debug("기다리는 Create가 없는 TERMINAL_OPEN_RESULT")
 		}

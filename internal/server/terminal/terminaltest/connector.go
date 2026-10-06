@@ -576,6 +576,13 @@ func (c *Connector) DataDials() int {
 	return c.dataDials
 }
 
+// EchoResultTrace는 이후 TERMINAL_OPEN_RESULT에 받은 Context를 그대로 싣는다(기본값).
+func (c *Connector) EchoResultTrace() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.resultTrace, c.resultTraceparent = resultTraceEchoed, ""
+}
+
 // OmitResultTrace는 이후 TERMINAL_OPEN_RESULT에 Trace Context를 싣지 않는다. Trace를 돌려주지 않아도 업무 결과가 실패하지 않는지 확인하는 데 쓴다.
 func (c *Connector) OmitResultTrace() {
 	c.mu.Lock()

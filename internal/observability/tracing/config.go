@@ -9,6 +9,7 @@ package tracing
 
 import (
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -19,6 +20,8 @@ const (
 	EnvExporter    = "OTEL_TRACES_EXPORTER"
 	EnvEndpoint    = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
 	EnvProtocol    = "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL"
+	EnvSampler     = "OTEL_TRACES_SAMPLER"
+	EnvSamplerArg  = "OTEL_TRACES_SAMPLER_ARG"
 
 	// DefaultServiceName은 OTEL_SERVICE_NAME의 Runtime Contract 기본값이다.
 	DefaultServiceName = "labbit-server"
@@ -86,17 +89,50 @@ func ConfigFromEnv(getenv func(string) string) Config {
 
 	endpoint, endpointIssue := parseEndpoint(getenv(EnvEndpoint))
 	protocol, protocolIssue := parseProtocol(getenv(EnvProtocol))
+	samplerIssue, samplerArgIssue := parseSampler(getenv(EnvSampler), getenv(EnvSamplerArg))
 	if endpointIssue != "" {
 		cfg.Issues = append(cfg.Issues, Issue{Env: EnvEndpoint, Reason: endpointIssue})
 	}
 	if protocolIssue != "" {
 		cfg.Issues = append(cfg.Issues, Issue{Env: EnvProtocol, Reason: protocolIssue})
 	}
+	if samplerIssue != "" {
+		cfg.Issues = append(cfg.Issues, Issue{Env: EnvSampler, Reason: samplerIssue})
+	}
+	if samplerArgIssue != "" {
+		cfg.Issues = append(cfg.Issues, Issue{Env: EnvSamplerArg, Reason: samplerArgIssue})
+	}
 	if len(cfg.Issues) > 0 {
 		return cfg
 	}
 	cfg.Exporter, cfg.Protocol, cfg.Endpoint = ExporterOTLP, protocol, endpoint
 	return cfg
+}
+
+// parseSampler는 표준 OTEL_TRACES_SAMPLER와 OTEL_TRACES_SAMPLER_ARG를 검증한다.
+// OpenTelemetry Go SDK가 지원하는 6가지 sampler만 허용하며, 빈 값은 SDK 기본값(parentbased_always_on)이므로 유효하다.
+// ratio 기반 sampler는 0.0 이상 1.0 이하의 float를 요구한다. 값 원문은 반환하지 않는다.
+func parseSampler(rawSampler, rawArg string) (samplerIssue, argIssue string) {
+	rawSampler = strings.ToLower(strings.TrimSpace(rawSampler))
+	if rawSampler == "" {
+		return "", ""
+	}
+	switch rawSampler {
+	case "always_on", "always_off", "parentbased_always_on", "parentbased_always_off":
+		return "", ""
+	case "traceidratio", "parentbased_traceidratio":
+		rawArg = strings.TrimSpace(rawArg)
+		if rawArg == "" {
+			return "", ""
+		}
+		v, err := strconv.ParseFloat(rawArg, 64)
+		if err != nil || v < 0.0 || v > 1.0 {
+			return "", IssueInvalidValue
+		}
+		return "", ""
+	default:
+		return IssueInvalidValue, ""
+	}
 }
 
 func parseProtocol(raw string) (Protocol, string) {

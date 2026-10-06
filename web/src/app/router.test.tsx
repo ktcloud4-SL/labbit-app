@@ -1785,6 +1785,55 @@ describe('Auth·Class·LabSpec routing', () => {
     confirm.mockRestore()
   })
 
+  it('Workspace File에 저장되지 않은 변경이 있으면 SPA 페이지 이동도 확인한다', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+          path,
+          items: [
+            {
+              name: 'README.md',
+              path: 'README.md',
+              kind: 'file',
+            },
+          ],
+        }),
+        readWorkspaceFile: async (_labInstanceId, path) => ({
+          file: {
+            path,
+            content: '# Original\n',
+          },
+          etag: '"file-v1"',
+        }),
+      }),
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'README.md' }),
+    )
+    const editor = await screen.findByLabelText('파일 편집기')
+    fireEvent.change(editor, {
+      target: {
+        value: '# Unsaved\n',
+      },
+    })
+
+    fireEvent.click(screen.getByRole('link', { name: '← 수업 상세' }))
+
+    await waitFor(() => {
+      expect(confirm).toHaveBeenCalledWith(
+        '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 페이지를 이동할까요?',
+      )
+    })
+    expect(screen.getByRole('region', { name: 'Lab Workspace Shell' })).toBeInTheDocument()
+    expect(screen.getByLabelText('파일 편집기')).toHaveValue('# Unsaved\n')
+
+    confirm.mockRestore()
+  })
+
   it('Workspace File Save 401도 Editor에 머물지 않고 sessionExpired Login으로 올린다', async () => {
     renderRoute(
       '/classes/class-kubernetes-basic/lab',

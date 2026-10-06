@@ -17,6 +17,8 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/filetransport"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/preview"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile"
@@ -44,6 +46,19 @@ type stackOptions struct {
 	FileAttachTimeout    time.Duration
 	FileOperationTimeout time.Duration
 	MaxFileBytes         int64
+
+	// Preview가 true이면 Preview Gateway와 PreviewSession 생성/종료를 함께 조립한다(api와 preview role이 같은 process).
+	// PreviewPolicy(허용 port 목록), PreviewTTL, PreviewOrigin은 이때 필수이며 기본값이 없다.
+	Preview       bool
+	PreviewPolicy previewsession.Policy
+	PreviewTTL    time.Duration
+	PreviewOrigin preview.OriginTemplate
+	// 아래는 test에서 짧은 시간과 가짜 시간을 주입하는 용도다. 0/nil이면 각 구성 요소의 기본값이다.
+	PreviewClock           preview.Clock
+	PreviewOpenTimeout     time.Duration
+	PreviewAttachTimeout   time.Duration
+	PreviewBootstrapTTL    time.Duration
+	PreviewUpstreamTimeout time.Duration
 }
 
 // controlStack은 api role이 소유하는 handler와 Connector Control 경계, 그리고 선택적으로 같은 process의 Terminal Relay다.
@@ -61,6 +76,11 @@ type controlStack struct {
 	// Files와 FileBroker는 api role이 소유하는 Workspace File use case와 Connector File transport다. realtime role이 필요하지 않다.
 	Files      *workspacefile.Service
 	FileBroker *filetransport.Broker
+
+	// Previews와 PreviewGateway는 Preview가 false이면 nil이다. Previews는 api role의 DB-backed authority(PreviewSession 생성/종료)이고
+	// PreviewGateway는 preview role의 Preview Origin Gateway와 Connector Preview Data tunnel이다(같은 process에서 함께 조립).
+	Previews       *previewsession.Service
+	PreviewGateway *preview.Gateway
 }
 
 // newControlStack은 store 위에서 Auth, Class, Connector Control, (선택) Terminal을 조립한다.
@@ -78,7 +98,12 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	sink := &terminalSinkForwarder{}
 	// Router와 File transport Broker도 같은 관계다. Router가 FILE_OPEN_RESULT를 Broker에 넘기고 Broker가 Router로 FILE_OPEN을 보낸다.
 	fileSink := &fileSinkForwarder{}
+	// Preview도 같은 관계다. Router가 PREVIEW_OPEN_RESULT를 PreviewSession use case에 넘기고 use case가 Router로 PREVIEW_OPEN을 보낸다.
+	previewSink := &previewSinkForwarder{}
 	routerOpts := connector.RouterOptions{Registry: registry, Logger: logger, FileSink: fileSink}
+	if opts.Preview {
+		routerOpts.PreviewSink = previewSink
+	}
 	if opts.Realtime {
 		routerOpts.TerminalSink = sink
 	}
@@ -143,6 +168,39 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		terminals = service
 	}
 
+	// Preview Gateway(preview role)와 PreviewSession use case(api role)는 같은 process에서 함께 조립한다. Gateway는 PostgreSQL을 모르고
+	// 좁은 interface(Connector Credential 인증, PreviewSession 종료 통지)로만 authority를 받는다. PreviewSession 상태는 process 안의 ephemeral 상태다.
+	var previews httpapi.Previews
+	if opts.Preview {
+		gateway, err := preview.New(preview.Options{
+			Origin:          opts.PreviewOrigin,
+			Connectors:      previewsession.NewConnectorAuthenticator(connectorService),
+			Clock:           opts.PreviewClock,
+			Logger:          logger,
+			AttachTimeout:   opts.PreviewAttachTimeout,
+			BootstrapTTL:    opts.PreviewBootstrapTTL,
+			UpstreamTimeout: opts.PreviewUpstreamTimeout,
+		})
+		if err != nil {
+			return nil, err
+		}
+		service, err := previewsession.NewService(previewsession.Options{
+			Store: store, Connectors: router, Gateway: gateway,
+			Policy: opts.PreviewPolicy, TTL: opts.PreviewTTL, Clock: opts.PreviewClock,
+			Logger: logger, OpenTimeout: opts.PreviewOpenTimeout,
+		})
+		if err != nil {
+			return nil, err
+		}
+		gateway.SetLifecycle(service)
+		previewSink.target = service
+		// Credential/Connector revoke와 Control Session 교체·revoke를 Control이 관측하면 그 Control Session에 묶인 PreviewSession도 함께 끝낸다.
+		observers = append(observers, gateway)
+		registry.SetSessionObserver(previewsession.NewSessionBridge(gateway))
+		stack.Previews, stack.PreviewGateway = service, gateway
+		previews = service
+	}
+
 	registry.SetRevokeObserver(observers)
 
 	stack.API, err = httpapi.New(httpapi.Options{
@@ -150,6 +208,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		Classes:      class.NewService(store),
 		Terminals:    terminals,
 		Files:        files,
+		Previews:     previews,
 		PublicOrigin: opts.PublicOrigin,
 		Logger:       logger,
 		Metrics:      opts.HTTPMetrics,
@@ -177,6 +236,11 @@ func (c *controlStack) routes() routes {
 		r.BrowserTerminal = c.Relay.BrowserHandler()
 		r.ConnectorTerminalData = c.Relay.DataHandler()
 	}
+	if c.PreviewGateway != nil {
+		r.ConnectorPreviewData = c.PreviewGateway.DataHandler()
+		r.PreviewGateway = c.PreviewGateway.Handler()
+		r.PreviewMatchesHost = c.PreviewGateway.MatchesHost
+	}
 	return r
 }
 
@@ -186,6 +250,11 @@ func (c *controlStack) routes() routes {
 // Terminal Relay가 있으면 Connector Control connection을 여기서 닫지 않는다. Relay가 active TerminalSession을 종료하면서 그
 // connection으로 TERMINAL_CLOSE를 보내야 하므로 shutdown이 마지막에 닫는다. Relay가 없는 구성(api만 enabled)은 예전처럼 바로 닫는다.
 func (c *controlStack) close() {
+	// 새 PreviewSession, Preview 요청, Data WSS Upgrade를 거절하고 모든 PreviewSession을 SERVICE_RESTARTING으로 끝낸다. PreviewSession마다
+	// PREVIEW_CLOSE를 보내려면 Control connection이 아직 열려 있어야 하므로 Control을 닫기 전에 한다(통지는 이 호출 안에서 동기로 보낸다).
+	if c.PreviewGateway != nil {
+		c.PreviewGateway.Close()
+	}
 	// 새 File 요청과 Upgrade를 거절하고 진행 중인 요청을 끝낸다. 요청마다 FILE_CLOSE를 보내려면 Control connection이 아직 열려 있어야 하므로
 	// Control은 아래 기존 순서대로 닫는다.
 	c.FileBroker.Close()
@@ -209,6 +278,11 @@ func (c *controlStack) shutdown(ctx context.Context) error {
 		errs = append(errs, c.Terminals.Shutdown(ctx))
 	}
 	errs = append(errs, c.FileBroker.Shutdown(ctx))
+	if c.Previews != nil {
+		// 진행 중인 PreviewSession 생성을 기다린 뒤 Gateway의 Data WSS와 Preview 요청이 끝나기를 기다린다.
+		errs = append(errs, c.Previews.Shutdown(ctx))
+		errs = append(errs, c.PreviewGateway.Shutdown(ctx))
+	}
 	errs = append(errs, c.ConnectorControl.Shutdown(ctx))
 	return errors.Join(errs...)
 }
@@ -235,7 +309,14 @@ type fileSinkForwarder struct{ target connector.FileSink }
 
 func (f *fileSinkForwarder) HandleFileEvent(e connector.FileEvent) { f.target.HandleFileEvent(e) }
 
-// revokeObservers는 Registry의 단일 revoke observer 자리에서 여러 Data WSS(Terminal, File)에 revoke를 전달한다.
+// previewSinkForwarder는 조립 시점에 target이 정해지는 connector.PreviewSink다.
+type previewSinkForwarder struct{ target connector.PreviewSink }
+
+func (f *previewSinkForwarder) HandlePreviewEvent(e connector.PreviewEvent) {
+	f.target.HandlePreviewEvent(e)
+}
+
+// revokeObservers는 Registry의 단일 revoke observer 자리에서 여러 Data WSS(Terminal, File, Preview)에 revoke를 전달한다.
 type revokeObservers []connector.RevokeObserver
 
 func (o revokeObservers) CredentialRevoked(credentialID uuid.UUID) {

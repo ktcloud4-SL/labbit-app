@@ -9,6 +9,13 @@ import (
 const (
 	SubprotocolControl      = "labbit.connector.v1"
 	SubprotocolTerminalData = "labbit.connector-terminal.v1"
+	SubprotocolFileData     = "labbit.connector-file.v1"
+)
+
+// HELLO capabilities 값이다. SaaS는 connection이 선언한 capability에만 해당 기능의 Control message를 보낸다(버전으로 추론하지 않는다).
+const (
+	// CapabilityFileV1은 Workspace File transport(file-control.schema.json, file-data.schema.json)를 지원함을 뜻한다.
+	CapabilityFileV1 = "file-v1"
 )
 
 // Control 메시지 타입 정의 (connector.schema.json 기준)
@@ -35,6 +42,13 @@ const (
 	MessageTypeTerminalEnded      = "TERMINAL_ENDED"
 )
 
+// Workspace File Control 메시지 타입 정의 (file-control.schema.json 기준)
+const (
+	MessageTypeFileOpen       = "FILE_OPEN"
+	MessageTypeFileOpenResult = "FILE_OPEN_RESULT"
+	MessageTypeFileClose      = "FILE_CLOSE"
+)
+
 // Operation Mutation 타입
 const (
 	MutationTypeProvision = "PROVISION"
@@ -58,16 +72,17 @@ const (
 
 // BaseEnvelope 는 v1 Control WSS의 공통 Envelope입니다.
 type BaseEnvelope struct {
-	Type             string    `json:"type"`
-	MessageID        string    `json:"messageId"`
-	SentAt           time.Time `json:"sentAt"`
-	ReplyToMessageID string    `json:"replyToMessageId,omitempty"`
-	RequestID        string    `json:"requestId,omitempty"`
-	OperationID      string    `json:"operationId,omitempty"`
-	LabInstanceID    string    `json:"labInstanceId,omitempty"`
-	Generation       int64     `json:"generation,omitempty"`
-	TraceParent      string    `json:"traceparent,omitempty"`
-	TraceState       string    `json:"tracestate,omitempty"`
+	Type              string    `json:"type"`
+	MessageID         string    `json:"messageId"`
+	SentAt            time.Time `json:"sentAt"`
+	ReplyToMessageID  string    `json:"replyToMessageId,omitempty"`
+	RequestID         string    `json:"requestId,omitempty"`
+	OperationID       string    `json:"operationId,omitempty"`
+	TerminalSessionID string    `json:"terminalSessionId,omitempty"`
+	LabInstanceID     string    `json:"labInstanceId,omitempty"`
+	Generation        int64     `json:"generation,omitempty"`
+	TraceParent       string    `json:"traceparent,omitempty"`
+	TraceState        string    `json:"tracestate,omitempty"`
 }
 
 // 메시지 크기 및 WebSocket Close 코드 상수 (최신 contracts/connector SSOT)

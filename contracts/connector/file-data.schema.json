@@ -1,0 +1,388 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labbit.local/contracts/connector/file-data.schema.json",
+  "title": "Labbit Connector File Data WSS Contract v0.1",
+  "description": "SaaS와 고객 환경 Connector 사이의 Workspace File Data WebSocket JSON control frame 계약입니다. File Data WSS 하나는 Workspace File 요청 하나(Tree, Read, Save 중 하나)만 처리하고 닫습니다. 파일 본문(Read의 응답, Save의 요청)은 JSON에 담지 않고 해당 JSON frame 바로 다음의 WebSocket Binary frame 하나에 raw byte로 전달합니다. 파일 본문, 디렉터리 목록, 경로는 persistent Control WSS(connector.schema.json, file-control.schema.json)에 싣지 않습니다.",
+  "oneOf": [
+    { "$ref": "#/$defs/FileDataAttachMessage" },
+    { "$ref": "#/$defs/FileDataAttachedMessage" },
+    { "$ref": "#/$defs/FileTreeMessage" },
+    { "$ref": "#/$defs/FileReadMessage" },
+    { "$ref": "#/$defs/FileSaveMessage" },
+    { "$ref": "#/$defs/FileTreeResultMessage" },
+    { "$ref": "#/$defs/FileReadResultMessage" },
+    { "$ref": "#/$defs/FileSaveResultMessage" },
+    { "$ref": "#/$defs/ErrorMessage" }
+  ],
+  "$defs": {
+    "ResourceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "MessageId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "SafeError": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "안정적인 기계 판독 오류 코드입니다. NOT_FOUND, NOT_A_FILE, NOT_A_DIRECTORY, TOO_LARGE, REVISION_CONFLICT, PERMISSION_DENIED, INVALID_PATH, UNAVAILABLE, INTERNAL_ERROR를 사용하며 새 값이 추가될 수 있습니다. 알 수 없는 code는 SaaS가 사용 불가(UNAVAILABLE)로 취급합니다."
+        },
+        "message": {
+          "type": "string",
+          "description": "Credential, Token, 파일 본문, 파일 경로, SSH/SFTP raw 오류를 포함하지 않는 안전한 설명입니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "WorkspacePath": {
+      "type": "string",
+      "maxLength": 4096,
+      "description": "Workspace root 기준의 canonical 상대 POSIX 경로입니다. SaaS가 HTTP 경로 규칙(contracts/http/openapi.yaml의 path parameter)으로 검증해 canonical한 값만 보내며 URL decoding이나 정규화가 이미 끝난 값입니다. Connector는 다시 decode하거나 정규화하지 않고 값 그대로 root에 붙이며, canonical하지 않거나 root 밖을 가리키면 INVALID_PATH로 거절합니다(심층 방어). 빈 문자열은 root이며 Tree에서만 허용됩니다. VM의 절대 경로와 Workspace root 위치는 이 계약이 정하지 않습니다."
+    },
+    "Revision": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,128}$",
+      "description": "파일 한 시점의 opaque revision입니다. 생성 방식과 형식은 호환성 계약이 아니며 SaaS는 값을 해석하지 않고 같은 값을 expectedRevision으로 되돌려 보냅니다. HTTP ETag로 안전하게 전달할 수 있도록 문자 집합과 길이만 제한합니다."
+    },
+    "BaseEnvelope": {
+      "type": "object",
+      "required": ["type", "messageId", "sentAt", "fileRequestId", "labInstanceId", "generation", "payload"],
+      "properties": {
+        "type": { "type": "string" },
+        "messageId": { "$ref": "#/$defs/MessageId" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "replyToMessageId": { "$ref": "#/$defs/MessageId" },
+        "fileRequestId": {
+          "$ref": "#/$defs/ResourceId",
+          "description": "FILE_OPEN이 알려 준 Workspace File 요청 ID입니다. 이 Data WSS에 bind된 요청과 모든 frame에서 같아야 합니다."
+        },
+        "labInstanceId": { "$ref": "#/$defs/ResourceId" },
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "traceparent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "tracestate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "payload": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "AttachPayload": {
+      "type": "object",
+      "required": ["runtimeId", "targetVmKey", "providerServerId"],
+      "properties": {
+        "runtimeId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "현재 Connector 프로세스 실행 인스턴스 ID입니다. Connector identity는 WSS Upgrade의 Connector Credential에서 결정합니다."
+        },
+        "targetVmKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "FILE_OPEN이 알려 준 Workspace VM의 논리 키입니다. SaaS가 기대한 값과 같아야 attach가 성립합니다."
+        },
+        "providerServerId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "FILE_OPEN이 알려 준 현재 generation의 Workspace VM Server ID입니다. SaaS가 기대한 값과 같아야 attach가 성립합니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "AttachedPayload": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "TreeRequestPayload": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": { "$ref": "#/$defs/WorkspacePath" }
+      },
+      "additionalProperties": true
+    },
+    "ReadRequestPayload": {
+      "type": "object",
+      "required": ["path", "maxBytes"],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/WorkspacePath",
+          "minLength": 1
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "SaaS가 받아들이는 파일 본문의 최대 byte 수입니다. 파일이 이보다 크면 Connector는 본문을 보내지 않고 TOO_LARGE로 실패시킵니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "SaveRequestPayload": {
+      "type": "object",
+      "required": ["path", "expectedRevision", "size"],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/WorkspacePath",
+          "minLength": 1
+        },
+        "expectedRevision": {
+          "$ref": "#/$defs/Revision",
+          "description": "클라이언트가 읽었던 시점의 revision입니다. Connector는 쓰기 직전에 현재 파일의 revision과 비교해 같을 때만 쓰고 다르면 파일을 바꾸지 않고 REVISION_CONFLICT로 실패시킵니다. 파일이 없으면 만들지 않고 NOT_FOUND로 실패시킵니다."
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "이 JSON frame 바로 다음에 오는 Binary frame 하나의 byte 수입니다. 0이어도 Binary frame을 보냅니다(빈 frame)."
+        }
+      },
+      "additionalProperties": true
+    },
+    "TreeEntry": {
+      "type": "object",
+      "required": ["name", "kind"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "디렉터리 항목의 이름(경로 segment 하나)입니다. '/'나 NUL을 포함할 수 없습니다. SaaS는 HTTP 경로 규칙으로 표현할 수 없는 이름(예: 백슬래시, 제어 문자, percent-escape 형태)을 목록에서 제외하며 그 때문에 요청을 실패시키지 않습니다."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["file", "directory"],
+          "description": "file과 directory뿐입니다. 그 밖의 종류(symlink, device 등)는 Connector가 목록에 포함하지 않습니다. symlink가 workspace root 안에서 어떻게 해석되는지는 Connector의 SFTP 구현이 정합니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "TreeResultPayload": {
+      "type": "object",
+      "required": ["outcome"],
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": ["SUCCEEDED", "FAILED"]
+        },
+        "entries": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TreeEntry" },
+          "description": "요청한 디렉터리의 직계 항목입니다. 정렬 순서는 정하지 않으며 SaaS가 정렬합니다. 목록이 JSON Text 1 MiB 한도를 넘으면 Connector는 SUCCEEDED로 일부만 보내지 않고 TOO_LARGE로 실패시킵니다."
+        },
+        "error": { "$ref": "#/$defs/SafeError" }
+      },
+      "if": {
+        "required": ["outcome"],
+        "properties": { "outcome": { "const": "SUCCEEDED" } }
+      },
+      "then": { "required": ["entries"] },
+      "else": { "required": ["error"] },
+      "additionalProperties": true
+    },
+    "ReadResultPayload": {
+      "type": "object",
+      "required": ["outcome"],
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": ["SUCCEEDED", "FAILED"],
+          "description": "SUCCEEDED이면 이 JSON frame 바로 다음에 size byte의 Binary frame 하나가 따라옵니다. FAILED이면 Binary frame이 없습니다."
+        },
+        "revision": { "$ref": "#/$defs/Revision" },
+        "size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "뒤따르는 Binary frame의 byte 수입니다. 읽은 시점의 파일 크기이며 요청의 maxBytes를 넘지 않아야 합니다."
+        },
+        "error": { "$ref": "#/$defs/SafeError" }
+      },
+      "if": {
+        "required": ["outcome"],
+        "properties": { "outcome": { "const": "SUCCEEDED" } }
+      },
+      "then": { "required": ["revision", "size"] },
+      "else": { "required": ["error"] },
+      "additionalProperties": true
+    },
+    "SaveResultPayload": {
+      "type": "object",
+      "required": ["outcome"],
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": ["SUCCEEDED", "FAILED"]
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision",
+          "description": "SUCCEEDED일 때 저장된 파일의 새 revision입니다."
+        },
+        "error": { "$ref": "#/$defs/SafeError" }
+      },
+      "if": {
+        "required": ["outcome"],
+        "properties": { "outcome": { "const": "SUCCEEDED" } }
+      },
+      "then": { "required": ["revision"] },
+      "else": { "required": ["error"] },
+      "additionalProperties": true
+    },
+    "ErrorPayload": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "INVALID_REQUEST, FORBIDDEN, STALE_GENERATION, PROTOCOL_ERROR, INTERNAL_ERROR 등 확장 가능한 protocol 오류 코드입니다. 업무 결과(NOT_FOUND 등)는 *_RESULT의 FAILED로 전달하며 이 메시지로 보내지 않습니다."
+        },
+        "message": {
+          "type": "string"
+        },
+        "fatal": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "FileDataAttachMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "FILE_DATA_ATTACH" },
+            "payload": { "$ref": "#/$defs/AttachPayload" }
+          }
+        }
+      ],
+      "description": "Connector → SaaS. WSS Upgrade 인증 후 첫 application message로 이 File Data WSS를 fileRequestId의 요청에 bind합니다. SaaS는 인증된 Connector identity, fileRequestId, labInstanceId, generation, targetVmKey, providerServerId가 모두 기대한 값과 같을 때만 bind합니다."
+    },
+    "FileDataAttachedMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "replyToMessageId", "payload"],
+          "properties": {
+            "type": { "const": "FILE_DATA_ATTACHED" },
+            "payload": { "$ref": "#/$defs/AttachedPayload" }
+          }
+        }
+      ],
+      "description": "SaaS → Connector. attach가 성립했음을 알립니다. replyToMessageId는 FILE_DATA_ATTACH의 messageId입니다. 이 뒤에 SaaS가 요청 frame 하나를 보냅니다."
+    },
+    "FileTreeMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "FILE_TREE" },
+            "payload": { "$ref": "#/$defs/TreeRequestPayload" }
+          }
+        }
+      ],
+      "description": "SaaS → Connector. 디렉터리 하나의 직계 항목을 요청합니다. 재귀 조회가 아닙니다."
+    },
+    "FileReadMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "FILE_READ" },
+            "payload": { "$ref": "#/$defs/ReadRequestPayload" }
+          }
+        }
+      ],
+      "description": "SaaS → Connector. 파일 하나의 본문을 요청합니다."
+    },
+    "FileSaveMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "FILE_SAVE" },
+            "payload": { "$ref": "#/$defs/SaveRequestPayload" }
+          }
+        }
+      ],
+      "description": "SaaS → Connector. 기존 파일 하나의 본문을 교체하도록 요청합니다. 이 JSON frame 바로 다음에 payload.size byte의 Binary frame 하나가 따라옵니다. SaaS는 이 요청을 자동으로 다시 보내지 않습니다."
+    },
+    "FileTreeResultMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "replyToMessageId", "payload"],
+          "properties": {
+            "type": { "const": "FILE_TREE_RESULT" },
+            "payload": { "$ref": "#/$defs/TreeResultPayload" }
+          }
+        }
+      ],
+      "description": "Connector → SaaS. replyToMessageId는 응답하는 FILE_TREE의 messageId입니다."
+    },
+    "FileReadResultMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "replyToMessageId", "payload"],
+          "properties": {
+            "type": { "const": "FILE_READ_RESULT" },
+            "payload": { "$ref": "#/$defs/ReadResultPayload" }
+          }
+        }
+      ],
+      "description": "Connector → SaaS. replyToMessageId는 응답하는 FILE_READ의 messageId입니다."
+    },
+    "FileSaveResultMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "replyToMessageId", "payload"],
+          "properties": {
+            "type": { "const": "FILE_SAVE_RESULT" },
+            "payload": { "$ref": "#/$defs/SaveResultPayload" }
+          }
+        }
+      ],
+      "description": "Connector → SaaS. replyToMessageId는 응답하는 FILE_SAVE의 messageId입니다. SUCCEEDED는 Connector가 expectedRevision 검사를 통과해 파일을 썼음을 뜻합니다."
+    },
+    "ErrorMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "ERROR" },
+            "payload": { "$ref": "#/$defs/ErrorPayload" }
+          }
+        }
+      ]
+    }
+  }
+}

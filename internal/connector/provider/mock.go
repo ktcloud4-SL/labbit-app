@@ -10,18 +10,20 @@ var ErrMockNotConfigured = errors.New("mock provider method not configured")
 // MockProvider lets Control tests supply outcomes without OpenStack or Gophercloud.
 // An unconfigured method fails explicitly instead of reporting a false success.
 type MockProvider struct {
-	ConnectionID           string
-	ValidateConnectionFunc func(context.Context) error
-	ListImagesFunc         func(context.Context) ([]Image, error)
-	ListFlavorsFunc        func(context.Context) ([]Flavor, error)
-	ProvisionFunc          func(context.Context, ProvisionRequest) (OperationResult, error)
-	ResetFunc              func(context.Context, ResetRequest) (OperationResult, error)
-	CleanupFunc            func(context.Context, CleanupRequest) (OperationResult, error)
-	ReconcileFunc          func(context.Context, ReconcileRequest) (ReconcileResult, error)
+	ConnectionID             string
+	ValidateConnectionFunc   func(context.Context) error
+	ListImagesFunc           func(context.Context) ([]Image, error)
+	ListFlavorsFunc          func(context.Context) ([]Flavor, error)
+	ProvisionFunc            func(context.Context, ProvisionRequest) (OperationResult, error)
+	ResetFunc                func(context.Context, ResetRequest) (OperationResult, error)
+	CleanupFunc              func(context.Context, CleanupRequest) (OperationResult, error)
+	ReconcileFunc            func(context.Context, ReconcileRequest) (ReconcileResult, error)
+	ResolveServerAddressFunc func(context.Context, string, string) (string, error)
 }
 
 var _ Provider = (*MockProvider)(nil)
 var _ QueryProvider = (*MockProvider)(nil)
+var _ ServerAddressResolver = (*MockProvider)(nil)
 
 func (m *MockProvider) ProviderConnectionID() string {
 	if m == nil {
@@ -77,4 +79,11 @@ func (m *MockProvider) Reconcile(ctx context.Context, request ReconcileRequest) 
 		return ReconcileResult{}, ErrMockNotConfigured
 	}
 	return m.ReconcileFunc(ctx, request)
+}
+
+func (m *MockProvider) ResolveServerAddress(ctx context.Context, targetVmKey, serverID string) (string, error) {
+	if m == nil || m.ResolveServerAddressFunc == nil {
+		return "", ErrMockNotConfigured
+	}
+	return m.ResolveServerAddressFunc(ctx, targetVmKey, serverID)
 }

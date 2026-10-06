@@ -69,11 +69,58 @@ type ConnectorRepository interface {
 	RecordConnectorHeartbeat(ctx context.Context, connectorID, credentialID uuid.UUID, seenAt time.Time) (bool, error)
 }
 
+// TerminalRepository는 TerminalSession 생성·attach 권한 판정·lifecycle 전이가 사용하는 query와 조건부 UPDATE다.
+// Terminal INPUT/OUTPUT, transcript, exit code를 저장하는 method는 없다.
+type TerminalRepository interface {
+	// LabInstanceForShare는 LabInstance를 FOR SHARE로 잠그고 반환한다. 없으면 ErrNotFound다.
+	// transaction 안에서 사용한다. 잠금은 commit까지 유지되어 같은 row의 generation을 바꾸는 UPDATE(Reset)가 그때까지 기다린다.
+	// 그래서 같은 transaction에서 만드는 TerminalSession은 읽은 generation과 항상 일치한다.
+	LabInstanceForShare(ctx context.Context, id uuid.UUID) (LabInstance, error)
+	// LabInstanceByID는 LabInstance를 잠그지 않고 반환한다. 없으면 ErrNotFound다.
+	LabInstanceByID(ctx context.Context, id uuid.UUID) (LabInstance, error)
+	// ConnectorIDForLabInstance는 LabInstance의 LabExecution CreationSnapshot이 가리키는 ProviderConnection의 Connector를 반환한다.
+	// 그 관계가 하나라도 없으면 ErrNotFound다.
+	ConnectorIDForLabInstance(ctx context.Context, labInstanceID uuid.UUID) (uuid.UUID, error)
+	// CreationSnapshotTargets는 LabInstance의 LabExecution CreationSnapshot에서 vms[](vmKey, role, instanceIndex)와
+	// workspaceVmKey만 읽어 반환한다. LabInstance나 CreationSnapshot이 없으면 ErrNotFound다.
+	// 저장된 값을 해석하지 않고 그대로 반환하며(빈 vms, 빈 key, 중복 포함) 검증은 Application이 한다.
+	// 필요한 field의 JSON 타입이 맞지 않아 projection으로 읽을 수 없으면 ErrInternal이다.
+	// snapshot은 생성 후 변경되지 않으므로 최신 LabSpec이 아니라 그 LabExecution 시점의 값이다.
+	CreationSnapshotTargets(ctx context.Context, labInstanceID uuid.UUID) (CreationSnapshotTargets, error)
+	// ProviderServers는 LabInstance의 generation에 속한 SERVER ProviderResource 중 logical_name이 일치하는 row를 모든
+	// lifecycle_status와 함께 반환한다. 없으면 빈 목록이며 오류가 아니다.
+	ProviderServers(ctx context.Context, labInstanceID uuid.UUID, generation int64, logicalName string) ([]ProviderServer, error)
+
+	// CreateTerminalSession은 OPENING TerminalSession을 저장한다. 같은 attach_token_hash가 이미 있으면 ErrConflict,
+	// FK(ProviderResource가 그 LabInstance의 그 generation에 속함)나 Check를 위반하면 ErrConstraintViolation이다.
+	CreateTerminalSession(ctx context.Context, session NewTerminalSession) error
+	// TerminalSessionByID는 lifecycle과 무관하게 TerminalSession을 반환한다. 없으면 ErrNotFound다.
+	TerminalSessionByID(ctx context.Context, id uuid.UUID) (TerminalSession, error)
+	// UnendedTerminalSessionsByLabInstance는 LabInstance의 ENDED가 아닌 TerminalSession을 반환한다. 없으면 빈 목록이다.
+	UnendedTerminalSessionsByLabInstance(ctx context.Context, labInstanceID uuid.UUID) ([]TerminalSession, error)
+
+	// 아래 전이는 모두 조건부 UPDATE이며 조건을 만족해 갱신했으면 true, 조건을 만족하지 않아 아무것도 바꾸지 않았으면 false다.
+	// 행이 없는 경우와 조건 불일치를 구분하지 않는다. ENDED는 어떤 전이로도 되살아나지 않는다.
+
+	// MarkTerminalSessionOpened는 OPENING → DETACHED다. PTY가 준비되어 Browser attach를 기다리는 상태이며
+	// detached_at과 grace_expires_at을 기록한다.
+	MarkTerminalSessionOpened(ctx context.Context, id uuid.UUID, at, graceExpiresAt time.Time) (bool, error)
+	// MarkTerminalSessionAttached는 DETACHED 또는 ACTIVE → ACTIVE다. attached_at을 at으로 기록하고
+	// detached_at과 grace_expires_at을 비운다.
+	MarkTerminalSessionAttached(ctx context.Context, id uuid.UUID, at time.Time) (bool, error)
+	// MarkTerminalSessionDetached는 ACTIVE → DETACHED다. detached_at과 grace_expires_at을 기록한다.
+	MarkTerminalSessionDetached(ctx context.Context, id uuid.UUID, at, graceExpiresAt time.Time) (bool, error)
+	// EndTerminalSession은 ENDED가 아닌 모든 상태 → ENDED다. ended_at과 end_reason을 기록하고 grace_expires_at을 비운다.
+	// 이미 ENDED면 처음 기록한 값을 유지하고 false다.
+	EndTerminalSession(ctx context.Context, id uuid.UUID, endedAt time.Time, reason string) (bool, error)
+}
+
 // Repositories는 하나의 DB session에서 사용할 수 있는 Repository 모음이다.
 type Repositories interface {
 	IdentityRepository
 	ClassRepository
 	BootstrapRepository
+	TerminalRepository
 }
 
 // Transactor는 Application이 원자성 범위를 결정하는 경계다.

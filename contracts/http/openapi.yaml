@@ -1,7 +1,7 @@
 openapi: 3.1.2
 info:
   title: Labbit HTTP API
-  version: 0.1.2
+  version: 0.1.4
   description: |
     Labbit Browser ↔ SaaS HTTP 계약의 기계 판독 가능한 SSOT입니다.
 
@@ -34,6 +34,10 @@ tags:
     description: 사용자별 실습 환경 상태 조회와 Reset
   - name: Operations
     description: Provision, Reset, Cleanup 같은 비동기 변경 작업 추적
+  - name: TerminalSessions
+    description: 본인 LabInstance의 Terminal 대상 VM 조회, TerminalSession 생성·종료와 Browser Terminal WSS attach token 발급
+  - name: WorkspaceFiles
+    description: 본인 LabInstance의 Workspace VM 파일 Tree 조회, UTF-8 text 파일 Read와 낙관적 동시성 Save
 
 paths:
   /auth/login:
@@ -481,6 +485,344 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
+  /lab-instances/{labInstanceId}/terminal-targets:
+    get:
+      tags: [TerminalSessions]
+      summary: 본인 LabInstance에서 Terminal을 열 수 있는 VM 목록 조회
+      operationId: listTerminalTargets
+      description: |
+        현재 사용자가 소유한 LabInstance에서 TerminalSession을 열 수 있는 VM의 목록입니다.
+        `POST /lab-instances/{labInstanceId}/terminal-sessions`의 `targetVmKey`는 이 응답의 `items[].vmKey`를
+        그대로 사용합니다. 클라이언트가 `"workspace"` 같은 key를 하드코딩하거나 `role`/`instanceIndex`로 만들어서는 안 됩니다.
+
+        Terminal은 Editor/Preview처럼 Workspace VM 하나에 한정되지 않고 LabInstance 안의 여러 VM 중에서 선택할 수 있으므로
+        `items`는 Workspace VM을 포함한 모든 target입니다. `workspaceVmKey`는 `items` 중 Workspace VM을 가리키는
+        기본 선택 hint입니다.
+
+        목록의 원본은 해당 LabExecution에 고정된 immutable resolved CreationSnapshot입니다. 최신 LabSpec을 다시 해석하지 않으며
+        Provider 내부 topology(Provider Server ID, Connector ID, private IP, 이미지·flavor 등)는 응답에 포함하지 않습니다.
+        이 목록은 논리적으로 선택할 수 있는 VM이며 VM이 지금 사용 가능하다는 보증이 아닙니다. 실제 TerminalSession 생성 가능 여부는
+        생성 시점의 LabInstance status, 현재 generation, ProviderResource로 다시 판단합니다.
+
+        TerminalSession 생성과 같은 권한 경계를 사용합니다. 하나라도 맞지 않으면 거절합니다.
+
+        - LabInstance가 현재 사용자의 것이며 같은 Organization에 속합니다(`403`). 강사나 Organization `ADMIN`도
+          다른 사용자의 LabInstance는 조회할 수 없습니다.
+        - 사용자가 LabInstance가 속한 Class의 현재 ClassMembership(INSTRUCTOR 또는 STUDENT)을 가집니다(`403`).
+        - LabInstance status가 `READY`입니다(`409`, code `lab_instance_not_ready`).
+
+        저장된 CreationSnapshot을 해석할 수 없거나 서로 모순되면(빈 key, 중복 `vmKey`, `workspaceVmKey`가 `items`에 없음 등)
+        일부만 반환하지 않고 `500`으로 거절합니다. 응답은 `Cache-Control: no-store`입니다.
+      parameters:
+        - $ref: '#/components/parameters/LabInstanceId'
+      responses:
+        '200':
+          description: Terminal을 열 수 있는 VM 목록입니다.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalTargetList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /lab-instances/{labInstanceId}/terminal-sessions:
+    post:
+      tags: [TerminalSessions]
+      summary: 본인 LabInstance의 VM에 TerminalSession 생성
+      operationId: createTerminalSession
+      description: |
+        현재 사용자가 소유한 LabInstance의 현재 generation에 있는 VM 하나에 새 TerminalSession을 만들고,
+        Browser Terminal WSS(`/realtime/v1/terminal`)에 attach할 때 사용하는 terminal-scoped opaque
+        `sessionToken`을 발급합니다.
+
+        서버는 요청의 `targetVmKey`만 받아 현재 DB 상태에서 대상 VM과 Connector를 결정합니다.
+        `targetVmKey`는 `GET /lab-instances/{labInstanceId}/terminal-targets`가 돌려준 `vmKey`여야 하며,
+        서버는 조회 결과를 신뢰하지 않고 생성 시점에 다시 판단합니다.
+        Provider Server ID, Connector ID, generation은 요청으로 받지 않으며 신뢰하지 않습니다.
+        다음을 모두 만족해야 TerminalSession을 만들 수 있고, 하나라도 맞지 않으면 어떤 side effect도 만들기 전에 거절합니다.
+
+        - LabInstance가 현재 사용자의 것이며 같은 Organization에 속합니다(`403`).
+        - 사용자가 LabInstance가 속한 Class의 현재 ClassMembership(INSTRUCTOR 또는 STUDENT)을 가집니다(`403`).
+        - LabInstance status가 `READY`입니다(`409`, code `lab_instance_not_ready`).
+        - `targetVmKey`가 해당 LabExecution의 immutable CreationSnapshot에 있는 VM입니다(`422`, code `invalid_terminal_target`).
+          현재 generation에 같은 이름의 ProviderResource가 있어도 CreationSnapshot에 없는 key는 target이 아닙니다.
+        - 그 VM에 해당하는 현재 generation의 SERVER ProviderResource가 `PRESENT`입니다.
+          리소스가 없거나 `PRESENT`가 아니면 `409`, code `terminal_target_unavailable`입니다.
+
+        강사가 학생 LabInstance의 Terminal을 직접 여는 기능은 이 계약 범위가 아닙니다.
+
+        TerminalSession 생성은 동기적으로 완료됩니다. 서버가 Connector에 PTY 준비를 요청하고, Connector의 Terminal Data
+        채널이 실제로 연결된 것을 확인한 뒤에만 `201`을 반환합니다. Connector를 사용할 수 없거나 준비에 실패하거나
+        시간 안에 끝나지 않으면 TerminalSession은 성공 상태로 남지 않고 `503`으로 실패합니다
+        (code `connector_unavailable` 또는 `terminal_open_failed`).
+
+        이 배포 구성이 Terminal Relay를 제공하지 않으면 `503`(code `terminal_unavailable`)입니다.
+
+        응답에는 Browser가 연결하는 데 필요한 최소 정보만 포함합니다. WSS endpoint와 subprotocol은 고정이며
+        세션마다 URL을 돌려주지 않습니다. 응답은 `Cache-Control: no-store`입니다.
+      parameters:
+        - $ref: '#/components/parameters/LabInstanceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTerminalSessionRequest'
+      responses:
+        '201':
+          description: TerminalSession이 만들어졌고 Browser가 attach할 수 있습니다.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalSession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /terminal-sessions/{terminalSessionId}:
+    delete:
+      tags: [TerminalSessions]
+      summary: TerminalSession 명시적 종료
+      operationId: closeTerminalSession
+      description: |
+        사용자가 자신의 TerminalSession을 명시적으로 종료합니다. Browser WSS의 일시적 단절과 달리
+        60초 reconnect grace를 시작하지 않고 즉시 `ENDED`로 전환하며, 이 TerminalSession의 attach token은
+        더 이상 사용할 수 없습니다. 열려 있는 Browser WSS에는 `TERMINAL_SESSION_ENDED`(reason `SESSION_CLOSED`)를 전달합니다.
+
+        이미 종료된 TerminalSession에 대한 반복 요청도 `204`입니다(멱등).
+
+        서버는 Connector에 PTY 종료(`TERMINAL_CLOSE`)를 요청합니다. Connector를 사용할 수 없어 전달하지 못해도
+        Labbit의 TerminalSession은 `ENDED`이며 이후 attach할 수 없습니다. 남은 PTY 정리는 Connector lifecycle의 책임입니다.
+      parameters:
+        - $ref: '#/components/parameters/TerminalSessionId'
+      responses:
+        '204':
+          description: TerminalSession이 종료되었습니다(이미 종료된 경우 포함).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /lab-instances/{labInstanceId}/files/tree:
+    get:
+      tags: [WorkspaceFiles]
+      summary: 본인 Workspace의 디렉터리 하나 나열
+      operationId: listWorkspaceFiles
+      description: |
+        현재 사용자가 소유한 LabInstance의 Workspace VM에서 디렉터리 하나의 직계 항목을 나열합니다.
+        재귀 조회는 제공하지 않으며 클라이언트가 디렉터리를 펼칠 때마다 그 디렉터리의 `path`로 다시 조회합니다.
+
+        Browser는 VM, Connector, Provider Server, generation, private address를 선택하거나 알 필요가 없습니다. 서버가 LabExecution의
+        immutable CreationSnapshot의 `workspaceVmKey`와 현재 generation의 `PRESENT` `SERVER` ProviderResource로 대상 VM을
+        결정하고 Connector와 Workspace VM의 SFTP를 거쳐 조회합니다. Browser가 VM private network나 SFTP에 직접 접근하지 않습니다.
+
+        권한 경계는 TerminalSession 생성과 같습니다. 하나라도 맞지 않으면 Connector를 호출하기 전에 거절합니다.
+
+        - LabInstance가 현재 사용자의 것이며 같은 Organization에 속합니다(`403`). 강사나 Organization `ADMIN`도
+          다른 사용자의 LabInstance는 조회할 수 없습니다.
+        - 사용자가 LabInstance가 속한 Class의 현재 ClassMembership(INSTRUCTOR 또는 STUDENT)을 가집니다(`403`).
+        - LabInstance status가 `READY`입니다(`409`, code `lab_instance_not_ready`).
+        - 현재 generation에 Workspace VM의 `PRESENT` `SERVER` ProviderResource가 정확히 하나 있습니다. 없으면 `409`,
+          code `workspace_target_unavailable`입니다. 저장된 CreationSnapshot이나 ProviderResource 관계가 모순이면 `500`입니다.
+
+        `path`는 `path` query parameter에 정의한 경로 규칙을 따릅니다. 생략하거나 빈 값이면 Workspace root입니다.
+        `items`는 `name`의 UTF-8 byte 순서 오름차순입니다. 항목의 `kind`는 `file`과 `directory`뿐이며 그 밖의 종류의
+        항목(예: symlink, device)이나 위 경로 규칙으로 표현할 수 없는 이름은 목록에 포함하지 않습니다. uid/gid, POSIX mode,
+        크기, 수정 시각 같은 파일 metadata는 노출하지 않습니다.
+
+        지정한 경로가 없으면 `404`(code `path_not_found`), 디렉터리가 아니면 `422`(code `path_not_directory`)입니다.
+        목록이 Connector 전송 한도를 넘으면 `413`(code `directory_too_large`)입니다. Connector나 VM을 사용할 수 없으면
+        `503`입니다(code `connector_unavailable` 또는 `file_transport_unavailable`).
+
+        응답에는 파일 본문이 없지만 Workspace 구조는 학생 작업물이므로 `Cache-Control: no-store`입니다.
+      parameters:
+        - $ref: '#/components/parameters/LabInstanceId'
+        - $ref: '#/components/parameters/WorkspaceDirectoryPath'
+      responses:
+        '200':
+          description: 요청한 디렉터리의 직계 항목입니다.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceFileTree'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /lab-instances/{labInstanceId}/files/content:
+    get:
+      tags: [WorkspaceFiles]
+      summary: 본인 Workspace의 UTF-8 text 파일 읽기
+      operationId: readWorkspaceFile
+      description: |
+        현재 사용자가 소유한 LabInstance의 Workspace VM에서 UTF-8 text 파일 하나를 읽습니다.
+        대상 VM 결정과 권한 경계는 `GET /lab-instances/{labInstanceId}/files/tree`와 같습니다.
+
+        응답의 `ETag`는 이 읽기 시점의 파일 revision을 나타내는 opaque 값이며 `PUT`의 `If-Match`로 되돌려 보냅니다.
+        revision을 만드는 방식과 형식은 호환성 계약이 아니므로 클라이언트는 해석하지 않습니다.
+
+        MVP는 UTF-8 text editor만 지원합니다. 파일 본문이 유효한 UTF-8이 아니면 `422`(code `unsupported_encoding`),
+        NUL byte를 포함한 binary이면 `422`(code `binary_content`)이며 본문을 응답에 싣지 않습니다. 파일이 설정된 크기
+        한도를 넘으면 `413`(code `file_too_large`)입니다. 한도의 수치는 계약이 아니며 배포 구성에 따라 달라질 수 있습니다.
+        지정한 경로가 없으면 `404`(code `path_not_found`), 일반 파일이 아니면 `422`(code `path_not_file`)입니다.
+        Workspace VM 파일 시스템이 접근을 거절하면 `403`(code `file_permission_denied`)이며 이는 Labbit 권한과 구분되는 VM 내부 권한입니다.
+
+        파일 본문과 경로는 PostgreSQL과 log, trace, metric에 저장하거나 기록하지 않습니다. 응답은 `Cache-Control: no-store`입니다.
+      parameters:
+        - $ref: '#/components/parameters/LabInstanceId'
+        - $ref: '#/components/parameters/WorkspaceFilePath'
+      responses:
+        '200':
+          description: 파일 본문과 revision입니다.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceFileContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+    put:
+      tags: [WorkspaceFiles]
+      summary: 본인 Workspace의 기존 UTF-8 text 파일 저장
+      operationId: saveWorkspaceFile
+      description: |
+        기존 파일 하나의 본문을 교체합니다. 새 파일 생성, 이름 변경, 삭제는 이 계약 범위가 아닙니다. 지정한 경로에 파일이 없으면
+        `404`(code `path_not_found`)이며 파일을 만들지 않습니다.
+
+        `If-Match`에 같은 파일을 읽을 때 받은 `ETag` 하나를 반드시 보내야 합니다. 서버는 저장 직전에 현재 파일 revision과
+        비교해 일치할 때만 저장하고, 다르면 덮어쓰지 않고 `412`(code `stale_revision`)로 거절합니다. 클라이언트는 다시 읽어
+        변경 내용을 합친 뒤 저장합니다. `If-Match`가 없으면 `400`(code `if_match_required`), 하나의 strong entity-tag가
+        아니면(`*`, 목록, weak validator 포함) `400`(code `invalid_if_match`)입니다.
+
+        대상 VM 결정과 권한 경계는 `GET /lab-instances/{labInstanceId}/files/tree`와 같고, unsafe method이므로 Origin 검증도 적용합니다.
+
+        요청 본문은 `{"content": "..."}`입니다. 유효한 UTF-8이 아니거나 짝이 맞지 않는 surrogate escape가 있으면
+        `422`(code `unsupported_encoding`), NUL을 포함하면 `422`(code `binary_content`), 설정된 크기 한도를 넘으면
+        `413`(code `file_too_large`)이며 Connector를 호출하기 전에 거절합니다.
+
+        성공하면 새 revision을 `ETag`로 돌려줍니다. Connector 응답을 받지 못해 저장 여부를 알 수 없으면(전송 이후 연결 단절,
+        시간 초과) 서버는 자동으로 다시 저장하지 않고 `503`(code `file_save_outcome_unknown`)으로 알립니다. 클라이언트는
+        파일을 다시 읽어 저장 여부를 확인합니다. 저장 중 Workspace VM의 generation이 바뀌었거나 LabInstance가 더 이상 `READY`가
+        아니면 성공으로 처리하지 않고 `409`(code `workspace_target_changed`)입니다.
+
+        파일 본문과 경로는 PostgreSQL과 log, trace, metric에 저장하거나 기록하지 않습니다.
+      parameters:
+        - $ref: '#/components/parameters/LabInstanceId'
+        - $ref: '#/components/parameters/WorkspaceFilePath'
+        - $ref: '#/components/parameters/WorkspaceFileIfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveWorkspaceFileRequest'
+      responses:
+        '200':
+          description: 파일을 저장했습니다. `ETag`는 저장된 파일의 새 revision입니다.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceFileSaved'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
   /operations/{operationId}:
     get:
       tags: [Operations]
@@ -579,6 +921,14 @@ components:
       schema:
         $ref: '#/components/schemas/ResourceId'
 
+    TerminalSessionId:
+      name: terminalSessionId
+      in: path
+      required: true
+      description: 종료할 TerminalSession의 opaque ID입니다.
+      schema:
+        $ref: '#/components/schemas/ResourceId'
+
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -605,6 +955,53 @@ components:
       schema:
         type: string
 
+    WorkspaceDirectoryPath:
+      name: path
+      in: query
+      required: false
+      description: |
+        Workspace root 기준의 상대 디렉터리 경로입니다. 생략하거나 빈 값이면 root입니다.
+        경로 규칙은 `WorkspaceFilePath`와 같습니다.
+      schema:
+        type: string
+        maxLength: 4096
+
+    WorkspaceFilePath:
+      name: path
+      in: query
+      required: true
+      description: |
+        Workspace root 기준의 상대 POSIX 경로입니다. 실제 VM의 절대 경로와 Workspace root 위치는 노출하지 않으며 이 계약도 정하지 않습니다.
+
+        서버는 query의 percent-decoding을 한 번만 수행하고 그 결과를 다시 decode하거나 정규화하지 않습니다. 경로를 조용히 고쳐 쓰지
+        않으므로 아래를 하나라도 위반하면 `400`(code `invalid_path`)이고 Connector를 호출하지 않습니다. 목록(`items[].path`)이
+        돌려준 값은 항상 이 규칙을 만족하며 그대로 다시 보낼 수 있습니다.
+
+        - `/`로 시작하거나 끝나지 않고, 빈 segment(`a//b`)가 없습니다. 비어 있을 수 있는 것은 Workspace root를 가리키는 Tree의 `path`뿐입니다.
+        - `.` 또는 `..` segment가 없습니다(`a/./b`, `a/../b`, `..` 모두 거절).
+        - 백슬래시(`\`), NUL과 그 밖의 제어 문자(U+0000–U+001F, U+007F)가 없고 유효한 UTF-8입니다.
+        - decode 결과에 percent-escape 형태(`%`와 두 개의 16진수, 예: `%2e`, `%2F`, `%5c`)가 남아 있지 않습니다. query에서 `%252e`처럼
+          이중 인코딩한 경로가 decode 후 `%2e`로 남는 경우와 구분할 수 없으므로 거절합니다. (`/`를 `%2F`로 한 번 인코딩해 보내는 것은
+          정상이며 서버가 `/`로 decode합니다.)
+        - 전체 4096 byte, segment 하나 255 byte를 넘지 않습니다.
+
+        Unicode 파일 이름은 유효한 UTF-8이면 그대로 사용하며 서버가 정규화(NFC/NFD)하지 않습니다.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 4096
+
+    WorkspaceFileIfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: |
+        같은 파일을 읽을 때 받은 `ETag` 하나입니다(strong entity-tag, 예: `"abc"`). 저장 직전의 현재 revision과 일치할 때만
+        저장합니다. 없으면 `400`(code `if_match_required`), strong entity-tag 하나가 아니면 `400`(code `invalid_if_match`),
+        일치하지 않으면 `412`(code `stale_revision`)입니다.
+      schema:
+        type: string
+
   headers:
     SessionSetCookie:
       description: '새 opaque token으로 Secure; HttpOnly; SameSite=Lax; Path=/, Domain 미지정의 non-persistent __Host-labbit-session Cookie를 발급합니다.'
@@ -626,9 +1023,18 @@ components:
       schema:
         type: string
 
+    NoStore:
+      description: 응답(예를 들어 발급한 token)을 Browser나 중간 cache가 저장하지 않게 합니다. 값은 `no-store`입니다.
+      schema:
+        type: string
+
   responses:
     BadRequest:
-      description: 요청 JSON의 문법이나 기본 형식이 올바르지 않습니다.
+      description: |
+        요청 JSON의 문법이나 기본 형식이 올바르지 않습니다.
+
+        Workspace file API에서는 code `invalid_request`(query/body 형식 오류, 필수 `path` 누락, `path` 중복), `invalid_path`(경로 규칙 위반),
+        `if_match_required`, `invalid_if_match`입니다.
       content:
         application/problem+json:
           schema:
@@ -642,7 +1048,10 @@ components:
             $ref: '#/components/schemas/ProblemDetails'
 
     Forbidden:
-      description: 인증은 되었지만 이 리소스나 동작에 필요한 권한이 없습니다.
+      description: |
+        인증은 되었지만 이 리소스나 동작에 필요한 권한이 없습니다.
+
+        Workspace file API에서 Workspace VM 파일 시스템이 접근을 거절한 경우는 Labbit 권한 판정과 구분해 code `file_permission_denied`입니다.
       content:
         application/problem+json:
           schema:
@@ -656,7 +1065,10 @@ components:
             $ref: '#/components/schemas/ProblemDetails'
 
     NotFound:
-      description: 요청한 리소스가 존재하지 않거나 현재 사용자에게 보이지 않습니다.
+      description: |
+        요청한 리소스가 존재하지 않거나 현재 사용자에게 보이지 않습니다.
+
+        Workspace file API에서 LabInstance가 없으면 code `not_found`, Workspace의 파일이나 디렉터리가 없으면 code `path_not_found`입니다.
       content:
         application/problem+json:
           schema:
@@ -670,27 +1082,52 @@ components:
         - Class에 이미 활성 LabExecution이 존재함
         - 같은 LabInstance에 다른 변경 Operation이 진행 중임
         - 같은 Idempotency-Key를 다른 의미의 요청에 재사용함
+        - LabInstance가 아직 `READY`가 아니라 Terminal target 조회나 TerminalSession 생성을 할 수 없음(code `lab_instance_not_ready`)
+        - 대상 VM이 현재 generation에서 사용할 수 없는 상태임(code `terminal_target_unavailable`)
+        - LabInstance가 아직 `READY`가 아니라 Workspace file Tree/Read/Save를 할 수 없음(code `lab_instance_not_ready`)
+        - 현재 generation에 Workspace VM의 `PRESENT` `SERVER` ProviderResource가 없어 file API를 사용할 수 없음(code `workspace_target_unavailable`)
+        - file 요청을 처리하는 동안 Workspace VM의 generation이 바뀌었거나 LabInstance가 `READY`를 벗어나 결과를 성공으로 처리하지 않음(code `workspace_target_changed`)
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
 
     PreconditionFailed:
-      description: If-Match가 현재 LabSpec의 ETag와 일치하지 않아 수정을 적용하지 않았습니다.
+      description: |
+        If-Match가 현재 리소스(LabSpec 또는 Workspace file)의 ETag와 일치하지 않아 수정을 적용하지 않았습니다.
+        Workspace file은 code `stale_revision`이며 덮어쓰지 않았습니다.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+    PayloadTooLarge:
+      description: |
+        Workspace file 또는 디렉터리 목록이 설정된 크기 한도를 넘습니다(code `file_too_large` 또는 `directory_too_large`).
+        한도의 수치는 이 계약이 정하지 않으며 배포 구성에 따라 달라질 수 있습니다.
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
 
     UnprocessableEntity:
-      description: JSON 형식은 유효하지만 제품 규칙이나 의미 검증을 만족하지 않습니다.
+      description: |
+        JSON 형식은 유효하지만 제품 규칙이나 의미 검증을 만족하지 않습니다.
+
+        Workspace file API에서는 code `path_not_file`, `path_not_directory`, `unsupported_encoding`, `binary_content`입니다.
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
 
     ServiceUnavailable:
-      description: Connector 또는 Provider 같은 필수 의존성이 일시적으로 사용 불가능합니다.
+      description: |
+        Connector 또는 Provider 같은 필수 의존성이 일시적으로 사용 불가능합니다.
+
+        Workspace file API에서는 code `connector_unavailable`(Connector Control connection 없음), `file_transport_unavailable`
+        (Connector가 File transport를 지원하지 않거나 시간 안에 응답하지 않거나 Workspace VM/SFTP를 사용할 수 없음),
+        `file_save_outcome_unknown`(Save 요청을 보낸 뒤 결과를 받지 못해 저장 여부를 알 수 없음)입니다. 응답에 Connector나 SSH/SFTP
+        오류 원문은 포함하지 않습니다.
       content:
         application/problem+json:
           schema:
@@ -1175,6 +1612,184 @@ components:
           description: '대상 리소스 유형입니다. 예: LAB_EXECUTION, LAB_INSTANCE.'
         id:
           $ref: '#/components/schemas/ResourceId'
+
+    TerminalTargetList:
+      type: object
+      description: |
+        LabInstance에서 TerminalSession을 열 수 있는 VM 목록입니다. 원본은 해당 LabExecution의 immutable resolved
+        CreationSnapshot이며 Provider 내부 정보는 포함하지 않습니다. 목록은 논리적 선택지이고 VM의 현재 사용 가능 여부를
+        뜻하지 않습니다.
+      required: [generation, workspaceVmKey, items]
+      properties:
+        generation:
+          type: integer
+          minimum: 1
+          description: |
+            이 목록을 판정한 시점의 LabInstance generation입니다. 화면 갱신 판단에 쓸 수 있는 정보일 뿐이며
+            이후 TerminalSession 생성의 근거가 아닙니다. 클라이언트는 TerminalSession 생성 요청에 generation을 보내지 않고,
+            서버는 생성 시 현재 generation을 다시 확인합니다.
+        workspaceVmKey:
+          type: string
+          minLength: 1
+          description: |
+            `items` 중 Workspace VM의 `vmKey`입니다. 기본으로 선택할 VM을 고르는 hint이며 Terminal이 Workspace VM 하나에만
+            열린다는 뜻이 아닙니다. 항상 `items`의 한 원소를 가리킵니다.
+        items:
+          type: array
+          minItems: 1
+          description: Terminal을 열 수 있는 모든 VM입니다. Workspace VM을 포함하며 `vmKey`는 서로 다릅니다.
+          items:
+            $ref: '#/components/schemas/TerminalTarget'
+
+    TerminalTarget:
+      type: object
+      description: Terminal을 열 수 있는 VM 하나입니다.
+      required: [vmKey, role, instanceIndex]
+      properties:
+        vmKey:
+          type: string
+          minLength: 1
+          description: |
+            이 VM을 가리키는 opaque 키입니다. 클라이언트는 값을 해석하거나 `role`/`instanceIndex`로 만들거나 이름 규칙에 의존하지 않고,
+            서버가 반환한 값을 그대로 `CreateTerminalSessionRequest.targetVmKey`로 보냅니다.
+        role:
+          type: string
+          minLength: 1
+          description: VM의 역할입니다. 화면 표시용 정보이며 식별에는 `vmKey`만 사용합니다.
+        instanceIndex:
+          type: integer
+          minimum: 0
+          description: 같은 역할 안에서의 VM 순번입니다. 화면 표시용 정보이며 식별에는 `vmKey`만 사용합니다.
+
+    CreateTerminalSessionRequest:
+      type: object
+      description: |
+        TerminalSession을 만들 VM과 Browser terminal의 초기 크기입니다.
+        Provider Server ID, Connector ID, generation은 받지 않습니다. 서버가 현재 상태에서 결정합니다.
+      required: [targetVmKey, cols, rows]
+      additionalProperties: false
+      properties:
+        targetVmKey:
+          type: string
+          minLength: 1
+          description: |
+            `GET /lab-instances/{labInstanceId}/terminal-targets`에서 서버가 반환한 opaque Terminal VM key(`items[].vmKey`)입니다.
+            클라이언트는 값을 생성·해석하지 않고 그대로 전달합니다. 서버는 TerminalSession 생성 시 immutable CreationSnapshot
+            membership과 현재 LabInstance generation의 ProviderResource를 다시 resolve/authorize합니다.
+        cols:
+          type: integer
+          minimum: 1
+          description: Browser terminal의 초기 column 수입니다. PTY 초기 크기로 Connector에 전달합니다.
+        rows:
+          type: integer
+          minimum: 1
+          description: Browser terminal의 초기 row 수입니다. PTY 초기 크기로 Connector에 전달합니다.
+
+    TerminalSession:
+      type: object
+      description: |
+        만들어진 TerminalSession과 Browser Terminal WSS attach token입니다.
+        Browser는 `/realtime/v1/terminal`(subprotocol `labbit.terminal.v1`)에 연결한 뒤
+        첫 JSON control frame `TERMINAL_ATTACH`에 `sessionToken`을 실어 attach합니다.
+        WSS endpoint와 subprotocol은 고정이므로 이 응답에 포함하지 않습니다.
+      required: [id, generation, sessionToken, tokenExpiresAt]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+        generation:
+          type: integer
+          minimum: 1
+          description: 이 TerminalSession이 속한 LabInstance의 Provider 리소스 세대입니다. Reset으로 generation이 바뀌면 이 TerminalSession은 더 이상 사용할 수 없습니다.
+        sessionToken:
+          type: string
+          minLength: 1
+          description: |
+            이 TerminalSession과 현재 사용자에 scope된 opaque attach token입니다. 클라이언트는 값의 내부 구조에 의존하지 않습니다.
+            일반 로그인 Session token이 아니며 다른 TerminalSession에 사용할 수 없습니다.
+
+            - CSPRNG가 만든 32 bytes를 padding 없는 canonical Base64URL 문자열로 전달합니다.
+            - 서버는 원문을 저장하지 않고 SHA-256 digest만 `terminal_sessions.attach_token_hash`에 저장합니다.
+            - 절대 만료 시간은 발급 시점부터 8시간(`tokenExpiresAt`)입니다. 이 MVP는 token을 주기적으로 회전하거나 갱신하지 않으며
+              refresh endpoint도 없습니다. 만료 전에도 TerminalSession이 `ENDED`가 되면 즉시 사용할 수 없습니다.
+            - token만으로 attach할 수 없습니다. 매 attach/re-attach마다 현재 로그인 세션, 현재 사용자, 현재 Class 권한,
+              LabInstance 소유, 현재 generation, TerminalSession lifecycle, token digest를 다시 확인합니다.
+            - URL query string에 넣지 않습니다. 로그·trace에 기록하지 않습니다.
+        tokenExpiresAt:
+          type: string
+          format: date-time
+          description: '`sessionToken`의 절대 만료 시각입니다.'
+
+    WorkspaceFileTree:
+      type: object
+      description: Workspace의 디렉터리 하나의 직계 항목입니다. 재귀 목록, 파일 크기·권한·소유자·수정 시각은 포함하지 않습니다.
+      required: [path, items]
+      properties:
+        path:
+          type: string
+          maxLength: 4096
+          description: 요청한 디렉터리의 경로입니다. root이면 빈 문자열입니다. 서버가 경로를 고쳐 쓰지 않으므로 요청한 값과 같습니다.
+        items:
+          type: array
+          description: 디렉터리의 직계 항목입니다. `name`의 UTF-8 byte 순서 오름차순입니다.
+          items:
+            $ref: '#/components/schemas/WorkspaceFileEntry'
+
+    WorkspaceFileEntry:
+      type: object
+      description: 디렉터리 항목 하나입니다.
+      required: [name, path, kind]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: 이 항목의 이름입니다(경로 segment 하나).
+        path:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: Workspace root 기준의 항목 경로입니다. 그대로 `WorkspaceFilePath` 또는 `WorkspaceDirectoryPath`로 다시 보낼 수 있습니다.
+        kind:
+          type: string
+          enum: [file, directory]
+          description: 항목의 종류입니다. 이 밖의 종류는 목록에 포함하지 않습니다.
+
+    WorkspaceFileContent:
+      type: object
+      description: UTF-8 text 파일의 본문입니다. revision은 `ETag` header로 전달합니다.
+      required: [path, content]
+      properties:
+        path:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: 읽은 파일의 경로입니다. 서버가 경로를 고쳐 쓰지 않으므로 요청한 값과 같습니다.
+        content:
+          type: string
+          description: 유효한 UTF-8이며 NUL을 포함하지 않는 파일 본문입니다.
+
+    SaveWorkspaceFileRequest:
+      type: object
+      description: 저장할 UTF-8 text 파일 본문입니다.
+      required: [content]
+      additionalProperties: false
+      properties:
+        content:
+          type: string
+          description: |
+            파일의 새 본문 전체입니다. 유효한 UTF-8이고 NUL을 포함하지 않아야 하며 UTF-8로 인코딩한 크기가 설정된 한도를
+            넘지 않아야 합니다. 서버는 줄바꿈이나 공백을 변환하지 않습니다.
+
+    WorkspaceFileSaved:
+      type: object
+      description: 저장한 파일입니다. 새 revision은 `ETag` header로 전달합니다.
+      required: [path]
+      properties:
+        path:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: 저장한 파일의 경로입니다.
 
     ProblemDetails:
       type: object

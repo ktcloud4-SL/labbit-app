@@ -39,7 +39,15 @@ Terminal 연결은 다음 세 조건을 모두 확인합니다.
 
 Terminal Session Token은 일반 로그인 Token이 아니며 다른 TerminalSession에 재사용할 수 없습니다. 원문을 로그·trace·DB의 일반 관측 필드에 기록하지 않습니다.
 
-정확한 Token 길이·TTL·회전 방식은 HTTP Session 생성 계약과 Runtime 설정에서 정합니다. 다만 Browser 비정상 단절 직후 D-21의 60초 재접속 grace를 깨지 않도록 Token lifecycle을 구현해야 합니다.
+MVP의 Token 의미는 다음과 같습니다. 발급 계약은 OpenAPI `TerminalSession.sessionToken`이 원본입니다.
+
+- CSPRNG 32 bytes를 padding 없는 canonical Base64URL 문자열로 Browser에 전달합니다. DB에는 원문이 아니라 SHA-256 digest(`terminal_sessions.attach_token_hash`)만 저장합니다.
+- 특정 TerminalSession과 사용자에 scope됩니다. 절대 만료 시간은 발급 후 8시간이며 MVP에서는 주기적 회전·갱신(refresh)을 하지 않습니다.
+- TerminalSession이 `ENDED`가 되면 만료 전에도 즉시 사용할 수 없습니다.
+- Token 하나만으로 attach할 수 없습니다. 첫 attach뿐 아니라 모든 re-attach에서 현재 로그인 세션, 현재 사용자, 현재 Class 권한, LabInstance 소유, 현재 generation, TerminalSession lifecycle, Token digest를 다시 확인합니다.
+- URL query string에 넣지 않습니다.
+
+8시간 TTL은 D-21의 60초 재접속 grace와 독립적입니다. Browser 비정상 단절 뒤 grace 안에서는 같은 Token으로 다시 attach할 수 있습니다.
 
 ### Live
 
@@ -62,6 +70,10 @@ Terminal WebSocket 하나는 **TerminalSession 하나만** 담당합니다. MVP�
 - `ERROR`
 
 정확한 field는 `terminal-live.schema.json`이 원본입니다.
+
+Upgrade 후 Browser가 보내는 첫 application message는 JSON Text `TERMINAL_ATTACH`여야 합니다. attach가 성공하기 전의 Binary frame, 다른 JSON message, Schema를 만족하지 않는 `TERMINAL_ATTACH`는 protocol/policy 위반(close `1008`)입니다. attach 이후 Browser가 보낼 수 있는 JSON control은 `TERMINAL_RESIZE`뿐이며, 두 번째 `TERMINAL_ATTACH`나 알 수 없는 message도 protocol/policy 위반입니다.
+
+JSON Text control frame은 WebSocket fragmentation 재조립 후 최대 1 MiB(1,048,576 bytes)입니다. Connector 계약의 JSON Text 한도와 같은 값이며, 수신 구현은 read limit을 먼저 적용해 초과 message 전체를 메모리에 적재하지 않고 close `1009`로 종료할 수 있습니다. 이 한도는 Binary PTY INPUT/OUTPUT에 적용하지 않습니다.
 
 ### Binary frame
 
@@ -96,6 +108,8 @@ TerminalSession DETACHED / PTY 유지
                ↓
           TerminalSession / PTY 종료
 ```
+
+HTTP로 TerminalSession이 만들어지고 PTY가 준비됐지만 Browser가 아직 한 번도 attach하지 않은 상태도 `DETACHED`로 보고 **생성 시점부터** 같은 기본 60초 grace를 적용합니다. 이 시간 안에 첫 attach가 없으면 TerminalSession/PTY를 종료하며 PTY를 무기한 남기지 않습니다. 첫 attach의 `TERMINAL_ATTACHED.resumed`는 `false`이고, 한 번 attach한 뒤 grace 안에서 다시 붙는 attach는 `true`입니다.
 
 재접속은 **PTY 복원**이지 OUTPUT replay가 아닙니다. Browser가 단절된 동안 발생한 OUTPUT과 접속 이전의 ANSI 화면 상태를 서버가 재생하거나 재구성하지 않습니다.
 
@@ -176,7 +190,9 @@ Terminal owner Browser의 outbound write도 다른 Live subscriber를 block하�
 - Live source Terminal 종료
 - 서비스 배포/draining에 따른 종료
 
-Reset/Cleanup처럼 TerminalSession을 의도적으로 종료하는 사건에서는 `TERMINAL_SESSION_ENDED`/`LIVE_ENDED`의 reason을 전달할 수 있으며 해당 Session은 D-21의 단순 Browser disconnect reconnect 대상이 아닙니다.
+Reset/Cleanup처럼 TerminalSession을 의도적으로 종료하는 사건에서는 `TERMINAL_SESSION_ENDED`/`LIVE_ENDED`의 reason을 전달할 수 있으며 해당 Session은 D-21의 단순 Browser disconnect reconnect 대상이 아닙니다. Reset으로 LabInstance generation이 바뀐 뒤 이전 generation TerminalSession의 attach는 `LAB_MUTATION`(close `4006`)으로 거절하고 그 TerminalSession을 종료합니다.
+
+`TERMINAL_SESSION_ENDED.exitCode`는 Connector가 실제 Shell/PTY 종료 code를 알려 준 경우에만 전달합니다. 알 수 없는 code를 `0`으로 만들어 내지 않으며, 종료 원인과 달리 exit code는 DB에 저장하지 않습니다.
 
 D-22의 중앙 Relay connection draining 시간과 Kubernetes `terminationGracePeriodSeconds`는 Platform/Runtime 설정이며 이 WSS Schema에 고정하지 않습니다.
 
@@ -196,6 +212,7 @@ JSON `ERROR.payload.code`를 UI 제어의 안정적인 오류 식별자로 사�
 - `SLOW_CONSUMER`
 - `LAB_MUTATION`
 - `SERVICE_RESTARTING`
+- `INTERNAL_ERROR` (서버 내부 오류나 의존성 장애로 attach를 처리하지 못함)
 
 새 code가 추가될 수 있으므로 Client는 unknown code fallback을 가져야 합니다.
 
@@ -205,6 +222,8 @@ v0.1 close code는 다음 최소 집합을 사용합니다.
 | --- | --- |
 | `1000` | 정상 종료 |
 | `1008` | protocol/policy 위반 |
+| `1009` | JSON Text control frame이 1 MiB 한도 초과 |
+| `1011` | 서버 내부 오류 또는 의존성 장애 |
 | `1012` | 서버 재시작/배포 |
 | `4001` | 인증 또는 Terminal Session Token 실패 |
 | `4002` | 현재 사용자에게 Session 권한 없음 |
@@ -229,6 +248,15 @@ Terminal/Live INPUT·OUTPUT 본문은 다음에 저장하지 않습니다.
 구조화 로그에는 content 대신 가능한 시점부터 `terminal_session_id`, `live_session_id`, `lab_instance_id`, `connector_id`, `request_id`와 control event의 Trace Context를 사용합니다.
 
 `traceparent`/`tracestate`를 각 keystroke나 Binary OUTPUT chunk에 붙이지 않습니다. Trace는 Session 생성·attach·subscribe·종료 같은 control event에 사용합니다.
+
+### Terminal JSON control의 Trace 전파
+
+Browser와 Connector의 Terminal JSON control message(`TERMINAL_ATTACH`, `TERMINAL_RESIZE`, `TERMINAL_DATA_ATTACH`, `TERMINAL_DATA_ENDED`와 Connector Control의 `TERMINAL_ENDED`)에 있는 optional `traceparent`/`tracestate`는 [Connector 계약의 선택 Trace metadata 오류 처리](../connector/README.md#선택-trace-metadata의-오류-처리)와 같은 규칙으로 정상화합니다. W3C 유효성은 표준 parser로 확인하고 유효한 값만 사용합니다.
+
+- **유효한 Context**는 그 control event에서 이어 갑니다. 같은 event의 응답(`TERMINAL_ATTACHED`, `TERMINAL_DATA_ATTACHED`, `ERROR`), 그 event 때문에 Connector로 보내는 `TERMINAL_DATA_RESIZE`, Connector의 종료 통지가 일으키는 Browser의 `TERMINAL_SESSION_ENDED`, 그리고 Relay가 Control(권한 확인·lifecycle 기록)을 호출할 때의 Trace Context에 담습니다. 미샘플링 Context도 `sampled=1`로 바꾸지 않습니다.
+- Context는 **message별**입니다. `TERMINAL_ATTACH`의 Trace를 이후 `TERMINAL_RESIZE`나 다른 command에 재사용하지 않으며 Trace가 없는 event에 앞선 event의 Trace를 붙이지 않습니다.
+- **유효하지 않은 값**(타입·길이·W3C 형식 오류, `traceparent` 없이 `tracestate`만 있는 경우)은 그 관측 field만 버립니다. 권한 판정, attach, resize, 종료 같은 업무 처리는 Trace 때문에 실패하지 않으며 가짜 Trace를 만들지 않습니다. 잘못된 원문은 log에 복사하지 않고 정상화한 `trace_id`만 log에 남깁니다.
+- Trace Context는 인증·권한 판정의 근거가 아니며 DB에 저장하지 않습니다.
 
 ## 11. HTTP Control과 Connector Data 경계
 

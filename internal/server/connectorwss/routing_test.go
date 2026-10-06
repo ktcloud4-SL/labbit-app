@@ -736,6 +736,8 @@ func TestGenerationIsLexicalIntegerNotInt64WireLimit(t *testing.T) {
 }
 
 // 지원하지 않는 type, 다른 방향의 message, 알 수 없는 미래 type은 연결과 기존 pending을 건드리지 않고 ERROR도 만들지 않는다.
+// TERMINAL_OPEN_RESULT와 TERMINAL_ENDED는 TerminalSession lifecycle routing이 생기면서(LBT-99) 지원 대상이 되었으므로 이 목록에 없다.
+// 그 message의 검증과 routing은 terminal_routing_test.go가 다룬다.
 func TestUnsupportedMessagesDoNotDisturbConnectionOrPending(t *testing.T) {
 	h := newRoutedHarness(t)
 	p := h.establish()
@@ -745,9 +747,12 @@ func TestUnsupportedMessagesDoNotDisturbConnectionOrPending(t *testing.T) {
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 
 	for _, kind := range []string{
-		protocol.MessageTypeProviderResponse, protocol.MessageTypeTerminalOpenResult, protocol.MessageTypeTerminalEnded,
+		protocol.MessageTypeProviderResponse,
 		protocol.MessageTypeOperationCommand, protocol.MessageTypeReconcileRequest, protocol.MessageTypeHelloAck,
-		protocol.MessageTypeHello, "FUTURE_TYPE_V2",
+		protocol.MessageTypeHello,
+		// SaaS → Connector 방향의 Terminal message를 Connector가 보내는 것도 지원하지 않는 message다.
+		protocol.MessageTypeTerminalOpen, protocol.MessageTypeTerminalClose,
+		"FUTURE_TYPE_V2",
 	} {
 		p.send(map[string]any{
 			"type": kind, "messageId": uuid.NewString(), "sentAt": now, "operationId": "op-1", "labInstanceId": "lab-A", "generation": 1,

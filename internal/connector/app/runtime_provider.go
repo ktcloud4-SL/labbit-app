@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"golang.org/x/crypto/ssh"
 )
 
 var errProviderInitialization = errors.New("connector Provider initialization failed")
@@ -28,6 +29,7 @@ type lazyProvider struct {
 }
 
 var _ runtimeProvider = (*lazyProvider)(nil)
+var _ provider.ServerAddressResolver = (*lazyProvider)(nil)
 
 func newLazyProvider(providerConnectionID string, factory providerFactory) *lazyProvider {
 	return &lazyProvider{
@@ -82,6 +84,30 @@ func (p *lazyProvider) ListFlavors(ctx context.Context) ([]provider.Flavor, erro
 		return nil, err
 	}
 	return initialized.ListFlavors(ctx)
+}
+
+func (p *lazyProvider) ResolveServerAddress(ctx context.Context, targetVmKey, serverID string) (string, error) {
+	initialized, err := p.get(ctx)
+	if err != nil {
+		return "", err
+	}
+	resolver, ok := initialized.(provider.ServerAddressResolver)
+	if !ok {
+		return "", errProviderInitialization
+	}
+	return resolver.ResolveServerAddress(ctx, targetVmKey, serverID)
+}
+
+func (p *lazyProvider) SSHHostKeyCallback(ctx context.Context, serverID string) (ssh.HostKeyCallback, error) {
+	initialized, err := p.get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	verifier, ok := initialized.(serverHostKeyProvider)
+	if !ok {
+		return nil, errProviderInitialization
+	}
+	return verifier.SSHHostKeyCallback(ctx, serverID)
 }
 
 func (p *lazyProvider) Provision(ctx context.Context, request provider.ProvisionRequest) (provider.OperationResult, error) {

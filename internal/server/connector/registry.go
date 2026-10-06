@@ -27,6 +27,11 @@ type Route func(data []byte) error
 // ErrRouteClosed는 Route가 종료 중인 connection에 아무것도 쓰지 않고 거절했음을 나타낸다.
 var ErrRouteClosed = errors.New("connector: route closed before write")
 
+// ErrCapabilityUnsupported는 Connector가 protocol-ready인 current Control connection을 가지고 있지만 요청한 선택 기능(HELLO capability)을
+// 선언하지 않았음을 나타낸다. Connector는 연결되어 있으므로 ErrConnectorUnavailable이 아니다. 아무것도 쓰지 않았고 pending도 없다.
+// 호출자는 Connector 버전으로 capability를 추론하거나 이 오류를 이유로 기능 message를 보내지 않는다.
+var ErrCapabilityUnsupported = errors.New("connector: Connector가 이 기능(capability)을 선언하지 않음")
+
 // ErrConnectorUnavailable은 지금 Connector에 message를 보낼 수 있는 Control connection이 없음을 나타낸다.
 // 호출자는 이 오류를 이유로 같은 command를 다른 connection으로 자동 재전송하지 않는다.
 var ErrConnectorUnavailable = errors.New("connector: Control connection을 사용할 수 없음")
@@ -51,6 +56,19 @@ type Session struct {
 	CredentialID uuid.UUID
 }
 
+// RevokeObserver는 Registry가 처리한 revoke를 Control 밖의 connection에도 알리는 경계다. Terminal Data WSS가 대표적이다.
+// contracts/connector/README.md §2는 Credential이 revoke되면 Control과 Data 연결을 모두 종료하도록 요구하는데, Data WSS에는 자신의
+// heartbeat가 없어 저장소 상태를 스스로 관측하지 못한다. 그래서 revoke를 관측하는 경로(Registry.RevokeCredential/RevokeConnector)가
+// 이 observer로 통지한다.
+//
+// 통지는 저장소 상태가 이미 revoke로 바뀐 뒤에만 온다(RevokeCredential의 계약). 그래서 통지 뒤의 새 인증은 저장소에서 거절된다.
+// 구현은 Registry lock 밖에서 호출되며 오래 막히면 안 된다. 같은 revoke가 여러 번 통지되어도 안전해야 한다.
+// 통지는 Control Session이 없어도 온다(Control은 끊겼지만 Data WSS만 남은 경우).
+type RevokeObserver interface {
+	CredentialRevoked(credentialID uuid.UUID)
+	ConnectorRevoked(connectorID uuid.UUID)
+}
+
 // Registry는 인증과 WebSocket Upgrade를 마친 Control connection을 Connector별 current Session 하나로 소유한다.
 // 여러 connection goroutine이 동시에 사용해도 안전하다.
 //
@@ -65,8 +83,9 @@ type Session struct {
 //
 // Registry는 프로세스 안의 ephemeral connection 소유 상태다. 영속 관측값(connectors.last_seen_at)과 분리한다.
 type Registry struct {
-	mu      sync.RWMutex
-	current map[uuid.UUID]*entry
+	mu       sync.RWMutex
+	current  map[uuid.UUID]*entry
+	observer RevokeObserver
 }
 
 // entry는 등록된 Session과 그 종료 방법이다.
@@ -86,6 +105,8 @@ type entry struct {
 	routeMu sync.RWMutex
 	route   Route
 	sealed  bool
+	// capabilities는 이 Session의 HELLO가 선언한 선택 기능이다. route와 같은 routeMu로 보호한다. MarkReady 전에 정한다.
+	capabilities map[string]struct{}
 }
 
 func NewRegistry() *Registry {
@@ -119,6 +140,20 @@ func (r *Registry) Register(principal Principal, closeFn func(CloseReason)) *Reg
 	return &Registration{registry: r, entry: e}
 }
 
+// SetRevokeObserver는 revoke를 Control 밖의 connection에도 알릴 observer를 정한다. nil이면 통지하지 않는다.
+// 조립 시점에 서비스를 시작하기 전에 한 번 호출한다.
+func (r *Registry) SetRevokeObserver(o RevokeObserver) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.observer = o
+}
+
+func (r *Registry) revokeObserver() RevokeObserver {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.observer
+}
+
 // Current는 connectorID의 현재 Session을 반환한다. 없으면 false다.
 func (r *Registry) Current(connectorID uuid.UUID) (Session, bool) {
 	r.mu.RLock()
@@ -130,9 +165,13 @@ func (r *Registry) Current(connectorID uuid.UUID) (Session, bool) {
 	return e.session, true
 }
 
-// RevokeCredential은 credentialID로 인증된 current Session을 registry에서 제거하고 CloseRevoked로 종료를 요청한다.
-// 종료를 요청한 Session 수를 반환한다. 이미 교체된 Session은 current가 아니므로 대상이 아니다.
-// Credential revoke use case가 저장소 상태를 바꾼 뒤 호출하는 lifecycle hook이며 raw Credential이 필요 없다.
+// RevokeCredential은 credentialID로 인증된 current Session을 registry에서 제거하고 CloseRevoked로 종료를 요청한 뒤,
+// 같은 Credential로 인증된 Control 밖의 connection(Terminal Data WSS)도 observer로 종료하게 한다.
+// 종료를 요청한 Control Session 수를 반환한다. 이미 교체된 Session은 current가 아니므로 대상이 아니다.
+//
+// Credential revoke를 관측하는 모든 경로의 공통 primitive다. 저장소 상태가 revoke로 바뀐 것을 확인한 뒤에만 호출한다.
+//   - Control의 HEARTBEAT 기록이 ErrUnauthenticated를 돌려준 경우(현재 구현이 revoke를 관측하는 경로)
+//   - Credential revoke use case가 저장소 상태를 바꾼 뒤 호출하는 lifecycle hook(raw Credential이 필요 없다)
 func (r *Registry) RevokeCredential(credentialID uuid.UUID) int {
 	r.mu.Lock()
 	var revoked []*entry
@@ -147,22 +186,29 @@ func (r *Registry) RevokeCredential(credentialID uuid.UUID) int {
 	for _, e := range revoked {
 		e.retire(CloseRevoked)
 	}
+	// Control Session이 없어도 통지한다. Data WSS만 남아 있을 수 있다.
+	if o := r.revokeObserver(); o != nil {
+		o.CredentialRevoked(credentialID)
+	}
 	return len(revoked)
 }
 
-// RevokeConnector는 connectorID의 current Session을 registry에서 제거하고 CloseRevoked로 종료를 요청한다.
-// 종료를 요청했으면 true다. Connector revoke use case가 호출하는 lifecycle hook이다.
+// RevokeConnector는 connectorID의 current Session을 registry에서 제거하고 CloseRevoked로 종료를 요청한 뒤,
+// 그 Connector의 Control 밖의 connection(Terminal Data WSS)도 observer로 종료하게 한다.
+// Control Session의 종료를 요청했으면 true다. Connector revoke use case가 호출하는 lifecycle hook이다.
 func (r *Registry) RevokeConnector(connectorID uuid.UUID) bool {
 	r.mu.Lock()
 	e, ok := r.current[connectorID]
 	delete(r.current, connectorID)
 	r.mu.Unlock()
 
-	if !ok {
-		return false
+	if ok {
+		e.retire(CloseRevoked)
 	}
-	e.retire(CloseRevoked)
-	return true
+	if o := r.revokeObserver(); o != nil {
+		o.ConnectorRevoked(connectorID)
+	}
+	return ok
 }
 
 // retire는 진행 중인 IfCurrent가 끝나기를 기다린 뒤 이 Session을 더 이상 current가 아닌 것으로 표시하고 종료를 요청한다.
@@ -197,6 +243,22 @@ func (g *Registration) IfCurrent(fn func() error) (bool, error) {
 		return false, nil
 	}
 	return true, fn()
+}
+
+// SetCapabilities는 이 Session의 HELLO가 선언한 capability를 기록한다. HELLO를 검증한 뒤 MarkReady 전에 호출한다.
+// 이미 교체·revoke된 Session이면 기록하지 않는다. 이 Session의 capability는 이 connection이 다시 HELLO하지 않는 한 바뀌지 않는다.
+func (g *Registration) SetCapabilities(capabilities []string) {
+	set := make(map[string]struct{}, len(capabilities))
+	for _, capability := range capabilities {
+		set[capability] = struct{}{}
+	}
+	e := g.entry
+	e.routeMu.Lock()
+	defer e.routeMu.Unlock()
+	if e.sealed {
+		return
+	}
+	e.capabilities = set
 }
 
 // MarkReady는 이 Session이 protocol-ready(HELLO_ACK 전송 완료)가 되었음을 알리고 이 Session의 control writer를 등록한다.
@@ -234,6 +296,17 @@ func (g *Registration) Release() {
 // 그래서 Register/Revoke가 반환한 뒤에는 그 Session의 route로 새 write가 시작되지 않는다. fn은 pending 등록과 write 한 번처럼
 // 짧아야 하며(write는 transport의 write timeout이 상한이다), 다른 Session의 Register/Revoke를 기다리면 안 된다.
 func (r *Registry) WithReadyRoute(connectorID uuid.UUID, fn func(Session, Route) error) error {
+	return r.withReadyRoute(connectorID, "", fn)
+}
+
+// WithReadyRouteCapability는 WithReadyRoute와 같지만 그 protocol-ready Session이 HELLO에서 capability를 선언했을 때만 fn을 실행한다.
+// 선언하지 않았으면 ErrCapabilityUnsupported이고 fn을 호출하지 않는다. 판정과 fn은 같은 Session에 대해 하나의 잠금 안에서 일어나므로
+// 판정한 Session과 다른 Session의 route로 보내는 일이 없다.
+func (r *Registry) WithReadyRouteCapability(connectorID uuid.UUID, capability string, fn func(Session, Route) error) error {
+	return r.withReadyRoute(connectorID, capability, fn)
+}
+
+func (r *Registry) withReadyRoute(connectorID uuid.UUID, capability string, fn func(Session, Route) error) error {
 	r.mu.RLock()
 	e := r.current[connectorID]
 	r.mu.RUnlock()
@@ -245,6 +318,11 @@ func (r *Registry) WithReadyRoute(connectorID uuid.UUID, fn func(Session, Route)
 	defer e.routeMu.RUnlock()
 	if e.route == nil {
 		return ErrNotReady
+	}
+	if capability != "" {
+		if _, ok := e.capabilities[capability]; !ok {
+			return ErrCapabilityUnsupported
+		}
 	}
 	return fn(e.session, e.route)
 }

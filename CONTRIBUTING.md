@@ -70,3 +70,14 @@ make server
 make connector
 make web
 ```
+
+## 컨테이너 이미지 태그 덮어쓰기 방지 및 릴리즈 규칙 정의
+스프린트 종료 및 정식 출시(마일스톤 배포) 시, 불변의 컨테이너 이미지 버전을 생성하기 위해 Git Tag를 사용합니다.
+- 버전 형식: `v<Major>.<Minor>.<Patch>` (예: `v0.1.0`, `v0.1.1`)
+- 태그 푸시 시 GitHub Actions가 이를 감지하여 동일한 버전 태그의 컨테이너 이미지를 자동 빌드 및 GHCR로 배포합니다.
+- **일상 개발 시에는 태그를 붙이지 않고 평소처럼 PR & Squash Merge를 진행**하며, 이때는 커밋 해시(`sha-<short>`)와 `latest`로 자동 관리됩니다.
+```bash
+# 릴리즈 태그 생성 및 원격 푸시 예시 (스프린트 마일스톤 완료 시 사용)
+git tag v0.1.0
+git push origin v0.1.0
+```

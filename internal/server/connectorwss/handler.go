@@ -6,8 +6,9 @@
 // Credential 판정과 heartbeat 기록은 use case(connector.Service)에 위임하고 SQL/pgx를 알지 못한다.
 //
 // command/result routing은 connector.Router가 소유한다. 이 package는 HELLO_ACK를 마친 connection의 writer를 Registry에
-// protocol-ready route로 등록하고(소유와 ready는 다르다), HELLO 이후의 OPERATION_ACK/PROGRESS/RESULT와 RECONCILE_RESULT를
-// exact-case Schema로 검증해 그 Session이 아직 current일 때만 Router에 넘긴다. Router가 없으면 이 message들은 해석하지 않고 버린다.
+// protocol-ready route로 등록하고(소유와 ready는 다르다), HELLO 이후의 OPERATION_ACK/PROGRESS/RESULT, RECONCILE_RESULT,
+// TerminalSession lifecycle의 TERMINAL_OPEN_RESULT/TERMINAL_ENDED, Workspace File 요청 lifecycle의 FILE_OPEN_RESULT를 exact-case Schema로 검증해 그 Session이 아직 current일 때만
+// Router에 넘긴다. Router가 없으면 이 message들은 해석하지 않고 버린다.
 // Provider/Operation 실행, durable Operation 상태 반영은 이 package의 범위가 아니다.
 package connectorwss
 
@@ -331,6 +332,8 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal) {
 	// HELLO_ACK를 마친 이 Session만 command를 받을 수 있다. 등록 시점부터 Router는 이 exact Session의 writer로 보낸다.
 	// 그 사이 교체·revoke되었다면 등록되지 않는다. 이미 종료가 요청된 connection이므로 아래 read loop가 상대의 close 응답이나
 	// 종료로 끝나도록 그대로 진행한다(여기서 곧바로 반환하면 close code를 전달하기 전에 TCP를 닫을 수 있다).
+	// HELLO가 선언한 capability는 이 Session의 route가 열리기 전에 기록한다. SaaS는 선언한 capability의 message만 이 Session에 보낸다.
+	registration.SetCapabilities(helloCapabilities(data))
 	if !registration.MarkReady(cc.route) {
 		log.Info("Connector Control connection이 ready 전에 교체·revoke됨")
 	}
@@ -386,6 +389,12 @@ func (h *Handler) readLoop(conn *websocket.Conn, cc *controlConn, registration *
 			protocol.MessageTypeOperationResult, protocol.MessageTypeReconcileResult:
 			h.routeInbound(cc, registration, principal, log, kind, envelope)
 			continue
+		case protocol.MessageTypeTerminalOpenResult, protocol.MessageTypeTerminalEnded:
+			h.routeTerminalInbound(cc, registration, principal, log, kind, envelope)
+			continue
+		case protocol.MessageTypeFileOpenResult:
+			h.routeFileInbound(cc, registration, principal, log, kind, envelope)
+			continue
 		case protocol.MessageTypeError:
 			// Connector의 ERROR는 업무 결과가 아니다. 어떤 pending도 바꾸지 않고 안전한 code만 남긴다.
 			log.Warn("Connector ERROR 수신", "error_code", safeErrorCode(envelope))
@@ -415,7 +424,11 @@ func (h *Handler) readLoop(conn *websocket.Conn, cc *controlConn, registration *
 			continue
 		case errors.Is(err, connector.ErrUnauthenticated):
 			// DB에서 Credential 또는 Connector가 revoke되었다. last_seen을 갱신하지 않고 이 connection을 4001로 끝낸다.
+			// 이 Credential을 더 이상 신뢰하지 않으므로 같은 Credential로 인증된 다른 Control Session과 Terminal Data WSS도 함께 끝낸다
+			// (contracts/connector/README.md §2). Registry의 revoke primitive를 거치므로 직접 호출하는 revoke hook과 같은 경로다.
+			// Connector가 revoke된 것인지 Credential만 revoke된 것인지 여기서는 알 수 없어 이 Credential로만 한정한다.
 			log.Warn("Connector Control Credential revoke 감지", "reason", "revoked_on_heartbeat")
+			h.registry.RevokeCredential(principal.CredentialID)
 			cc.close(closeCredentialRevoked, "credential revoked")
 			return
 		case err != nil:

@@ -19,6 +19,12 @@ func ParseOrigin(raw string) (string, error) {
 	return origin, nil
 }
 
+// OriginMatches는 Browser WebSocket Upgrade의 Origin header 값 하나가 trusted origin(ParseOrigin 형식)과 정확히 일치하는지 판정한다.
+// 같은 정규화를 쓰며 Referer로 대체하지 않는다. path, query, fragment가 있거나 malformed/null인 값은 일치하지 않는다.
+func OriginMatches(trusted, origin string) bool {
+	return matchesOrigin(trusted, origin, false)
+}
+
 // sourceAllowed는 unsafe method 요청의 source가 trusted origin과 정확히 일치하는지 판정한다.
 //
 //  1. Origin header가 있으면 그 값만 사용한다. 있는데 비교에 실패하면 Referer로 넘어가지 않는다.

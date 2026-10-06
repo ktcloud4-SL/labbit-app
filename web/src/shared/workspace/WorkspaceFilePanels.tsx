@@ -223,6 +223,7 @@ function WorkspaceFileEditor({
         className="workspace-code-editor"
         aria-label="파일 편집기"
         spellCheck={false}
+        disabled={saveMutation.isPending}
         value={draft}
         onChange={(event) => {
           const next = event.target.value

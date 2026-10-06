@@ -148,61 +148,40 @@ func validateOperationCommand(cmd *protocol.OperationCommandMessage) error {
 	}
 
 	switch cmd.Payload.MutationType {
-	case protocol.MutationTypeProvision, protocol.MutationTypeReset:
-		if cmd.Payload.CreationSnapshot == nil {
-			return fmt.Errorf("creationSnapshot is required for %s", cmd.Payload.MutationType)
+	case protocol.MutationTypeProvision:
+		if err := validateCreationSnapshot(cmd.Payload.CreationSnapshot, cmd.Payload.MutationType); err != nil {
+			return err
 		}
-		snap := cmd.Payload.CreationSnapshot
-		if snap.ProviderConnectionID == "" {
-			return fmt.Errorf("providerConnectionId is required in creationSnapshot")
+
+	case protocol.MutationTypeReset:
+		if cmd.Generation < 2 {
+			return fmt.Errorf("generation must be >= 2 for RESET, got %d", cmd.Generation)
 		}
-		if snap.WorkspaceVMKey == "" {
-			return fmt.Errorf("workspaceVmKey is required in creationSnapshot")
+		if err := validateCreationSnapshot(cmd.Payload.CreationSnapshot, cmd.Payload.MutationType); err != nil {
+			return err
 		}
-		if len(snap.VMs) == 0 {
-			return fmt.Errorf("creationSnapshot must contain at least 1 VM")
+		if cmd.Payload.ProviderResources == nil {
+			return fmt.Errorf("providerResources is required for RESET")
 		}
-		workspaceVMFound := false
-		for i, v := range snap.VMs {
-			if v.VMKey == "" {
-				return fmt.Errorf("vmKey is required for VM at index %d", i)
-			}
-			if v.Role == "" {
-				return fmt.Errorf("role is required for VM %q", v.VMKey)
-			}
-			if v.InstanceIndex < 0 {
-				return fmt.Errorf("instanceIndex must be >= 0 for VM %q", v.VMKey)
-			}
-			// imageId, flavorId 필수 검증: imageRef/flavorRef 대체는 금지되며 invalid command로 거절
-			if v.ImageID == "" {
-				return fmt.Errorf("imageId is required for VM %q: imageRef fallback is prohibited", v.VMKey)
-			}
-			if v.FlavorID == "" {
-				return fmt.Errorf("flavorId is required for VM %q: flavorRef fallback is prohibited", v.VMKey)
-			}
-			if v.FlavorSpec == nil {
-				return fmt.Errorf("flavorSpec is required for VM %q", v.VMKey)
-			}
-			if v.FlavorSpec.VCPUs < 1 {
-				return fmt.Errorf("flavorSpec.vcpus must be >= 1 for VM %q", v.VMKey)
-			}
-			if v.FlavorSpec.RAMMiB < 1 {
-				return fmt.Errorf("flavorSpec.ramMiB must be >= 1 for VM %q", v.VMKey)
-			}
-			if v.FlavorSpec.DiskGiB < 0 {
-				return fmt.Errorf("flavorSpec.diskGiB must be >= 0 for VM %q", v.VMKey)
-			}
-			if v.VMKey == snap.WorkspaceVMKey {
-				workspaceVMFound = true
-			}
+		if len(cmd.Payload.ProviderResources) == 0 {
+			return fmt.Errorf("providerResources must not be empty for RESET")
 		}
-		if !workspaceVMFound {
-			return fmt.Errorf("workspaceVmKey %q does not match any VM in creationSnapshot", snap.WorkspaceVMKey)
-		}
-		if snap.StartupScript != nil {
-			// content는 string이며 Schema에 minLength가 없다. 빈 문자열도 유효하므로 계약보다 엄격하게 거절하지 않는다.
-			if len(snap.StartupScript.SHA256) != 64 {
-				return fmt.Errorf("startupScript sha256 must be 64-character hex string")
+		expectedPrev := cmd.Generation - 1
+		for i, r := range cmd.Payload.ProviderResources {
+			if r.ResourceType == "" {
+				return fmt.Errorf("resourceType is required for reset provider resource at index %d", i)
+			}
+			if r.ProviderID == "" {
+				return fmt.Errorf("providerId is required for reset provider resource at index %d", i)
+			}
+			if r.LogicalName == "" {
+				return fmt.Errorf("logicalName is required for reset provider resource at index %d", i)
+			}
+			if r.Generation < 1 {
+				return fmt.Errorf("generation must be >= 1 for reset provider resource at index %d", i)
+			}
+			if r.Generation != expectedPrev {
+				return fmt.Errorf("generation must match previous generation (%d) for reset provider resource at index %d, got %d", expectedPrev, i, r.Generation)
 			}
 		}
 
@@ -227,6 +206,65 @@ func validateOperationCommand(cmd *protocol.OperationCommandMessage) error {
 		return fmt.Errorf("unsupported mutationType: %s", cmd.Payload.MutationType)
 	}
 
+	return nil
+}
+
+func validateCreationSnapshot(snap *protocol.CreationSnapshot, mutationType string) error {
+	if snap == nil {
+		return fmt.Errorf("creationSnapshot is required for %s", mutationType)
+	}
+	if snap.ProviderConnectionID == "" {
+		return fmt.Errorf("providerConnectionId is required in creationSnapshot")
+	}
+	if snap.WorkspaceVMKey == "" {
+		return fmt.Errorf("workspaceVmKey is required in creationSnapshot")
+	}
+	if len(snap.VMs) == 0 {
+		return fmt.Errorf("creationSnapshot must contain at least 1 VM")
+	}
+	workspaceVMFound := false
+	for i, v := range snap.VMs {
+		if v.VMKey == "" {
+			return fmt.Errorf("vmKey is required for VM at index %d", i)
+		}
+		if v.Role == "" {
+			return fmt.Errorf("role is required for VM %q", v.VMKey)
+		}
+		if v.InstanceIndex < 0 {
+			return fmt.Errorf("instanceIndex must be >= 0 for VM %q", v.VMKey)
+		}
+		// imageId, flavorId 필수 검증: imageRef/flavorRef 대체는 금지되며 invalid command로 거절
+		if v.ImageID == "" {
+			return fmt.Errorf("imageId is required for VM %q: imageRef fallback is prohibited", v.VMKey)
+		}
+		if v.FlavorID == "" {
+			return fmt.Errorf("flavorId is required for VM %q: flavorRef fallback is prohibited", v.VMKey)
+		}
+		if v.FlavorSpec == nil {
+			return fmt.Errorf("flavorSpec is required for VM %q", v.VMKey)
+		}
+		if v.FlavorSpec.VCPUs < 1 {
+			return fmt.Errorf("flavorSpec.vcpus must be >= 1 for VM %q", v.VMKey)
+		}
+		if v.FlavorSpec.RAMMiB < 1 {
+			return fmt.Errorf("flavorSpec.ramMiB must be >= 1 for VM %q", v.VMKey)
+		}
+		if v.FlavorSpec.DiskGiB < 0 {
+			return fmt.Errorf("flavorSpec.diskGiB must be >= 0 for VM %q", v.VMKey)
+		}
+		if v.VMKey == snap.WorkspaceVMKey {
+			workspaceVMFound = true
+		}
+	}
+	if !workspaceVMFound {
+		return fmt.Errorf("workspaceVmKey %q does not match any VM in creationSnapshot", snap.WorkspaceVMKey)
+	}
+	if snap.StartupScript != nil {
+		// content는 string이며 Schema에 minLength가 없다. 빈 문자열도 유효하므로 계약보다 엄격하게 거절하지 않는다.
+		if len(snap.StartupScript.SHA256) != 64 {
+			return fmt.Errorf("startupScript sha256 must be 64-character hex string")
+		}
+	}
 	return nil
 }
 

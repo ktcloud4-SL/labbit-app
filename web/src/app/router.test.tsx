@@ -1732,6 +1732,120 @@ describe('Auth·Class·LabSpec routing', () => {
     ).toBeInTheDocument()
   })
 
+  it('Workspace File 저장 결과를 알 수 없으면 자동 재저장하지 않고 다시 읽기 UX를 표시한다', async () => {
+    const saveWorkspaceFile = vi.fn(async () => {
+      throw new HttpError(503, {
+        type: 'about:blank',
+        title: 'Service Unavailable',
+        status: 503,
+        code: 'file_save_outcome_unknown',
+        requestId: 'req-outcome-unknown',
+      })
+    })
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+          path,
+          items: [
+            {
+              name: 'README.md',
+              path: 'README.md',
+              kind: 'file',
+            },
+          ],
+        }),
+        readWorkspaceFile: async (_labInstanceId, path) => ({
+          file: {
+            path,
+            content: '# Original\n',
+          },
+          etag: '"file-v1"',
+        }),
+        saveWorkspaceFile,
+      }),
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'README.md' }),
+    )
+    const editor = await screen.findByLabelText('파일 편집기')
+    fireEvent.change(editor, {
+      target: {
+        value: '# Maybe saved\n',
+      },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '저장' }))
+
+    expect(
+      await screen.findByText(
+        '저장 결과를 확인할 수 없습니다. 자동으로 다시 저장하지 말고 파일을 다시 읽어 확인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: '파일 다시 읽기' }),
+    ).toBeInTheDocument()
+    expect(saveWorkspaceFile).toHaveBeenCalledTimes(1)
+  })
+
+  it('Workspace File 저장 중에는 draft를 더 수정하지 못하게 잠근다', async () => {
+    let resolveSave!: (value: { file: { path: string }; etag: string }) => void
+    const saveWorkspaceFile = vi.fn(
+      async (_labInstanceId: string, path: string) =>
+        new Promise<{ file: { path: string }; etag: string }>((resolve) => {
+          resolveSave = resolve
+        }),
+    )
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+          path,
+          items: [
+            {
+              name: 'README.md',
+              path: 'README.md',
+              kind: 'file',
+            },
+          ],
+        }),
+        readWorkspaceFile: async (_labInstanceId, path) => ({
+          file: {
+            path,
+            content: '# Original\n',
+          },
+          etag: '"file-v1"',
+        }),
+        saveWorkspaceFile,
+      }),
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'README.md' }),
+    )
+    const editor = await screen.findByLabelText('파일 편집기')
+    fireEvent.change(editor, {
+      target: {
+        value: '# Saving\n',
+      },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '저장' }))
+
+    expect(await screen.findByRole('button', { name: '저장 중...' })).toBeDisabled()
+    expect(screen.getByLabelText('파일 편집기')).toBeDisabled()
+
+    resolveSave({
+      file: { path: 'README.md' },
+      etag: '"file-v2"',
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('저장됨')).toBeInTheDocument()
+    })
+  })
+
   it('Workspace File에 저장되지 않은 변경이 있으면 다른 파일 이동 전에 확인한다', async () => {
     const readWorkspaceFile = vi.fn(async (_labInstanceId: string, path: string) => ({
       file: {

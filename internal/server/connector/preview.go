@@ -33,6 +33,8 @@ type PreviewCorrelation struct {
 // PreviewOpen은 SendPreviewOpen의 입력이다. SaaS가 권한 검증과 port 승인을 마친 뒤 resolved Workspace target만 담는다.
 // wire messageId는 Router가 만든다.
 type PreviewOpen struct {
+	// MessageID가 비어 있지 않으면 PREVIEW_OPEN의 messageId로 사용한다. 비어 있으면 Router가 발급한다.
+	MessageID string
 	// ConnectorID는 내부 routing identity다. wire로 받은 값이 아니며 message에 실리지 않는다.
 	ConnectorID uuid.UUID
 	// RequestID는 원본 HTTP request와 연결할 수 있을 때만 채운다(선택).
@@ -219,7 +221,10 @@ func (r *Router) SendPreviewOpen(ctx context.Context, open PreviewOpen) (SentMes
 		return SentMessage{}, err
 	}
 
-	messageID := uuid.NewString()
+	messageID := open.MessageID
+	if messageID == "" {
+		messageID = uuid.NewString()
+	}
 	msg := previewOpenMessage{previewEnvelope: newPreviewEnvelope(protocol.MessageTypePreviewOpen, messageID, open.RequestID, open.Correlation, open.Trace)}
 	msg.Payload.TargetVMKey = open.TargetVMKey
 	msg.Payload.ProviderServerID = open.ProviderServerID

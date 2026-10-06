@@ -623,7 +623,7 @@ func TestClientAbortDoesNotTearDownTheTunnel(t *testing.T) {
 
 // ---- 오류 의미 ----
 
-func TestTunnelLossDuringARequestMapsTo502AndEndsTheSession(t *testing.T) {
+func TestTunnelLossDuringARequestMapsTo502WhilePreservingSession(t *testing.T) {
 	e := newEnv(t)
 	s := e.activate()
 	cookie := e.login(s)
@@ -658,37 +658,146 @@ func TestTunnelLossDuringARequestMapsTo502AndEndsTheSession(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatal("tunnel 손실 뒤에도 요청이 끝나지 않음")
 	}
-	eventually(t, "Lifecycle 종료 통지", func() bool { return len(e.lifecyle.all()) == 1 })
-	got := e.lifecyle.all()[0]
-	// Connector가 이미 아는 종료이므로 PREVIEW_CLOSE를 보낼 필요가 없다.
-	if got.Reason != EndTunnelClosed || got.NotifyConnector {
-		t.Fatalf("통지 = %+v", got)
+
+	// Invariant: tunnel이 끊겨도 logical PreviewSession은 유지된다 (TUNNEL_CLOSED는 session 종료가 아님).
+	info, ok := e.gw.Info(s.SessionID)
+	if !ok || info.Ended {
+		t.Fatalf("tunnel 손실 후 PreviewSession이 비정상 종료됨: %+v", info)
 	}
-	if resp, _ := e.get(s.Expected, cookie, "/"); resp.StatusCode != http.StatusUnauthorized {
-		t.Fatalf("tunnel 종료 뒤 요청 status = %d, want 401", resp.StatusCode)
+	if len(e.lifecyle.all()) != 0 {
+		t.Fatalf("tunnel 손실로 불필요한 Lifecycle 종료 통지 발생: %+v", e.lifecyle.all())
+	}
+
+	// 새 tunnel을 열 수 없는 상태에서 오는 다음 요청은 502 (preview_tunnel_closed)여야 하며, 401(unauthenticated)이 아니어야 한다 (쿠키 인증 유지).
+	resp, _ := e.get(s.Expected, cookie, "/")
+	if resp.StatusCode != http.StatusBadGateway {
+		t.Fatalf("tunnel 손실 뒤 요청 status = %d, want 502", resp.StatusCode)
 	}
 }
 
-// application이 응답 뒤 TCP 연결을 닫으면 tunnel이 끝나고 PreviewSession도 끝난다(MVP: tunnel 하나 = TCP 연결 하나).
-func TestApplicationClosingTheConnectionEndsTheSession(t *testing.T) {
+// application이 응답 뒤 TCP 연결을 닫아도 PreviewSession은 종료되지 않고, 다음 요청 시 새 tunnel을 열어 계속 처리할 수 있다.
+func TestApplicationClosingTheConnectionPreservesSessionAndAllowsSequentialTunnels(t *testing.T) {
 	e := newEnv(t)
 	s := e.activate()
 	cookie := e.login(s)
+
+	requestCount := 0
 	e.app.setHandler(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
 		w.Header().Set("Connection", "close")
-		_, _ = io.WriteString(w, "last response")
+		_, _ = fmt.Fprintf(w, "response %d for %s", requestCount, r.URL.Path)
 	})
 
-	resp, body := e.get(s.Expected, cookie, "/")
-	if resp.StatusCode != http.StatusOK || body != "last response" {
+	// 첫 번째 요청: 초기 tunnel 사용
+	resp, body := e.get(s.Expected, cookie, "/index.html")
+	if resp.StatusCode != http.StatusOK || body != "response 1 for /index.html" {
 		t.Fatalf("첫 응답 = %d %q", resp.StatusCode, body)
 	}
-	eventually(t, "PreviewSession 종료", func() bool { info, _ := e.gw.Info(s.SessionID); return info.Ended })
-	if info, _ := e.gw.Info(s.SessionID); info.EndReason != EndTunnelClosed {
-		t.Fatalf("종료 사유 = %q", info.EndReason)
+
+	// tunnel이 닫힐 때까지 대기
+	time.Sleep(50 * time.Millisecond)
+
+	// Invariant: PreviewSession은 종료되지 않아야 한다!
+	info, ok := e.gw.Info(s.SessionID)
+	if !ok || info.Ended {
+		t.Fatalf("PreviewSession이 종료됨: %+v", info)
 	}
-	if resp, _ := e.get(s.Expected, cookie, "/"); resp.StatusCode != http.StatusUnauthorized {
-		t.Fatalf("종료 뒤 요청 status = %d, want 401", resp.StatusCode)
+	if len(e.lifecyle.all()) != 0 {
+		t.Fatalf("불필요한 Lifecycle 종료 통지 발생: %+v", e.lifecyle.all())
+	}
+
+	// TunnelOpener 등록: 후속 tunnel 요청 시 새 tunnel을 attach하여 제공
+	tunnelCount := 1
+	e.gw.SetTunnelOpener(fakeOpener{
+		openFn: func(ctx context.Context, sessionID string) error {
+			tunnelCount++
+			openMsgID := fmt.Sprintf("open-%d", tunnelCount)
+			readyCh, err := e.gw.PrepareTunnel(sessionID, openMsgID)
+			if err != nil {
+				return err
+			}
+			curInfo, _ := e.gw.Info(sessionID)
+			x := s.Expected
+			x.OpenMessageID = openMsgID
+			x.TargetVMKey = curInfo.TargetVMKey
+			x.ProviderServerID = curInfo.ProviderServerID
+			_ = e.attachAndServe(x)
+			select {
+			case <-readyCh:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		},
+	})
+
+	// 두 번째 요청: 후속 tunnel 열어서 처리
+	resp2, body2 := e.get(s.Expected, cookie, "/app.js")
+	if resp2.StatusCode != http.StatusOK || body2 != "response 2 for /app.js" {
+		t.Fatalf("두 번째 응답 = %d %q", resp2.StatusCode, body2)
+	}
+
+	// 세 번째 요청: 추가 tunnel 열어서 처리
+	resp3, body3 := e.get(s.Expected, cookie, "/style.css")
+	if resp3.StatusCode != http.StatusOK || body3 != "response 3 for /style.css" {
+		t.Fatalf("세 번째 응답 = %d %q", resp3.StatusCode, body3)
+	}
+
+	// Session은 여전히 active 상태
+	info, _ = e.gw.Info(s.SessionID)
+	if info.Ended {
+		t.Fatal("세 번의 순차 요청 후에도 PreviewSession은 유지되어야 함")
+	}
+
+	// 명시적 Terminate 시에만 세션이 종료되고 401이 반환되어야 함
+	e.gw.Terminate(s.SessionID, End{Reason: EndSessionClosed, NotifyConnector: false})
+	if resp4, _ := e.get(s.Expected, cookie, "/index.html"); resp4.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("세션 명시 종료 뒤 status = %d, want 401", resp4.StatusCode)
+	}
+}
+
+func TestAttachWithStaleOrMismatchedReplyToMessageIDIsRejected(t *testing.T) {
+	e := newEnv(t)
+	x := e.expect(func(exp *Expected) {
+		exp.OpenMessageID = "open-expected"
+	})
+
+	// 1. Stale replyToMessageId로 attach 시도 -> 1008 close
+	ws, _, err := e.dialData(testCredential)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ws.Close()
+	sendJSON(t, ws, attachFrame(x, map[string]any{"replyToMessageId": "open-stale"}))
+	if code := readCloseCode(ws); code != closePolicy {
+		t.Fatalf("stale attach close code = %d, want %d", code, closePolicy)
+	}
+
+	// 2. 일치하는 replyToMessageId로 attach -> 성공
+	ws2, _, err := e.dialData(testCredential)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ws2.Close()
+	sendJSON(t, ws2, attachFrame(x, map[string]any{"replyToMessageId": "open-expected"}))
+	kind, ackData, err := ws2.ReadMessage()
+	if err != nil || kind != websocket.TextMessage {
+		t.Fatalf("정상 attach 실패: %v", err)
+	}
+	var ack map[string]any
+	if json.Unmarshal(ackData, &ack) != nil || ack["type"] != "PREVIEW_ATTACHED" {
+		t.Fatalf("PREVIEW_ATTACHED 수신 실패: %s", ackData)
+	}
+
+	// 3. 이미 tunnel이 준비된 후 추가 attach 시도 -> request_not_waiting -> 1008 close
+	ws3, _, err := e.dialData(testCredential)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ws3.Close()
+	sendJSON(t, ws3, attachFrame(x, map[string]any{"replyToMessageId": "open-expected"}))
+	if code := readCloseCode(ws3); code != closePolicy {
+		t.Fatalf("중복 attach close code = %d, want %d", code, closePolicy)
 	}
 }
 

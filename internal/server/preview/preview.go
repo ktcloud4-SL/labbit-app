@@ -120,6 +120,11 @@ type Lifecycle interface {
 	SessionEnded(Ended)
 }
 
+// TunnelOpener는 활성화된 PreviewSession에 새 Workspace TCP tunnel을 확보하는 경계다. PreviewSession use case가 구현한다.
+type TunnelOpener interface {
+	OpenTunnel(ctx context.Context, sessionID string) error
+}
+
 // End는 Terminate의 입력이다.
 type End struct {
 	// Reason은 End* 상수 중 하나다.
@@ -182,6 +187,7 @@ type Gateway struct {
 
 	mu        sync.Mutex
 	lifecycle Lifecycle
+	opener    TunnelOpener
 	closed    bool
 	sessions  map[string]*session
 	done      chan struct{}
@@ -237,6 +243,27 @@ func (g *Gateway) SetLifecycle(l Lifecycle) {
 	g.lifecycle = l
 }
 
+// SetTunnelOpener는 PreviewSession의 새 tunnel을 열 TunnelOpener를 정한다. 조립 시점에 서비스를 시작하기 전에 한 번 호출한다.
+func (g *Gateway) SetTunnelOpener(o TunnelOpener) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.opener = o
+}
+
+func (g *Gateway) openTunnel(ctx context.Context, s *session) error {
+	g.mu.Lock()
+	opener := g.opener
+	closed := g.closed
+	g.mu.Unlock()
+	if closed {
+		return ErrClosed
+	}
+	if opener == nil {
+		return errors.New("preview: tunnel opener가 설정되지 않음")
+	}
+	return opener.OpenTunnel(ctx, s.id)
+}
+
 // Origin은 이 Gateway의 Preview Origin template이다.
 func (g *Gateway) Origin() OriginTemplate { return g.origin }
 
@@ -283,6 +310,8 @@ type Expected struct {
 	TTL time.Duration
 	// RequestID는 원본 HTTP request의 correlation이다(선택).
 	RequestID string
+	// OpenMessageID는 이 PreviewSession의 첫 tunnel open attempt(PREVIEW_OPEN)의 correlation이다.
+	OpenMessageID string
 }
 
 func (e Expected) valid() bool {
@@ -297,7 +326,7 @@ func (g *Gateway) Expect(e Expected) error {
 	if !e.valid() {
 		return ErrInvalidSession
 	}
-	s := newSession(e, g.logger)
+	s := newSession(e, g, g.logger)
 
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -338,6 +367,24 @@ func (g *Gateway) Pending(id string) (attached, ended <-chan struct{}, ok bool) 
 	return s.attached, s.ended, true
 }
 
+// PrepareTunnel은 sessionID에 새로운 tunnel open attempt(openMessageID)를 등록한다.
+func (g *Gateway) PrepareTunnel(id string, openMessageID string) (<-chan struct{}, error) {
+	s := g.lookup(id)
+	if s == nil {
+		return nil, ErrUnknownSession
+	}
+	return s.prepareTunnel(openMessageID)
+}
+
+// CancelTunnel은 실패하거나 취소된 tunnel open attempt를 정리한다.
+func (g *Gateway) CancelTunnel(id string, openMessageID string) {
+	s := g.lookup(id)
+	if s == nil {
+		return
+	}
+	s.cancelTunnel(openMessageID)
+}
+
 // Activation은 PreviewSession을 활성화한 결과다.
 type Activation struct {
 	// URL은 Preview Origin의 bootstrap 경로이며 fragment에 일회용 bootstrap credential이 있다. 이 반환에서만 원문으로 나간다.
@@ -368,6 +415,8 @@ type Info struct {
 	ConnectorID      uuid.UUID
 	LabInstanceID    string
 	Generation       int64
+	TargetVMKey      string
+	ProviderServerID string
 	TargetPort       int
 	Ended            bool
 	EndReason        string

@@ -119,6 +119,17 @@ func (r *endedRecorder) all() []Ended {
 	return append([]Ended(nil), r.ended...)
 }
 
+type fakeOpener struct {
+	openFn func(ctx context.Context, sessionID string) error
+}
+
+func (f fakeOpener) OpenTunnel(ctx context.Context, sessionID string) error {
+	if f.openFn != nil {
+		return f.openFn(ctx, sessionID)
+	}
+	return errors.New("preview: fake opener openFn 미설정")
+}
+
 // lockedBuffer는 동시에 써도 되는 log 출력이다.
 type lockedBuffer struct {
 	mu  sync.Mutex
@@ -248,7 +259,7 @@ func (e *env) expected(mods ...func(*Expected)) Expected {
 	x := Expected{
 		SessionID: uuid.NewString(), OwnerID: "user-1", OrganizationID: "org-1", ConnectorID: e.connectorID,
 		LabInstanceID: "lab-1", Generation: 3, TargetVMKey: "vk-web", ProviderServerID: "srv-web-g3", TargetPort: 5173,
-		TTL: time.Hour, RequestID: "request-1",
+		TTL: time.Hour, RequestID: "request-1", OpenMessageID: "open-1",
 	}
 	for _, mod := range mods {
 		mod(&x)
@@ -282,8 +293,13 @@ func (e *env) dialData(credential string) (*websocket.Conn, *http.Response, erro
 
 // attachFrame은 Connector가 보내는 preview-data.schema.json PREVIEW_ATTACH다. fields로 값을 덮어쓴다(nil이면 삭제).
 func attachFrame(x Expected, fields map[string]any) map[string]any {
+	openID := x.OpenMessageID
+	if openID == "" {
+		openID = "open-1"
+	}
 	msg := map[string]any{
 		"type": "PREVIEW_ATTACH", "messageId": "attach-1", "sentAt": time.Now().UTC().Format(time.RFC3339),
+		"replyToMessageId": openID,
 		"previewSessionId": x.SessionID, "labInstanceId": x.LabInstanceID, "generation": x.Generation,
 		"payload": map[string]any{"runtimeId": "runtime-1", "targetVmKey": x.TargetVMKey, "providerServerId": x.ProviderServerID, "targetPort": x.TargetPort},
 	}

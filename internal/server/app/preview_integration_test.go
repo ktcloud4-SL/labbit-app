@@ -36,7 +36,10 @@ import (
 // Connector 쪽은 계약대로 동작하는 contract peer(previewtest)이고 Workspace VM의 application은 실제 TCP로 연결되는 fake HTTP 서버다.
 // 실제 OpenStack, SSH TCP forwarding, VM은 없다(LBT-23, LBT-24, LBT-25 C3). 이 test의 통과를 실제 VM Preview E2E 통과로 보지 않는다.
 
-const previewOriginSuffix = ".preview.test"
+const (
+	previewPublicOrigin = "http://labbit.example.com"
+	previewOriginSuffix = ".preview.example.com"
+)
 
 // 이 값들이 DB, log, Control frame에 나타나면 안 된다. 실제 사용자 데이터가 아니다.
 const (
@@ -173,7 +176,7 @@ func newPreviewEnv(t *testing.T, o previewEnvOptions) *previewEnv {
 	}
 	opts := stackOptions{
 		Logger:       slog.New(slog.NewJSONHandler(e.logs, &slog.HandlerOptions{Level: slog.LevelDebug})),
-		PublicOrigin: fileTrustedOrigin,
+		PublicOrigin: previewPublicOrigin,
 
 		Preview: true, PreviewPolicy: policy, PreviewTTL: time.Hour, PreviewOrigin: origin,
 		PreviewOpenTimeout: 3 * time.Second, PreviewAttachTimeout: 2 * time.Second, PreviewUpstreamTimeout: 5 * time.Second,
@@ -251,7 +254,7 @@ func (e *previewEnv) request(method, path, cookie, body string, headers map[stri
 	if err != nil {
 		e.t.Fatal(err)
 	}
-	req.Header.Set("Origin", fileTrustedOrigin)
+	req.Header.Set("Origin", previewPublicOrigin)
 	if body != "" {
 		req.Header.Set("Content-Type", "application/json")
 	}
@@ -461,7 +464,7 @@ func TestPreviewSessionFullPathThroughContractPeer(t *testing.T) {
 			t.Errorf("응답이 %q를 노출함: %s", hidden, resp.Body)
 		}
 	}
-	mainHost := strings.TrimPrefix(fileTrustedOrigin, "https://")
+	mainHost := strings.TrimPrefix(previewPublicOrigin, "http://")
 	if s.Host == mainHost || !strings.HasSuffix(s.Host, previewOriginSuffix) || !strings.HasPrefix(s.Host, s.ID+".") {
 		t.Fatalf("Preview Origin host = %q, SaaS 본 서비스 host = %q", s.Host, mainHost)
 	}

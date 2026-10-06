@@ -88,14 +88,14 @@
         { "$ref": "#/$defs/BaseEnvelope" },
         {
           "type": "object",
-          "required": ["type", "payload"],
+          "required": ["type", "replyToMessageId", "payload"],
           "properties": {
             "type": { "const": "PREVIEW_ATTACH" },
             "payload": { "$ref": "#/$defs/AttachPayload" }
           }
         }
       ],
-      "description": "Connector → SaaS. WSS Upgrade 인증 후 첫 application message로 이 Preview Data WSS를 previewSessionId의 PreviewSession에 bind합니다. Connector는 Workspace VM targetPort로의 TCP forwarding channel을 먼저 연 뒤에만 이 message를 보냅니다. SaaS는 인증된 Connector identity와 Credential(PREVIEW_OPEN을 전달한 Control Session을 인증한 그 Credential), previewSessionId, labInstanceId, generation, targetVmKey, providerServerId, targetPort가 모두 기대한 값과 같을 때만 bind합니다."
+      "description": "Connector → SaaS. WSS Upgrade 인증 후 첫 application message로 이 Preview Data WSS를 previewSessionId의 PreviewSession에 bind합니다. Connector는 Workspace VM targetPort로의 TCP forwarding channel을 먼저 연 뒤에만 이 message를 보냅니다. replyToMessageId는 이 tunnel 생성을 요청한 PREVIEW_OPEN의 messageId여야 합니다. SaaS는 인증된 Connector identity와 Credential(PREVIEW_OPEN을 전달한 Control Session을 인증한 그 Credential), previewSessionId, labInstanceId, generation, targetVmKey, providerServerId, targetPort, 그리고 replyToMessageId가 기대한 open attempt와 일치할 때만 bind합니다."
     },
     "PreviewAttachedMessage": {
       "allOf": [

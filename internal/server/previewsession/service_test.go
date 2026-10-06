@@ -754,6 +754,71 @@ func TestNewServiceValidatesItsOptions(t *testing.T) {
 	}
 }
 
+func TestOpenTunnelSucceedsAndCorrelatesWithOpenMessageID(t *testing.T) {
+	f := newFixture(t)
+	sessID := uuid.NewString()
+	f.gateway.infos[sessID] = preview.Info{
+		SessionID:        sessID,
+		LabInstanceID:    labID.String(),
+		Generation:       3,
+		ConnectorID:      connectorID,
+		TargetVMKey:      "vk-web",
+		ProviderServerID: "srv-web-g3",
+		TargetPort:       5173,
+		ExpiresAt:        time.Now().Add(time.Hour),
+	}
+	f.gateway.sessions[sessID] = &fakeSession{attached: make(chan struct{}), ended: make(chan struct{})}
+
+	go func() {
+		eventually(t, "PREVIEW_OPEN 전송", func() bool { return f.connectors.openCount() == 1 })
+		f.gateway.attach(sessID)
+	}()
+
+	err := f.service.OpenTunnel(context.Background(), sessID)
+	if err != nil {
+		t.Fatalf("OpenTunnel() error = %v", err)
+	}
+
+	if f.connectors.openCount() != 1 {
+		t.Fatalf("openCount = %d, want 1", f.connectors.openCount())
+	}
+	open := f.connectors.opens[0]
+	if open.MessageID == "" {
+		t.Fatal("open.MessageID가 비어 있음")
+	}
+	if open.Correlation.PreviewSessionID != sessID || open.Correlation.Generation != 3 {
+		t.Fatalf("correlation 불일치: %+v", open.Correlation)
+	}
+}
+
+func TestOpenTunnelRechecksLabTargetAndTerminatesOnDrift(t *testing.T) {
+	f := newFixture(t)
+	sessID := uuid.NewString()
+	f.gateway.infos[sessID] = preview.Info{
+		SessionID:        sessID,
+		LabInstanceID:    labID.String(),
+		Generation:       3,
+		ConnectorID:      connectorID,
+		TargetVMKey:      "vk-web",
+		ProviderServerID: "srv-web-g3",
+		TargetPort:       5173,
+		ExpiresAt:        time.Now().Add(time.Hour),
+	}
+
+	drifted := f.store.lab
+	drifted.Generation = 4
+	f.store.current = &drifted
+
+	err := f.service.OpenTunnel(context.Background(), sessID)
+	if !errors.Is(err, ErrTargetChanged) {
+		t.Fatalf("OpenTunnel() error = %v, want ErrTargetChanged", err)
+	}
+
+	if len(f.gateway.terminated) != 1 || f.gateway.terminated[0].end.Reason != preview.EndLabReset {
+		t.Fatalf("terminated = %+v", f.gateway.terminated)
+	}
+}
+
 func eventually(t *testing.T, what string, cond func() bool) {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)

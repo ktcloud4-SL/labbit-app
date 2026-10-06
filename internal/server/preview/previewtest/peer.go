@@ -423,6 +423,7 @@ func (p *Peer) handleOpen(open Open) {
 
 	attach := Frame{
 		"type": "PREVIEW_ATTACH", "messageId": uuid.NewString(), "sentAt": now(),
+		"replyToMessageId": open.MessageID,
 		"previewSessionId": open.PreviewSessionID, "labInstanceId": open.LabInstanceID, "generation": open.Generation,
 		"payload": map[string]any{
 			"runtimeId": "runtime-" + uuid.NewString(), "targetVmKey": open.TargetVMKey,

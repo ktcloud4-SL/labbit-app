@@ -146,9 +146,11 @@ func loadPreviewConfig(cfg *Config) error {
 	if err != nil {
 		return fmt.Errorf("LABBIT_PREVIEW_ORIGIN_TEMPLATE 형식 오류: %w", err)
 	}
-	// 사용자 코드가 SaaS 본 서비스 Origin에서 실행되거나 본 서비스 요청이 Gateway로 가면 Origin 격리가 깨진다.
-	if cfg.PublicOrigin != "" && origin.ConflictsWith(cfg.PublicOrigin) {
-		return errors.New("LABBIT_PREVIEW_ORIGIN_TEMPLATE은 LABBIT_PUBLIC_ORIGIN과 다른 Origin이어야 합니다")
+	// v0.1 iframe 인증 전제: Preview Origin은 SaaS 본 서비스 Origin(LABBIT_PUBLIC_ORIGIN)과 separate-origin이면서 same-site여야 한다 (Blocker B).
+	if cfg.PublicOrigin != "" {
+		if err := origin.ValidateSameSite(cfg.PublicOrigin); err != nil {
+			return fmt.Errorf("LABBIT_PREVIEW_ORIGIN_TEMPLATE same-site 검증 실패: %w", err)
+		}
 	}
 
 	cfg.PreviewAllowedPorts, cfg.PreviewSessionTTL, cfg.PreviewOrigin = policy, ttl, origin

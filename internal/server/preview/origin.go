@@ -2,10 +2,13 @@ package preview
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"golang.org/x/net/publicsuffix"
 )
 
 // sessionIDPlaceholder는 LABBIT_PREVIEW_ORIGIN_TEMPLATE에서 PreviewSession ID로 치환되는 자리다.
@@ -78,6 +81,71 @@ func (o OriginTemplate) ConflictsWith(publicOrigin string) bool {
 		return false
 	}
 	return o.MatchesHost(host)
+}
+
+// HostSuffix는 {sessionId}. 다음의 host(와 선택적 port)다. 소문자다.
+func (o OriginTemplate) HostSuffix() string { return o.suffix }
+
+// ValidateSameSite는 SaaS 본 서비스 Origin(LABBIT_PUBLIC_ORIGIN)과 Preview Origin이
+// separate-origin이면서 same-site인지 검증한다(Blocker B).
+//
+//  1. LABBIT_PUBLIC_ORIGIN은 절대 origin URL(scheme + host[:port], path/query/fragment 없음)이어야 한다.
+//  2. schemeful site를 만족해야 하므로 scheme이 같아야 한다(http/https 불일치 거절).
+//  3. 사용자 코드가 SaaS 본 서비스 Origin에서 실행되거나 본 서비스 요청이 Gateway로 가면 안 되므로
+//     같은 Origin이거나 template에 일치하는 host는 거절한다(ConflictsWith).
+//  4. local development(.localhost)는 두 host가 모두 localhost 또는 *.localhost일 때 허용한다.
+//  5. 그 밖의 production DNS host는 publicsuffix(EffectiveTLDPlusOne) 기준 registrable domain이 정확히 일치해야 한다.
+//     다른 domain(cross-site)이나 속임수 접미사(deceptive suffix, 예: example.com.evil)는 거절한다.
+func (o OriginTemplate) ValidateSameSite(publicOrigin string) error {
+	if o.IsZero() {
+		return errors.New("preview origin template이 설정되지 않았습니다")
+	}
+	u, err := url.Parse(publicOrigin)
+	if err != nil || u.Scheme == "" || u.Host == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
+		return errors.New("LABBIT_PUBLIC_ORIGIN은 절대 origin URL이어야 합니다 (path/query/fragment/userinfo 없음)")
+	}
+	publicScheme := strings.ToLower(u.Scheme)
+	if publicScheme != "http" && publicScheme != "https" {
+		return errors.New("LABBIT_PUBLIC_ORIGIN의 scheme은 http 또는 https여야 합니다")
+	}
+	if publicScheme != o.scheme {
+		return fmt.Errorf("scheme 불일치: LABBIT_PUBLIC_ORIGIN은 %s인데 LABBIT_PREVIEW_ORIGIN_TEMPLATE은 %s입니다 (same-site iframe 전제 위반)", publicScheme, o.scheme)
+	}
+	if o.ConflictsWith(publicOrigin) {
+		return errors.New("LABBIT_PREVIEW_ORIGIN_TEMPLATE은 LABBIT_PUBLIC_ORIGIN과 다른 Origin이어야 합니다")
+	}
+
+	publicHost := strings.ToLower(u.Hostname())
+	previewSuffixHost := o.suffix
+	if h, _, err := net.SplitHostPort(previewSuffixHost); err == nil {
+		previewSuffixHost = h
+	}
+	previewSuffixHost = strings.ToLower(previewSuffixHost)
+	samplePreviewHost := "preview." + previewSuffixHost
+
+	isLocalhost := func(h string) bool {
+		return h == "localhost" || strings.HasSuffix(h, ".localhost")
+	}
+
+	if isLocalhost(publicHost) || isLocalhost(previewSuffixHost) {
+		if !isLocalhost(publicHost) || !isLocalhost(previewSuffixHost) {
+			return fmt.Errorf("LABBIT_PUBLIC_ORIGIN(%q)과 LABBIT_PREVIEW_ORIGIN_TEMPLATE(%q)의 registrable domain이 불일치합니다 (한쪽만 localhost)", publicHost, samplePreviewHost)
+		}
+		return nil
+	}
+
+	publicSite, err := publicsuffix.EffectiveTLDPlusOne(publicHost)
+	if err != nil {
+		return fmt.Errorf("LABBIT_PUBLIC_ORIGIN host(%q)의 registrable domain을 판정할 수 없습니다: %w", publicHost, err)
+	}
+	previewSite, err := publicsuffix.EffectiveTLDPlusOne(samplePreviewHost)
+	if err != nil {
+		return fmt.Errorf("LABBIT_PREVIEW_ORIGIN_TEMPLATE host(%q)의 registrable domain을 판정할 수 없습니다: %w", samplePreviewHost, err)
+	}
+	if publicSite != previewSite {
+		return fmt.Errorf("LABBIT_PREVIEW_ORIGIN_TEMPLATE(%q)과 LABBIT_PUBLIC_ORIGIN(%q)의 registrable domain이 다릅니다 (%q != %q, cross-site)", samplePreviewHost, publicHost, previewSite, publicSite)
+	}
+	return nil
 }
 
 var errInvalidTemplate = errors.New("절대 origin URL template(scheme + host + 선택적 port, path/query/fragment 없음)이며 host의 첫 label이 {sessionId}여야 합니다")

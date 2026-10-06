@@ -19,7 +19,7 @@ func setPreviewEnv(t *testing.T, environment, roles string) {
 	t.Setenv("LABBIT_PUBLIC_ORIGIN", "https://labbit.example.com")
 	t.Setenv("LABBIT_PREVIEW_ALLOWED_PORTS", "3000,5173")
 	t.Setenv("LABBIT_PREVIEW_SESSION_TTL", "45m")
-	t.Setenv("LABBIT_PREVIEW_ORIGIN_TEMPLATE", "http://{sessionId}.preview.localhost:8080")
+	t.Setenv("LABBIT_PREVIEW_ORIGIN_TEMPLATE", "https://{sessionId}.preview.example.com")
 }
 
 func TestLoadConfigReadsThePreviewSettings(t *testing.T) {
@@ -31,7 +31,7 @@ func TestLoadConfigReadsThePreviewSettings(t *testing.T) {
 	if cfg.PreviewSessionTTL != 45*time.Minute {
 		t.Errorf("PreviewSessionTTL = %v", cfg.PreviewSessionTTL)
 	}
-	if got := cfg.PreviewOrigin.String(); got != "http://{sessionId}.preview.localhost:8080" {
+	if got := cfg.PreviewOrigin.String(); got != "https://{sessionId}.preview.example.com" {
 		t.Errorf("PreviewOrigin = %q", got)
 	}
 	for _, port := range []int{3000, 5173} {
@@ -69,7 +69,10 @@ func TestLoadConfigRequiresEveryPreviewSettingWhenThePreviewRoleIsEnabled(t *tes
 		{"Origin template 없음", "LABBIT_PREVIEW_ORIGIN_TEMPLATE", "", "LABBIT_PREVIEW_ORIGIN_TEMPLATE이 필요합니다"},
 		{"Origin template에 placeholder 없음", "LABBIT_PREVIEW_ORIGIN_TEMPLATE", "https://preview.example.com", "LABBIT_PREVIEW_ORIGIN_TEMPLATE 형식 오류"},
 		{"Origin template path", "LABBIT_PREVIEW_ORIGIN_TEMPLATE", "https://{sessionId}.preview.example.com/app", "LABBIT_PREVIEW_ORIGIN_TEMPLATE 형식 오류"},
-		{"Origin template이 SaaS 본 서비스 Origin과 겹침", "LABBIT_PREVIEW_ORIGIN_TEMPLATE", "https://{sessionId}.example.com", "LABBIT_PREVIEW_ORIGIN_TEMPLATE은 LABBIT_PUBLIC_ORIGIN과 다른 Origin이어야 합니다"},
+		{"Origin template이 SaaS 본 서비스 Origin과 겹침", "LABBIT_PREVIEW_ORIGIN_TEMPLATE", "https://{sessionId}.example.com", "LABBIT_PREVIEW_ORIGIN_TEMPLATE same-site 검증 실패"},
+		{"Origin template이 cross-site domain", "LABBIT_PREVIEW_ORIGIN_TEMPLATE", "https://{sessionId}.preview-other.net", "LABBIT_PREVIEW_ORIGIN_TEMPLATE same-site 검증 실패"},
+		{"Origin template이 속임수 접미사", "LABBIT_PREVIEW_ORIGIN_TEMPLATE", "https://{sessionId}.preview.example.com.evil", "LABBIT_PREVIEW_ORIGIN_TEMPLATE same-site 검증 실패"},
+		{"Origin template이 scheme 불일치", "LABBIT_PREVIEW_ORIGIN_TEMPLATE", "http://{sessionId}.preview.example.com", "LABBIT_PREVIEW_ORIGIN_TEMPLATE same-site 검증 실패"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

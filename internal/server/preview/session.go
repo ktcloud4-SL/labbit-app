@@ -33,6 +33,7 @@ const (
 // session은 PreviewSession 하나의 ephemeral 상태다. 모든 가변 field는 mu로 보호한다.
 // bootstrap credential과 Preview Cookie token은 원문을 저장하지 않고 SHA-256 digest만 둔다.
 type session struct {
+	gw             *Gateway
 	id             string
 	ownerID, orgID string
 	connectorID    uuid.UUID
@@ -45,18 +46,22 @@ type session struct {
 	requestID      string
 	log            *slog.Logger
 
-	// attached는 tunnel이 준비되면, ended는 PreviewSession이 끝나면 닫힌다.
+	// attached는 첫 tunnel이 준비되면, ended는 PreviewSession이 끝나면 닫힌다.
 	attached chan struct{}
 	ended    chan struct{}
 
 	mu             sync.Mutex
+	dialMu         sync.Mutex
 	state          sessionState
 	bound          bool
 	controlSession uuid.UUID
 	credentialID   uuid.UUID
 	data           *dataConn
 	tunnel         *tunnel
-	dialed         bool
+	tunnelDialed   bool
+	openPending    bool
+	pendingOpenID  string
+	tunnelReady    chan struct{}
 	activated      bool
 	expiresAt      time.Time
 
@@ -72,7 +77,7 @@ type session struct {
 	end       End
 }
 
-func newSession(e Expected, logger *slog.Logger) *session {
+func newSession(e Expected, gw *Gateway, logger *slog.Logger) *session {
 	log := logger.With(
 		"preview_session_id", e.SessionID,
 		"lab_instance_id", e.LabInstanceID,
@@ -82,13 +87,18 @@ func newSession(e Expected, logger *slog.Logger) *session {
 	if e.RequestID != "" {
 		log = log.With("request_id", e.RequestID)
 	}
-	return &session{
-		id: e.SessionID, ownerID: e.OwnerID, orgID: e.OrganizationID,
+	s := &session{
+		gw: gw, id: e.SessionID, ownerID: e.OwnerID, orgID: e.OrganizationID,
 		connectorID: e.ConnectorID, labInstanceID: e.LabInstanceID, generation: e.Generation,
 		vmKey: e.TargetVMKey, serverID: e.ProviderServerID, port: e.TargetPort,
 		ttl: e.TTL, requestID: e.RequestID, log: log,
 		attached: make(chan struct{}), ended: make(chan struct{}),
 	}
+	if e.OpenMessageID != "" {
+		s.openPending = true
+		s.pendingOpenID = e.OpenMessageID
+	}
+	return s
 }
 
 // bind는 PREVIEW_OPEN을 전달한 Control Session을 기록한다.
@@ -98,8 +108,6 @@ func (s *session) bind(b Binding) error {
 	switch {
 	case s.state == stateEnded:
 		return ErrSessionEnded
-	case s.state != statePending:
-		return ErrAlreadyActive
 	case b.ConnectorID != s.connectorID:
 		return ErrControlMismatch
 	}
@@ -109,18 +117,45 @@ func (s *session) bind(b Binding) error {
 	return nil
 }
 
+func (s *session) prepareTunnel(openMessageID string) (<-chan struct{}, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.state == stateEnded {
+		return nil, ErrSessionEnded
+	}
+	if openMessageID == "" {
+		return nil, errors.New("preview: openMessageId가 비어 있음")
+	}
+	s.openPending = true
+	s.pendingOpenID = openMessageID
+	s.tunnelReady = make(chan struct{})
+	return s.tunnelReady, nil
+}
+
+func (s *session) cancelTunnel(openMessageID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.openPending && s.pendingOpenID == openMessageID {
+		s.openPending = false
+		s.pendingOpenID = ""
+		s.tunnelReady = nil
+	}
+}
+
 // claimAttach는 대기 중인 PreviewSession을 d에 bind한다. 성공하면 빈 문자열, 아니면 log에 남길 수 있는 거절 사유다.
 //
 // 인증된 Connector와, PREVIEW_OPEN을 전달한 Control Session을 인증한 Credential이 모두 같을 때만 bind한다.
 // Connector ID가 같다는 이유만으로 신뢰하지 않으므로 이전 Credential이나 다른 Credential로 인증한 Data WSS는 이 PreviewSession을 완료시키지 못한다.
-func (s *session) claimAttach(d *dataConn, identity ConnectorIdentity) string {
+func (s *session) claimAttach(d *dataConn, identity ConnectorIdentity, replyToMessageID string) string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	switch {
 	case s.state == stateEnded:
 		return "session_ended"
-	case s.state != statePending:
+	case !s.openPending:
 		return "request_not_waiting"
+	case replyToMessageID == "" || replyToMessageID != s.pendingOpenID:
+		return "stale_attach"
 	case !s.bound:
 		return "control_not_bound"
 	case identity.ConnectorID != s.connectorID:
@@ -128,7 +163,9 @@ func (s *session) claimAttach(d *dataConn, identity ConnectorIdentity) string {
 	case identity.CredentialID != s.credentialID:
 		return "wrong_credential"
 	}
-	s.state = stateAttached
+	if s.state == statePending {
+		s.state = stateAttached
+	}
 	s.data = d
 	return ""
 }
@@ -137,12 +174,34 @@ func (s *session) claimAttach(d *dataConn, identity ConnectorIdentity) string {
 func (s *session) setTunnel(t *tunnel) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.state != stateAttached {
+	if s.state == stateEnded {
 		return false
 	}
 	s.tunnel = t
-	close(s.attached)
+	s.tunnelDialed = false
+	s.openPending = false
+	s.pendingOpenID = ""
+	if s.attached != nil {
+		select {
+		case <-s.attached:
+		default:
+			close(s.attached)
+		}
+	}
+	if s.tunnelReady != nil {
+		close(s.tunnelReady)
+		s.tunnelReady = nil
+	}
 	return true
+}
+
+func (s *session) clearTunnel(t *tunnel) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.tunnel == t {
+		s.tunnel = nil
+		s.tunnelDialed = false
+	}
 }
 
 // activate는 attach된 PreviewSession을 활성화하고 일회용 bootstrap credential 원문을 돌려준다.
@@ -219,14 +278,34 @@ func (s *session) active(now time.Time) bool {
 	return s.state == stateActive && now.Before(s.expiresAt)
 }
 
-// dial은 Transport의 DialContext다. 활성 PreviewSession의 tunnel을 한 번만 내준다. tunnel이 TCP 연결 하나이므로 닫힌 뒤에는 새 연결이 없다.
-func (s *session) dial(context.Context, string, string) (net.Conn, error) {
+// dial은 Transport의 DialContext다. 활성 PreviewSession의 tunnel을 내어 주며, 없거나 이미 사용된 경우 새 tunnel을 연다.
+func (s *session) dial(ctx context.Context, network, addr string) (net.Conn, error) {
+	s.dialMu.Lock()
+	defer s.dialMu.Unlock()
+
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.state != stateActive || s.tunnel == nil || s.dialed {
+	if s.state != stateActive {
+		s.mu.Unlock()
 		return nil, errTunnelClosed
 	}
-	s.dialed = true
+	if s.tunnel != nil && !s.tunnelDialed {
+		s.tunnelDialed = true
+		conn := s.tunnel.local
+		s.mu.Unlock()
+		return conn, nil
+	}
+	s.mu.Unlock()
+
+	if err := s.gw.openTunnel(ctx, s); err != nil {
+		return nil, err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.state != stateActive || s.tunnel == nil || s.tunnelDialed {
+		return nil, errTunnelClosed
+	}
+	s.tunnelDialed = true
 	return s.tunnel.local, nil
 }
 
@@ -235,7 +314,8 @@ func (s *session) info() Info {
 	defer s.mu.Unlock()
 	return Info{
 		SessionID: s.id, OwnerID: s.ownerID, OrganizationID: s.orgID,
-		ConnectorID: s.connectorID, LabInstanceID: s.labInstanceID, Generation: s.generation, TargetPort: s.port,
+		ConnectorID: s.connectorID, LabInstanceID: s.labInstanceID, Generation: s.generation,
+		TargetVMKey: s.vmKey, ProviderServerID: s.serverID, TargetPort: s.port,
 		Ended: s.state == stateEnded, EndReason: s.end.Reason, ExpiresAt: s.expiresAt, ControlSessionID: s.controlSession,
 	}
 }
@@ -256,6 +336,12 @@ func (g *Gateway) endSession(s *session, end End, code int, text string, silent 
 	s.end = end
 	close(s.ended)
 	tun, data, tr := s.tunnel, s.data, s.transport
+	s.openPending = false
+	s.pendingOpenID = ""
+	if s.tunnelReady != nil {
+		close(s.tunnelReady)
+		s.tunnelReady = nil
+	}
 	if s.expiry != nil {
 		s.expiry.Stop()
 		s.expiry = nil

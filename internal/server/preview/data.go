@@ -130,7 +130,7 @@ func (g *Gateway) serveData(ws *websocket.Conn, identity ConnectorIdentity) {
 	case s.port != info.TargetPort:
 		reject = "wrong_target_port"
 	default:
-		reject = s.claimAttach(d, identity)
+		reject = s.claimAttach(d, identity, env.ReplyToMessageID)
 	}
 	if reject != "" {
 		log.Warn("Connector Preview Data attach 거절", "reason", reject)
@@ -148,7 +148,11 @@ func (g *Gateway) serveData(ws *websocket.Conn, identity ConnectorIdentity) {
 	}
 	if err := writeJSON(ws, ack); err != nil {
 		s.log.Warn("Connector Preview Data 전송 실패", "reason", "attached_write_failed")
-		g.endSession(s, End{Reason: EndTunnelClosed}, closeNormal, "attach failed", false)
+		if !s.activated {
+			g.endSession(s, End{Reason: EndTunnelClosed}, closeNormal, "attach failed", false)
+		} else {
+			d.closeNow(closeNormal, "attach failed")
+		}
 		return
 	}
 
@@ -160,8 +164,13 @@ func (g *Gateway) serveData(ws *websocket.Conn, identity ConnectorIdentity) {
 	}
 	cause := t.run()
 	// tunnel이 끝났다. Connector가 TCP 연결을 닫았거나 Data WSS가 끊겼거나 HTTP transport가 연결을 닫았거나 프로토콜 위반이다.
-	// 이미 다른 이유로 끝났다면(만료, 종료, revoke) 아무것도 하지 않는다.
-	g.endSession(s, End{Reason: cause.Reason, NotifyConnector: cause.Notify}, closeNormal, "tunnel closed", false)
+	// EndTunnelClosed는 TCP/WSS tunnel만 종료하며 logical PreviewSession은 유지한다.
+	// 프로토콜 위반 등 비정상 종료는 PreviewSession도 종료한다.
+	if cause.Reason == EndTunnelClosed {
+		s.clearTunnel(t)
+	} else {
+		g.endSession(s, End{Reason: cause.Reason, NotifyConnector: cause.Notify}, closeNormal, "tunnel closed", false)
+	}
 }
 
 func writeJSON(ws *websocket.Conn, v outboundEnvelope) error {

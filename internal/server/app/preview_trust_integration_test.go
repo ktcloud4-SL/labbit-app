@@ -175,23 +175,21 @@ func TestCloseForLabMutationEndsTheLabsPreviewSessions(t *testing.T) {
 
 // ---- trust: Connector 연결과 Credential ----
 
-// Connector와 Workspace VM 사이의 연결이 끊기면(tunnel 손실) PreviewSession이 끝난다. Connector가 이미 아는 일이라 PREVIEW_CLOSE를 보내지 않는다.
+// Connector와 Workspace VM 사이의 연결이 끊겨도(tunnel 손실) PreviewSession은 유지되고, 다음 요청에서 새 tunnel을 열어 성공한다.
 func TestPreviewTunnelLossEndsTheSession(t *testing.T) {
 	e := newPreviewEnv(t, previewEnvOptions{capabilities: previewV1})
 	s := e.mustCreate(e.ownerCookie, e.fixture.LabInstanceID, 5173)
 	cookie := e.login(s)
 
 	e.peer.DropData(s.ID)
-	eventually(t, "PreviewSession 종료", 5*time.Second, func() bool {
-		r, _ := e.get(s, cookie, "/")
-		return r.StatusCode == http.StatusUnauthorized
-	})
-	time.Sleep(100 * time.Millisecond)
-	if closes := e.peer.Closes(); len(closes) != 0 {
-		t.Fatalf("tunnel 손실에서 PREVIEW_CLOSE를 보냄: %+v", closes)
+	// Invariant: tunnel이 끊겨도 세션은 유지되며 다음 요청 시 새 tunnel을 열어 처리된다.
+	r, body := e.get(s, cookie, "/")
+	if r.StatusCode != http.StatusOK {
+		t.Fatalf("tunnel 손실 후 다음 요청 status = %d, want 200: %s", r.StatusCode, body)
 	}
-	// 새 PreviewSession을 만들 수 있다.
-	e.mustCreate(e.ownerCookie, e.fixture.LabInstanceID, 5173)
+	if opens := e.peer.Opens(); len(opens) != 2 {
+		t.Fatalf("PREVIEW_OPEN 수 = %d, want 2 (새 tunnel open attempt 발생)", len(opens))
+	}
 }
 
 // Credential이 revoke되면 그 Credential로 인증된 Preview Data WSS를 더 이상 신뢰하지 않고 close 4001로 끝낸다. 같은 Credential의 새 Upgrade는 401이다.
@@ -301,7 +299,7 @@ func TestPreviewOriginIsIsolatedFromTheMainService(t *testing.T) {
 	// 로그인 Session Cookie와 함께 SaaS API 경로를 Preview Origin으로 요청해도 SaaS API가 응답하지 않고 Workspace application으로 간다.
 	resp, body := e.get(s, cookie, "/api/v1/me", func(r *http.Request) {
 		r.AddCookie(&http.Cookie{Name: realtime.SessionCookieName, Value: e.ownerCookie})
-		r.Header.Set("Origin", fileTrustedOrigin)
+		r.Header.Set("Origin", previewPublicOrigin)
 	})
 	if resp.StatusCode != http.StatusOK || body != "application /api/v1/me" {
 		t.Fatalf("Preview Origin의 /api/v1/me = %d %q, want Workspace application의 응답", resp.StatusCode, body)

@@ -52,7 +52,7 @@ v0.1에서는 이 authority를 같은 process의 `api` role이 제공합니다. 
 - `preview`만 enabled된 process는 authority가 없으므로 Preview route를 열지 않고 `/readyz`가 실패합니다. DB DSN을 새로 요구하거나 인증 없이 동작하는 route를 열지 않습니다.
 - `api`만 enabled된 process에서 PreviewSession 생성/종료 HTTP는 503(`preview_unavailable`)입니다.
 - preview role이 enabled되면 `LABBIT_PREVIEW_ALLOWED_PORTS`(Backend의 명시적 허용 port 목록, global 정책), `LABBIT_PREVIEW_SESSION_TTL`(0보다 큰 Go duration), `LABBIT_PREVIEW_ORIGIN_TEMPLATE`(예: `https://{sessionId}.preview.example.com`, 이 hostname은 예시이며 실제 값은 Platform이 주입)이 필요하며 없거나 형식이 틀리면 startup에 실패합니다(fail closed). 허용 목록은 숫자 범위로 자동 승인하지 않고 SSH 관리 port(22)는 목록에 있어도 거절합니다.
-- Preview Origin은 SaaS 본 서비스 Origin과 다른 host이며 같은 application listener에서 request Host가 `LABBIT_PREVIEW_ORIGIN_TEMPLATE`에 일치할 때만 Preview Gateway로 갑니다. wildcard DNS, 인증서, Ingress/Gateway route는 Platform/IaC가 소유합니다.
+- Preview Origin은 SaaS 본 서비스 Origin과 분리된 별도 host(separate-origin)이되, iframe 임베딩과 인증 격리를 위해 동일한 scheme 및 registrable domain(eTLD+1)을 공유하는 same-site여야 합니다. 같은 application listener에서 request Host가 `LABBIT_PREVIEW_ORIGIN_TEMPLATE`에 일치할 때만 Preview Gateway로 갑니다. wildcard DNS, 인증서, Ingress/Gateway route는 Platform/IaC가 소유합니다.
 - Redis/Valkey 기반 session store, 별도 preview workload용 internal authorization RPC, multi-replica PreviewSession owner routing은 이번 계약 범위가 아닙니다. PreviewSession과 tunnel 상태는 process 안의 ephemeral 상태이며 process 비정상 종료 시 복구하지 않습니다. 정상 종료에서는 active PreviewSession을 `SERVICE_RESTARTING`으로 종료하고 Connector에 `PREVIEW_CLOSE`를 보냅니다.
 
 ## Listener

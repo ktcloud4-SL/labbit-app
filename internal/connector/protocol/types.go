@@ -60,6 +60,12 @@ const (
 	MessageTypePreviewClose      = "PREVIEW_CLOSE"
 )
 
+// Preview Data WSS 메시지 타입 정의 (preview-data.schema.json 기준)
+const (
+	MessageTypePreviewAttach   = "PREVIEW_ATTACH"
+	MessageTypePreviewAttached = "PREVIEW_ATTACHED"
+)
+
 // Operation Mutation 타입
 const (
 	MutationTypeProvision = "PROVISION"

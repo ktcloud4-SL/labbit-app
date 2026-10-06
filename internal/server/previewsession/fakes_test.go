@@ -168,6 +168,8 @@ type fakeGateway struct {
 	expectErr   error
 	bindErr     error
 	activateErr error
+	prepareErr  error
+	opener      preview.TunnelOpener
 	activation  preview.Activation
 }
 
@@ -269,12 +271,38 @@ func (g *fakeGateway) SessionsForLab(labInstanceID string) []string {
 	return out
 }
 
+func (g *fakeGateway) PrepareTunnel(id string, openMessageID string) (<-chan struct{}, error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.prepareErr != nil {
+		return nil, g.prepareErr
+	}
+	ch := make(chan struct{})
+	s := g.sessions[id]
+	if s != nil {
+		return s.attached, nil
+	}
+	return ch, nil
+}
+
+func (g *fakeGateway) CancelTunnel(id string, openMessageID string) {}
+
+func (g *fakeGateway) SetTunnelOpener(opener preview.TunnelOpener) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.opener = opener
+}
+
 func (g *fakeGateway) attach(id string) {
 	g.mu.Lock()
 	s := g.sessions[id]
 	g.mu.Unlock()
 	if s != nil {
-		close(s.attached)
+		select {
+		case <-s.attached:
+		default:
+			close(s.attached)
+		}
 	}
 }
 
@@ -283,7 +311,11 @@ func (g *fakeGateway) end(id string) {
 	s := g.sessions[id]
 	g.mu.Unlock()
 	if s != nil {
-		close(s.ended)
+		select {
+		case <-s.ended:
+		default:
+			close(s.ended)
+		}
 	}
 }
 

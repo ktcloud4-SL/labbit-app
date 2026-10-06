@@ -168,7 +168,7 @@ saas:
         - "http://{sessionId}.localhost:8080"
       note: >-
         사용자 코드가 실행되는 Preview Origin입니다. `{sessionId}` placeholder는 host의 첫 label로 정확히 한 번 있어야 하며 PreviewSession ID로 치환됩니다.
-        SaaS 본 서비스 Origin(LABBIT_PUBLIC_ORIGIN)과 달라야 하고 본 서비스 host가 이 template에 일치해서도 안 됩니다. production에서는 https여야 합니다.
+        SaaS 본 서비스 Origin(LABBIT_PUBLIC_ORIGIN)과 분리된 별도 Origin(separate-origin)이어야 하되, iframe 임베딩과 인증 격리를 위해 동일한 scheme 및 registrable domain(eTLD+1)을 공유하는 same-site여야 합니다 (예: SaaS가 https://labbit.example.com이면 Preview template은 https://{sessionId}.preview.example.com, scheme 또는 site 불일치 시 startup fail-closed). 본 서비스 host가 이 template에 일치해서도 안 됩니다. production에서는 https여야 합니다.
         Browser에 VM IP/port, Provider Server ID, Connector ID를 노출하지 않습니다. 이 예시 hostname은 실제 값이 아니며 wildcard DNS, 인증서,
         Ingress/Gateway route, production hostname은 Platform/IaC가 소유합니다. request Host는 이 template에 일치할 때만 Preview Gateway로 갑니다.
     LABBIT_SHUTDOWN_GRACE:

@@ -35,6 +35,7 @@ type attachedPayload struct{}
 type inboundEnvelope struct {
 	Type             string
 	MessageID        string
+	ReplyToMessageID string
 	PreviewSessionID string
 	LabInstanceID    string
 	// Generation은 1 이상이다. int64로 표현할 수 없는 Schema-valid 값은 0이며 어떤 PreviewSession과도 맞지 않는다.
@@ -43,7 +44,7 @@ type inboundEnvelope struct {
 }
 
 // parseEnvelope는 BaseEnvelope의 required 조건(type, messageId, sentAt, previewSessionId, labInstanceId, generation, payload)과 선택 field
-// 제약(replyToMessageId)을 확인한다. 하나라도 어긋나면 ok가 false다.
+// 제약(replyToMessageId)을 확인한다. PREVIEW_ATTACH는 replyToMessageId가 필수다. 하나라도 어긋나면 ok가 false다.
 func parseEnvelope(data []byte) (inboundEnvelope, bool) {
 	members, ok := jsonObject(data)
 	if !ok {
@@ -60,9 +61,14 @@ func parseEnvelope(data []byte) (inboundEnvelope, bool) {
 		return inboundEnvelope{}, false
 	}
 	if raw, present := members["replyToMessageId"]; present {
-		if s, ok := jsonString(raw); !ok || s == "" {
+		s, ok := jsonString(raw)
+		if !ok || s == "" {
 			return inboundEnvelope{}, false
 		}
+		env.ReplyToMessageID = s
+	}
+	if env.Type == typeAttach && env.ReplyToMessageID == "" {
+		return inboundEnvelope{}, false
 	}
 	if env.PreviewSessionID, ok = jsonString(members["previewSessionId"]); !ok || env.PreviewSessionID == "" {
 		return inboundEnvelope{}, false

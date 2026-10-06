@@ -74,11 +74,14 @@ type Gateway interface {
 	Expect(preview.Expected) error
 	Bind(id string, b preview.Binding) error
 	Pending(id string) (attached, ended <-chan struct{}, ok bool)
+	PrepareTunnel(id string, openMessageID string) (<-chan struct{}, error)
+	CancelTunnel(id string, openMessageID string)
 	Activate(id string) (preview.Activation, error)
 	Forget(id string)
 	Terminate(id string, end preview.End) bool
 	Info(id string) (preview.Info, bool)
 	SessionsForLab(labInstanceID string) []string
+	SetTunnelOpener(opener preview.TunnelOpener)
 }
 
 // Options는 Service 구성이다.
@@ -119,6 +122,7 @@ type Service struct {
 var (
 	_ preview.Lifecycle     = (*Service)(nil)
 	_ connector.PreviewSink = (*Service)(nil)
+	_ preview.TunnelOpener  = (*Service)(nil)
 )
 
 // NewService는 Service를 만든다. Gateway와 Service는 서로를 필요로 하므로(Gateway가 종료를 Service에 알리고 Service가 Gateway를 쓴다)
@@ -147,6 +151,7 @@ func NewService(opts Options) (*Service, error) {
 	if s.openTimeout == 0 {
 		s.openTimeout = defaultOpenTimeout
 	}
+	opts.Gateway.SetTunnelOpener(s)
 	return s, nil
 }
 
@@ -274,12 +279,14 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 		}
 	}
 
+	openMessageID := uuid.NewString()
+
 	// Connector의 Data attach보다 먼저 예상 correlation을 등록한다.
 	err = s.gateway.Expect(preview.Expected{
 		SessionID: id, OwnerID: user.ID.String(), OrganizationID: user.OrganizationID.String(),
 		ConnectorID: resolved.connectorID, LabInstanceID: corr.LabInstanceID, Generation: corr.Generation,
 		TargetVMKey: resolved.vmKey, ProviderServerID: resolved.providerID, TargetPort: resolved.port,
-		TTL: s.ttl, RequestID: in.RequestID,
+		TTL: s.ttl, RequestID: in.RequestID, OpenMessageID: openMessageID,
 	})
 	switch {
 	case err == nil:
@@ -298,6 +305,7 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 	defer s.removeOpenWaiter(id)
 
 	_, err = s.connectors.SendPreviewOpen(ctx, connector.PreviewOpen{
+		MessageID:        openMessageID,
 		ConnectorID:      resolved.connectorID,
 		RequestID:        in.RequestID,
 		Correlation:      corr,
@@ -307,7 +315,9 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 		Trace:            connector.TraceFromContext(ctx),
 		// PREVIEW_OPEN을 받을 Control Session에 PreviewSession을 묶는다. Connector가 message를 받기 전이므로 Data WSS가 붙는 순간에는 이미 있다.
 		OnRoute: func(session connector.Session) error {
-			return s.gateway.Bind(id, preview.Binding{ConnectorID: session.ConnectorID, ControlSessionID: session.ID, CredentialID: session.CredentialID})
+			return s.gateway.Bind(id, preview.Binding{
+				ConnectorID: session.ConnectorID, ControlSessionID: session.ID, CredentialID: session.CredentialID,
+			})
 		},
 	})
 	switch {
@@ -715,4 +725,127 @@ func (s *Service) CloseForLabMutation(_ context.Context, m LabMutation) (int, er
 		}
 	}
 	return closed, nil
+}
+
+// OpenTunnel은 preview.TunnelOpener의 구현이다. 활성화된 PreviewSession의 후속 Workspace TCP tunnel을 준비한다.
+func (s *Service) OpenTunnel(ctx context.Context, sessionID string) error {
+	if !s.begin() {
+		return ErrUnavailable
+	}
+	defer s.wg.Done()
+
+	info, ok := s.gateway.Info(sessionID)
+	if !ok || info.Ended {
+		return ErrNotFound
+	}
+	now := s.clock.Now()
+	if !info.ExpiresAt.IsZero() && !now.Before(info.ExpiresAt) {
+		return ErrNotFound
+	}
+
+	labID, ok := parseID(info.LabInstanceID)
+	if !ok {
+		return ErrNotFound
+	}
+
+	// 대상 LabInstance가 여전히 같은 generation이고 READY인지 재확인한다.
+	lab, err := s.store.LabInstanceByID(ctx, labID)
+	if errors.Is(err, repository.ErrNotFound) {
+		s.gateway.Terminate(sessionID, preview.End{Reason: preview.EndLabReset, NotifyConnector: true})
+		return ErrTargetChanged
+	}
+	if err != nil {
+		return fmt.Errorf("previewsession: LabInstance 재확인: %w", err)
+	}
+	if lab.Generation != info.Generation || lab.Status != LabInstanceStatusReady {
+		s.logger.Warn("새 tunnel 준비 중 대상이 바뀜",
+			"lab_instance_id", lab.ID.String(), "generation", lab.Generation, "error_code", "WORKSPACE_TARGET_CHANGED")
+		s.gateway.Terminate(sessionID, preview.End{Reason: preview.EndLabReset, NotifyConnector: true})
+		return ErrTargetChanged
+	}
+
+	openMessageID := uuid.NewString()
+	readyCh, err := s.gateway.PrepareTunnel(sessionID, openMessageID)
+	if err != nil {
+		return err
+	}
+
+	corr := connector.PreviewCorrelation{
+		PreviewSessionID: sessionID,
+		LabInstanceID:    info.LabInstanceID,
+		Generation:       info.Generation,
+	}
+	log := withControlCorrelation(s.logger.With(
+		"preview_session_id", sessionID,
+		"lab_instance_id", corr.LabInstanceID,
+		"connector_id", info.ConnectorID.String(),
+		"generation", corr.Generation,
+		"open_message_id", openMessageID,
+	), "", connector.TraceFromContext(ctx))
+
+	waiter := s.addOpenWaiter(sessionID)
+	defer s.removeOpenWaiter(sessionID)
+
+	_, err = s.connectors.SendPreviewOpen(ctx, connector.PreviewOpen{
+		MessageID:        openMessageID,
+		ConnectorID:      info.ConnectorID,
+		Correlation:      corr,
+		TargetVMKey:      info.TargetVMKey,
+		ProviderServerID: info.ProviderServerID,
+		TargetPort:       info.TargetPort,
+		Trace:            connector.TraceFromContext(ctx),
+		OnRoute: func(session connector.Session) error {
+			return s.gateway.Bind(sessionID, preview.Binding{
+				ConnectorID:      session.ConnectorID,
+				ControlSessionID: session.ID,
+				CredentialID:     session.CredentialID,
+			})
+		},
+	})
+	if err != nil {
+		s.gateway.CancelTunnel(sessionID, openMessageID)
+		switch {
+		case errors.Is(err, connector.ErrCapabilityUnsupported):
+			log.Warn("tunnel 준비 실패", "reason", "capability_unsupported")
+			return ErrTransportUnsupported
+		case errors.Is(err, connector.ErrConnectorUnavailable), errors.Is(err, connector.ErrSendFailed):
+			log.Warn("tunnel 준비 실패", "reason", "connector_unavailable")
+			return ErrConnectorUnavailable
+		case errors.Is(err, preview.ErrControlMismatch), errors.Is(err, preview.ErrSessionEnded), errors.Is(err, preview.ErrUnknownSession):
+			log.Warn("tunnel 준비 실패", "reason", "control_not_bound")
+			return ErrOpenFailed
+		default:
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			log.Error("PREVIEW_OPEN 전송 실패", "error_code", "INTERNAL_ERROR")
+			return fmt.Errorf("previewsession: PREVIEW_OPEN 전송: %w", err)
+		}
+	}
+
+	timedOut := make(chan struct{})
+	timer := s.clock.AfterFunc(s.openTimeout, func() { close(timedOut) })
+	defer timer.Stop()
+
+	for {
+		select {
+		case outcome := <-waiter:
+			if outcome.succeeded {
+				continue
+			}
+			s.gateway.CancelTunnel(sessionID, openMessageID)
+			log.Warn("Connector PREVIEW_OPEN 실패 보고", "error_code", safeCode(outcome.code))
+			return mapOpenFailure(outcome.code)
+		case <-readyCh:
+			return nil
+		case <-timedOut:
+			s.gateway.CancelTunnel(sessionID, openMessageID)
+			log.Warn("tunnel 준비 시간 초과", "reason", "open_timeout")
+			return ErrOpenTimeout
+		case <-ctx.Done():
+			s.gateway.CancelTunnel(sessionID, openMessageID)
+			log.Warn("tunnel 준비 취소", "reason", "request_canceled")
+			return ctx.Err()
+		}
+	}
 }

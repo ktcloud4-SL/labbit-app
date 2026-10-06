@@ -835,7 +835,7 @@ paths:
       operationId: createPreviewSession
       description: |
         현재 사용자가 소유한 LabInstance의 Workspace VM에서 실행 중인 application의 TCP port 하나에 대한 PreviewSession을 만들고,
-        사용자 코드가 실행되는 **SaaS 본 서비스 Origin과 분리된 Preview Origin**의 `previewUrl`을 발급합니다.
+        사용자 코드가 실행되는 **SaaS 본 서비스 Origin과 분리된 별도 Origin(separate-origin)이되 같은 사이트(same-site: 동일 scheme 및 eTLD+1)인 Preview Origin**의 `previewUrl`을 발급합니다.
 
         요청에는 `targetPort`만 있습니다. Browser는 VM, Connector, Provider Server, generation, private address를 선택하거나 알 필요가 없으며
         서버가 LabExecution의 immutable CreationSnapshot의 `workspaceVmKey`와 현재 generation의 `PRESENT` `SERVER` ProviderResource로 대상 VM을
@@ -876,8 +876,8 @@ paths:
         Preview Origin이 credential을 교환해 Preview 전용 Cookie를 발급하는 절차는 `/__labbit/bootstrap`과 `/__labbit/exchange`를 따릅니다.
         응답은 `Cache-Control: no-store`입니다.
 
-        PreviewSession은 서버 구성의 TTL 뒤 만료됩니다(`expiresAt`). 만료, 명시적 종료, Workspace tunnel 종료 뒤에는 Preview Origin의 모든 요청이
-        `401`입니다. PreviewSession은 process 안의 ephemeral 상태이며 서버 재시작 뒤 복구하지 않습니다.
+        PreviewSession은 서버 구성의 TTL 뒤 만료됩니다(`expiresAt`). 만료 또는 명시적 종료 뒤에는 Preview Origin의 모든 요청이
+        `401`입니다(단순 upstream TCP 터널 종료는 PreviewSession을 종료하지 않으며 후속 요청 시 순차 터널을 다시 엽니다). PreviewSession은 process 안의 ephemeral 상태이며 서버 재시작 뒤 복구하지 않습니다.
       parameters:
         - $ref: '#/components/parameters/LabInstanceId'
       requestBody:
@@ -2069,7 +2069,7 @@ components:
         `code`는 다음 값 중 하나이고 클라이언트는 `detail`을 parsing하지 않습니다. PreviewSession 생성의 오류 code와는 별개 집합입니다.
 
         - `preview_unauthenticated`(`401`): Cookie/credential이 없거나 유효하지 않음, 이미 사용·만료된 bootstrap credential, 없거나 종료·만료된 PreviewSession
-        - `preview_tunnel_closed`(`502`): 요청을 처리하는 동안 Workspace tunnel이 닫힘(application이 연결을 닫음, Connector 단절, 종료). PreviewSession도 끝남
+        - `preview_tunnel_closed`(`502`): 현재 요청을 처리하기 위해 Workspace tunnel을 연결하지 못했거나, 요청/응답 스트리밍 도중 Workspace tunnel이 예기치 않게 닫힘. logical PreviewSession 자체는 만료/종료되지 않았으며 후속 요청에서 새 tunnel 연결을 시도할 수 있음
         - `preview_upstream_error`(`502`): Workspace application의 응답을 HTTP/1.1로 해석할 수 없음
         - `preview_upstream_timeout`(`504`): Workspace application이 서버 구성의 시간 안에 응답하지 않음
         - `preview_upgrade_unsupported`(`501`): HTTP Upgrade(예: Workspace application의 WebSocket)는 MVP에서 지원하지 않음

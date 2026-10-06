@@ -51,7 +51,7 @@
         },
         "previewSessionId": {
           "$ref": "#/$defs/ResourceId",
-          "description": "PreviewSession 하나를 식별하는 SaaS 발급 ID입니다. PreviewSession 하나는 Preview Data WSS 하나, 즉 Workspace VM의 TCP 연결 하나와 1:1입니다."
+          "description": "PreviewSession 하나를 식별하는 SaaS 발급 ID입니다. logical PreviewSession 하나는 독립된 lifecycle, auth, TTL을 가지며, 그 수명 동안 순차적인 여러 Preview Data WSS(각 WSS = 1 TCP 연결)를 수용할 수 있습니다."
         },
         "labInstanceId": { "$ref": "#/$defs/ResourceId" },
         "generation": {
@@ -133,7 +133,7 @@
           }
         }
       ],
-      "description": "SaaS → Connector. 이 previewSessionId의 Workspace VM targetPort에 TCP forwarding channel을 연 뒤 Preview Data WSS를 열어 PREVIEW_ATTACH를 보내라는 요청입니다. 같은 previewSessionId의 중복 PREVIEW_OPEN은 두 번째 tunnel을 만들지 않습니다."
+      "description": "SaaS → Connector. 이 previewSessionId의 Workspace VM targetPort에 다음 TCP forwarding channel을 연 뒤 Preview Data WSS를 열어 PREVIEW_ATTACH(replyToMessageId=이 messageId)를 보내라는 요청입니다. 각 PREVIEW_OPEN은 고유한 messageId를 가집니다."
     },
     "PreviewOpenResultMessage": {
       "allOf": [
@@ -161,7 +161,7 @@
           }
         }
       ],
-      "description": "SaaS → Connector. 이 previewSessionId의 PreviewSession을 더 이상 유지하지 않으니 TCP forwarding channel과 Preview Data WSS를 정리하라는 idempotent 통지입니다. 응답을 기다리지 않으며 반복 전달돼도 같은 상태를 유지합니다."
+      "description": "SaaS → Connector. 이 previewSessionId의 PreviewSession을 더 이상 유지하지 않으니 활성 TCP forwarding channel과 Preview Data WSS를 정리하라는 idempotent 통지입니다. 응답을 기다리지 않으며 반복 전달돼도 같은 상태를 유지합니다."
     }
   }
 }

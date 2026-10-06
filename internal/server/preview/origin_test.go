@@ -145,6 +145,55 @@ func TestOriginTemplateConflictsWithTheMainOrigin(t *testing.T) {
 	}
 }
 
+func TestValidateSameSite(t *testing.T) {
+	prodTmpl, _ := ParseOriginTemplate("https://{sessionId}.preview.example.com", true)
+	devTmpl, _ := ParseOriginTemplate("http://{sessionId}.localhost:8080", false)
+
+	valid := []struct {
+		name         string
+		tmpl         OriginTemplate
+		publicOrigin string
+	}{
+		{"different origin same site prod", prodTmpl, "https://app.example.com"},
+		{"different origin same site with port", prodTmpl, "https://app.example.com:8443"},
+		{"same site deeper subdomain", prodTmpl, "https://sub.app.example.com"},
+		{"localhost dev different ports", devTmpl, "http://localhost:5173"},
+		{"localhost dev with subdomain", devTmpl, "http://app.localhost:5173"},
+	}
+	for _, tc := range valid {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := tc.tmpl.ValidateSameSite(tc.publicOrigin); err != nil {
+				t.Errorf("ValidateSameSite(%q) unexpected error: %v", tc.publicOrigin, err)
+			}
+		})
+	}
+
+	invalid := []struct {
+		name         string
+		tmpl         OriginTemplate
+		publicOrigin string
+		wantErr      string
+	}{
+		{"different registrable domain (cross-site)", prodTmpl, "https://app.other-preview.net", "registrable domain이 다릅니다"},
+		{"deceptive suffix (com.evil)", prodTmpl, "https://app.example.com.evil", "registrable domain이 다릅니다"},
+		{"production scheme mismatch (http vs https)", prodTmpl, "http://app.example.com", "scheme 불일치"},
+		{"scheme mismatch (https vs http on dev)", devTmpl, "https://localhost:5173", "scheme 불일치"},
+		{"same origin conflict", prodTmpl, "https://app.preview.example.com", "다른 Origin이어야 합니다"},
+		{"localhost vs non-localhost", devTmpl, "http://example.com", "불일치합니다 (한쪽만 localhost)"},
+		{"non-localhost vs localhost", prodTmpl, "https://localhost", "불일치합니다 (한쪽만 localhost)"},
+		{"not an origin URL", prodTmpl, "not-an-origin", "절대 origin URL이어야 합니다"},
+		{"origin URL with path", prodTmpl, "https://app.example.com/api", "절대 origin URL이어야 합니다"},
+	}
+	for _, tc := range invalid {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.tmpl.ValidateSameSite(tc.publicOrigin)
+			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("ValidateSameSite(%q) error = %v, want containing %q", tc.publicOrigin, err, tc.wantErr)
+			}
+		})
+	}
+}
+
 func TestValidLabel(t *testing.T) {
 	for _, ok := range []string{"a", "abc-123", "6f1c2f64-9a41-4d4f-8e11-0a2b3c4d5e6f", strings.Repeat("a", 63)} {
 		if !validLabel(ok) {

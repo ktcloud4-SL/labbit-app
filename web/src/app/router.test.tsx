@@ -1792,7 +1792,7 @@ describe('Auth·Class·LabSpec routing', () => {
   it('Workspace File 저장 중에는 draft를 더 수정하지 못하게 잠근다', async () => {
     let resolveSave!: (value: { file: { path: string }; etag: string }) => void
     const saveWorkspaceFile = vi.fn(
-      async (_labInstanceId: string, path: string) =>
+      async () =>
         new Promise<{ file: { path: string }; etag: string }>((resolve) => {
           resolveSave = resolve
         }),

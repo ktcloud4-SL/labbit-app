@@ -79,10 +79,8 @@ func TestClient_SendMessage_WriteTimeoutClosesBlackholedConnection(t *testing.T)
 	defer releaseServer()
 
 	startedAt := time.Now()
-	err := client.SendMessage(context.Background(), map[string]string{
-		"type":    "TEST",
-		"payload": strings.Repeat("x", 16<<20),
-	})
+	// Bypass application sizing to exercise stalled transport I/O itself.
+	err := client.writeMessage(context.Background(), websocket.TextMessage, []byte(strings.Repeat("x", 16<<20)))
 	if err == nil {
 		t.Fatal("SendMessage() succeeded against a server that does not read")
 	}
@@ -100,10 +98,7 @@ func TestClient_CloseUnblocksStalledWrite(t *testing.T) {
 
 	writeDone := make(chan error, 1)
 	go func() {
-		writeDone <- client.SendMessage(context.Background(), map[string]string{
-			"type":    "TEST",
-			"payload": strings.Repeat("x", 16<<20),
-		})
+		writeDone <- client.writeMessage(context.Background(), websocket.TextMessage, []byte(strings.Repeat("x", 16<<20)))
 	}()
 
 	select {

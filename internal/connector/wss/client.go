@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -12,6 +13,8 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 )
+
+var ErrMessageTooLarge = errors.New("Control JSON message exceeds the 1 MiB limit")
 
 // Client 는 SaaS 와의 Control WSS 통신을 담당하는 클라이언트입니다.
 type Client struct {
@@ -190,6 +193,9 @@ func (c *Client) SendMessage(ctx context.Context, msg interface{}) error {
 		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 
+	if int64(len(data)) > protocol.MaxJSONMessageSize {
+		return ErrMessageTooLarge
+	}
 	return c.writeMessage(ctx, websocket.TextMessage, data)
 }
 

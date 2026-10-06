@@ -27,6 +27,8 @@ var (
 	ErrMutationRejected      = errors.New("OpenStack rejected the mutation request")
 )
 
+const authenticationTimeout = 15 * time.Second
+
 // Config identifies a single cloud entry in the customer-local clouds.yaml.
 // The file may contain credentials and must remain outside the repository.
 type Config struct {
@@ -125,13 +127,20 @@ func New(ctx context.Context, cfg Config) (*Adapter, error) {
 		return nil, err
 	}
 
+	authCtx, cancelAuth := context.WithTimeout(ctx, authenticationTimeout)
 	providerClient, err := openstackconfig.NewProviderClient(
-		ctx,
+		authCtx,
 		auth,
 		openstackconfig.WithTLSConfig(tlsConfig),
 	)
+	cancelAuth()
 	if err != nil {
 		return nil, safeContextError(ctx, ErrAuthentication)
+	}
+	// Preserve SDK locking and its one retry after a definitive 401. General
+	// request/backoff retries stay disabled: uncertain mutations reconcile.
+	if reauth := providerClient.ReauthFunc; reauth != nil {
+		providerClient.ReauthFunc = boundedReauthentication(reauth)
 	}
 
 	imageClient, err := openstack.NewImageV2(providerClient, endpoint)
@@ -150,6 +159,14 @@ func New(ctx context.Context, cfg Config) (*Adapter, error) {
 	adapter := newAdapter(providerClient, imageClient, computeClient, networkClient)
 	adapter.provision = normalizedProvisionConfig(cfg.Provision)
 	return adapter, nil
+}
+
+func boundedReauthentication(reauth func(context.Context) error) func(context.Context) error {
+	return func(ctx context.Context) error {
+		authCtx, cancel := context.WithTimeout(ctx, authenticationTimeout)
+		defer cancel()
+		return reauth(authCtx)
+	}
 }
 
 func normalizedProvisionConfig(config ProvisionConfig) ProvisionConfig {
@@ -200,6 +217,9 @@ func loadConfig(cfg Config) (gophercloud.AuthOptions, gophercloud.EndpointOpts, 
 	if tlsConfig != nil && tlsConfig.InsecureSkipVerify {
 		return gophercloud.AuthOptions{}, gophercloud.EndpointOpts{}, nil, ErrInsecureTLS
 	}
+	// clouds.Parse does not enable reauthentication. Token-only credentials
+	// cannot renew; SDK CanReauth also rejects one-time passcodes.
+	auth.AllowReauth = auth.TokenID == "" && (auth.Password != "" || auth.ApplicationCredentialSecret != "")
 	return auth, endpoint, tlsConfig, nil
 }
 
@@ -234,7 +254,7 @@ func (a *Adapter) ValidateConnection(ctx context.Context) error {
 	if err != nil {
 		return ErrClientUnavailable
 	}
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, authenticationTimeout)
 	defer cancel()
 	token := a.provider.Token()
 	valid, err := tokens.Validate(ctx, identity, token)
@@ -283,6 +303,12 @@ func safeMutationError(ctx context.Context, providerError, fallback error) error
 // upstream service has already applied the request, so they must reconcile as
 // UNKNOWN rather than being reported as a definite failure.
 func isDefiniteMutationRejection(providerError error) bool {
+	// Failed refresh follows a resource request rejected with 401, not an
+	// uncertain side effect. This SDK wrapper does not implement Unwrap.
+	var reauthError *gophercloud.ErrUnableToReauthenticate
+	if errors.As(providerError, &reauthError) {
+		providerError = reauthError.ErrOriginal
+	}
 	for _, status := range []int{400, 401, 403, 404, 405, 409, 412, 422} {
 		if gophercloud.ResponseCodeIs(providerError, status) {
 			return true

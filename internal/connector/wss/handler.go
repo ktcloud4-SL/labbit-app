@@ -315,12 +315,39 @@ func (h *Handler) handleProviderRequest(ctx context.Context, _ protocol.BaseEnve
 		}
 	}
 
+	response, err := boundedProviderResponse(response)
+	if err != nil {
+		return err
+	}
 	if sender := h.Sender(); sender != nil {
 		if err := sender.SendMessage(ctx, response); err != nil {
 			return fmt.Errorf("failed to send PROVIDER_RESPONSE: %w", err)
 		}
 	}
 	return nil
+}
+
+// Check final UTF-8 JSON bytes including escaping/correlation. Never truncate
+// a catalog into a misleading success or drop required correlation fields.
+func boundedProviderResponse(response protocol.ProviderResponseMessage) (protocol.ProviderResponseMessage, error) {
+	encoded, err := json.Marshal(response)
+	if err != nil {
+		return response, errors.New("Provider response could not be encoded")
+	}
+	if int64(len(encoded)) <= protocol.MaxJSONMessageSize {
+		return response, nil
+	}
+	response.Payload.Items = nil
+	response.Payload.Outcome = protocol.OutcomeFailed
+	response.Payload.Error = &protocol.SafeError{Code: "ERR_CONNECTOR_INTERNAL", Message: "Provider response exceeds the Control message size limit"}
+	encoded, err = json.Marshal(response)
+	if err != nil {
+		return response, errors.New("Provider response could not be encoded")
+	}
+	if int64(len(encoded)) > protocol.MaxJSONMessageSize {
+		return response, ErrMessageTooLarge
+	}
+	return response, nil
 }
 
 // validateOperationCommand 는 connector.schema.json 기준 필수 Correlation 및 Payload 필드를 Provider 호출 전에 사전 검증합니다.

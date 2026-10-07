@@ -566,6 +566,9 @@ connector:
       note: >-
         고객 환경에만 존재하는 Provider 설정 파일 경로입니다. 파일에 OpenStack Credential이
         포함될 수 있으며, 내용은 중앙 SaaS나 log로 보내지 않습니다.
+        KT D1의 auth_url=https://api.ucloudbiz.olleh.com/d1/identity/는 버전 검색 없이
+        Keystone v3 토큰 API를 사용하며 Compute/Image는 공식 Gateway Endpoint를 사용합니다.
+        이 Endpoint 호환 처리는 Neutron과 KT Tier를 같은 API로 간주하지 않습니다.
     OS_CLOUD:
       required: true
       secret: false

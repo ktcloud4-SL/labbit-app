@@ -16,10 +16,13 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile"
@@ -49,11 +52,15 @@ type Options struct {
 	Terminals Terminals
 	// Files가 nil이면 Workspace file use case가 없는 구성으로 보고 file Tree/Read/Save를 503(file_transport_unavailable)으로 응답한다.
 	Files Files
+	// Previews가 nil이면 Preview Gateway가 없는 구성으로 보고 PreviewSession 생성/종료를 503(preview_unavailable)으로 응답한다.
+	Previews Previews
 	// PublicOrigin은 unsafe method의 trusted origin(LABBIT_PUBLIC_ORIGIN)이다. ParseOrigin 형식을 따른다.
 	PublicOrigin string
 	// Logger가 nil이면 로그를 남기지 않는다.
 	Logger  *slog.Logger
 	Metrics *observability.HTTPMetrics
+	// Tracer는 HTTP request의 server Span을 만든다. nil이면 Span을 만들지 않지만(noop) 요청의 유효한 W3C Context는 handler로 전달한다.
+	Tracer trace.Tracer
 }
 
 type api struct {
@@ -61,6 +68,7 @@ type api struct {
 	classes   Classes
 	terminals Terminals
 	files     Files
+	previews  Previews
 	origin    string
 	logger    *slog.Logger
 }
@@ -92,7 +100,12 @@ func New(opts Options) (http.Handler, error) {
 		files = unavailableFiles{}
 	}
 
-	a := &api{auth: opts.Auth, classes: opts.Classes, terminals: terminals, files: files, origin: origin, logger: logger}
+	previews := opts.Previews
+	if previews == nil {
+		previews = unavailablePreviews{}
+	}
+
+	a := &api{auth: opts.Auth, classes: opts.Classes, terminals: terminals, files: files, previews: previews, origin: origin, logger: logger}
 	mux := http.NewServeMux()
 	routes := make(map[string]string)
 	handle := func(pattern string, handler http.Handler) {
@@ -111,8 +124,15 @@ func New(opts Options) (http.Handler, error) {
 	handle("GET /api/v1/lab-instances/{labInstanceId}/files/tree", a.authenticated(http.HandlerFunc(a.listWorkspaceFiles)))
 	handle("GET /api/v1/lab-instances/{labInstanceId}/files/content", a.authenticated(http.HandlerFunc(a.readWorkspaceFile)))
 	handle("PUT /api/v1/lab-instances/{labInstanceId}/files/content", a.authenticated(http.HandlerFunc(a.saveWorkspaceFile)))
+	handle("POST /api/v1/lab-instances/{labInstanceId}/preview-sessions", a.authenticated(http.HandlerFunc(a.createPreviewSession)))
+	handle("DELETE /api/v1/preview-sessions/{previewSessionId}", a.authenticated(http.HandlerFunc(a.closePreviewSession)))
 
-	return withMetrics(opts.Metrics, mux, routes, withRequestID(noStore(a.originGuard(mux)))), nil
+	tracer := opts.Tracer
+	if tracer == nil {
+		tracer = noop.NewTracerProvider().Tracer("")
+	}
+	// Span은 request ID를 attribute로 갖도록 withRequestID 안쪽에서 시작한다. Origin 거절도 Span 안이다.
+	return withMetrics(opts.Metrics, mux, routes, withRequestID(withTracing(tracer, mux, routes, noStore(a.originGuard(mux))))), nil
 }
 
 // noStore는 인증 응답이 Browser나 중간 cache에 저장되지 않게 한다.
@@ -180,6 +200,8 @@ func (a *api) unauthenticated(w http.ResponseWriter, r *http.Request, clearCooki
 // driver/PostgreSQL 원문이나 credential이 들어 있을 수 있다.
 func (a *api) internalError(w http.ResponseWriter, r *http.Request, op string, err error) {
 	attrs := append([]any{"request_id", requestIDFrom(r.Context()), "operation", op}, errorClassification(err)...)
+	// 유효한 Span이 있으면 같은 요청의 request_id와 trace_id를 함께 조사할 수 있다. 없으면 trace_id를 만들지 않는다.
+	attrs = append(attrs, traceLogAttrs(r.Context())...)
 	a.logger.Error("HTTP 요청 처리 실패", attrs...)
 	writeProblem(w, r, http.StatusInternalServerError, codeInternal, "요청을 처리하지 못했습니다.")
 }
@@ -200,7 +222,8 @@ func errorClassification(err error) []any {
 		return attrs
 	case errors.Is(err, auth.ErrMalformedPasswordHash):
 		return []any{"error_kind", "unusable_password_hash"}
-	case errors.Is(err, class.ErrInconsistentData), errors.Is(err, terminal.ErrInconsistentData), errors.Is(err, workspacefile.ErrInconsistentData):
+	case errors.Is(err, class.ErrInconsistentData), errors.Is(err, terminal.ErrInconsistentData), errors.Is(err, workspacefile.ErrInconsistentData),
+		errors.Is(err, previewsession.ErrInconsistentData):
 		return []any{"error_kind", "inconsistent_data"}
 	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 		return []any{"error_kind", "context"}

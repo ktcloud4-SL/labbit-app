@@ -47,16 +47,22 @@ type Open struct {
 	Cols, Rows string
 	// Raw는 message 전체다. Connector에 전달되면 안 되는 field가 없는지 확인할 때 쓴다.
 	Raw string
+	// Traceparent와 Tracestate는 TERMINAL_OPEN이 실은 W3C Trace Context다. 없으면 빈 문자열이다.
+	// Connector(propagation-only)는 이 Context를 보존해 TERMINAL_OPEN_RESULT로 돌려준다(contracts/connector/README.md §9).
+	Traceparent, Tracestate string
 }
 
 // Close는 Connector가 받은 TERMINAL_CLOSE다.
 type Close struct {
 	MessageID         string
+	RequestID         string
 	OperationID       string
 	TerminalSessionID string
 	LabInstanceID     string
 	Generation        int64
 	Reason            string
+	// Traceparent와 Tracestate는 TERMINAL_CLOSE가 실은 W3C Trace Context이며 없으면 빈 문자열이다.
+	Traceparent, Tracestate string
 }
 
 // Resize는 Terminal Data WSS로 받은 TERMINAL_DATA_RESIZE다. 값은 JSON 원문이다.
@@ -110,7 +116,20 @@ type Connector struct {
 	dataCloses map[string][]string
 	attaches   map[string][]map[string]any // TERMINAL_DATA_ATTACHED payload
 	dataDials  int
+
+	// resultTrace는 TERMINAL_OPEN_RESULT가 싣는 Trace Context의 동작이다. 기본은 받은 Context를 그대로 돌려준다.
+	resultTrace resultTraceMode
+	// resultTraceparent는 resultTraceReplaced에서 돌려줄 traceparent다.
+	resultTraceparent string
 }
+
+type resultTraceMode int
+
+const (
+	resultTraceEchoed resultTraceMode = iota
+	resultTraceOmitted
+	resultTraceReplaced
+)
 
 // NewConnector는 baseURL(http://host:port)의 SaaS에 연결할 Connector를 만든다. Start로 연결한다.
 func NewConnector(t *testing.T, baseURL, credential string) *Connector {
@@ -199,6 +218,8 @@ func (c *Connector) controlLoop() {
 			LabInstanceID     string          `json:"labInstanceId"`
 			Generation        int64           `json:"generation"`
 			Payload           json.RawMessage `json:"payload"`
+			Traceparent       string          `json:"traceparent"`
+			Tracestate        string          `json:"tracestate"`
 		}
 		if json.Unmarshal(data, &msg) != nil {
 			continue
@@ -216,6 +237,7 @@ func (c *Connector) controlLoop() {
 				MessageID: msg.MessageID, RequestID: msg.RequestID, TerminalSessionID: msg.TerminalSessionID,
 				LabInstanceID: msg.LabInstanceID, Generation: msg.Generation, TargetVMKey: p.TargetVMKey,
 				ProviderServerID: p.ProviderServerID, Cols: string(p.Cols), Rows: string(p.Rows), Raw: string(data),
+				Traceparent: msg.Traceparent, Tracestate: msg.Tracestate,
 			}
 			c.mu.Lock()
 			c.opens = append(c.opens, open)
@@ -228,8 +250,9 @@ func (c *Connector) controlLoop() {
 			}
 			_ = json.Unmarshal(msg.Payload, &p)
 			closeMsg := Close{
-				MessageID: msg.MessageID, OperationID: msg.OperationID, TerminalSessionID: msg.TerminalSessionID,
+				MessageID: msg.MessageID, RequestID: msg.RequestID, OperationID: msg.OperationID, TerminalSessionID: msg.TerminalSessionID,
 				LabInstanceID: msg.LabInstanceID, Generation: msg.Generation, Reason: p.Reason,
+				Traceparent: msg.Traceparent, Tracestate: msg.Tracestate,
 			}
 			c.mu.Lock()
 			c.closes = append(c.closes, closeMsg)
@@ -248,11 +271,27 @@ func (c *Connector) handleOpen(open Open, mode OpenMode) {
 		if errCode != "" {
 			payload["error"] = map[string]any{"code": errCode}
 		}
-		c.writeControl(map[string]any{
+		msg := map[string]any{
 			"type": "TERMINAL_OPEN_RESULT", "messageId": uuid.NewString(), "sentAt": now(), "replyToMessageId": open.MessageID,
 			"terminalSessionId": open.TerminalSessionID, "labInstanceId": open.LabInstanceID, "generation": generation,
 			"payload": payload,
-		})
+		}
+		// propagation-only Connector는 받은 command의 Trace Context를 새 Span을 가장하지 않고 그대로 돌려준다.
+		c.mu.Lock()
+		traceMode, replaced := c.resultTrace, c.resultTraceparent
+		c.mu.Unlock()
+		switch traceMode {
+		case resultTraceEchoed:
+			if open.Traceparent != "" {
+				msg["traceparent"] = open.Traceparent
+			}
+			if open.Tracestate != "" {
+				msg["tracestate"] = open.Tracestate
+			}
+		case resultTraceReplaced:
+			msg["traceparent"] = replaced
+		}
+		c.writeControl(msg)
 	}
 	switch mode {
 	case OpenSucceeds:
@@ -535,6 +574,27 @@ func (c *Connector) DataDials() int {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.dataDials
+}
+
+// EchoResultTrace는 이후 TERMINAL_OPEN_RESULT에 받은 Context를 그대로 싣는다(기본값).
+func (c *Connector) EchoResultTrace() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.resultTrace, c.resultTraceparent = resultTraceEchoed, ""
+}
+
+// OmitResultTrace는 이후 TERMINAL_OPEN_RESULT에 Trace Context를 싣지 않는다. Trace를 돌려주지 않아도 업무 결과가 실패하지 않는지 확인하는 데 쓴다.
+func (c *Connector) OmitResultTrace() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.resultTrace = resultTraceOmitted
+}
+
+// ReplaceResultTrace는 이후 TERMINAL_OPEN_RESULT에 받은 Context 대신 traceparent를 싣는다(잘못된 값도 가능).
+func (c *Connector) ReplaceResultTrace(traceparent string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.resultTrace, c.resultTraceparent = resultTraceReplaced, traceparent
 }
 
 // SetMode는 이후 TERMINAL_OPEN의 동작을 바꾼다.

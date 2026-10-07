@@ -19,7 +19,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
+	"github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
@@ -82,6 +88,9 @@ type Options struct {
 	// Grace는 Browser attach를 기다리는 시간(첫 attach 전과 Browser 단절 뒤)이다. 0이면 realtime.DefaultGrace다.
 	// Relay의 Grace와 같은 값이어야 한다.
 	Grace time.Duration
+	// Tracer는 Connector Control command 전송(TERMINAL_OPEN, TERMINAL_CLOSE)과 결과 수신(TERMINAL_OPEN_RESULT)의 Span을 만든다.
+	// nil이면 Span을 만들지 않고 호출 context의 유효한 Trace Context만 그대로 Connector에 전달한다.
+	Tracer trace.Tracer
 }
 
 // Service는 TerminalSession use case이며 realtime.Control과 connector.TerminalSink를 구현한다.
@@ -92,14 +101,22 @@ type Service struct {
 	relay      Relay
 	clock      realtime.Clock
 	logger     *slog.Logger
+	tracer     trace.Tracer
 
 	openTimeout time.Duration
 	grace       time.Duration
 
 	mu     sync.Mutex
-	opens  map[string]chan openOutcome
+	opens  map[string]*openWaiter
 	closed bool
 	wg     sync.WaitGroup
+}
+
+// openWaiter는 TERMINAL_OPEN_RESULT를 기다리는 Create다. 보낸 command Span의 Context를 함께 가진다. 결과는 Connector read loop에서
+// 도착하므로 Create의 context를 쓸 수 없고, 결과 수신 Span은 이 Context를 parent로 삼는다.
+type openWaiter struct {
+	result  chan openOutcome
+	command trace.SpanContext
 }
 
 var (
@@ -120,9 +137,13 @@ func NewService(opts Options) (*Service, error) {
 		relay:       opts.Relay,
 		clock:       opts.Clock,
 		logger:      opts.Logger,
+		tracer:      opts.Tracer,
 		openTimeout: opts.OpenTimeout,
 		grace:       opts.Grace,
-		opens:       make(map[string]chan openOutcome),
+		opens:       make(map[string]*openWaiter),
+	}
+	if s.tracer == nil {
+		s.tracer = noop.NewTracerProvider().Tracer("")
 	}
 	if s.clock == nil {
 		s.clock = realtime.SystemClock{}
@@ -276,8 +297,8 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 		"lab_instance_id", corr.LabInstanceID,
 		"connector_id", resolved.connectorID.String(),
 		"generation", corr.Generation,
-		"request_id", in.RequestID,
 	)
+	log = withControlCorrelation(log, in.RequestID, connector.TraceFromContext(ctx))
 
 	// 정리는 요청 context가 취소되어도 끝까지 수행한다.
 	abort := func(sentOpen bool) {
@@ -294,10 +315,13 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 		abort(false)
 		return Created{}, ErrUnavailable
 	}
-	waiter := s.addOpenWaiter(id)
+	// TERMINAL_OPEN command의 client Span이다. 결과를 받거나 실패·시간 초과·취소로 기다림이 끝날 때 닫는다. wire의 traceparent는
+	// 이 Span의 Context이며 Connector는 그 Context를 TERMINAL_OPEN_RESULT까지 보존해 돌려준다.
+	openCtx, openSpan := s.startControlSpan(ctx, messageTerminalOpen, resolved.connectorID, corr, in.RequestID, "")
+	waiter := s.addOpenWaiter(id, openSpan.SpanContext())
 	defer s.removeOpenWaiter(id)
 
-	_, err = s.connectors.SendTerminalOpen(ctx, connector.TerminalOpen{
+	_, err = s.connectors.SendTerminalOpen(openCtx, connector.TerminalOpen{
 		ConnectorID:      resolved.connectorID,
 		RequestID:        in.RequestID,
 		Correlation:      corr,
@@ -305,8 +329,11 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 		ProviderServerID: resolved.providerID,
 		Cols:             in.Cols,
 		Rows:             in.Rows,
-		Trace:            connector.TraceFromContext(ctx),
+		Trace:            connector.TraceFromContext(openCtx),
 	})
+	if err != nil {
+		finishControlSpan(openSpan, openSendFailure(err), true)
+	}
 	switch {
 	case err == nil:
 	case errors.Is(err, connector.ErrConnectorUnavailable):
@@ -336,19 +363,23 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 			if outcome.ended {
 				reason = "ended_before_open_result"
 			}
+			finishControlSpan(openSpan, reason, true)
 			log.Warn("TerminalSession 생성 실패", "reason", reason)
 			abort(true)
 			return Created{}, ErrOpenFailed
 		}
 	case <-timedOut:
+		finishControlSpan(openSpan, "open_timeout", true)
 		log.Warn("TerminalSession 생성 실패", "reason", "open_timeout")
 		abort(true)
 		return Created{}, ErrOpenFailed
 	case <-ctx.Done():
+		finishControlSpan(openSpan, "request_canceled", true)
 		log.Warn("TerminalSession 생성 취소", "reason", "request_canceled")
 		abort(true)
 		return Created{}, ctx.Err()
 	}
+	finishControlSpan(openSpan, "succeeded", false)
 
 	// OPEN_RESULT SUCCEEDED라는 주장만 믿지 않는다. 같은 TerminalSession의 valid Terminal Data WSS가 실제로 bind되었어야 한다.
 	graceExpiresAt := s.clock.Now().Add(s.grace)
@@ -436,12 +467,29 @@ func (s *Service) abortCreate(ctx context.Context, log *slog.Logger, relay Relay
 
 // sendClose는 TERMINAL_CLOSE를 요청한다. Connector를 사용할 수 없어도 호출자의 종료 기록은 유지하므로 실패는 log만 남긴다.
 func (s *Service) sendClose(ctx context.Context, log *slog.Logger, connectorID uuid.UUID, corr connector.TerminalCorrelation, requestID, operationID, reason string) {
+	// TERMINAL_CLOSE는 응답을 기다리지 않는 lifecycle command라 Span은 전송까지다.
+	ctx, span := s.startControlSpan(ctx, messageTerminalClose, connectorID, corr, requestID, operationID)
 	_, err := s.connectors.SendTerminalClose(ctx, connector.TerminalClose{
 		ConnectorID: connectorID, RequestID: requestID, OperationID: operationID,
 		Correlation: corr, Reason: reason, Trace: connector.TraceFromContext(ctx),
 	})
 	if err != nil {
+		finishControlSpan(span, closeFailureReason(err), true)
 		log.Warn("Connector TERMINAL_CLOSE 전달 못 함", "reason", closeFailureReason(err))
+		return
+	}
+	finishControlSpan(span, "sent", false)
+}
+
+// openSendFailure는 TERMINAL_OPEN을 보내지 못한 이유를 log의 reason과 같은 고정 분류로 바꾼다. Span outcome에 쓴다.
+func openSendFailure(err error) string {
+	switch {
+	case errors.Is(err, connector.ErrConnectorUnavailable):
+		return "connector_unavailable"
+	case errors.Is(err, connector.ErrSendFailed):
+		return "open_send_failed"
+	default:
+		return "invalid_open"
 	}
 }
 
@@ -470,12 +518,13 @@ func classify(err error) string {
 }
 
 // addOpenWaiter는 TERMINAL_OPEN_RESULT를 기다리는 채널을 등록한다. OPEN을 보내기 전에 등록해 즉시 온 응답을 놓치지 않는다.
-func (s *Service) addOpenWaiter(id string) chan openOutcome {
-	ch := make(chan openOutcome, 1)
+// command는 그 OPEN의 Span Context이며 결과 수신 Span의 parent가 된다.
+func (s *Service) addOpenWaiter(id string, command trace.SpanContext) chan openOutcome {
+	w := &openWaiter{result: make(chan openOutcome, 1), command: command}
 	s.mu.Lock()
-	s.opens[id] = ch
+	s.opens[id] = w
 	s.mu.Unlock()
-	return ch
+	return w.result
 }
 
 func (s *Service) removeOpenWaiter(id string) {
@@ -487,17 +536,111 @@ func (s *Service) removeOpenWaiter(id string) {
 // notifyOpen은 기다리는 Create가 있으면 결과를 전달한다. 기다리지 않는다. 없으면(시간 초과 뒤 늦게 온 결과 등) 아무것도 하지 않는다.
 func (s *Service) notifyOpen(id string, outcome openOutcome) bool {
 	s.mu.Lock()
-	ch := s.opens[id]
+	w := s.opens[id]
 	s.mu.Unlock()
-	if ch == nil {
+	if w == nil {
 		return false
 	}
 	select {
-	case ch <- outcome:
+	case w.result <- outcome:
 		return true
 	default:
 		return false
 	}
+}
+
+// openCommandSpan은 id의 TERMINAL_OPEN을 기다리는 Create가 있으면 그 command Span의 Context를 반환한다.
+func (s *Service) openCommandSpan(id string) (trace.SpanContext, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	w := s.opens[id]
+	if w == nil {
+		return trace.SpanContext{}, false
+	}
+	return w.command, true
+}
+
+// Connector Control message type이다(contracts/connector/terminal-control.schema.json). Span 이름과 attribute에 쓰는 고정 값이다.
+const (
+	messageTerminalOpen       = "TERMINAL_OPEN"
+	messageTerminalOpenResult = "TERMINAL_OPEN_RESULT"
+	messageTerminalClose      = "TERMINAL_CLOSE"
+)
+
+// startControlSpan은 Connector Control command(SaaS → Connector) 하나의 client Span을 시작한다. Span Context는 wire의
+// traceparent로 나간다. Terminal INPUT/OUTPUT, token, 대상 VM·Provider 식별 정보는 attribute에 넣지 않는다.
+func (s *Service) startControlSpan(ctx context.Context, messageType string, connectorID uuid.UUID, corr connector.TerminalCorrelation, requestID, operationID string) (context.Context, trace.Span) {
+	attrs := []attribute.KeyValue{
+		spanattr.AttrControlMessage.String(messageType),
+		spanattr.AttrConnectorID.String(connectorID.String()),
+		spanattr.AttrTerminalSessionID.String(corr.TerminalSessionID),
+		spanattr.AttrLabInstanceID.String(corr.LabInstanceID),
+	}
+	if requestID != "" {
+		attrs = append(attrs, spanattr.AttrRequestID.String(requestID))
+	}
+	if operationID != "" {
+		attrs = append(attrs, spanattr.AttrOperationID.String(operationID))
+	}
+	return s.tracer.Start(ctx, "Connector "+messageType, trace.WithSpanKind(trace.SpanKindClient), trace.WithAttributes(attrs...))
+}
+
+// finishControlSpan은 command Span을 닫는다. outcome은 고정된 분류이고 failed이면 Span 오류다. 오류 문자열을 담지 않는다.
+func finishControlSpan(span trace.Span, outcome string, failed bool) {
+	span.SetAttributes(spanattr.AttrOutcome.String(outcome))
+	if failed {
+		span.SetStatus(codes.Error, "")
+	}
+	span.End()
+}
+
+// recordOpenResult는 TERMINAL_OPEN_RESULT 수신 Span을 만든다(contracts/connector/README.md §9: SaaS는 결과 수신 시 자신의 새 Span을 생성).
+//
+// parent는 우리가 보낸 command Span이다. Router가 인증된 Connector와 replyToMessageId로 pending command에 이미 연결한 결과이므로
+// Connector가 돌려준 Context로 parent를 바꾸지 않는다. 기다리는 Create가 없는 늦은 결과는 연결할 command Span이 없으므로 만들지 않고,
+// 다른 command의 Context에 붙이지 않는다. Connector가 Context를 돌려주지 않았거나 달라도 업무 결과는 바뀌지 않으며
+// result_trace attribute로만 남긴다.
+func (s *Service) recordOpenResult(e connector.TerminalOpenResultEvent, command trace.SpanContext) {
+	succeeded := e.Payload.Outcome == connector.TerminalOutcomeSucceeded
+	outcome := "FAILED"
+	if succeeded {
+		outcome = connector.TerminalOutcomeSucceeded
+	}
+	attrs := []attribute.KeyValue{
+		spanattr.AttrControlMessage.String(messageTerminalOpenResult),
+		spanattr.AttrConnectorID.String(e.ConnectorID.String()),
+		spanattr.AttrTerminalSessionID.String(e.Correlation.TerminalSessionID),
+		spanattr.AttrLabInstanceID.String(e.Correlation.LabInstanceID),
+		spanattr.AttrOutcome.String(outcome),
+		spanattr.AttrResultTrace.String(resultTraceRelation(command, e.Trace)),
+	}
+	if e.RequestID != "" {
+		attrs = append(attrs, spanattr.AttrRequestID.String(e.RequestID))
+	}
+	if e.Payload.Error != nil {
+		attrs = append(attrs, spanattr.AttrErrorCode.String(safeCode(e.Payload.Error.Code)))
+	}
+	_, span := s.tracer.Start(trace.ContextWithSpanContext(context.Background(), command), "Connector "+messageTerminalOpenResult,
+		trace.WithSpanKind(trace.SpanKindConsumer), trace.WithAttributes(attrs...))
+	if !succeeded {
+		span.SetStatus(codes.Error, "")
+	}
+	span.End()
+}
+
+// resultTraceRelation은 Connector가 돌려준 결과의 Trace Context를 보낸 command의 Trace와 비교한다.
+// Connector는 propagation-only이므로 W3C propagation 형태로 normalize한 context가 보낸 command context와
+// trace ID, span ID, flags, tracestate까지 완전히 일치할 때만 same_trace로 본다.
+func resultTraceRelation(command trace.SpanContext, got connector.TraceContext) string {
+	got = connector.NormalizeTrace(got.Traceparent, got.Tracestate)
+	if !got.Valid() {
+		return "absent"
+	}
+	expected := connector.TraceFromContext(trace.ContextWithSpanContext(context.Background(), command))
+	if got == expected {
+		return "same_trace"
+	}
+	return "different_trace"
 }
 
 // HandleTerminalEvent는 Router가 Connector Session의 read loop fence 안에서 호출한다. 짧게 반환한다.
@@ -505,11 +648,37 @@ func (s *Service) HandleTerminalEvent(event connector.TerminalEvent) {
 	switch e := event.(type) {
 	case connector.TerminalOpenResultEvent:
 		// Router가 인증된 ConnectorID, terminalSessionId, labInstanceId, generation, replyToMessageId를 모두 대조했다.
+		command, hasCommand := s.openCommandSpan(e.Correlation.TerminalSessionID)
+		baseLog := s.logger.With(
+			"connector_id", e.ConnectorID.String(),
+			"terminal_session_id", e.Correlation.TerminalSessionID,
+			"lab_instance_id", e.Correlation.LabInstanceID,
+			"generation", e.Correlation.Generation,
+		)
+		var log *slog.Logger
+		if hasCommand {
+			// pending command가 실제로 존재할 때는 SaaS local command TraceContext가 권위 있는 상관관계다(LBT-144).
+			// Connector가 돌려준 Trace는 전파 검증용 메타데이터일 뿐 로그의 trace_id를 교체하지 않는다.
+			log = baseLog
+			if e.RequestID != "" {
+				log = log.With("request_id", e.RequestID)
+			}
+			if command.HasTraceID() {
+				log = log.With("trace_id", command.TraceID().String())
+			}
+		} else {
+			// 기다리는 Create가 없는 늦은/미일치 결과는 새 result Span을 만들지 않지만,
+			// 유효한 inbound Trace가 있다면 이전 LBT-143 동작대로 로그 상관관계를 유지한다.
+			log = withControlCorrelation(baseLog, e.RequestID, e.Trace)
+		}
 		if e.Payload.Error != nil {
-			s.logger.Warn("Connector TERMINAL_OPEN 실패 보고", "terminal_session_id", e.Correlation.TerminalSessionID, "error_code", safeCode(e.Payload.Error.Code))
+			log.Warn("Connector TERMINAL_OPEN 실패 보고", "error_code", safeCode(e.Payload.Error.Code))
+		}
+		if hasCommand {
+			s.recordOpenResult(e, command)
 		}
 		if !s.notifyOpen(e.Correlation.TerminalSessionID, openOutcome{succeeded: e.Payload.Outcome == connector.TerminalOutcomeSucceeded}) {
-			s.logger.Debug("기다리는 Create가 없는 TERMINAL_OPEN_RESULT", "terminal_session_id", e.Correlation.TerminalSessionID)
+			log.Debug("기다리는 Create가 없는 TERMINAL_OPEN_RESULT")
 		}
 	case connector.TerminalEndedEvent:
 		s.spawn(func() { s.handleConnectorEnded(e) })
@@ -535,6 +704,7 @@ func (s *Service) handleConnectorEnded(e connector.TerminalEndedEvent) {
 		"lab_instance_id", e.Correlation.LabInstanceID,
 		"generation", e.Correlation.Generation,
 	)
+	log = withControlCorrelation(log, "", e.Trace)
 
 	id, ok := parseID(e.Correlation.TerminalSessionID)
 	if !ok {
@@ -647,6 +817,11 @@ func (s *Service) closeLifecycle(ctx context.Context, rec repository.TerminalSes
 		"lab_instance_id", rec.LabInstanceID.String(),
 		"generation", rec.Generation,
 	)
+	requestID := observability.RequestIDFromContext(ctx)
+	log = withControlCorrelation(log, requestID, connector.TraceFromContext(ctx))
+	if operationID != "" {
+		log = log.With("operation_id", operationID)
+	}
 	connectorID, err := s.store.ConnectorIDForLabInstance(ctx, rec.LabInstanceID)
 	if err != nil {
 		log.Warn("TERMINAL_CLOSE 대상 Connector를 찾지 못함", "error_code", classify(err))
@@ -658,6 +833,18 @@ func (s *Service) closeLifecycle(ctx context.Context, rec repository.TerminalSes
 	}, "", operationID, reason)
 	log.Info("TerminalSession 종료", "reason", reason)
 	return nil
+}
+
+// withControlCorrelation은 이 control event가 실제로 가진 metadata만 기록한다.
+func withControlCorrelation(log *slog.Logger, requestID string, trace connector.TraceContext) *slog.Logger {
+	if requestID != "" {
+		log = log.With("request_id", requestID)
+	}
+	trace = connector.NormalizeTrace(trace.Traceparent, trace.Tracestate)
+	if id := trace.TraceID(); id != "" {
+		log = log.With("trace_id", id)
+	}
+	return log
 }
 
 // AuthenticateBrowser는 realtime.Control의 구현이다.
@@ -731,7 +918,9 @@ func (s *Service) AuthorizeAttach(ctx context.Context, session realtime.SessionT
 		// Reset 등으로 generation이 바뀌었다. 이 TerminalSession의 PTY는 이전 generation의 것이므로 더 이상 사용할 수 없다.
 		// 권한 판정만 하고 끝내지 않고 이 TerminalSession을 종료한다(다시 시도해도 같은 결과이므로 정리한다).
 		if err := s.closeLifecycle(ctx, rec, realtime.EndReasonLabReset, ""); err != nil {
-			s.logger.Error("stale TerminalSession 종료 실패", "terminal_session_id", rec.ID.String(), "error_code", classify(err))
+			withControlCorrelation(s.logger.With(
+				"terminal_session_id", rec.ID.String(), "lab_instance_id", rec.LabInstanceID.String(), "generation", rec.Generation,
+			), observability.RequestIDFromContext(ctx), connector.TraceFromContext(ctx)).Error("stale TerminalSession 종료 실패", "error_code", classify(err))
 		}
 		return realtime.AttachGrant{}, realtime.ErrLabMutation
 	}

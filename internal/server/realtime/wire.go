@@ -108,6 +108,7 @@ func traceOf(members map[string]json.RawMessage) tracecontext.Context {
 
 // withTrace는 유효한 Trace Context가 있으면 그 trace_id를 log에 붙인다. 없으면 log를 그대로 반환하고 가짜 값을 만들지 않는다.
 func withTrace(log *slog.Logger, t tracecontext.Context) *slog.Logger {
+	t = tracecontext.Normalize(t.Traceparent, t.Tracestate)
 	if id := t.TraceID(); id != "" {
 		return log.With("trace_id", id)
 	}

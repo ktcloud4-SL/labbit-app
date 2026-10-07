@@ -69,6 +69,16 @@ type RevokeObserver interface {
 	ConnectorRevoked(connectorID uuid.UUID)
 }
 
+// SessionObserver는 Control Session이 current에서 물러날 때를 Control 밖의 상태에도 알리는 경계다. 이 Session을 통해 시작한 작업의 trust를
+// Control Session에 묶어 두는 PreviewSession이 대표적이다. 교체(CloseReplaced)와 revoke(CloseRevoked)만 통지하며 connection이 단순히 끊겨
+// Release된 경우(재접속 가능)는 통지하지 않는다.
+//
+// 통지는 그 Session의 route가 닫힌 뒤(retire가 끝난 뒤)에 온다. 따라서 Session으로 message를 보내는 일(WithReadyRoute의 fn)은 통지 전에
+// 모두 끝났거나 시작하지 못한다. 구현은 Registry lock 밖에서 호출되며 오래 막히면 안 된다. 같은 Session이 여러 번 통지되어도 안전해야 한다.
+type SessionObserver interface {
+	SessionRetired(session Session, reason CloseReason)
+}
+
 // Registry는 인증과 WebSocket Upgrade를 마친 Control connection을 Connector별 current Session 하나로 소유한다.
 // 여러 connection goroutine이 동시에 사용해도 안전하다.
 //
@@ -86,6 +96,7 @@ type Registry struct {
 	mu       sync.RWMutex
 	current  map[uuid.UUID]*entry
 	observer RevokeObserver
+	sessions SessionObserver
 }
 
 // entry는 등록된 Session과 그 종료 방법이다.
@@ -136,6 +147,7 @@ func (r *Registry) Register(principal Principal, closeFn func(CloseReason)) *Reg
 
 	if previous != nil {
 		previous.retire(CloseReplaced)
+		r.sessionRetired(previous.session, CloseReplaced)
 	}
 	return &Registration{registry: r, entry: e}
 }
@@ -152,6 +164,27 @@ func (r *Registry) revokeObserver() RevokeObserver {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.observer
+}
+
+// SetSessionObserver는 Control Session의 교체·revoke를 알릴 observer를 정한다. nil이면 통지하지 않는다.
+// 조립 시점에 서비스를 시작하기 전에 한 번 호출한다.
+func (r *Registry) SetSessionObserver(o SessionObserver) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.sessions = o
+}
+
+func (r *Registry) sessionObserver() SessionObserver {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.sessions
+}
+
+// sessionRetired는 retire가 끝난 Session을 observer에 알린다. Registry lock 밖에서 호출한다.
+func (r *Registry) sessionRetired(session Session, reason CloseReason) {
+	if o := r.sessionObserver(); o != nil {
+		o.SessionRetired(session, reason)
+	}
 }
 
 // Current는 connectorID의 현재 Session을 반환한다. 없으면 false다.
@@ -185,6 +218,7 @@ func (r *Registry) RevokeCredential(credentialID uuid.UUID) int {
 
 	for _, e := range revoked {
 		e.retire(CloseRevoked)
+		r.sessionRetired(e.session, CloseRevoked)
 	}
 	// Control Session이 없어도 통지한다. Data WSS만 남아 있을 수 있다.
 	if o := r.revokeObserver(); o != nil {
@@ -204,6 +238,7 @@ func (r *Registry) RevokeConnector(connectorID uuid.UUID) bool {
 
 	if ok {
 		e.retire(CloseRevoked)
+		r.sessionRetired(e.session, CloseRevoked)
 	}
 	if o := r.revokeObserver(); o != nil {
 		o.ConnectorRevoked(connectorID)

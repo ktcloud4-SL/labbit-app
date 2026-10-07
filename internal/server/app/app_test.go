@@ -142,6 +142,10 @@ func TestLoadConfigDatabaseRequirementByRole(t *testing.T) {
 			t.Setenv("LABBIT_DATABASE_DSN_FILE", "")
 			t.Setenv("LABBIT_DATABASE_DSN", tt.dsnEnv)
 			t.Setenv("LABBIT_PUBLIC_ORIGIN", "http://localhost:5173")
+			// preview role은 PostgreSQL DSN을 요구하지 않지만 허용 port, TTL, Origin template은 명시해야 한다(fail closed).
+			t.Setenv("LABBIT_PREVIEW_ALLOWED_PORTS", "3000")
+			t.Setenv("LABBIT_PREVIEW_SESSION_TTL", "1h")
+			t.Setenv("LABBIT_PREVIEW_ORIGIN_TEMPLATE", "http://{sessionId}.localhost:5174")
 
 			cfg, err := LoadConfig()
 			if tt.wantErr != "" {

@@ -8,6 +8,8 @@
 
 Runtime Contract는 HTTP/OpenAPI나 WSS 메시지 계약을 다시 정의하지 않습니다. 애플리케이션이 **어떻게 실행되고, 어떤 포트·설정·Probe·로그·종료 동작을 제공해야 하는지**와 플랫폼이 무엇을 주입·구성해야 하는지를 고정합니다.
 
+**v0.1.6 변경:** LBT-101에 따라 `preview` role의 Preview Session/Gateway 경계(`saas.preview`)와 필수 설정 `LABBIT_PREVIEW_ALLOWED_PORTS`·`LABBIT_PREVIEW_SESSION_TTL`·`LABBIT_PREVIEW_ORIGIN_TEMPLATE`을 추가했습니다. PreviewSession 생성·종료와 DB-backed authority는 `api` role이, Preview Origin의 Browser 인증·Gateway proxy·Connector Preview Data tunnel은 `preview` role이 소유하며 `preview` 구현은 PostgreSQL이나 DB DSN을 요구하지 않습니다. v0.1에서는 이 authority를 같은 process의 `api` role이 제공하므로 Preview 기능이 동작하려면 `LABBIT_RUNTIME_ROLES=api,preview`처럼 두 role이 함께 enabled되어야 합니다(아래 *Preview 역할의 v0.1 제약*). PreviewSession 상태는 process 안의 ephemeral 상태이며 새 DB table·Redis/Valkey·internal RPC·multi-replica owner routing은 제공하지 않습니다. 허용 port 목록과 TTL은 구성값이며 수치를 계약으로 고정하지 않습니다. 실제 DNS/TLS/Ingress hostname은 이 계약이 정하지 않습니다.
+
 **v0.1.5 변경:** LBT-100에 따라 Workspace File Tree/Read/Save를 `api` role이 소유한다는 경계(`saas.file`)를 추가했습니다. Connector File Data WSS(`/connector/v1/file-data`)는 같은 process의 Connector Control Registry/Router와 함께 `api` role에 있으며 `realtime` role이 필요하지 않습니다. 요청별 pending 상태는 process memory의 ephemeral 상태이고 파일 본문·디렉터리 목록·경로는 저장하거나 기록하지 않습니다. 파일 크기 한도는 구성값이며 수치를 계약으로 고정하지 않습니다. multi-replica File owner routing은 제공하지 않습니다.
 
 **v0.1.4 변경:** LBT-99에 따라 Browser Terminal/Live WSS Upgrade도 strict Origin 검증이 필요하므로 `LABBIT_PUBLIC_ORIGIN`을 `api` 또는 `realtime` role이 enabled된 process에서 요구합니다. `realtime` role은 이 때문에 PostgreSQL DSN을 요구하지 않으며 여전히 DB를 직접 사용하지 않습니다. v0.1에서 Terminal 기능은 DB-backed authority를 같은 process에서 제공하는 `api` role과 `realtime` role의 co-location을 전제로 하며, 별도 realtime workload용 internal RPC나 multi-replica Terminal owner routing은 제공하지 않습니다(아래 *Realtime 역할의 v0.1 제약*).
@@ -41,6 +43,18 @@ v0.1에서는 이 authority를 같은 process의 `api` role이 제공합니다. 
 
 workload를 분리하려면 위 제약을 해소하는 internal authorization/routing 경계를 먼저 Runtime Contract에 추가해야 합니다.
 
+### Preview 역할의 v0.1 제약
+
+`preview` role은 PostgreSQL을 application dependency로 요구하지 않습니다. Preview Gateway는 Preview Origin의 Browser 인증(일회용 bootstrap credential → Preview 전용 Cookie)과 Connector Preview Data tunnel, PreviewSession의 ephemeral 상태만 소유합니다. 현재 User, LabInstance 소유, 현재 ClassMembership, `READY`, CreationSnapshot, 현재 generation의 ProviderResource, Connector 같은 DB-backed authority는 `api` role의 PreviewSession use case가 PreviewSession 생성 시점에 판정하며 preview 구현은 이를 직접 조회하지 않고 process에 주입된 좁은 interface로만 사용합니다.
+
+v0.1에서는 이 authority를 같은 process의 `api` role이 제공합니다. 그래서 Preview가 동작하려면 `LABBIT_RUNTIME_ROLES=api,preview`처럼 두 role이 함께 enabled되어야 합니다.
+
+- `preview`만 enabled된 process는 authority가 없으므로 Preview route를 열지 않고 `/readyz`가 실패합니다. DB DSN을 새로 요구하거나 인증 없이 동작하는 route를 열지 않습니다.
+- `api`만 enabled된 process에서 PreviewSession 생성/종료 HTTP는 503(`preview_unavailable`)입니다.
+- preview role이 enabled되면 `LABBIT_PREVIEW_ALLOWED_PORTS`(Backend의 명시적 허용 port 목록, global 정책), `LABBIT_PREVIEW_SESSION_TTL`(0보다 큰 Go duration), `LABBIT_PREVIEW_ORIGIN_TEMPLATE`(예: `https://{sessionId}.preview.example.com`, 이 hostname은 예시이며 실제 값은 Platform이 주입)이 필요하며 없거나 형식이 틀리면 startup에 실패합니다(fail closed). 허용 목록은 숫자 범위로 자동 승인하지 않고 SSH 관리 port(22)는 목록에 있어도 거절합니다.
+- Preview Origin은 SaaS 본 서비스 Origin과 분리된 별도 host(separate-origin)이되, iframe 임베딩과 인증 격리를 위해 동일한 scheme 및 registrable domain(eTLD+1)을 공유하는 same-site여야 합니다. 같은 application listener에서 request Host가 `LABBIT_PREVIEW_ORIGIN_TEMPLATE`에 일치할 때만 Preview Gateway로 갑니다. wildcard DNS, 인증서, Ingress/Gateway route는 Platform/IaC가 소유합니다.
+- Redis/Valkey 기반 session store, 별도 preview workload용 internal authorization RPC, multi-replica PreviewSession owner routing은 이번 계약 범위가 아닙니다. PreviewSession과 tunnel 상태는 process 안의 ephemeral 상태이며 process 비정상 종료 시 복구하지 않습니다. 정상 종료에서는 active PreviewSession을 `SERVICE_RESTARTING`으로 종료하고 Connector에 `PREVIEW_CLOSE`를 보냅니다.
+
 ## Listener
 
 ### Application listener
@@ -71,6 +85,9 @@ workload를 분리하려면 위 제약을 해소하는 internal authorization/ro
 | `LABBIT_ENVIRONMENT` | environment 식별 | No |
 | `LABBIT_HTTP_ADDR` | application listen address | No |
 | `LABBIT_PUBLIC_ORIGIN` | Browser Auth/CSRF와 Browser WSS Upgrade Origin 검증의 trusted public app origin (`api` 또는 `realtime` role) | No |
+| `LABBIT_PREVIEW_ALLOWED_PORTS` | PreviewSession이 승인할 수 있는 Workspace VM application port의 Backend 명시적 허용 목록 (`preview` role) | No |
+| `LABBIT_PREVIEW_SESSION_TTL` | PreviewSession 절대 TTL, 0보다 큰 Go duration (`preview` role) | No |
+| `LABBIT_PREVIEW_ORIGIN_TEMPLATE` | 사용자 코드 Preview Origin template, host의 첫 label이 `{sessionId}` (`preview` role) | No |
 | `LABBIT_ADMIN_ADDR` | health/metrics listen address | No |
 | `LABBIT_DATABASE_DSN_FILE` | production DB DSN secret file 경로 (api/worker process, `labbit-migrate`) | 경로 자체 No / 파일 내용 Yes |
 | `LABBIT_DATABASE_DSN` | local development용 직접 DSN | **Yes** |
@@ -120,7 +137,7 @@ grace 만료 시 종료
 - **API**: 새로운 Provider mutation 등록을 중단하고 이미 수락한 bounded HTTP 요청을 안전한 범위에서 마무리합니다.
 - **Worker**: 새 `PENDING operation_items`를 claim하지 않습니다. Provider 결과가 불명확하면 lease 만료만 보고 재실행하지 않고 재시작 후 Reconciliation합니다.
 - **Realtime**: 종료 대상 인스턴스가 새 WSS upgrade를 받지 않고 기존 연결을 drain합니다. drain 시 active TerminalSession은 `SERVICE_RESTARTING` 사유로 종료하고 Browser에 `TERMINAL_SESSION_ENDED`를 전달합니다.
-- **Preview**: 새 proxy/session을 받지 않고 현재 연결을 가능한 범위에서 drain합니다.
+- **Preview**: 새 proxy/session을 받지 않고 현재 연결을 가능한 범위에서 drain합니다. active PreviewSession은 `SERVICE_RESTARTING` 사유로 종료하고 Connector에 `PREVIEW_CLOSE`를 보냅니다.
 
 중앙 Realtime workload의 Connection Draining과 D-21의 **Connector PTY 60초 grace**는 서로 다른 정책입니다.
 
@@ -196,6 +213,14 @@ Connector는 고객망 내부에서 실행하며 **SaaS가 Connector로 inbound 
 - `LABBIT_CONNECTOR_ID`
 - `LABBIT_CONNECTOR_CREDENTIAL_FILE`
 - `LABBIT_PROVIDER_CONFIG_FILE`
+- `OS_CLOUD`, `OS_PROJECT_ID`
+- `LABBIT_PROVIDER_CONNECTION_ID`
+- `LABBIT_OPENSTACK_MANAGEMENT_NETWORK_ID`
+- `LABBIT_OPENSTACK_MANAGEMENT_SECURITY_GROUP_ID` (공용·stateful, Connector CIDR의 TCP/22 ingress만 허용, egress rule 없음)
+- `LABBIT_OPENSTACK_EXTERNAL_NETWORK_ID` (`internetOutbound=true`일 때)
+- `LABBIT_OPENSTACK_KEYPAIR_NAME`, `LABBIT_OPENSTACK_SSH_ALLOWED_CIDR` (설치/등록 단계가 Nova에 등록한 Connector 전용 공용 Ed25519 keypair; Lab lifecycle은 생성·회전·삭제하지 않음)
+- `LABBIT_OPENSTACK_LAB_SUBNET_CIDR`
+- `LABBIT_OPENSTACK_SSH_USERNAME`, `LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE`, `LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE` (D-18의 설치/등록 단계에서 생성한 Connector 전용 Ed25519 관리 키와 SSH Ready/TOFU 확인에 필수)
 - `LABBIT_LOG_LEVEL`
 - `LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE` (Terminal 활성화 및 프로덕션 시 필수)
 - `LABBIT_OPENSTACK_SSH_USERNAME` (기본값: ubuntu)

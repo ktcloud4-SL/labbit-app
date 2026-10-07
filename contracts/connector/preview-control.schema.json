@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labbit.local/contracts/connector/preview-control.schema.json",
+  "title": "Labbit Connector Preview Control Contract v0.1",
+  "description": "기존 Connector persistent Control WSS 위에서 PreviewSession 하나의 lifecycle/correlation을 전달하는 추가 JSON 메시지 계약입니다. Preview HTTP 요청/응답 본문, 경로, query, Cookie, header는 이 Schema에 싣지 않으며 별도의 Preview Data WSS(preview-data.schema.json)의 Binary byte stream으로만 전달합니다. SaaS는 HELLO capabilities에 preview-v1을 선언한 Connector에게만 이 메시지를 보냅니다.",
+  "oneOf": [
+    { "$ref": "#/$defs/PreviewOpenMessage" },
+    { "$ref": "#/$defs/PreviewOpenResultMessage" },
+    { "$ref": "#/$defs/PreviewCloseMessage" }
+  ],
+  "$defs": {
+    "ResourceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "MessageId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "SafeError": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "안정적인 기계 판독 오류 코드입니다. APP_NOT_RUNNING, PORT_REJECTED, VM_UNREACHABLE, UNAVAILABLE, INTERNAL_ERROR를 사용하며 새 값이 추가될 수 있습니다. 알 수 없는 code는 SaaS가 사용 불가(UNAVAILABLE)로 취급합니다."
+        },
+        "message": {
+          "type": "string",
+          "description": "Credential, Token, Cookie, Preview 요청/응답 본문, 경로, SSH/provider raw 오류를 포함하지 않는 안전한 설명입니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "BaseEnvelope": {
+      "type": "object",
+      "required": ["type", "messageId", "sentAt", "previewSessionId", "labInstanceId", "generation", "payload"],
+      "properties": {
+        "type": { "type": "string" },
+        "messageId": { "$ref": "#/$defs/MessageId" },
+        "sentAt": { "$ref": "#/$defs/Timestamp" },
+        "replyToMessageId": { "$ref": "#/$defs/MessageId" },
+        "requestId": {
+          "$ref": "#/$defs/ResourceId",
+          "description": "원본 HTTP request와 연결할 수 있는 correlation입니다."
+        },
+        "previewSessionId": {
+          "$ref": "#/$defs/ResourceId",
+          "description": "PreviewSession 하나를 식별하는 SaaS 발급 ID입니다. logical PreviewSession 하나는 독립된 lifecycle, auth, TTL을 가지며, 그 수명 동안 순차적인 여러 Preview Data WSS(각 WSS = 1 TCP 연결)를 수용할 수 있습니다."
+        },
+        "labInstanceId": { "$ref": "#/$defs/ResourceId" },
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "traceparent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "tracestate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "payload": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "PreviewOpenPayload": {
+      "type": "object",
+      "required": ["targetVmKey", "providerServerId", "targetPort"],
+      "properties": {
+        "targetVmKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "CreationSnapshot의 workspaceVmKey입니다. Browser가 고른 값이 아니라 SaaS가 현재 DB 상태에서 결정한 Workspace VM의 논리 키입니다."
+        },
+        "providerServerId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "현재 generation에서 Workspace VM을 가리키는 OpenStack Server ID입니다. Connector는 실제 Provider 상태와 관리 주소를 확인할 수 있으며 Browser나 SaaS가 주장하는 VM IP를 신뢰하지 않습니다."
+        },
+        "targetPort": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "SaaS가 Backend의 명시적 허용 목록에 대해 승인한 정확한 Workspace VM application TCP port입니다. 숫자 범위로 자동 승인한 값이 아닙니다. Connector는 SSH 관리 port(22)를 거절합니다. 이후 Preview Data WSS의 PREVIEW_ATTACH는 같은 값이어야 합니다."
+        }
+      },
+      "additionalProperties": true,
+      "description": "SaaS가 권한 검증과 port 승인을 마친 뒤 Connector에게 전달하는 resolved Preview target입니다. Browser Session Cookie, Preview bootstrap credential, Preview Browser auth Cookie/token, 사설 IP, SSH/OpenStack Credential, Preview HTTP 본문은 포함하지 않습니다."
+    },
+    "PreviewOpenResultPayload": {
+      "type": "object",
+      "required": ["outcome"],
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": ["SUCCEEDED", "FAILED"],
+          "description": "FAILED는 Connector가 Workspace VM의 targetPort로 TCP forwarding channel을 열지 못해 Preview Data WSS를 attach하지 않음을 뜻합니다. SaaS는 FAILED를 받으면 PreviewSession 생성을 즉시 실패시킵니다. SUCCEEDED는 TCP forwarding channel이 열렸고 Preview Data WSS attach를 진행한다는 통지일 뿐이며 SaaS는 실제 Data WSS attach만 근거로 삼습니다."
+        },
+        "error": { "$ref": "#/$defs/SafeError" }
+      },
+      "additionalProperties": true
+    },
+    "PreviewClosePayload": {
+      "type": "object",
+      "required": ["reason"],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "SESSION_CLOSED, SESSION_EXPIRED, LAB_RESET, LAB_CLEANUP, OPEN_TIMEOUT, REQUEST_CANCELED, OPEN_FAILED, SERVICE_RESTARTING 등 종료 원인입니다. 새 값이 추가될 수 있습니다."
+        }
+      },
+      "additionalProperties": true
+    },
+    "PreviewOpenMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "PREVIEW_OPEN" },
+            "payload": { "$ref": "#/$defs/PreviewOpenPayload" }
+          }
+        }
+      ],
+      "description": "SaaS → Connector. 이 previewSessionId의 Workspace VM targetPort에 다음 TCP forwarding channel을 연 뒤 Preview Data WSS를 열어 PREVIEW_ATTACH(replyToMessageId=이 messageId)를 보내라는 요청입니다. 각 PREVIEW_OPEN은 고유한 messageId를 가집니다."
+    },
+    "PreviewOpenResultMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "replyToMessageId", "payload"],
+          "properties": {
+            "type": { "const": "PREVIEW_OPEN_RESULT" },
+            "payload": { "$ref": "#/$defs/PreviewOpenResultPayload" }
+          }
+        }
+      ],
+      "description": "Connector → SaaS. replyToMessageId는 응답하는 PREVIEW_OPEN의 messageId입니다. previewSessionId, labInstanceId, generation, replyToMessageId가 모두 맞는 pending PREVIEW_OPEN에만 연결하며 맞지 않으면 다른 PreviewSession으로 fallback하지 않습니다."
+    },
+    "PreviewCloseMessage": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "payload"],
+          "properties": {
+            "type": { "const": "PREVIEW_CLOSE" },
+            "payload": { "$ref": "#/$defs/PreviewClosePayload" }
+          }
+        }
+      ],
+      "description": "SaaS → Connector. 이 previewSessionId의 PreviewSession을 더 이상 유지하지 않으니 활성 TCP forwarding channel과 Preview Data WSS를 정리하라는 idempotent 통지입니다. 응답을 기다리지 않으며 반복 전달돼도 같은 상태를 유지합니다."
+    }
+  }
+}

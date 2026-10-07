@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 )
 
 // Problem code는 클라이언트가 안정적으로 분기할 수 있는 Labbit 오류 코드다.
@@ -48,17 +50,14 @@ func writeProblem(w http.ResponseWriter, r *http.Request, status int, code, deta
 	_, _ = w.Write(body)
 }
 
-type requestIDKey struct{}
-
 // withRequestID는 요청마다 새 correlation ID를 만든다. 클라이언트가 보낸 값은 신뢰하지 않는다.
 func withRequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), requestIDKey{}, uuid.NewString())
+		ctx := observability.ContextWithRequestID(r.Context(), uuid.NewString())
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 func requestIDFrom(ctx context.Context) string {
-	id, _ := ctx.Value(requestIDKey{}).(string)
-	return id
+	return observability.RequestIDFromContext(ctx)
 }

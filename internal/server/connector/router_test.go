@@ -144,6 +144,27 @@ func commandFor(connectorID uuid.UUID, c Correlation) OperationCommand {
 	return OperationCommand{ConnectorID: connectorID, RequestID: "req-" + c.LabInstanceID, Correlation: c, Payload: provisionPayload()}
 }
 
+// previousResource는 RESET이 정리할 직전 generation의 리소스다. logicalName이 있어야 RESET 계약을 만족한다.
+func previousResource(providerID string, generation int64) protocol.ProviderResourceRef {
+	return protocol.ProviderResourceRef{ResourceType: "SERVER", ProviderID: providerID, Generation: generation, LogicalName: "vm-1"}
+}
+
+// resetPayload는 CreationSnapshot과 주어진 providerResources를 가진 RESET payload다.
+func resetPayload(resources []protocol.ProviderResourceRef) protocol.OperationCommandPayload {
+	payload := provisionPayload()
+	payload.MutationType = protocol.MutationTypeReset
+	payload.ProviderResources = resources
+	return payload
+}
+
+// resetCommandFor는 계약을 모두 만족하는 RESET command다(generation 3, 직전 generation 2의 리소스 하나).
+// reject test는 여기서 한 가지만 어긋나게 만들어 거절 원인이 그것 하나뿐임을 보장한다.
+func resetCommandFor(connectorID uuid.UUID) OperationCommand {
+	cmd := commandFor(connectorID, corr("op-reset", "lab-R", 3))
+	cmd.Payload = resetPayload([]protocol.ProviderResourceRef{previousResource("srv-old", 2)})
+	return cmd
+}
+
 func corr(op, lab string, generation int64) Correlation {
 	return Correlation{OperationID: op, LabInstanceID: lab, Generation: generation}
 }
@@ -967,9 +988,19 @@ func TestSendRejectsInvalidCommandsBeforeWritingAnything(t *testing.T) {
 	noVMs := provisionPayload()
 	noVMs.CreationSnapshot.VMs = nil
 	badRef := protocol.OperationCommandPayload{MutationType: protocol.MutationTypeCleanup, ProviderResources: []protocol.ProviderResourceRef{{ResourceType: "SERVER", ProviderID: "srv-1"}}}
-	reset := provisionPayload()
-	reset.MutationType = protocol.MutationTypeReset
-	reset.CreationSnapshot = nil
+	resetWithout := func(mut func(*protocol.OperationCommandPayload)) func(*OperationCommand) {
+		return func(cmd *OperationCommand) {
+			*cmd = resetCommandFor(cmd.ConnectorID)
+			mut(&cmd.Payload)
+		}
+	}
+	resetAtGeneration := func(generation int64, resources ...protocol.ProviderResourceRef) func(*OperationCommand) {
+		return func(cmd *OperationCommand) {
+			*cmd = resetCommandFor(cmd.ConnectorID)
+			cmd.Correlation.Generation = generation
+			cmd.Payload.ProviderResources = resources
+		}
+	}
 
 	tests := []struct {
 		name string
@@ -982,7 +1013,23 @@ func TestSendRejectsInvalidCommandsBeforeWritingAnything(t *testing.T) {
 		{"unknown mutation", func(cmd *OperationCommand) { cmd.Payload.MutationType = "DESTROY" }},
 		{"empty mutation", func(cmd *OperationCommand) { cmd.Payload = protocol.OperationCommandPayload{} }},
 		{"provision without snapshot", func(cmd *OperationCommand) { cmd.Payload.CreationSnapshot = nil }},
-		{"reset without snapshot", func(cmd *OperationCommand) { cmd.Payload = reset }},
+		{"reset without snapshot", resetWithout(func(p *protocol.OperationCommandPayload) { p.CreationSnapshot = nil })},
+		{"reset with invalid snapshot", resetWithout(func(p *protocol.OperationCommandPayload) { p.CreationSnapshot.VMs = nil })},
+		{"reset providerResources missing (nil)", resetWithout(func(p *protocol.OperationCommandPayload) { p.ProviderResources = nil })},
+		{"reset providerResources empty list", resetWithout(func(p *protocol.OperationCommandPayload) { p.ProviderResources = []protocol.ProviderResourceRef{} })},
+		{"reset resource without logicalName", resetWithout(func(p *protocol.OperationCommandPayload) { p.ProviderResources[0].LogicalName = "" })},
+		{"reset resource without providerId", resetWithout(func(p *protocol.OperationCommandPayload) { p.ProviderResources[0].ProviderID = "" })},
+		{"reset resource without resourceType", resetWithout(func(p *protocol.OperationCommandPayload) { p.ProviderResources[0].ResourceType = "" })},
+		{"reset second resource without logicalName", resetWithout(func(p *protocol.OperationCommandPayload) {
+			p.ProviderResources = append(p.ProviderResources, protocol.ProviderResourceRef{ResourceType: "SERVER", ProviderID: "srv-b", Generation: 2})
+		})},
+		{"reset resource generation equals the reset generation", resetAtGeneration(3, previousResource("srv-old", 3))},
+		{"reset resource generation older than the previous generation", resetAtGeneration(3, previousResource("srv-old", 1))},
+		{"reset resource generation newer than the reset generation", resetAtGeneration(3, previousResource("srv-old", 4))},
+		{"reset resource generation zero", resetAtGeneration(3, previousResource("srv-old", 0))},
+		{"reset second resource from another generation", resetAtGeneration(3, previousResource("srv-a", 2), previousResource("srv-b", 1))},
+		{"reset at generation 1 has no previous generation", resetAtGeneration(1, previousResource("srv-old", 1))},
+		{"reset at generation 1 with a generation 0 resource", resetAtGeneration(1, previousResource("srv-old", 0))},
 		{"cleanup with providerResources missing (nil, not an empty list)", func(cmd *OperationCommand) {
 			cmd.Payload = protocol.OperationCommandPayload{MutationType: protocol.MutationTypeCleanup}
 		}},
@@ -1038,7 +1085,7 @@ func TestCleanupAndResetCommandsAreSent(t *testing.T) {
 	f := newRouterFixture(t)
 	principal := principalOf(uuid.New())
 	_, frames := f.connect(principal)
-	refs := []protocol.ProviderResourceRef{{ResourceType: "SERVER", ProviderID: "srv-1", Generation: 2}}
+	refs := []protocol.ProviderResourceRef{previousResource("srv-1", 2)}
 
 	cleanup := commandFor(principal.ConnectorID, corr("op-1", "lab-A", 2))
 	cleanup.Payload = protocol.OperationCommandPayload{MutationType: protocol.MutationTypeCleanup, ProviderResources: refs}
@@ -1048,11 +1095,9 @@ func TestCleanupAndResetCommandsAreSent(t *testing.T) {
 	}
 
 	reset := commandFor(principal.ConnectorID, corr("op-2", "lab-B", 3))
-	reset.Payload = provisionPayload()
-	reset.Payload.MutationType = protocol.MutationTypeReset
-	reset.Payload.ProviderResources = refs
+	reset.Payload = resetPayload(refs)
 	mustSend(t, f, reset)
-	if msg := decodeCommand(t, frames.last(t)); msg.Payload.MutationType != protocol.MutationTypeReset || msg.Payload.CreationSnapshot == nil {
+	if msg := decodeCommand(t, frames.last(t)); msg.Payload.MutationType != protocol.MutationTypeReset || msg.Payload.CreationSnapshot == nil || len(msg.Payload.ProviderResources) != 1 {
 		t.Fatalf("reset frame = %+v", msg.Payload)
 	}
 }
@@ -1161,25 +1206,47 @@ func TestEmptyStartupScriptContentIsSentAndDigestConstraintIsKept(t *testing.T) 
 	}
 }
 
-// PROVISION/RESET의 providerResources는 optional이다. nil이면 property 자체를 만들지 않고(null도 아님), 값이 있으면 그대로 싣는다.
-func TestOptionalProviderResourcesAreOmittedWhenNilAndKeptWhenSet(t *testing.T) {
+// PROVISION에는 정리할 기존 리소스가 없다. providerResources를 요구하지 않고, nil이면 property 자체를 만들지 않는다(null도 아님).
+func TestProvisionOmitsProviderResourcesWhenNil(t *testing.T) {
 	f := newRouterFixture(t)
 	principal := principalOf(uuid.New())
 	_, frames := f.connect(principal)
-	cid := principal.ConnectorID
 
-	mustSend(t, f, commandFor(cid, corr("op-1", "lab-A", 1))) // PROVISION, ProviderResources nil
+	mustSend(t, f, commandFor(principal.ConnectorID, corr("op-1", "lab-A", 1))) // PROVISION, ProviderResources nil
 	if payload := rawPayload(t, frames.last(t)); payload["providerResources"] != nil {
 		t.Fatalf("PROVISION의 nil providerResources가 wire에 %s로 나감", payload["providerResources"])
 	}
+}
 
-	reset := commandFor(cid, corr("op-2", "lab-B", 3))
-	reset.Payload.MutationType = protocol.MutationTypeReset
-	reset.Payload.ProviderResources = []protocol.ProviderResourceRef{{ResourceType: "SERVER", ProviderID: "srv-old", Generation: 2}}
-	mustSend(t, f, reset)
-	if got := string(rawPayload(t, frames.last(t))["providerResources"]); got != `[{"resourceType":"SERVER","providerId":"srv-old","generation":2}]` {
-		t.Fatalf("RESET의 providerResources = %s", got)
-	}
+// RESET은 직전 generation 리소스를 담은 providerResources를 그대로 싣는다. generation 3의 RESET은 generation 2 리소스를 정리 대상으로 한다.
+func TestResetCarriesPreviousGenerationProviderResources(t *testing.T) {
+	f := newRouterFixture(t)
+	principal := principalOf(uuid.New())
+	_, frames := f.connect(principal)
+
+	t.Run("single resource", func(t *testing.T) {
+		mustSend(t, f, resetCommandFor(principal.ConnectorID))
+		got := string(rawPayload(t, frames.last(t))["providerResources"])
+		if want := `[{"resourceType":"SERVER","providerId":"srv-old","generation":2,"logicalName":"vm-1"}]`; got != want {
+			t.Fatalf("RESET의 providerResources = %s, want %s", got, want)
+		}
+		if pendingOps(f, principal.ConnectorID) != 1 {
+			t.Fatalf("pending = %d, want 1", pendingOps(f, principal.ConnectorID))
+		}
+	})
+
+	t.Run("several resources keep their order", func(t *testing.T) {
+		cmd := commandFor(principal.ConnectorID, corr("op-reset-2", "lab-R2", 3))
+		cmd.Payload = resetPayload([]protocol.ProviderResourceRef{
+			previousResource("srv-a", 2),
+			{ResourceType: "NETWORK", ProviderID: "net-a", Generation: 2, LogicalName: "lab-net"},
+		})
+		mustSend(t, f, cmd)
+		msg := decodeCommand(t, frames.last(t))
+		if len(msg.Payload.ProviderResources) != 2 || msg.Payload.ProviderResources[0].ProviderID != "srv-a" || msg.Payload.ProviderResources[1].LogicalName != "lab-net" {
+			t.Fatalf("RESET의 providerResources = %+v", msg.Payload.ProviderResources)
+		}
+	})
 }
 
 func TestCanceledContextSendsNothing(t *testing.T) {

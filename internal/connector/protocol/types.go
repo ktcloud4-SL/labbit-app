@@ -10,12 +10,16 @@ const (
 	SubprotocolControl      = "labbit.connector.v1"
 	SubprotocolTerminalData = "labbit.connector-terminal.v1"
 	SubprotocolFileData     = "labbit.connector-file.v1"
+	// SubprotocolPreviewData는 Preview Data WSS의 subprotocol이다(preview-data.schema.json).
+	SubprotocolPreviewData = "labbit.connector-preview.v1"
 )
 
 // HELLO capabilities 값이다. SaaS는 connection이 선언한 capability에만 해당 기능의 Control message를 보낸다(버전으로 추론하지 않는다).
 const (
 	// CapabilityFileV1은 Workspace File transport(file-control.schema.json, file-data.schema.json)를 지원함을 뜻한다.
 	CapabilityFileV1 = "file-v1"
+	// CapabilityPreviewV1은 Preview transport(preview-control.schema.json, preview-data.schema.json)를 지원함을 뜻한다.
+	CapabilityPreviewV1 = "preview-v1"
 )
 
 // Control 메시지 타입 정의 (connector.schema.json 기준)
@@ -49,6 +53,19 @@ const (
 	MessageTypeFileClose      = "FILE_CLOSE"
 )
 
+// Preview Control 메시지 타입 정의 (preview-control.schema.json 기준)
+const (
+	MessageTypePreviewOpen       = "PREVIEW_OPEN"
+	MessageTypePreviewOpenResult = "PREVIEW_OPEN_RESULT"
+	MessageTypePreviewClose      = "PREVIEW_CLOSE"
+)
+
+// Preview Data WSS 메시지 타입 정의 (preview-data.schema.json 기준)
+const (
+	MessageTypePreviewAttach   = "PREVIEW_ATTACH"
+	MessageTypePreviewAttached = "PREVIEW_ATTACHED"
+)
+
 // Operation Mutation 타입
 const (
 	MutationTypeProvision = "PROVISION"
@@ -61,6 +78,13 @@ const (
 	OutcomeSucceeded = "SUCCEEDED"
 	OutcomeFailed    = "FAILED"
 	OutcomeUnknown   = "UNKNOWN"
+)
+
+// Provider 조회 요청 타입
+const (
+	ProviderRequestValidateConnection = "VALIDATE_CONNECTION"
+	ProviderRequestListImages         = "LIST_IMAGES"
+	ProviderRequestListFlavors        = "LIST_FLAVORS"
 )
 
 // BaseEnvelope 는 v1 Control WSS의 공통 Envelope입니다.
@@ -123,6 +147,51 @@ type HeartbeatPayload struct {
 type HeartbeatMessage struct {
 	BaseEnvelope
 	Payload HeartbeatPayload `json:"payload"`
+}
+
+// ProviderRequestPayload 는 SaaS가 요청하는 Provider 연결 검증/조회입니다.
+type ProviderRequestPayload struct {
+	RequestType          string `json:"requestType"`
+	ProviderConnectionID string `json:"providerConnectionId"`
+}
+
+// ProviderRequestMessage 는 SaaS가 Connector로 보내는 Provider 조회 요청입니다.
+type ProviderRequestMessage struct {
+	BaseEnvelope
+	Payload ProviderRequestPayload `json:"payload"`
+}
+
+// ProviderImage 는 PROVIDER_RESPONSE의 정규화된 Image 항목입니다.
+type ProviderImage struct {
+	Kind   string `json:"kind"`
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Status string `json:"status,omitempty"`
+}
+
+// ProviderFlavor 는 PROVIDER_RESPONSE의 정규화된 Flavor 항목입니다.
+type ProviderFlavor struct {
+	Kind    string `json:"kind"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	VCPUs   int64  `json:"vcpus"`
+	RAMMiB  int64  `json:"ramMiB"`
+	DiskGiB int64  `json:"diskGiB"`
+}
+
+// ProviderResponsePayload 는 Provider 조회 결과입니다. Items에는
+// ProviderImage 또는 ProviderFlavor만 들어갑니다.
+type ProviderResponsePayload struct {
+	RequestType string        `json:"requestType"`
+	Outcome     string        `json:"outcome"`
+	Items       []interface{} `json:"items,omitempty"`
+	Error       *SafeError    `json:"error,omitempty"`
+}
+
+// ProviderResponseMessage 는 Connector가 Provider 조회 결과를 회신하는 메시지입니다.
+type ProviderResponseMessage struct {
+	BaseEnvelope
+	Payload ProviderResponsePayload `json:"payload"`
 }
 
 // SafeError 는 로그/에러 메시지에 노출 가능한 민감정보가 제거된 오류입니다.
@@ -197,16 +266,24 @@ type CreationSnapshot struct {
 
 // OperationCommandPayload 는 SaaS가 지시하는 Provision/Reset/Cleanup 명령 본문입니다.
 //
-// ProviderResources 는 nil 과 빈 목록을 구분합니다. Schema 에서 CLEANUP 은 providerResources property 가 required 이고
-// array 에 minItems 가 없으므로 `"providerResources": []` 는 유효합니다. 반대로 PROVISION/RESET 에서는 optional 입니다.
+// providerResources 에 대한 요구는 mutationType 마다 다릅니다(connector.schema.json 기준).
+//
+//   - PROVISION: providerResources 를 요구하지 않습니다.
+//   - RESET: 직전 generation 리소스를 담은 비어 있지 않은 providerResources 가 필수입니다. 각 항목은 logicalName 이
+//     있어야 하고 generation 은 envelope generation - 1 이어야 합니다.
+//   - CLEANUP: providerResources property 가 필수입니다. array 에 minItems 가 없으므로 `"providerResources": []` 도 유효합니다.
+//
+// 이 type 은 값을 직렬화할 뿐 위 요구를 검사하지 않습니다. RESET 의 요구는 SaaS 의 outbound 검증과 Connector 의 inbound 검증이 강제합니다.
+//
+// ProviderResources 는 nil 과 빈 목록을 구분합니다.
 //
 //   - nil            → property 를 만들지 않습니다(누락). null 도 만들지 않습니다.
 //   - 빈 non-nil     → `"providerResources": []`
 //   - 항목이 있는 경우 → 그 목록
 //
 // 단순한 omitempty 는 빈 목록의 property 를 지워 유효한 빈 CLEANUP 을 Schema-invalid 로 만들고, omitempty 를 빼면
-// PROVISION/RESET 의 nil 이 null 로 나가 Schema-invalid 가 되므로 MarshalJSON 으로 구분합니다. decode 는 기본 동작이며
-// `[]` 는 빈 non-nil, 누락과 null 은 nil 입니다.
+// providerResources 가 요구되지 않는 PROVISION 등의 nil 이 null 로 나가 Schema-invalid 가 되므로 MarshalJSON 으로 구분합니다.
+// decode 는 기본 동작이며 `[]` 는 빈 non-nil, 누락과 null 은 nil 입니다.
 type OperationCommandPayload struct {
 	MutationType      string                `json:"mutationType"` // PROVISION, RESET, CLEANUP
 	CreationSnapshot  *CreationSnapshot     `json:"creationSnapshot,omitempty"`

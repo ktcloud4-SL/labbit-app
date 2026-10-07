@@ -1,0 +1,1344 @@
+{
+  "testedSourceCommit": "0f8ca010ed45eea0db669937871006fa0e7e5a7b",
+  "testedSourceTree": "4f1ec21cd108456e309070237e57593d3865e400",
+  "integratedMain": "1bdb296358d856169735a71af01ca82907d80ac4",
+  "scope": "All tracked repository blobs excluding historical/current evidence folders. Evidence-only follow-up must leave every listed file unchanged.",
+  "files": [
+    {
+      "path": ".editorconfig",
+      "blob": "964da2ae05dc11a11980f90cfd563c5a2cc13bdb"
+    },
+    {
+      "path": ".github/CODEOWNERS",
+      "blob": "8fa39637227821073412e25a950b5febf047b36e"
+    },
+    {
+      "path": ".github/SECURITY.md",
+      "blob": "9f64261e682f526e3ba9951104bbd2a32f96c364"
+    },
+    {
+      "path": ".github/dependabot.yml",
+      "blob": "d2cca3aa413634f9c223ea58f00dfd7f1a2863d4"
+    },
+    {
+      "path": ".github/pull_request_template.md",
+      "blob": "2a3840d1c8d47e62f3352a2295da4081791ea544"
+    },
+    {
+      "path": ".github/workflows/contracts.yml",
+      "blob": "ae6fb7a5fe8214d8d2ceea0cab0bcc5bbb591e33"
+    },
+    {
+      "path": ".github/workflows/delivery.yml",
+      "blob": "37bd06f244ef2d649a53cf379be8a7111695be55"
+    },
+    {
+      "path": ".github/workflows/go.yml",
+      "blob": "8ca2ef72a77c761749f914ff5e2af6aa4a2e0c29"
+    },
+    {
+      "path": ".github/workflows/web.yml",
+      "blob": "537f7d7fe284c62354a6b85c1c53626ab14afc2d"
+    },
+    {
+      "path": ".gitignore",
+      "blob": "9a37f060ad374761d54110fe96474d7587d7dbb8"
+    },
+    {
+      "path": "AGENTS.md",
+      "blob": "f50a53b85268b9b9a981bd6212163a37dceae30d"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "blob": "84e3e1e86bf1c2bb68c806e08074d925b9ba3ab6"
+    },
+    {
+      "path": "LICENSE",
+      "blob": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64"
+    },
+    {
+      "path": "Makefile",
+      "blob": "6ba499a8604848744686d6a3cda70cec931c64df"
+    },
+    {
+      "path": "README.md",
+      "blob": "575ac940157060d62a8f3d3fe29068a976b4eff5"
+    },
+    {
+      "path": "TESTING.md",
+      "blob": "45d56ea9da3b2bc1f95f19bf37722d617a0c90a1"
+    },
+    {
+      "path": "cmd/labbit-connector/main.go",
+      "blob": "3113350276619d9e806a0bd9f16aa98ff2477dd6"
+    },
+    {
+      "path": "cmd/labbit-migrate/main.go",
+      "blob": "94137ae6879aeba732108836b1bc4bab1f5b5d69"
+    },
+    {
+      "path": "cmd/labbit-server/main.go",
+      "blob": "852106ef7d521edd892bc5a75bef2574230914c1"
+    },
+    {
+      "path": "compose.yaml",
+      "blob": "d82641b47c2ec862333977be65f3b677bf1e0e16"
+    },
+    {
+      "path": "contracts/connector/README.md",
+      "blob": "f2026cb3ccbec39c5bb8b478695a0ebc2ae20fd6"
+    },
+    {
+      "path": "contracts/connector/connector.schema.json",
+      "blob": "6e004eaa4f9150c2f1655cd66061b84ea803515a"
+    },
+    {
+      "path": "contracts/connector/file-control.schema.json",
+      "blob": "2a7783310cee2ba487d832c7230cc88d9d1b8e84"
+    },
+    {
+      "path": "contracts/connector/file-data.schema.json",
+      "blob": "05f50117f02091ff6498ccbdbe3add4bd94c0a63"
+    },
+    {
+      "path": "contracts/connector/terminal-control.schema.json",
+      "blob": "f52ffd77cc5a65b7da6a43defbb12bcc4c101185"
+    },
+    {
+      "path": "contracts/connector/terminal-data.schema.json",
+      "blob": "96554acf1ee2ec002c611bb955394a7efa794d7d"
+    },
+    {
+      "path": "contracts/http/openapi.yaml",
+      "blob": "f1f125d8421cca6d40069ec9034d6ebbe0aef517"
+    },
+    {
+      "path": "contracts/realtime/README.md",
+      "blob": "dc1b78fa532f3cf03e9c13ca0ea15bb7b6fd8f1d"
+    },
+    {
+      "path": "contracts/realtime/terminal-live.schema.json",
+      "blob": "6863cade8b0b222ad32d4e478ae15e9650e4ad6d"
+    },
+    {
+      "path": "db/migrations/000001_identity_and_class.sql",
+      "blob": "0813e9335d75edf4aa35cb995ba4b4fa84d812a4"
+    },
+    {
+      "path": "db/migrations/000002_connector_and_provider.sql",
+      "blob": "0f260ec5eb5e726d70ae0cfd2afb03b5a06f20d6"
+    },
+    {
+      "path": "db/migrations/000003_lab_spec.sql",
+      "blob": "3523e046d354a628ea72409d2e118c2298b57a68"
+    },
+    {
+      "path": "db/migrations/000004_execution_operation_resource.sql",
+      "blob": "74ab4528fae10956ab05f8c0178049151a53f6de"
+    },
+    {
+      "path": "db/migrations/000005_realtime_sessions.sql",
+      "blob": "78e1c0af6ed488b16d0d22fb7dcf28a53575d568"
+    },
+    {
+      "path": "db/migrations/000006_operation_trace_context.sql",
+      "blob": "dc12063c9a610da3adbdd248181a5ef2dc770594"
+    },
+    {
+      "path": "db/migrations/README.md",
+      "blob": "0cfd9f53f754687f96c563649ddf24dae41c5139"
+    },
+    {
+      "path": "db/migrations/embed.go",
+      "blob": "92362be0e0c409560c75d5e9f4694ed7748ce374"
+    },
+    {
+      "path": "docs/JUHEE_DEV_STATUS.md",
+      "blob": "f47dd414520cc72b3a04a2f3cfdb3da7862b0e61"
+    },
+    {
+      "path": "docs/backend/README.md",
+      "blob": "5e08335eced255d06cdde54e23cf57861efab4fd"
+    },
+    {
+      "path": "docs/backend/auth-session.md",
+      "blob": "937f18ca4924dd55804693268242a1655f314841"
+    },
+    {
+      "path": "docs/frontend/auth-class-http-smoke.md",
+      "blob": "532965ed033a3744a0a9e81ffe9463f6ba0ff5c9"
+    },
+    {
+      "path": "docs/frontend/deployment-handoff.md",
+      "blob": "f5935d56c4cd74cf40fc2cf82f6bda99bd2a3b0c"
+    },
+    {
+      "path": "go.mod",
+      "blob": "d282229d9852a86fa84e403da90ef9e89a453132"
+    },
+    {
+      "path": "go.sum",
+      "blob": "12eb08df6095a4364326aec4c4a029283d30b26a"
+    },
+    {
+      "path": "internal/connector/app/app.go",
+      "blob": "4828ee2a207885859e46d2dbe65369aa8f72681a"
+    },
+    {
+      "path": "internal/connector/app/app_test.go",
+      "blob": "3e48b7282208603ad2d42831005fd36a6ba049ae"
+    },
+    {
+      "path": "internal/connector/app/main_integration_test.go",
+      "blob": "afe1c779ddff32f96705d376bf8553e3102b0d33"
+    },
+    {
+      "path": "internal/connector/app/runtime_provider.go",
+      "blob": "17acd15a16457756fe38eb1f24420e5932c3c2d2"
+    },
+    {
+      "path": "internal/connector/app/runtime_provider_test.go",
+      "blob": "0836825319a59668d2d4c775f5530c1a65e4abce"
+    },
+    {
+      "path": "internal/connector/heartbeat/loop.go",
+      "blob": "2058f6f37ba8b3bba97c5a0df8f447d657e8808f"
+    },
+    {
+      "path": "internal/connector/heartbeat/loop_test.go",
+      "blob": "2b2ff0c8d604355750b56cdf9648643dcc8185d8"
+    },
+    {
+      "path": "internal/connector/mock/saas.go",
+      "blob": "e89dbcf254971a92f4f53b2dce19e57d20bba3db"
+    },
+    {
+      "path": "internal/connector/mock/saas_test.go",
+      "blob": "fd06fa2c94d737bb28c57e70382e279e5199246e"
+    },
+    {
+      "path": "internal/connector/mock/terminal_relay.go",
+      "blob": "f34c87e6605586fa8011debdc15ca58a1b3ae058"
+    },
+    {
+      "path": "internal/connector/protocol/terminal.go",
+      "blob": "04b9e68c7749ae6b41f7b3d898828e0717fd8d92"
+    },
+    {
+      "path": "internal/connector/protocol/types.go",
+      "blob": "5eb0cd14ab0cf5b349d2a40e34d66c3e130b9e6a"
+    },
+    {
+      "path": "internal/connector/protocol/types_test.go",
+      "blob": "c004336b0595ef4cf9634e3a9854ef97b9568851"
+    },
+    {
+      "path": "internal/connector/provider/mock.go",
+      "blob": "076077ca78d6ffb0cce3241799c1dd191eaa51ec"
+    },
+    {
+      "path": "internal/connector/provider/openstack/client.go",
+      "blob": "efecdbb38372b8f6184b45d6fd9928724bf01438"
+    },
+    {
+      "path": "internal/connector/provider/openstack/client_test.go",
+      "blob": "29bc693d1e6a46064580f944a434710731144982"
+    },
+    {
+      "path": "internal/connector/provider/openstack/connection_validation_test.go",
+      "blob": "e53df0bd0b206732400e1169c4bfa43b553db981"
+    },
+    {
+      "path": "internal/connector/provider/openstack/control_wss_cleanup_test.go",
+      "blob": "21d7bc8e0c9fc134560adb3a6e409d2e1b00c18c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/control_wss_integration_test.go",
+      "blob": "6cd02a4db44605d96c6bbd4260f797c9dfcb5fe1"
+    },
+    {
+      "path": "internal/connector/provider/openstack/integration_test.go",
+      "blob": "8e9ba0303a32cfe0be7ef79bb88c914db54f617c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/lifecycle.go",
+      "blob": "da185457a5fb6640b4d5124395569c756b37ecc2"
+    },
+    {
+      "path": "internal/connector/provider/openstack/lifecycle_test.go",
+      "blob": "e688a6c9bc03f4b6f04d325a8e79c0120264e413"
+    },
+    {
+      "path": "internal/connector/provider/openstack/multi_vm_readiness_test.go",
+      "blob": "5a7b01e89ff6a35afaab6fe045f5469c44ab8552"
+    },
+    {
+      "path": "internal/connector/provider/openstack/network.go",
+      "blob": "2f732981c65c55edbf8e5fc725a305744d12aa7b"
+    },
+    {
+      "path": "internal/connector/provider/openstack/network_test.go",
+      "blob": "11ea7bd847d989d0f6c0369028e54cc9af4b2da6"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ownership_test.go",
+      "blob": "0a3a8c85ec7614b3a39b8cae9c754e276cff9fe5"
+    },
+    {
+      "path": "internal/connector/provider/openstack/port.go",
+      "blob": "c368a8d7df8fa59c25b5a9292a666246faa14417"
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision.go",
+      "blob": "c097f894cd7ae56cd4671b62a778a17467579ee8"
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision_test.go",
+      "blob": "054c76be02dd77108b0afbd4438f061e693b9078"
+    },
+    {
+      "path": "internal/connector/provider/openstack/query.go",
+      "blob": "d77ecd94302d7eb3f0a11ff05aa6bb0d4f2edb73"
+    },
+    {
+      "path": "internal/connector/provider/openstack/query_test.go",
+      "blob": "3b648322f6906268fa0cadbd77de59d87c4e1920"
+    },
+    {
+      "path": "internal/connector/provider/openstack/quota.go",
+      "blob": "68b8f93855fd491c25216e7bb90a6c7f43c12497"
+    },
+    {
+      "path": "internal/connector/provider/openstack/quota_test.go",
+      "blob": "1bd5984e6d54a04bb35d76c59d9b738175fe5872"
+    },
+    {
+      "path": "internal/connector/provider/openstack/reconciliation.go",
+      "blob": "43dac3c54cf484b0e683ef5dfe943cbb0171a46b"
+    },
+    {
+      "path": "internal/connector/provider/openstack/reconciliation_test.go",
+      "blob": "577802abefcaa7950b18fcc38a0823add4cceb4f"
+    },
+    {
+      "path": "internal/connector/provider/openstack/router.go",
+      "blob": "6ffa761d1df0cad47b79c647162500daca56e89b"
+    },
+    {
+      "path": "internal/connector/provider/openstack/server.go",
+      "blob": "36e49ab17e59f2c3e7fade59e55daba4b54fb170"
+    },
+    {
+      "path": "internal/connector/provider/openstack/server_test.go",
+      "blob": "9259ed5bf486bbe65df03437b0293bc7246d5d0e"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ssh_cancellation_test.go",
+      "blob": "1fdc42a1d7c5439869c95aad38336b414b97118b"
+    },
+    {
+      "path": "internal/connector/provider/openstack/startup.go",
+      "blob": "546af100516bb55118f8ed27fef2a2fc1cd939eb"
+    },
+    {
+      "path": "internal/connector/provider/openstack/startup_test.go",
+      "blob": "66061854736cb08f948781674f8312d5bb782632"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target.go",
+      "blob": "b26ccc061aff4fd60dc28358a20541ff43346725"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target_test.go",
+      "blob": "5137a8fe3e9848adc482b2b3d10b17d9292c58b4"
+    },
+    {
+      "path": "internal/connector/provider/openstack/test_helpers_test.go",
+      "blob": "af9c5ab655c3bc4e99f307e6a444f3160c21ff85"
+    },
+    {
+      "path": "internal/connector/provider/operation.go",
+      "blob": "ca89967ea88651585bd7987e48b18961ec4e6563"
+    },
+    {
+      "path": "internal/connector/provider/operation_test.go",
+      "blob": "e2ee3dcd6cf6f9e959815e47588c62077fb3504d"
+    },
+    {
+      "path": "internal/connector/provider/provider.go",
+      "blob": "675cf89b6034ad3b054a8994125dfa77d105de10"
+    },
+    {
+      "path": "internal/connector/provider/query.go",
+      "blob": "a5e0054c49c00bc58c1c864f29635a2189cc31fe"
+    },
+    {
+      "path": "internal/connector/provider/reconcile.go",
+      "blob": "17935bb578736e869289aa8e471a52e0f59e8aad"
+    },
+    {
+      "path": "internal/connector/terminal/client.go",
+      "blob": "4d8be753482a119e1f2bcd8cf26e655610c54e8a"
+    },
+    {
+      "path": "internal/connector/terminal/pty.go",
+      "blob": "0aa5efd0aeed65ed45a54ddc29f0c481bb43488a"
+    },
+    {
+      "path": "internal/connector/terminal/session.go",
+      "blob": "4e7e5ebc4907f75c41e365d05b4c6d43a0fc5f38"
+    },
+    {
+      "path": "internal/connector/terminal/ssh_cancellation_test.go",
+      "blob": "d5439d2898e9a94ceca169abdbc61336362ece62"
+    },
+    {
+      "path": "internal/connector/terminal/ssh_pty.go",
+      "blob": "924f2988460797c5ef08b4608c21bbd6b94fc74b"
+    },
+    {
+      "path": "internal/connector/terminal/ssh_pty_test.go",
+      "blob": "d0d90f33587235b6fd55677750ad1cc95eb73728"
+    },
+    {
+      "path": "internal/connector/terminal/terminal_test.go",
+      "blob": "d0ef75b87ab905b7a3a18699c73e320c256992fc"
+    },
+    {
+      "path": "internal/connector/wss/client.go",
+      "blob": "2c33aeb0f549aa51c82077a1355a74d0798f4bf1"
+    },
+    {
+      "path": "internal/connector/wss/client_test.go",
+      "blob": "ee517d1a06024cde501dcb5f2e9431b61720ef6c"
+    },
+    {
+      "path": "internal/connector/wss/client_write_test.go",
+      "blob": "f94f1d50ccc509c454e9f49f68f35867d4d5e8e4"
+    },
+    {
+      "path": "internal/connector/wss/config.go",
+      "blob": "23b97b422b12624566e71d5f2a392e5fca2904b5"
+    },
+    {
+      "path": "internal/connector/wss/config_test.go",
+      "blob": "86bd2d45a7ba91ab0015a8e3fc0fd86a60d7d444"
+    },
+    {
+      "path": "internal/connector/wss/handler.go",
+      "blob": "38be91de7de5d8cde3c916e253f7c83a0c1e7742"
+    },
+    {
+      "path": "internal/connector/wss/handler_contract_test.go",
+      "blob": "979e00fe8d1ab87f3d8e7327cb8a621b00b452ec"
+    },
+    {
+      "path": "internal/connector/wss/handler_terminal_test.go",
+      "blob": "229eb40075378df79e9eed2039487f39ccd7ff53"
+    },
+    {
+      "path": "internal/connector/wss/handler_test.go",
+      "blob": "310a46fb4b92549fbd1b6b04555b8c4903f24de7"
+    },
+    {
+      "path": "internal/connector/wss/handler_validation_test.go",
+      "blob": "578c253cff07fd6e2d783099c947ad381afdfdf3"
+    },
+    {
+      "path": "internal/connector/wss/reconnect.go",
+      "blob": "1bb19342f57fb016d6d0338b3cdbff4c9f9e6914"
+    },
+    {
+      "path": "internal/connector/wss/reconnect_operation_test.go",
+      "blob": "305889448e0c6e222b8ce63a0255ed3f1d823c61"
+    },
+    {
+      "path": "internal/connector/wss/reconnect_test.go",
+      "blob": "42728b9f8c4f8dfc1e371d6f725f7ff0e229d0d7"
+    },
+    {
+      "path": "internal/observability/logging.go",
+      "blob": "894e69e83eb2b7f3ce4a40fc62818b76d201ab68"
+    },
+    {
+      "path": "internal/observability/logging_test.go",
+      "blob": "799ce42fd729d7936c4189c76c3a3029245ffa44"
+    },
+    {
+      "path": "internal/observability/metrics.go",
+      "blob": "e2ccbf7ce220685956de01ac11266ee048bf5511"
+    },
+    {
+      "path": "internal/postgres/bootstrap.go",
+      "blob": "48162d00967f4d2f9d90aa9f6fc5fe75a7fc5a05"
+    },
+    {
+      "path": "internal/postgres/bootstrap_integration_test.go",
+      "blob": "aca5c1685ff4c1cf73bc303675ad5ebf9000c8f8"
+    },
+    {
+      "path": "internal/postgres/class.go",
+      "blob": "3f952302eeff6b69d2749f11787b1e8f51b00724"
+    },
+    {
+      "path": "internal/postgres/connector.go",
+      "blob": "17f7a570bd493a2a212a8354980193a5a693e185"
+    },
+    {
+      "path": "internal/postgres/connector_heartbeat_integration_test.go",
+      "blob": "a41897224dc9e893233e2b7c55fb4e98fb6c04a0"
+    },
+    {
+      "path": "internal/postgres/connector_integration_test.go",
+      "blob": "5552079a19585fe4980c3a834ea8796a900d32f4"
+    },
+    {
+      "path": "internal/postgres/constraint_integration_test.go",
+      "blob": "92983b0c42a0ec2e3041b5d78859fbb8fe6cf11c"
+    },
+    {
+      "path": "internal/postgres/dsn.go",
+      "blob": "a18bf541c3599bc9bcb454f9bf4e5d3589588872"
+    },
+    {
+      "path": "internal/postgres/dsn_test.go",
+      "blob": "cec9041aabcdf75197c1f9bcd74e70527e9d0b08"
+    },
+    {
+      "path": "internal/postgres/errors.go",
+      "blob": "8d70260eb85608d229044126971161828dbca11c"
+    },
+    {
+      "path": "internal/postgres/errors_test.go",
+      "blob": "0cf0e809ed58c773db8e8d24cc098386f2f4636c"
+    },
+    {
+      "path": "internal/postgres/identity.go",
+      "blob": "b08dc51bfe0710fa32aa41531714f9b0ffa5108a"
+    },
+    {
+      "path": "internal/postgres/migrate.go",
+      "blob": "9361332bbbd5246f1214f37eca3625e3f8409535"
+    },
+    {
+      "path": "internal/postgres/migrate_integration_test.go",
+      "blob": "2def611a35f00d2b51c1179930551b5f6a277318"
+    },
+    {
+      "path": "internal/postgres/migration.go",
+      "blob": "a7cb01363470684e44d2ffb06ff6a7e3caef51e2"
+    },
+    {
+      "path": "internal/postgres/migration_test.go",
+      "blob": "c75a42ef14955082f55bb4b60ae105480289c2ad"
+    },
+    {
+      "path": "internal/postgres/postgrestest/database.go",
+      "blob": "6d0f829cbd7cd996f613f67b97498964aaeaaa70"
+    },
+    {
+      "path": "internal/postgres/postgrestest/database_integration_test.go",
+      "blob": "cac11d5e3d54d1800ad586d234aee6b6e626a352"
+    },
+    {
+      "path": "internal/postgres/postgrestest/database_test.go",
+      "blob": "5130362a430f3182eb1b880e295dc122cd5d61d5"
+    },
+    {
+      "path": "internal/postgres/schema.go",
+      "blob": "c50391c8c78fda98a1daaa2b25b19aa64f3447b3"
+    },
+    {
+      "path": "internal/postgres/store.go",
+      "blob": "576b8aa6baf575874ecf3c4af515548f2d3250e1"
+    },
+    {
+      "path": "internal/postgres/store_helpers_integration_test.go",
+      "blob": "ba75c337baaea5d24fb5ff5c3f8f367018514de4"
+    },
+    {
+      "path": "internal/postgres/store_integration_test.go",
+      "blob": "3a809f810b5e48c983f829873f11f1704ab86417"
+    },
+    {
+      "path": "internal/postgres/terminal.go",
+      "blob": "97fb2915ed102baf77535037039c70b578c4c8a5"
+    },
+    {
+      "path": "internal/postgres/terminal_integration_test.go",
+      "blob": "fa45456682ce4fea4b46eceda77d6d6c6ad4801b"
+    },
+    {
+      "path": "internal/postgres/transaction_integration_test.go",
+      "blob": "9f6cfb2ee17847a167b0779efa012aa0c5afcace"
+    },
+    {
+      "path": "internal/server/app/app.go",
+      "blob": "4eabf6dfb7ef8a33f6d42fea19f44e4635d2838c"
+    },
+    {
+      "path": "internal/server/app/app_test.go",
+      "blob": "36e0dbcefdf66bba4e711bbf4e8cc15445a90eee"
+    },
+    {
+      "path": "internal/server/app/auth_integration_test.go",
+      "blob": "a67be83074f6e19ec1efc52b3a6c647c06144319"
+    },
+    {
+      "path": "internal/server/app/connector_integration_test.go",
+      "blob": "11e4816bb8bf43fff1404c0efd36c06e0b342f1a"
+    },
+    {
+      "path": "internal/server/app/connector_lifecycle_integration_test.go",
+      "blob": "bc18efc5e7d2d4f8d966308ab924e33cf61f1a51"
+    },
+    {
+      "path": "internal/server/app/connector_routing_integration_test.go",
+      "blob": "772867dcad0ec2af3fc3adc9be04fae0a59b1339"
+    },
+    {
+      "path": "internal/server/app/control_stack.go",
+      "blob": "1330abb5ce8b28dff8cbcf89a32264537fb4c475"
+    },
+    {
+      "path": "internal/server/app/file_integration_test.go",
+      "blob": "9e473f59c0ad5e2dc3e7a1b662b3f8ebe7c7b040"
+    },
+    {
+      "path": "internal/server/app/file_misbehavior_integration_test.go",
+      "blob": "ce23dc3d974aa75698338f8266eb95255981bd3a"
+    },
+    {
+      "path": "internal/server/app/metrics_integration_test.go",
+      "blob": "3bf45dadc02fcb7356825caaf635211b2873571b"
+    },
+    {
+      "path": "internal/server/app/metrics_test.go",
+      "blob": "fd4226b46066d7b4590d80653bc6bddf64a6d45c"
+    },
+    {
+      "path": "internal/server/app/readiness.go",
+      "blob": "cad9555c8383869486c272e5611c54db5098f3bf"
+    },
+    {
+      "path": "internal/server/app/readiness_integration_test.go",
+      "blob": "99bf56fc99e60c2af2b8d570c4e184ef81526cb3"
+    },
+    {
+      "path": "internal/server/app/terminal_denied_integration_test.go",
+      "blob": "7fc9f6108608dccc0bed0e2c952412a5aabb1c3f"
+    },
+    {
+      "path": "internal/server/app/terminal_env_integration_test.go",
+      "blob": "6be9724adc0254887acc00236b39e9deaeb3b877"
+    },
+    {
+      "path": "internal/server/app/terminal_integration_test.go",
+      "blob": "ff1b0bdc2402f4d48b47a7eb3a5046777cfa26e2"
+    },
+    {
+      "path": "internal/server/app/terminal_lifecycle_integration_test.go",
+      "blob": "b8259ebb3d930dcf1148b1e024826ac03054b0e8"
+    },
+    {
+      "path": "internal/server/app/terminal_revoke_integration_test.go",
+      "blob": "fe85b218f37b0fdbb3bbfb5f0c467657b8246822"
+    },
+    {
+      "path": "internal/server/app/terminal_targets_integration_test.go",
+      "blob": "40072c5ddb562425824ebd6b5ecb5d0ad1f4c108"
+    },
+    {
+      "path": "internal/server/app/terminal_topology_integration_test.go",
+      "blob": "950488ea9cbd5c7d52520c8014a9b498de94f38e"
+    },
+    {
+      "path": "internal/server/app/terminal_trace_integration_test.go",
+      "blob": "9aae7fc0b19e5d42b0ddeb6d33491e60e95ee086"
+    },
+    {
+      "path": "internal/server/auth/password.go",
+      "blob": "6cb751246fb0f55efb6b0598ff5ec37b33c8375e"
+    },
+    {
+      "path": "internal/server/auth/password_test.go",
+      "blob": "ba09ff63e77bac9786f9bac09f0e3586cd7fe34d"
+    },
+    {
+      "path": "internal/server/auth/service.go",
+      "blob": "a909be1a1ffcff599e1065fe6e8740e1defc3512"
+    },
+    {
+      "path": "internal/server/auth/service_integration_test.go",
+      "blob": "c4270012e737fe5de857ace5c7d10e467be4470e"
+    },
+    {
+      "path": "internal/server/auth/service_test.go",
+      "blob": "f6b4f4320063c10fc313945b6bf24e2e92cbe640"
+    },
+    {
+      "path": "internal/server/bootstrap/bootstrap.go",
+      "blob": "6419f705964d3b3ac2cbea01705610db86661633"
+    },
+    {
+      "path": "internal/server/bootstrap/bootstrap_test.go",
+      "blob": "618d4906f69c9dd55639506ea39955b1b6499100"
+    },
+    {
+      "path": "internal/server/class/service.go",
+      "blob": "1f285c31a78f1f275ac59a8f16f0ebd894b3c8b4"
+    },
+    {
+      "path": "internal/server/class/service_test.go",
+      "blob": "0bdf8dc25ee864f34c77de397fa8a52983ff9de8"
+    },
+    {
+      "path": "internal/server/connector/auth.go",
+      "blob": "26db67f44776a98855941b91513dba10f293ba3c"
+    },
+    {
+      "path": "internal/server/connector/auth_test.go",
+      "blob": "6c4f2f6afd24a1d399cf81947ec5ad1aad4d6bf0"
+    },
+    {
+      "path": "internal/server/connector/command.go",
+      "blob": "de63dadad072a62e44f3defb6210283c13529de9"
+    },
+    {
+      "path": "internal/server/connector/events.go",
+      "blob": "b24303bedbbbce58c826164a0d4b0e5abd0a0006"
+    },
+    {
+      "path": "internal/server/connector/file.go",
+      "blob": "005ac6752122a958715751c62415533ea57da95d"
+    },
+    {
+      "path": "internal/server/connector/file_test.go",
+      "blob": "06bdbcdd0ae0f2d0fc863274d5a10bf133a121b6"
+    },
+    {
+      "path": "internal/server/connector/registry.go",
+      "blob": "2edbb7d8878d0e8a4c53411b13ba095903cd06e0"
+    },
+    {
+      "path": "internal/server/connector/registry_observer_test.go",
+      "blob": "5e65c618bb0a1147e378dc36df22fd71828d93f1"
+    },
+    {
+      "path": "internal/server/connector/registry_test.go",
+      "blob": "afd3f5dc019124534f4f8f3fe87316e3b8e1c6f4"
+    },
+    {
+      "path": "internal/server/connector/route_test.go",
+      "blob": "8398a325d3d3d2aae291c33900bda45045e9cc1f"
+    },
+    {
+      "path": "internal/server/connector/router.go",
+      "blob": "7dee64d9ddf1e19e62ffae4c25fa61f2d8891731"
+    },
+    {
+      "path": "internal/server/connector/router_test.go",
+      "blob": "863abb1d9de5573b0dcb585bacf3aadd670cbed2"
+    },
+    {
+      "path": "internal/server/connector/terminal.go",
+      "blob": "88d727e3b523e8eff943a9963d424a96929892f6"
+    },
+    {
+      "path": "internal/server/connector/terminal_test.go",
+      "blob": "a6b281efe608ec7b01ce8d51eb4ae3e518dd9fe0"
+    },
+    {
+      "path": "internal/server/connector/trace.go",
+      "blob": "8ebd6b9d967ddd8cc033e2539fe6a337852f3346"
+    },
+    {
+      "path": "internal/server/connector/trace_test.go",
+      "blob": "07fc1e5521163e02c6a5caa182e03730fa0439b8"
+    },
+    {
+      "path": "internal/server/connectorwss/conn.go",
+      "blob": "b367c4849519a1d7a58f10586d030cad160babca"
+    },
+    {
+      "path": "internal/server/connectorwss/conn_test.go",
+      "blob": "68b4dcbb30119bbe5913eaa2491fed3de248d689"
+    },
+    {
+      "path": "internal/server/connectorwss/connector_integration_test.go",
+      "blob": "860eddde17cdf1a27ffe156c5cac924de1d14ae4"
+    },
+    {
+      "path": "internal/server/connectorwss/file_routing_test.go",
+      "blob": "a1d3e7726c3b1c61870e5bf6becc357a649a3bae"
+    },
+    {
+      "path": "internal/server/connectorwss/handler.go",
+      "blob": "d1a044e194a25431c2975d6046ce0e99969f98e0"
+    },
+    {
+      "path": "internal/server/connectorwss/handler_test.go",
+      "blob": "bd7bc31add416696d929144434aec161b9c987c7"
+    },
+    {
+      "path": "internal/server/connectorwss/heartbeat_test.go",
+      "blob": "e2f8e47e73e6d35b466071e8270a9affec5a3881"
+    },
+    {
+      "path": "internal/server/connectorwss/inbound.go",
+      "blob": "1ee4f6886b83f689ccd945b76a0d8622e21779b7"
+    },
+    {
+      "path": "internal/server/connectorwss/inbound_file.go",
+      "blob": "44391ed17cd94f925fe24facd93a8085f1c422c0"
+    },
+    {
+      "path": "internal/server/connectorwss/inbound_terminal.go",
+      "blob": "e0c4233fde6ef0c71272bdead0490e11e9263b67"
+    },
+    {
+      "path": "internal/server/connectorwss/inbound_test.go",
+      "blob": "bca4165a11235e8cfd632c729b1d20a77df3c798"
+    },
+    {
+      "path": "internal/server/connectorwss/lifecycle_test.go",
+      "blob": "e89192a8369b586988ca31b9815266d7cc0f945e"
+    },
+    {
+      "path": "internal/server/connectorwss/revoke_observer_test.go",
+      "blob": "c5deeceb2ccd26a4dbffdfe6388e1e5eb144b96b"
+    },
+    {
+      "path": "internal/server/connectorwss/routing_test.go",
+      "blob": "36b9569ac2561110ea77b174f98826df9425db39"
+    },
+    {
+      "path": "internal/server/connectorwss/terminal_routing_test.go",
+      "blob": "df2807cb41c24604fcea8f6b76b57ff7a783d52f"
+    },
+    {
+      "path": "internal/server/filetransport/boundary_test.go",
+      "blob": "1dc5521c8ccbfd34aa85b7dce86926cedb927993"
+    },
+    {
+      "path": "internal/server/filetransport/broker.go",
+      "blob": "f49ef9420aa58614bb576ac6e161b90599b01435"
+    },
+    {
+      "path": "internal/server/filetransport/broker_test.go",
+      "blob": "a596892810a30f79ecff3d8a645192577de7d8fe"
+    },
+    {
+      "path": "internal/server/filetransport/data.go",
+      "blob": "1c701873aa9a7c9a7144359d98a02749e4b3f6dd"
+    },
+    {
+      "path": "internal/server/filetransport/data_test.go",
+      "blob": "92e434be1605bf391df1225f3396eb1f4f5dcafb"
+    },
+    {
+      "path": "internal/server/filetransport/filetest/fs.go",
+      "blob": "65b678771ee5efe1ecaf8f4e4a5703c9fde458af"
+    },
+    {
+      "path": "internal/server/filetransport/filetest/peer.go",
+      "blob": "4fc3db3e668978ea391d247ee72015c5066d7bf7"
+    },
+    {
+      "path": "internal/server/filetransport/harness_test.go",
+      "blob": "4bdb3033a14f26d1bcc2855f9b7223f70b9a0283"
+    },
+    {
+      "path": "internal/server/filetransport/lifecycle_test.go",
+      "blob": "b3a7a5a0332318c1ec9fc66e949eb8e76c224616"
+    },
+    {
+      "path": "internal/server/filetransport/trust.go",
+      "blob": "3e74b0875565b432affb8ab388fb49285c743826"
+    },
+    {
+      "path": "internal/server/filetransport/wire.go",
+      "blob": "be110fd7f4d42f19c43ae2412ae0feb12d3db694"
+    },
+    {
+      "path": "internal/server/httpapi/api.go",
+      "blob": "b024428b8abce71a272ded5a39bbb40447a4fe80"
+    },
+    {
+      "path": "internal/server/httpapi/api_test.go",
+      "blob": "6e5474ac0c1489b5052c3e4364c22daf07aa4dc2"
+    },
+    {
+      "path": "internal/server/httpapi/class.go",
+      "blob": "b60b113c3f07421472c140c533061dd85f554a5b"
+    },
+    {
+      "path": "internal/server/httpapi/class_integration_test.go",
+      "blob": "ddf70794342ddd2503f640479185733fc88dcd26"
+    },
+    {
+      "path": "internal/server/httpapi/class_test.go",
+      "blob": "e817bb949bc17ee4f9697e0340eedb24acaf1451"
+    },
+    {
+      "path": "internal/server/httpapi/cookie.go",
+      "blob": "d87aa6bcc8e1e2218af41c642ba6188f661f3fcc"
+    },
+    {
+      "path": "internal/server/httpapi/file.go",
+      "blob": "cecfbb74448753ebd3202d840136e4f85d03938a"
+    },
+    {
+      "path": "internal/server/httpapi/file_boundary_test.go",
+      "blob": "609a57f10d468efa577018b527b21c56d1469b46"
+    },
+    {
+      "path": "internal/server/httpapi/file_test.go",
+      "blob": "e7b8e6b5b19044dd3a6dd296cc5cd4c9f0343a14"
+    },
+    {
+      "path": "internal/server/httpapi/integration_test.go",
+      "blob": "56c423458b2acf1f75371bb8ef7556441a0574f5"
+    },
+    {
+      "path": "internal/server/httpapi/metrics.go",
+      "blob": "9b1f34e01ffb0201d182ec63ba740785311a9123"
+    },
+    {
+      "path": "internal/server/httpapi/metrics_test.go",
+      "blob": "23931504ce2d1b8fb190993bb3619fbe8937bf71"
+    },
+    {
+      "path": "internal/server/httpapi/origin.go",
+      "blob": "319d916980f41cb5967336c9c830c73e901f6a2b"
+    },
+    {
+      "path": "internal/server/httpapi/origin_test.go",
+      "blob": "53c0eaf22b817bc3bd73ccb54024db092ab15aff"
+    },
+    {
+      "path": "internal/server/httpapi/problem.go",
+      "blob": "76ca2755b55883193ba61dbca6d07fcc4015385e"
+    },
+    {
+      "path": "internal/server/httpapi/terminal.go",
+      "blob": "cf6f3ea3234c5cf3e147721bbe00c5d2246c8541"
+    },
+    {
+      "path": "internal/server/httpapi/terminal_test.go",
+      "blob": "d035de1f92c685c3fcef86b7476f007a6fd61691"
+    },
+    {
+      "path": "internal/server/jsonnum/jsonnum.go",
+      "blob": "30d5b503fb650bd1349dcd7118d736a6658ef31a"
+    },
+    {
+      "path": "internal/server/jsonnum/jsonnum_test.go",
+      "blob": "499fc33826840c083f31044eb0b6093b19deda0a"
+    },
+    {
+      "path": "internal/server/realtime/boundary_test.go",
+      "blob": "2951ea9112be4e455f20f59a43829e62c0c37288"
+    },
+    {
+      "path": "internal/server/realtime/browser.go",
+      "blob": "16be739c85f52f8e8ca4e5bf2bed5053b9f3546d"
+    },
+    {
+      "path": "internal/server/realtime/browser_test.go",
+      "blob": "9df7a04249a81aa63ac5e1a74800de228815df4e"
+    },
+    {
+      "path": "internal/server/realtime/data.go",
+      "blob": "70f4893240c493c31257f051cf07a0ecca324b05"
+    },
+    {
+      "path": "internal/server/realtime/data_test.go",
+      "blob": "c8e3a7b0dae3ada5155faf74114cf03fc45ab3bd"
+    },
+    {
+      "path": "internal/server/realtime/harness_test.go",
+      "blob": "063038472b3f6b0faafaedc84a74ff3e125c1e26"
+    },
+    {
+      "path": "internal/server/realtime/lifecycle_test.go",
+      "blob": "69e9f783a45170af1f40839824d4742724d35898"
+    },
+    {
+      "path": "internal/server/realtime/metrics.go",
+      "blob": "5f9318003aed4db725079db8bec40734d3c076e9"
+    },
+    {
+      "path": "internal/server/realtime/metrics_test.go",
+      "blob": "2ff90c01dd630c5ea154e035eb71379b35c84876"
+    },
+    {
+      "path": "internal/server/realtime/peer.go",
+      "blob": "96f4e28644a110334fee6d5a1b59611bd9fc15f5"
+    },
+    {
+      "path": "internal/server/realtime/realtime.go",
+      "blob": "4b437ac7ed8725cc8a16a880474f90af49c27acd"
+    },
+    {
+      "path": "internal/server/realtime/realtimetest/clock.go",
+      "blob": "cfab2f39e8d118ed586dda04c7e7148c8d5c7a97"
+    },
+    {
+      "path": "internal/server/realtime/redaction_test.go",
+      "blob": "0feca756bb2c681f9fe843932806694e42f9a914"
+    },
+    {
+      "path": "internal/server/realtime/relay.go",
+      "blob": "319a91d758b51620cd6c210160d93ee8a082b7bd"
+    },
+    {
+      "path": "internal/server/realtime/revoke_test.go",
+      "blob": "31ffcb851d837915efa4ad8ee0d5706b9a5ed72d"
+    },
+    {
+      "path": "internal/server/realtime/session.go",
+      "blob": "ee101d5edc2a687dbc1f3921b8ae8e98d9865696"
+    },
+    {
+      "path": "internal/server/realtime/trace_propagation_test.go",
+      "blob": "5d03c41f4f66c072ebcc518a802b33140a0e9c2c"
+    },
+    {
+      "path": "internal/server/realtime/trust.go",
+      "blob": "a1c9dc86a4b03b4a1f71344e7351ead611c6f86e"
+    },
+    {
+      "path": "internal/server/realtime/trust_test.go",
+      "blob": "a3c3d728bb90fa8e4ec85ca2dc132ea49e9b77ee"
+    },
+    {
+      "path": "internal/server/realtime/upgrade_test.go",
+      "blob": "5c923871ec0cad9b213faf4778e5f8ae20b14746"
+    },
+    {
+      "path": "internal/server/realtime/wire.go",
+      "blob": "fa047522efdd230b18e6380a144e62057459254f"
+    },
+    {
+      "path": "internal/server/realtime/wire_test.go",
+      "blob": "71927a0dd1011eb33e038de97d4093cd52d768c9"
+    },
+    {
+      "path": "internal/server/realtime/wiretrace_test.go",
+      "blob": "7f7c57f2eab3a8c2eaa2d4116a50d2a5263b5bb3"
+    },
+    {
+      "path": "internal/server/repository/boundary_test.go",
+      "blob": "2f7fb1a64e9fd31cebaad3ac05107d9055e16a10"
+    },
+    {
+      "path": "internal/server/repository/errors.go",
+      "blob": "b7b25b293e206da12551652e457df811b93ef90f"
+    },
+    {
+      "path": "internal/server/repository/errors_test.go",
+      "blob": "6031e40a70d18f5ebc4341729e040893b8182765"
+    },
+    {
+      "path": "internal/server/repository/model.go",
+      "blob": "2f28e38bf94b54c88d2311a1b7296e22262794c9"
+    },
+    {
+      "path": "internal/server/repository/port.go",
+      "blob": "a94474afa1c424de83cb04f8c1d9cc994af733cc"
+    },
+    {
+      "path": "internal/server/terminal/connector_auth.go",
+      "blob": "51d09ab5d65edd63e2cd2a5766c475ed3de4e180"
+    },
+    {
+      "path": "internal/server/terminal/connector_auth_test.go",
+      "blob": "5e71737aab435b68ff456f8cf07870d085a4b134"
+    },
+    {
+      "path": "internal/server/terminal/errors.go",
+      "blob": "efc03f9e681a8cf8af24e67e9d8d9ba0d600fa56"
+    },
+    {
+      "path": "internal/server/terminal/service.go",
+      "blob": "11ad9fcbeb09c01f4130e1d76d8cf60c09c83045"
+    },
+    {
+      "path": "internal/server/terminal/targets.go",
+      "blob": "7ca5b5d204158f098980f75fc9e8f4a4d66a0d70"
+    },
+    {
+      "path": "internal/server/terminal/targets_test.go",
+      "blob": "2af32737540b86fdd9c06d32219d476ce0674c64"
+    },
+    {
+      "path": "internal/server/terminal/terminaltest/connector.go",
+      "blob": "25d7fc587adcc52fe41730257a16cfb451468d3d"
+    },
+    {
+      "path": "internal/server/terminal/terminaltest/fixture.go",
+      "blob": "d3c54587cc9a0f2ea82592329d2aa86d42fae030"
+    },
+    {
+      "path": "internal/server/terminal/token.go",
+      "blob": "b6489e3b372104b5d97830e1764110356bdcc9be"
+    },
+    {
+      "path": "internal/server/terminal/token_test.go",
+      "blob": "a3e7143590ceba8b67b8fc9d193d8a8a7f2278ea"
+    },
+    {
+      "path": "internal/server/tracecontext/tracecontext.go",
+      "blob": "db9601716f267bc2a6192bc4a85f26947a0bcfdd"
+    },
+    {
+      "path": "internal/server/tracecontext/tracecontext_test.go",
+      "blob": "a925ddb628bc62f7aed3eb1e3e43f80a959c3dcb"
+    },
+    {
+      "path": "internal/server/workspacefile/boundary_test.go",
+      "blob": "c834341b24e082a3e63f5ffa755f3d09cb86091d"
+    },
+    {
+      "path": "internal/server/workspacefile/errors.go",
+      "blob": "1bad5fc54d6781025a6e9b2f8c2aae808efd2669"
+    },
+    {
+      "path": "internal/server/workspacefile/path.go",
+      "blob": "b2b83a47e6057e2e7e9ea84c78d84e2ec592657f"
+    },
+    {
+      "path": "internal/server/workspacefile/path_test.go",
+      "blob": "e2b0a942436a7a8d26ae53df8c340d8ce48b015f"
+    },
+    {
+      "path": "internal/server/workspacefile/service.go",
+      "blob": "8267dd0006c06905d161e4674ce9c391d7550fa3"
+    },
+    {
+      "path": "internal/server/workspacefile/service_test.go",
+      "blob": "8e3f2361254985ad2ad92248f5d358bfd170eb28"
+    },
+    {
+      "path": "internal/server/workspacefile/transport.go",
+      "blob": "ba494f4359f8d0ab883b2394200ec77986236d54"
+    },
+    {
+      "path": "runtime/README.md",
+      "blob": "2c64317f2e1a4a3a8d9c504c494895d1f1ed00cc"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "blob": "745765e807a5c9414c7512321a50d65ead31b490"
+    },
+    {
+      "path": "tools/dev-auth-class-fixture/main.go",
+      "blob": "a6b34becd6692c922aa336bcc2c7276d8919817b"
+    },
+    {
+      "path": "tools/dev-auth-class-fixture/main_test.go",
+      "blob": "616c2b4f7050aebd51ac1e17d52db4153bd987a5"
+    },
+    {
+      "path": "web/.dockerignore",
+      "blob": "f7eeacde1a9f5933c41edb306bff9465e75fa66a"
+    },
+    {
+      "path": "web/.env.example",
+      "blob": "2b0fa04aa89eeeacf44bb0e0bf65a3c003da9d04"
+    },
+    {
+      "path": "web/Dockerfile",
+      "blob": "866dd4fce55abf24ded733a743e4056717fec9b5"
+    },
+    {
+      "path": "web/eslint.config.js",
+      "blob": "5c4b53e54c4edfc5e4e016c8e2d1f4fd0c8fedbd"
+    },
+    {
+      "path": "web/index.html",
+      "blob": "1becafa54e7b2f6dce118c4d4ee49d5abe0fc6d8"
+    },
+    {
+      "path": "web/nginx.conf",
+      "blob": "2c9cda248513e9a6381e138beb05fdb31999200e"
+    },
+    {
+      "path": "web/package-lock.json",
+      "blob": "e560ab8cf69b2ef8c4cd09f5de60d0cbde2b4e55"
+    },
+    {
+      "path": "web/package.json",
+      "blob": "baf08b618cc1432c37af8ea144d2a52466ad71b0"
+    },
+    {
+      "path": "web/scripts/capture-ui.mjs",
+      "blob": "3cb55035abaa075e32f9e0fcc28a85ca78dbf3cd"
+    },
+    {
+      "path": "web/src/app/App.tsx",
+      "blob": "478ec66279d8a8fd066e961844b59031f27afb33"
+    },
+    {
+      "path": "web/src/app/providers/AppProviders.tsx",
+      "blob": "56dd38e1c366248d7d05634a9253b86264915060"
+    },
+    {
+      "path": "web/src/app/router.test.tsx",
+      "blob": "98957e661c4324224cc5cbe11e59b0cbfd98b8a6"
+    },
+    {
+      "path": "web/src/app/router.tsx",
+      "blob": "64bcfc5b2e934aa8da31c15510c83dc10162a5b1"
+    },
+    {
+      "path": "web/src/main.tsx",
+      "blob": "5d025126f3b4ac0634371ffa3db0f04a5e5ed1f0"
+    },
+    {
+      "path": "web/src/pages/ClassDetailPage.tsx",
+      "blob": "6be6cf1dce04653e55f1a3cb757b419ad19dac0c"
+    },
+    {
+      "path": "web/src/pages/ClassListPage.tsx",
+      "blob": "ff530efc3754c0e79440c2876523c51d7b8dc574"
+    },
+    {
+      "path": "web/src/pages/LabExecutionPage.tsx",
+      "blob": "aecb3377b9c2e5bc444f1c85d6813867948b9086"
+    },
+    {
+      "path": "web/src/pages/LabPage.tsx",
+      "blob": "3e67a8b4a635ae4d419622c2d74beea0f1beb587"
+    },
+    {
+      "path": "web/src/pages/LabSpecEditorPage.tsx",
+      "blob": "a5b61b44521737a1bd3a838266e960ed67bb3949"
+    },
+    {
+      "path": "web/src/pages/LabSpecListPage.tsx",
+      "blob": "e5d798a8d2c81bee7648813849cf0bfe7fcca18c"
+    },
+    {
+      "path": "web/src/pages/LoginPage.test.tsx",
+      "blob": "ddd1bd7c62a705824ccedd9c6accf11c1057460a"
+    },
+    {
+      "path": "web/src/pages/LoginPage.tsx",
+      "blob": "92220fd944142d67300e6a11f2f8fc74430d668a"
+    },
+    {
+      "path": "web/src/pages/NotFoundPage.tsx",
+      "blob": "939e331eb272b1f82988ac59b4e30001c4692edf"
+    },
+    {
+      "path": "web/src/pages/OperationPage.tsx",
+      "blob": "a3f044e085124ba1b685d795012b9292aa7d0265"
+    },
+    {
+      "path": "web/src/pages/ProvisionPage.tsx",
+      "blob": "f6566a78d4b20f85c067ccf754b49ec596ef98b3"
+    },
+    {
+      "path": "web/src/shared/api/LabbitApiProvider.tsx",
+      "blob": "e472063de51cf9fda99f5d1f69d9dbe697ca2f80"
+    },
+    {
+      "path": "web/src/shared/api/apiMode.test.ts",
+      "blob": "a771cd8a2880f017193268b04a36c2357748ab9f"
+    },
+    {
+      "path": "web/src/shared/api/apiMode.ts",
+      "blob": "2f138769f005cfdcf919892872c050da4577872b"
+    },
+    {
+      "path": "web/src/shared/api/contracts.ts",
+      "blob": "a3d1a6ff763e6408bc2952a393504869411e0ae5"
+    },
+    {
+      "path": "web/src/shared/api/httpClient.test.ts",
+      "blob": "9baf658f02d64de375eeedbb9a4113a8c6fbce27"
+    },
+    {
+      "path": "web/src/shared/api/httpClient.ts",
+      "blob": "872ad5276e9eada6cea7a67fe46ffa0e96318595"
+    },
+    {
+      "path": "web/src/shared/api/labbitApi.class.test.ts",
+      "blob": "c8254084dc190d9ccf1837d4c869ad45e72c3ee6"
+    },
+    {
+      "path": "web/src/shared/api/labbitApi.test.ts",
+      "blob": "0ef128fab5872bc0bbb61e9be499347975e86b62"
+    },
+    {
+      "path": "web/src/shared/api/labbitApi.ts",
+      "blob": "c868dde168348d836fe11cb4d9344251b5058fa2"
+    },
+    {
+      "path": "web/src/shared/api/mockLabbitApi.ts",
+      "blob": "0e30cba7fc15f76bfd8e1b5ea1594872decdda6b"
+    },
+    {
+      "path": "web/src/shared/routing/loginNavigation.test.ts",
+      "blob": "9fd80440e39ca4faa1e61347427801fdc5f32fac"
+    },
+    {
+      "path": "web/src/shared/routing/loginNavigation.ts",
+      "blob": "37025fe55377a75987b5c72973fbcab92bc06eed"
+    },
+    {
+      "path": "web/src/shared/ui/AppShell.tsx",
+      "blob": "b26cbe3ad093385990f7382c1706711c667439f1"
+    },
+    {
+      "path": "web/src/shared/ui/ConfirmationDialog.test.tsx",
+      "blob": "85b452b45c8f359e2168b64d47e90e7e3a990b0a"
+    },
+    {
+      "path": "web/src/shared/ui/ConfirmationDialog.tsx",
+      "blob": "5af3b55685fffbf25b8858dd99b4c86e8103e4d9"
+    },
+    {
+      "path": "web/src/shared/ui/ErrorState.tsx",
+      "blob": "0aded3554c157b0b2a4419adc8cea030a71a665a"
+    },
+    {
+      "path": "web/src/shared/ui/LoadingState.tsx",
+      "blob": "2ea01b62195e40f046137e62b8d1719e8888c922"
+    },
+    {
+      "path": "web/src/shared/ui/LoginRedirect.test.tsx",
+      "blob": "9ed2b57da8304ea7af44eb5283400892fac4741a"
+    },
+    {
+      "path": "web/src/shared/ui/LoginRedirect.tsx",
+      "blob": "13e924fc5213e9b89a8296a8a501c406f076ead6"
+    },
+    {
+      "path": "web/src/styles.css",
+      "blob": "97fb5e84493f01c84685a1862a155b576cfae27f"
+    },
+    {
+      "path": "web/src/test/setup.ts",
+      "blob": "e87ca3f0a89f22b76733d66fbb5a3eb09ef79907"
+    },
+    {
+      "path": "web/src/vite-env.d.ts",
+      "blob": "11f02fe2a0061d6e6e1f271b21da95423b448b32"
+    },
+    {
+      "path": "web/tsconfig.json",
+      "blob": "ebb1e20ba9c99bb567aa6eac0e96f239b07ac4c8"
+    },
+    {
+      "path": "web/vite.config.ts",
+      "blob": "e3aac6409ad3d5aa67e4282f76b1a45f952409fe"
+    },
+    {
+      "path": "web/vitest.config.ts",
+      "blob": "671d3de84a127abf3120a62a1733710e2dd72823"
+    }
+  ]
+}

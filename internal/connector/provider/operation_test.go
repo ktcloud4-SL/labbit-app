@@ -143,6 +143,8 @@ func TestDispatchOperationRejectsMissingRequiredInputs(t *testing.T) {
 	for _, command := range []OperationCommand{
 		{Correlation: base, MutationType: MutationProvision},
 		{Correlation: base, MutationType: MutationReset},
+		{Correlation: base, MutationType: MutationReset, CreationSnapshot: &CreationSnapshot{}},
+		{Correlation: base, MutationType: MutationReset, CreationSnapshot: &CreationSnapshot{}, ProviderResources: []ResourceRef{}},
 		{Correlation: base, MutationType: MutationCleanup},
 		{Correlation: Correlation{OperationID: "operation-3", LabInstanceID: "lab-instance-3"}, MutationType: MutationCleanup, ProviderResources: []ResourceRef{}},
 		{Correlation: base, MutationType: MutationType("OTHER")},
@@ -187,7 +189,7 @@ func TestDispatchOperationReportsUnconfiguredMock(t *testing.T) {
 	correlation := Correlation{OperationID: "operation-9", LabInstanceID: "lab-instance-9", Generation: 1}
 	for _, command := range []OperationCommand{
 		{Correlation: correlation, MutationType: MutationProvision, CreationSnapshot: &CreationSnapshot{}},
-		{Correlation: correlation, MutationType: MutationReset, CreationSnapshot: &CreationSnapshot{}},
+		{Correlation: correlation, MutationType: MutationReset, CreationSnapshot: &CreationSnapshot{}, ProviderResources: []ResourceRef{{ResourceType: "SERVER", ProviderID: "server-1", Generation: 1}}},
 		{Correlation: correlation, MutationType: MutationCleanup, ProviderResources: []ResourceRef{}},
 	} {
 		result, err := DispatchOperation(context.Background(), &MockProvider{}, command)

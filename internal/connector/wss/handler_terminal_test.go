@@ -123,8 +123,8 @@ func TestHandler_TerminalOpenAndClose(t *testing.T) {
 	}
 
 	// 6. 세션 종료 확인
-	if session.Status != terminal.StatusClosed {
-		t.Fatalf("expected session status CLOSED, got %s", session.Status)
+	if session.GetStatus() != terminal.StatusClosed {
+		t.Fatalf("expected session status CLOSED, got %s", session.GetStatus())
 	}
 }
 
@@ -341,7 +341,7 @@ func TestHandler_TerminalClose_StaleGeneration_Rejected(t *testing.T) {
 	}
 
 	session, exists := mgr.GetSession("sess-stale-gen-1")
-	if !exists || session.Status != terminal.StatusActive {
+	if !exists || session.GetStatus() != terminal.StatusActive {
 		t.Fatalf("expected session to be active, got exists=%v", exists)
 	}
 
@@ -371,7 +371,7 @@ func TestHandler_TerminalClose_StaleGeneration_Rejected(t *testing.T) {
 	if !existsAfter {
 		t.Fatal("session should still exist in manager")
 	}
-	if sessionAfter.Status == terminal.StatusClosed {
+	if sessionAfter.GetStatus() == terminal.StatusClosed {
 		t.Fatal("session should NOT be closed by stale generation TERMINAL_CLOSE")
 	}
 }

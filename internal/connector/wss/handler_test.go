@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -179,6 +180,324 @@ func TestHandler_OperationCommand_Provision_Success(t *testing.T) {
 	}
 	if resMsg.Payload.ProviderResources[0].ObservedState != "ACTIVE" {
 		t.Fatalf("unexpected observed state: %s", resMsg.Payload.ProviderResources[0].ObservedState)
+	}
+}
+
+func TestHandler_OperationCommand_ResetAndCleanup_Success(t *testing.T) {
+	mockSaaS := mock.NewMockSaaS("test-secret-token")
+	defer mockSaaS.Close()
+	client := wss.NewClient(wss.Config{BaseURL: mockSaaS.URL(), Credential: "test-secret-token", AllowInsecure: true})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := client.Dial(ctx); err != nil {
+		t.Fatalf("client.Dial failed: %v", err)
+	}
+	defer client.Close()
+	if _, err := client.SendHello(ctx); err != nil {
+		t.Fatalf("client.SendHello failed: %v", err)
+	}
+
+	resetCalled := false
+	cleanupCalled := false
+	mockProv := &provider.MockProvider{
+		ResetFunc: func(_ context.Context, request provider.ResetRequest) (provider.OperationResult, error) {
+			resetCalled = true
+			if request.Generation != 2 || len(request.ProviderResources) != 1 || request.ProviderResources[0].ProviderID != "server-generation-1" || request.CreationSnapshot.WorkspaceVMKey != "workspace" {
+				return provider.OperationResult{}, fmt.Errorf("unexpected reset request: %+v", request)
+			}
+			return provider.OperationResult{Outcome: provider.OutcomeSucceeded, ProviderResources: []provider.ResourceResult{{
+				ResourceRef:   provider.ResourceRef{ResourceType: provider.ResourceTypeServer, ProviderID: "server-generation-2", Generation: 2, LogicalName: "workspace"},
+				ObservedState: "ACTIVE",
+			}}}, nil
+		},
+		CleanupFunc: func(_ context.Context, request provider.CleanupRequest) (provider.OperationResult, error) {
+			cleanupCalled = true
+			if request.Generation != 2 || len(request.ProviderResources) != 1 || request.ProviderResources[0].ProviderID != "server-generation-2" {
+				return provider.OperationResult{}, fmt.Errorf("unexpected cleanup request: %+v", request)
+			}
+			return provider.OperationResult{Outcome: provider.OutcomeSucceeded, ProviderResources: []provider.ResourceResult{{
+				ResourceRef: request.ProviderResources[0], ObservedState: "DELETED",
+			}}}, nil
+		},
+	}
+	handler := wss.NewHandler(mockProv, client)
+	startTestListener(t, ctx, handler, client)
+
+	snapshot := &protocol.CreationSnapshot{
+		ProviderConnectionID: "connection-1",
+		VMs: []protocol.ResolvedVmSpec{{
+			VMKey: "workspace", Role: "WORKSPACE", ImageID: "image-1", FlavorID: "flavor-1",
+			FlavorSpec: &protocol.ResolvedFlavorSpec{VCPUs: 1, RAMMiB: 1024, DiskGiB: 10},
+		}},
+		WorkspaceVMKey:   "workspace",
+		InternetOutbound: true,
+	}
+	reset := protocol.OperationCommandMessage{
+		BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypeOperationCommand, MessageID: "reset-message", SentAt: time.Now().UTC(), OperationID: "reset-operation", LabInstanceID: "lab-1", Generation: 2},
+		Payload: protocol.OperationCommandPayload{MutationType: protocol.MutationTypeReset, CreationSnapshot: snapshot, ProviderResources: []protocol.ProviderResourceRef{{
+			ResourceType: provider.ResourceTypeServer, ProviderID: "server-generation-1", Generation: 1, LogicalName: "workspace",
+		}}},
+	}
+	if err := mockSaaS.SendRaw(reset); err != nil {
+		t.Fatalf("send RESET: %v", err)
+	}
+	resetAck, resetResult := waitHandlerOperationMessages(t, mockSaaS, reset.MessageID, 3*time.Second)
+	if !resetCalled || resetAck == nil || !resetAck.Payload.Accepted || resetResult == nil || resetResult.Payload.Outcome != string(provider.OutcomeSucceeded) || resetResult.Payload.ProviderResources[0].ProviderID != "server-generation-2" {
+		t.Fatalf("RESET called=%t ack=%+v result=%+v", resetCalled, resetAck, resetResult)
+	}
+
+	cleanup := protocol.OperationCommandMessage{
+		BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypeOperationCommand, MessageID: "cleanup-message", SentAt: time.Now().UTC(), OperationID: "cleanup-operation", LabInstanceID: "lab-1", Generation: 2},
+		Payload: protocol.OperationCommandPayload{MutationType: protocol.MutationTypeCleanup, ProviderResources: []protocol.ProviderResourceRef{{
+			ResourceType: provider.ResourceTypeServer, ProviderID: "server-generation-2", Generation: 2, LogicalName: "workspace",
+		}}},
+	}
+	if err := mockSaaS.SendRaw(cleanup); err != nil {
+		t.Fatalf("send CLEANUP: %v", err)
+	}
+	cleanupAck, cleanupResult := waitHandlerOperationMessages(t, mockSaaS, cleanup.MessageID, 3*time.Second)
+	if !cleanupCalled || cleanupAck == nil || !cleanupAck.Payload.Accepted || cleanupResult == nil || cleanupResult.Payload.Outcome != string(provider.OutcomeSucceeded) || cleanupResult.Payload.ProviderResources[0].ObservedState != "DELETED" {
+		t.Fatalf("CLEANUP called=%t ack=%+v result=%+v", cleanupCalled, cleanupAck, cleanupResult)
+	}
+}
+
+func waitHandlerOperationMessages(t *testing.T, mockSaaS *mock.MockSaaS, replyTo string, timeout time.Duration) (*protocol.OperationAckMessage, *protocol.OperationResultMessage) {
+	t.Helper()
+	var ack *protocol.OperationAckMessage
+	var result *protocol.OperationResultMessage
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		for _, raw := range mockSaaS.ReceivedMessages() {
+			var envelope protocol.BaseEnvelope
+			if json.Unmarshal(raw, &envelope) != nil || envelope.ReplyToMessageID != replyTo {
+				continue
+			}
+			switch envelope.Type {
+			case protocol.MessageTypeOperationAck:
+				var message protocol.OperationAckMessage
+				if json.Unmarshal(raw, &message) == nil {
+					ack = &message
+				}
+			case protocol.MessageTypeOperationResult:
+				var message protocol.OperationResultMessage
+				if json.Unmarshal(raw, &message) == nil {
+					result = &message
+				}
+			}
+		}
+		if ack != nil && result != nil {
+			return ack, result
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	return ack, result
+}
+
+func TestHandler_ProviderRequest_ListImages_Success(t *testing.T) {
+	messages := make(chan interface{}, 1)
+	mockProvider := &provider.MockProvider{
+		ConnectionID: "provider-connection-1",
+		ListImagesFunc: func(context.Context) ([]provider.Image, error) {
+			return []provider.Image{{ID: "image-1", Name: "Ubuntu", Status: "ACTIVE"}}, nil
+		},
+	}
+	handler := wss.NewHandler(mockProvider, wss.SendMessageFunc(func(_ context.Context, message interface{}) error {
+		messages <- message
+		return nil
+	}))
+	request := protocol.ProviderRequestMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type: protocol.MessageTypeProviderRequest, MessageID: "provider-request-1", SentAt: time.Now().UTC(),
+			RequestID: "http-request-1", TraceParent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+		},
+		Payload: protocol.ProviderRequestPayload{
+			RequestType: protocol.ProviderRequestListImages, ProviderConnectionID: "provider-connection-1",
+		},
+	}
+	raw, err := json.Marshal(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := handler.HandleMessage(context.Background(), raw); err != nil {
+		t.Fatalf("HandleMessage() error = %v", err)
+	}
+
+	response, ok := (<-messages).(protocol.ProviderResponseMessage)
+	if !ok {
+		t.Fatal("response was not PROVIDER_RESPONSE")
+	}
+	if response.ReplyToMessageID != request.MessageID || response.RequestID != request.RequestID || response.TraceParent != request.TraceParent {
+		t.Fatalf("response correlation = %+v", response.BaseEnvelope)
+	}
+	if response.Payload.Outcome != protocol.OutcomeSucceeded || response.Payload.Error != nil || len(response.Payload.Items) != 1 {
+		t.Fatalf("response payload = %+v", response.Payload)
+	}
+	image, ok := response.Payload.Items[0].(protocol.ProviderImage)
+	if !ok || image.Kind != "IMAGE" || image.ID != "image-1" || image.Status != "ACTIVE" {
+		t.Fatalf("image item = %#v", response.Payload.Items[0])
+	}
+}
+
+func TestHandler_InvalidOptionalTraceDoesNotBlockProviderRequest(t *testing.T) {
+	validParent := "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+	tests := []struct {
+		name       string
+		parent     any
+		state      any
+		wantParent string
+		wantState  string
+	}{
+		{name: "wrong parent type", parent: 123, state: "vendor=value"},
+		{name: "oversize parent", parent: strings.Repeat("a", 513), state: "vendor=value"},
+		{name: "invalid W3C parent", parent: "not-a-trace", state: "vendor=value"},
+		{name: "wrong state type", parent: validParent, state: []string{"vendor=value"}, wantParent: validParent},
+		{name: "invalid state", parent: validParent, state: "bad state", wantParent: validParent},
+		{name: "valid context", parent: validParent, state: "vendor=value", wantParent: validParent, wantState: "vendor=value"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			called := false
+			messages := make(chan interface{}, 1)
+			handler := wss.NewHandler(&provider.MockProvider{
+				ConnectionID: "provider-connection-1",
+				ListImagesFunc: func(context.Context) ([]provider.Image, error) {
+					called = true
+					return []provider.Image{{ID: "image-1", Name: "Ubuntu", Status: "ACTIVE"}}, nil
+				},
+			}, wss.SendMessageFunc(func(_ context.Context, message interface{}) error {
+				messages <- message
+				return nil
+			}))
+			raw, err := json.Marshal(map[string]any{
+				"type": protocol.MessageTypeProviderRequest, "messageId": "provider-trace", "sentAt": time.Now().UTC(),
+				"traceparent": test.parent, "tracestate": test.state,
+				"payload": map[string]any{"requestType": protocol.ProviderRequestListImages, "providerConnectionId": "provider-connection-1"},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := handler.HandleMessage(context.Background(), raw); err != nil {
+				t.Fatalf("HandleMessage() error = %v", err)
+			}
+			response, ok := (<-messages).(protocol.ProviderResponseMessage)
+			if !ok || !called || response.Payload.Outcome != protocol.OutcomeSucceeded {
+				t.Fatalf("provider request was not dispatched: called=%t response=%+v", called, response)
+			}
+			if response.TraceParent != test.wantParent || response.TraceState != test.wantState {
+				t.Fatalf("normalized trace = %q/%q, want %q/%q", response.TraceParent, response.TraceState, test.wantParent, test.wantState)
+			}
+		})
+	}
+}
+
+func TestHandler_InvalidOptionalTraceDoesNotBlockOperation(t *testing.T) {
+	called := false
+	messages := make(chan interface{}, 2)
+	handler := wss.NewHandler(&provider.MockProvider{
+		ProvisionFunc: func(context.Context, provider.ProvisionRequest) (provider.OperationResult, error) {
+			called = true
+			return provider.OperationResult{Outcome: provider.OutcomeSucceeded}, nil
+		},
+	}, wss.SendMessageFunc(func(_ context.Context, message interface{}) error {
+		messages <- message
+		return nil
+	}))
+	raw, err := json.Marshal(map[string]any{
+		"type": protocol.MessageTypeOperationCommand, "messageId": "operation-trace", "sentAt": time.Now().UTC(),
+		"operationId": "operation-1", "labInstanceId": "lab-1", "generation": 1,
+		"traceparent": 123, "tracestate": []string{"vendor=value"},
+		"payload": map[string]any{
+			"mutationType": protocol.MutationTypeProvision,
+			"creationSnapshot": map[string]any{
+				"providerConnectionId": "provider-1", "workspaceVmKey": "workspace", "internetOutbound": false,
+				"vms": []any{map[string]any{
+					"vmKey": "workspace", "role": "WORKSPACE", "instanceIndex": 0,
+					"imageId": "image-1", "flavorId": "flavor-1",
+					"flavorSpec": map[string]any{"vcpus": 1, "ramMiB": 1024, "diskGiB": 10},
+				}},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := handler.HandleMessage(context.Background(), raw); err != nil {
+		t.Fatalf("HandleMessage() error = %v", err)
+	}
+	if !called {
+		t.Fatal("operation was not dispatched")
+	}
+	ack, ok := (<-messages).(protocol.OperationAckMessage)
+	if !ok || !ack.Payload.Accepted || ack.TraceParent != "" || ack.TraceState != "" {
+		t.Fatalf("operation ACK = %+v", ack)
+	}
+	result, ok := (<-messages).(protocol.OperationResultMessage)
+	if !ok || result.Payload.Outcome != string(provider.OutcomeSucceeded) || result.TraceParent != "" || result.TraceState != "" {
+		t.Fatalf("operation result = %+v", result)
+	}
+}
+
+func TestHandler_ProviderRequest_AuthenticationFailureIsSafe(t *testing.T) {
+	messages := make(chan interface{}, 1)
+	mockProvider := &provider.MockProvider{
+		ConnectionID: "provider-connection-1",
+		ValidateConnectionFunc: func(context.Context) error {
+			return errors.New("keystone password=do-not-expose endpoint=https://internal.example")
+		},
+	}
+	handler := wss.NewHandler(mockProvider, wss.SendMessageFunc(func(_ context.Context, message interface{}) error {
+		messages <- message
+		return nil
+	}))
+	request := protocol.ProviderRequestMessage{
+		BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypeProviderRequest, MessageID: "provider-request-failed", SentAt: time.Now().UTC()},
+		Payload: protocol.ProviderRequestPayload{
+			RequestType: protocol.ProviderRequestValidateConnection, ProviderConnectionID: "provider-connection-1",
+		},
+	}
+	raw, err := json.Marshal(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := handler.HandleMessage(context.Background(), raw); err != nil {
+		t.Fatalf("HandleMessage() error = %v", err)
+	}
+
+	response := (<-messages).(protocol.ProviderResponseMessage)
+	if response.Payload.Outcome != protocol.OutcomeFailed || response.Payload.Error == nil || response.Payload.Error.Code != "ERR_INFRA_OPENSTACK" {
+		t.Fatalf("response payload = %+v", response.Payload)
+	}
+	if response.Payload.Error.Message != "OpenStack Provider request could not be completed" {
+		t.Fatalf("unsafe or unexpected message = %q", response.Payload.Error.Message)
+	}
+}
+
+func TestHandler_DispatchConfigurationErrorIsNotExposed(t *testing.T) {
+	messages := make(chan interface{}, 2)
+	handler := wss.NewHandler(&provider.MockProvider{}, wss.SendMessageFunc(func(_ context.Context, message interface{}) error {
+		messages <- message
+		return nil
+	}))
+	command := protocol.OperationCommandMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type: protocol.MessageTypeOperationCommand, MessageID: "cleanup-message", SentAt: time.Now().UTC(),
+			OperationID: "cleanup-operation", LabInstanceID: "lab-1", Generation: 1,
+		},
+		Payload: protocol.OperationCommandPayload{MutationType: protocol.MutationTypeCleanup, ProviderResources: []protocol.ProviderResourceRef{{
+			ResourceType: provider.ResourceTypeServer, ProviderID: "server-1", Generation: 1,
+		}}},
+	}
+	raw, err := json.Marshal(command)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := handler.HandleMessage(context.Background(), raw); err != nil {
+		t.Fatalf("HandleMessage() error = %v", err)
+	}
+	<-messages // OPERATION_ACK
+	result := (<-messages).(protocol.OperationResultMessage)
+	if result.Payload.Error == nil || result.Payload.Error.Code != "ERR_CONNECTOR_INTERNAL" || result.Payload.Error.Message != "Connector could not dispatch the Provider operation" {
+		t.Fatalf("operation result error = %+v", result.Payload.Error)
 	}
 }
 

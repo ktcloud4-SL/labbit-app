@@ -1,0 +1,42 @@
+{
+  "sourceCommit":"0f8ca010ed45eea0db669937871006fa0e7e5a7b",
+  "sourceTree":"4f1ec21cd108456e309070237e57593d3865e400",
+  "independentReviewer":"/root/merge_boundary_audit",
+  "scope":"Independent prior pre-merge review of 26f2a36 main-integration/PR boundary changes, followed by file-by-file independent review of all three 26f2a36->0f8ca010 test-only changes and current evidence. Imported main Backend/File/Realtime code was not newly exhaustively audited.",
+  "ssot":[
+    "Fresh Jira LBT-82 latest-main + OP-01 Acceptance Criteria",
+    "Fresh Confluence verification strategy/traceability 9666637",
+    "Fresh Confluence confirmed Decisions 11075640",
+    "AGENTS.md, CONTRIBUTING.md, TESTING.md",
+    "Git contracts/connector and runtime contract at integrated main 1bdb296"
+  ],
+  "findings":[
+    {"severity":"P1","owner":"Backend","status":"Deliberately excluded, unchanged","file":"internal/server/connector/command.go","lines":[35,55],"condition":"RESET creationSnapshot present, providerResources nil/empty, missing logicalName, or wrong previous generation","impact":"Backend outbound validator permits commands rejected by strengthened shared schema and Connector Handler; current Mock-SaaS lifecycle does not exercise the Backend producer","neededRegression":"ErrInvalidCommand and zero wire writes for each invalid case; valid previous-generation resources sent"},
+    {"severity":"P2","owner":"Terminal test harness","status":"Fixed locally","file":"internal/connector/terminal/terminal_test.go","condition":"Async Resize/Attach plus unlocked test reads; ATTACHED and invalid CLOSE simultaneous test-peer writes","impact":"Flaky race-detector failure in imported main tests","fix":"Resize completion ACK, GetStatus accessor, shared WebSocket writer mutex","regression":"Originally failing three targets -race count10 PASS; complete Connector boundary race PASS; independent five-target count5 PASS"},
+    {"severity":"P2","owner":"Dev fixture test portability","status":"Fixed locally for test assertion, not Windows ACL enforcement","file":"tools/dev-auth-class-fixture/main_test.go","condition":"Windows reports non-POSIX mode bits rather than Unix0600","impact":"Whole Go suite fails a platform-inapplicable assertion","fix":"Only POSIX0600 nested assertion skips Windows; contents/password non-output/reuse/failure cleanup remain active","regression":"Windows package and entire Go suite PASS; Linux assertion remains enabled but not executed here"}
+  ],
+  "traceability":[
+    {"requirement":"Latest main with OP-01 preserves Control and Terminal boundaries","code":"app/app.go, runtime_provider.go, main_integration_test.go, provider/mock.go, wss/handler.go","automated":"Existing Control/Provider/Data runtime identity, lifecycle, shutdown and contract tests; full Go and race PASS","real":"Local real Backend+PostgreSQL Connector-client HELLO/ACK/Heartbeat PASS","limit":"Not deployed SaaS/G1 TLS or actual Workspace Terminal C2"},
+    {"requirement":"SSH setup cancellation without terminating established live PTY","code":"terminal/ssh_pty.go and ssh_cancellation_test.go","automated":"Stalled handshake/setup cancellation/live-session regressions PASS","real":"Lifecycle Provision and Reset authenticated SSH/Server pin path PASS","limit":"Actual lifecycle SSH startup is not Terminal PTY C2"},
+    {"requirement":"OP-01 lifecycle ownership, generation and residual0","code":"provider/openstack lifecycle/provision/reconcile/cleanup and WSS Handler guards","automated":"Ownership, wrong/empty IDs, partial failure, generation and cleanup regressions PASS","real":"Current0f8ca010 Mock SaaS Control -> real OpenStack Provision(g1), Reset(g2), Reconcile, Cleanup, final16known resourcesABSENT residual0 PASS","limit":"Real failure injections/multi-VM/reset-while-terminal scenarios not executed by this successful lifecycle target"},
+    {"requirement":"Internet policy separation and management connectivity","code":"provider/openstack network.go/provision.go and shared Management SG checks","automated":"Policy and management/preflight regression tests PASS","real":"Current0f8ca010 Internet ON/OFF TCP reachability to1.1.1.1:443 PASS, SSH command itself succeeded","limit":"Not exhaustive DNS/UDP/IPv6/arbitrary-destination egress proof; historical ON first-failure cause remains unresolved"},
+    {"requirement":"Real PostgreSQL integration separate from mock","code":"Makefile GO_INTEGRATION_PACKAGES and existing integration-tag suites","automated":"Actual PG16.15:5packages/854test-and-subtestPASS,0fail,0skip; migration/transaction/HTTP/Control/Data boundaries","real":"Test DB residual0 verified using actual psql; owned loopback server stopped","limit":"Backend Terminal E2E Connector is contract peer, not actual OpenStack SSH"},
+    {"requirement":"No log exposure of credentials/private keys","code":"Existing safe-error boundaries; unchanged in this pass","automated":"Known configured value/private-key/Bearer marker scan matches0; credential common tests PASS","limit":"Known-value/marker scan is not comprehensive DLP"}
+  ],
+  "testCoverageDistinctions":{
+    "unit":"26packages PASS. Five OpenStack gated targets skipped in general suite; Internet-policy, WSS-full-lifecycle and M1 discovery explicitly executed separately. Standalone M2/M3 targets were not separately executed again.",
+    "mock":"Runtime composition, localhost SSH PTY and Backend Terminal contract-peer tests. No assertion of actual VM Terminal C2.",
+    "real":"PG16.15 local server and real Backend handshake; OpenStack actual Internet/lifecycle/startup SSH and residual checks at clean source0f8ca010.",
+    "notExecuted":"Deployed SaaS WSS/TLS/G1, Browser->actual Connector->actual Workspace SSH C2, Linux POSIX0600, Windows ACL security."
+  },
+  "residualRisks":[
+    "P1 Backend RESET producer enforcement remains pending owner coordination",
+    "Main resolver signature has VM key/server ID but no request LabInstance/generation affinity; existing interface limitation remains",
+    "VM SSH pooling, terminal draining before destructive Reset and durable product READY/Operation work are not completed by this local merge integration",
+    "Inherited Terminal raw-error/backpressure risks and old-main sentAt/non-hex digest drift were not changed by the three test-file fixes",
+    "Negative tests that retain timed waits are not proof of every invalid-frame processing branch"
+  ],
+  "remoteWrites":false,
+  "backendDirectDiffVsIntegratedMain":"EMPTY",
+  "verdict":"No new blocker found in this three-file test-only fix, not a whole-PR merge approval. P1 intentionally remains."
+}

@@ -395,6 +395,9 @@ func (h *Handler) readLoop(conn *websocket.Conn, cc *controlConn, registration *
 		case protocol.MessageTypeFileOpenResult:
 			h.routeFileInbound(cc, registration, principal, log, kind, envelope)
 			continue
+		case protocol.MessageTypePreviewOpenResult:
+			h.routePreviewInbound(cc, registration, principal, log, kind, envelope)
+			continue
 		case protocol.MessageTypeError:
 			// Connector의 ERROR는 업무 결과가 아니다. 어떤 pending도 바꾸지 않고 안전한 code만 남긴다.
 			log.Warn("Connector ERROR 수신", "error_code", safeErrorCode(envelope))

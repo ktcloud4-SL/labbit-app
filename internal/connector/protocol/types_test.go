@@ -41,11 +41,31 @@ func requireMember(t *testing.T, m map[string]json.RawMessage, name, want string
 	}
 }
 
-// CLEANUP의 providerResources는 property가 required이고 array에 minItems가 없다. 빈 non-nil 목록은 "[]"로 나가야 한다.
-// nil(누락)은 property를 만들지 않고 null도 만들지 않는다.
+// providerResources는 mutationType마다 요구가 다르다(connector.schema.json).
+//   - PROVISION: property 없음
+//   - RESET: 비어 있지 않은 목록 필수(각 항목에 logicalName)
+//   - CLEANUP: property 필수이며 array에 minItems가 없으므로 빈 목록 "[]"도 유효
+//
+// 이 type은 요구를 검사하지 않고 직렬화만 하므로, 여기서는 각 mutation의 유효한 값이 wire에서 사라지거나 바뀌지 않는지와
+// CLEANUP 때문에 필요한 nil(누락) / 빈 목록([]) 구분이 유지되는지 확인한다. nil은 property를 만들지 않고 null도 만들지 않는다.
 func TestOperationCommandProviderResourcesWireEncoding(t *testing.T) {
 	cmd := func(p OperationCommandPayload) OperationCommandMessage { return OperationCommandMessage{Payload: p} }
 
+	t.Run("provision has no providerResources property", func(t *testing.T) {
+		got := payloadMembers(t, cmd(OperationCommandPayload{MutationType: MutationTypeProvision}))
+		if raw, present := got["providerResources"]; present {
+			t.Fatalf("PROVISION의 nil ProviderResources가 wire에 %s로 나감", raw)
+		}
+		requireMember(t, got, "mutationType", `"PROVISION"`)
+	})
+	t.Run("reset serializes the non-empty previous-generation list with logicalName", func(t *testing.T) {
+		got := payloadMembers(t, cmd(OperationCommandPayload{MutationType: MutationTypeReset, ProviderResources: []ProviderResourceRef{
+			{ResourceType: "SERVER", ProviderID: "srv-old", Generation: 1, LogicalName: "vm-1"},
+			{ResourceType: "NETWORK", ProviderID: "net-old", Generation: 1, LogicalName: "lab-net"},
+		}}))
+		requireMember(t, got, "providerResources", `[{"resourceType":"SERVER","providerId":"srv-old","generation":1,"logicalName":"vm-1"},{"resourceType":"NETWORK","providerId":"net-old","generation":1,"logicalName":"lab-net"}]`)
+		requireMember(t, got, "mutationType", `"RESET"`)
+	})
 	t.Run("cleanup with explicit empty list keeps the required property as an empty array", func(t *testing.T) {
 		got := payloadMembers(t, cmd(OperationCommandPayload{MutationType: MutationTypeCleanup, ProviderResources: []ProviderResourceRef{}}))
 		requireMember(t, got, "providerResources", "[]")
@@ -55,17 +75,11 @@ func TestOperationCommandProviderResourcesWireEncoding(t *testing.T) {
 		got := payloadMembers(t, cmd(OperationCommandPayload{MutationType: MutationTypeCleanup, ProviderResources: []ProviderResourceRef{{ResourceType: "SERVER", ProviderID: "srv-1", Generation: 1}}}))
 		requireMember(t, got, "providerResources", `[{"resourceType":"SERVER","providerId":"srv-1","generation":1}]`)
 	})
-	t.Run("missing list stays missing, never null", func(t *testing.T) {
-		for _, mutation := range []string{MutationTypeCleanup, MutationTypeProvision, MutationTypeReset} {
-			got := payloadMembers(t, cmd(OperationCommandPayload{MutationType: mutation}))
-			if raw, present := got["providerResources"]; present {
-				t.Fatalf("%s: nil ProviderResources가 wire에 %s로 나감", mutation, raw)
-			}
+	t.Run("cleanup missing list stays missing, never null", func(t *testing.T) {
+		got := payloadMembers(t, cmd(OperationCommandPayload{MutationType: MutationTypeCleanup}))
+		if raw, present := got["providerResources"]; present {
+			t.Fatalf("CLEANUP의 nil ProviderResources가 wire에 %s로 나감", raw)
 		}
-	})
-	t.Run("optional list of reset survives as an empty array too", func(t *testing.T) {
-		got := payloadMembers(t, cmd(OperationCommandPayload{MutationType: MutationTypeReset, ProviderResources: []ProviderResourceRef{}}))
-		requireMember(t, got, "providerResources", "[]")
 	})
 	t.Run("marshaling a pointer behaves the same", func(t *testing.T) {
 		message := cmd(OperationCommandPayload{MutationType: MutationTypeCleanup, ProviderResources: []ProviderResourceRef{}})
@@ -101,6 +115,10 @@ func TestOperationCommandProviderResourcesDecodeKeepsMissingAndEmptyApart(t *tes
 	}
 	if got := decode(`{"mutationType":"CLEANUP","providerResources":null}`); got.ProviderResources != nil {
 		t.Fatalf("null = %#v, want nil", got.ProviderResources)
+	}
+	reset := decode(`{"mutationType":"RESET","providerResources":[{"resourceType":"SERVER","providerId":"srv-old","generation":1,"logicalName":"vm-1"}]}`)
+	if len(reset.ProviderResources) != 1 || reset.ProviderResources[0] != (ProviderResourceRef{ResourceType: "SERVER", ProviderID: "srv-old", Generation: 1, LogicalName: "vm-1"}) {
+		t.Fatalf("RESET decode = %#v", reset.ProviderResources)
 	}
 }
 

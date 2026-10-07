@@ -1,0 +1,466 @@
+package openstackprovider
+
+import (
+	"context"
+	"net/http"
+	"strings"
+	"testing"
+
+	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+)
+
+func TestCleanupDeletesExactIDsInDependencyOrderAndTreats404AsDeleted(t *testing.T) {
+	var deletes []string
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodDelete {
+			deletes = append(deletes, request.URL.Path)
+			if strings.HasSuffix(request.URL.Path, "/already-absent") {
+				http.NotFound(response, request)
+				return
+			}
+			response.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if request.Method == http.MethodGet {
+			http.NotFound(response, request)
+			return
+		}
+		t.Fatalf("unexpected request: %s %s", request.Method, request.URL.Path)
+	}))
+	adapter.provision = testProvisionConfig(t)
+
+	result, err := adapter.Cleanup(context.Background(), coreprovider.CleanupRequest{
+		Correlation: coreprovider.Correlation{OperationID: "cleanup-1", LabInstanceID: "lab-1", Generation: 1},
+		ProviderResources: []coreprovider.ResourceRef{
+			{ResourceType: coreprovider.ResourceTypeNetwork, ProviderID: "network-1", Generation: 1},
+			{ResourceType: coreprovider.ResourceTypeSecurityGroup, ProviderID: "already-absent", Generation: 1},
+			{ResourceType: coreprovider.ResourceTypeSubnet, ProviderID: "subnet-1", Generation: 1},
+			{ResourceType: coreprovider.ResourceTypeSecurityRule, ProviderID: "rule-1", Generation: 1},
+			{ResourceType: coreprovider.ResourceTypePort, ProviderID: "port-1", Generation: 1},
+			{ResourceType: coreprovider.ResourceTypeServer, ProviderID: "server-1", Generation: 1},
+		},
+	})
+	if err != nil || result.Outcome != coreprovider.OutcomeSucceeded || result.Error != nil {
+		t.Fatalf("Cleanup() = %+v, %v", result, err)
+	}
+	want := []string{
+		"/compute/v2/servers/server-1",
+		"/network/v2.0/ports/port-1",
+		"/network/v2.0/security-group-rules/rule-1",
+		"/network/v2.0/subnets/subnet-1",
+		"/network/v2.0/security-groups/already-absent",
+		"/network/v2.0/networks/network-1",
+	}
+	if strings.Join(deletes, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("delete order = %#v, want %#v", deletes, want)
+	}
+	for _, resource := range result.ProviderResources {
+		if resource.ObservedState != stateDeleted {
+			t.Fatalf("cleanup resource = %+v", resource)
+		}
+	}
+}
+
+func TestCleanupDetachesRouterInterfaceBeforeDelete(t *testing.T) {
+	var requests []string
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		requests = append(requests, request.Method+" "+request.URL.Path)
+		switch {
+		case request.Method == http.MethodGet && request.URL.Path == "/network/v2.0/ports":
+			writeJSON(t, response, http.StatusOK, map[string]any{"ports": []any{map[string]any{
+				"id": "router-interface", "device_id": "router-1", "device_owner": "network:router_interface", "fixed_ips": []any{map[string]any{"subnet_id": "subnet-1", "ip_address": "198.19.0.1"}},
+			}}, "ports_links": []any{}})
+		case request.Method == http.MethodPut && request.URL.Path == "/network/v2.0/routers/router-1/remove_router_interface":
+			writeJSON(t, response, http.StatusOK, map[string]any{"id": "router-1", "port_id": "router-interface", "subnet_id": "subnet-1"})
+		case request.Method == http.MethodDelete && request.URL.Path == "/network/v2.0/routers/router-1":
+			response.WriteHeader(http.StatusNoContent)
+		case request.Method == http.MethodGet && request.URL.Path == "/network/v2.0/routers/router-1":
+			http.NotFound(response, request)
+		default:
+			t.Fatalf("unexpected request: %s %s", request.Method, request.URL.String())
+		}
+	}))
+	adapter.provision = testProvisionConfig(t)
+	result, err := adapter.Cleanup(context.Background(), coreprovider.CleanupRequest{
+		Correlation:       coreprovider.Correlation{OperationID: "cleanup-router", LabInstanceID: "lab", Generation: 1},
+		ProviderResources: []coreprovider.ResourceRef{{ResourceType: coreprovider.ResourceTypeRouter, ProviderID: "router-1", Generation: 1}},
+	})
+	if err != nil || result.Outcome != coreprovider.OutcomeSucceeded {
+		t.Fatalf("Cleanup() = %+v, %v", result, err)
+	}
+	want := []string{
+		"GET /network/v2.0/ports",
+		"PUT /network/v2.0/routers/router-1/remove_router_interface",
+		"DELETE /network/v2.0/routers/router-1",
+		"GET /network/v2.0/routers/router-1",
+	}
+	if strings.Join(requests, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("requests = %#v, want %#v", requests, want)
+	}
+}
+
+func TestCleanupUncertainDeleteStopsAndPreservesEveryTarget(t *testing.T) {
+	calls := 0
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		calls++
+		http.Error(response, "raw-provider-secret", http.StatusGatewayTimeout)
+	}))
+	adapter.provision = testProvisionConfig(t)
+
+	result, err := adapter.Cleanup(context.Background(), coreprovider.CleanupRequest{
+		Correlation: coreprovider.Correlation{OperationID: "cleanup-2", LabInstanceID: "lab-2", Generation: 1},
+		ProviderResources: []coreprovider.ResourceRef{
+			{ResourceType: coreprovider.ResourceTypePort, ProviderID: "port-1", Generation: 1},
+			{ResourceType: coreprovider.ResourceTypeServer, ProviderID: "server-1", Generation: 1},
+		},
+	})
+	if err != nil || calls != 1 || result.Outcome != coreprovider.OutcomeUnknown || len(result.ProviderResources) != 2 {
+		t.Fatalf("Cleanup() calls=%d result=%+v err=%v", calls, result, err)
+	}
+	if result.ProviderResources[0].ResourceType != coreprovider.ResourceTypeServer || result.ProviderResources[0].ObservedState != stateDeleteUnknown || result.ProviderResources[1].ObservedState != stateDeleteNotAttempted {
+		t.Fatalf("unexpected retained resources: %+v", result.ProviderResources)
+	}
+	if result.Error == nil || strings.Contains(strings.ToLower(result.Error.Message), "secret") {
+		t.Fatalf("unsafe error: %+v", result.Error)
+	}
+}
+
+func TestCleanupRequestTimeoutRemainsUnknown(t *testing.T) {
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodDelete {
+			t.Fatalf("unexpected request: %s %s", request.Method, request.URL.Path)
+		}
+		http.Error(response, "request timed out", http.StatusRequestTimeout)
+	}))
+	adapter.provision = testProvisionConfig(t)
+	result, err := adapter.Cleanup(context.Background(), coreprovider.CleanupRequest{
+		Correlation:       coreprovider.Correlation{OperationID: "cleanup-408", LabInstanceID: "lab", Generation: 1},
+		ProviderResources: []coreprovider.ResourceRef{{ResourceType: coreprovider.ResourceTypeServer, ProviderID: "server-1", Generation: 1}},
+	})
+	if err != nil || result.Outcome != coreprovider.OutcomeUnknown || result.ProviderResources[0].ObservedState != stateDeleteUnknown {
+		t.Fatalf("Cleanup() = %+v, %v", result, err)
+	}
+}
+
+func TestCleanupRejectsFutureGenerationBeforeMutation(t *testing.T) {
+	calls := 0
+	adapter := newTestAdapter(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls++ }))
+
+	result, err := adapter.Cleanup(context.Background(), coreprovider.CleanupRequest{
+		Correlation:       coreprovider.Correlation{OperationID: "cleanup-3", LabInstanceID: "lab-3", Generation: 2},
+		ProviderResources: []coreprovider.ResourceRef{{ResourceType: coreprovider.ResourceTypeServer, ProviderID: "newer-server", Generation: 3}},
+	})
+	if err != nil || calls != 0 || result.Outcome != coreprovider.OutcomeFailed {
+		t.Fatalf("Cleanup() calls=%d result=%+v err=%v", calls, result, err)
+	}
+}
+
+func TestResetPreflightFailureDoesNotDeleteCurrentGeneration(t *testing.T) {
+	deletes := 0
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodDelete {
+			deletes++
+		}
+		http.NotFound(response, request)
+	}))
+	adapter.provision = testProvisionConfig(t)
+
+	result, err := adapter.Reset(context.Background(), coreprovider.ResetRequest{
+		Correlation:       coreprovider.Correlation{OperationID: "reset-1", LabInstanceID: "lab-1", Generation: 2},
+		CreationSnapshot:  validSnapshot(),
+		ProviderResources: validResetResourceRefs(validSnapshot(), 1),
+	})
+	if err != nil || deletes != 0 || result.Outcome != coreprovider.OutcomeFailed || len(result.ProviderResources) != 8 || result.ProviderResources[0].ObservedState != stateDeleteNotAttempted {
+		t.Fatalf("Reset() deletes=%d result=%+v err=%v", deletes, result, err)
+	}
+}
+
+func TestResetDoesNotCreditMissingResourcesBeforeDestructiveCleanup(t *testing.T) {
+	fake := &m2OpenStackFake{t: t}
+	deletes := 0
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodDelete {
+			deletes++
+		}
+		if request.Method == http.MethodGet && strings.Contains(request.URL.Path, "-old") {
+			http.NotFound(response, request)
+			return
+		}
+		switch request.URL.Path {
+		case "/compute/v2/os-quota-sets/project-1/detail":
+			writeComputeQuota(t, response, 0)
+			return
+		case "/network/v2.0/quotas/project-1/details.json":
+			writeNetworkQuota(t, response, 0)
+			return
+		}
+		fake.ServeHTTP(response, request)
+	}))
+	adapter.provision = testProvisionConfig(t)
+
+	result, err := adapter.Reset(context.Background(), coreprovider.ResetRequest{
+		Correlation:       coreprovider.Correlation{OperationID: "reset-missing-credit", LabInstanceID: "lab", Generation: 2},
+		CreationSnapshot:  validSnapshot(),
+		ProviderResources: validResetResourceRefs(validSnapshot(), 1),
+	})
+	if err != nil || deletes != 0 || result.Outcome != coreprovider.OutcomeFailed || result.Error == nil || result.Error.Code != errorQuotaExceeded {
+		t.Fatalf("Reset() deletes=%d result=%+v err=%v", deletes, result, err)
+	}
+}
+
+func TestResetUsesActualOldServerFlavorForQuotaCreditBeforeCleanup(t *testing.T) {
+	base := &m2OpenStackFake{t: t}
+	deletes := 0
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodDelete {
+			deletes++
+		}
+		if request.Method == http.MethodGet {
+			switch request.URL.Path {
+			case "/compute/v2/servers/workspace-server-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"server": map[string]any{
+					"id": "workspace-server-old", "status": "ACTIVE", "flavor": map[string]any{"id": "actual-small"},
+				}})
+				return
+			case "/compute/v2/flavors/actual-small":
+				writeJSON(t, response, http.StatusOK, map[string]any{"flavor": map[string]any{
+					"id": "actual-small", "vcpus": 1, "ram": 2048, "disk": 20,
+				}})
+				return
+			case "/compute/v2/flavors/flavor-big":
+				writeJSON(t, response, http.StatusOK, map[string]any{"flavor": map[string]any{
+					"id": "flavor-big", "vcpus": 4, "ram": 8192, "disk": 20,
+				}})
+				return
+			case "/compute/v2/os-quota-sets/project-1/detail":
+				writeJSON(t, response, http.StatusOK, map[string]any{"quota_set": map[string]any{
+					"id":        "project-1",
+					"instances": map[string]int{"in_use": 1, "reserved": 0, "limit": 1},
+					"cores":     map[string]int{"in_use": 2, "reserved": 0, "limit": 4},
+					"ram":       map[string]int{"in_use": 4096, "reserved": 0, "limit": 8192},
+				}})
+				return
+			case "/network/v2.0/networks/network-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"network": map[string]any{"id": "network-old", "status": "ACTIVE"}})
+				return
+			case "/network/v2.0/subnets/subnet-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"subnet": map[string]any{"id": "subnet-old"}})
+				return
+			case "/network/v2.0/routers/router-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"router": map[string]any{"id": "router-old", "status": "ACTIVE"}})
+				return
+			case "/network/v2.0/security-groups/security-group-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"security_group": map[string]any{
+					"id": "security-group-old", "security_group_rules": []any{
+						map[string]any{"id": "default-egress-v4"}, map[string]any{"id": "default-egress-v6"}, map[string]any{"id": "security-rule-old"},
+					},
+				}})
+				return
+			case "/network/v2.0/security-group-rules/security-rule-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"security_group_rule": map[string]any{"id": "security-rule-old"}})
+				return
+			case "/network/v2.0/ports/workspace-lab-old", "/network/v2.0/ports/workspace-management-old":
+				writeJSON(t, response, http.StatusOK, map[string]any{"port": map[string]any{"id": strings.TrimPrefix(request.URL.Path, "/network/v2.0/ports/"), "status": "ACTIVE"}})
+				return
+			case "/network/v2.0/ports":
+				if request.URL.Query().Get("device_id") == "router-old" {
+					writeJSON(t, response, http.StatusOK, map[string]any{"ports": []any{
+						map[string]any{"id": "router-interface"}, map[string]any{"id": "router-gateway"},
+					}, "ports_links": []any{}})
+					return
+				}
+			}
+		}
+		base.ServeHTTP(response, request)
+	}))
+	adapter.provision = testProvisionConfig(t)
+	snapshot := validSnapshot()
+	snapshot.VMs[0].FlavorID = "flavor-big"
+	snapshot.VMs[0].FlavorSpec = coreprovider.FlavorSpec{VCPUs: 4, RAMMiB: 8192, DiskGiB: 20}
+
+	result, err := adapter.Reset(context.Background(), coreprovider.ResetRequest{
+		Correlation:       coreprovider.Correlation{OperationID: "reset-flavor-drift", LabInstanceID: "lab", Generation: 2},
+		CreationSnapshot:  snapshot,
+		ProviderResources: validResetResourceRefs(snapshot, 1),
+	})
+	if err != nil || deletes != 0 || result.Outcome != coreprovider.OutcomeFailed || result.Error == nil || result.Error.Code != errorQuotaExceeded {
+		t.Fatalf("Reset() deletes=%d result=%+v err=%v", deletes, result, err)
+	}
+}
+
+func TestResetRejectsMissingEmptyAndPartialResourcesBeforePreflight(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		resources []coreprovider.ResourceRef
+	}{
+		{name: "missing", resources: nil},
+		{name: "empty", resources: []coreprovider.ResourceRef{}},
+		{name: "partial", resources: validResetResourceRefs(validSnapshot(), 1)[:7]},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			calls := 0
+			adapter := newTestAdapter(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls++ }))
+			adapter.provision = testProvisionConfig(t)
+			result, err := adapter.Reset(context.Background(), coreprovider.ResetRequest{
+				Correlation:       coreprovider.Correlation{OperationID: "reset-invalid", LabInstanceID: "lab-invalid", Generation: 2},
+				CreationSnapshot:  validSnapshot(),
+				ProviderResources: test.resources,
+			})
+			if err != nil || calls != 0 || result.Outcome != coreprovider.OutcomeFailed {
+				t.Fatalf("Reset() calls=%d result=%+v err=%v", calls, result, err)
+			}
+		})
+	}
+}
+
+func TestResetRejectsCurrentGenerationResourcesBeforePreflight(t *testing.T) {
+	calls := 0
+	adapter := newTestAdapter(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls++ }))
+	adapter.provision = testProvisionConfig(t)
+
+	result, err := adapter.Reset(context.Background(), coreprovider.ResetRequest{
+		Correlation:      coreprovider.Correlation{OperationID: "reset-generation", LabInstanceID: "lab-generation", Generation: 2},
+		CreationSnapshot: validSnapshot(),
+		ProviderResources: []coreprovider.ResourceRef{{
+			ResourceType: coreprovider.ResourceTypeServer,
+			ProviderID:   "same-generation-server",
+			Generation:   2,
+		}},
+	})
+	if err != nil || calls != 0 || result.Outcome != coreprovider.OutcomeFailed {
+		t.Fatalf("Reset() calls=%d result=%+v err=%v", calls, result, err)
+	}
+}
+
+func TestResetCleansOldGenerationThenProvisionsNewGeneration(t *testing.T) {
+	base := &m2OpenStackFake{t: t}
+	fake := &m3ResetFake{base: base, deleted: make(map[string]bool)}
+	adapter := newTestAdapter(t, fake)
+	adapter.provision = testProvisionConfig(t)
+	adapter.sshProbe = func(context.Context, string) error { return nil }
+	adapter.startupProbe = func(context.Context, string, string) error { return nil }
+
+	first, err := adapter.Provision(context.Background(), coreprovider.ProvisionRequest{
+		Correlation:      coreprovider.Correlation{OperationID: "provision-1", LabInstanceID: "lab-instance-1", Generation: 1},
+		CreationSnapshot: validSnapshot(),
+	})
+	if err != nil || first.Outcome != coreprovider.OutcomeSucceeded {
+		t.Fatalf("initial Provision() = %+v, %v", first, err)
+	}
+	old := make([]coreprovider.ResourceRef, 0, len(first.ProviderResources))
+	for _, resource := range first.ProviderResources {
+		old = append(old, resource.ResourceRef)
+	}
+
+	reset, err := adapter.Reset(context.Background(), coreprovider.ResetRequest{
+		Correlation:       coreprovider.Correlation{OperationID: "reset-2", LabInstanceID: "lab-instance-1", Generation: 2},
+		CreationSnapshot:  validSnapshot(),
+		ProviderResources: old,
+	})
+	if err != nil || reset.Outcome != coreprovider.OutcomeSucceeded || len(reset.ProviderResources) != 16 {
+		t.Fatalf("Reset() = %+v, %v", reset, err)
+	}
+	for index, resource := range reset.ProviderResources {
+		if index < 8 {
+			if resource.Generation != 1 || resource.ObservedState != stateDeleted {
+				t.Fatalf("old generation result = %+v", resource)
+			}
+		} else if resource.Generation != 2 || resource.ObservedState == stateDeleted {
+			t.Fatalf("new generation result = %+v", resource)
+		}
+	}
+	if len(fake.deleteOrder) != 8 || !strings.Contains(fake.deleteOrder[0], "/servers/") || !strings.Contains(fake.deleteOrder[len(fake.deleteOrder)-1], "/networks/") {
+		t.Fatalf("delete order = %#v", fake.deleteOrder)
+	}
+}
+
+type m3ResetFake struct {
+	base        *m2OpenStackFake
+	deleted     map[string]bool
+	deleteOrder []string
+}
+
+func (f *m3ResetFake) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+	if request.Method == http.MethodDelete {
+		f.deleted[request.URL.Path] = true
+		f.deleteOrder = append(f.deleteOrder, request.URL.Path)
+		response.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if request.Method == http.MethodGet && f.deleted[request.URL.Path] {
+		http.NotFound(response, request)
+		return
+	}
+	if request.Method == http.MethodGet {
+		switch request.URL.Path {
+		case "/network/v2.0/networks/network-lab":
+			writeJSON(f.base.t, response, http.StatusOK, map[string]any{"network": map[string]any{"id": "network-lab", "status": "ACTIVE"}})
+			return
+		case "/network/v2.0/subnets/subnet-lab":
+			writeJSON(f.base.t, response, http.StatusOK, map[string]any{"subnet": map[string]any{"id": "subnet-lab"}})
+			return
+		case "/network/v2.0/routers/router-lab":
+			writeJSON(f.base.t, response, http.StatusOK, map[string]any{"router": map[string]any{"id": "router-lab", "status": "ACTIVE"}})
+			return
+		case "/network/v2.0/security-groups/security-group-lab":
+			writeJSON(f.base.t, response, http.StatusOK, map[string]any{"security_group": map[string]any{
+				"id": "security-group-lab", "security_group_rules": []any{
+					map[string]any{"id": "default-egress-v4", "security_group_id": "security-group-lab"},
+					map[string]any{"id": "default-egress-v6", "security_group_id": "security-group-lab"},
+					map[string]any{"id": "rule-lab", "security_group_id": "security-group-lab"},
+				},
+			}})
+			return
+		case "/network/v2.0/security-group-rules/rule-lab":
+			writeJSON(f.base.t, response, http.StatusOK, map[string]any{"security_group_rule": map[string]any{"id": "rule-lab", "security_group_id": "security-group-lab"}})
+			return
+		}
+	}
+	if request.Method == http.MethodPost {
+		for _, path := range createdResourcePaths(request.URL.Path) {
+			delete(f.deleted, path)
+		}
+	}
+	f.base.ServeHTTP(response, request)
+}
+
+func createdResourcePaths(collectionPath string) []string {
+	switch collectionPath {
+	case "/network/v2.0/networks":
+		return []string{"/network/v2.0/networks/network-lab"}
+	case "/network/v2.0/subnets":
+		return []string{"/network/v2.0/subnets/subnet-lab"}
+	case "/network/v2.0/routers":
+		return []string{"/network/v2.0/routers/router-lab"}
+	case "/network/v2.0/security-groups":
+		return []string{"/network/v2.0/security-groups/security-group-lab"}
+	case "/network/v2.0/security-group-rules":
+		return []string{"/network/v2.0/security-group-rules/rule-lab"}
+	case "/network/v2.0/ports":
+		return []string{"/network/v2.0/ports/port-lab", "/network/v2.0/ports/port-management"}
+	case "/compute/v2/servers":
+		return []string{"/compute/v2/servers/server-workspace"}
+	default:
+		return nil
+	}
+}
+
+func validResetResourceRefs(snapshot coreprovider.CreationSnapshot, generation int64) []coreprovider.ResourceRef {
+	resources := []coreprovider.ResourceRef{
+		{ResourceType: coreprovider.ResourceTypeNetwork, ProviderID: "network-old", Generation: generation, LogicalName: "lab-network"},
+		{ResourceType: coreprovider.ResourceTypeSubnet, ProviderID: "subnet-old", Generation: generation, LogicalName: "lab-subnet"},
+		{ResourceType: coreprovider.ResourceTypeSecurityGroup, ProviderID: "security-group-old", Generation: generation, LogicalName: "lab-security-group"},
+		{ResourceType: coreprovider.ResourceTypeSecurityRule, ProviderID: "security-rule-old", Generation: generation, LogicalName: "lab-ingress"},
+	}
+	if snapshot.InternetOutbound {
+		resources = append(resources, coreprovider.ResourceRef{ResourceType: coreprovider.ResourceTypeRouter, ProviderID: "router-old", Generation: generation, LogicalName: "lab-router"})
+	}
+	for _, vm := range snapshot.VMs {
+		resources = append(resources,
+			coreprovider.ResourceRef{ResourceType: coreprovider.ResourceTypePort, ProviderID: vm.VMKey + "-lab-old", Generation: generation, LogicalName: vm.VMKey + ":lab"},
+			coreprovider.ResourceRef{ResourceType: coreprovider.ResourceTypePort, ProviderID: vm.VMKey + "-management-old", Generation: generation, LogicalName: vm.VMKey + ":management"},
+			coreprovider.ResourceRef{ResourceType: coreprovider.ResourceTypeServer, ProviderID: vm.VMKey + "-server-old", Generation: generation, LogicalName: vm.VMKey},
+		)
+	}
+	return resources
+}

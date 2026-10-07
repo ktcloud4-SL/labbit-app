@@ -61,6 +61,7 @@ Source provenance:
 - Authentication/Gateway patch: `fa158f30c63e18ef44b293aa84a2be5877ff955a`.
 - NSM topology, ownership, quota and Compute compatibility: `9796e49ab39577a4537b6017328a1e8a0351e86d`.
 - Subsequent observed Cleanup fixes: `afcd4ad31a40017bfb9bcd820373db60165edbed`.
+- Main advanced during execution. The branch was subsequently rebased without conflicts onto `6d675c74bff11f481d247267faefd4ce960dcd38` (Terminal/File and Live changes). Rebased implementation commits are `253cd30`, `cc35dc8` and `fce8744`; the original revisions and binary hashes above describe the actual historical cloud runs. The latest-main branch has full local regression/build coverage, including Linux Connector/harness builds, but has not completed a new full cloud acceptance run.
 - The first successful WSS Provision used the evolving compatibility worktree based on `fa158f3`; its exact binary hash was not retained. It is evidence for that candidate's behavior, not full acceptance of the final revision.
 - A Linux amd64 production Connector built at `9796e49` was deployed to the actual KT D1 / DX-M1 Connector VM through pinned authenticated SSH. The deployed binary SHA256 was verified against the local binary: `1d194d8e99f08bef17c3081ce28b1063d98472c105b3011d841f23619681d5f5`. Harness SHA256: `c3509dd7812734829bd155010df025776c5baa180ac245da1ba6b9559c5faca9`. That run verifies current Control and read-only Reconcile, and does not rerun Provision/Reset. The later Cleanup fix has unit regression coverage and actual local Provider Cleanup observations; it has not completed two-generation WSS acceptance on the KT host.
 
@@ -120,8 +121,8 @@ Protected Provider configuration and local SSH files remain outside Git. The des
 ### Validation
 
 - Final source: Go vet, `go test ./...`, `go build ./...`: PASS. Real cloud gates were unset. The new harness package is buildable but has no automatically executed cloud tests.
-- Go formatting: PASS for 308 tracked Go files after canonical LF normalization, equivalent to Linux checkout formatting. Windows baseline CRLF files were not committed as mass formatting edits.
-- Web typecheck/lint/test/production build: PASS; 9 test files / 109 tests. Existing dependencies match the repository lockfile. Bundled Node/pnpm were used; `make setup` was not executed literally.
+- Go formatting: PASS for 319 tracked Go files after canonical LF normalization, equivalent to Linux checkout formatting. Windows baseline CRLF files were not committed as mass formatting edits.
+- Latest-main Web typecheck/lint/test/production build: PASS; 13 test files / 163 tests. A separate validation copy was byte-verified against all 61 tracked Web files and installed using `npm ci` with the latest-main `package-lock.json`; direct Node CLI commands matched the package scripts. The existing shared dependency junction was retained. Earlier baseline checks were 9 files / 109 tests. `make setup` was not executed literally.
 - Contracts: OpenAPI, all eight Draft 2020-12 schemas and local refs, Runtime YAML and unique Migration prefixes: PASS using the workflow's pinned validator versions.
 
 ### KT Cloud D1 Result

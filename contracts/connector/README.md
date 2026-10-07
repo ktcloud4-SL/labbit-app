@@ -382,8 +382,11 @@ Connector → Gateway   : Workspace application에서 읽은 raw byte (HTTP resp
 
 ### 수명, 취소, 정리
 
-- `PREVIEW_OPEN`을 보낸 뒤 `PREVIEW_OPEN_RESULT=FAILED`가 오거나, attach가 시간 안에 오지 않거나, HTTP 요청이 취소되거나, `PREVIEW_OPEN` 전송 결과가 불명확하면 SaaS는 그 PreviewSession의 상태를 지우고 Data WSS를 닫은 뒤 `PREVIEW_CLOSE`를 보냅니다(보낼 수 있고 Connector가 `FAILED`를 이미 알리지 않은 경우). 이미 정리된 PreviewSession의 늦은 attach는 어떤 PreviewSession에도 연결되지 않으며 연결은 종료됩니다.
-- PreviewSession은 만료 시각을 가집니다. 명시적 종료, 만료, Reset/Cleanup, SaaS 종료에서는 Data WSS를 닫고 `PREVIEW_CLOSE`를 보냅니다. Connector가 알린 종료(Data WSS 종료)와 Credential revoke·Control Session 교체는 Connector가 이미 알고 있거나 보낼 수 없으므로 `PREVIEW_CLOSE`를 따로 보내지 않을 수 있고, 그래서 Connector는 `PREVIEW_CLOSE`뿐 아니라 Data WSS 종료로도 TCP forwarding channel을 정리해야 합니다.
+- **초기 PreviewSession 생성(initial create) 실패/취소**: `PREVIEW_OPEN`을 보낸 뒤 `PREVIEW_OPEN_RESULT=FAILED`가 오거나, attach가 시간 안에 오지 않거나, HTTP 생성 요청이 취소되거나, `PREVIEW_OPEN` 전송 결과가 불명확하면 SaaS는 그 PreviewSession 생성을 abort하고 Gateway 등록과 Router pending을 지우며 Data WSS를 닫고 `PREVIEW_CLOSE`를 보냅니다(보낼 수 있고 Connector가 `FAILED`를 이미 알리지 않은 경우).
+- **활성 PreviewSession의 후속 터널 개방(follow-up sequential tunnel open) 실패/취소**: 이미 생성되어 활성인 PreviewSession에서 후속 HTTP 요청을 위해 tunnel을 열 때 timeout, context 취소, `PREVIEW_OPEN_RESULT=FAILED`, Connector 전송 오류 등이 발생하더라도, 해당 open attempt와 Router pending, Data WSS 시도만 정리(clean)되고 logical PreviewSession 자체는 유지됩니다. 브라우저는 다음 HTTP 요청에서 새 sequential tunnel 개방을 재시도(retry)할 수 있습니다.
+- **stale/late attach 및 late OPEN_RESULT**: 이미 정리된 open attempt나 이전 시도의 stale/late attach는 `replyToMessageId` 불일치 또는 대기 상태 부재로 인해 거절(close `1008`)되며 활성 PreviewSession이나 다른 tunnel에 연결되지 않습니다. 대기 중인 open attempt가 이미 종료된 뒤 뒤늦게 도착한 late `PREVIEW_OPEN_RESULT`는 unmatched로 안전하게 무시되며 현재의 새 attempt나 활성 PreviewSession을 건드리지 않습니다.
+- **TCP/Data WSS 연결 종료**: 일반적인 TCP/Data WSS 연결의 정상 종료(`1000`)는 단일 데이터 터널의 수명 종료일 뿐이며 logical PreviewSession 자체의 종료가 아닙니다.
+- **logical PreviewSession 종료**: PreviewSession은 절대 TTL(만료 시각)을 가집니다. 사용자/API의 명시적 종료, 만료, Reset/Cleanup, SaaS 종료에서는 열려 있는 Data WSS를 닫고 `PREVIEW_CLOSE`를 보냅니다. Connector가 알린 종료(Data WSS 종료)와 Credential revoke·Control Session 교체는 Connector가 이미 알고 있거나 보낼 수 없으므로 `PREVIEW_CLOSE`를 따로 보내지 않을 수 있고, 그래서 Connector는 `PREVIEW_CLOSE`뿐 아니라 Data WSS 종료로도 TCP forwarding channel을 정리해야 합니다.
 - Connector Credential이 revoke되면 §2에 따라 그 Credential로 인증된 Preview Data WSS도 close `4001`로 종료하고 해당 PreviewSession(attach를 기다리는 것 포함)을 끝냅니다. 같은 Credential의 새 Upgrade는 `401`입니다.
 - Connector의 새 Control connection이 기존 Control connection을 대체하면(§4, close `4002`) SaaS는 이전 Control Session으로 `PREVIEW_OPEN`을 보낸 PreviewSession을 trust 대상에서 제외합니다. attach를 기다리던 PreviewSession은 정리하고 이미 attach된 tunnel은 close `4002`로 종료합니다. 이전 Data WSS는 새 Control Session의 PreviewSession을 완료시키지 못하며 Connector ID가 같다는 이유로 다시 신뢰하지 않습니다.
 - 서로 다른 PreviewSession은 서로 다른 `previewSessionId`와 Data WSS를 가지므로 한 Connector에 동시에 여러 PreviewSession이 있어도 서로 섞이지 않습니다. 이 상태는 SaaS process 안의 ephemeral 상태이며 PostgreSQL에 저장하지 않습니다.
@@ -613,7 +616,7 @@ Terminal Data WSS의 Session 종료 의미는 `terminal-data.schema.json`과 Bro
 - upstream TCP 연결 종료 시 Data WSS tunnel만 정상 종료되고 PreviewSession은 유지되며, 후속 HTTP 요청 시 새 sequential tunnel을 열 수 있습니다.
 - Control이 승인한 `targetPort`와 다른 port의 attach, SSH 관리 port(`22`)는 PreviewSession이 되지 않습니다.
 - Credential revoke와 Control Session 교체 뒤 이전 Preview Data WSS가 trust 대상으로 남지 않고, attach를 기다리던 PreviewSession과 진행 중인 tunnel이 정리됩니다.
-- 취소·시간 초과·`PREVIEW_OPEN_RESULT=FAILED`·연결 단절·shutdown 뒤 pending PreviewSession과 Preview Data WSS가 남지 않습니다.
+- 초기 생성 실패/취소, 후속 tunnel open 실패/취소, 연결 단절, shutdown 뒤에 leak된 pending correlation(Router pending 및 Gateway pending)과 미정리 Preview Data WSS가 남지 않습니다.
 - Preview HTTP 본문, 경로, query, Cookie, bootstrap/auth credential이 Control WSS, PostgreSQL, log, trace, metric label에 남지 않습니다.
 - 각 JSON Schema 정상/비정상 message validation이 동작합니다.
 - 명령별 유효한 Trace Context가 ACK/PROGRESS/RESULT에 유지되고 병렬 item/다른 generation과 섞이지 않습니다.

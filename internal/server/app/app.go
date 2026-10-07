@@ -9,6 +9,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 
 	migrationfiles "github.com/ktcloud4-SL/labbit-app/db/migrations"
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
+	"github.com/ktcloud4-SL/labbit-app/internal/observability/tracing"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/filetransport"
@@ -45,7 +47,6 @@ type Config struct {
 	// PublicOrigin은 api role의 Browser unsafe-method Origin 검증과 realtime role의 Browser WSS Upgrade Origin 검증에 쓰는
 	// trusted origin이다. LABBIT_PUBLIC_ORIGIN을 httpapi.ParseOrigin으로 정규화한 값이며 request Host에서 만들지 않는다.
 	PublicOrigin string
-
 	// 아래는 preview role이 enabled된 process의 Preview 설정이다. role이 없으면 zero value다.
 	//
 	// PreviewAllowedPorts는 Backend의 명시적 허용 port 목록(LABBIT_PREVIEW_ALLOWED_PORTS)이다. 숫자 범위로 자동 승인하지 않고 기본 port가 없다.
@@ -54,6 +55,10 @@ type Config struct {
 	PreviewSessionTTL time.Duration
 	// PreviewOrigin은 사용자 코드 Preview Origin template(LABBIT_PREVIEW_ORIGIN_TEMPLATE)이다. SaaS 본 서비스 Origin과 다르다.
 	PreviewOrigin preview.OriginTemplate
+
+	// Tracing은 OTEL_* Trace 설정이다. 업무 필수 설정이 아니므로 오류가 있어도 LoadConfig는 실패하지 않고, Run이 안전한 진단을 남기고
+	// export 없이 계속한다. 값의 zero value는 export 없는 none이다.
+	Tracing tracing.Config
 }
 
 // LoadConfig는 현재 구현된 role에 필요한 Runtime Contract 항목만 읽는다.
@@ -111,6 +116,7 @@ func LoadConfig() (Config, error) {
 		ShutdownGrace: grace,
 		DatabaseDSN:   databaseDSN,
 		PublicOrigin:  publicOrigin,
+		Tracing:       tracing.ConfigFromEnv(os.Getenv),
 	}
 
 	// preview role이 enabled되면 허용 port, TTL, Origin template이 모두 명시되어야 한다. 하나라도 없거나 올바르지 않으면 startup에 실패한다.
@@ -178,6 +184,22 @@ func Run(ctx context.Context, cfg Config) error {
 	ready := &atomic.Bool{}
 	registry, httpMetrics, realtimeMetrics := applicationMetrics(cfg.Roles)
 
+	// Trace는 업무 성공 조건이 아니다. Start는 실패하지 않으며 설정 오류와 exporter 초기화 실패는 안전한 진단 뒤 export만 끈다.
+	// exporter가 없어도 Span과 W3C Context 전파, log의 trace_id correlation은 그대로다.
+	traceRuntime := tracing.Start(ctx, cfg.Tracing, tracing.Options{
+		Environment: cfg.Environment,
+		Component:   strings.Join(cfg.Roles, ","),
+		Logger:      logger,
+	})
+	// 종료 flush는 한 번만 한다. 정상 종료는 아래에서 남은 shutdown budget으로 하고, 그 전에 반환하는 시작 실패 경로는 이 defer가 한다.
+	var flushTraces sync.Once
+	flush := func(flushCtx context.Context) { flushTraces.Do(func() { _ = traceRuntime.Shutdown(flushCtx) }) }
+	defer func() {
+		earlyCtx, cancelEarly := context.WithTimeout(context.Background(), cfg.ShutdownGrace)
+		defer cancelEarly()
+		flush(earlyCtx)
+	}()
+
 	var (
 		checks []func(context.Context) error
 		stack  *controlStack
@@ -215,6 +237,7 @@ func Run(ctx context.Context, cfg Config) error {
 				PreviewPolicy: cfg.PreviewAllowedPorts,
 				PreviewTTL:    cfg.PreviewSessionTTL,
 				PreviewOrigin: cfg.PreviewOrigin,
+				Tracer:        traceRuntime.Tracer(),
 			})
 			if err != nil {
 				return err
@@ -294,6 +317,11 @@ func Run(ctx context.Context, cfg Config) error {
 		applicationErr = errors.Join(applicationErr, stack.shutdown(shutdownCtx))
 	}
 	adminErr := adminServer.Shutdown(shutdownCtx)
+
+	// 관측 flush는 업무 HTTP/WSS drain과 정리가 끝난 뒤 남은 shutdown budget 안에서만 한다. 별도의 context를 만들지 않으므로
+	// Collector가 응답하지 않아도 LABBIT_SHUTDOWN_GRACE를 넘겨 종료를 지연시키지 않는다. flush 실패는 이미 끝난 업무 정리의 결과를
+	// 바꾸지 않으므로 반환 오류에 합치지 않는다(Runtime이 error_code만 기록한다).
+	flush(shutdownCtx)
 	return errors.Join(applicationErr, adminErr)
 }
 

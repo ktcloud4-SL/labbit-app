@@ -16,6 +16,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
@@ -57,6 +59,8 @@ type Options struct {
 	// Logger가 nil이면 로그를 남기지 않는다.
 	Logger  *slog.Logger
 	Metrics *observability.HTTPMetrics
+	// Tracer는 HTTP request의 server Span을 만든다. nil이면 Span을 만들지 않지만(noop) 요청의 유효한 W3C Context는 handler로 전달한다.
+	Tracer trace.Tracer
 }
 
 type api struct {
@@ -123,7 +127,12 @@ func New(opts Options) (http.Handler, error) {
 	handle("POST /api/v1/lab-instances/{labInstanceId}/preview-sessions", a.authenticated(http.HandlerFunc(a.createPreviewSession)))
 	handle("DELETE /api/v1/preview-sessions/{previewSessionId}", a.authenticated(http.HandlerFunc(a.closePreviewSession)))
 
-	return withMetrics(opts.Metrics, mux, routes, withRequestID(noStore(a.originGuard(mux)))), nil
+	tracer := opts.Tracer
+	if tracer == nil {
+		tracer = noop.NewTracerProvider().Tracer("")
+	}
+	// Span은 request ID를 attribute로 갖도록 withRequestID 안쪽에서 시작한다. Origin 거절도 Span 안이다.
+	return withMetrics(opts.Metrics, mux, routes, withRequestID(withTracing(tracer, mux, routes, noStore(a.originGuard(mux))))), nil
 }
 
 // noStore는 인증 응답이 Browser나 중간 cache에 저장되지 않게 한다.
@@ -191,6 +200,8 @@ func (a *api) unauthenticated(w http.ResponseWriter, r *http.Request, clearCooki
 // driver/PostgreSQL 원문이나 credential이 들어 있을 수 있다.
 func (a *api) internalError(w http.ResponseWriter, r *http.Request, op string, err error) {
 	attrs := append([]any{"request_id", requestIDFrom(r.Context()), "operation", op}, errorClassification(err)...)
+	// 유효한 Span이 있으면 같은 요청의 request_id와 trace_id를 함께 조사할 수 있다. 없으면 trace_id를 만들지 않는다.
+	attrs = append(attrs, traceLogAttrs(r.Context())...)
 	a.logger.Error("HTTP 요청 처리 실패", attrs...)
 	writeProblem(w, r, http.StatusInternalServerError, codeInternal, "요청을 처리하지 못했습니다.")
 }

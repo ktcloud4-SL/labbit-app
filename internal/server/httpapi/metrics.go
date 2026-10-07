@@ -15,11 +15,7 @@ func withMetrics(m *observability.HTTPMetrics, mux *http.ServeMux, routes map[st
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only registered patterns are labels, including when Origin rejects before routing.
 		// ServeMux may return a redirect pattern derived from the request; never use it directly.
-		_, pattern := mux.Handler(r)
-		route := routes[pattern]
-		if route == "" {
-			route = "unmatched"
-		}
+		route := routeTemplate(mux, routes, r)
 		method := metricMethod(r.Method)
 		start := time.Now()
 		response := &metricResponse{ResponseWriter: w}

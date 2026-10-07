@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumes"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
@@ -43,11 +44,11 @@ func (a *Adapter) Reset(ctx context.Context, request coreprovider.ResetRequest) 
 		CreationSnapshot: request.CreationSnapshot,
 	}
 	config := normalizedProvisionConfig(a.provision)
-	if validateProvisionSettings(config, request.CreationSnapshot) != nil || validateProvisionRequest(provisionRequest) != nil {
+	if a.validateProvisionSettings(config, request.CreationSnapshot) != nil || validateProvisionRequest(provisionRequest) != nil {
 		return failedResult(nil, errorInvalidProvision, "Reset request is invalid"), nil
 	}
-	oldResources, err := validateResetResourceSet(request.ProviderResources, request.CreationSnapshot, request.Generation)
-	if err != nil {
+	oldResources, err := a.validateResetResourceSet(request.ProviderResources, request.CreationSnapshot, request.Generation)
+	if err != nil || !a.resourceProfileMatches(oldResources) {
 		return failedResult(nil, errorInvalidProvision, "Reset resources are invalid"), nil
 	}
 
@@ -89,7 +90,7 @@ func (a *Adapter) Cleanup(ctx context.Context, request coreprovider.CleanupReque
 		return failedResult(nil, errorInvalidProvision, "Cleanup request is invalid"), nil
 	}
 	resources, err := validateResourceRefs(request.ProviderResources, request.Generation, false)
-	if err != nil {
+	if err != nil || !a.resourceProfileMatches(resources) {
 		return failedResult(nil, errorInvalidProvision, "Cleanup resources are invalid"), nil
 	}
 	return a.cleanupResources(ctx, resources), nil
@@ -128,7 +129,7 @@ func (a *Adapter) deleteAndConfirm(ctx context.Context, resource coreprovider.Re
 		if gophercloud.ResponseCodeIs(err, 404) {
 			return nil
 		}
-		if isDefiniteMutationRejection(err) {
+		if isDefiniteMutationRejection(err) || errors.Is(err, ErrMutationRejected) {
 			return errors.Join(ErrResourceDelete, ErrMutationRejected)
 		}
 		return safeContextError(ctx, ErrResourceDelete)
@@ -157,7 +158,16 @@ func (a *Adapter) deleteAndConfirm(ctx context.Context, resource coreprovider.Re
 
 func (a *Adapter) deleteResource(ctx context.Context, resource coreprovider.ResourceRef) error {
 	switch resource.ResourceType {
+	case coreprovider.ResourceTypeTier:
+		return a.ktNetwork.deleteTier(ctx, resource.ProviderID)
+	case coreprovider.ResourceTypeFirewall:
+		return a.ktNetwork.deletePolicy(ctx, resource.ProviderID)
+	case coreprovider.ResourceTypeVolume:
+		return volumes.Delete(ctx, a.volume, resource.ProviderID, volumes.DeleteOpts{}).ExtractErr()
 	case coreprovider.ResourceTypeServer:
+		if a.ktNetwork != nil {
+			return a.deleteKTCloudServer(ctx, resource.ProviderID)
+		}
 		return servers.Delete(ctx, a.compute, resource.ProviderID).ExtractErr()
 	case coreprovider.ResourceTypePort:
 		return ports.Delete(ctx, a.network, resource.ProviderID).ExtractErr()
@@ -241,6 +251,10 @@ func validateResetResourceSet(resources []coreprovider.ResourceRef, snapshot cor
 		expected[resourceSetKey(coreprovider.ResourceTypePort, vm.VMKey+":management")] = struct{}{}
 		expected[resourceSetKey(coreprovider.ResourceTypeServer, vm.VMKey)] = struct{}{}
 	}
+	return validateExpectedResetSet(validated, nextGeneration, expected)
+}
+
+func validateExpectedResetSet(validated []coreprovider.ResourceRef, nextGeneration int64, expected map[string]struct{}) ([]coreprovider.ResourceRef, error) {
 	if len(validated) != len(expected) {
 		return nil, ErrLifecycleRequest
 	}
@@ -273,7 +287,10 @@ func supportedResourceType(resourceType string) bool {
 		coreprovider.ResourceTypeSecurityGroup,
 		coreprovider.ResourceTypeSecurityRule,
 		coreprovider.ResourceTypePort,
-		coreprovider.ResourceTypeServer:
+		coreprovider.ResourceTypeServer,
+		coreprovider.ResourceTypeTier,
+		coreprovider.ResourceTypeFirewall,
+		coreprovider.ResourceTypeVolume:
 		return true
 	default:
 		return false
@@ -284,6 +301,12 @@ func deletePriority(resourceType string) int {
 	switch resourceType {
 	case coreprovider.ResourceTypeServer:
 		return 0
+	case coreprovider.ResourceTypeVolume:
+		return 1
+	case coreprovider.ResourceTypeFirewall:
+		return 3
+	case coreprovider.ResourceTypeTier:
+		return 6
 	case coreprovider.ResourceTypePort:
 		return 1
 	case coreprovider.ResourceTypeRouter:

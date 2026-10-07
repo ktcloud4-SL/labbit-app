@@ -582,10 +582,10 @@ connector:
       secret: false
       note: "Nova/Neutron quota preflight에 사용하는 현재 Provider project ID입니다."
     LABBIT_OPENSTACK_MANAGEMENT_NETWORK_ID:
-      required: true
+      required_when: "standard Neutron OpenStack profile"
       secret: false
     LABBIT_OPENSTACK_MANAGEMENT_SECURITY_GROUP_ID:
-      required: true
+      required_when: "standard Neutron OpenStack profile"
       secret: false
       note: "D-18의 ProviderConnection 공용 Management SG입니다. stateful이어야 하며 Connector CIDR의 TCP/22 ingress 한 개만 허용하고 egress rule은 없어야 합니다."
     LABBIT_OPENSTACK_EXTERNAL_NETWORK_ID:
@@ -599,7 +599,15 @@ connector:
     LABBIT_OPENSTACK_SSH_ALLOWED_CIDR:
       required: true
       secret: false
-      note: "공용 Management security group에서 Connector의 SSH 접근만 허용하는 IPv4 CIDR입니다."
+      note: "Connector의 SSH 접근만 허용하는 IPv4 CIDR입니다. 표준 OpenStack은 공용 Management SG에 사용하고 KT D1은 Connector Tier 안의 Connector 주소 /32를 NSM 정책 source로 사용합니다."
+    LABBIT_KTCLOUD_CONNECTOR_TIER_ID:
+      required_when: "KT D1 auth_url profile"
+      secret: false
+      note: "Connector VM이 연결된 공유 NSM Tier UUID(networkId)입니다. refId나 기존 Management Network 변수에 넣지 않습니다. Lab lifecycle은 이 Tier를 생성·삭제하지 않습니다."
+    LABBIT_KTCLOUD_MANAGEMENT_CIDR:
+      required_when: "KT D1 auth_url profile"
+      secret: false
+      note: "Lab VM 전용 Management Tier에 사용할 미사용 IPv4 /24입니다. Lab CIDR 및 기존 Tier와 겹치면 생성 전에 거절합니다. 현재 KT D1 호환 범위는 Linux 50 GiB 부팅 볼륨, VM 한 대, internetOutbound=false이며 표준 Neutron Management/SG/External Network 변수는 비워야 합니다."
     LABBIT_OPENSTACK_LAB_SUBNET_CIDR:
       required: true
       secret: false

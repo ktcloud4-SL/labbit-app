@@ -41,6 +41,8 @@ type Config struct {
 // deployment inputs rather than Connector wire fields, so they remain outside
 // CreationSnapshot and can differ for each Provider connection.
 type ProvisionConfig struct {
+	KTCloudConnectorTierID    string
+	KTCloudManagementCIDR     string
 	ProviderConnectionID      string
 	ProjectID                 string
 	ManagementNetworkID       string
@@ -72,6 +74,8 @@ const (
 	EnvSSHUsername             = "LABBIT_OPENSTACK_SSH_USERNAME"
 	EnvSSHPrivateKeyFile       = "LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE"
 	EnvSSHKnownHostsFile       = "LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE"
+	EnvKTCloudConnectorTier    = "LABBIT_KTCLOUD_CONNECTOR_TIER_ID"
+	EnvKTCloudManagementCIDR   = "LABBIT_KTCLOUD_MANAGEMENT_CIDR"
 )
 
 // ConfigFromEnvironment uses Labbit's provider-config path and OpenStack's
@@ -82,6 +86,8 @@ func ConfigFromEnvironment() Config {
 		File:      strings.TrimSpace(os.Getenv(EnvProviderConfigFile)),
 		CloudName: strings.TrimSpace(os.Getenv(EnvCloudName)),
 		Provision: ProvisionConfig{
+			KTCloudConnectorTierID:    strings.TrimSpace(os.Getenv(EnvKTCloudConnectorTier)),
+			KTCloudManagementCIDR:     strings.TrimSpace(os.Getenv(EnvKTCloudManagementCIDR)),
 			ProviderConnectionID:      strings.TrimSpace(os.Getenv(EnvProviderConnection)),
 			ProjectID:                 strings.TrimSpace(os.Getenv(EnvProjectID)),
 			ManagementNetworkID:       strings.TrimSpace(os.Getenv(EnvManagementNetwork)),
@@ -102,6 +108,8 @@ func ConfigFromEnvironment() Config {
 type Adapter struct {
 	provider     *gophercloud.ProviderClient
 	identity     *gophercloud.ServiceClient
+	ktNetwork    *ktCloudD1Network
+	volume       *gophercloud.ServiceClient
 	image        *gophercloud.ServiceClient
 	compute      *gophercloud.ServiceClient
 	network      *gophercloud.ServiceClient
@@ -174,6 +182,8 @@ func boundedReauthentication(reauth func(context.Context) error) func(context.Co
 }
 
 func normalizedProvisionConfig(config ProvisionConfig) ProvisionConfig {
+	config.KTCloudConnectorTierID = strings.TrimSpace(config.KTCloudConnectorTierID)
+	config.KTCloudManagementCIDR = strings.TrimSpace(config.KTCloudManagementCIDR)
 	config.ProviderConnectionID = strings.TrimSpace(config.ProviderConnectionID)
 	config.ProjectID = strings.TrimSpace(config.ProjectID)
 	config.ManagementNetworkID = strings.TrimSpace(config.ManagementNetworkID)

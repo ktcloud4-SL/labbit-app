@@ -143,7 +143,11 @@ func TestOutQueueConcurrentPushAndCloseWithFinalOrdering(t *testing.T) {
 // TestPeerCloseWithFinalMessageDeterministicInterleaving은 dataOutput이 subscriber 목록을 복사한 뒤
 // finishLive가 closeWithFinalMessage를 호출하고 dataOutput이 push를 시도하는 interleaving을 결정적으로 검증한다.
 func TestPeerCloseWithFinalMessageDeterministicInterleaving(t *testing.T) {
-	sub := newLiveSubscriber(newPeer(nil, 1024, 10, 0, 0), nil)
+	p := &peer{
+		q:    newOutQueue(1024, 10),
+		done: make(chan struct{}),
+	}
+	sub := newLiveSubscriber(p, nil)
 
 	// G2: finishLive가 closeWithFinalMessage 호출
 	finalData := []byte(`{"type":"LIVE_ENDED"}`)

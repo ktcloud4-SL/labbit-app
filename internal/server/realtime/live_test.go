@@ -55,7 +55,7 @@ func (f *fakeLiveControl) SourceTerminalEnded(_ context.Context, sourceTerminalS
 type liveClient struct {
 	conn      *websocket.Conn
 	msgCh     chan message
-	errCh     chan error
+	readErr   error // msgCh가 닫힌 뒤에만 읽는다.
 	closeOnce sync.Once
 }
 
@@ -121,17 +121,17 @@ func connectLive(t *testing.T, e *env, liveSessionID, cookie string) *liveClient
 	lc := &liveClient{
 		conn:  ws,
 		msgCh: make(chan message, 100),
-		errCh: make(chan error, 1),
 	}
 	go lc.readLoop()
 	return lc
 }
 
 func (lc *liveClient) readLoop() {
+	defer close(lc.msgCh)
 	for {
 		kind, data, err := lc.conn.ReadMessage()
 		if err != nil {
-			lc.errCh <- err
+			lc.readErr = err
 			return
 		}
 		lc.msgCh <- message{kind: kind, data: data}
@@ -140,10 +140,11 @@ func (lc *liveClient) readLoop() {
 
 func (lc *liveClient) readMessage(timeout time.Duration) (int, []byte, error) {
 	select {
-	case m := <-lc.msgCh:
+	case m, ok := <-lc.msgCh:
+		if !ok {
+			return 0, nil, lc.readErr
+		}
 		return m.kind, m.data, nil
-	case err := <-lc.errCh:
-		return 0, nil, err
 	case <-time.After(timeout):
 		return 0, nil, errors.New("read timeout")
 	}

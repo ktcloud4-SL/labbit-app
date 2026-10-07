@@ -228,6 +228,8 @@ Connector는 고객망 내부에서 실행하며 **SaaS가 Connector로 inbound 
 
 Connector Credential과 Provider/OpenStack Credential 원문은 고객 환경 Secret 경계에 남습니다. Connector는 SaaS 공개 443으로 outbound WSS를 생성합니다. Control path/subprotocol과 Terminal Data framing은 `contracts/connector`의 Git 계약이 원본입니다.
 
+KT D1은 같은 `LABBIT_PROVIDER_CONFIG_FILE`과 `OS_CLOUD` 설정에서 `auth_url`을 `https://api.ucloudbiz.olleh.com/d1/identity/`로 지정합니다. OP-01은 이 주소에서 Gophercloud의 Keystone v3 토큰 API를 직접 사용하며, Compute/Image는 각각 공식 Gateway의 `/d1/server/`와 `/d1/image/` 경로로 호출합니다. 다른 OpenStack 주소는 기존 버전 검색과 카탈로그 경로를 사용합니다. 이 호환 처리는 KT Tier를 Neutron으로 매핑하거나 Provision의 Network/Subnet/Port/SG 검증을 생략하지 않습니다. KT Network/Tier lifecycle 호환성과 실제 Connector VM 수용 결과는 LBT-158/LBT-145에서 별도로 검증합니다.
+
 D-17의 기본 Heartbeat는 15초, SaaS OFFLINE 판단은 45초입니다. 값은 설정 가능하지만 reconnect를 Operation Retry로 해석하지 않습니다.
 
 ## Frontend Runtime

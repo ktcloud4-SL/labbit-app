@@ -101,6 +101,7 @@ func ConfigFromEnvironment() Config {
 // settings. Credentials stay inside Gophercloud's ProviderClient.
 type Adapter struct {
 	provider     *gophercloud.ProviderClient
+	identity     *gophercloud.ServiceClient
 	image        *gophercloud.ServiceClient
 	compute      *gophercloud.ServiceClient
 	network      *gophercloud.ServiceClient
@@ -125,6 +126,9 @@ func New(ctx context.Context, cfg Config) (*Adapter, error) {
 	auth, endpoint, tlsConfig, err := loadConfig(cfg)
 	if err != nil {
 		return nil, err
+	}
+	if isKTCloudD1Identity(auth.IdentityEndpoint) {
+		return newKTCloudD1Adapter(ctx, cfg, auth, endpoint, tlsConfig)
 	}
 
 	authCtx, cancelAuth := context.WithTimeout(ctx, authenticationTimeout)
@@ -250,9 +254,13 @@ func (a *Adapter) ValidateConnection(ctx context.Context) error {
 	if a == nil || a.provider == nil || strings.TrimSpace(a.provider.Token()) == "" || strings.TrimSpace(a.provider.IdentityBase) == "" {
 		return ErrClientUnavailable
 	}
-	identity, err := openstack.NewIdentityV3(a.provider, gophercloud.EndpointOpts{})
-	if err != nil {
-		return ErrClientUnavailable
+	identity := a.identity
+	if identity == nil {
+		var err error
+		identity, err = openstack.NewIdentityV3(a.provider, gophercloud.EndpointOpts{})
+		if err != nil {
+			return ErrClientUnavailable
+		}
 	}
 	ctx, cancel := context.WithTimeout(ctx, authenticationTimeout)
 	defer cancel()

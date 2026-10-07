@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -82,7 +83,7 @@ func Start(ctx context.Context, cfg Config, opts Options) *Runtime {
 	if len(captured) > 0 {
 		if exporter != nil {
 			logger.Warn("Trace 설정 오류로 외부 export를 비활성화합니다", "reason", captured[0])
-			_ = exporter.Shutdown(ctx)
+			discardProvider(provider)
 			exporter = nil
 			sharedDiagnostics.startCapture()
 			provider = sdktrace.NewTracerProvider(sdktrace.WithResource(newResource(cfg, opts)))
@@ -175,4 +176,19 @@ func (r *Runtime) Shutdown(ctx context.Context) error {
 		r.release()
 	})
 	return r.shutdownErr
+}
+
+const discardShutdownTimeout = 500 * time.Millisecond
+
+// discardProvider는 설정 오류로 버려지는 TracerProvider의 SpanProcessor 및 Exporter 수명을 안전하게 정리한다.
+// Exporter만 직접 Shutdown하면 BatchSpanProcessor의 background goroutine/timer가 누수되므로
+// 반드시 provider.Shutdown을 통해 소유된 Processor 전체를 종료해야 한다.
+// startup 지연을 방지하기 위해 bounded timeout을 사용하며, caller context와 독립적으로 실행된다.
+func discardProvider(provider *sdktrace.TracerProvider) {
+	if provider == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), discardShutdownTimeout)
+	defer cancel()
+	_ = provider.Shutdown(ctx)
 }

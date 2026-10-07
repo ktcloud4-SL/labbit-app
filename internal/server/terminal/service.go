@@ -649,19 +649,27 @@ func (s *Service) HandleTerminalEvent(event connector.TerminalEvent) {
 	case connector.TerminalOpenResultEvent:
 		// Router가 인증된 ConnectorID, terminalSessionId, labInstanceId, generation, replyToMessageId를 모두 대조했다.
 		command, hasCommand := s.openCommandSpan(e.Correlation.TerminalSessionID)
-		log := s.logger.With(
+		baseLog := s.logger.With(
 			"connector_id", e.ConnectorID.String(),
 			"terminal_session_id", e.Correlation.TerminalSessionID,
 			"lab_instance_id", e.Correlation.LabInstanceID,
 			"generation", e.Correlation.Generation,
 		)
-		if e.RequestID != "" {
-			log = log.With("request_id", e.RequestID)
-		}
-		// pending command가 실제로 존재할 때는 SaaS local command TraceContext가 권위 있는 상관관계다(LBT-144).
-		// Connector가 돌려준 Trace는 전파 검증용 메타데이터일 뿐 로그의 trace_id를 교체하지 않는다.
-		if hasCommand && command.HasTraceID() {
-			log = log.With("trace_id", command.TraceID().String())
+		var log *slog.Logger
+		if hasCommand {
+			// pending command가 실제로 존재할 때는 SaaS local command TraceContext가 권위 있는 상관관계다(LBT-144).
+			// Connector가 돌려준 Trace는 전파 검증용 메타데이터일 뿐 로그의 trace_id를 교체하지 않는다.
+			log = baseLog
+			if e.RequestID != "" {
+				log = log.With("request_id", e.RequestID)
+			}
+			if command.HasTraceID() {
+				log = log.With("trace_id", command.TraceID().String())
+			}
+		} else {
+			// 기다리는 Create가 없는 늦은/미일치 결과는 새 result Span을 만들지 않지만,
+			// 유효한 inbound Trace가 있다면 이전 LBT-143 동작대로 로그 상관관계를 유지한다.
+			log = withControlCorrelation(baseLog, e.RequestID, e.Trace)
 		}
 		if e.Payload.Error != nil {
 			log.Warn("Connector TERMINAL_OPEN 실패 보고", "error_code", safeCode(e.Payload.Error.Code))

@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/hex"
 	"net/http"
+	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext"
@@ -402,6 +405,107 @@ func TestInvalidSamplerDisablesExternalExportAndFailsClosed(t *testing.T) {
 		}
 		mustNotContain(t, "log", out, directSentinel)
 	})
+
+	t.Run("set-but-empty sampler arg with traceidratio (upstream LookupEnv 재현)", func(t *testing.T) {
+		isolateOTelEnv(t)
+		var c collector
+		srv := newHTTPCollector(t, &c, http.StatusOK, "")
+		t.Setenv("OTEL_TRACES_EXPORTER", "otlp")
+		t.Setenv("OTEL_EXPORTER_OTLP_TRACES_PROTOCOL", "http/protobuf")
+		t.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", srv.URL+"/v1/traces")
+		t.Setenv("OTEL_TRACES_SAMPLER", "traceidratio")
+		t.Setenv("OTEL_TRACES_SAMPLER_ARG", "") // unset이 아닌 명시적 empty env
+		cfg := ConfigFromEnv(os.Getenv)
+
+		var logs lockedBuffer
+		rt := Start(context.Background(), cfg, newTestLogger(&logs))
+		if rt.Exporting() {
+			t.Fatal("set-but-empty sampler arg인데 exporter가 활성화됨 (fail-closed 위반)")
+		}
+
+		_, span := startSpan(rt, context.Background(), "test-span")
+		sc := span.SpanContext()
+		span.End()
+		if !sc.IsValid() || !sc.TraceID().IsValid() {
+			t.Fatalf("Tracing Context가 유효하지 않음: %+v", sc)
+		}
+
+		_, _ = shutdownWithin(t, rt, time.Second)
+		if got := c.spans(); len(got) != 0 {
+			t.Fatalf("Collector가 Span을 수신함: %d개", len(got))
+		}
+
+		out := logs.String()
+		if !strings.Contains(out, `"reason":"invalid_sampler"`) {
+			t.Fatalf("진단에 reason=invalid_sampler가 없음:\n%s", out)
+		}
+	})
+
+	t.Run("set-but-empty sampler arg with parentbased_traceidratio", func(t *testing.T) {
+		isolateOTelEnv(t)
+		var c collector
+		srv := newHTTPCollector(t, &c, http.StatusOK, "")
+		t.Setenv("OTEL_TRACES_EXPORTER", "otlp")
+		t.Setenv("OTEL_EXPORTER_OTLP_TRACES_PROTOCOL", "http/protobuf")
+		t.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", srv.URL+"/v1/traces")
+		t.Setenv("OTEL_TRACES_SAMPLER", "parentbased_traceidratio")
+		t.Setenv("OTEL_TRACES_SAMPLER_ARG", "")
+		cfg := ConfigFromEnv(os.Getenv)
+
+		var logs lockedBuffer
+		rt := Start(context.Background(), cfg, newTestLogger(&logs))
+		if rt.Exporting() {
+			t.Fatal("set-but-empty parentbased_traceidratio인데 exporter가 활성화됨")
+		}
+
+		_, span := startSpan(rt, context.Background(), "test-span")
+		span.End()
+
+		_, _ = shutdownWithin(t, rt, time.Second)
+		if got := c.spans(); len(got) != 0 {
+			t.Fatalf("Collector가 Span을 수신함: %d개", len(got))
+		}
+
+		out := logs.String()
+		if !strings.Contains(out, `"reason":"invalid_sampler"`) {
+			t.Fatalf("진단에 reason=invalid_sampler가 없음:\n%s", out)
+		}
+	})
+}
+
+// discardProvider는 TracerProvider가 소유한 BatchSpanProcessor 및 exporter 수명을 정상 종료함을 검증한다.
+type testTrackingExporter struct {
+	mu            sync.Mutex
+	shutdownCalls int
+}
+
+func (e *testTrackingExporter) ExportSpans(context.Context, []sdktrace.ReadOnlySpan) error {
+	return nil
+}
+func (e *testTrackingExporter) Shutdown(context.Context) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.shutdownCalls++
+	return nil
+}
+
+func TestDiscardProviderShutsDownProviderAndOwnedProcessor(t *testing.T) {
+	exp := &testTrackingExporter{}
+	provider := sdktrace.NewTracerProvider(sdktrace.WithBatcher(exp))
+
+	startedAt := time.Now()
+	discardProvider(provider)
+	if elapsed := time.Since(startedAt); elapsed > 2*time.Second {
+		t.Fatalf("discardProvider가 bounded timeout 안에 완료되지 않음: %v", elapsed)
+	}
+
+	exp.mu.Lock()
+	calls := exp.shutdownCalls
+	exp.mu.Unlock()
+
+	if calls != 1 {
+		t.Fatalf("discardProvider가 exporter를 정확히 1회 종료하지 않음: %d회", calls)
+	}
 }
 
 // Collector 장애(연결 거절)는 Span 생성과 Shutdown을 막지 않는다.

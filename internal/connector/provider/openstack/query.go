@@ -87,13 +87,9 @@ func (a *Adapter) ListServers(ctx context.Context) ([]coreprovider.Server, error
 	if a == nil || a.compute == nil {
 		return nil, ErrClientUnavailable
 	}
-	pages, err := servers.List(a.compute, servers.ListOpts{}).AllPages(ctx)
+	items, err := a.listServerItems(ctx, servers.ListOpts{})
 	if err != nil {
 		return nil, safeContextError(ctx, ErrServerList)
-	}
-	items, err := servers.ExtractServers(pages)
-	if err != nil {
-		return nil, ErrServerList
 	}
 
 	result := make([]coreprovider.Server, 0, len(items))

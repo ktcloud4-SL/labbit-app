@@ -9,7 +9,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/quotasets"
-	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+
 	networkquotas "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/quotas"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
@@ -23,6 +23,7 @@ var (
 )
 
 type quotaUsage struct {
+	ktTiers            map[string]struct{}
 	instances          int
 	cores              int
 	ramMiB             int
@@ -96,12 +97,25 @@ func (a *Adapter) quotaCreditForExistingReset(ctx context.Context, resources []c
 	creditedRules := make(map[string]struct{})
 	for _, resource := range resources {
 		if resource.ResourceType == coreprovider.ResourceTypeServer {
-			server, err := servers.Get(ctx, a.compute, resource.ProviderID).Extract()
+			server, err := a.lookupServer(ctx, resource.ProviderID)
 			if err != nil {
 				if gophercloud.ResponseCodeIs(err, 404) {
 					continue
 				}
 				return quotaUsage{}, safeContextError(ctx, ErrQuotaLookup)
+			}
+			if server == nil || server.ID != resource.ProviderID {
+				return quotaUsage{}, ErrQuotaLookup
+			}
+			if a.ktNetwork != nil {
+				cores, ram, err := ktCloudServerQuotaCredit(*server)
+				if err != nil {
+					return quotaUsage{}, err
+				}
+				credit.instances++
+				credit.cores += cores
+				credit.ramMiB += ram
+				continue
 			}
 			flavorID, ok := server.Flavor["id"].(string)
 			flavorID = strings.TrimSpace(flavorID)
@@ -109,7 +123,7 @@ func (a *Adapter) quotaCreditForExistingReset(ctx context.Context, resources []c
 				return quotaUsage{}, ErrQuotaLookup
 			}
 			flavor, err := flavors.Get(ctx, a.compute, flavorID).Extract()
-			if err != nil {
+			if err != nil || flavor == nil {
 				return quotaUsage{}, safeContextError(ctx, ErrQuotaLookup)
 			}
 			credit.instances++
@@ -123,6 +137,12 @@ func (a *Adapter) quotaCreditForExistingReset(ctx context.Context, resources []c
 		}
 		if !exists {
 			continue
+		}
+		if resource.ResourceType == coreprovider.ResourceTypeTier {
+			if credit.ktTiers == nil {
+				credit.ktTiers = make(map[string]struct{})
+			}
+			credit.ktTiers[resource.ProviderID] = struct{}{}
 		}
 		switch resource.ResourceType {
 		case coreprovider.ResourceTypeNetwork:

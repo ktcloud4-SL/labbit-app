@@ -62,4 +62,7 @@ const (
 	ResourceTypeRouter        = "ROUTER"
 	ResourceTypePort          = "PORT"
 	ResourceTypeServer        = "SERVER"
+	ResourceTypeTier          = "KT_TIER"
+	ResourceTypeFirewall      = "KT_FIREWALL_POLICY"
+	ResourceTypeVolume        = "VOLUME"
 )

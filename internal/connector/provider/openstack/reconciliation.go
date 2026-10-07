@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumes"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
@@ -33,7 +34,7 @@ func (a *Adapter) Reconcile(ctx context.Context, request coreprovider.ReconcileR
 		return reconcileFailure(errorInvalidProvision, "Reconcile request is invalid"), nil
 	}
 	knownResources, err := validateResourceRefs(request.KnownResources, request.Generation, false)
-	if err != nil {
+	if err != nil || !a.resourceProfileMatches(knownResources) {
 		return reconcileFailure(errorInvalidProvision, "Reconcile resources are invalid"), nil
 	}
 
@@ -68,10 +69,30 @@ func (a *Adapter) Reconcile(ctx context.Context, request coreprovider.ReconcileR
 
 func (a *Adapter) observeResource(ctx context.Context, resource coreprovider.ResourceRef) (string, bool, error) {
 	switch resource.ResourceType {
-	case coreprovider.ResourceTypeServer:
-		item, err := servers.Get(ctx, a.compute, resource.ProviderID).Extract()
+	case coreprovider.ResourceTypeTier, coreprovider.ResourceTypeFirewall:
+		if a.ktNetwork == nil {
+			return "", false, ErrReconcileLookup
+		}
+		return a.observeKTCloudResource(ctx, resource)
+	case coreprovider.ResourceTypeVolume:
+		if a.volume == nil {
+			return "", false, ErrReconcileLookup
+		}
+		item, err := volumes.Get(ctx, a.volume, resource.ProviderID).Extract()
 		if err != nil {
 			return observationError(ctx, err)
+		}
+		if item == nil || item.ID != resource.ProviderID || item.Status == "" {
+			return "", false, ErrReconcileLookup
+		}
+		return normalizeStatus(item.Status), true, nil
+	case coreprovider.ResourceTypeServer:
+		item, err := a.lookupServer(ctx, resource.ProviderID)
+		if err != nil {
+			return observationError(ctx, err)
+		}
+		if item == nil || item.ID != resource.ProviderID || item.Status == "" {
+			return "", false, ErrReconcileLookup
 		}
 		return normalizeStatus(item.Status), true, nil
 	case coreprovider.ResourceTypePort:
@@ -138,13 +159,9 @@ func (a *Adapter) discoverCandidates(ctx context.Context, correlation coreprovid
 		candidates = append(candidates, observation)
 	}
 
-	serverPages, err := servers.List(a.compute, servers.ListOpts{}).AllPages(ctx)
+	serverItems, err := a.listServerItems(ctx, servers.ListOpts{})
 	if err != nil {
 		return nil, safeContextError(ctx, ErrReconcileLookup)
-	}
-	serverItems, err := servers.ExtractServers(serverPages)
-	if err != nil {
-		return nil, ErrReconcileLookup
 	}
 	expectedGeneration := strconv.FormatInt(correlation.Generation, 10)
 	for _, item := range serverItems {
@@ -152,6 +169,26 @@ func (a *Adapter) discoverCandidates(ctx context.Context, correlation coreprovid
 			continue
 		}
 		appendCandidate(candidateObservation(coreprovider.ResourceTypeServer, item.ID, correlation.Generation, normalizeStatus(item.Status), item.Metadata["labbit_vm_key"]))
+		if a.ktNetwork != nil {
+			for _, attachment := range item.AttachedVolumes {
+				if attachment.ID != "" {
+					appendCandidate(candidateObservation(coreprovider.ResourceTypeVolume, attachment.ID, correlation.Generation, "PRESENT", item.Metadata["labbit_vm_key"]+":root-volume"))
+				}
+			}
+		}
+	}
+	if a.ktNetwork != nil {
+		items, err := a.discoverKTCloudNetworkCandidates(ctx, correlation)
+		if err != nil {
+			return nil, err
+		}
+		for _, item := range items {
+			appendCandidate(item)
+		}
+		sort.Slice(candidates, func(i, j int) bool {
+			return resourceKey(candidates[i].ResourceType, candidates[i].ProviderID) < resourceKey(candidates[j].ResourceType, candidates[j].ProviderID)
+		})
+		return candidates, nil
 	}
 
 	networkPages, err := networks.List(a.network, networks.ListOpts{Name: baseName + "-network"}).AllPages(ctx)

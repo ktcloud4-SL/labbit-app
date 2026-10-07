@@ -26,6 +26,10 @@ func (a *Adapter) waitStartupReady(ctx context.Context, port ports.Port, serverI
 	if err != nil {
 		return err
 	}
+	return a.waitStartupReadyAddress(ctx, address, serverID)
+}
+
+func (a *Adapter) waitStartupReadyAddress(ctx context.Context, address, serverID string) error {
 	hostIdentity, err := sshHostKeyIdentity(a.provision.ProviderConnectionID, serverID)
 	if err != nil {
 		return err

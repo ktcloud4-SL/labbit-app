@@ -11,9 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/flavors"
-	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
-	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/external"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/rules"
@@ -48,7 +45,7 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 		return failedResult(nil, errorInvalidProvision, "OpenStack Provider is not available"), nil
 	}
 	config := normalizedProvisionConfig(a.provision)
-	if err := validateProvisionSettings(config, request.CreationSnapshot); err != nil {
+	if err := a.validateProvisionSettings(config, request.CreationSnapshot); err != nil {
 		return failedResult(nil, errorInvalidProvision, "OpenStack Provision settings are incomplete"), nil
 	}
 	if err := validateProvisionRequest(request); err != nil {
@@ -59,96 +56,21 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 	}
 
 	baseName := provisionBaseName(request.LabInstanceID, request.Generation)
-	description := fmt.Sprintf("Labbit %s generation %d operation %s", safeName(request.LabInstanceID, 36), request.Generation, safeName(request.OperationID, 36))
 	resources := make([]coreprovider.ResourceResult, 0, 5+len(request.CreationSnapshot.VMs)*3)
 
-	networkResource, err := a.EnsureNetwork(ctx, resourceIdentity(request.Generation, "lab-network"), NetworkSpec{
-		Name:        baseName + "-network",
-		Description: description,
-	})
+	topology, createdResources, err := a.prepareProvisionNetwork(ctx, request, config)
+	resources = createdResources
 	if err != nil {
 		return mutationFailure(resources, err, "Lab network could not be created"), nil
 	}
-	resources = upsertResource(resources, networkResource)
-
-	noGateway := ""
-	var gatewayIP *string
-	if !request.CreationSnapshot.InternetOutbound {
-		gatewayIP = &noGateway
-	}
-	subnetResource, err := a.EnsureSubnet(ctx, resourceIdentity(request.Generation, "lab-subnet"), SubnetSpec{
-		Name:        baseName + "-subnet",
-		Description: description,
-		NetworkID:   networkResource.ProviderID,
-		CIDR:        config.LabSubnetCIDR,
-		GatewayIP:   gatewayIP,
-		EnableDHCP:  true,
-	})
-	if err != nil {
-		return mutationFailure(resources, err, "Lab subnet could not be created"), nil
-	}
-	resources = upsertResource(resources, subnetResource)
-
-	if request.CreationSnapshot.InternetOutbound {
-		routerResource, err := a.EnsureRouter(ctx, resourceIdentity(request.Generation, "lab-router"), RouterSpec{
-			Name:              baseName + "-router",
-			Description:       description,
-			ExternalNetworkID: config.ExternalNetworkID,
-			SubnetID:          subnetResource.ProviderID,
-		})
-		if routerResource.ProviderID != "" {
-			resources = upsertResource(resources, routerResource)
-		}
-		if err != nil {
-			return mutationFailure(resources, err, "Lab outbound router could not be created"), nil
-		}
-	}
-
-	labSecurityGroupResource, err := a.EnsureSecurityGroup(ctx, resourceIdentity(request.Generation, "lab-security-group"), SecurityGroupSpec{
-		Name:        baseName + "-lab-sg",
-		Description: description,
-	})
-	if err != nil {
-		return mutationFailure(resources, err, "Lab security group could not be created"), nil
-	}
-	resources = upsertResource(resources, labSecurityGroupResource)
-
-	labRule, err := a.EnsureIngressRule(ctx, resourceIdentity(request.Generation, "lab-ingress"), SecurityRuleSpec{
-		SecurityGroupID: labSecurityGroupResource.ProviderID,
-		Description:     "Allow traffic inside this Lab network",
-		RemoteCIDR:      config.LabSubnetCIDR,
-	})
-	if err != nil {
-		return mutationFailure(resources, err, "Lab traffic rule could not be created"), nil
-	}
-	resources = upsertResource(resources, labRule)
 
 	for _, vm := range request.CreationSnapshot.VMs {
 		vmName := baseName + "-" + safeName(vm.VMKey, 28)
-		labPortIdentity := resourceIdentity(request.Generation, vm.VMKey+":lab")
-		labPortResource, _, err := a.EnsurePort(ctx, labPortIdentity, PortSpec{
-			Name:             vmName + "-lab",
-			Description:      description,
-			NetworkID:        networkResource.ProviderID,
-			SubnetID:         subnetResource.ProviderID,
-			SecurityGroupIDs: []string{labSecurityGroupResource.ProviderID},
-		})
+		nics, updatedResources, err := a.prepareProvisionNICs(ctx, request, vm, config, topology, resources)
+		resources = updatedResources
 		if err != nil {
-			return mutationFailure(resources, err, "Lab NIC could not be created"), nil
+			return mutationFailure(resources, err, "VM network could not be created"), nil
 		}
-		resources = upsertResource(resources, labPortResource)
-
-		managementPortIdentity := resourceIdentity(request.Generation, vm.VMKey+":management")
-		managementPortResource, managementPort, err := a.EnsurePort(ctx, managementPortIdentity, PortSpec{
-			Name:             vmName + "-management",
-			Description:      description,
-			NetworkID:        config.ManagementNetworkID,
-			SecurityGroupIDs: []string{config.ManagementSecurityGroupID},
-		})
-		if err != nil {
-			return mutationFailure(resources, err, "Management NIC could not be created"), nil
-		}
-		resources = upsertResource(resources, managementPortResource)
 
 		metadata := map[string]string{
 			"labbit_operation_id":    request.OperationID,
@@ -161,13 +83,14 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 			userData = []byte(request.CreationSnapshot.StartupScript.Content)
 		}
 		serverResource, server, err := a.EnsureServer(ctx, resourceIdentity(request.Generation, vm.VMKey), ServerSpec{
-			Name:     vmName,
-			ImageID:  vm.ImageID,
-			FlavorID: vm.FlavorID,
-			KeyPair:  config.KeyPairName,
-			PortIDs:  []string{labPortResource.ProviderID, managementPortResource.ProviderID},
-			UserData: userData,
-			Metadata: metadata,
+			Name:       vmName,
+			ImageID:    vm.ImageID,
+			FlavorID:   vm.FlavorID,
+			KeyPair:    config.KeyPairName,
+			PortIDs:    nics.portIDs,
+			NetworkIDs: nics.networkIDs,
+			UserData:   userData,
+			Metadata:   metadata,
 		})
 		if err != nil {
 			return mutationFailure(resources, err, "Workspace VM create result is unknown"), nil
@@ -186,20 +109,14 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 			}
 			return failedResult(resources, errorBootTimeout, "Workspace VM did not become ACTIVE"), nil
 		}
-		refreshedLabResource, _, err := a.refreshPort(ctx, labPortIdentity, labPortResource.ProviderID)
+		managementIP, refreshedResources, err := a.refreshProvisionNICs(ctx, request, vm, nics, server.ID, resources)
+		resources = refreshedResources
 		if err != nil {
-			return unknownResult(resources, "Lab NIC state could not be verified"), nil
+			return unknownResult(resources, "VM network state could not be verified"), nil
 		}
-		resources = upsertResource(resources, refreshedLabResource)
-		refreshedManagementResource, refreshedManagementPort, err := a.refreshPort(ctx, managementPortIdentity, managementPortResource.ProviderID)
-		if err != nil {
-			return unknownResult(resources, "Management NIC state could not be verified"), nil
-		}
-		resources = upsertResource(resources, refreshedManagementResource)
-		managementPort = refreshedManagementPort
 
 		sshContext, cancelSSH := context.WithTimeout(ctx, config.SSHReadyTimeout)
-		err = a.waitSSHReady(sshContext, managementPort, server.ID)
+		err = a.waitSSHReadyAddress(sshContext, managementIP, server.ID)
 		cancelSSH()
 		if err != nil {
 			if (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) && ctx.Err() != nil {
@@ -209,7 +126,7 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 		}
 		if request.CreationSnapshot.StartupScript != nil {
 			startupContext, cancelStartup := context.WithTimeout(ctx, config.StartupReadyTimeout)
-			err = a.waitStartupReady(startupContext, managementPort, server.ID)
+			err = a.waitStartupReadyAddress(startupContext, managementIP, server.ID)
 			cancelStartup()
 			if err != nil {
 				if (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) && ctx.Err() != nil {
@@ -295,6 +212,9 @@ func validateProvisionRequest(request coreprovider.ProvisionRequest) error {
 }
 
 func (a *Adapter) preflightProvision(ctx context.Context, config ProvisionConfig, snapshot coreprovider.CreationSnapshot, credit quotaUsage) error {
+	if a.ktNetwork != nil {
+		return a.preflightKTCloudProvision(ctx, config, snapshot, credit)
+	}
 	managementNetwork, err := networks.Get(ctx, a.network, config.ManagementNetworkID).Extract()
 	if err != nil || normalizeStatus(managementNetwork.Status) != "ACTIVE" || len(managementNetwork.Subnets) == 0 {
 		return ErrProvisionCheck
@@ -312,34 +232,8 @@ func (a *Adapter) preflightProvision(ctx context.Context, config ProvisionConfig
 			return ErrProvisionCheck
 		}
 	}
-	keyPair, err := keypairs.Get(ctx, a.compute, config.KeyPairName, nil).Extract()
-	if err != nil || keyPair.Name != config.KeyPairName {
-		return ErrProvisionCheck
-	}
-	if err := validateSSHCredential(config, keyPair.PublicKey); err != nil {
+	if err := a.preflightImagesFlavorsKey(ctx, config, snapshot); err != nil {
 		return err
-	}
-	seenImages := make(map[string]struct{}, len(snapshot.VMs))
-	seenFlavors := make(map[string]coreprovider.FlavorSpec, len(snapshot.VMs))
-	for _, vm := range snapshot.VMs {
-		if _, ok := seenImages[vm.ImageID]; !ok {
-			image, err := images.Get(ctx, a.image, vm.ImageID).Extract()
-			if err != nil || normalizeStatus(string(image.Status)) != "ACTIVE" {
-				return ErrProvisionCheck
-			}
-			seenImages[vm.ImageID] = struct{}{}
-		}
-		if knownSpec, ok := seenFlavors[vm.FlavorID]; ok {
-			if knownSpec != vm.FlavorSpec {
-				return ErrProvisionCheck
-			}
-		} else {
-			flavor, err := flavors.Get(ctx, a.compute, vm.FlavorID).Extract()
-			if err != nil || int64(flavor.VCPUs) != vm.FlavorSpec.VCPUs || int64(flavor.RAM) != vm.FlavorSpec.RAMMiB || int64(flavor.Disk) != vm.FlavorSpec.DiskGiB {
-				return ErrProvisionCheck
-			}
-			seenFlavors[vm.FlavorID] = vm.FlavorSpec
-		}
 	}
 	return a.preflightQuota(ctx, config, snapshot, credit)
 }

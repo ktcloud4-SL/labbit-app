@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"golang.org/x/crypto/ssh"
@@ -24,10 +23,10 @@ func (a *Adapter) ResolveServerAddress(ctx context.Context, targetVmKey, serverI
 		return "", err
 	}
 	targetVmKey, serverID = strings.TrimSpace(targetVmKey), strings.TrimSpace(serverID)
-	if !adapterAvailable(a) || targetVmKey == "" || serverID == "" || a.provision.ManagementNetworkID == "" || a.provision.ProjectID == "" {
+	if !adapterAvailable(a) || targetVmKey == "" || serverID == "" || (a.ktNetwork == nil && a.provision.ManagementNetworkID == "") || a.provision.ProjectID == "" {
 		return "", ErrInvalidResourceSpec
 	}
-	server, err := servers.Get(ctx, a.compute, serverID).Extract()
+	server, err := a.lookupServer(ctx, serverID)
 	if err != nil {
 		return "", safeContextError(ctx, ErrServerGet)
 	}
@@ -37,6 +36,23 @@ func (a *Adapter) ResolveServerAddress(ctx context.Context, targetVmKey, serverI
 		server.ID != serverID || server.TenantID != a.provision.ProjectID || server.Metadata["labbit_vm_key"] != targetVmKey ||
 		server.Name != provisionBaseName(labID, generation)+"-"+safeName(targetVmKey, 28) || normalizeStatus(server.Status) != "ACTIVE" {
 		return "", ErrResourceOwnership
+	}
+	if a.ktNetwork != nil {
+		expectedName := provisionBaseName(labID, generation) + "-" + safeName(targetVmKey, 28) + "-management-tier"
+		items, err := a.ktNetwork.tiers(ctx)
+		if err != nil {
+			return "", ErrManagementIP
+		}
+		matches := []ktCloudTier{}
+		for _, tier := range items {
+			if tier.Name == expectedName && tier.CIDR == a.provision.KTCloudManagementCIDR && !tier.Shared && normalizeStatus(tier.Status) == "ACTIVE" {
+				matches = append(matches, tier)
+			}
+		}
+		if len(matches) != 1 {
+			return "", ErrManagementIP
+		}
+		return ktServerManagementAddress(*server, matches[0])
 	}
 	pages, err := ports.List(a.network, ports.ListOpts{DeviceID: serverID, NetworkID: a.provision.ManagementNetworkID}).AllPages(ctx)
 	if err != nil {

@@ -513,6 +513,18 @@ Reset에서 최신 LabSpec이나 비슷한 최신 Image를 다시 선택하지 �
 - Lab NIC에는 동일 Lab 대역 ingress를 가진 Lab Security Group만, Management NIC에는 Connector SSH CIDR의 TCP 22 ingress를 가진 Management Security Group만 연결합니다.
 - Startup Script가 있으면 VM `ACTIVE`와 SSH banner만으로 `SUCCEEDED`를 반환하지 않습니다. Connector 전용 SSH key와 TOFU로 고정한 host key를 사용해 `cloud-init status --wait` 성공까지 확인합니다.
 
+### KT D1 호환 프로필 (LBT-158)
+
+KT D1은 표준 Neutron 경로가 제공되지 않아 OP-01 내부 Network API만 NSM Tier/Firewall로 처리합니다. 현재 호환 범위는 Linux 50 GiB 부팅 볼륨, VM 한 대, `internetOutbound=false`입니다. 범위를 벗어나는 Snapshot은 mutation 전에 거절하며 Reset에서도 기존 generation을 먼저 삭제하지 않습니다. 이 제한은 C1 전체 수용 완료를 뜻하지 않습니다.
+
+- generation별 Lab Tier와 해당 VM 전용 Management Tier를 생성합니다. VM별 Management Tier는 같은 L2에 다른 Lab VM이 연결되는 것을 막습니다. 두 NIC는 Nova에 각각 Tier의 물리 `refId`로 연결합니다.
+- Connector Tier의 설정된 IPv4 `/32`에서 Management Tier로 향하는 TCP 22만 NSM 방화벽으로 허용합니다. Lab Tier의 동일 L2 통신과 SSH 응답을 제외한 허용 정책·NAT·인터넷 Router는 생성하지 않습니다. 전역 허용 정책이 있거나 필요한 정책 조회가 불완전하면 Preflight를 거절합니다.
+- Preflight는 원본 Image/Flavor/Keypair, SSH key 일치, Project affinity, Connector Tier, CIDR 중복, 방화벽 인벤토리, Nova Instance/vCPU/RAM 상세 quota를 확인합니다. NSM의 상세 quota API는 공개되어 있지 않고 KT 볼륨 quota 경로는 실제 500을 반환합니다. 이 제한을 무제한 quota로 취급하지 않으며 NSM/Cinder mutation의 실제 거절·결과 불명을 그대로 전달합니다.
+- 실제 리소스 종류는 `KT_TIER`, `KT_FIREWALL_POLICY`, `SERVER`, `VOLUME`입니다. Tier `providerId`는 NSM `networkId`이며 `refId` 또는 가상의 Neutron Port/Subnet/SG ID로 대체하지 않습니다. Nova가 만드는 루트 볼륨도 실제 ID로 추적하고 서버 삭제 후 부재를 확인합니다.
+- 기존 CC-01, ACTIVE/인증된 SSH/Startup Ready 확인, immutable Snapshot Reset, 결과 불명 판정과 알려진 ID에 대한 Cleanup/Reconcile을 재사용합니다. NSM Create 후 ID가 확정되지 않으면 UNKNOWN과 이미 확정된 ID만 반환하며, 이름·설명으로 발견된 후보는 자동 소유·삭제하지 않습니다.
+- Cleanup은 서버 → 루트 볼륨 → 방화벽 정책 → Tier 순서로 정확한 추적 ID만 처리합니다. NSM의 전체 페이지 조회가 성공했을 때만 목록에서 없는 ID를 ABSENT로 판정합니다. 공유 Connector Tier와 설치 단계의 Keypair는 Lab Cleanup 대상이 아닙니다.
+- KT Nova의 일반 서버 DELETE는 soft delete로 루트 볼륨을 보존할 수 있습니다. 알려진 서버 ID의 상세 조회가 400이고, 전체 서버 목록에서 그 ID가 없으며, Cinder의 전체 조회에서 해당 서버에 연결된 볼륨이 확인되면 Gophercloud `forceDelete`를 한 번 수행합니다. 실제 서버 상세 조회의 404와 루트 볼륨 부재를 확인하기 전에는 삭제 완료로 판정하지 않습니다. 결과 불명 응답에서는 mutation을 반복하지 않고 Reconcile로 돌려보냅니다.
+
 ## 12. Result와 결과 불명
 
 `OPERATION_RESULT.payload.outcome`은 다음 세 값을 사용합니다.

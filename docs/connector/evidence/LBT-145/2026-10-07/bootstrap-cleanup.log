@@ -1,0 +1,7 @@
+Observed API mutation: method=POST route=identity/auth/tokens status=201
+Bootstrap: ACCESS_CLEANUP_IDS_CONFIRMED
+Project server count: 0
+Project volume count: 0
+Bootstrap: READ_ONLY_INSPECTION_COMPLETE
+Bootstrap: BOOTSTRAP_COMPUTE_CLEANUP_ATTEMPTED
+Bootstrap: BOOTSTRAP_CLEANUP_CONFIRMED

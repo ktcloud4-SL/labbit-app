@@ -1,0 +1,10 @@
+Control evidence: HELLO_HELLO_ACK_HEARTBEAT_PASS
+Production Provider query VALIDATE_CONNECTION PASS; items=0
+Control evidence: QUERY_VALIDATE_CONNECTION_PASS
+Production Provider query LIST_IMAGES PASS; items=12
+Control evidence: QUERY_LIST_IMAGES_PASS
+Production Provider query LIST_FLAVORS PASS; items=235
+Control evidence: QUERY_LIST_FLAVORS_PASS
+Control evidence: RECOVERY_RECONCILE_BEFORE_MUTATION_PASS
+Actual WSS read-only Reconcile: known=5 present=2 absent=3; no mutation requested
+Control evidence: CURRENT_CONNECTOR_READ_ONLY_RECONCILE_COMPLETE_FULL_ACCEPTANCE_PENDING

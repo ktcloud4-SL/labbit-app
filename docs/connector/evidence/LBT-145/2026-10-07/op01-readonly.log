@@ -1,0 +1,5 @@
+=== RUN   TestKTCloudD1ReadOnlyIntegration
+    ktcloud_d1_integration_test.go:43: OP-01 New/ValidateConnection/SDK query PASS; servers=0 flavors=235 images=12; no lifecycle mutation
+--- PASS: TestKTCloudD1ReadOnlyIntegration (1.14s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	1.346s

@@ -1,0 +1,19 @@
+Control evidence: CONTROL_FIXTURE_REGISTERED
+Control evidence: HELLO_HELLO_ACK_HEARTBEAT_PASS
+Production Provider query VALIDATE_CONNECTION PASS; items=0
+Control evidence: QUERY_VALIDATE_CONNECTION_PASS
+Production Provider query LIST_IMAGES PASS; items=12
+Control evidence: QUERY_LIST_IMAGES_PASS
+Production Provider query LIST_FLAVORS PASS; items=235
+Control evidence: QUERY_LIST_FLAVORS_PASS
+Control evidence: provision_SUCCEEDED
+Actual WSS PROVISION(g1): outcome=SUCCEEDED resources=5
+Control evidence: GENERATION1_RECONCILE_PASS
+Control evidence: reset_FAILED
+Actual WSS RESET(g2): outcome=FAILED resources=5
+Safe Provider error: ERR_INFRA_OPENSTACK OpenStack Reset resource preflight failed
+Control evidence: teardown_UNKNOWN
+Actual WSS CLEANUP(g2): outcome=UNKNOWN resources=5
+Safe Provider error: ERR_UNKNOWN_RECONCILING OpenStack resource cleanup could not be verified
+CONTROL TEARDOWN NEEDS ATTENTION; safe tracked-ID ledger retained
+Control acceptance failed: operation did not succeed; confirmed resources retained for cleanup

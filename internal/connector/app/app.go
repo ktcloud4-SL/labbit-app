@@ -192,12 +192,42 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 		previewGatewayURL = u.String()
 	}
 
-	forwarder := preview.NewDirectTCPForwarder(addressResolver)
-	previewMgr := preview.NewSessionManager(forwarder, nil)
+	// 5. Preview Forwarder 및 SessionManager 배선
+	// 프로덕션 환경(isProduction)에서는 반드시 Provider가 preview.TCPForwarder를 구현해야 하며,
+	// 미구현 시 DirectTCPForwarder 로 우회(fallback)하지 않고 fail-closed 처리합니다 (Blocker 1).
+	var forwarder preview.TCPForwarder
+	if tf, ok := p.(preview.TCPForwarder); ok {
+		forwarder = tf
+	} else if !isProduction {
+		forwarder = preview.NewDirectTCPForwarder(addressResolver)
+	} else {
+		forwarder = nil
+	}
+
+	var previewMgr *preview.SessionManager
+	if forwarder != nil {
+		previewMgr = preview.NewSessionManager(forwarder, nil)
+	}
+
+	// Runtime HELLO Capabilities 배선 (Blocker 4):
+	// usable한 forwarder가 준비되었을 때만 protocol.CapabilityPreviewV1을 광고합니다.
+	if controlConfig != nil && forwarder != nil {
+		hasCap := false
+		for _, cap := range controlConfig.Capabilities {
+			if cap == protocol.CapabilityPreviewV1 {
+				hasCap = true
+				break
+			}
+		}
+		if !hasCap {
+			controlConfig.Capabilities = append(controlConfig.Capabilities, protocol.CapabilityPreviewV1)
+		}
+	}
+
 	prevCfg := preview.DataWSSClientConfig{
 		EndpointURL:    previewGatewayURL,
 		Credential:     credential,
-		CredentialFile: credFile,
+		CredentialFile: "", // Control Session의 인증 스냅샷 고정 바인딩 (Blocker 5: 디스크 재조회 차단)
 		RuntimeID:      runtimeID,
 		DialTimeout:    10 * time.Second,
 		AllowInsecure:  !isProduction,
@@ -205,7 +235,9 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 
 	handler := wss.NewHandler(p, sender)
 	handler.SetTerminalManager(sessionMgr, ptyFactory, termCfg)
-	handler.SetPreviewManager(previewMgr, prevCfg)
+	if previewMgr != nil {
+		handler.SetPreviewManager(previewMgr, prevCfg)
+	}
 
 	return &ConnectorApp{
 		Handler:         handler,

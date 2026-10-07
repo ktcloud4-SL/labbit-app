@@ -5,6 +5,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -196,7 +197,7 @@ func TestConnectorClientIsRejectedWithUnusableCredential(t *testing.T) {
 	}
 }
 
-// 1 MiB를 넘는 JSON Text message는 실제 client 연결에서도 1009로 종료된다.
+// 송신측은 1 MiB 초과 JSON을 거절하고, 이를 우회해 wire에 넣어도 수신측은 1009로 종료한다.
 func TestConnectorClientOversizedMessageIsClosedWith1009(t *testing.T) {
 	dsn := postgrestest.NewDatabase(t)
 	postgrestest.Migrate(t, dsn, loadEmbeddedMigrations(t))
@@ -222,13 +223,33 @@ func TestConnectorClientOversizedMessageIsClosedWith1009(t *testing.T) {
 		"sentAt":    time.Now().UTC(),
 		"payload":   map[string]any{"padding": string(bytes.Repeat([]byte("x"), int(protocol.MaxJSONMessageSize)))},
 	}
-	if err := client.SendMessage(ctx, oversized); err != nil {
-		t.Fatalf("SendMessage() error = %v", err)
+	conn := client.Conn()
+	if err := client.SendMessage(ctx, oversized); !errors.Is(err, wss.ErrMessageTooLarge) {
+		t.Fatalf("SendMessage() error = %v, want ErrMessageTooLarge", err)
+	}
+	if client.Conn() != conn {
+		t.Fatal("송신측 크기 거절 뒤에 기존 connection이 변경됨")
 	}
 
-	conn := client.Conn()
-	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-	_, _, err := conn.ReadMessage()
+	// 수신측 방어를 검증하려고 테스트에서만 송신측 guard를 우회한다.
+	// 이 연결에는 다른 writer가 없으며 정상 운영 경로는 SendMessage를 사용한다.
+	raw, err := json.Marshal(oversized)
+	if err != nil {
+		t.Fatalf("Marshal() error = %v", err)
+	}
+	if len(raw) <= int(protocol.MaxJSONMessageSize) {
+		t.Fatalf("message bytes = %d, want > %d", len(raw), protocol.MaxJSONMessageSize)
+	}
+	if err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		t.Fatalf("SetWriteDeadline() error = %v", err)
+	}
+	if err := conn.WriteMessage(websocket.TextMessage, raw); err != nil {
+		t.Fatalf("WriteMessage() error = %v", err)
+	}
+	if err := conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		t.Fatalf("SetReadDeadline() error = %v", err)
+	}
+	_, _, err = conn.ReadMessage()
 	var closeErr *websocket.CloseError
 	if !errors.As(err, &closeErr) || closeErr.Code != protocol.CloseMessageTooBig {
 		t.Fatalf("ReadMessage() error = %v, want close code %d", err, protocol.CloseMessageTooBig)

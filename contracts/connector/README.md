@@ -8,7 +8,6 @@
 - Terminal Data WSS JSON control frame: `terminal-data.schema.json`
 - Workspace File 요청 lifecycle Control 메시지: `file-control.schema.json`
 - Workspace File Data WSS JSON control frame: `file-data.schema.json`
-
 Terminal/Live의 Browser-facing 계약은 `contracts/realtime/README.md` + `terminal-live.schema.json`이 원본입니다.
 
 Terminal/Live INPUT/OUTPUT, Preview 본문, Workspace file 본문과 디렉터리 목록은 **persistent Control WSS에 싣지 않습니다.** Control에는 lifecycle/metadata만 전달하고 실제 PTY byte stream은 별도 Terminal Data WSS, Workspace file 내용은 요청별 File Data WSS를 사용합니다.
@@ -374,6 +373,8 @@ Connector에는 Nova/Neutron raw request를 그대로 전달하지 않습니다.
 - Control은 wire의 `operationId`, `labInstanceId`, `generation`을 Provider 요청에 전달하고, `requestId` 및 trace context를 Control 응답까지 보존합니다.
 - Provider는 OpenStack 작업 결과를 `SUCCEEDED` / `FAILED` / `UNKNOWN`으로 분류하고 관측한 Provider Resource 식별자를 반환합니다. 오류 정보가 필요하면 노출 가능한 `SafeError`만 반환합니다. 실패가 확정된 경우 `FAILED`, side effect 여부가 불명확한 경우 `UNKNOWN`입니다. 분류되지 않은 내부 Go 오류나 Provider raw 오류 원문을 wire 응답에 노출하지 않습니다.
 - Control은 Provider 결과를 `OPERATION_RESULT`로 변환하며, `UNKNOWN`을 동일 Create/Delete의 자동 재시도로 바꾸지 않습니다. 이후 SaaS가 `RECONCILE_REQUEST`를 보내면 Control이 Provider 조회로 연결합니다.
+- OpenStack Provider는 갱신 가능한 Password/Application Credential에 한해 Keystone 토큰 만료의 확정적 `401` 응답 뒤 SDK 재인증과 해당 API 요청 1회 재전송을 허용합니다. 동시 갱신은 SDK token lock으로 묶으며 초기 인증·재인증에는 각각 최대 15초(호출자 deadline이 더 짧으면 그 값)를 적용합니다. 일반 `5xx`·timeout·응답 유실에 대한 mutation 자동 재실행은 추가하지 않습니다. Token-only/일회용 인증은 갱신하지 않으며 만료 시 로컬 Credential 교체·Connector 재시작이 필요합니다. 인증 실패는 안전한 Provider 오류로 보고하고 Control WSS를 강제 종료하지 않습니다. 이 인증 제한시간은 모든 Service API/SDK catalog discovery HTTP의 제한시간을 보장하지 않습니다.
+- Provider Image/Flavor 조회 응답은 envelope·correlation·JSON escaping을 포함한 최종 JSON이 1 MiB를 넘으면 목록을 일부만 성공으로 보내지 않고 `items` 없는 `FAILED`/`ERR_CONNECTOR_INTERNAL` 응답으로 바꿉니다. 실패 응답 자체도 같은 한도를 검사합니다. 비정상적으로 큰 correlation 때문에 실패 응답도 초과하면 필수 ID를 자르지 않고 로컬 전송 오류로 처리하며 WSS는 유지합니다. 새 pagination·wire field·오류 enum은 추가하지 않습니다.
 - `discoverCandidates`가 생략된 `RECONCILE_REQUEST`는 Control 변환 단계에서 `true`로 적용하고, 명시적인 `false`는 그대로 전달합니다.
 - Mock Provider 메서드가 설정되지 않은 경우 Dispatcher는 내부 설정 오류를 호출자에게 반환해 테스트가 실패하게 합니다. 이를 Provider 작업의 `UNKNOWN`으로 취급하지 않으며 오류 원문을 wire에 싣지 않습니다. Reconcile의 미분류 내부 오류는 `DispatchReconcile`이 원문을 숨기고 `RECONCILE_RESULT`의 일반 `SafeError`(`PROVIDER_RECONCILE_UNAVAILABLE`)와 빈 `observations`로 변환합니다. 조회 실패만으로 리소스 부재를 확정하지 않습니다.
 
@@ -388,9 +389,15 @@ RESET은 `creationSnapshot`과 **비어 있지 않은 `providerResources`**를 �
 - RESET 명령의 `generation`은 새로 만들 generation(2 이상)이며 각 resource는 정확히 그 이전 generation(`command.generation - 1`, 1 이상)이어야 합니다.
 - 필드 존재·목록 크기·문자열 길이는 JSON Schema로 검증합니다. 명령 generation과 resource generation의 관계는 envelope와 payload 사이의 의미 조건이므로 Backend outbound validator와 Connector inbound validator에서 별도로 검증합니다.
 - 리소스 목록 누락·빈 목록·logicalName 누락·빈 문자열·이전 generation 불일치는 기존 환경이 없다는 뜻으로 해석하거나 새 Provision으로 대체하지 않습니다. Backend는 wire 전송 전에 거절(`ErrInvalidCommand`)하고 Connector는 Provider dispatch 전에 거절(`INVALID_COMMAND` ACK)합니다.
-- 이 변경은 Confluence 결정 **D-26(최초 지원 배포 전 RESET 안전성 계약 정정)**에 따른 pre-release contract correction입니다. 지원 배포가 시작된 이후의 변경에는 기존 `labbit.connector.v1` compatibility/capability/versioning 원칙이 그대로 적용됩니다.
+- 이 변경은 Confluence 결정 [**D-26(최초 지원 배포 전 RESET 안전성 계약 정정)**](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/28672005)에 따른 pre-release contract correction입니다. 지원 배포가 시작된 이후의 변경에는 기존 `labbit.connector.v1` compatibility/capability/versioning 원칙이 그대로 적용됩니다.
+- 목록의 존재만으로 리소스 소유권이나 이전 generation의 전체 구성 확인이 끝난 것은 아닙니다. SaaS는 LabInstance/ProviderResource 기록에서 소유관계를 확인해 해당 이전 generation의 추적된 ID 목록을 전달해야 합니다. Provider는 전달된 목록을 CreationSnapshot의 구성·generation과 대조하고 정확한 Provider ID만 처리하며, LabInstance 소유권을 독립 검증하는 것은 아닙니다. 기존 generation Cleanup 완료 후에만 새 generation을 Provision하며 부분 삭제 실패·결과 불명은 새 생성이나 blind retry로 전환하지 않습니다.
 
 Reset에서 최신 LabSpec이나 비슷한 최신 Image를 다시 선택하지 않습니다. 기존 generation을 파괴하기 전에 원본 Image/Flavor/Provider 연결 등 재현 가능성을 Preflight하고 재현 불가하면 기존 환경을 먼저 삭제하지 않습니다.
+
+- Preflight는 Image, Flavor, Management/External Network, Key Pair와 함께 Nova의 Instance/vCPU/RAM 및 Neutron의 Network/Subnet/Port/Router/Security Group/Rule 상세 quota를 확인합니다. Reset은 삭제가 확정된 기존 generation 리소스를 quota 사용량에서 차감해 판단하되, Preflight 이후의 동시 사용 변화까지 성공으로 보장하지는 않습니다.
+- `internetOutbound=true`이면 generation별 Lab Router를 만들고 External Gateway와 Lab Subnet interface를 연결합니다. `false`이면 Router를 만들지 않고 Lab Subnet gateway를 비활성화합니다.
+- Lab NIC에는 동일 Lab 대역 ingress를 가진 Lab Security Group만, Management NIC에는 Connector SSH CIDR의 TCP 22 ingress를 가진 Management Security Group만 연결합니다.
+- Startup Script가 있으면 VM `ACTIVE`와 SSH banner만으로 `SUCCEEDED`를 반환하지 않습니다. Connector 전용 SSH key와 TOFU로 고정한 host key를 사용해 `cloud-init status --wait` 성공까지 확인합니다.
 
 ## 12. Result와 결과 불명
 
@@ -427,6 +434,32 @@ UNKNOWN
 중앙에서는 Heartbeat, version, reconnect, Operation stage/result, Terminal lifecycle, `error_code`, duration 같은 운영 metadata를 관측하고 필요하면 같은 correlation ID로 Connector 로컬 구조화 로그를 대조합니다.
 
 Connector 내부 OpenStack/VM 접근의 raw log·metric·상세 Span을 중앙에 상시 반출하지 않습니다. 중앙 SaaS의 command 전송/결과 수신 계측은 Connector 내부 개별 OpenStack API 호출 시간을 측정한 것과 다릅니다.
+
+### SafeError 기본 코드
+
+`SafeError.code`는 확장 가능한 문자열입니다. consumer는 아래 기본 코드를 처리하고 unknown code에 일반 fallback을 제공해야 합니다.
+
+| Code | 의미 |
+| --- | --- |
+| `ERR_CONNECTOR_OFFLINE` | Connector Control 연결을 사용할 수 없음 |
+| `ERR_INFRA_OPENSTACK` | OpenStack 인증·quota·API 또는 Provider 상태 때문에 작업을 완료할 수 없음 |
+| `ERR_CONNECTOR_INTERNAL` | Connector 입력 구성·내부 처리 오류 |
+| `ERR_VM_BOOT_TIMEOUT` | 제한 시간 안에 VM이 준비 상태에 도달하지 못함 |
+| `ERR_PORT_NOT_LISTENING` | Workspace VM의 승인 Application Port에서 응답을 받을 수 없음 |
+| `ERR_RESOURCE_QUOTA_EXCEEDED` | OpenStack resource quota가 부족함 |
+| `ERR_UNKNOWN_RECONCILING` | Provider side effect 여부를 확정할 수 없어 Reconciliation이 필요함 |
+
+기본 한국어 사용자 표시 문구는 다음 의미를 유지합니다. consumer가 locale에 맞게 번역할 수 있지만 내부 원문 오류로 대체하지 않습니다.
+
+- `ERR_CONNECTOR_OFFLINE`: `실습 에이전트와 연결이 끊겼습니다. 관리자에게 문의하세요.`
+- `ERR_VM_BOOT_TIMEOUT`: `가상머신 생성 시간이 초과되었습니다. 실습 환경을 재설정(Reset)해 주세요.`
+- `ERR_PORT_NOT_LISTENING`: `실습 VM 내 웹 애플리케이션이 실행되지 않았습니다. 포트 번호를 확인하세요.`
+- `ERR_RESOURCE_QUOTA_EXCEEDED`: `실습실 자원 한도가 초과되었습니다. 미사용 환경을 정리해 주세요.`
+- `ERR_UNKNOWN_RECONCILING`: `자원 생성 상태를 확인 중입니다. 잠시 후 새로고침해 주세요.`
+
+Provider mutation 요청 뒤 5xx·timeout처럼 side effect 여부가 불명확한 경우에는 단순히 `ERR_INFRA_OPENSTACK`의 확정 실패로 축소하지 않습니다. outcome을 `UNKNOWN`으로 두고 `ERR_UNKNOWN_RECONCILING`을 사용해 실제 Provider 상태를 먼저 확인합니다.
+
+위 code와 함께 보내는 message는 사용자·운영자에게 노출 가능한 안전한 설명이어야 합니다. Credential, Authorization, Provider raw payload, 내부 endpoint 또는 SDK 원문 오류를 포함하지 않습니다.
 
 ## 15. Control Close 규칙
 

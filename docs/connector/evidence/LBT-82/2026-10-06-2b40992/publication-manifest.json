@@ -1,0 +1,27 @@
+{
+  "testedProductCommit": "2b40992279e16b8593c244c9169df72053a4622c",
+  "testedProductTree": "40c8cad13bd5f308b1459a066682870e65e00872",
+  "integratedMain": "32ead4d12b0d3f4b56a66c9007273e261dad62ed",
+  "publicationScope": "Only this docs/connector/evidence directory is added after tested product commit; no product/test/contract/runtime/dependency modifications.",
+  "innerArtifactChecksums": {
+    "base": "4ea93481f14caf901f5a9605ccaecda928ced3c96f018d5c3314d885716a24d6",
+    "runtime": "90515cd526311d61504cf36b4e05399db4dcdbb26ec9bc03c10bec4abc3dc635"
+  },
+  "archives": [
+    {
+      "Name": "base-validation.zip",
+      "Length": 271823,
+      "SHA256": "34c7ebb857863a23cfc871d4f73b1e1322cf4eebf66f4f1be21070c77ed8f9ef",
+      "Entries": 32
+    },
+    {
+      "Name": "runtime-validation.zip",
+      "Length": 7974418,
+      "SHA256": "d1670a6fac05859ca1a8ba314f538123de7290d5efb278f978fc86ee91af9eec",
+      "Entries": 19
+    }
+  ],
+  "reviewProvenance": "Independent reviewer rehashed prior31artifact manifest and supplemental18artifact manifest, mismatch0. Full-diff92 and339source-blob audit on exact2b409 product linked in base pack. Final publication-only pass must check archives/index unchanged-source, not claim rerun on publicationHEAD.",
+  "secretScan": "Inner scoped literal/header scans + reviewer checks; private key/credential values not persisted. Raw PTY not stored. Not universal DLP guarantee.",
+  "remoteCI": "Run after push on actual new PR HEAD; local results are tied to tested2b409 product source. No main merge/auto-merge."
+}

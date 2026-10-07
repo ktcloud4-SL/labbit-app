@@ -63,6 +63,13 @@ const (
 	OutcomeUnknown   = "UNKNOWN"
 )
 
+// Provider 조회 요청 타입
+const (
+	ProviderRequestValidateConnection = "VALIDATE_CONNECTION"
+	ProviderRequestListImages         = "LIST_IMAGES"
+	ProviderRequestListFlavors        = "LIST_FLAVORS"
+)
+
 // BaseEnvelope 는 v1 Control WSS의 공통 Envelope입니다.
 type BaseEnvelope struct {
 	Type              string    `json:"type"`
@@ -123,6 +130,51 @@ type HeartbeatPayload struct {
 type HeartbeatMessage struct {
 	BaseEnvelope
 	Payload HeartbeatPayload `json:"payload"`
+}
+
+// ProviderRequestPayload 는 SaaS가 요청하는 Provider 연결 검증/조회입니다.
+type ProviderRequestPayload struct {
+	RequestType          string `json:"requestType"`
+	ProviderConnectionID string `json:"providerConnectionId"`
+}
+
+// ProviderRequestMessage 는 SaaS가 Connector로 보내는 Provider 조회 요청입니다.
+type ProviderRequestMessage struct {
+	BaseEnvelope
+	Payload ProviderRequestPayload `json:"payload"`
+}
+
+// ProviderImage 는 PROVIDER_RESPONSE의 정규화된 Image 항목입니다.
+type ProviderImage struct {
+	Kind   string `json:"kind"`
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Status string `json:"status,omitempty"`
+}
+
+// ProviderFlavor 는 PROVIDER_RESPONSE의 정규화된 Flavor 항목입니다.
+type ProviderFlavor struct {
+	Kind    string `json:"kind"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	VCPUs   int64  `json:"vcpus"`
+	RAMMiB  int64  `json:"ramMiB"`
+	DiskGiB int64  `json:"diskGiB"`
+}
+
+// ProviderResponsePayload 는 Provider 조회 결과입니다. Items에는
+// ProviderImage 또는 ProviderFlavor만 들어갑니다.
+type ProviderResponsePayload struct {
+	RequestType string        `json:"requestType"`
+	Outcome     string        `json:"outcome"`
+	Items       []interface{} `json:"items,omitempty"`
+	Error       *SafeError    `json:"error,omitempty"`
+}
+
+// ProviderResponseMessage 는 Connector가 Provider 조회 결과를 회신하는 메시지입니다.
+type ProviderResponseMessage struct {
+	BaseEnvelope
+	Payload ProviderResponsePayload `json:"payload"`
 }
 
 // SafeError 는 로그/에러 메시지에 노출 가능한 민감정보가 제거된 오류입니다.

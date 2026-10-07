@@ -1,0 +1,219 @@
+{
+  "testedSourceCommit": "57990544fac291def5d7cf7c6d5b54da3cabc4c8",
+  "main": "bec3f75af7991e5235556f98cbc9bdeb418265bd",
+  "previousPRHead": "ab3abe26aee6ee495a8301f4ae046cd634e649ee",
+  "files": [
+    {
+      "path": "Makefile",
+      "blob": "6ba499a8604848744686d6a3cda70cec931c64df"
+    },
+    {
+      "path": "contracts/connector/README.md",
+      "blob": "0fcbdc36952df7f229d048a3116d3f5fb07c3b97"
+    },
+    {
+      "path": "contracts/connector/connector.schema.json",
+      "blob": "6e004eaa4f9150c2f1655cd66061b84ea803515a"
+    },
+    {
+      "path": "go.mod",
+      "blob": "21926b5401b625aa32ad1d15dccab89e5a323025"
+    },
+    {
+      "path": "go.sum",
+      "blob": "fc86eb97e6be4c58b00563be7b2740e9515fd741"
+    },
+    {
+      "path": "internal/connector/app/app.go",
+      "blob": "3af4588f1b474d4b885d9966d2288df8c2928437"
+    },
+    {
+      "path": "internal/connector/app/app_test.go",
+      "blob": "fe7d699a0e1a9ea59977daf37c7ff37233783978"
+    },
+    {
+      "path": "internal/connector/app/runtime_provider.go",
+      "blob": "8c5058475a8f74d0a2336c3ee7b9039f9c74a6c1"
+    },
+    {
+      "path": "internal/connector/app/runtime_provider_test.go",
+      "blob": "0836825319a59668d2d4c775f5530c1a65e4abce"
+    },
+    {
+      "path": "internal/connector/protocol/types.go",
+      "blob": "18b978de6927916855031bbc59c06bcd722cee69"
+    },
+    {
+      "path": "internal/connector/provider/mock.go",
+      "blob": "f41abcb63c29f8e113d1c100081cdd337d55331c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/client.go",
+      "blob": "efecdbb38372b8f6184b45d6fd9928724bf01438"
+    },
+    {
+      "path": "internal/connector/provider/openstack/client_test.go",
+      "blob": "29bc693d1e6a46064580f944a434710731144982"
+    },
+    {
+      "path": "internal/connector/provider/openstack/connection_validation_test.go",
+      "blob": "e53df0bd0b206732400e1169c4bfa43b553db981"
+    },
+    {
+      "path": "internal/connector/provider/openstack/control_wss_cleanup_test.go",
+      "blob": "21d7bc8e0c9fc134560adb3a6e409d2e1b00c18c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/control_wss_integration_test.go",
+      "blob": "6cd02a4db44605d96c6bbd4260f797c9dfcb5fe1"
+    },
+    {
+      "path": "internal/connector/provider/openstack/integration_test.go",
+      "blob": "8e9ba0303a32cfe0be7ef79bb88c914db54f617c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/lifecycle.go",
+      "blob": "da185457a5fb6640b4d5124395569c756b37ecc2"
+    },
+    {
+      "path": "internal/connector/provider/openstack/lifecycle_test.go",
+      "blob": "e688a6c9bc03f4b6f04d325a8e79c0120264e413"
+    },
+    {
+      "path": "internal/connector/provider/openstack/multi_vm_readiness_test.go",
+      "blob": "5a7b01e89ff6a35afaab6fe045f5469c44ab8552"
+    },
+    {
+      "path": "internal/connector/provider/openstack/network.go",
+      "blob": "2f732981c65c55edbf8e5fc725a305744d12aa7b"
+    },
+    {
+      "path": "internal/connector/provider/openstack/network_test.go",
+      "blob": "11ea7bd847d989d0f6c0369028e54cc9af4b2da6"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ownership_test.go",
+      "blob": "0a3a8c85ec7614b3a39b8cae9c754e276cff9fe5"
+    },
+    {
+      "path": "internal/connector/provider/openstack/port.go",
+      "blob": "c368a8d7df8fa59c25b5a9292a666246faa14417"
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision.go",
+      "blob": "c097f894cd7ae56cd4671b62a778a17467579ee8"
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision_test.go",
+      "blob": "054c76be02dd77108b0afbd4438f061e693b9078"
+    },
+    {
+      "path": "internal/connector/provider/openstack/query.go",
+      "blob": "d77ecd94302d7eb3f0a11ff05aa6bb0d4f2edb73"
+    },
+    {
+      "path": "internal/connector/provider/openstack/query_test.go",
+      "blob": "3b648322f6906268fa0cadbd77de59d87c4e1920"
+    },
+    {
+      "path": "internal/connector/provider/openstack/quota.go",
+      "blob": "68b8f93855fd491c25216e7bb90a6c7f43c12497"
+    },
+    {
+      "path": "internal/connector/provider/openstack/quota_test.go",
+      "blob": "1bd5984e6d54a04bb35d76c59d9b738175fe5872"
+    },
+    {
+      "path": "internal/connector/provider/openstack/reconciliation.go",
+      "blob": "43dac3c54cf484b0e683ef5dfe943cbb0171a46b"
+    },
+    {
+      "path": "internal/connector/provider/openstack/reconciliation_test.go",
+      "blob": "577802abefcaa7950b18fcc38a0823add4cceb4f"
+    },
+    {
+      "path": "internal/connector/provider/openstack/router.go",
+      "blob": "6ffa761d1df0cad47b79c647162500daca56e89b"
+    },
+    {
+      "path": "internal/connector/provider/openstack/server.go",
+      "blob": "36e49ab17e59f2c3e7fade59e55daba4b54fb170"
+    },
+    {
+      "path": "internal/connector/provider/openstack/server_test.go",
+      "blob": "9259ed5bf486bbe65df03437b0293bc7246d5d0e"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ssh_cancellation_test.go",
+      "blob": "1fdc42a1d7c5439869c95aad38336b414b97118b"
+    },
+    {
+      "path": "internal/connector/provider/openstack/startup.go",
+      "blob": "546af100516bb55118f8ed27fef2a2fc1cd939eb"
+    },
+    {
+      "path": "internal/connector/provider/openstack/startup_test.go",
+      "blob": "66061854736cb08f948781674f8312d5bb782632"
+    },
+    {
+      "path": "internal/connector/provider/openstack/test_helpers_test.go",
+      "blob": "af9c5ab655c3bc4e99f307e6a444f3160c21ff85"
+    },
+    {
+      "path": "internal/connector/provider/operation.go",
+      "blob": "ca89967ea88651585bd7987e48b18961ec4e6563"
+    },
+    {
+      "path": "internal/connector/provider/operation_test.go",
+      "blob": "e2ee3dcd6cf6f9e959815e47588c62077fb3504d"
+    },
+    {
+      "path": "internal/connector/provider/query.go",
+      "blob": "a5e0054c49c00bc58c1c864f29635a2189cc31fe"
+    },
+    {
+      "path": "internal/connector/wss/client.go",
+      "blob": "2c33aeb0f549aa51c82077a1355a74d0798f4bf1"
+    },
+    {
+      "path": "internal/connector/wss/client_write_test.go",
+      "blob": "f94f1d50ccc509c454e9f49f68f35867d4d5e8e4"
+    },
+    {
+      "path": "internal/connector/wss/config.go",
+      "blob": "23b97b422b12624566e71d5f2a392e5fca2904b5"
+    },
+    {
+      "path": "internal/connector/wss/config_test.go",
+      "blob": "86bd2d45a7ba91ab0015a8e3fc0fd86a60d7d444"
+    },
+    {
+      "path": "internal/connector/wss/handler.go",
+      "blob": "42c8542e446ff5288bc8403872fc8eeb9724f995"
+    },
+    {
+      "path": "internal/connector/wss/handler_test.go",
+      "blob": "310a46fb4b92549fbd1b6b04555b8c4903f24de7"
+    },
+    {
+      "path": "internal/connector/wss/handler_validation_test.go",
+      "blob": "578c253cff07fd6e2d783099c947ad381afdfdf3"
+    },
+    {
+      "path": "internal/connector/wss/reconnect.go",
+      "blob": "1bb19342f57fb016d6d0338b3cdbff4c9f9e6914"
+    },
+    {
+      "path": "internal/connector/wss/reconnect_operation_test.go",
+      "blob": "305889448e0c6e222b8ce63a0255ed3f1d823c61"
+    },
+    {
+      "path": "runtime/README.md",
+      "blob": "9fc98ff9222eebea5b2e3c0261d39ba3b4449f64"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "blob": "4bfc8ee26047451cde6cb23040f4459c82c86802"
+    }
+  ]
+}

@@ -2,16 +2,22 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/wss"
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
+	"golang.org/x/crypto/ssh"
 )
 
 // ConnectorApp 은 Connector 프로세스의 전역 런타임 컴포넌트 묶음입니다.
@@ -23,11 +29,22 @@ type ConnectorApp struct {
 
 // BuildConnector 는 환경변수 및 Provider를 바탕으로 실제 Production 컴포넌트(SessionManager, SSHPTY, TerminalDataWSS)를 Wiring합니다.
 func BuildConnector(p provider.Provider, sender wss.MessageSender) (*ConnectorApp, error) {
+	return buildConnector(p, sender, nil)
+}
+
+type serverHostKeyProvider interface {
+	SSHHostKeyCallback(context.Context, string) (ssh.HostKeyCallback, error)
+}
+
+func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig *wss.Config) (*ConnectorApp, error) {
 	environment := envOrDefault("LABBIT_ENVIRONMENT", envOrDefault("LABBIT_ENV", "development"))
 	isProduction := environment == "production" || strings.ToLower(environment) == "prod"
 
 	// 1. Runtime Contract SSOT: SaaS Base URL 및 Credential 로딩
 	saasBaseURL := strings.TrimSpace(os.Getenv("LABBIT_SAAS_BASE_URL"))
+	if controlConfig != nil {
+		saasBaseURL = strings.TrimSpace(controlConfig.BaseURL)
+	}
 	if isProduction && saasBaseURL == "" {
 		return nil, fmt.Errorf("LABBIT_SAAS_BASE_URL is required in production")
 	}
@@ -37,7 +54,14 @@ func BuildConnector(p provider.Provider, sender wss.MessageSender) (*ConnectorAp
 
 	var credential string
 	credFile := strings.TrimSpace(os.Getenv("LABBIT_CONNECTOR_CREDENTIAL_FILE"))
-	if credFile != "" {
+	if controlConfig != nil {
+		credFile = controlConfig.CredentialFile
+		var err error
+		credential, err = controlConfig.GetCredential()
+		if err != nil {
+			return nil, fmt.Errorf("invalid Connector credential configuration")
+		}
+	} else if credFile != "" {
 		data, err := os.ReadFile(credFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read connector credential file: %w", err)
@@ -78,6 +102,9 @@ func BuildConnector(p provider.Provider, sender wss.MessageSender) (*ConnectorAp
 	}
 
 	runtimeID := envOrDefault("LABBIT_CONNECTOR_RUNTIME_ID", envOrDefault("LABBIT_CONNECTOR_ID", "connector-runtime-01"))
+	if controlConfig != nil {
+		runtimeID = controlConfig.RuntimeID
+	}
 
 	// 3. Provider 기반 Management Address Resolver 배선 (Reviewer 4번 지적 사항)
 	var addressResolver func(ctx context.Context, targetVmKey, serverID string) (string, error)
@@ -107,6 +134,26 @@ func BuildConnector(p provider.Provider, sender wss.MessageSender) (*ConnectorAp
 		AddressResolver:      addressResolver,
 	}
 	ptyFactory := terminal.NewSSHPTYFactory(sshCfg)
+	if verifier, ok := p.(serverHostKeyProvider); ok {
+		// Reuse the Provider lifecycle's per-server pin, not the current IP.
+		// A terminal request must never enroll a previously unknown host key.
+		ptyFactory = func(targetVmKey, serverID string, cols, rows int) (terminal.PTYChannel, error) {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			callback, err := verifier.SSHHostKeyCallback(ctx, serverID)
+			if err != nil || callback == nil {
+				return nil, fmt.Errorf("Provider SSH host key could not be verified")
+			}
+			cfg := sshCfg
+			cfg.HostKeyCallback = callback
+			cfg.AllowInsecureHostKey = false
+			pty, err := terminal.NewSSHPTYFactory(cfg)(targetVmKey, serverID, cols, rows)
+			if err != nil {
+				return nil, fmt.Errorf("Workspace VM SSH/PTY could not be opened")
+			}
+			return pty, nil
+		}
+	}
 
 	sessionMgr := terminal.NewSessionManager(60*time.Second, nil)
 
@@ -130,34 +177,75 @@ func BuildConnector(p provider.Provider, sender wss.MessageSender) (*ConnectorAp
 }
 
 // Run 은 Connector 프로세스의 lifecycle과 Graceful Shutdown을 제공합니다.
-// 주의: Run() 내의 MockProvider 사용은 LBT-82 OpenStack Provider 실제 배선 전 단계의 Skeleton/Bootstrap 경계입니다.
-// 실제 프로덕션 구동 시에는 구체 OpenStack Provider 구현체가 주입되어야 합니다.
+// Run starts the outbound Control WSS and connects Control messages to the
+// customer-local OpenStack Provider. Provider authentication is lazy so a
+// Provider outage does not incorrectly make the Connector appear OFFLINE.
 func Run(ctx context.Context) error {
 	environment := envOrDefault("LABBIT_ENVIRONMENT", "development")
 	logLevel := envOrDefault("LABBIT_LOG_LEVEL", "info")
 	logger := observability.NewJSONLogger("labbit-connector", "bootstrap", environment, logLevel)
+	connectorID := strings.TrimSpace(os.Getenv("LABBIT_CONNECTOR_ID"))
 
-	logger.Info("Labbit Connector 스켈레톤 시작",
-		"connector_id", strings.TrimSpace(os.Getenv("LABBIT_CONNECTOR_ID")),
-	)
-
-	// Production Wiring 초기화 (후속 Provider 배선 전까지 MockProvider 스켈레톤 사용)
-	connectorApp, err := BuildConnector(&provider.MockProvider{}, nil)
+	config, err := controlConfigFromEnvironment()
 	if err != nil {
 		return err
 	}
+	providerConnectionID := strings.TrimSpace(os.Getenv(openstackprovider.EnvProviderConnection))
+	lazy := newLazyProvider(providerConnectionID, func(factoryContext context.Context) (runtimeProvider, error) {
+		return openstackprovider.New(factoryContext, openstackprovider.ConfigFromEnvironment())
+	})
 
-	// Connector는 public inbound listener를 열지 않는다.
-	// 실제 구현은 고객망에서 SaaS 443으로 outbound WSS를 생성한다.
-	<-ctx.Done()
-	logger.Info("Connector 종료 신호 수신, 활성 터미널 세션 정리 시작")
+	logger.Info("Labbit Connector 시작", "connector_id", connectorID)
+	return runControl(ctx, config, lazy, connectorID, logger)
+}
 
-	if connectorApp != nil && connectorApp.TerminalManager != nil {
-		connectorApp.TerminalManager.CloseAll("SERVICE_RESTARTING")
+func controlConfigFromEnvironment() (wss.Config, error) {
+	connectorID := strings.TrimSpace(os.Getenv("LABBIT_CONNECTOR_ID"))
+	if connectorID == "" {
+		return wss.Config{}, fmt.Errorf("LABBIT_CONNECTOR_ID is required")
 	}
+	config := wss.Config{
+		BaseURL:        strings.TrimSpace(os.Getenv("LABBIT_SAAS_BASE_URL")),
+		CredentialFile: strings.TrimSpace(os.Getenv("LABBIT_CONNECTOR_CREDENTIAL_FILE")),
+		RuntimeID:      uuid.NewString(),
+	}
+	if _, err := config.ResolveEndpoint(); err != nil {
+		return wss.Config{}, fmt.Errorf("invalid Connector Control endpoint configuration: %w", err)
+	}
+	if _, err := config.GetCredential(); err != nil {
+		return wss.Config{}, fmt.Errorf("invalid Connector credential configuration: %w", err)
+	}
+	return config, nil
+}
 
-	logger.Info("Connector 정상 종료 완료")
-	return nil
+func runControl(ctx context.Context, config wss.Config, p runtimeProvider, connectorID string, logger *slog.Logger) error {
+	connectorApp, err := buildConnector(p, nil, &config)
+	if err != nil {
+		return err
+	}
+	defer connectorApp.TerminalManager.CloseAll("SERVICE_RESTARTING")
+	handler := connectorApp.Handler
+	handler.SetOnError(func(error) {
+		logger.Warn("Connector Control 메시지 처리 실패", "connector_id", connectorID)
+	})
+	supervisor := wss.NewSupervisor(config, handler, wss.NewDefaultBackoffPolicy())
+	supervisor.SetOnConnected(func(ack *protocol.HelloAckPayload) {
+		logger.Info("Connector Control WSS 연결 완료",
+			"connector_id", connectorID,
+			"heartbeat_interval_seconds", ack.HeartbeatIntervalSeconds,
+			"offline_timeout_seconds", ack.OfflineTimeoutSeconds,
+		)
+	})
+	supervisor.SetOnDisconnected(func(error) {
+		logger.Warn("Connector Control WSS 연결 종료; 재연결 대기", "connector_id", connectorID)
+	})
+
+	err = supervisor.Run(ctx)
+	if errors.Is(err, context.Canceled) && ctx.Err() != nil {
+		logger.Info("Connector 종료 신호 수신", "connector_id", connectorID)
+		return nil
+	}
+	return err
 }
 
 func envOrDefault(key, fallback string) string {

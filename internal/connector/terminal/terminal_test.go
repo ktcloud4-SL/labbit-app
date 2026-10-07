@@ -21,6 +21,22 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
 )
 
+// resizeObservedPTY acknowledges the resize after both Session and PTY dimensions
+// have been updated. The single resize in TestTerminal_Resize is then safe to
+// inspect without guessing when the asynchronous frame handler has finished.
+type resizeObservedPTY struct {
+	terminal.PTYChannel
+	resized chan struct{}
+}
+
+func (p *resizeObservedPTY) Resize(cols, rows int) error {
+	if err := p.PTYChannel.Resize(cols, rows); err != nil {
+		return err
+	}
+	p.resized <- struct{}{}
+	return nil
+}
+
 func TestTerminal_OpenAndEchoStreaming(t *testing.T) {
 	// 1. Mock Terminal Relay 기동
 	relay := mock.NewTerminalRelay()
@@ -96,11 +112,12 @@ func TestTerminal_Resize(t *testing.T) {
 
 	mgr := terminal.NewSessionManager(5*time.Second, nil)
 	pty := terminal.NewMockEchoPTY(80, 24)
+	observedPTY := &resizeObservedPTY{PTYChannel: pty, resized: make(chan struct{}, 1)}
 
 	session, _, err := mgr.GetOrCreateSession(
 		protocol.TerminalOpenPayload{TargetVmKey: "vm-1", ProviderServerID: "srv-1", Cols: 80, Rows: 24},
 		protocol.BaseEnvelope{TerminalSessionID: "sess-resize-1", LabInstanceID: "inst-1", Generation: 1},
-		func() (terminal.PTYChannel, error) { return pty, nil },
+		func() (terminal.PTYChannel, error) { return observedPTY, nil },
 	)
 	if err != nil {
 		t.Fatalf("GetOrCreateSession failed: %v", err)
@@ -124,8 +141,12 @@ func TestTerminal_Resize(t *testing.T) {
 		t.Fatalf("SendResize failed: %v", err)
 	}
 
-	// 약간의 반영 시간 대기
-	time.Sleep(100 * time.Millisecond)
+	// Completion acknowledges the writes before inspecting this single resize.
+	select {
+	case <-observedPTY.resized:
+	case <-time.After(2 * time.Second):
+		t.Fatal("resize was not applied to the PTY")
+	}
 
 	if session.Cols != 120 || session.Rows != 40 {
 		t.Fatalf("expected 120x40 in session, got %dx%d", session.Cols, session.Rows)
@@ -186,14 +207,14 @@ func TestTerminal_GracePeriod_Resume(t *testing.T) {
 	// 3. 재연결 완료 후 세션 상태가 StatusActive 로 복원되었는지 확인
 	var active bool
 	for i := 0; i < 20; i++ {
-		if session.Status == terminal.StatusActive {
+		if session.GetStatus() == terminal.StatusActive {
 			active = true
 			break
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
 	if !active {
-		t.Fatalf("expected session status to resume to StatusActive, got %s", session.Status)
+		t.Fatalf("expected session status to resume to StatusActive, got %s", session.GetStatus())
 	}
 
 	// 4. 재연결 후에도 동일 PTY 입출력이 유지되는지 확인
@@ -253,8 +274,8 @@ func TestTerminal_GracePeriod_Timeout(t *testing.T) {
 		t.Fatalf("timeout waiting for grace period expiration callback")
 	}
 
-	if session.Status != terminal.StatusClosed {
-		t.Fatalf("expected StatusClosed, got %s", session.Status)
+	if session.GetStatus() != terminal.StatusClosed {
+		t.Fatalf("expected StatusClosed, got %s", session.GetStatus())
 	}
 	if mgr.ActiveCount() != 0 {
 		t.Fatalf("expected 0 active sessions, got %d", mgr.ActiveCount())
@@ -279,8 +300,8 @@ func TestTerminal_Close_Idempotent(t *testing.T) {
 		t.Fatalf("first CloseSession failed: %v", err)
 	}
 
-	if session.Status != terminal.StatusClosed {
-		t.Fatalf("expected StatusClosed, got %s", session.Status)
+	if session.GetStatus() != terminal.StatusClosed {
+		t.Fatalf("expected StatusClosed, got %s", session.GetStatus())
 	}
 
 	// 2차 Close (이미 정리된 세션에 대한 닫기 요청 - 에러 없이 멱등성 유지)
@@ -597,8 +618,8 @@ func TestSession_Close_ConcurrentWrite_NoDeadlock(t *testing.T) {
 		t.Fatal("DEADLOCK DETECTED: timeout waiting for concurrent writes and Close to complete")
 	}
 
-	if session.Status != terminal.StatusClosed {
-		t.Fatalf("expected StatusClosed, got %s", session.Status)
+	if session.GetStatus() != terminal.StatusClosed {
+		t.Fatalf("expected StatusClosed, got %s", session.GetStatus())
 	}
 }
 
@@ -800,8 +821,8 @@ func TestDataWSSClient_OversizedFrame_Fails(t *testing.T) {
 	if len(output) == 0 {
 		t.Fatalf("expected non-empty binary echo, got %d", len(output))
 	}
-	if session.Status != terminal.StatusActive {
-		t.Fatalf("session should remain StatusActive after binary frame > 1 MiB, got %s", session.Status)
+	if session.GetStatus() != terminal.StatusActive {
+		t.Fatalf("session should remain StatusActive after binary frame > 1 MiB, got %s", session.GetStatus())
 	}
 
 	// 3. Binary 4 MiB 초과 전송 (MaxBinaryMessageSize 초과) -> Connection ReadLimit 초과로 소켓 단절
@@ -896,7 +917,13 @@ func TestDataWSSClient_EmptyCloseReason_Rejected(t *testing.T) {
 				HistoryAvailable: &f,
 			},
 		}
-		_ = conn.WriteJSON(resp)
+		// ATTACHED and the later invalid CLOSE share one WebSocket writer.
+		connMu.Lock()
+		writeErr := conn.WriteJSON(resp)
+		connMu.Unlock()
+		if writeErr != nil {
+			return
+		}
 
 		// Keep connection open
 		for {
@@ -956,7 +983,7 @@ func TestDataWSSClient_EmptyCloseReason_Rejected(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Session should NOT be closed
-	if session.Status == terminal.StatusClosed {
+	if session.GetStatus() == terminal.StatusClosed {
 		t.Fatal("session should not be closed on invalid empty close reason")
 	}
 }

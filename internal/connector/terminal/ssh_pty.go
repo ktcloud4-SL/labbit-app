@@ -193,10 +193,28 @@ func (p *SSHPTY) Close() error {
 
 // DialSSHPTY는 지정된 주소로 SSH를 연결하고 새 SSHPTY를 반환합니다.
 func DialSSHPTY(ctx context.Context, address string, sshConfig *ssh.ClientConfig, cols, rows int) (*SSHPTY, error) {
+	if sshConfig == nil {
+		return nil, errors.New("ssh config cannot be nil")
+	}
+	// Bound the handshake and initial PTY requests, not only TCP establishment.
+	timeout := sshConfig.Timeout
+	if timeout <= 0 {
+		timeout = 10 * time.Second
+	}
+	setupCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 	dialer := net.Dialer{Timeout: 10 * time.Second}
-	conn, err := dialer.DialContext(ctx, "tcp", address)
+	conn, err := dialer.DialContext(setupCtx, "tcp", address)
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial ssh target %s: %w", address, err)
+	}
+	stopCancelClose := context.AfterFunc(setupCtx, func() { _ = conn.Close() })
+	defer stopCancelClose()
+	if deadline, ok := setupCtx.Deadline(); ok {
+		if err := conn.SetDeadline(deadline); err != nil {
+			_ = conn.Close()
+			return nil, err
+		}
 	}
 
 	clientConn, channels, reqs, err := ssh.NewClientConn(conn, address, sshConfig)
@@ -209,6 +227,15 @@ func DialSSHPTY(ctx context.Context, address string, sshConfig *ssh.ClientConfig
 	pty, err := NewSSHPTY(client, cols, rows)
 	if err != nil {
 		_ = client.Close()
+		return nil, err
+	}
+	if !stopCancelClose() || setupCtx.Err() != nil {
+		_ = pty.Close()
+		return nil, setupCtx.Err()
+	}
+	// The setup timeout must not close a successfully established live PTY.
+	if err := conn.SetDeadline(time.Time{}); err != nil {
+		_ = pty.Close()
 		return nil, err
 	}
 	return pty, nil

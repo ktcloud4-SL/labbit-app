@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -142,20 +143,25 @@ func TestBuildSpecStoresIndependentArgon2idHashes(t *testing.T) {
 func TestInstallCredentialFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), ".local", "fixture.json")
 
-	t.Run("새 credential file은 0600으로 만들고 성공 메시지에는 path만 남긴다", func(t *testing.T) {
+	t.Run("새 credential file을 만들고 성공 메시지에는 path만 남긴다", func(t *testing.T) {
 		fake := &fakeTransactor{}
 		var out bytes.Buffer
 		if err := install(t.Context(), fake, path, &out); err != nil {
 			t.Fatalf("install() error = %v", err)
 		}
 
-		info, err := os.Stat(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if info.Mode().Perm() != 0o600 {
-			t.Errorf("mode = %v, want 0600", info.Mode().Perm())
-		}
+		t.Run("POSIX_permission_0600", func(t *testing.T) {
+			if runtime.GOOS == "windows" {
+				t.Skip("Windows uses ACLs; POSIX mode and Windows ACL confidentiality are not verified by this assertion")
+			}
+			info, err := os.Stat(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if info.Mode().Perm() != 0o600 {
+				t.Errorf("mode = %v, want 0600", info.Mode().Perm())
+			}
+		})
 		cred := readCredentials(t, path)
 		if cred.Password == "" || cred.Accounts["admin"] != "dev-admin" || cred.Accounts["instructor"] != "dev-instructor" || cred.Accounts["student"] != "dev-student" {
 			t.Errorf("credentials = %+v", cred)

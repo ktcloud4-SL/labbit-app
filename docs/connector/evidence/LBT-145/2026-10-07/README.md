@@ -101,7 +101,11 @@ The explicitly gated, reviewable [acceptance harness](../../../../../tools/ktclo
 
 Both exact owned Tier IDs are ACTIVE in the complete NSM list and each ID-filtered query returns one exact match in the selected token project. The documented DELETE with `networkId` returns HTTP 404 with the safe classification `network could not found`. The Lab physical ref and the legacy path also returned 404. Neither ref IDs nor 404 receipts were substituted for actual resource absence.
 
-After all project test VMs, boot volumes and firewall policies were removed, a fresh exact-ID reconciliation and one documented Tier delete attempt still returned 404. No further speculative delete variants or blind retries were issued. The actual cause is unresolved; this is a contradiction between observed list and delete responses, not a proven diagnosis of KT's internal implementation. The existing KT portal tab requires user re-login after session expiry to compare the visible Tier state and deletion behavior.
+After all project test VMs, boot volumes and firewall policies were removed, a fresh exact-ID reconciliation and one documented Tier delete attempt still returned 404. No further speculative delete variants or blind retries were issued. The actual cause is unresolved; this is a contradiction between observed list and delete responses, not a proven diagnosis of KT's internal implementation.
+
+The user subsequently re-authenticated the KT portal and explicitly approved deletion of these two test-owned Tiers. On the DX-M1 Tier page both matching names/CIDRs were visible as additional Custom Tiers. Each Tier was selected separately and one portal delete confirmation was submitted for each. **Both portal attempts failed** with `Tier 삭제 실패` / `해당 Tier를 조회할 수 없습니다.` (Tier deletion failed / the Tier cannot be queried). The Lab error is captured in [portal-tier-delete-failure.jpg](portal-tier-delete-failure.jpg); see the safe [portal observation](portal-delete-observation.json). Re-login did not resolve the contradiction. No further UI or API delete retry followed these failures.
+
+After the two portal attempts, complete NSM inventory still contained both known IDs, and each ID-filtered query returned one exact match. The portal's current-month Log History showed the two initial disposable Tier creation/deletion pairs and the final Lab Tiers' creation, but no deletion entry for either remaining Tier in the returned view. Event-log absence is diagnostic only, not proof of resource state. Provider-side investigation is required; a credential-free [support request draft](KT-support-request.txt) is prepared but **has not been submitted**. A new fixture and full two-generation acceptance remain deferred until these exact IDs have confirmed absence.
 
 | Test-owned remaining Tier | NSM networkId | CIDR |
 | --- | --- | --- |
@@ -114,7 +118,7 @@ These IDs were confirmed from creation results and the private ownership ledger;
 
 The temporary Connector VM's dedicated firewall policies (3), public IP, TCP 22 port-forward, VM, image-backed root volume and imported keypair were all removed. The first soft-delete cleanup returned UNKNOWN; exact-ID observations preceded recovery, and actual Server/Volume 404 was required. Final production Adapter Cleanup and keypair absence checks succeeded. See [bootstrap-cleanup.log](bootstrap-cleanup.log).
 
-The final resource report at **2026-10-07 19:57:45 KST** has all tracked Lab and bootstrap kinds at 0 except **LAB_KT_TIER = 2**. Total owned residual = **2**. Project Tier inventory = 5, comprising the unchanged shared baseline 3 plus these two owned Tiers. See [residual-current.json](residual-current.json). This is a failed residual-0 acceptance, not a completed cleanup.
+The final resource report after the approved portal attempts at **2026-10-07 20:55:10 KST** has all tracked Lab and bootstrap kinds at 0 except **LAB_KT_TIER = 2**. Total owned residual = **2**. Project Tier inventory = 5, comprising the unchanged shared baseline 3 plus these two owned Tiers. See [residual-current.json](residual-current.json). This is a failed residual-0 acceptance, not a completed cleanup.
 
 Protected Provider configuration and local SSH files remain outside Git. The destroyed Connector disk held its protected deployed configuration. No password, token, Connector credential, SSH private key, Authorization header or raw sensitive Provider payload is exported in these files.
 
@@ -124,6 +128,7 @@ Protected Provider configuration and local SSH files remain outside Git. The des
 - Go formatting: PASS for 319 tracked Go files after canonical LF normalization, equivalent to Linux checkout formatting. Windows baseline CRLF files were not committed as mass formatting edits.
 - Latest-main Web typecheck/lint/test/production build: PASS; 13 test files / 163 tests. A separate validation copy was byte-verified against all 61 tracked Web files and installed using `npm ci` with the latest-main `package-lock.json`; direct Node CLI commands matched the package scripts. The existing shared dependency junction was retained. Earlier baseline checks were 9 files / 109 tests. `make setup` was not executed literally.
 - Contracts: OpenAPI, all eight Draft 2020-12 schemas and local refs, Runtime YAML and unique Migration prefixes: PASS using the workflow's pinned validator versions.
+- GitHub Actions for implementation/evidence revision `55512d06cb6873c92ea99907611a570311a76023`: [Go](https://github.com/ktcloud4-SL/labbit-app/actions/runs/37612488886), [Web](https://github.com/ktcloud4-SL/labbit-app/actions/runs/37612489210) and [Contracts](https://github.com/ktcloud4-SL/labbit-app/actions/runs/37612488832) completed successfully. The later portal observation changes only evidence files; CI success does not constitute real two-generation KT acceptance.
 
 ### KT Cloud D1 Result
 
@@ -132,7 +137,7 @@ Gophercloud Identity: actual OP-01 token authentication/validation PASS
 Gophercloud Compute: queries and first WSS VM create/ACTIVE PASS; SDK forceDelete confirmed
 Gophercloud Image: actual OP-01 Image list and selected image preflight PASS
 Gophercloud Neutron: standard documented/catalog Network/Subnet reads FAIL (404)
-KT Tier API: create/list/Nova ref attachment PASS; current owned Tier delete BLOCKED (404 while present)
+KT Tier API: create/list/Nova ref attachment PASS; owned Tier delete BLOCKED in API and authenticated portal
 VM Create: first real WSS Provision SUCCEEDED
 VM Delete: Lab and temporary Connector exact Server GET 404 confirmed
 Management IP: expected fixed Management NIC resolved PASS
@@ -142,7 +147,7 @@ Reconcile: actual WSS known-ID present/absent checks PASS; complete candidate sc
 Cleanup: Server/Volume/Firewall/bootstrap resources absent; final Tier cleanup BLOCKED
 Residual Resource: 2 test-owned Tiers; all other tracked cloud resources 0
 Required KT-specific Adapter: Identity/Gateway initialization, NSM Tier/Firewall, Nova boot/detail/delete boundaries
-Remaining limitation: unresolved Tier delete; single Linux VM, InternetOutbound=false; NSM/Cinder quota APIs unavailable; full acceptance pending
+Remaining limitation: unresolved Tier delete in API and portal; KT investigation needed; single Linux VM, InternetOutbound=false; NSM/Cinder quota APIs unavailable; full acceptance pending
 LBT-145 readiness: IN_PROGRESS / completion criteria unmet
 C1 readiness: NOT_ASSESSED; joint acceptance belongs to LBT-16
 ```

@@ -1,0 +1,33 @@
+{
+  "dateKST": "2026-10-07",
+  "zone": "DX-M1",
+  "portal": "https://cloud.kt.com/console/d/servers/tier",
+  "userLoginConfirmed": true,
+  "userApprovedBothOwnedTierDeletes": true,
+  "attempts": [
+    {
+      "networkId": "1dba8bfa-0cf0-494a-813b-35770b1e5c6c",
+      "name": "labbit-lbt145-control-df3cb3919-g1-bf33bc516a-workspace-management-tier",
+      "cidr": "172.25.241.0/24",
+      "confirmedPortalDeleteCount": 1,
+      "outcome": "FAILED",
+      "message": "Tier 삭제 실패: 해당 Tier를 조회할 수 없습니다."
+    },
+    {
+      "networkId": "d1c45e11-f00b-4ec1-9f92-2716c2afa215",
+      "name": "labbit-lbt145-control-df3cb3919-g1-bf33bc516a-lab-tier",
+      "cidr": "172.25.240.0/24",
+      "confirmedPortalDeleteCount": 1,
+      "outcome": "FAILED",
+      "message": "Tier 삭제 실패: 해당 Tier를 조회할 수 없습니다."
+    }
+  ],
+  "postAttemptInventoryAtUTC": "2026-10-07T11:55:10Z",
+  "completeInventoryOwnedTiers": 2,
+  "eachKnownIdFilteredExactMatches": 1,
+  "otherTrackedOwnedResources": 0,
+  "sharedBaselineTierCount": 3,
+  "projectTierCount": 5,
+  "interpretation": "List/delete contradiction persists in API and authenticated portal; internal cause unconfirmed.",
+  "supportRequestSubmitted": false
+}

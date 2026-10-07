@@ -1,0 +1,73 @@
+{
+  "sourceCommit": "0f8ca010ed45eea0db669937871006fa0e7e5a7b",
+  "sourceTree": "4f1ec21cd108456e309070237e57593d3865e400",
+  "workingTreeClean": true,
+  "unitPackagesPassed": 26,
+  "unitFailures": 0,
+  "unitSkips": [
+    "TestOpenStackM2ControlWSSIntegration",
+    "TestOpenStackM1Integration",
+    "TestOpenStackM2ProvisionIntegration",
+    "TestOpenStackM3LifecycleIntegration",
+    "TestOpenStackInternetPolicyIntegration",
+    "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+  ],
+  "otherPackageSkips": "7 packages have no test files; not skipped test cases",
+  "racePackagesPassed": 10,
+  "raceFailures": 0,
+  "postgresPackagesPassed": 5,
+  "postgresTestAndSubtestPass": 854,
+  "postgresFail": 0,
+  "postgresSkip": 0,
+  "internet": [
+    {
+      "Test": "TestOpenStackInternetPolicyIntegration/internet-on",
+      "Elapsed": 117.74
+    },
+    {
+      "Test": "TestOpenStackInternetPolicyIntegration/internet-off",
+      "Elapsed": 120.4
+    },
+    {
+      "Test": "TestOpenStackInternetPolicyIntegration",
+      "Elapsed": 240.54
+    }
+  ],
+  "lifecycle": [
+    {
+      "Test": "TestOpenStackM2ControlWSSIntegration",
+      "Elapsed": 262.38
+    }
+  ],
+  "postCleanup": [
+    {
+      "Test": "TestOpenStackM1Integration",
+      "Elapsed": 0.82
+    }
+  ],
+  "secretScan": {
+    "knownConfiguredValuesScanned": true,
+    "files": 18,
+    "matches": [],
+    "limitation": "Known configured values and high-confidence key/Bearer markers only; not comprehensive DLP"
+  },
+  "format": "PASS with CRLF-only normalization",
+  "vet": "PASS",
+  "build": "PASS",
+  "web": "typecheck/lint/109 tests/build PASS",
+  "contracts": "CI-pinned schema validators PASS; not behavioral Backend RESET enforcement",
+  "newProductionSourceChanges": false,
+  "backendDirectDiff": "EMPTY versus integrated main",
+  "targetedRace": "Three originally failing tests, 10 repetitions each PASS",
+  "independentRace": "5 regression targets, 5 repetitions PASS",
+  "postgresResidual": "0 owned test databases, dedicated server stopped",
+  "remaining": [
+    "P1 Backend RESET outbound contract mismatch deliberately excluded",
+    "Deployed SaaS WSS/G1 and actual VM Terminal C2 not executed",
+    "Windows ACL confidentiality and Linux POSIX0600 not executed locally",
+    "Internet proof is TCP reachability to one configured address, not exhaustive egress"
+  ],
+  "localOnly": true,
+  "remoteWrites": false,
+  "mergeApproval": false
+}

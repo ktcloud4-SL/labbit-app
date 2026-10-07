@@ -139,10 +139,6 @@ func (s *Supervisor) Run(ctx context.Context) error {
 		s.currentClient = client
 		s.mu.Unlock()
 
-		if s.handler != nil {
-			s.handler.SetSender(client)
-		}
-
 		// 단일 세션 실행 (Dial -> Hello -> Heartbeat & Listen)
 		connected, err := s.runSession(ctx, client)
 		_ = client.Close()
@@ -199,6 +195,11 @@ func (s *Supervisor) runSession(ctx context.Context, client *Client) (bool, erro
 	if err != nil {
 		return false, fmt.Errorf("hello handshake failed: %w", err)
 	}
+	// 업무 응답은 HELLO_ACK를 마친 연결에만 보낸다. 재접속 중인
+	// 이전 작업의 늦은 결과가 새 연결의 HELLO보다 먼저 나가면 안 된다.
+	if s.handler != nil {
+		s.handler.SetSender(client)
+	}
 
 	s.mu.RLock()
 	onConn := s.onConnected
@@ -228,7 +229,9 @@ func (s *Supervisor) runSession(ctx context.Context, client *Client) (bool, erro
 			return true, fmt.Errorf("connector wss: client connection is nil after handshake")
 		}
 		go func() {
-			readErrCh <- s.handler.Listen(sessionCtx, conn)
+			// 이미 수락한 작업은 transport session 취소와 분리하되
+			// Supervisor 종료에는 종속시킨다. 수신은 이전 session에서 즉시 중단한다.
+			readErrCh <- s.handler.listenWithOperationContext(sessionCtx, ctx, conn)
 		}()
 	}
 

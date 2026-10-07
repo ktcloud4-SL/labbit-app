@@ -1,0 +1,9 @@
+{"Time":"2026-10-02T02:06:06.670843+09:00","Action":"start","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"}
+{"Time":"2026-10-02T02:06:06.8714797+09:00","Action":"run","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack","Test":"TestOpenStackM1Integration"}
+{"Time":"2026-10-02T02:06:06.8714797+09:00","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack","Test":"TestOpenStackM1Integration","Output":"=== RUN   TestOpenStackM1Integration\n","OutputType":"frame"}
+{"Time":"2026-10-02T02:06:07.8095561+09:00","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack","Test":"TestOpenStackM1Integration","Output":"    integration_test.go:65: Keystone and M1 discovery succeeded: images=3 flavors=4 servers=0 networks=4\n"}
+{"Time":"2026-10-02T02:06:07.8095561+09:00","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack","Test":"TestOpenStackM1Integration","Output":"--- PASS: TestOpenStackM1Integration (0.94s)\n","OutputType":"frame"}
+{"Time":"2026-10-02T02:06:07.8095561+09:00","Action":"pass","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack","Test":"TestOpenStackM1Integration","Elapsed":0.94}
+{"Time":"2026-10-02T02:06:07.8095561+09:00","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-02T02:06:07.8151505+09:00","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack","Output":"ok  \tgithub.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack\t1.144s\n"}
+{"Time":"2026-10-02T02:06:07.8151505+09:00","Action":"pass","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack","Elapsed":1.144}

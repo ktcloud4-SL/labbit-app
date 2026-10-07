@@ -1,0 +1,70 @@
+{
+  "testedSourceCommit": "0f8ca010ed45eea0db669937871006fa0e7e5a7b",
+  "files": [
+    {
+      "file": ".gitattributes",
+      "bytes": 72,
+      "sha256": "308a40fa1d89ae5ea4390b4c9b46a0108b09f171f07898f25d451fa0c69c4e9f"
+    },
+    {
+      "file": "automated-logs.zip",
+      "bytes": 209130,
+      "sha256": "126a9257ccb54313f956f2f7ac8c33fd43cb3a38fb3a7aaabb9ff8df3c170ed8"
+    },
+    {
+      "file": "checks.json",
+      "bytes": 299,
+      "sha256": "d208121aa2877d62f879c828e6d5ad228e95705ade44d74dba55eba72b262b9b"
+    },
+    {
+      "file": "execution-manifest.json",
+      "bytes": 5876,
+      "sha256": "492870ab7be25458d7e29aab6508eb46dd346f80652f6001ef05223eb088a7fe"
+    },
+    {
+      "file": "independent-audit.json",
+      "bytes": 6609,
+      "sha256": "673a299650c1d02b6cf43c2f0ce2ed6231a436b905944690551e1ced78d92cef"
+    },
+    {
+      "file": "postgres-residual-databases.json",
+      "bytes": 164,
+      "sha256": "5e86a26beeddf919db59ee6a5d7a37c0ba45c6c8c8b140aef91a79bebf86ed07"
+    },
+    {
+      "file": "real-internet-policy.jsonl",
+      "bytes": 4456,
+      "sha256": "8cc209d08d30235908bab1f92d8eeb15e88af182d12566260305eae2fdec7602"
+    },
+    {
+      "file": "real-post-cleanup.jsonl",
+      "bytes": 1937,
+      "sha256": "69a9176f36ed443043e0b7840e049ca783db593acfac57da323b07801e6bb0b3"
+    },
+    {
+      "file": "real-wss-lifecycle.jsonl",
+      "bytes": 5721,
+      "sha256": "4824d01d2866e4ca216d180ca089df2183d6611a079495e113d1445084744f2d"
+    },
+    {
+      "file": "reproduce.ps1",
+      "bytes": 3363,
+      "sha256": "de83aa514a4163269326ab5bf4a6b06e8be3db53a9c715454489994977479284"
+    },
+    {
+      "file": "secret-scan.json",
+      "bytes": 307,
+      "sha256": "f1cf6e0378f916a56993c74d3a1950c5c539fe38ba2543122b9144ce86204c29"
+    },
+    {
+      "file": "source-manifest.json",
+      "bytes": 42389,
+      "sha256": "9dea892ebbc0fd95ecac2e081419fb7d6c984bde1f9b23f75e5708a54f6a5248"
+    },
+    {
+      "file": "validation-summary.json",
+      "bytes": 2487,
+      "sha256": "5b92bebfd87b490093228a184c6a17f25ad019d7c1dd904f9c7671bf4aa87ab3"
+    }
+  ]
+}

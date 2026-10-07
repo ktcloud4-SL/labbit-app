@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-07T10:57:45Z",
+  "ownedResourceCounts": {
+    "BOOTSTRAP_KEYPAIR": 0,
+    "BOOTSTRAP_KT_FIREWALL_POLICY": 0,
+    "BOOTSTRAP_PORT_FORWARD": 0,
+    "BOOTSTRAP_PUBLIC_IP": 0,
+    "BOOTSTRAP_SERVER": 0,
+    "BOOTSTRAP_VOLUME": 0,
+    "LAB_KT_FIREWALL_POLICY": 0,
+    "LAB_KT_TIER": 2,
+    "LAB_SERVER": 0,
+    "LAB_VOLUME": 0
+  },
+  "ownedResidualTotal": 2,
+  "sharedBaselineTierCount": 3,
+  "projectTierCount": 5,
+  "status": "INCOMPLETE_RESIDUAL_NONZERO"
+}

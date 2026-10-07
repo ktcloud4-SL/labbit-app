@@ -9,6 +9,7 @@ import (
 const (
 	SubprotocolControl      = "labbit.connector.v1"
 	SubprotocolTerminalData = "labbit.connector-terminal.v1"
+	SubprotocolFileData     = "labbit.connector-file.v1"
 	// SubprotocolPreviewData는 Preview Data WSS의 subprotocol이다(preview-data.schema.json).
 	SubprotocolPreviewData = "labbit.connector-preview.v1"
 )

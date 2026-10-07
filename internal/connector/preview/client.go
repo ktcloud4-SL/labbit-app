@@ -25,13 +25,17 @@ type DataWSSClientConfig struct {
 	CredentialProvider func() (string, error) // 동적 토큰 제공자 (테스트/커스텀)
 	RuntimeID          string
 	DialTimeout        time.Duration
-	AllowInsecure      bool // Test 전용: localhost 및 비보안 ws:// 연결 허용
+	AttachTimeout      time.Duration // Gateway의 PREVIEW_ATTACHED 응답 대기 타임아웃 (기본 5초)
+	AllowInsecure      bool          // Test 전용: localhost 및 비보안 ws:// 연결 허용
 }
 
-// GetCredential 은 CredentialProvider, CredentialFile, 또는 Credential 순으로 최신 유효 Bearer 토큰을 가져옵니다.
+// GetCredential 은 CredentialProvider, Credential, 또는 CredentialFile 순으로 최신 유효 Bearer 토큰을 가져옵니다.
 func (cfg *DataWSSClientConfig) GetCredential() (string, error) {
 	if cfg.CredentialProvider != nil {
 		return cfg.CredentialProvider()
+	}
+	if cfg.Credential != "" {
+		return strings.TrimSpace(cfg.Credential), nil
 	}
 	if cfg.CredentialFile != "" {
 		data, err := os.ReadFile(cfg.CredentialFile)
@@ -39,9 +43,6 @@ func (cfg *DataWSSClientConfig) GetCredential() (string, error) {
 			return "", fmt.Errorf("failed to read credential file %s: %w", cfg.CredentialFile, err)
 		}
 		return strings.TrimSpace(string(data)), nil
-	}
-	if cfg.Credential != "" {
-		return strings.TrimSpace(cfg.Credential), nil
 	}
 	return "", nil
 }
@@ -56,6 +57,9 @@ func NewDataWSSClient(cfg DataWSSClientConfig) *DataWSSClient {
 	if cfg.DialTimeout <= 0 {
 		cfg.DialTimeout = 10 * time.Second
 	}
+	if cfg.AttachTimeout <= 0 {
+		cfg.AttachTimeout = 5 * time.Second
+	}
 	return &DataWSSClient{
 		config: cfg,
 	}
@@ -63,6 +67,8 @@ func NewDataWSSClient(cfg DataWSSClientConfig) *DataWSSClient {
 
 var (
 	ErrAuthenticationFailed = errors.New("preview data authentication failed")
+	ErrAttachTimeout        = errors.New("preview data attach response timeout")
+	ErrCorrelationMismatch  = errors.New("preview data correlation mismatch")
 	errJSONTooLarge         = errors.New("json text message exceeds 1 MiB limit")
 )
 
@@ -87,13 +93,25 @@ func readBoundedMessage(ws *websocket.Conn, maxText int64) (kind int, data []byt
 }
 
 // DialAndAttach 는 SaaS Preview Gateway로 아웃바운드 WSS 연결을 맺고,
-// ATTACH 핸드셰이크를 완료한 후 세션에 WebSocket 연결을 바인딩합니다.
-func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSession) error {
+// PREVIEW_ATTACH 핸드셰이크를 완료한 후 세션에 WebSocket 연결을 바인딩합니다.
+// LBT-101 계약에 따라 PREVIEW_ATTACH 프레임에 replyToMessageId = openMessageID 를 필수로 설정합니다.
+func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSession, openMessageIDs ...string) error {
 	if session == nil {
 		return errors.New("preview session is nil")
 	}
 	if c.config.EndpointURL == "" {
 		return errors.New("preview data wss endpoint URL is empty")
+	}
+
+	openMessageID := ""
+	if len(openMessageIDs) > 0 {
+		openMessageID = openMessageIDs[0]
+	}
+	if openMessageID == "" {
+		openMessageID = session.CurrentAttemptID()
+	}
+	if openMessageID == "" {
+		openMessageID = uuid.NewString()
 	}
 
 	u, err := url.Parse(c.config.EndpointURL)
@@ -147,21 +165,23 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
 		return fmt.Errorf("unexpected subprotocol %q: expected %q", negotiated, protocol.SubprotocolPreviewData)
 	}
 
-	// 2. PREVIEW_DATA_ATTACH 전송
-	attachMsg := protocol.PreviewDataAttachMessage{
+	// 2. PREVIEW_ATTACH 전송 (LBT-101 계약 준수: replyToMessageId = openMessageID 필수)
+	messageID := uuid.NewString()
+	attachMsg := protocol.PreviewAttachMessage{
 		BaseEnvelope: protocol.BaseEnvelope{
-			Type:             protocol.MessageTypePreviewDataAttach,
-			MessageID:        uuid.NewString(),
+			Type:             protocol.MessageTypePreviewAttach,
+			MessageID:        messageID,
 			SentAt:           time.Now().UTC(),
+			ReplyToMessageID: openMessageID,
 			PreviewSessionID: session.SessionID,
 			LabInstanceID:    session.LabInstanceID,
 			Generation:       session.Generation,
 		},
-		Payload: protocol.PreviewDataAttachPayload{
+		Payload: protocol.PreviewAttachPayload{
 			RuntimeID:        c.config.RuntimeID,
 			TargetVmKey:      session.TargetVmKey,
 			ProviderServerID: session.ProviderServerID,
-			Port:             session.Port,
+			TargetPort:       session.TargetPort,
 		},
 	}
 
@@ -176,10 +196,21 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
 		return fmt.Errorf("failed to send attach message: %w", err)
 	}
 
-	// 3. PREVIEW_DATA_ATTACHED 응답 대기 (1 MiB bounded)
+	// 3. PREVIEW_ATTACHED 응답 대기 (명시적 AttachTimeout 및 1 MiB bounded)
+	attachTimeout := c.config.AttachTimeout
+	if attachTimeout <= 0 {
+		attachTimeout = 5 * time.Second
+	}
+	_ = conn.SetReadDeadline(time.Now().Add(attachTimeout))
+
 	msgType, replyData, err := readBoundedMessage(conn, protocol.MaxJSONMessageSize)
+	_ = conn.SetReadDeadline(time.Time{}) // 스트리밍을 위해 데드라인 해제
+
 	if err != nil {
 		_ = conn.Close()
+		if os.IsTimeout(err) || strings.Contains(err.Error(), "timeout") {
+			return fmt.Errorf("%w: %v", ErrAttachTimeout, err)
+		}
 		return fmt.Errorf("failed to read attach response: %w", err)
 	}
 
@@ -194,24 +225,30 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
 		return fmt.Errorf("failed to unmarshal attach response envelope: %w", err)
 	}
 
-	if replyEnv.Type == protocol.MessageTypePreviewDataError {
-		var errReply protocol.PreviewDataErrorMessage
-		_ = json.Unmarshal(replyData, &errReply)
+	if replyEnv.Type != protocol.MessageTypePreviewAttached {
 		_ = conn.Close()
-		return fmt.Errorf("gateway returned error [%s]: %s", errReply.Payload.Code, errReply.Payload.Message)
+		return fmt.Errorf("unexpected message type %q: expected %q", replyEnv.Type, protocol.MessageTypePreviewAttached)
 	}
 
-	if replyEnv.Type != protocol.MessageTypePreviewDataAttached {
+	// 4. Correlation 검증 (LBT-101 계약 준수)
+	if replyEnv.ReplyToMessageID != messageID {
 		_ = conn.Close()
-		return fmt.Errorf("unexpected message type %q: expected %q", replyEnv.Type, protocol.MessageTypePreviewDataAttached)
+		return fmt.Errorf("%w: replyToMessageId mismatch: expected %q, got %q", ErrCorrelationMismatch, messageID, replyEnv.ReplyToMessageID)
 	}
-
 	if replyEnv.PreviewSessionID != session.SessionID {
 		_ = conn.Close()
-		return fmt.Errorf("session ID mismatch: expected %q, got %q", session.SessionID, replyEnv.PreviewSessionID)
+		return fmt.Errorf("%w: previewSessionId mismatch: expected %q, got %q", ErrCorrelationMismatch, session.SessionID, replyEnv.PreviewSessionID)
+	}
+	if replyEnv.LabInstanceID != session.LabInstanceID {
+		_ = conn.Close()
+		return fmt.Errorf("%w: labInstanceId mismatch: expected %q, got %q", ErrCorrelationMismatch, session.LabInstanceID, replyEnv.LabInstanceID)
+	}
+	if replyEnv.Generation != session.Generation {
+		_ = conn.Close()
+		return fmt.Errorf("%w: generation mismatch: expected %d, got %d", ErrCorrelationMismatch, session.Generation, replyEnv.Generation)
 	}
 
-	// 4. 세션에 활성 WebSocket 연결 바인딩
+	// 5. 세션에 활성 WebSocket 연결 바인딩
 	if err := session.AttachDataConn(conn); err != nil {
 		_ = conn.Close()
 		return fmt.Errorf("failed to attach connection to session: %w", err)

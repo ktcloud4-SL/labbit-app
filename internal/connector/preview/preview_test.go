@@ -1,17 +1,20 @@
 package preview
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	"errors"
+	"fmt"
 	"net"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/mock"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 )
@@ -54,9 +57,10 @@ func TestPreview_AttachAndProxyHTTP(t *testing.T) {
 	openPayload := protocol.PreviewOpenPayload{
 		TargetVmKey:      "vm-web-1",
 		ProviderServerID: "srv-01",
-		Port:             port,
+		TargetPort:       port,
 	}
 	env := protocol.BaseEnvelope{
+		MessageID:        "msg-open-001",
 		PreviewSessionID: sessID,
 		LabInstanceID:    "lab-instance-1",
 		Generation:       1,
@@ -82,17 +86,20 @@ func TestPreview_AttachAndProxyHTTP(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := client.DialAndAttach(ctx, session); err != nil {
+	if err := client.DialAndAttach(ctx, session, env.MessageID); err != nil {
 		t.Fatalf("DialAndAttach failed: %v", err)
 	}
 
-	// Gateway 측 ATTACH 수신 확인
+	// Gateway 측 ATTACH 수신 확인 (LBT-101: replyToMessageId = openMessageId)
 	attachMsg, err := gateway.WaitForAttach(3 * time.Second)
 	if err != nil {
 		t.Fatalf("WaitForAttach failed: %v", err)
 	}
-	if attachMsg.PreviewSessionID != sessID || attachMsg.Payload.Port != port {
+	if attachMsg.PreviewSessionID != sessID || attachMsg.Payload.TargetPort != port {
 		t.Fatalf("unexpected attach msg: %+v", attachMsg)
+	}
+	if attachMsg.ReplyToMessageID != "msg-open-001" {
+		t.Fatalf("expected replyToMessageId msg-open-001, got %q", attachMsg.ReplyToMessageID)
 	}
 
 	if session.GetStatus() != StatusActive {
@@ -160,7 +167,7 @@ func TestPreview_UnauthorizedCredential(t *testing.T) {
 	port := l.Addr().(*net.TCPAddr).Port
 
 	session, _, err := mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
-		Port: port,
+		TargetPort: port,
 	}, protocol.BaseEnvelope{
 		PreviewSessionID: "sess-unauth",
 	})
@@ -181,7 +188,7 @@ func TestPreview_UnauthorizedCredential(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error for unauthorized token, got nil")
 	}
-	if err != ErrAuthenticationFailed {
+	if !errors.Is(err, ErrAuthenticationFailed) {
 		t.Fatalf("expected ErrAuthenticationFailed, got %v", err)
 	}
 
@@ -202,15 +209,15 @@ func TestPreview_TargetConnectionRefused(t *testing.T) {
 	freePort := 59876
 
 	_, _, err := mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
-		Port: freePort,
+		TargetPort: freePort,
 	}, protocol.BaseEnvelope{
 		PreviewSessionID: "sess-refused",
 	})
 	if err == nil {
 		t.Fatalf("expected error for closed port %d, got nil", freePort)
 	}
-	if !strings.Contains(err.Error(), "failed to dial target VM port") {
-		t.Fatalf("unexpected error message: %v", err)
+	if !errors.Is(err, ErrAppNotRunning) {
+		t.Fatalf("expected ErrAppNotRunning, got %v", err)
 	}
 }
 
@@ -233,7 +240,7 @@ func TestPreview_GatewayCloseFrame(t *testing.T) {
 	})
 
 	session, _, err := mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
-		Port: port,
+		TargetPort: port,
 	}, protocol.BaseEnvelope{
 		PreviewSessionID: "sess-close-test",
 	})
@@ -255,8 +262,8 @@ func TestPreview_GatewayCloseFrame(t *testing.T) {
 
 	_, _ = gateway.WaitForAttach(3 * time.Second)
 
-	// Gateway가 PREVIEW_DATA_CLOSE 송신
-	if err := gateway.SendClose(protocol.PreviewReasonSessionExpired); err != nil {
+	// Gateway가 Close 프레임 전송
+	if err := gateway.SendClose(websocket.CloseNormalClosure, protocol.PreviewReasonSessionExpired); err != nil {
 		t.Fatalf("SendClose failed: %v", err)
 	}
 
@@ -291,7 +298,7 @@ func TestPreview_GracefulShutdown(t *testing.T) {
 
 	sessID := "sess-restart"
 	session, _, err := mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
-		Port: port,
+		TargetPort: port,
 	}, protocol.BaseEnvelope{
 		PreviewSessionID: sessID,
 	})
@@ -320,19 +327,9 @@ func TestPreview_GracefulShutdown(t *testing.T) {
 		t.Fatalf("expected session status CLOSED, got %s", session.GetStatus())
 	}
 
-	// Gateway 측에서 PREVIEW_DATA_ENDED 수신 확인
-	textData, err := gateway.WaitForText(3 * time.Second)
-	if err != nil {
-		t.Fatalf("WaitForText failed: %v", err)
-	}
-
-	var endedMsg protocol.PreviewDataEndedMessage
-	if err := json.Unmarshal(textData, &endedMsg); err != nil {
-		t.Fatalf("failed to unmarshal ended msg: %v", err)
-	}
-
-	if endedMsg.Payload.Reason != protocol.PreviewReasonServiceRestart {
-		t.Fatalf("expected ended reason %s, got %s", protocol.PreviewReasonServiceRestart, endedMsg.Payload.Reason)
+	// Gateway 측에서 연결 종료 수신 확인
+	if err := gateway.WaitForClose(3 * time.Second); err != nil {
+		t.Fatalf("WaitForClose failed: %v", err)
 	}
 
 	if mgr.Count() != 0 {
@@ -353,7 +350,7 @@ func TestPreview_IdempotentGetOrCreate(t *testing.T) {
 
 	sessID := "sess-idempotent"
 	openPayload := protocol.PreviewOpenPayload{
-		Port: port,
+		TargetPort: port,
 	}
 	env := protocol.BaseEnvelope{
 		PreviewSessionID: sessID,
@@ -381,7 +378,7 @@ func TestPreview_IdempotentGetOrCreate(t *testing.T) {
 	mgr.CloseAll("cleanup")
 }
 
-func TestPreview_BoundedJSONRead(t *testing.T) {
+func TestPreview_TextFrameRejected(t *testing.T) {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("listen failed: %v", err)
@@ -400,9 +397,9 @@ func TestPreview_BoundedJSONRead(t *testing.T) {
 	})
 
 	session, _, err := mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
-		Port: port,
+		TargetPort: port,
 	}, protocol.BaseEnvelope{
-		PreviewSessionID: "sess-oversized",
+		PreviewSessionID: "sess-text-reject",
 	})
 	if err != nil {
 		t.Fatalf("GetOrCreateSession failed: %v", err)
@@ -422,9 +419,8 @@ func TestPreview_BoundedJSONRead(t *testing.T) {
 
 	_, _ = gateway.WaitForAttach(3 * time.Second)
 
-	// 1.1 MiB 크기의 거대 JSON Text 메시지 생성 및 송신
-	oversized := bytes.Repeat([]byte("x"), 1100000)
-	if err := gateway.SendText(oversized); err != nil {
+	// LBT-101: ATTACH 완료 후 텍스트 프레임 전송 시 프로토콜 에러 (1008) 및 세션 종료
+	if err := gateway.SendText([]byte("invalid-text-message")); err != nil {
 		t.Fatalf("SendText failed: %v", err)
 	}
 
@@ -434,11 +430,186 @@ func TestPreview_BoundedJSONRead(t *testing.T) {
 			t.Fatalf("expected ended reason %s, got %s", protocol.PreviewErrProtocolError, reason)
 		}
 	case <-time.After(3 * time.Second):
-		t.Fatalf("timeout waiting for oversized message handling")
+		t.Fatalf("timeout waiting for protocol error handling")
 	}
 
 	if session.GetStatus() != StatusClosed {
 		t.Fatalf("expected session status CLOSED, got %s", session.GetStatus())
+	}
+}
+
+func TestPreview_AttachTimeout(t *testing.T) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen failed: %v", err)
+	}
+	defer l.Close()
+
+	port := l.Addr().(*net.TCPAddr).Port
+
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+	gateway.SetSimulateAttachTimeout(true)
+
+	forwarder := NewDirectTCPForwarder(nil)
+	mgr := NewSessionManager(forwarder, nil)
+
+	session, _, err := mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
+		TargetPort: port,
+	}, protocol.BaseEnvelope{
+		PreviewSessionID: "sess-timeout",
+		LabInstanceID:    "inst-1",
+		Generation:       1,
+	})
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+	defer session.Close("cleanup")
+
+	client := NewDataWSSClient(DataWSSClientConfig{
+		EndpointURL:   gateway.URL(),
+		Credential:    "token",
+		RuntimeID:     "runtime-01",
+		DialTimeout:   2 * time.Second,
+		AttachTimeout: 100 * time.Millisecond,
+		AllowInsecure: true,
+	})
+
+	err = client.DialAndAttach(context.Background(), session)
+	if err == nil {
+		t.Fatalf("expected attach timeout error, got nil")
+	}
+	if !errors.Is(err, ErrAttachTimeout) {
+		t.Fatalf("expected ErrAttachTimeout, got %v", err)
+	}
+}
+
+func TestPreview_CorrelationMismatch(t *testing.T) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen failed: %v", err)
+	}
+	defer l.Close()
+
+	port := l.Addr().(*net.TCPAddr).Port
+
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+	gateway.SetSimulateCorrelationMismatch(true)
+
+	forwarder := NewDirectTCPForwarder(nil)
+	mgr := NewSessionManager(forwarder, nil)
+
+	session, _, err := mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
+		TargetPort: port,
+	}, protocol.BaseEnvelope{
+		PreviewSessionID: "sess-mismatch",
+		LabInstanceID:    "inst-1",
+		Generation:       1,
+	})
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+	defer session.Close("cleanup")
+
+	client := NewDataWSSClient(DataWSSClientConfig{
+		EndpointURL:   gateway.URL(),
+		Credential:    "token",
+		RuntimeID:     "runtime-01",
+		DialTimeout:   2 * time.Second,
+		AttachTimeout: 2 * time.Second,
+		AllowInsecure: true,
+	})
+
+	err = client.DialAndAttach(context.Background(), session)
+	if err == nil {
+		t.Fatalf("expected correlation mismatch error, got nil")
+	}
+	if !errors.Is(err, ErrCorrelationMismatch) {
+		t.Fatalf("expected ErrCorrelationMismatch, got %v", err)
+	}
+}
+
+func TestPreview_SSHPort22Rejected(t *testing.T) {
+	forwarder := NewDirectTCPForwarder(nil)
+	mgr := NewSessionManager(forwarder, nil)
+
+	_, _, err := mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
+		TargetPort: 22,
+	}, protocol.BaseEnvelope{
+		PreviewSessionID: "sess-ssh-blocked",
+	})
+	if err == nil {
+		t.Fatalf("expected error for port 22, got nil")
+	}
+	if !errors.Is(err, ErrPortRejected) {
+		t.Fatalf("expected ErrPortRejected, got %v", err)
+	}
+
+	// 잘못된 범위 포트 검증 (0, 70000)
+	_, _, err = mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
+		TargetPort: 0,
+	}, protocol.BaseEnvelope{
+		PreviewSessionID: "sess-port-0",
+	})
+	if !errors.Is(err, ErrPortRejected) {
+		t.Fatalf("expected ErrPortRejected for port 0, got %v", err)
+	}
+
+	_, _, err = mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
+		TargetPort: 70000,
+	}, protocol.BaseEnvelope{
+		PreviewSessionID: "sess-port-70000",
+	})
+	if !errors.Is(err, ErrPortRejected) {
+		t.Fatalf("expected ErrPortRejected for port 70000, got %v", err)
+	}
+}
+
+func TestPreview_DuplicateAttachRejected(t *testing.T) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen failed: %v", err)
+	}
+	defer l.Close()
+
+	port := l.Addr().(*net.TCPAddr).Port
+
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+
+	forwarder := NewDirectTCPForwarder(nil)
+	mgr := NewSessionManager(forwarder, nil)
+
+	session, _, err := mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
+		TargetPort: port,
+	}, protocol.BaseEnvelope{
+		PreviewSessionID: "sess-dup-attach",
+	})
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+	defer session.Close("cleanup")
+
+	client := NewDataWSSClient(DataWSSClientConfig{
+		EndpointURL:   gateway.URL(),
+		Credential:    "token",
+		RuntimeID:     "runtime-01",
+		DialTimeout:   2 * time.Second,
+		AllowInsecure: true,
+	})
+
+	if err := client.DialAndAttach(context.Background(), session); err != nil {
+		t.Fatalf("first DialAndAttach failed: %v", err)
+	}
+
+	// 두 번째 DialAndAttach 시도 -> ErrSessionAlreadyAttached 반환
+	err = client.DialAndAttach(context.Background(), session)
+	if err == nil {
+		t.Fatalf("expected error for duplicate attach, got nil")
+	}
+	if !errors.Is(err, ErrSessionAlreadyAttached) {
+		t.Fatalf("expected ErrSessionAlreadyAttached, got %v", err)
 	}
 }
 
@@ -472,7 +643,7 @@ func TestPreview_TargetClosedMidStream(t *testing.T) {
 	})
 
 	session, _, err := mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
-		Port: port,
+		TargetPort: port,
 	}, protocol.BaseEnvelope{
 		PreviewSessionID: "sess-midstream-close",
 	})
@@ -551,5 +722,144 @@ func TestPreview_DynamicCredentialFile(t *testing.T) {
 	}
 	if token2 != "updated-token" {
 		t.Fatalf("expected updated-token, got %s", token2)
+	}
+}
+
+func TestPreview_SequentialTunnels_SameSession(t *testing.T) {
+	// 1. VM 테스트 서버 시작 (HTTP echo)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Connection", "close")
+		_, _ = w.Write([]byte("ok:" + r.URL.Path))
+	}))
+	defer server.Close()
+
+	u, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("parse server url failed: %v", err)
+	}
+	var port int
+	_, _ = fmt.Sscanf(u.Host, "127.0.0.1:%d", &port)
+	if port == 0 {
+		_, _ = fmt.Sscanf(u.Host, "[::1]:%d", &port)
+	}
+
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+
+	forwarder := NewDirectTCPForwarder(nil)
+	mgr := NewSessionManager(forwarder, nil)
+
+	sessID := "preview-sess-seq"
+	openPayload := protocol.PreviewOpenPayload{
+		TargetVmKey:      "vm-web-1",
+		ProviderServerID: "srv-01",
+		TargetPort:       port,
+	}
+
+	client := NewDataWSSClient(DataWSSClientConfig{
+		EndpointURL:   gateway.URL(),
+		Credential:    "test-token",
+		RuntimeID:     "runtime-01",
+		DialTimeout:   5 * time.Second,
+		AllowInsecure: true,
+	})
+
+	// 1. 첫 번째 터널 (openMessageID = msg-1)
+	env1 := protocol.BaseEnvelope{
+		MessageID:        "msg-1",
+		PreviewSessionID: sessID,
+		LabInstanceID:    "lab-1",
+		Generation:       1,
+	}
+	s1, resumed1, err := mgr.GetOrCreateSession(context.Background(), openPayload, env1)
+	if err != nil {
+		t.Fatalf("first GetOrCreateSession failed: %v", err)
+	}
+	if resumed1 {
+		t.Fatalf("expected resumed=false for first tunnel")
+	}
+
+	if err := client.DialAndAttach(context.Background(), s1, env1.MessageID); err != nil {
+		t.Fatalf("first DialAndAttach failed: %v", err)
+	}
+
+	attach1, err := gateway.WaitForAttach(3 * time.Second)
+	if err != nil {
+		t.Fatalf("first WaitForAttach failed: %v", err)
+	}
+	if attach1.ReplyToMessageID != "msg-1" {
+		t.Fatalf("expected replyToMessageId msg-1, got %s", attach1.ReplyToMessageID)
+	}
+
+	// 첫 번째 터널을 통해 HTTP 요청 전송
+	if err := gateway.SendBinary([]byte("GET /req1 HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")); err != nil {
+		t.Fatalf("first SendBinary failed: %v", err)
+	}
+	resp1, err := gateway.WaitForBinary(3 * time.Second)
+	if err != nil {
+		t.Fatalf("first WaitForBinary failed: %v", err)
+	}
+	if !strings.Contains(string(resp1), "ok:/req1") {
+		t.Fatalf("unexpected first response: %s", string(resp1))
+	}
+
+	// 첫 터널 종료 후에도 logical PreviewSession 은 manager 에 유지되어야 함 (§7b)
+	time.Sleep(50 * time.Millisecond)
+	sess, exists := mgr.GetSession(sessID)
+	if !exists {
+		t.Fatalf("logical session must exist after tunnel closed")
+	}
+	if sess.IsDestroyed() {
+		t.Fatalf("logical session must not be destroyed after tunnel closed")
+	}
+
+	// 2. 두 번째 순차 터널 (openMessageID = msg-2)
+	env2 := protocol.BaseEnvelope{
+		MessageID:        "msg-2",
+		PreviewSessionID: sessID,
+		LabInstanceID:    "lab-1",
+		Generation:       1,
+	}
+	s2, resumed2, err := mgr.GetOrCreateSession(context.Background(), openPayload, env2)
+	if err != nil {
+		t.Fatalf("second GetOrCreateSession failed: %v", err)
+	}
+	if resumed2 {
+		t.Fatalf("expected resumed=false for new openMessageId")
+	}
+	if s1 != s2 {
+		t.Fatalf("expected same logical session instance")
+	}
+
+	if err := client.DialAndAttach(context.Background(), s2, env2.MessageID); err != nil {
+		t.Fatalf("second DialAndAttach failed: %v", err)
+	}
+
+	attach2, err := gateway.WaitForAttach(3 * time.Second)
+	if err != nil {
+		t.Fatalf("second WaitForAttach failed: %v", err)
+	}
+	if attach2.ReplyToMessageID != "msg-2" {
+		t.Fatalf("expected replyToMessageId msg-2, got %s", attach2.ReplyToMessageID)
+	}
+
+	// 3. 동일 openMessageId (msg-2) 재전송 시 멱등성 (resumed=true, 재다이얼 없음)
+	s2Retry, resumedRetry, err := mgr.GetOrCreateSession(context.Background(), openPayload, env2)
+	if err != nil {
+		t.Fatalf("retry GetOrCreateSession failed: %v", err)
+	}
+	if !resumedRetry {
+		t.Fatalf("expected resumed=true for duplicate openMessageId retry")
+	}
+	if s2Retry != s2 {
+		t.Fatalf("expected same session instance on retry")
+	}
+
+	// 4. 명시적 CloseSession 으로 세션 종료
+	if err := mgr.CloseSession(sessID, "explicit-close"); err != nil {
+		t.Fatalf("CloseSession failed: %v", err)
+	}
+	if _, exists := mgr.GetSession(sessID); exists {
+		t.Fatalf("session must be removed after CloseSession")
 	}
 }

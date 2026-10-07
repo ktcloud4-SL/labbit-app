@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gophercloud/gophercloud/v2"
-	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumes"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
@@ -163,7 +162,7 @@ func (a *Adapter) deleteResource(ctx context.Context, resource coreprovider.Reso
 	case coreprovider.ResourceTypeFirewall:
 		return a.ktNetwork.deletePolicy(ctx, resource.ProviderID)
 	case coreprovider.ResourceTypeVolume:
-		return volumes.Delete(ctx, a.volume, resource.ProviderID, volumes.DeleteOpts{}).ExtractErr()
+		return a.deleteKTCloudVolume(ctx, resource.ProviderID)
 	case coreprovider.ResourceTypeServer:
 		if a.ktNetwork != nil {
 			return a.deleteKTCloudServer(ctx, resource.ProviderID)

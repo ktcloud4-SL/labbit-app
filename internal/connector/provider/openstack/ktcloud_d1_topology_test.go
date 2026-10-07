@@ -70,10 +70,14 @@ func TestKTCloudResetCreditsObservedExtendedFlavor(t *testing.T) {
 }
 
 func TestKTCloudSoftDeleteRequiresOneForceDeleteAndActual404(t *testing.T) {
-	for _, code := range []int{202, 503} {
-		t.Run(fmt.Sprint(code), func(t *testing.T) {
+	for _, tc := range []struct {
+		code             int
+		delayedInventory bool
+	}{{202, false}, {202, true}, {503, false}} {
+		t.Run(fmt.Sprintf("%d/delayed=%t", tc.code, tc.delayedInventory), func(t *testing.T) {
 			soft, forced := false, false
 			deletes, actions := 0, 0
+			inventoryReads := 0
 			a := ktTopologyAdapter(t, func(w http.ResponseWriter, r *http.Request) {
 				switch {
 				case r.Method == "DELETE" && strings.HasSuffix(r.URL.Path, "/servers/owned-server"):
@@ -89,8 +93,11 @@ func TestKTCloudSoftDeleteRequiresOneForceDeleteAndActual404(t *testing.T) {
 					if value, ok := body["forceDelete"]; !ok || value != "" {
 						t.Fatal("force delete payload differs from documented action")
 					}
-					forced = code == 202
-					w.WriteHeader(code)
+					if tc.delayedInventory && inventoryReads < 2 {
+						t.Fatal("forceDelete preceded observed inventory absence")
+					}
+					forced = tc.code == 202
+					w.WriteHeader(tc.code)
 				case strings.HasSuffix(r.URL.Path, "/servers/owned-server"):
 					if forced {
 						w.WriteHeader(404)
@@ -100,7 +107,12 @@ func TestKTCloudSoftDeleteRequiresOneForceDeleteAndActual404(t *testing.T) {
 						writeJSON(t, w, 200, map[string]any{"server": map[string]any{"id": "owned-server", "status": "ACTIVE"}})
 					}
 				case strings.HasSuffix(r.URL.Path, "/servers/detail"):
-					writeJSON(t, w, 200, map[string]any{"servers": []any{}})
+					inventoryReads++
+					items := []any{}
+					if tc.delayedInventory && inventoryReads == 1 {
+						items = append(items, map[string]any{"id": "owned-server", "status": "SOFT_DELETED"})
+					}
+					writeJSON(t, w, 200, map[string]any{"servers": items})
 				case strings.HasSuffix(r.URL.Path, "/volumes/detail"):
 					writeJSON(t, w, 200, map[string]any{"volumes": []any{map[string]any{"id": "root-volume", "status": "in-use", "attachments": []any{map[string]any{"server_id": "owned-server"}}}}})
 				default:
@@ -111,7 +123,7 @@ func TestKTCloudSoftDeleteRequiresOneForceDeleteAndActual404(t *testing.T) {
 			if deletes != 1 || actions != 1 {
 				t.Fatalf("mutations retried: delete=%d force=%d", deletes, actions)
 			}
-			if (err == nil) != (code == 202) {
+			if (err == nil) != (tc.code == 202) {
 				t.Fatalf("unconfirmed deletion outcome: %v", err)
 			}
 		})
@@ -242,10 +254,14 @@ func TestKTCloudReconcileKnownMissingAndCandidateNeverOwns(t *testing.T) {
 func TestKTCloudCleanupActualResourceOrderAndAbsence(t *testing.T) {
 	order := []string{}
 	serverDeleted := false
+	volumeDeleted := false
 	a := ktTopologyAdapter(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "DELETE" {
 			if strings.HasSuffix(r.URL.Path, "/servers/server-id") {
 				serverDeleted = true
+			}
+			if strings.HasSuffix(r.URL.Path, "/volumes/volume-id") {
+				volumeDeleted = true
 			}
 			order = append(order, r.URL.Path)
 			w.WriteHeader(204)
@@ -253,6 +269,10 @@ func TestKTCloudCleanupActualResourceOrderAndAbsence(t *testing.T) {
 		}
 		if strings.HasSuffix(r.URL.Path, "/servers/server-id") && !serverDeleted {
 			writeJSON(t, w, 200, map[string]any{"server": map[string]any{"id": "server-id", "status": "ACTIVE"}})
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, "/volumes/volume-id") && !volumeDeleted {
+			writeJSON(t, w, 200, map[string]any{"volume": map[string]any{"id": "volume-id", "status": "available", "attachments": []any{}}})
 			return
 		}
 		if strings.Contains(r.URL.Path, "nsm/") {
@@ -277,6 +297,31 @@ func TestKTCloudCleanupActualResourceOrderAndAbsence(t *testing.T) {
 		if r.ObservedState != stateDeleted {
 			t.Fatal("unconfirmed absence marked deleted")
 		}
+	}
+}
+
+func TestKTCloudRootAlreadyDeletedWithServerDoesNotMutate(t *testing.T) {
+	for _, code := range []int{404, 200} {
+		t.Run(fmt.Sprint(code), func(t *testing.T) {
+			a := ktTopologyAdapter(t, func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "GET" || !strings.HasSuffix(r.URL.Path, "/volumes/root-id") {
+					t.Fatalf("unexpected mutation or lookup: %s %s", r.Method, r.URL.Path)
+				}
+				if code == 404 {
+					w.WriteHeader(404)
+				} else {
+					writeJSON(t, w, 200, map[string]any{"volumeFault": map[string]any{"code": 500, "message": "sensitive-provider-payload"}})
+				}
+			})
+			result, err := a.Cleanup(context.Background(), coreprovider.CleanupRequest{Correlation: coreprovider.Correlation{OperationID: "cleanup", LabInstanceID: "lab", Generation: 1}, ProviderResources: []coreprovider.ResourceRef{{ResourceType: coreprovider.ResourceTypeVolume, ProviderID: "root-id", Generation: 1}}})
+			want := coreprovider.OutcomeSucceeded
+			if code == 200 {
+				want = coreprovider.OutcomeUnknown
+			}
+			if err != nil || result.Outcome != want {
+				t.Fatalf("root absence outcome=%s err=%v", result.Outcome, err)
+			}
+		})
 	}
 }
 

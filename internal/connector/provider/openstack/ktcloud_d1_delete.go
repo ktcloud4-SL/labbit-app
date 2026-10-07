@@ -12,6 +12,17 @@ import (
 
 type ktCloudVolumePage struct{ volumes.VolumePage }
 
+func (a *Adapter) deleteKTCloudVolume(ctx context.Context, id string) error {
+	item, err := volumes.Get(ctx, a.volume, id).Extract()
+	if gophercloud.ResponseCodeIs(err, 404) {
+		return nil
+	}
+	if err != nil || item == nil || item.ID != id || item.Status == "" || len(item.Attachments) != 0 {
+		return ErrReconcileLookup
+	}
+	return volumes.Delete(ctx, a.volume, id, volumes.DeleteOpts{}).ExtractErr()
+}
+
 func (p ktCloudVolumePage) IsEmpty() (bool, error) {
 	body, ok := p.Body.(map[string]any)
 	if !ok || p.StatusCode != 200 {
@@ -30,7 +41,9 @@ func (a *Adapter) ktCloudRetainedRoot(ctx context.Context, serverID string) (boo
 	}
 	for _, item := range items {
 		if item.ID == serverID {
-			return false, ErrReconcileLookup
+			// The DELETE receipt can precede inventory convergence. Wait for
+			// observed absence without repeating DELETE or issuing forceDelete.
+			return false, nil
 		}
 	}
 	pager := volumes.List(a.volume, volumes.ListOpts{}).WithPageCreator(func(result pagination.PageResult) pagination.Page {
@@ -86,12 +99,11 @@ func (a *Adapter) deleteKTCloudServer(ctx context.Context, serverID string) erro
 			if err != nil {
 				return ErrReconcileLookup
 			}
-			if !retained {
-				return ErrReconcileLookup
-			}
-			forced = true
-			if err = servers.ForceDelete(wait, a.compute, serverID).ExtractErr(); err != nil {
-				return err
+			if retained {
+				forced = true
+				if err = servers.ForceDelete(wait, a.compute, serverID).ExtractErr(); err != nil {
+					return err
+				}
 			}
 		} else if err != nil && !gophercloud.ResponseCodeIs(err, 400) {
 			return ErrReconcileLookup

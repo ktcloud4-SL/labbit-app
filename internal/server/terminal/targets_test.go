@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -63,6 +64,16 @@ func (f *fakeStore) ProviderServers(_ context.Context, _ uuid.UUID, _ int64, log
 func (f *fakeStore) CreateTerminalSession(context.Context, repository.NewTerminalSession) error {
 	f.calls = append(f.calls, "CreateTerminalSession")
 	return nil
+}
+
+func (f *fakeStore) EndTerminalSession(context.Context, uuid.UUID, time.Time, string) (bool, error) {
+	f.calls = append(f.calls, "EndTerminalSession")
+	return true, nil
+}
+
+func (f *fakeStore) EndActiveLiveSessionBySourceTerminal(context.Context, uuid.UUID, time.Time, string) (bool, error) {
+	f.calls = append(f.calls, "EndActiveLiveSessionBySourceTerminal")
+	return true, nil
 }
 
 func (f *fakeStore) called(name string) bool {

@@ -482,7 +482,7 @@ func (r *Relay) finish(s *session, end End, notifyBrowser, notifyData bool) {
 		if liveEnd.Reason == "" {
 			liveEnd.Reason = "SOURCE_TERMINAL_ENDED"
 		}
-		r.finishLive(live, liveEnd)
+		r.finishLive(live, liveEnd, true)
 	}
 
 	if b != nil {

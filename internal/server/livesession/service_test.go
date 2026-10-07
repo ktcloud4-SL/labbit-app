@@ -620,3 +620,70 @@ func TestLiveSessionSourceTerminalEnded(t *testing.T) {
 		t.Fatalf("live session not ended by source terminal end")
 	}
 }
+
+func TestLiveSessionCloseAndRecreateOnSameTerminal(t *testing.T) {
+	ctx := context.Background()
+	orgID := uuid.New()
+	instructorID := uuid.New()
+	classID := uuid.New()
+	labID := uuid.New()
+	termID := uuid.New()
+
+	store := newFakeStore()
+	relay := newFakeLiveRelay()
+
+	instructor := repository.User{
+		ID:             instructorID,
+		OrganizationID: orgID,
+	}
+
+	store.classes[classID] = repository.Class{ID: classID, OrganizationID: orgID, Name: "Cloud Lab"}
+	store.memberships[[2]uuid.UUID{classID, instructorID}] = repository.ClassMembership{
+		OrganizationID: orgID, ClassID: classID, UserID: instructorID, Role: repository.ClassRoleInstructor,
+	}
+	store.labInstances[labID] = repository.LabInstance{
+		ID: labID, OrganizationID: orgID, UserID: instructorID, ClassID: classID, Generation: 1, Status: "READY",
+	}
+	store.terminals[termID] = repository.TerminalSession{
+		ID: termID, OrganizationID: orgID, UserID: instructorID, LabInstanceID: labID, Generation: 1, Status: repository.TerminalSessionActive,
+	}
+	relay.usableSource[termID.String()] = true
+
+	svc := livesession.New(livesession.Options{Store: store, Relay: relay})
+
+	// 1. Create Live 1
+	live1, err := svc.Create(ctx, instructor, termID.String())
+	if err != nil {
+		t.Fatalf("Create(1) error = %v", err)
+	}
+
+	// 2. Explicitly Close Live 1
+	err = svc.Close(ctx, instructor, live1.ID.String())
+	if err != nil {
+		t.Fatalf("Close(1) error = %v", err)
+	}
+
+	// Verify Live 1 is ended in store
+	stored1, err := store.LiveSessionByID(ctx, live1.ID)
+	if err != nil || stored1.EndedAt == nil {
+		t.Fatalf("Live 1 not ended in store")
+	}
+
+	// 3. Immediately Create Live 2 on the same source terminal
+	live2, err := svc.Create(ctx, instructor, termID.String())
+	if err != nil {
+		t.Fatalf("Create(2) error = %v", err)
+	}
+
+	// Verify Live 2 is active in store
+	activeLive, err := svc.GetActive(ctx, instructor, classID.String())
+	if err != nil {
+		t.Fatalf("GetActive error = %v", err)
+	}
+	if activeLive.ID != live2.ID {
+		t.Fatalf("active live ID = %v, want %v", activeLive.ID, live2.ID)
+	}
+	if activeLive.EndedAt != nil {
+		t.Fatalf("Live 2 should be active, but EndedAt is %v", activeLive.EndedAt)
+	}
+}

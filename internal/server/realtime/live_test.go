@@ -515,6 +515,13 @@ func TestLiveExplicitCloseLeavesTerminalAlive(t *testing.T) {
 		t.Fatalf("expected reason SESSION_CLOSED, got %v", payload["reason"])
 	}
 
+	// Explicit close should result in normal WebSocket close code 1000
+	_, _, err = student.readMessage(2 * time.Second)
+	var closeErr *websocket.CloseError
+	if !errors.As(err, &closeErr) || closeErr.Code != websocket.CloseNormalClosure {
+		t.Fatalf("expected close code 1000 for explicit live close, got %v", err)
+	}
+
 	// Instructor terminal is STILL alive!
 	d.writeBinary([]byte("TERMINAL STILL ALIVE"))
 	bData := b.readBinary()
@@ -562,6 +569,13 @@ func TestLiveSourceTerminalEndTerminatesLive(t *testing.T) {
 		t.Fatalf("expected LIVE_ENDED, got %v", endedMsg["type"])
 	}
 
+	// Source terminal termination is a lifecycle termination, so close code must be 4006
+	_, _, err = student.readMessage(2 * time.Second)
+	var termCloseErr *websocket.CloseError
+	if !errors.As(err, &termCloseErr) || termCloseErr.Code != 4006 {
+		t.Fatalf("expected close code 4006 for source terminal end, got %v", err)
+	}
+
 	// SourceTerminalEnded hook called
 	liveCtrl.mu.Lock()
 	defer liveCtrl.mu.Unlock()
@@ -602,5 +616,188 @@ func TestLiveContentNonLeakage(t *testing.T) {
 	logs := e.logs.String()
 	if strings.Contains(logs, marker) {
 		t.Fatalf("logs contain secret content marker %q:\n%s", marker, logs)
+	}
+}
+
+// 9. Blocker 1 Regression: ErrLabMutation Live subscribe returns ERROR LAB_MUTATION and close code 4006
+func TestLiveSubscribeLabMutationCloseCode4006(t *testing.T) {
+	liveCtrl := newFakeLiveControl()
+	e := newEnv(t, func(o *realtime.Options) {
+		o.LiveControl = liveCtrl
+	})
+
+	liveID := uuid.NewString()
+	liveCtrl.authorizeErr = realtime.ErrLabMutation
+
+	ws, resp, err := dialLive(t, e, ownerCookie, trustedOrigin)
+	if err != nil {
+		t.Fatalf("dialLive error = %v, resp = %v", err, resp)
+	}
+	defer ws.Close()
+
+	subscribeMsg := map[string]any{
+		"type":          "LIVE_SUBSCRIBE",
+		"messageId":     uuid.NewString(),
+		"sentAt":        time.Now().UTC().Format(time.RFC3339Nano),
+		"liveSessionId": liveID,
+		"payload":       map[string]any{},
+	}
+	raw, _ := json.Marshal(subscribeMsg)
+	if err := ws.WriteMessage(websocket.TextMessage, raw); err != nil {
+		t.Fatalf("WriteMessage error = %v", err)
+	}
+
+	kind, data, err := ws.ReadMessage()
+	if err != nil {
+		t.Fatalf("ReadMessage error = %v", err)
+	}
+	if kind != websocket.TextMessage {
+		t.Fatalf("expected TextMessage, got %d", kind)
+	}
+	var errMsg map[string]any
+	if err := json.Unmarshal(data, &errMsg); err != nil {
+		t.Fatalf("unmarshal error = %v", err)
+	}
+	if errMsg["type"] != "ERROR" {
+		t.Fatalf("expected ERROR, got %v", errMsg["type"])
+	}
+	payload, _ := errMsg["payload"].(map[string]any)
+	if payload["code"] != "LAB_MUTATION" {
+		t.Fatalf("expected error code LAB_MUTATION, got %v", payload["code"])
+	}
+
+	// Next read must return CloseError with code 4006
+	_, _, err = ws.ReadMessage()
+	var closeErr *websocket.CloseError
+	if !errors.As(err, &closeErr) || closeErr.Code != 4006 {
+		t.Fatalf("expected close code 4006, got err = %v", err)
+	}
+}
+
+// 10. Blocker 2 Regression: RegisterLive ↔ source Terminal finish lifecycle race serialization
+func TestLiveRegisterConcurrentTerminalFinishRace(t *testing.T) {
+	for iter := 0; iter < 50; iter++ {
+		liveCtrl := newFakeLiveControl()
+		e := newEnv(t, func(o *realtime.Options) {
+			o.LiveControl = liveCtrl
+		})
+
+		s, _ := e.liveSession()
+		liveID := uuid.NewString()
+		classID := uuid.NewString()
+		liveCtrl.authorized[liveID] = realtime.LiveGrant{
+			LiveSessionID:           liveID,
+			ClassID:                 classID,
+			SourceTerminalSessionID: s.ID,
+		}
+
+		start := make(chan struct{})
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		var regErr error
+		go func() {
+			defer wg.Done()
+			<-start
+			regErr = e.relay.RegisterLive(liveID, s.ID, classID)
+		}()
+
+		go func() {
+			defer wg.Done()
+			<-start
+			e.relay.Terminate(s.ID, realtime.End{Reason: realtime.EndReasonSessionClosed})
+		}()
+
+		close(start)
+		wg.Wait()
+
+		// Invariant: after both finish, no dangling live session exists in relay!
+		if activeLives := e.relay.LiveSessions(); activeLives != 0 {
+			t.Fatalf("iter %d: expected 0 active live sessions, got %d (regErr=%v)", iter, activeLives, regErr)
+		}
+
+		if regErr == nil {
+			// RegisterLive won the race, so Terminate must have terminated the registered live session.
+			liveCtrl.mu.Lock()
+			endedCount := len(liveCtrl.endedSource)
+			liveCtrl.mu.Unlock()
+			if endedCount != 1 {
+				t.Fatalf("iter %d: RegisterLive succeeded but SourceTerminalEnded was not called", iter)
+			}
+		} else {
+			// Terminate won the race, so RegisterLive must have returned ErrSessionEnded or ErrSessionNotFound
+			if !errors.Is(regErr, realtime.ErrSessionEnded) && !errors.Is(regErr, realtime.ErrSessionNotFound) {
+				t.Fatalf("iter %d: expected ErrSessionEnded or ErrSessionNotFound, got %v", iter, regErr)
+			}
+		}
+	}
+}
+
+// 11. Blocker 3 Regression: Explicit Live close does NOT trigger SourceTerminalEnded hook, and allows new Live create
+func TestLiveExplicitCloseDoesNotEndNewLiveOnSameTerminal(t *testing.T) {
+	liveCtrl := newFakeLiveControl()
+	e := newEnv(t, func(o *realtime.Options) {
+		o.LiveControl = liveCtrl
+	})
+
+	s, d := e.liveSession()
+	b := e.connectBrowser(s)
+	d.readJSON() // resize
+
+	liveID1 := uuid.NewString()
+	classID := uuid.NewString()
+	liveCtrl.authorized[liveID1] = realtime.LiveGrant{
+		LiveSessionID:           liveID1,
+		ClassID:                 classID,
+		SourceTerminalSessionID: s.ID,
+	}
+	if err := e.relay.RegisterLive(liveID1, s.ID, classID); err != nil {
+		t.Fatalf("RegisterLive(1) error = %v", err)
+	}
+
+	student1 := connectLive(t, e, liveID1, ownerCookie)
+	defer student1.close()
+
+	// 1. Explicitly terminate Live 1
+	e.relay.TerminateLive(liveID1, realtime.End{Reason: "SESSION_CLOSED"})
+
+	// Verify SourceTerminalEnded was NOT called by TerminateLive
+	liveCtrl.mu.Lock()
+	if len(liveCtrl.endedSource) != 0 {
+		t.Fatalf("SourceTerminalEnded hook should not be called on TerminateLive, got %v", liveCtrl.endedSource)
+	}
+	liveCtrl.mu.Unlock()
+
+	// Student 1 receives LIVE_ENDED and closes with 1000
+	_, _, err := student1.readMessage(2 * time.Second)
+	if err != nil {
+		t.Fatalf("student1 read error = %v", err)
+	}
+	_, _, err = student1.readMessage(2 * time.Second)
+	var closeErr *websocket.CloseError
+	if !errors.As(err, &closeErr) || closeErr.Code != websocket.CloseNormalClosure {
+		t.Fatalf("expected close code 1000 for explicit close, got %v", err)
+	}
+
+	// 2. Immediately register Live 2 on the SAME source terminal
+	liveID2 := uuid.NewString()
+	liveCtrl.authorized[liveID2] = realtime.LiveGrant{
+		LiveSessionID:           liveID2,
+		ClassID:                 classID,
+		SourceTerminalSessionID: s.ID,
+	}
+	if err := e.relay.RegisterLive(liveID2, s.ID, classID); err != nil {
+		t.Fatalf("RegisterLive(2) error = %v", err)
+	}
+
+	student2 := connectLive(t, e, liveID2, ownerCookie)
+	defer student2.close()
+
+	// 3. Send PTY output and verify student 2 receives it
+	d.writeBinary([]byte("HELLO LIVE 2"))
+	_ = b.readBinary()
+	kind, data, err := student2.readMessage(2 * time.Second)
+	if err != nil || kind != websocket.BinaryMessage || !bytes.Equal(data, []byte("HELLO LIVE 2")) {
+		t.Fatalf("student2 got %q, err=%v", data, err)
 	}
 }

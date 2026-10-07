@@ -143,10 +143,14 @@ func TestLiveSessionEndToEnd(t *testing.T) {
 		t.Fatalf("live delete status = %d, want 204: %s", delResp.Status, delResp.Body)
 	}
 
-	// 학생 1은 LIVE_ENDED 수신
+	// 학생 1은 LIVE_ENDED 수신 및 close code 1000 (정상 종료)
 	endedMsg := student1.json()
 	if endedMsg["type"] != "LIVE_ENDED" {
 		t.Fatalf("expected LIVE_ENDED, got %v", endedMsg)
+	}
+	code1, _ := student1.closeCode()
+	if code1 != websocket.CloseNormalClosure {
+		t.Fatalf("expected close normal (1000), got %d", code1)
 	}
 
 	// 9. 원본 TerminalSession은 종료되지 않고 유지됨
@@ -159,5 +163,36 @@ func TestLiveSessionEndToEnd(t *testing.T) {
 	afterResp := e.request(http.MethodGet, "/api/v1/classes/"+f.ClassID.String()+"/live-session", e.ownerCookie, "")
 	if afterResp.Status != http.StatusNotFound {
 		t.Fatalf("active live status after end = %d, want 404", afterResp.Status)
+	}
+
+	// 11. 새 LiveSession 생성 후 source terminal 종료 시 close code 4006 검증
+	liveCreateResp2 := e.request(http.MethodPost, "/api/v1/terminal-sessions/"+termSessionID+"/live-sessions", instructorCookie, "")
+	if liveCreateResp2.Status != http.StatusCreated {
+		t.Fatalf("live create status 2 = %d, want 201: %s", liveCreateResp2.Status, liveCreateResp2.Body)
+	}
+	liveID2 := liveCreateResp2.json(t)["id"].(string)
+
+	student3 := connectLiveClient(e.ownerCookie)
+	defer student3.close()
+	student3.write(websocket.TextMessage, []byte(`{"type":"LIVE_SUBSCRIBE","messageId":"s3","sentAt":"2026-10-01T09:00:00Z","liveSessionId":"`+liveID2+`","payload":{}}`))
+	sub3Msg := student3.json()
+	if sub3Msg["type"] != "LIVE_SUBSCRIBED" {
+		t.Fatalf("student3 subscribedMsg = %v", sub3Msg)
+	}
+
+	// source terminal 명시적 종료 (DELETE /api/v1/terminal-sessions/{id})
+	termDelResp := e.request(http.MethodDelete, "/api/v1/terminal-sessions/"+termSessionID, instructorCookie, "")
+	if termDelResp.Status != http.StatusNoContent {
+		t.Fatalf("terminal delete status = %d, want 204: %s", termDelResp.Status, termDelResp.Body)
+	}
+
+	// student3은 LIVE_ENDED 수신 및 lifecycle 종료 close code 4006 검증
+	endedMsg2 := student3.json()
+	if endedMsg2["type"] != "LIVE_ENDED" {
+		t.Fatalf("expected LIVE_ENDED for student3, got %v", endedMsg2)
+	}
+	code3, _ := student3.closeCode()
+	if code3 != 4006 {
+		t.Fatalf("expected close code 4006 for source terminal end, got %d", code3)
 	}
 }

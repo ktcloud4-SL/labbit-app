@@ -735,7 +735,17 @@ func (s *Service) handleConnectorEnded(e connector.TerminalEndedEvent) {
 
 	// Connector가 종료를 알린 Control message의 유효한 Trace Context를 Browser의 종료 통지까지 잇는다.
 	end := realtime.End{Reason: realtime.SanitizeReason(e.Payload.Reason), ExitCode: e.Payload.ExitCode, FromConnector: true, Trace: e.Trace}
-	if _, err := s.store.EndTerminalSession(ctx, id, s.clock.Now(), end.Reason); err != nil {
+	now := s.clock.Now()
+	err = s.store.WithinTransaction(ctx, func(ctx context.Context, repos repository.Repositories) error {
+		if _, txErr := repos.EndActiveLiveSessionBySourceTerminal(ctx, id, now, end.Reason); txErr != nil {
+			return txErr
+		}
+		if _, txErr := repos.EndTerminalSession(ctx, id, now, end.Reason); txErr != nil {
+			return txErr
+		}
+		return nil
+	})
+	if err != nil {
 		log.Error("TerminalSession 종료 기록 실패", "error_code", classify(err))
 		return
 	}
@@ -805,14 +815,19 @@ func (s *Service) CloseForLabMutation(ctx context.Context, m LabMutation) error 
 // TERMINAL_CLOSE를 요청한다. Connector를 사용할 수 없어 CLOSE를 전달하지 못해도 기록은 유지한다. 이미 종료되었다면 CLOSE를
 // 다시 보내지 않는다. Relay는 호출하지 않는다.
 func (s *Service) closeLifecycle(ctx context.Context, rec repository.TerminalSession, reason, operationID string) error {
-	changed, err := s.store.EndTerminalSession(ctx, rec.ID, s.clock.Now(), reason)
+	var changed bool
+	now := s.clock.Now()
+	err := s.store.WithinTransaction(ctx, func(ctx context.Context, repos repository.Repositories) error {
+		var txErr error
+		changed, txErr = repos.EndTerminalSession(ctx, rec.ID, now, reason)
+		if txErr != nil {
+			return txErr
+		}
+		_, txErr = repos.EndActiveLiveSessionBySourceTerminal(ctx, rec.ID, now, reason)
+		return txErr
+	})
 	if err != nil {
 		return fmt.Errorf("terminal: 종료 기록: %w", err)
-	}
-	if sStore, ok := s.store.(interface {
-		EndActiveLiveSessionBySourceTerminal(ctx context.Context, sourceTerminalSessionID uuid.UUID, endedAt time.Time, reason string) (bool, error)
-	}); ok {
-		_, _ = sStore.EndActiveLiveSessionBySourceTerminal(ctx, rec.ID, s.clock.Now(), reason)
 	}
 	if !changed {
 		return nil
@@ -996,12 +1011,17 @@ func (s *Service) SessionEnded(ctx context.Context, terminalSessionID string, en
 	if !ok {
 		return realtime.ErrSessionNotFound
 	}
-	if sStore, ok := s.store.(interface {
-		EndActiveLiveSessionBySourceTerminal(ctx context.Context, sourceTerminalSessionID uuid.UUID, endedAt time.Time, reason string) (bool, error)
-	}); ok {
-		_, _ = sStore.EndActiveLiveSessionBySourceTerminal(ctx, id, s.clock.Now(), end.Reason)
-	}
-	if _, err := s.store.EndTerminalSession(ctx, id, s.clock.Now(), end.Reason); err != nil {
+	now := s.clock.Now()
+	err := s.store.WithinTransaction(ctx, func(ctx context.Context, repos repository.Repositories) error {
+		if _, txErr := repos.EndActiveLiveSessionBySourceTerminal(ctx, id, now, end.Reason); txErr != nil {
+			return txErr
+		}
+		if _, txErr := repos.EndTerminalSession(ctx, id, now, end.Reason); txErr != nil {
+			return txErr
+		}
+		return nil
+	})
+	if err != nil {
 		return fmt.Errorf("%w: %w", realtime.ErrDependencyUnavailable, err)
 	}
 	return nil

@@ -196,6 +196,8 @@ func closeCodeForErr(err error) int {
 		return closeForbidden
 	case errors.Is(err, ErrSessionNotFound), errors.Is(err, ErrSessionEnded):
 		return closeNotFound
+	case errors.Is(err, ErrLabMutation):
+		return closeLifecycle
 	default:
 		return closeInternal
 	}
@@ -207,20 +209,30 @@ func (r *Relay) RegisterLive(liveSessionID, sourceTerminalSessionID, classID str
 	if liveSessionID == "" || sourceTerminalSessionID == "" || classID == "" {
 		return errors.New("realtime: liveSessionID, sourceTerminalSessionID, classID가 필요합니다")
 	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.closed {
-		return ErrRelayClosed
-	}
-	s := r.sessions[sourceTerminalSessionID]
+
+	s := r.lookup(sourceTerminalSessionID)
 	if s == nil {
 		return ErrSessionNotFound
 	}
+
+	s.tmu.Lock()
+	defer s.tmu.Unlock()
+
 	s.mu.Lock()
-	ended := (s.state == stateEnded)
-	s.mu.Unlock()
-	if ended {
+	defer s.mu.Unlock()
+
+	if s.state == stateEnded {
 		return ErrSessionEnded
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.closed {
+		return ErrRelayClosed
+	}
+	if r.sessions[sourceTerminalSessionID] != s {
+		return ErrSessionNotFound
 	}
 	if _, exists := r.liveSessions[liveSessionID]; exists {
 		return ErrDuplicateSession
@@ -228,6 +240,7 @@ func (r *Relay) RegisterLive(liveSessionID, sourceTerminalSessionID, classID str
 	if _, exists := r.terminalToLive[sourceTerminalSessionID]; exists {
 		return ErrDuplicateSession
 	}
+
 	live := &liveSession{
 		id:                      liveSessionID,
 		sourceTerminalSessionID: sourceTerminalSessionID,
@@ -241,9 +254,7 @@ func (r *Relay) RegisterLive(liveSessionID, sourceTerminalSessionID, classID str
 	}
 	r.liveSessions[liveSessionID] = live
 	r.terminalToLive[sourceTerminalSessionID] = live
-	s.mu.Lock()
 	s.liveSession = live
-	s.mu.Unlock()
 	return nil
 }
 
@@ -259,6 +270,8 @@ func (r *Relay) TerminateLive(liveSessionID string, end End) {
 	delete(r.liveSessions, liveSessionID)
 	delete(r.terminalToLive, live.sourceTerminalSessionID)
 	s := r.sessions[live.sourceTerminalSessionID]
+	r.mu.Unlock()
+
 	if s != nil {
 		s.mu.Lock()
 		if s.liveSession == live {
@@ -266,9 +279,8 @@ func (r *Relay) TerminateLive(liveSessionID string, end End) {
 		}
 		s.mu.Unlock()
 	}
-	r.mu.Unlock()
 
-	r.finishLive(live, end)
+	r.finishLive(live, end, false)
 }
 
 // SourceUsable은 sourceTerminalSessionID가 Relay에 등록되어 있고 종료되지 않았는지 확인한다.
@@ -296,7 +308,7 @@ func (r *Relay) removeLive(live *liveSession) {
 	delete(r.terminalToLive, live.sourceTerminalSessionID)
 }
 
-func (r *Relay) finishLive(live *liveSession, end End) {
+func (r *Relay) finishLive(live *liveSession, end End, sourceTerminalEnded bool) {
 	live.mu.Lock()
 	if live.ended {
 		live.mu.Unlock()
@@ -316,7 +328,19 @@ func (r *Relay) finishLive(live *liveSession, end End) {
 	if reason == "" {
 		reason = "SESSION_CLOSED"
 	}
-	code := closeCodeFor(reason)
+
+	var code int
+	switch {
+	case reason == EndReasonServiceRestarting:
+		code = closeServiceRestart
+	case sourceTerminalEnded:
+		code = closeLifecycle
+	case reason == EndReasonLabReset, reason == EndReasonLabCleanup, reason == "SOURCE_TERMINAL_ENDED":
+		code = closeLifecycle
+	default:
+		code = closeNormal
+	}
+
 	endedBytes := liveEnded(live.id, End{Reason: reason, ExitCode: end.ExitCode, Trace: end.Trace})
 
 	for _, sub := range subs {
@@ -327,7 +351,7 @@ func (r *Relay) finishLive(live *liveSession, end End) {
 		}
 	}
 
-	if r.liveControl != nil {
+	if sourceTerminalEnded && r.liveControl != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), controlTimeout)
 		defer cancel()
 		if err := r.liveControl.SourceTerminalEnded(ctx, live.sourceTerminalSessionID, End{Reason: reason, Trace: end.Trace}); err != nil {

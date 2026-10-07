@@ -14,6 +14,7 @@ import { useLabbitApi } from '../api/LabbitApiProvider'
 import { labbitQueryKeys } from '../api/labbitApi'
 import { LoginRedirect } from '../ui/LoginRedirect'
 import { BrowserTerminalClient } from './browserTerminalClient'
+import { subscribeTerminalInput } from './terminalInput'
 import {
   decideTerminalClose,
   decideTerminalProtocolError,
@@ -114,7 +115,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
   const terminalHostRef = useRef<HTMLDivElement | null>(null)
   const terminalRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
-  const terminalDataRef = useRef<Disposable | null>(null)
+  const terminalInputRef = useRef<Disposable | null>(null)
   const terminalResizeRef = useRef<Disposable | null>(null)
   const hostResizeObserverRef = useRef<ResizeObserver | null>(null)
 
@@ -205,9 +206,10 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
       // 첫 layout 전 fit 실패는 이후 ResizeObserver에서 다시 맞춘다.
     }
 
-    terminalDataRef.current = terminal.onData((data) => {
-      clientRef.current?.sendInput(data)
-    })
+    terminalInputRef.current = subscribeTerminalInput(
+      terminal,
+      () => clientRef.current,
+    )
 
     terminalResizeRef.current = terminal.onResize(({ cols, rows }) => {
       clientRef.current?.resize(cols, rows)
@@ -336,6 +338,12 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
             suppressReconnectRef.current = true
             if (decision.clearResume) invalidateResume()
             setStatus(decision.action)
+            return
+          }
+
+          if (error.fatal) {
+            const current = resumeRef.current
+            if (current) scheduleReconnect(current)
           }
         },
         onClose(event) {
@@ -419,8 +427,8 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     () => () => {
       hostResizeObserverRef.current?.disconnect()
       hostResizeObserverRef.current = null
-      terminalDataRef.current?.dispose()
-      terminalDataRef.current = null
+      terminalInputRef.current?.dispose()
+      terminalInputRef.current = null
       terminalResizeRef.current?.dispose()
       terminalResizeRef.current = null
       terminalRef.current?.dispose()

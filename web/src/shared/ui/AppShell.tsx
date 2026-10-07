@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import type { PropsWithChildren } from 'react'
+import { type PropsWithChildren, useSyncExternalStore } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import type { Me } from '../api/contracts'
@@ -7,6 +7,10 @@ import { HttpError } from '../api/httpClient'
 import { useLabbitApi } from '../api/LabbitApiProvider'
 import type { LoginLocationState } from '../routing/loginNavigation'
 import { clearTerminalResumeState } from '../terminal/terminalResumeStorage'
+import {
+  getWorkspaceEditState,
+  subscribeWorkspaceEditState,
+} from '../workspace/workspaceEditState'
 
 interface AppShellProps extends PropsWithChildren {
   me: Me
@@ -16,6 +20,11 @@ export function AppShell({ me, children }: AppShellProps) {
   const api = useLabbitApi()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const workspaceEditState = useSyncExternalStore(
+    subscribeWorkspaceEditState,
+    getWorkspaceEditState,
+    getWorkspaceEditState,
+  )
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
@@ -36,6 +45,24 @@ export function AppShell({ me, children }: AppShellProps) {
       navigate('/login', { replace: true, state })
     },
   })
+
+  function requestLogout() {
+    if (workspaceEditState.savePending) {
+      window.alert('파일 저장이 끝난 뒤 로그아웃해 주세요.')
+      return
+    }
+
+    if (
+      workspaceEditState.dirty &&
+      !window.confirm(
+        '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 로그아웃할까요?',
+      )
+    ) {
+      return
+    }
+
+    logoutMutation.mutate()
+  }
 
   return (
     <div className="app-shell">
@@ -58,7 +85,7 @@ export function AppShell({ me, children }: AppShellProps) {
             className="secondary-button"
             type="button"
             disabled={logoutMutation.isPending}
-            onClick={() => logoutMutation.mutate()}
+            onClick={requestLogout}
           >
             {logoutMutation.isPending ? '로그아웃 중...' : '로그아웃'}
           </button>

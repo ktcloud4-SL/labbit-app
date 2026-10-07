@@ -105,6 +105,7 @@ export class BrowserTerminalClient {
           message: 'Terminal control message를 해석하지 못했습니다.',
           fatal: true,
         })
+        this.failClosed(sourceSocket)
         return
       }
 
@@ -139,12 +140,14 @@ export class BrowserTerminalClient {
       }
 
       if (type === 'ERROR') {
-        this.handlers.onProtocolError({
+        const error = {
           code: typeof payload.code === 'string' ? payload.code : 'UNKNOWN',
           message:
             typeof payload.message === 'string' ? payload.message : undefined,
           fatal: payload.fatal === true,
-        })
+        }
+        this.handlers.onProtocolError(error)
+        if (error.fatal) this.failClosed(sourceSocket)
       }
       return
     }
@@ -173,12 +176,36 @@ export class BrowserTerminalClient {
   }
 
   sendInput(value: string) {
+    return this.sendInputBytes(new TextEncoder().encode(value))
+  }
+
+  sendBinaryInput(value: Uint8Array) {
+    return this.sendInputBytes(value)
+  }
+
+  private sendInputBytes(value: Uint8Array) {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN || !this.attached) {
       return false
     }
 
-    this.socket.send(new TextEncoder().encode(value))
+    this.socket.send(Uint8Array.from(value))
     return true
+  }
+
+  private failClosed(sourceSocket: WebSocket) {
+    if (this.socket !== sourceSocket) return
+
+    this.closing = true
+    this.socket = null
+    this.attached = false
+    this.input = null
+
+    if (
+      sourceSocket.readyState === WebSocket.OPEN ||
+      sourceSocket.readyState === WebSocket.CONNECTING
+    ) {
+      sourceSocket.close(1000)
+    }
   }
 
   resize(cols: number, rows: number) {

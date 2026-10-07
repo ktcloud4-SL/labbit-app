@@ -168,6 +168,9 @@ describe('BrowserTerminalClient', () => {
     expect(ArrayBuffer.isView(binaryInput)).toBe(true)
     expect([...binaryInput]).toEqual([108, 115, 13])
 
+    expect(client.sendBinaryInput(new Uint8Array([0x80, 0xff]))).toBe(true)
+    expect([...(socket.sent.at(-1) as Uint8Array)]).toEqual([0x80, 0xff])
+
     expect(client.resize(120, 32)).toBe(true)
     const resize = JSON.parse(String(socket.sent.at(-1)))
     expect(resize).toMatchObject({
@@ -288,15 +291,14 @@ describe('BrowserTerminalClient', () => {
     expect(client.sendInput('echo should-not-send\r')).toBe(false)
   })
 
-  it('server ERROR와 TERMINAL_SESSION_ENDED를 handler로 전달한다', () => {
+  it('non-fatal server ERROR 뒤에는 기존 PTY input을 유지한다', () => {
     vi.stubGlobal('WebSocket', FakeWebSocket)
 
     const onProtocolError = vi.fn()
-    const onEnded = vi.fn()
     const client = new BrowserTerminalClient({
       onAttached: vi.fn(),
       onOutput: vi.fn(),
-      onEnded,
+      onEnded: vi.fn(),
       onProtocolError,
       onClose: vi.fn(),
     })
@@ -310,35 +312,114 @@ describe('BrowserTerminalClient', () => {
 
     const socket = FakeWebSocket.instances[0]
     socket.open()
+    socket.message(
+      JSON.stringify({
+        type: 'TERMINAL_ATTACHED',
+        payload: { resumed: false, historyAvailable: false },
+      }),
+    )
 
     socket.message(
       JSON.stringify({
         type: 'ERROR',
         payload: {
-          code: 'SESSION_EXPIRED',
-          message: 'expired',
-          fatal: true,
+          code: 'CONNECTOR_UNAVAILABLE',
+          message: 'retrying',
+          fatal: false,
         },
       }),
     )
     expect(onProtocolError).toHaveBeenCalledWith({
-      code: 'SESSION_EXPIRED',
-      message: 'expired',
-      fatal: true,
+      code: 'CONNECTOR_UNAVAILABLE',
+      message: 'retrying',
+      fatal: false,
     })
+    expect(client.sendInput('still-attached')).toBe(true)
+  })
+
+  it('unknown fatal ERROR 뒤 socket을 닫고 이전 PTY input을 거부한다', () => {
+    vi.stubGlobal('WebSocket', FakeWebSocket)
+
+    const onProtocolError = vi.fn()
+    const client = new BrowserTerminalClient({
+      onAttached: vi.fn(),
+      onOutput: vi.fn(),
+      onEnded: vi.fn(),
+      onProtocolError,
+      onClose: vi.fn(),
+    })
+
+    client.connect({
+      terminalSessionId: 'terminal-session-1',
+      sessionToken: 'opaque-token',
+      cols: 80,
+      rows: 20,
+    })
+
+    const socket = FakeWebSocket.instances[0]
+    socket.open()
+    socket.message(
+      JSON.stringify({
+        type: 'TERMINAL_ATTACHED',
+        payload: { resumed: false, historyAvailable: false },
+      }),
+    )
 
     socket.message(
       JSON.stringify({
-        type: 'TERMINAL_SESSION_ENDED',
+        type: 'ERROR',
         payload: {
-          reason: 'PTY_EXITED',
-          exitCode: 0,
+          code: 'UNKNOWN_FATAL',
+          message: 'stop',
+          fatal: true,
         },
       }),
     )
-    expect(onEnded).toHaveBeenCalledWith({
-      reason: 'PTY_EXITED',
-      exitCode: 0,
+
+    expect(onProtocolError).toHaveBeenCalledWith({
+      code: 'UNKNOWN_FATAL',
+      message: 'stop',
+      fatal: true,
     })
+    expect(socket.readyState).toBe(FakeWebSocket.CLOSED)
+    expect(client.sendInput('must-not-send')).toBe(false)
+  })
+
+  it('malformed control 뒤 socket을 닫고 이전 PTY input을 거부한다', () => {
+    vi.stubGlobal('WebSocket', FakeWebSocket)
+
+    const onProtocolError = vi.fn()
+    const client = new BrowserTerminalClient({
+      onAttached: vi.fn(),
+      onOutput: vi.fn(),
+      onEnded: vi.fn(),
+      onProtocolError,
+      onClose: vi.fn(),
+    })
+
+    client.connect({
+      terminalSessionId: 'terminal-session-1',
+      sessionToken: 'opaque-token',
+      cols: 80,
+      rows: 20,
+    })
+
+    const socket = FakeWebSocket.instances[0]
+    socket.open()
+    socket.message(
+      JSON.stringify({
+        type: 'TERMINAL_ATTACHED',
+        payload: { resumed: false, historyAvailable: false },
+      }),
+    )
+    socket.message('{bad json')
+
+    expect(onProtocolError).toHaveBeenCalledWith({
+      code: 'PROTOCOL_ERROR',
+      message: 'Terminal control message를 해석하지 못했습니다.',
+      fatal: true,
+    })
+    expect(socket.readyState).toBe(FakeWebSocket.CLOSED)
+    expect(client.sendInput('must-not-send')).toBe(false)
   })
 })

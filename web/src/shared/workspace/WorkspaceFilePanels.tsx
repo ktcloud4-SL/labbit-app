@@ -10,6 +10,10 @@ import { HttpError } from '../api/httpClient'
 import { useLabbitApi } from '../api/LabbitApiProvider'
 import { labbitQueryKeys } from '../api/labbitApi'
 import { LoginRedirect } from '../ui/LoginRedirect'
+import {
+  clearWorkspaceEditState,
+  setWorkspaceEditState,
+} from './workspaceEditState'
 
 interface WorkspaceFilePanelsProps {
   labInstanceId: string
@@ -22,6 +26,7 @@ interface WorkspaceFileEditorProps {
   versionedFile: VersionedWorkspaceFileContent
   onReload(): Promise<unknown>
   onDirtyChange(dirty: boolean): void
+  onSavePendingChange(pending: boolean): void
 }
 
 function parentDirectory(path: string) {
@@ -131,6 +136,7 @@ function WorkspaceFileEditor({
   versionedFile,
   onReload,
   onDirtyChange,
+  onSavePendingChange,
 }: WorkspaceFileEditorProps) {
   const api = useLabbitApi()
   const [draft, setDraft] = useState(versionedFile.file.content)
@@ -158,6 +164,17 @@ function WorkspaceFileEditor({
   })
 
   const dirty = draft !== savedContent
+
+  useEffect(() => {
+    onSavePendingChange(saveMutation.isPending)
+  }, [onSavePendingChange, saveMutation.isPending])
+
+  useEffect(
+    () => () => {
+      onSavePendingChange(false)
+    },
+    [onSavePendingChange],
+  )
 
   useEffect(() => {
     onDirtyChange(false)
@@ -210,6 +227,14 @@ function WorkspaceFileEditor({
               className="workspace-file-action"
               type="button"
               onClick={() => {
+                if (
+                  dirty &&
+                  !window.confirm(
+                    '파일을 다시 읽으면 현재 수정본을 버립니다. 계속할까요?',
+                  )
+                ) {
+                  return
+                }
                 void onReload()
               }}
             >
@@ -249,6 +274,18 @@ export function WorkspaceFilePanels({
   const [directoryPath, setDirectoryPath] = useState('')
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null)
   const [editorDirty, setEditorDirty] = useState(false)
+  const [savePending, setSavePending] = useState(false)
+
+  useEffect(() => {
+    setWorkspaceEditState({ dirty: editorDirty, savePending })
+  }, [editorDirty, savePending])
+
+  useEffect(
+    () => () => {
+      clearWorkspaceEditState()
+    },
+    [],
+  )
 
   const treeQuery = useQuery({
     queryKey: labbitQueryKeys.workspaceFileTree(
@@ -277,11 +314,17 @@ export function WorkspaceFilePanels({
   })
 
   const navigationBlocker = useBlocker(
-    ({ nextLocation }) => editorDirty && nextLocation.pathname !== '/login',
+    ({ nextLocation }) =>
+      (editorDirty || savePending) && nextLocation.pathname !== '/login',
   )
 
   useEffect(() => {
     if (navigationBlocker.state !== 'blocked') return
+
+    if (savePending) {
+      navigationBlocker.reset()
+      return
+    }
 
     if (
       window.confirm(
@@ -293,7 +336,7 @@ export function WorkspaceFilePanels({
     }
 
     navigationBlocker.reset()
-  }, [navigationBlocker])
+  }, [navigationBlocker, savePending])
 
   const authExpired =
     (treeQuery.error instanceof HttpError && treeQuery.error.status === 401) ||
@@ -304,6 +347,7 @@ export function WorkspaceFilePanels({
   }
 
   function canLeaveEditor() {
+    if (savePending) return false
     if (!editorDirty) return true
     return window.confirm(
       '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 다른 파일로 이동할까요?',
@@ -346,6 +390,7 @@ export function WorkspaceFilePanels({
             <button
               className="workspace-file-up"
               type="button"
+              disabled={savePending}
               onClick={goUp}
             >
               ← 상위 폴더
@@ -383,6 +428,7 @@ export function WorkspaceFilePanels({
                     (entry.path === selectedFilePath ? ' workspace-file-entry-selected' : '')
                   }
                   type="button"
+                  disabled={savePending}
                   onClick={() => openEntry(entry)}
                 >
                   <span aria-hidden="true">
@@ -436,6 +482,7 @@ export function WorkspaceFilePanels({
             generation={generation}
             versionedFile={fileQuery.data}
             onDirtyChange={setEditorDirty}
+            onSavePendingChange={setSavePending}
             onReload={() => fileQuery.refetch()}
           />
         )}

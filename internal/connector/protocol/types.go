@@ -96,6 +96,7 @@ type BaseEnvelope struct {
 	RequestID         string    `json:"requestId,omitempty"`
 	OperationID       string    `json:"operationId,omitempty"`
 	TerminalSessionID string    `json:"terminalSessionId,omitempty"`
+	PreviewSessionID  string    `json:"previewSessionId,omitempty"`
 	LabInstanceID     string    `json:"labInstanceId,omitempty"`
 	Generation        int64     `json:"generation,omitempty"`
 	TraceParent       string    `json:"traceparent,omitempty"`

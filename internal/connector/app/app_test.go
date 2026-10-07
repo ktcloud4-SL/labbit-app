@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -138,6 +139,9 @@ func TestBuildConnector_ProductionTerminalWiring(t *testing.T) {
 	}
 	if connectorApp.PTYFactory == nil {
 		t.Fatal("expected PTYFactory to be initialized, got nil")
+	}
+	if connectorApp.PreviewManager == nil {
+		t.Fatal("expected PreviewManager to be initialized, got nil")
 	}
 
 	// TERMINAL_OPEN 요청을 Handler로 전달했을 때
@@ -330,5 +334,74 @@ func TestBuildConnector_AddressResolver_Wiring(t *testing.T) {
 	_, _ = app.PTYFactory("vm-test-resolver", "srv-test-resolver", 80, 24)
 	if !resolved {
 		t.Fatal("expected ResolveServerAddressFunc to be called during PTYFactory invocation")
+	}
+}
+
+type mockProviderWithTCPForwarder struct {
+	provider.MockProvider
+}
+
+func (m *mockProviderWithTCPForwarder) DialTCP(ctx context.Context, targetVmKey, serverID string, port int) (net.Conn, error) {
+	return nil, nil
+}
+
+func TestBuildConnector_Production_Preview_FailClosed_And_Capabilities(t *testing.T) {
+	sender := &recordSender{}
+	tmpDir := t.TempDir()
+	credFile := filepath.Join(tmpDir, "connector.credential")
+	if err := os.WriteFile(credFile, []byte("prod-secret-token"), 0600); err != nil {
+		t.Fatalf("failed to write cred file: %v", err)
+	}
+	knownHostsFile := filepath.Join(tmpDir, "known_hosts")
+	if err := os.WriteFile(knownHostsFile, []byte("# empty known hosts\n"), 0600); err != nil {
+		t.Fatalf("failed to write known_hosts: %v", err)
+	}
+
+	t.Setenv("LABBIT_ENV", "production")
+	t.Setenv("LABBIT_SAAS_BASE_URL", "https://saas.example.com")
+	t.Setenv("LABBIT_CONNECTOR_CREDENTIAL_FILE", credFile)
+	t.Setenv("LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE", knownHostsFile)
+
+	// 1. 프로덕션 환경 + Provider가 preview.TCPForwarder 미구현 -> fail-closed (PreviewManager=nil, capability 미선언)
+	ctrlCfg1 := &wss.Config{
+		BaseURL:        "https://saas.example.com",
+		CredentialFile: credFile,
+		Capabilities:   []string{"terminal.v1"},
+	}
+	app1, err := buildConnector(&provider.MockProvider{}, sender, ctrlCfg1)
+	if err != nil {
+		t.Fatalf("buildConnector failed: %v", err)
+	}
+	if app1.PreviewManager != nil {
+		t.Fatalf("expected PreviewManager to be nil in production when provider has no TCPForwarder")
+	}
+	for _, cap := range ctrlCfg1.Capabilities {
+		if cap == protocol.CapabilityPreviewV1 {
+			t.Fatalf("protocol.CapabilityPreviewV1 must NOT be advertised when preview forwarder is nil")
+		}
+	}
+
+	// 2. 프로덕션 환경 + Provider가 preview.TCPForwarder 구현 -> PreviewManager 활성화 및 capability 광고
+	ctrlCfg2 := &wss.Config{
+		BaseURL:        "https://saas.example.com",
+		CredentialFile: credFile,
+		Capabilities:   []string{"terminal.v1"},
+	}
+	app2, err := buildConnector(&mockProviderWithTCPForwarder{}, sender, ctrlCfg2)
+	if err != nil {
+		t.Fatalf("buildConnector failed: %v", err)
+	}
+	if app2.PreviewManager == nil {
+		t.Fatalf("expected PreviewManager to be initialized when provider implements TCPForwarder")
+	}
+	hasPreviewCap := false
+	for _, cap := range ctrlCfg2.Capabilities {
+		if cap == protocol.CapabilityPreviewV1 {
+			hasPreviewCap = true
+			break
+		}
+	}
+	if !hasPreviewCap {
+		t.Fatalf("protocol.CapabilityPreviewV1 must be advertised in capabilities: got %+v", ctrlCfg2.Capabilities)
 	}
 }

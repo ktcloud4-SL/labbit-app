@@ -90,6 +90,11 @@ func (b *browserConn) close(code int, reason string, flush bool) {
 	b.cancel()
 }
 
+func (b *browserConn) closeWithFinalMessage(kind int, data []byte, code int, reason string) {
+	b.p.closeWithFinalMessage(kind, data, code, reason)
+	b.cancel()
+}
+
 // dataConn은 Connector의 Terminal Data WSS connection 하나다.
 //
 // Upgrade 직후(attach 전)에 만들어 dataTrust에 등록한다. 그래서 TERMINAL_DATA_ATTACH를 기다리는 connection도 revoke 대상이다.
@@ -135,5 +140,10 @@ func newLiveSubscriber(p *peer, log *slog.Logger) *liveSubscriber {
 
 func (s *liveSubscriber) close(code int, reason string, flush bool) {
 	s.p.close(code, reason, flush)
+	s.cancel()
+}
+
+func (s *liveSubscriber) closeWithFinalMessage(kind int, data []byte, code int, reason string) {
+	s.p.closeWithFinalMessage(kind, data, code, reason)
 	s.cancel()
 }

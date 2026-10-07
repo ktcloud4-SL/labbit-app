@@ -711,13 +711,14 @@ func TestLiveRegisterConcurrentTerminalFinishRace(t *testing.T) {
 		close(start)
 		wg.Wait()
 
-		// Invariant: after both finish, no dangling live session exists in relay!
+		// 불변식: 두 고루틴이 모두 완료된 후 Relay에 dangling live session이 절대 남지 않아야 함.
+		// 스케줄러 실행 순서에 따라 RegisterLive가 먼저 이기거나(Terminate가 정리) Terminate가 먼저 이김(RegisterLive 거절).
 		if activeLives := e.relay.LiveSessions(); activeLives != 0 {
 			t.Fatalf("iter %d: expected 0 active live sessions, got %d (regErr=%v)", iter, activeLives, regErr)
 		}
 
 		if regErr == nil {
-			// RegisterLive won the race, so Terminate must have terminated the registered live session.
+			// RegisterLive가 먼저 성공한 경우: Terminate가 해당 LiveSession을 정상 정리하고 SourceTerminalEnded hook 호출
 			liveCtrl.mu.Lock()
 			endedCount := len(liveCtrl.endedSource)
 			liveCtrl.mu.Unlock()
@@ -725,7 +726,7 @@ func TestLiveRegisterConcurrentTerminalFinishRace(t *testing.T) {
 				t.Fatalf("iter %d: RegisterLive succeeded but SourceTerminalEnded was not called", iter)
 			}
 		} else {
-			// Terminate won the race, so RegisterLive must have returned ErrSessionEnded or ErrSessionNotFound
+			// Terminate가 먼저 종료한 경우: RegisterLive는 ErrSessionEnded 또는 ErrSessionNotFound로 안전하게 실패
 			if !errors.Is(regErr, realtime.ErrSessionEnded) && !errors.Is(regErr, realtime.ErrSessionNotFound) {
 				t.Fatalf("iter %d: expected ErrSessionEnded or ErrSessionNotFound, got %v", iter, regErr)
 			}
@@ -799,5 +800,116 @@ func TestLiveExplicitCloseDoesNotEndNewLiveOnSameTerminal(t *testing.T) {
 	kind, data, err := student2.readMessage(2 * time.Second)
 	if err != nil || kind != websocket.BinaryMessage || !bytes.Equal(data, []byte("HELLO LIVE 2")) {
 		t.Fatalf("student2 got %q, err=%v", data, err)
+	}
+}
+
+// 12. Final Ordering Regression: LIVE_ENDED 이후에는 어떠한 PTY Binary 프레임도 수신되지 않음을 동시성 하에서 검증
+func TestLiveSubscriberNoBinaryAfterLiveEndedConcurrently(t *testing.T) {
+	for iter := 0; iter < 20; iter++ {
+		liveCtrl := newFakeLiveControl()
+		e := newEnv(t, func(o *realtime.Options) {
+			o.LiveControl = liveCtrl
+		})
+
+		s, d := e.liveSession()
+		b := e.connectBrowser(s)
+		d.readJSON() // resize
+
+		liveID := uuid.NewString()
+		classID := uuid.NewString()
+		liveCtrl.authorized[liveID] = realtime.LiveGrant{
+			LiveSessionID:           liveID,
+			ClassID:                 classID,
+			SourceTerminalSessionID: s.ID,
+		}
+		if err := e.relay.RegisterLive(liveID, s.ID, classID); err != nil {
+			t.Fatalf("RegisterLive error = %v", err)
+		}
+
+		student := connectLive(t, e, liveID, ownerCookie)
+
+		stopOutput := make(chan struct{})
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		// G1: 지속적으로 PTY Binary 출력 생성
+		go func() {
+			defer wg.Done()
+			chunk := []byte("DATA CHUNK")
+			for {
+				select {
+				case <-stopOutput:
+					return
+				default:
+					d.writeBinary(chunk)
+					_ = b.readBinary()
+					time.Sleep(time.Millisecond)
+				}
+			}
+		}()
+
+		// G2: 잠시 후 명시적 Live 종료 호출
+		go func() {
+			defer wg.Done()
+			time.Sleep(5 * time.Millisecond)
+			e.relay.TerminateLive(liveID, realtime.End{Reason: "SESSION_CLOSED"})
+			close(stopOutput)
+		}()
+
+		// 학생 측에서 메시지 수신: LIVE_ENDED가 오기 전까지는 Binary 수신 가능,
+		// LIVE_ENDED 수신 후에는 절대로 Binary가 오면 안 되며 오직 CloseError(1000)여야 함
+		seenLiveEnded := false
+		for {
+			kind, data, err := student.readMessage(2 * time.Second)
+			if err != nil {
+				// WebSocket 종료
+				var closeErr *websocket.CloseError
+				if !errors.As(err, &closeErr) || closeErr.Code != websocket.CloseNormalClosure {
+					t.Fatalf("iter %d: expected CloseNormalClosure (1000), got %v", iter, err)
+				}
+				break
+			}
+			if seenLiveEnded {
+				t.Fatalf("iter %d: received frame (kind=%d, data=%q) AFTER LIVE_ENDED! Binary must never follow LIVE_ENDED", iter, kind, data)
+			}
+			if kind == websocket.TextMessage {
+				var msg map[string]any
+				if err := json.Unmarshal(data, &msg); err == nil && msg["type"] == "LIVE_ENDED" {
+					seenLiveEnded = true
+				}
+			}
+		}
+
+		if !seenLiveEnded {
+			t.Fatalf("iter %d: LIVE_ENDED was never received by student", iter)
+		}
+
+		student.close()
+		wg.Wait()
+	}
+}
+
+// 13. Deterministic Invariant: 이미 종료된 Terminal에 대해서는 RegisterLive가 항상 결정적으로 실패
+func TestLiveRegisterDeterministicTerminalAlreadyEnded(t *testing.T) {
+	liveCtrl := newFakeLiveControl()
+	e := newEnv(t, func(o *realtime.Options) {
+		o.LiveControl = liveCtrl
+	})
+
+	s, _ := e.liveSession()
+	liveID := uuid.NewString()
+	classID := uuid.NewString()
+
+	// Terminal 명시적 종료
+	e.relay.Terminate(s.ID, realtime.End{Reason: realtime.EndReasonSessionClosed})
+
+	// 이미 종료된 Terminal에 대해 RegisterLive 호출
+	err := e.relay.RegisterLive(liveID, s.ID, classID)
+	if !errors.Is(err, realtime.ErrSessionEnded) && !errors.Is(err, realtime.ErrSessionNotFound) {
+		t.Fatalf("expected ErrSessionEnded or ErrSessionNotFound, got %v", err)
+	}
+
+	if e.relay.LiveSessions() != 0 {
+		t.Fatalf("expected 0 active live sessions, got %d", e.relay.LiveSessions())
 	}
 }

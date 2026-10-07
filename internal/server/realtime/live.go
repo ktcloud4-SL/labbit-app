@@ -344,11 +344,7 @@ func (r *Relay) finishLive(live *liveSession, end End, sourceTerminalEnded bool)
 	endedBytes := liveEnded(live.id, End{Reason: reason, ExitCode: end.ExitCode, Trace: end.Trace})
 
 	for _, sub := range subs {
-		if err := sub.p.send(websocket.TextMessage, endedBytes); err != nil {
-			sub.close(code, "live session ended", false)
-		} else {
-			sub.close(code, "live session ended", true)
-		}
+		sub.closeWithFinalMessage(websocket.TextMessage, endedBytes, code, "live session ended")
 	}
 
 	if sourceTerminalEnded && r.liveControl != nil {

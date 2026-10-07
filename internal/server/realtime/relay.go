@@ -488,12 +488,7 @@ func (r *Relay) finish(s *session, end End, notifyBrowser, notifyData bool) {
 	if b != nil {
 		code := closeCodeFor(end.Reason)
 		if notifyBrowser {
-			if err := b.p.send(websocket.TextMessage, browserEnded(s.corr.TerminalSessionID, end)); err != nil {
-				// 느린 수신자라 queue가 가득 찼다. 쌓인 OUTPUT을 버리고 close code로 종료를 알린다.
-				b.close(code, "session ended", false)
-			} else {
-				b.close(code, "session ended", true)
-			}
+			b.closeWithFinalMessage(websocket.TextMessage, browserEnded(s.corr.TerminalSessionID, end), code, "session ended")
 		} else {
 			b.close(code, "session ended", true)
 		}

@@ -144,6 +144,29 @@ func (q *outQueue) closeWith(flush bool, tail ...frame) {
 	signal(q.ready)
 }
 
+// closeWithFinal은 마지막 application frame과 close frame을 하나의 atomic tail로 queue에 넣고 닫는다.
+// 닫힌 이후의 push는 즉시 errPeerClosed로 거절된다. 처음 호출만 적용한다.
+// 정상 수신자(한도 내)는 기존 queue를 flush하고 마지막 frame과 close frame을 받는다.
+// 이미 한도를 초과한 느린 수신자는 밀린 backlog를 버리고(flush=false) 마지막 frame과 close frame을 받는다.
+func (q *outQueue) closeWithFinal(kind int, data []byte, code int, text string) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.closed {
+		return
+	}
+	q.closed = true
+	q.graceful = true
+	if len(q.items) > 0 && (len(q.items) >= q.maxItems || q.bytes >= q.maxBytes) {
+		q.items, q.bytes = nil, 0
+	}
+	q.items = append(q.items,
+		frame{kind: kind, data: data},
+		frame{kind: closeKind, code: code, text: text},
+	)
+	close(q.done)
+	signal(q.ready)
+}
+
 // isGraceful은 close frame을 보내기로 하고 닫았는지 반환한다.
 func (q *outQueue) isGraceful() bool {
 	q.mu.Lock()
@@ -233,6 +256,14 @@ func (p *peer) closeWithError(errorFrame []byte, code int, reason string) {
 		frame{kind: websocket.TextMessage, data: errorFrame},
 		frame{kind: closeKind, code: code, text: reason},
 	)
+}
+
+// closeWithFinalMessage는 마지막 application message와 close frame을 queue에 원자적으로 등록하고 queue를 닫는다.
+// 등록과 동시에 queue가 closed 상태가 되므로 이후의 push는 즉시 errPeerClosed로 거절되어,
+// 마지막 application message 뒤에 다른 data frame이 끼어드는 ordering race를 방지한다.
+// 정상 수신자는 기존 queue를 flush하고, 이미 한도를 초과한 느린 수신자는 backlog를 버리고 final frame들을 전달한다.
+func (p *peer) closeWithFinalMessage(kind int, data []byte, code int, reason string) {
+	p.q.closeWithFinal(kind, data, code, reason)
 }
 
 // shutdown은 serve goroutine이 끝날 때 호출한다. 남은 frame을 버리고 writer를 끝내며 TCP connection을 닫는다.

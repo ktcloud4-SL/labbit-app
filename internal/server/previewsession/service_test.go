@@ -830,3 +830,215 @@ func eventually(t *testing.T, what string, cond func() bool) {
 	}
 	t.Fatalf("시간 안에 %s 조건이 만족되지 않음", what)
 }
+
+// Regression 1: Create 시 PREVIEW_OPEN_RESULT가 오지 않아도 PREVIEW_ATTACH 성공만으로 Create가 성공하고 Router pending이 정리된다.
+func TestCreateAttachSucceedsWithoutOpenResultAndClearsRouterPending(t *testing.T) {
+	f := newFixture(t)
+	// OPEN_RESULT 전송을 의도적으로 생략하고 Data attach만 수행한다.
+	f.react(func(open connector.PreviewOpen) {
+		f.gateway.attach(open.Correlation.PreviewSessionID)
+	})
+
+	created, err := f.create(5173)
+	if err != nil {
+		t.Fatalf("Create() error = %v, want success without OPEN_RESULT", err)
+	}
+
+	if got := f.gateway.activatedIDs(); len(got) != 1 || got[0] != created.ID {
+		t.Fatalf("Activate = %v, want [%s]", got, created.ID)
+	}
+
+	f.connectors.mu.Lock()
+	forgotten := append([]string(nil), f.connectors.forgotten...)
+	openCount := len(f.connectors.opens)
+	f.connectors.mu.Unlock()
+
+	if openCount != 1 {
+		t.Fatalf("openCount = %d, want 1", openCount)
+	}
+	// OPEN_RESULT가 오지 않았어도 attach 성공 후 Router pending이 ForgetPreviewOpen으로 정리되어야 한다.
+	if len(forgotten) != 1 || forgotten[0] != created.ID {
+		t.Fatalf("ForgetPreviewOpen = %v, want [%s]", forgotten, created.ID)
+	}
+}
+
+// Regression 2: OpenTunnel 시 PREVIEW_OPEN_RESULT가 오지 않아도 attach 성공만으로 tunnel이 준비되고 Router pending이 정리되어 sequential retry가 가능하다.
+func TestOpenTunnelAttachSucceedsWithoutOpenResultAndClearsRouterPending(t *testing.T) {
+	f := newFixture(t)
+	sessID := uuid.NewString()
+	f.gateway.infos[sessID] = preview.Info{
+		SessionID:        sessID,
+		LabInstanceID:    labID.String(),
+		Generation:       3,
+		ConnectorID:      connectorID,
+		TargetVMKey:      "vk-web",
+		ProviderServerID: "srv-web-g3",
+		TargetPort:       5173,
+		ExpiresAt:        time.Now().Add(time.Hour),
+	}
+	f.gateway.sessions[sessID] = &fakeSession{attached: make(chan struct{}), ended: make(chan struct{})}
+
+	// OPEN_RESULT 없이 attach만 수행
+	f.react(func(open connector.PreviewOpen) {
+		f.gateway.attach(open.Correlation.PreviewSessionID)
+	})
+
+	// attempt A
+	err := f.service.OpenTunnel(context.Background(), sessID)
+	if err != nil {
+		t.Fatalf("OpenTunnel attempt A error = %v", err)
+	}
+
+	f.connectors.mu.Lock()
+	forgottenA := append([]string(nil), f.connectors.forgotten...)
+	openCountA := len(f.connectors.opens)
+	f.connectors.mu.Unlock()
+
+	if openCountA != 1 {
+		t.Fatalf("openCountA = %d, want 1", openCountA)
+	}
+	if len(forgottenA) != 1 || forgottenA[0] != sessID {
+		t.Fatalf("ForgetPreviewOpen attempt A = %v, want [%s]", forgottenA, sessID)
+	}
+
+	// tunnel A 종료 후 후속 tunnel B 준비
+	f.gateway.resetAttached(sessID)
+
+	// attempt B (sequential tunnel)
+	err = f.service.OpenTunnel(context.Background(), sessID)
+	if err != nil {
+		t.Fatalf("OpenTunnel attempt B error = %v", err)
+	}
+
+	f.connectors.mu.Lock()
+	forgottenB := append([]string(nil), f.connectors.forgotten...)
+	openCountB := len(f.connectors.opens)
+	f.connectors.mu.Unlock()
+
+	if openCountB != 2 {
+		t.Fatalf("openCountB = %d, want 2", openCountB)
+	}
+	if len(forgottenB) != 2 || forgottenB[1] != sessID {
+		t.Fatalf("ForgetPreviewOpen attempt B = %v, want 2 calls for [%s]", forgottenB, sessID)
+	}
+}
+
+// Regression 3: OpenTunnel timeout 발생 시 Router pending과 Gateway tunnel이 정리되고, 뒤늦은 결과/attach는 retry를 방해하지 않는다.
+func TestOpenTunnelTimeoutClearsRouterPendingAndAllowsRetry(t *testing.T) {
+	f := newFixture(t, func(o *Options) { o.OpenTimeout = 50 * time.Millisecond })
+	sessID := uuid.NewString()
+	f.gateway.infos[sessID] = preview.Info{
+		SessionID:        sessID,
+		LabInstanceID:    labID.String(),
+		Generation:       3,
+		ConnectorID:      connectorID,
+		TargetVMKey:      "vk-web",
+		ProviderServerID: "srv-web-g3",
+		TargetPort:       5173,
+		ExpiresAt:        time.Now().Add(time.Hour),
+	}
+	f.gateway.sessions[sessID] = &fakeSession{attached: make(chan struct{}), ended: make(chan struct{})}
+
+	// attempt A: 아무 응답도 하지 않음 (timeout 유도)
+	f.react(func(connector.PreviewOpen) {})
+
+	err := f.service.OpenTunnel(context.Background(), sessID)
+	if !errors.Is(err, ErrOpenTimeout) {
+		t.Fatalf("OpenTunnel attempt A error = %v, want ErrOpenTimeout", err)
+	}
+
+	// Router pending이 정리되었는지 확인
+	f.connectors.mu.Lock()
+	forgottenA := append([]string(nil), f.connectors.forgotten...)
+	openA := f.connectors.opens[0]
+	f.connectors.mu.Unlock()
+
+	if len(forgottenA) != 1 || forgottenA[0] != sessID {
+		t.Fatalf("ForgetPreviewOpen attempt A = %v, want [%s]", forgottenA, sessID)
+	}
+	if f.gateway.canceledCount() != 1 {
+		t.Fatalf("CancelTunnel count = %d, want 1", f.gateway.canceledCount())
+	}
+
+	// attempt A의 늦은 결과가 도착해도 에러가 나거나 세션 상태를 오염시키지 않음
+	f.service.HandlePreviewEvent(connector.PreviewOpenResultEvent{
+		ConnectorID: connectorID, Correlation: openA.Correlation, RequestMessageID: openA.MessageID,
+		Payload: connector.PreviewOpenResultPayload{Outcome: connector.PreviewOutcomeSucceeded},
+	})
+
+	// attempt B: 재시도에서는 정상 attach
+	f.gateway.resetAttached(sessID)
+	f.react(func(open connector.PreviewOpen) {
+		f.gateway.attach(open.Correlation.PreviewSessionID)
+	})
+
+	err = f.service.OpenTunnel(context.Background(), sessID)
+	if err != nil {
+		t.Fatalf("OpenTunnel attempt B retry error = %v", err)
+	}
+
+	f.connectors.mu.Lock()
+	forgottenB := append([]string(nil), f.connectors.forgotten...)
+	f.connectors.mu.Unlock()
+
+	if len(forgottenB) != 2 {
+		t.Fatalf("ForgetPreviewOpen count = %d, want 2", len(forgottenB))
+	}
+}
+
+// Regression 4: OpenTunnel context cancel 시 Router pending과 Gateway tunnel이 정리되고 재시도가 정상 성공한다.
+func TestOpenTunnelContextCancelClearsRouterPendingAndAllowsRetry(t *testing.T) {
+	f := newFixture(t)
+	sessID := uuid.NewString()
+	f.gateway.infos[sessID] = preview.Info{
+		SessionID:        sessID,
+		LabInstanceID:    labID.String(),
+		Generation:       3,
+		ConnectorID:      connectorID,
+		TargetVMKey:      "vk-web",
+		ProviderServerID: "srv-web-g3",
+		TargetPort:       5173,
+		ExpiresAt:        time.Now().Add(time.Hour),
+	}
+	f.gateway.sessions[sessID] = &fakeSession{attached: make(chan struct{}), ended: make(chan struct{})}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	f.react(func(open connector.PreviewOpen) {
+		cancel() // OPEN 전송 직후 cancel
+	})
+
+	err := f.service.OpenTunnel(ctx, sessID)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("OpenTunnel attempt A error = %v, want context.Canceled", err)
+	}
+
+	f.connectors.mu.Lock()
+	forgottenA := append([]string(nil), f.connectors.forgotten...)
+	f.connectors.mu.Unlock()
+
+	if len(forgottenA) != 1 || forgottenA[0] != sessID {
+		t.Fatalf("ForgetPreviewOpen attempt A = %v, want [%s]", forgottenA, sessID)
+	}
+	if f.gateway.canceledCount() != 1 {
+		t.Fatalf("CancelTunnel count = %d, want 1", f.gateway.canceledCount())
+	}
+
+	// attempt B: 정상 context로 재시도
+	f.gateway.resetAttached(sessID)
+	f.react(func(open connector.PreviewOpen) {
+		f.gateway.attach(open.Correlation.PreviewSessionID)
+	})
+
+	err = f.service.OpenTunnel(context.Background(), sessID)
+	if err != nil {
+		t.Fatalf("OpenTunnel attempt B retry error = %v", err)
+	}
+
+	f.connectors.mu.Lock()
+	forgottenB := append([]string(nil), f.connectors.forgotten...)
+	f.connectors.mu.Unlock()
+
+	if len(forgottenB) != 2 {
+		t.Fatalf("ForgetPreviewOpen count = %d, want 2", len(forgottenB))
+	}
+}

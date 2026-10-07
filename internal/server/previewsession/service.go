@@ -272,7 +272,6 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 	abort := func(sentOpen bool, reason string) {
 		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cleanupTimeout)
 		defer cancel()
-		s.connectors.ForgetPreviewOpen(resolved.connectorID, id)
 		s.gateway.Forget(id)
 		if sentOpen {
 			s.sendClose(cleanupCtx, log, resolved.connectorID, corr, in.RequestID, reason)
@@ -350,6 +349,7 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 		abort(false, closeReasonOpenFailed)
 		return Created{}, fmt.Errorf("previewsession: PREVIEW_OPEN 전송: %w", err)
 	}
+	defer s.connectors.ForgetPreviewOpen(resolved.connectorID, id)
 
 	timedOut := make(chan struct{})
 	timer := s.clock.AfterFunc(s.openTimeout, func() { close(timedOut) })
@@ -822,6 +822,7 @@ func (s *Service) OpenTunnel(ctx context.Context, sessionID string) error {
 			return fmt.Errorf("previewsession: PREVIEW_OPEN 전송: %w", err)
 		}
 	}
+	defer s.connectors.ForgetPreviewOpen(info.ConnectorID, sessionID)
 
 	timedOut := make(chan struct{})
 	timer := s.clock.AfterFunc(s.openTimeout, func() { close(timedOut) })

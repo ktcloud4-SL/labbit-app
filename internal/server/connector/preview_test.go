@@ -578,6 +578,62 @@ func TestForgetPreviewOpenDropsTheLocalPendingOnly(t *testing.T) {
 	}
 }
 
+// Router pending이 ForgetPreviewOpen으로 정리되면 동일 previewSessionId의 후속 SendPreviewOpen(sequential tunnel)이 성공하고,
+// 이전 attempt의 늦은 결과는 새 attempt를 방해하거나 취소시키지 않는다.
+func TestSequentialPreviewOpenAfterForgetSucceeds(t *testing.T) {
+	f := newPreviewFixture(t)
+	p := newPrincipal()
+	_, frames := f.connect(p, previewV1)
+
+	// Attempt A: 첫 번째 tunnel의 PREVIEW_OPEN
+	sentA, err := f.router.SendPreviewOpen(context.Background(), previewOpenFor(p.ConnectorID, "preview-1"))
+	if err != nil {
+		t.Fatalf("SendPreviewOpen A error = %v", err)
+	}
+	if f.router.PendingPreviewOpens(p.ConnectorID) != 1 {
+		t.Fatalf("PendingPreviewOpens want 1, got %d", f.router.PendingPreviewOpens(p.ConnectorID))
+	}
+
+	// PREVIEW_OPEN_RESULT 없이 Data attach 성공 또는 timeout/cancel로 pending 정리
+	if !f.router.ForgetPreviewOpen(p.ConnectorID, "preview-1") {
+		t.Fatal("ForgetPreviewOpen A returned false")
+	}
+	if f.router.PendingPreviewOpens(p.ConnectorID) != 0 {
+		t.Fatalf("PendingPreviewOpens want 0, got %d", f.router.PendingPreviewOpens(p.ConnectorID))
+	}
+
+	// Attempt B: 동일 previewSessionId의 후속 PREVIEW_OPEN 전송 (ErrDuplicateCorrelation 없이 성공)
+	sentB, err := f.router.SendPreviewOpen(context.Background(), previewOpenFor(p.ConnectorID, "preview-1"))
+	if err != nil {
+		t.Fatalf("SendPreviewOpen B error = %v, want success", err)
+	}
+	if f.router.PendingPreviewOpens(p.ConnectorID) != 1 {
+		t.Fatalf("PendingPreviewOpens want 1, got %d", f.router.PendingPreviewOpens(p.ConnectorID))
+	}
+	if frames.count() != 2 {
+		t.Fatalf("frames = %d, want 2", frames.count())
+	}
+
+	// Attempt A의 늦은 결과 도착: replyToMessageId가 sentA와 일치하므로 attempt B(sentB)와 mismatch
+	routedA := f.router.RoutePreviewOpenResult(p.ConnectorID, previewInboundFor(sentA.MessageID, previewCorr("preview-1")), PreviewOpenResultPayload{Outcome: PreviewOutcomeSucceeded})
+	if routedA {
+		t.Fatal("late result A가 attempt B에 잘못 연결됨")
+	}
+	// attempt B의 pending은 늦은 결과 A에 의해 제거되지 않고 유지됨
+	if f.router.PendingPreviewOpens(p.ConnectorID) != 1 {
+		t.Fatalf("PendingPreviewOpens after late result A want 1, got %d", f.router.PendingPreviewOpens(p.ConnectorID))
+	}
+
+	// Attempt B의 결과 도착: 정상 매칭 및 pending 정리
+	routedB := f.router.RoutePreviewOpenResult(p.ConnectorID, previewInboundFor(sentB.MessageID, previewCorr("preview-1")), PreviewOpenResultPayload{Outcome: PreviewOutcomeSucceeded})
+	if !routedB {
+		t.Fatal("result B가 attempt B에 연결되지 않음")
+	}
+	if f.router.PendingPreviewOpens(p.ConnectorID) != 0 {
+		t.Fatalf("PendingPreviewOpens after result B want 0, got %d", f.router.PendingPreviewOpens(p.ConnectorID))
+	}
+}
+
 func TestPreviewUnrepresentableIsReportedAsUnmatched(t *testing.T) {
 	f := newPreviewFixture(t)
 	p := newPrincipal()

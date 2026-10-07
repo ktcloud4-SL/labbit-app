@@ -978,3 +978,63 @@ func TestPreviewEndpointsWithoutThePreviewRoleAreUnavailable(t *testing.T) {
 		t.Fatalf("Preview Data route가 열려 있음: %v %v", err, resp)
 	}
 }
+
+// PREVIEW_OPEN_RESULT가 전혀 오지 않아도 attach 성공만으로 Create 및 후속 sequential tunnel들이 모두 성공하고,
+// 각 tunnel 요청 후 real Router의 pending PREVIEW_OPEN이 0으로 유지되어 ErrDuplicateCorrelation이 발생하지 않는다.
+func TestPreviewSequentialTunnelsSucceedWithoutOpenResult(t *testing.T) {
+	e := newPreviewEnv(t, previewEnvOptions{capabilities: previewV1})
+
+	// Connector peer가 PREVIEW_OPEN_RESULT SUCCEEDED를 의도적으로 보내지 않도록 설정
+	e.setBehavior(func(open previewtest.Open) previewtest.Behavior {
+		return previewtest.Behavior{SkipOpenResult: true}
+	})
+
+	// 1. Create: OPEN_RESULT 없이 attach만으로 성공해야 함
+	s := e.mustCreate(e.ownerCookie, e.fixture.LabInstanceID, 5173)
+
+	// Create 성공 직후 Router pending은 0이어야 함
+	if pending := e.stack.Router.PendingPreviewOpens(e.fixture.ConnectorID); pending != 0 {
+		t.Fatalf("Create 후 Router pending = %d, want 0", pending)
+	}
+
+	cookie := e.login(s)
+
+	requestCount := 0
+	e.app.setHandler(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		w.Header().Set("Connection", "close")
+		_, _ = fmt.Fprintf(w, "app response %d for %s", requestCount, r.URL.Path)
+	})
+
+	// 2. 첫 번째 요청 (/index.html): 초기 tunnel 사용
+	r1, b1 := e.get(s, cookie, "/index.html")
+	if r1.StatusCode != http.StatusOK || b1 != "app response 1 for /index.html" {
+		t.Fatalf("첫 번째 요청 응답 = %d %q", r1.StatusCode, b1)
+	}
+	if pending := e.stack.Router.PendingPreviewOpens(e.fixture.ConnectorID); pending != 0 {
+		t.Fatalf("첫 번째 요청 후 Router pending = %d, want 0", pending)
+	}
+
+	// 3. 두 번째 요청 (/app.js): sequential tunnel open (OPEN_RESULT 없이도 새 tunnel 연결 성공)
+	r2, b2 := e.get(s, cookie, "/app.js")
+	if r2.StatusCode != http.StatusOK || b2 != "app response 2 for /app.js" {
+		t.Fatalf("두 번째 요청 응답 = %d %q", r2.StatusCode, b2)
+	}
+	if pending := e.stack.Router.PendingPreviewOpens(e.fixture.ConnectorID); pending != 0 {
+		t.Fatalf("두 번째 요청 후 Router pending = %d, want 0", pending)
+	}
+
+	// 4. 세 번째 요청 (/style.css): 추가 sequential tunnel open
+	r3, b3 := e.get(s, cookie, "/style.css")
+	if r3.StatusCode != http.StatusOK || b3 != "app response 3 for /style.css" {
+		t.Fatalf("세 번째 요청 응답 = %d %q", r3.StatusCode, b3)
+	}
+	if pending := e.stack.Router.PendingPreviewOpens(e.fixture.ConnectorID); pending != 0 {
+		t.Fatalf("세 번째 요청 후 Router pending = %d, want 0", pending)
+	}
+
+	// 5. 적어도 3번의 개별 Data WSS dial이 발생했는지 확인
+	if dials := e.peer.DataDials(); dials < 3 {
+		t.Fatalf("Data dials = %d, want >= 3", dials)
+	}
+}

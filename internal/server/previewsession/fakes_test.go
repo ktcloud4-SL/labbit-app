@@ -155,15 +155,16 @@ func newStore() *fakeStore {
 
 // fakeGateway는 Gateway 경계의 호출을 기록하고 생성 중인 PreviewSession의 상태 channel을 test가 직접 움직이게 한다.
 type fakeGateway struct {
-	mu          sync.Mutex
-	expected    []preview.Expected
-	bound       map[string]preview.Binding
-	forgot      []string
-	terminated  []terminatedSession
-	activated   []string
-	sessions    map[string]*fakeSession
-	infos       map[string]preview.Info
-	labSessions map[string][]string
+	mu              sync.Mutex
+	expected        []preview.Expected
+	bound           map[string]preview.Binding
+	forgot          []string
+	terminated      []terminatedSession
+	activated       []string
+	canceledTunnels []string
+	sessions        map[string]*fakeSession
+	infos           map[string]preview.Info
+	labSessions     map[string][]string
 
 	expectErr   error
 	bindErr     error
@@ -174,8 +175,10 @@ type fakeGateway struct {
 }
 
 type fakeSession struct {
-	attached chan struct{}
-	ended    chan struct{}
+	attached       chan struct{}
+	ended          chan struct{}
+	attachedClosed bool
+	endedClosed    bool
 }
 
 type terminatedSession struct {
@@ -285,7 +288,17 @@ func (g *fakeGateway) PrepareTunnel(id string, openMessageID string) (<-chan str
 	return ch, nil
 }
 
-func (g *fakeGateway) CancelTunnel(id string, openMessageID string) {}
+func (g *fakeGateway) CancelTunnel(id string, openMessageID string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.canceledTunnels = append(g.canceledTunnels, openMessageID)
+}
+
+func (g *fakeGateway) canceledCount() int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return len(g.canceledTunnels)
+}
 
 func (g *fakeGateway) SetTunnelOpener(opener preview.TunnelOpener) {
 	g.mu.Lock()
@@ -295,27 +308,30 @@ func (g *fakeGateway) SetTunnelOpener(opener preview.TunnelOpener) {
 
 func (g *fakeGateway) attach(id string) {
 	g.mu.Lock()
+	defer g.mu.Unlock()
 	s := g.sessions[id]
-	g.mu.Unlock()
-	if s != nil {
-		select {
-		case <-s.attached:
-		default:
-			close(s.attached)
-		}
+	if s != nil && !s.attachedClosed {
+		s.attachedClosed = true
+		close(s.attached)
 	}
 }
 
 func (g *fakeGateway) end(id string) {
 	g.mu.Lock()
+	defer g.mu.Unlock()
 	s := g.sessions[id]
-	g.mu.Unlock()
-	if s != nil {
-		select {
-		case <-s.ended:
-		default:
-			close(s.ended)
-		}
+	if s != nil && !s.endedClosed {
+		s.endedClosed = true
+		close(s.ended)
+	}
+}
+
+func (g *fakeGateway) resetAttached(id string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if s := g.sessions[id]; s != nil {
+		s.attached = make(chan struct{})
+		s.attachedClosed = false
 	}
 }
 

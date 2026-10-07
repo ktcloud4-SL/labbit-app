@@ -115,12 +115,31 @@ type TerminalRepository interface {
 	EndTerminalSession(ctx context.Context, id uuid.UUID, endedAt time.Time, reason string) (bool, error)
 }
 
+// LiveSessionRepository는 LiveSession 생성·조회·종료가 사용하는 query와 조건부 UPDATE다.
+// Terminal/Live OUTPUT, transcript, queue 내용을 저장하는 method는 없다.
+type LiveSessionRepository interface {
+	// LiveSessionByID는 ID로 LiveSession을 반환한다. 없으면 ErrNotFound다.
+	LiveSessionByID(ctx context.Context, id uuid.UUID) (LiveSession, error)
+	// ActiveLiveSessionByClass는 Class의 active(ended_at IS NULL) LiveSession을 반환한다. 없으면 ErrNotFound다.
+	ActiveLiveSessionByClass(ctx context.Context, classID uuid.UUID) (LiveSession, error)
+	// CreateLiveSession은 LiveSession을 저장한다. Class에 이미 active LiveSession이 있거나
+	// 같은 ID가 이미 있으면 ErrConflict, FK 위반은 ErrConstraintViolation이다.
+	CreateLiveSession(ctx context.Context, session NewLiveSession) error
+	// EndLiveSession은 active LiveSession을 ended_at과 end_reason으로 종료한다.
+	// 조건을 만족해 종료했으면 true, 이미 종료되었거나 없으면 false다.
+	EndLiveSession(ctx context.Context, id uuid.UUID, endedAt time.Time, reason string) (bool, error)
+	// EndActiveLiveSessionBySourceTerminal은 sourceTerminalSessionID를 source로 하는 active LiveSession을 종료한다.
+	// 조건을 만족해 종료했으면 true, 없으면 false다.
+	EndActiveLiveSessionBySourceTerminal(ctx context.Context, sourceTerminalSessionID uuid.UUID, endedAt time.Time, reason string) (bool, error)
+}
+
 // Repositories는 하나의 DB session에서 사용할 수 있는 Repository 모음이다.
 type Repositories interface {
 	IdentityRepository
 	ClassRepository
 	BootstrapRepository
 	TerminalRepository
+	LiveSessionRepository
 }
 
 // Transactor는 Application이 원자성 범위를 결정하는 경계다.

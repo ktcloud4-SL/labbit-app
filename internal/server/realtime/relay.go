@@ -64,6 +64,8 @@ var (
 type Options struct {
 	// Control은 DB-backed authority다. 필수다.
 	Control Control
+	// LiveControl은 Live WSS authority다. nil이면 Live route를 제공하지 않는다.
+	LiveControl LiveControl
 	// Connectors는 Terminal Data WSS의 Connector credential을 인증한다. 필수다.
 	Connectors ConnectorAuthenticator
 	// AllowOrigin은 Browser WSS Upgrade의 Origin header 값 하나가 trusted origin과 정확히 일치하는지 판정한다. 필수다.
@@ -98,6 +100,7 @@ type Options struct {
 // Relay는 TerminalSession별 Browser attachment와 Connector data channel을 이어 주는 ephemeral hub다.
 type Relay struct {
 	control     Control
+	liveControl LiveControl
 	connectors  ConnectorAuthenticator
 	allowOrigin func(string) bool
 	clock       Clock
@@ -115,15 +118,18 @@ type Relay struct {
 
 	browserUpgrader websocket.Upgrader
 	dataUpgrader    websocket.Upgrader
+	liveUpgrader    websocket.Upgrader
 
 	// trust는 열린 Terminal Data WSS를 인증한 Connector trust별로 추적한다. revoke 통지가 오면 해당 connection만 종료한다.
 	trust *dataTrust
 
-	// mu는 sessions, closed, wg에 요청을 더하는 시점을 보호한다.
-	mu       sync.Mutex
-	sessions map[string]*session
-	closed   bool
-	done     chan struct{}
+	// mu는 sessions, liveSessions, terminalToLive, closed, wg에 요청을 더하는 시점을 보호한다.
+	mu             sync.Mutex
+	sessions       map[string]*session
+	liveSessions   map[string]*liveSession
+	terminalToLive map[string]*liveSession
+	closed         bool
+	done           chan struct{}
 	// wg는 처리 중인 Upgrade 요청과 열린 connection을 센다.
 	wg sync.WaitGroup
 }
@@ -155,6 +161,9 @@ func New(opts Options) (*Relay, error) {
 		dataQueueBytes:       intOr(opts.DataQueueBytes, defaultQueueBytes),
 		dataQueueMessages:    intOr(opts.DataQueueMessages, defaultQueueMessages),
 		sessions:             make(map[string]*session),
+		liveSessions:         make(map[string]*liveSession),
+		terminalToLive:       make(map[string]*liveSession),
+		liveControl:          opts.LiveControl,
 		trust:                newDataTrust(),
 		done:                 make(chan struct{}),
 	}
@@ -177,6 +186,13 @@ func New(opts Options) (*Relay, error) {
 	// Browser WSS는 위에서 strict Origin을 직접 검증하므로 gorilla의 기본 Origin 검사(Host와 비교)를 쓰지 않는다.
 	r.browserUpgrader = websocket.Upgrader{
 		Subprotocols:     []string{BrowserSubprotocol},
+		HandshakeTimeout: r.writeTimeout,
+		CheckOrigin:      func(*http.Request) bool { return true },
+		Error:            r.upgradeRejected,
+	}
+	// Live WSS도 strict Origin을 직접 검증한다.
+	r.liveUpgrader = websocket.Upgrader{
+		Subprotocols:     []string{LiveSubprotocol},
 		HandshakeTimeout: r.writeTimeout,
 		CheckOrigin:      func(*http.Request) bool { return true },
 		Error:            r.upgradeRejected,
@@ -206,6 +222,9 @@ func intOr(value, fallback int) int {
 
 // BrowserHandler는 Browser Terminal WSS(BrowserPath)를 처리한다.
 func (r *Relay) BrowserHandler() http.Handler { return http.HandlerFunc(r.serveBrowserHTTP) }
+
+// LiveHandler는 Browser Live WSS(LivePath)를 처리한다.
+func (r *Relay) LiveHandler() http.Handler { return http.HandlerFunc(r.serveLiveHTTP) }
 
 // DataHandler는 Connector Terminal Data WSS(DataPath)를 처리한다.
 func (r *Relay) DataHandler() http.Handler { return http.HandlerFunc(r.serveDataHTTP) }
@@ -251,6 +270,16 @@ func (r *Relay) Shutdown(ctx context.Context) error {
 
 	for _, s := range sessions {
 		r.shutdownSession(ctx, s)
+	}
+
+	r.mu.Lock()
+	lives := make([]*liveSession, 0, len(r.liveSessions))
+	for _, l := range r.liveSessions {
+		lives = append(lives, l)
+	}
+	r.mu.Unlock()
+	for _, l := range lives {
+		r.TerminateLive(l.id, End{Reason: EndReasonServiceRestarting})
 	}
 
 	drained := make(chan struct{})
@@ -437,12 +466,24 @@ func (r *Relay) finish(s *session, end End, notifyBrowser, notifyData bool) {
 	}
 	s.state = stateEnded
 	b, d := s.browser, s.data
-	s.browser, s.data = nil, nil
+	live := s.liveSession
+	s.browser, s.data, s.liveSession = nil, nil, nil
 	s.stopGraceLocked()
 	s.mu.Unlock()
 
 	r.remove(s.corr.TerminalSessionID, s)
+	if live != nil {
+		r.removeLive(live)
+	}
 	withTrace(s.log, end.Trace).Info("TerminalSession Relay 정리", "reason", end.Reason)
+
+	if live != nil {
+		liveEnd := end
+		if liveEnd.Reason == "" {
+			liveEnd.Reason = "SOURCE_TERMINAL_ENDED"
+		}
+		r.finishLive(live, liveEnd)
+	}
 
 	if b != nil {
 		code := closeCodeFor(end.Reason)

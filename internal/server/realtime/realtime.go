@@ -25,10 +25,13 @@ import (
 const (
 	// BrowserPath는 Browser Terminal WSS endpoint다(contracts/realtime/README.md §1).
 	BrowserPath = "/realtime/v1/terminal"
+	// LivePath는 Browser Live WSS endpoint다(contracts/realtime/README.md §1).
+	LivePath = "/realtime/v1/live"
 	// DataPath는 Connector Terminal Data WSS endpoint다(contracts/connector/README.md §7).
 	DataPath = "/connector/v1/terminal-data"
 
 	BrowserSubprotocol = "labbit.terminal.v1"
+	LiveSubprotocol    = "labbit.live.v1"
 	DataSubprotocol    = "labbit.connector-terminal.v1"
 
 	// SessionCookieName은 Browser 로그인 세션 Cookie 이름이다(contracts/http/openapi.yaml sessionCookie).
@@ -149,6 +152,21 @@ type Control interface {
 	CloseSession(ctx context.Context, terminalSessionID, reason string) error
 	// SessionEnded는 Connector가 알려 준 종료(TERMINAL_DATA_ENDED)를 기록한다. Connector에 다시 CLOSE를 보내지 않는다. 멱등이다.
 	SessionEnded(ctx context.Context, terminalSessionID string, end End) error
+}
+
+// LiveGrant는 LiveControl이 현재 학생의 subscription을 허용한 결과다.
+type LiveGrant struct {
+	LiveSessionID           string
+	ClassID                 string
+	SourceTerminalSessionID string
+}
+
+// LiveControl은 Relay가 Live subscription 권한 확인과 lifecycle persistence를 위해 사용하는 DB-backed authority다.
+type LiveControl interface {
+	// AuthorizeLiveSubscribe는 학생의 Browser 로그인 Session, Class STUDENT Membership, active LiveSession 상태를 검증한다.
+	AuthorizeLiveSubscribe(ctx context.Context, session SessionToken, liveSessionID string) (LiveGrant, error)
+	// SourceTerminalEnded는 source TerminalSession이 종료되었을 때 active LiveSession을 DB에서 ended 처리한다.
+	SourceTerminalEnded(ctx context.Context, sourceTerminalSessionID string, end End) error
 }
 
 // ConnectorIdentity는 인증된 Connector다. 메시지가 주장한 값이 아니라 credential에서 결정한 값이다.

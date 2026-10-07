@@ -284,6 +284,10 @@ saas:
         path: "/realtime/v1/terminal"
         subprotocol: "labbit.terminal.v1"
         contract: "contracts/realtime/README.md"
+      browser_live:
+        path: "/realtime/v1/live"
+        subprotocol: "labbit.live.v1"
+        contract: "contracts/realtime/README.md"
       connector_terminal_data:
         path: "/connector/v1/terminal-data"
         subprotocol: "labbit.connector-terminal.v1"

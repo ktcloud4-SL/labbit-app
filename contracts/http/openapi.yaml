@@ -43,6 +43,10 @@ tags:
       본인 LabInstance의 Workspace VM application port로의 PreviewSession 생성·종료와, 사용자 코드가 실행되는
       별도 Preview Origin의 Browser bootstrap·인증. PreviewSession 생성·종료는 이 API의 SaaS Origin(`/api/v1`)이고
       bootstrap·인증은 Preview Origin입니다.
+  - name: LiveSessions
+    description: |
+      강사 TerminalSession의 read-only 실시간 화면 공유(LiveSession) 생성·조회·종료.
+      생성된 LiveSession은 Browser 실시간 프로토콜(/realtime/v1/live)을 통해 학생들에게 fan-out됩니다.
 
 paths:
   /auth/login:
@@ -179,6 +183,35 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /classes/{classId}/live-session:
+    get:
+      tags: [LiveSessions]
+      summary: Class의 현재 활성 LiveSession 조회
+      operationId: getActiveLiveSession
+      description: |
+        해당 Class에 현재 활성화된 LiveSession 정보를 조회합니다.
+        해당 Class의 INSTRUCTOR 또는 STUDENT Membership이 있는 사용자만 조회할 수 있습니다.
+        현재 진행 중인 LiveSession이 없으면 404를 반환합니다.
+      parameters:
+        - $ref: '#/components/parameters/ClassId'
+      responses:
+        '200':
+          description: 현재 활성화된 LiveSession 정보입니다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 
   /lab-specs:
     get:
@@ -632,6 +665,68 @@ paths:
       responses:
         '204':
           description: TerminalSession이 종료되었습니다(이미 종료된 경우 포함).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /terminal-sessions/{terminalSessionId}/live-sessions:
+    post:
+      tags: [LiveSessions]
+      summary: 강사 TerminalSession의 LiveSession 생성
+      operationId: createLiveSession
+      description: |
+        강사가 자신의 source TerminalSession을 기반으로 Class 내 실시간 화면 공유(LiveSession)를 시작합니다.
+        Class당 active LiveSession은 최대 1개이며, 요청자는 해당 Class의 INSTRUCTOR Membership을 가져야 합니다.
+        LiveSession이 생성되면 해당 Class의 학생들은 `/realtime/v1/live`를 통해 화면 출력을 read-only로 수신할 수 있습니다.
+      parameters:
+        - $ref: '#/components/parameters/TerminalSessionId'
+      responses:
+        '201':
+          description: LiveSession이 생성되었습니다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: |
+            Class에 이미 다른 active LiveSession이 존재하거나(`live_session_active`),
+            source TerminalSession을 사용할 수 없습니다(`live_source_unavailable`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /live-sessions/{liveSessionId}:
+    delete:
+      tags: [LiveSessions]
+      summary: LiveSession 명시적 종료
+      operationId: closeLiveSession
+      description: |
+        강사가 진행 중인 LiveSession을 명시적으로 종료합니다.
+        LiveSession이 종료되어도 강사의 원본 TerminalSession/PTY는 종료되지 않고 유지됩니다.
+        이미 종료된 LiveSession에 대한 요청도 204로 처리됩니다(멱등).
+      parameters:
+        - $ref: '#/components/parameters/LiveSessionId'
+      responses:
+        '204':
+          description: LiveSession이 종료되었습니다(이미 종료된 경우 포함).
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1161,6 +1256,14 @@ components:
       in: path
       required: true
       description: 종료할 PreviewSession의 opaque ID입니다.
+      schema:
+        $ref: '#/components/schemas/ResourceId'
+
+    LiveSessionId:
+      name: liveSessionId
+      in: path
+      required: true
+      description: LiveSession의 opaque ID입니다.
       schema:
         $ref: '#/components/schemas/ResourceId'
 
@@ -2007,6 +2110,25 @@ components:
           type: string
           format: date-time
           description: '`sessionToken`의 절대 만료 시각입니다.'
+
+    LiveSession:
+      type: object
+      description: |
+        강사 TerminalSession의 화면을 학생들에게 read-only로 fan-out하는 LiveSession입니다.
+        학생은 `/realtime/v1/live`(subprotocol `labbit.live.v1`)에 연결한 뒤
+        `LIVE_SUBSCRIBE` 제어 메시지로 구독합니다.
+      required: [id, classId, sourceTerminalSessionId, createdAt]
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+        classId:
+          $ref: '#/components/schemas/ResourceId'
+        sourceTerminalSessionId:
+          $ref: '#/components/schemas/ResourceId'
+        createdAt:
+          type: string
+          format: date-time
+          description: LiveSession 생성 시각입니다.
 
     CreatePreviewSessionRequest:
       type: object

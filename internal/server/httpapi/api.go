@@ -54,6 +54,8 @@ type Options struct {
 	Files Files
 	// Previews가 nil이면 Preview Gateway가 없는 구성으로 보고 PreviewSession 생성/종료를 503(preview_unavailable)으로 응답한다.
 	Previews Previews
+	// LiveSessions가 nil이면 Live Relay가 없는 구성으로 보고 LiveSession 생성/조회/종료를 503(live_unavailable)으로 응답한다.
+	LiveSessions LiveSessions
 	// PublicOrigin은 unsafe method의 trusted origin(LABBIT_PUBLIC_ORIGIN)이다. ParseOrigin 형식을 따른다.
 	PublicOrigin string
 	// Logger가 nil이면 로그를 남기지 않는다.
@@ -64,13 +66,14 @@ type Options struct {
 }
 
 type api struct {
-	auth      Authenticator
-	classes   Classes
-	terminals Terminals
-	files     Files
-	previews  Previews
-	origin    string
-	logger    *slog.Logger
+	auth         Authenticator
+	classes      Classes
+	terminals    Terminals
+	files        Files
+	previews     Previews
+	liveSessions LiveSessions
+	origin       string
+	logger       *slog.Logger
 }
 
 // New는 /api/v1 아래 Auth와 Class endpoint를 제공하는 http.Handler를 만든다.
@@ -105,7 +108,12 @@ func New(opts Options) (http.Handler, error) {
 		previews = unavailablePreviews{}
 	}
 
-	a := &api{auth: opts.Auth, classes: opts.Classes, terminals: terminals, files: files, previews: previews, origin: origin, logger: logger}
+	liveSessions := opts.LiveSessions
+	if liveSessions == nil {
+		liveSessions = unavailableLiveSessions{}
+	}
+
+	a := &api{auth: opts.Auth, classes: opts.Classes, terminals: terminals, files: files, previews: previews, liveSessions: liveSessions, origin: origin, logger: logger}
 	mux := http.NewServeMux()
 	routes := make(map[string]string)
 	handle := func(pattern string, handler http.Handler) {
@@ -126,6 +134,9 @@ func New(opts Options) (http.Handler, error) {
 	handle("PUT /api/v1/lab-instances/{labInstanceId}/files/content", a.authenticated(http.HandlerFunc(a.saveWorkspaceFile)))
 	handle("POST /api/v1/lab-instances/{labInstanceId}/preview-sessions", a.authenticated(http.HandlerFunc(a.createPreviewSession)))
 	handle("DELETE /api/v1/preview-sessions/{previewSessionId}", a.authenticated(http.HandlerFunc(a.closePreviewSession)))
+	handle("POST /api/v1/terminal-sessions/{terminalSessionId}/live-sessions", a.authenticated(http.HandlerFunc(a.createLiveSession)))
+	handle("GET /api/v1/classes/{classId}/live-session", a.authenticated(http.HandlerFunc(a.getActiveLiveSession)))
+	handle("DELETE /api/v1/live-sessions/{liveSessionId}", a.authenticated(http.HandlerFunc(a.closeLiveSession)))
 
 	tracer := opts.Tracer
 	if tracer == nil {

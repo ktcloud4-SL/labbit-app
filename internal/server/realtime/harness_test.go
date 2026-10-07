@@ -309,6 +309,7 @@ func newEnv(t *testing.T, mods ...func(*realtime.Options)) *env {
 
 	mux := http.NewServeMux()
 	mux.Handle("GET "+realtime.BrowserPath, relay.BrowserHandler())
+	mux.Handle("GET "+realtime.LivePath, relay.LiveHandler())
 	mux.Handle("GET "+realtime.DataPath, relay.DataHandler())
 	e.server = httptest.NewServer(mux)
 	t.Cleanup(func() {

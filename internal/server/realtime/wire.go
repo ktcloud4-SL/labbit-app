@@ -37,6 +37,9 @@ const (
 	typeTerminalAttached     = "TERMINAL_ATTACHED"
 	typeTerminalResize       = "TERMINAL_RESIZE"
 	typeTerminalSessionEnded = "TERMINAL_SESSION_ENDED"
+	typeLiveSubscribe        = "LIVE_SUBSCRIBE"
+	typeLiveSubscribed       = "LIVE_SUBSCRIBED"
+	typeLiveEnded            = "LIVE_ENDED"
 	typeError                = "ERROR"
 
 	typeDataAttach   = "TERMINAL_DATA_ATTACH"
@@ -210,6 +213,44 @@ func decodeBrowserMessage(data []byte) (browserMessage, error) {
 	return msg, nil
 }
 
+// liveMessage는 Schema 검증을 통과한 Browser → Relay LIVE_SUBSCRIBE JSON control message다.
+type liveMessage struct {
+	Type          string
+	MessageID     string
+	LiveSessionID string
+	Trace         tracecontext.Context
+}
+
+// decodeLiveMessage는 Browser가 보낼 수 있는 LIVE_SUBSCRIBE를 검증한다.
+// 그 외 type은 errUnsupportedType이고, Schema를 만족하지 않으면 errMalformed다.
+func decodeLiveMessage(data []byte) (liveMessage, error) {
+	members, ok := jsonObject(data)
+	if !ok {
+		return liveMessage{}, errMalformed
+	}
+	kind, ok := jsonString(members["type"])
+	if !ok {
+		return liveMessage{}, errMalformed
+	}
+	if kind != typeLiveSubscribe {
+		return liveMessage{}, errUnsupportedType
+	}
+	messageID, _, ok := envelope(members, browserOptionalIDs)
+	if !ok {
+		return liveMessage{}, errMalformed
+	}
+	liveSessionID, ok := nonEmptyString(members["liveSessionId"])
+	if !ok {
+		return liveMessage{}, errMalformed
+	}
+	return liveMessage{
+		Type:          kind,
+		MessageID:     messageID,
+		LiveSessionID: liveSessionID,
+		Trace:         traceOf(members),
+	}, nil
+}
+
 // dataMessage는 Schema 검증을 통과한 Connector → Relay Terminal Data JSON control message다.
 type dataMessage struct {
 	Type              string
@@ -343,6 +384,7 @@ type outEnvelope struct {
 	SentAt            time.Time `json:"sentAt"`
 	ReplyToMessageID  string    `json:"replyToMessageId,omitempty"`
 	TerminalSessionID string    `json:"terminalSessionId,omitempty"`
+	LiveSessionID     string    `json:"liveSessionId,omitempty"`
 	LabInstanceID     string    `json:"labInstanceId,omitempty"`
 	Generation        int64     `json:"generation,omitempty"`
 	// Traceparent와 Tracestate는 control event의 W3C Trace Context다. PTY Binary frame에는 붙이지 않는다(Binary는 이 envelope를 쓰지 않는다).
@@ -404,6 +446,32 @@ func browserEnded(sessionID string, end End) []byte {
 			ExitCode *int64 `json:"exitCode,omitempty"`
 		}{Reason: end.Reason, ExitCode: end.ExitCode},
 	}, end.Trace)
+}
+
+func liveSubscribed(liveSessionID, replyTo string, trace tracecontext.Context) []byte {
+	return marshalOut(outEnvelope{
+		Type: typeLiveSubscribed, LiveSessionID: liveSessionID, ReplyToMessageID: replyTo,
+		Payload: struct {
+			HistoryAvailable bool `json:"historyAvailable"`
+		}{HistoryAvailable: false},
+	}, trace)
+}
+
+func liveEnded(liveSessionID string, end End) []byte {
+	return marshalOut(outEnvelope{
+		Type: typeLiveEnded, LiveSessionID: liveSessionID,
+		Payload: struct {
+			Reason   string `json:"reason"`
+			ExitCode *int64 `json:"exitCode,omitempty"`
+		}{Reason: SanitizeReason(end.Reason), ExitCode: end.ExitCode},
+	}, end.Trace)
+}
+
+func liveError(liveSessionID, code, message string, fatal bool, replyTo string, trace tracecontext.Context) []byte {
+	return marshalOut(outEnvelope{
+		Type: typeError, LiveSessionID: liveSessionID, ReplyToMessageID: replyTo,
+		Payload: errorPayload{Code: code, Message: message, Fatal: fatal},
+	}, trace)
 }
 
 // correlation은 Terminal Data message가 공통으로 싣는 TerminalSession 식별자다.

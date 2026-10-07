@@ -25,18 +25,19 @@ func NewHTTPMetrics(reg *prometheus.Registry) *HTTPMetrics {
 	return m
 }
 
-// RealtimeMetrics exposes only the two implemented Terminal channels and fixed rejection reasons.
+// RealtimeMetrics exposes only the implemented Terminal/Live channels and fixed rejection reasons.
 type RealtimeMetrics struct {
-	BrowserConnections   prometheus.Gauge
-	ConnectorConnections prometheus.Gauge
-	BrowserReconnects    prometheus.Counter
-	ConnectorReconnects  prometheus.Counter
-	Unauthorized         prometheus.Counter
-	Forbidden            prometheus.Counter
-	InvalidRequest       prometheus.Counter
-	DrainingRejected     prometheus.Counter
-	Unavailable          prometheus.Counter
-	Draining             prometheus.Gauge
+	BrowserConnections     prometheus.Gauge
+	BrowserLiveConnections prometheus.Gauge
+	ConnectorConnections   prometheus.Gauge
+	BrowserReconnects      prometheus.Counter
+	ConnectorReconnects    prometheus.Counter
+	Unauthorized           prometheus.Counter
+	Forbidden              prometheus.Counter
+	InvalidRequest         prometheus.Counter
+	DrainingRejected       prometheus.Counter
+	Unavailable            prometheus.Counter
+	Draining               prometheus.Gauge
 }
 
 func NewRealtimeMetrics(reg *prometheus.Registry) *RealtimeMetrics {
@@ -50,15 +51,16 @@ func NewRealtimeMetrics(reg *prometheus.Registry) *RealtimeMetrics {
 		Name: "labbit_realtime_rejected_connections_total", Help: "Rejected Terminal WebSocket upgrades or attachments.",
 	}, []string{"reason"})
 	m := &RealtimeMetrics{
-		BrowserConnections:   connections.WithLabelValues("browser_terminal"),
-		ConnectorConnections: connections.WithLabelValues("connector_terminal"),
-		BrowserReconnects:    reconnects.WithLabelValues("browser_terminal"),
-		ConnectorReconnects:  reconnects.WithLabelValues("connector_terminal"),
-		Unauthorized:         rejected.WithLabelValues("unauthorized"),
-		Forbidden:            rejected.WithLabelValues("forbidden"),
-		InvalidRequest:       rejected.WithLabelValues("invalid_request"),
-		DrainingRejected:     rejected.WithLabelValues("draining"),
-		Unavailable:          rejected.WithLabelValues("unavailable"),
+		BrowserConnections:     connections.WithLabelValues("browser_terminal"),
+		BrowserLiveConnections: connections.WithLabelValues("browser_live"),
+		ConnectorConnections:   connections.WithLabelValues("connector_terminal"),
+		BrowserReconnects:      reconnects.WithLabelValues("browser_terminal"),
+		ConnectorReconnects:    reconnects.WithLabelValues("connector_terminal"),
+		Unauthorized:           rejected.WithLabelValues("unauthorized"),
+		Forbidden:              rejected.WithLabelValues("forbidden"),
+		InvalidRequest:         rejected.WithLabelValues("invalid_request"),
+		DrainingRejected:       rejected.WithLabelValues("draining"),
+		Unavailable:            rejected.WithLabelValues("unavailable"),
 		Draining: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "labbit_realtime_draining", Help: "Whether Realtime shutdown has started (0 or 1).",
 		}),

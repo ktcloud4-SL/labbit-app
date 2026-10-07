@@ -809,6 +809,11 @@ func (s *Service) closeLifecycle(ctx context.Context, rec repository.TerminalSes
 	if err != nil {
 		return fmt.Errorf("terminal: 종료 기록: %w", err)
 	}
+	if sStore, ok := s.store.(interface {
+		EndActiveLiveSessionBySourceTerminal(ctx context.Context, sourceTerminalSessionID uuid.UUID, endedAt time.Time, reason string) (bool, error)
+	}); ok {
+		_, _ = sStore.EndActiveLiveSessionBySourceTerminal(ctx, rec.ID, s.clock.Now(), reason)
+	}
 	if !changed {
 		return nil
 	}
@@ -990,6 +995,11 @@ func (s *Service) SessionEnded(ctx context.Context, terminalSessionID string, en
 	id, ok := parseID(terminalSessionID)
 	if !ok {
 		return realtime.ErrSessionNotFound
+	}
+	if sStore, ok := s.store.(interface {
+		EndActiveLiveSessionBySourceTerminal(ctx context.Context, sourceTerminalSessionID uuid.UUID, endedAt time.Time, reason string) (bool, error)
+	}); ok {
+		_, _ = sStore.EndActiveLiveSessionBySourceTerminal(ctx, id, s.clock.Now(), end.Reason)
 	}
 	if _, err := s.store.EndTerminalSession(ctx, id, s.clock.Now(), end.Reason); err != nil {
 		return fmt.Errorf("%w: %w", realtime.ErrDependencyUnavailable, err)

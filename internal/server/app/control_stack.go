@@ -18,6 +18,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/filetransport"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/livesession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
@@ -72,9 +73,10 @@ type controlStack struct {
 	Registry         *connector.Registry
 	Router           *connector.Router
 
-	// Terminals와 Relay는 Realtime이 false이면 nil이다.
-	Terminals *terminal.Service
-	Relay     *realtime.Relay
+	// Terminals, Relay, LiveSessions는 Realtime이 false이면 nil이다.
+	Terminals    *terminal.Service
+	Relay        *realtime.Relay
+	LiveSessions *livesession.Service
 
 	// Files와 FileBroker는 api role이 소유하는 Workspace File use case와 Connector File transport다. realtime role이 필요하지 않다.
 	Files      *workspacefile.Service
@@ -139,8 +141,16 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	observers := revokeObservers{fileBroker}
 
 	var terminals httpapi.Terminals
+	var liveSessions httpapi.LiveSessions
 	if opts.Realtime {
 		relayFwd := &relayForwarder{}
+		liveService := livesession.New(livesession.Options{
+			Store:  store,
+			Auth:   authService,
+			Relay:  relayFwd,
+			Clock:  opts.Clock,
+			Logger: logger,
+		})
 		service, err := terminal.NewService(terminal.Options{
 			Store: store, Auth: authService, Connectors: router, Relay: relayFwd,
 			Clock: opts.Clock, Logger: logger, OpenTimeout: opts.OpenTimeout, Grace: opts.Grace, Tracer: opts.Tracer,
@@ -151,6 +161,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		trusted := opts.PublicOrigin
 		relay, err := realtime.New(realtime.Options{
 			Control:       service,
+			LiveControl:   liveService,
 			Connectors:    terminal.NewConnectorAuthenticator(connectorService),
 			AllowOrigin:   func(origin string) bool { return httpapi.OriginMatches(trusted, origin) },
 			Clock:         opts.Clock,
@@ -167,8 +178,9 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		sink.target = service
 		// Credential/Connector revoke를 Control이 관측하면 같은 Credential로 인증된 Terminal Data WSS도 함께 종료한다.
 		observers = append(observers, terminal.NewRevokeBridge(relay))
-		stack.Terminals, stack.Relay = service, relay
+		stack.Terminals, stack.Relay, stack.LiveSessions = service, relay, liveService
 		terminals = service
+		liveSessions = liveService
 	}
 
 	// Preview Gateway(preview role)와 PreviewSession use case(api role)는 같은 process에서 함께 조립한다. Gateway는 PostgreSQL을 모르고
@@ -212,6 +224,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		Terminals:    terminals,
 		Files:        files,
 		Previews:     previews,
+		LiveSessions: liveSessions,
 		PublicOrigin: opts.PublicOrigin,
 		Logger:       logger,
 		Metrics:      opts.HTTPMetrics,
@@ -238,6 +251,7 @@ func (c *controlStack) routes() routes {
 	r := routes{API: c.API, ConnectorControl: c.ConnectorControl, ConnectorFileData: c.FileBroker.Handler()}
 	if c.Relay != nil {
 		r.BrowserTerminal = c.Relay.BrowserHandler()
+		r.BrowserLive = c.Relay.LiveHandler()
 		r.ConnectorTerminalData = c.Relay.DataHandler()
 	}
 	if c.PreviewGateway != nil {
@@ -298,8 +312,13 @@ func (f *terminalSinkForwarder) HandleTerminalEvent(e connector.TerminalEvent) {
 	f.target.HandleTerminalEvent(e)
 }
 
-// relayForwarder는 조립 시점에 target이 정해지는 terminal.Relay다.
-type relayForwarder struct{ target terminal.Relay }
+type relayTarget interface {
+	terminal.Relay
+	livesession.LiveRelay
+}
+
+// relayForwarder는 조립 시점에 target이 정해지는 terminal.Relay 및 livesession.LiveRelay다.
+type relayForwarder struct{ target relayTarget }
 
 func (f *relayForwarder) Expect(e realtime.Expected) error { return f.target.Expect(e) }
 func (f *relayForwarder) Activate(id string, graceExpiresAt time.Time) error {
@@ -307,6 +326,15 @@ func (f *relayForwarder) Activate(id string, graceExpiresAt time.Time) error {
 }
 func (f *relayForwarder) Forget(id string)                      { f.target.Forget(id) }
 func (f *relayForwarder) Terminate(id string, end realtime.End) { f.target.Terminate(id, end) }
+func (f *relayForwarder) RegisterLive(liveSessionID, sourceTerminalSessionID, classID string) error {
+	return f.target.RegisterLive(liveSessionID, sourceTerminalSessionID, classID)
+}
+func (f *relayForwarder) TerminateLive(liveSessionID string, end realtime.End) {
+	f.target.TerminateLive(liveSessionID, end)
+}
+func (f *relayForwarder) SourceUsable(sourceTerminalSessionID string) bool {
+	return f.target.SourceUsable(sourceTerminalSessionID)
+}
 
 // fileSinkForwarder는 조립 시점에 target이 정해지는 connector.FileSink다.
 type fileSinkForwarder struct{ target connector.FileSink }

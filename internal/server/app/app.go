@@ -341,6 +341,7 @@ type routes struct {
 	ConnectorFileData http.Handler
 	// BrowserTerminal과 ConnectorTerminalData는 Terminal Relay의 WSS다(realtime role, 같은 process의 api role이 authority를 제공할 때만).
 	BrowserTerminal       http.Handler
+	BrowserLive           http.Handler
 	ConnectorTerminalData http.Handler
 	// ConnectorPreviewData는 PreviewSession별 Preview Data WSS다(preview role, 같은 process의 api role이 authority를 제공할 때만).
 	ConnectorPreviewData http.Handler
@@ -367,6 +368,9 @@ func applicationHandler(rt routes) http.Handler {
 	}
 	if rt.BrowserTerminal != nil {
 		mux.Handle("GET "+realtime.BrowserPath, rt.BrowserTerminal)
+	}
+	if rt.BrowserLive != nil {
+		mux.Handle("GET "+realtime.LivePath, rt.BrowserLive)
 	}
 	if rt.ConnectorTerminalData != nil {
 		mux.Handle("GET "+realtime.DataPath, rt.ConnectorTerminalData)

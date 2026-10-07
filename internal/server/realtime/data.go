@@ -290,19 +290,41 @@ func (r *Relay) dataLoop(s *session, d *dataConn, ws *websocket.Conn) (ended boo
 	}
 }
 
-// dataOutput은 PTY OUTPUT Binary frame을 현재 Browser attachment의 queue로 넘긴다. 본문을 해석하거나 기록하지 않는다.
-// attachment가 없으면 버린다. 단절된 동안의 OUTPUT은 저장하거나 재생하지 않는다(history 없음).
-// queue가 가득 차도 이 함수는 기다리지 않으므로 느린 Browser가 Connector output reader를 막지 못한다.
+// dataOutput은 PTY OUTPUT Binary frame을 현재 Browser attachment와 active LiveSession 학생들에게 fan-out한다.
+// 본문을 해석하거나 기록하지 않는다.
+// 단절된 동안의 OUTPUT은 저장하거나 재생하지 않는다(history 없음).
+// Terminal owner Browser가 detached여도 active LiveSession 학생들은 계속 OUTPUT을 수신한다.
+// queue가 가득 차도 이 함수는 기다리지 않으므로 느린 Browser나 학생이 Connector output reader를 막지 못한다.
 func (r *Relay) dataOutput(s *session, d *dataConn, data []byte) {
 	s.mu.Lock()
 	b := s.browser
 	current := s.data == d
+	live := s.liveSession
 	s.mu.Unlock()
-	if !current || b == nil {
+	if !current {
 		return
 	}
-	if err := b.p.send(websocket.BinaryMessage, data); errors.Is(err, errQueueFull) {
-		r.slowConsumer(s, b)
+	if b != nil {
+		if err := b.p.send(websocket.BinaryMessage, data); errors.Is(err, errQueueFull) {
+			r.slowConsumer(s, b)
+		}
+	}
+	if live != nil {
+		live.mu.Lock()
+		var subs []*liveSubscriber
+		if !live.ended && len(live.subscribers) > 0 {
+			subs = make([]*liveSubscriber, 0, len(live.subscribers))
+			for sub := range live.subscribers {
+				subs = append(subs, sub)
+			}
+		}
+		live.mu.Unlock()
+
+		for _, sub := range subs {
+			if err := sub.p.send(websocket.BinaryMessage, data); errors.Is(err, errQueueFull) {
+				r.slowLiveSubscriber(live, sub)
+			}
+		}
 	}
 }
 

@@ -120,6 +120,9 @@ func newTerminalEnv(t *testing.T, mods ...func(*stackOptions)) *terminalEnv {
 	mux.Handle("/api/v1/", routes.API)
 	mux.Handle("GET "+connectorwss.Path, routes.ConnectorControl)
 	mux.Handle("GET "+realtime.BrowserPath, routes.BrowserTerminal)
+	if routes.BrowserLive != nil {
+		mux.Handle("GET "+realtime.LivePath, routes.BrowserLive)
+	}
 	mux.Handle("GET "+realtime.DataPath, routes.ConnectorTerminalData)
 	e.server = httptest.NewServer(mux)
 	t.Cleanup(func() {

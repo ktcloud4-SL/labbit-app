@@ -203,6 +203,30 @@ type NewTerminalSession struct {
 	CreatedAt          time.Time
 }
 
+// LiveSession은 live_sessions row다.
+// Terminal/Live OUTPUT, transcript, queue 내용은 저장하지 않는다.
+type LiveSession struct {
+	ID                      uuid.UUID
+	OrganizationID          uuid.UUID
+	ClassID                 uuid.UUID
+	SourceTerminalSessionID uuid.UUID
+	InstructorUserID        uuid.UUID
+	CreatedAt               time.Time
+	// EndedAt은 nil이면 진행 중인 세션이다.
+	EndedAt   *time.Time
+	EndReason string
+}
+
+// NewLiveSession은 새로 생성할 LiveSession이다. 시각은 Application이 정해 전달한다.
+type NewLiveSession struct {
+	ID                      uuid.UUID
+	OrganizationID          uuid.UUID
+	ClassID                 uuid.UUID
+	SourceTerminalSessionID uuid.UUID
+	InstructorUserID        uuid.UUID
+	CreatedAt               time.Time
+}
+
 // 아래 New* 값은 trusted operator Bootstrap이 저장할 입력이다. created_at은 DB default를 사용한다.
 
 type NewOrganization struct {

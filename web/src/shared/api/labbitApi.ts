@@ -3,6 +3,7 @@ import type {
   ClassList,
   ClassMembershipList,
   CreateLabExecutionRequest,
+  CreateTerminalSessionRequest,
   LabExecution,
   LabSpec,
   LabSpecList,
@@ -11,7 +12,12 @@ import type {
   Me,
   Operation,
   OperationAccepted,
+  TerminalSession,
+  TerminalTargetList,
   VersionedLabSpec,
+  VersionedWorkspaceFileContent,
+  VersionedWorkspaceFileSaved,
+  WorkspaceFileTree,
 } from './contracts'
 import { request, requestWithMetadata } from './httpClient'
 
@@ -25,6 +31,18 @@ export const labbitQueryKeys = {
   labExecution: (labExecutionId: string) =>
     ['lab-executions', labExecutionId] as const,
   operation: (operationId: string) => ['operations', operationId] as const,
+  terminalTargets: (labInstanceId: string, generation: number) =>
+    ['lab-instances', labInstanceId, 'terminal-targets', generation] as const,
+  workspaceFileTree: (
+    labInstanceId: string,
+    generation: number,
+    path: string,
+  ) => ['lab-instances', labInstanceId, 'files', 'tree', generation, path] as const,
+  workspaceFile: (
+    labInstanceId: string,
+    generation: number,
+    path: string,
+  ) => ['lab-instances', labInstanceId, 'files', 'content', generation, path] as const,
 }
 
 export interface LabbitApi {
@@ -57,6 +75,42 @@ export interface LabbitApi {
     idempotencyKey: string,
   ): Promise<OperationAccepted>
   getOperation(operationId: string): Promise<Operation>
+  listTerminalTargets(labInstanceId: string): Promise<TerminalTargetList>
+  createTerminalSession(
+    labInstanceId: string,
+    input: CreateTerminalSessionRequest,
+  ): Promise<TerminalSession>
+  closeTerminalSession(terminalSessionId: string): Promise<void>
+  listWorkspaceFiles(
+    labInstanceId: string,
+    path?: string,
+  ): Promise<WorkspaceFileTree>
+  readWorkspaceFile(
+    labInstanceId: string,
+    path: string,
+  ): Promise<VersionedWorkspaceFileContent>
+  saveWorkspaceFile(
+    labInstanceId: string,
+    path: string,
+    content: string,
+    etag: string,
+  ): Promise<VersionedWorkspaceFileSaved>
+}
+
+function workspaceFileQuery(path: string, optional = false) {
+  if (optional && !path) return ''
+
+  const params = new URLSearchParams()
+  params.set('path', path)
+  return `?${params.toString()}`
+}
+
+function requiredEtag(headers: Headers) {
+  const etag = headers.get('etag')
+  if (!etag) {
+    throw new Error('Workspace File response is missing required ETag header.')
+  }
+  return etag
 }
 
 export const httpLabbitApi: LabbitApi = {
@@ -176,5 +230,68 @@ export const httpLabbitApi: LabbitApi = {
 
   getOperation(operationId) {
     return request<Operation>(`/operations/${encodeURIComponent(operationId)}`)
+  },
+
+  listTerminalTargets(labInstanceId) {
+    return request<TerminalTargetList>(
+      `/lab-instances/${encodeURIComponent(labInstanceId)}/terminal-targets`,
+    )
+  },
+
+  createTerminalSession(labInstanceId, input) {
+    return request<TerminalSession>(
+      `/lab-instances/${encodeURIComponent(labInstanceId)}/terminal-sessions`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    )
+  },
+
+  closeTerminalSession(terminalSessionId) {
+    return request<void>(
+      `/terminal-sessions/${encodeURIComponent(terminalSessionId)}`,
+      {
+        method: 'DELETE',
+      },
+    )
+  },
+
+  listWorkspaceFiles(labInstanceId, path = '') {
+    return request<WorkspaceFileTree>(
+      `/lab-instances/${encodeURIComponent(labInstanceId)}/files/tree${workspaceFileQuery(path, true)}`,
+    )
+  },
+
+  async readWorkspaceFile(labInstanceId, path) {
+    const response = await requestWithMetadata<{
+      path: string
+      content: string
+    }>(
+      `/lab-instances/${encodeURIComponent(labInstanceId)}/files/content${workspaceFileQuery(path)}`,
+    )
+
+    return {
+      file: response.data,
+      etag: requiredEtag(response.headers),
+    }
+  },
+
+  async saveWorkspaceFile(labInstanceId, path, content, etag) {
+    const response = await requestWithMetadata<{ path: string }>(
+      `/lab-instances/${encodeURIComponent(labInstanceId)}/files/content${workspaceFileQuery(path)}`,
+      {
+        method: 'PUT',
+        headers: {
+          'If-Match': etag,
+        },
+        body: JSON.stringify({ content }),
+      },
+    )
+
+    return {
+      file: response.data,
+      etag: requiredEtag(response.headers),
+    }
   },
 }

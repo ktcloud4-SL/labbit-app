@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -160,6 +160,50 @@ function createApi(overrides: Partial<LabbitApi> = {}): LabbitApi {
       },
     }),
     getOperation: async () => operationFixture,
+    listTerminalTargets: async () => ({
+      generation: 1,
+      workspaceVmKey: 'vm-control-opaque',
+      items: [
+        {
+          vmKey: 'vm-control-opaque',
+          role: 'control',
+          instanceIndex: 0,
+        },
+        {
+          vmKey: 'vm-worker-opaque',
+          role: 'worker',
+          instanceIndex: 0,
+        },
+      ],
+    }),
+    createTerminalSession: async () => ({
+      id: 'terminal-session-1',
+      generation: 1,
+      sessionToken: 'test-terminal-session-token',
+      tokenExpiresAt: '2026-10-03T00:00:00Z',
+    }),
+    closeTerminalSession: async () => {},
+    listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+      path,
+      items: [
+        {
+          name: 'README.md',
+          path: 'README.md',
+          kind: 'file',
+        },
+      ],
+    }),
+    readWorkspaceFile: async (_labInstanceId, path) => ({
+      file: {
+        path,
+        content: '# mock file\n',
+      },
+      etag: '"mock-file-1"',
+    }),
+    saveWorkspaceFile: async (_labInstanceId, path) => ({
+      file: { path },
+      etag: '"mock-file-2"',
+    }),
     ...overrides,
   }
 }
@@ -1558,13 +1602,600 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByText('파일')).toBeInTheDocument()
     expect(screen.getByText('Editor')).toBeInTheDocument()
     expect(screen.getByText('미리보기')).toBeInTheDocument()
-    expect(screen.getByText('Terminal / Live')).toBeInTheDocument()
+    expect(screen.getByText('Terminal')).toBeInTheDocument()
+    expect(await screen.findByRole('combobox', { name: 'VM' })).toHaveValue(
+      'vm-control-opaque',
+    )
+    expect(
+      screen.getByRole('button', { name: '터미널 연결' }),
+    ).toBeInTheDocument()
     expect(screen.getByText('강사')).toBeInTheDocument()
     expect(screen.getByText('사용 가능')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '← 수업 상세' })).toHaveAttribute(
       'href',
       '/classes/class-kubernetes-basic',
     )
+  })
+
+  it('Workspace File Tree에서 파일을 읽고 ETag 기반으로 저장한다', async () => {
+    const saveWorkspaceFile = vi.fn(
+      async (_labInstanceId: string, path: string) => ({
+        file: { path },
+        etag: '"file-v2"',
+      }),
+    )
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+          path,
+          items:
+            path === ''
+              ? [
+                  {
+                    name: 'README.md',
+                    path: 'README.md',
+                    kind: 'file',
+                  },
+                ]
+              : [],
+        }),
+        readWorkspaceFile: async (_labInstanceId, path) => ({
+          file: {
+            path,
+            content: '# Original\n',
+          },
+          etag: '"file-v1"',
+        }),
+        saveWorkspaceFile,
+      }),
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'README.md' }),
+    )
+
+    const editor = await screen.findByLabelText('파일 편집기')
+    expect(editor).toHaveValue('# Original\n')
+
+    fireEvent.change(editor, {
+      target: {
+        value: '# Updated\n',
+      },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '저장' }))
+
+    await waitFor(() => {
+      expect(saveWorkspaceFile).toHaveBeenCalledWith(
+        'lab-instance-heechul',
+        'README.md',
+        '# Updated\n',
+        '"file-v1"',
+      )
+    })
+
+    expect(screen.getByText('저장됨')).toBeInTheDocument()
+  })
+
+  it('Workspace File stale save는 덮어쓰지 않고 다시 읽기 UX를 표시한다', async () => {
+    const readWorkspaceFile = vi.fn(async (_labInstanceId: string, path: string) => ({
+      file: {
+        path,
+        content: '# Original\n',
+      },
+      etag: '"file-v1"',
+    }))
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+          path,
+          items: [
+            {
+              name: 'README.md',
+              path: 'README.md',
+              kind: 'file',
+            },
+          ],
+        }),
+        readWorkspaceFile,
+        saveWorkspaceFile: async () => {
+          throw new HttpError(412, {
+            type: 'about:blank',
+            title: 'Precondition Failed',
+            status: 412,
+            code: 'stale_revision',
+            requestId: 'req-stale',
+          })
+        },
+      }),
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'README.md' }),
+    )
+    const editor = await screen.findByLabelText('파일 편집기')
+    fireEvent.change(editor, {
+      target: {
+        value: '# My change\n',
+      },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '저장' }))
+
+    expect(
+      await screen.findByText(
+        '다른 변경이 먼저 저장되었습니다. 파일을 다시 읽고 변경 내용을 확인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: '파일 다시 읽기' }),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '파일 다시 읽기' }))
+
+    expect(confirm).toHaveBeenCalledWith(
+      '파일을 다시 읽으면 현재 수정본을 버립니다. 계속할까요?',
+    )
+    expect(readWorkspaceFile).toHaveBeenCalledTimes(1)
+    expect(screen.getByLabelText('파일 편집기')).toHaveValue('# My change\n')
+
+    confirm.mockRestore()
+  })
+
+  it('Workspace File 저장 결과를 알 수 없으면 자동 재저장하지 않고 다시 읽기 UX를 표시한다', async () => {
+    const saveWorkspaceFile = vi.fn(async () => {
+      throw new HttpError(503, {
+        type: 'about:blank',
+        title: 'Service Unavailable',
+        status: 503,
+        code: 'file_save_outcome_unknown',
+        requestId: 'req-outcome-unknown',
+      })
+    })
+    const readWorkspaceFile = vi.fn(async (_labInstanceId: string, path: string) => ({
+      file: {
+        path,
+        content: '# Original\n',
+      },
+      etag: '"file-v1"',
+    }))
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+          path,
+          items: [
+            {
+              name: 'README.md',
+              path: 'README.md',
+              kind: 'file',
+            },
+          ],
+        }),
+        readWorkspaceFile,
+        saveWorkspaceFile,
+      }),
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'README.md' }),
+    )
+    const editor = await screen.findByLabelText('파일 편집기')
+    fireEvent.change(editor, {
+      target: {
+        value: '# Maybe saved\n',
+      },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '저장' }))
+
+    expect(
+      await screen.findByText(
+        '저장 결과를 확인할 수 없습니다. 자동으로 다시 저장하지 말고 파일을 다시 읽어 확인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: '파일 다시 읽기' }),
+    ).toBeInTheDocument()
+    expect(saveWorkspaceFile).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: '파일 다시 읽기' }))
+
+    expect(confirm).toHaveBeenCalledWith(
+      '파일을 다시 읽으면 현재 수정본을 버립니다. 계속할까요?',
+    )
+    expect(readWorkspaceFile).toHaveBeenCalledTimes(1)
+    expect(screen.getByLabelText('파일 편집기')).toHaveValue('# Maybe saved\n')
+
+    confirm.mockRestore()
+  })
+
+  it('Workspace File 저장 중에는 편집·파일/폴더 이동·SPA 이동·logout을 막는다', async () => {
+    let resolveSave!: (value: { file: { path: string }; etag: string }) => void
+    const saveWorkspaceFile = vi.fn(
+      async () =>
+        new Promise<{ file: { path: string }; etag: string }>((resolve) => {
+          resolveSave = resolve
+        }),
+    )
+
+    const logout = vi.fn(async () => {})
+    const confirm = vi.spyOn(window, 'confirm')
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    const router = renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+          path,
+          items:
+            path === ''
+              ? [
+                  {
+                    name: 'src',
+                    path: 'src',
+                    kind: 'directory',
+                  },
+                ]
+              : [
+                  {
+                    name: 'README.md',
+                    path: 'src/README.md',
+                    kind: 'file',
+                  },
+                  {
+                    name: 'second.txt',
+                    path: 'src/second.txt',
+                    kind: 'file',
+                  },
+                ],
+        }),
+        readWorkspaceFile: async (_labInstanceId, path) => ({
+          file: {
+            path,
+            content: '# Original\n',
+          },
+          etag: '"file-v1"',
+        }),
+        saveWorkspaceFile,
+        logout,
+      }),
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'src' }))
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'README.md' }),
+    )
+    const editor = await screen.findByLabelText('파일 편집기')
+    fireEvent.change(editor, {
+      target: {
+        value: '# Saving\n',
+      },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '저장' }))
+
+    expect(await screen.findByRole('button', { name: '저장 중...' })).toBeDisabled()
+    expect(screen.getByLabelText('파일 편집기')).toBeDisabled()
+    expect(screen.getByRole('button', { name: '← 상위 폴더' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'second.txt' })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: '← 상위 폴더' }))
+    fireEvent.click(screen.getByRole('button', { name: 'second.txt' }))
+    fireEvent.click(screen.getByRole('link', { name: '← 수업 상세' }))
+    fireEvent.click(screen.getByRole('button', { name: '로그아웃' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(
+        '/classes/class-kubernetes-basic/lab',
+      )
+    })
+    expect(screen.getByLabelText('파일 편집기')).toHaveValue('# Saving\n')
+    expect(confirm).not.toHaveBeenCalled()
+    expect(alert).toHaveBeenCalledWith('파일 저장이 끝난 뒤 로그아웃해 주세요.')
+    expect(logout).not.toHaveBeenCalled()
+
+    resolveSave({
+      file: { path: 'src/README.md' },
+      etag: '"file-v2"',
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('저장됨')).toBeInTheDocument()
+    })
+
+    confirm.mockRestore()
+    alert.mockRestore()
+  })
+
+  it('dirty Workspace에서 수동 logout을 취소하면 API를 호출하지 않는다', async () => {
+    const logout = vi.fn(async () => {})
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({ logout }),
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'README.md' }))
+    fireEvent.change(await screen.findByLabelText('파일 편집기'), {
+      target: { value: '# Unsaved before logout\n' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '로그아웃' }))
+
+    expect(confirm).toHaveBeenCalledWith(
+      '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 로그아웃할까요?',
+    )
+    expect(logout).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('파일 편집기')).toHaveValue(
+      '# Unsaved before logout\n',
+    )
+
+    confirm.mockRestore()
+  })
+
+  it('Workspace File에 저장되지 않은 변경이 있으면 다른 파일 이동 전에 확인한다', async () => {
+    const readWorkspaceFile = vi.fn(async (_labInstanceId: string, path: string) => ({
+      file: {
+        path,
+        content: path === 'README.md' ? '# Original\n' : 'second file\n',
+      },
+      etag: '"file-v1"',
+    }))
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+          path,
+          items: [
+            {
+              name: 'README.md',
+              path: 'README.md',
+              kind: 'file',
+            },
+            {
+              name: 'second.txt',
+              path: 'second.txt',
+              kind: 'file',
+            },
+          ],
+        }),
+        readWorkspaceFile,
+      }),
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'README.md' }),
+    )
+    const editor = await screen.findByLabelText('파일 편집기')
+    fireEvent.change(editor, {
+      target: {
+        value: '# Unsaved\n',
+      },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'second.txt' }))
+
+    expect(confirm).toHaveBeenCalledWith(
+      '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 다른 파일로 이동할까요?',
+    )
+    expect(readWorkspaceFile).toHaveBeenCalledTimes(1)
+    expect(screen.getByLabelText('파일 편집기')).toHaveValue('# Unsaved\n')
+
+    confirm.mockRestore()
+  })
+
+  it('Workspace File에 저장되지 않은 변경이 있으면 SPA 페이지 이동도 확인한다', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+          path,
+          items: [
+            {
+              name: 'README.md',
+              path: 'README.md',
+              kind: 'file',
+            },
+          ],
+        }),
+        readWorkspaceFile: async (_labInstanceId, path) => ({
+          file: {
+            path,
+            content: '# Original\n',
+          },
+          etag: '"file-v1"',
+        }),
+      }),
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'README.md' }),
+    )
+    const editor = await screen.findByLabelText('파일 편집기')
+    fireEvent.change(editor, {
+      target: {
+        value: '# Unsaved\n',
+      },
+    })
+
+    fireEvent.click(screen.getByRole('link', { name: '← 수업 상세' }))
+
+    await waitFor(() => {
+      expect(confirm).toHaveBeenCalledWith(
+        '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 페이지를 이동할까요?',
+      )
+    })
+    expect(screen.getByRole('region', { name: 'Lab Workspace Shell' })).toBeInTheDocument()
+    expect(screen.getByLabelText('파일 편집기')).toHaveValue('# Unsaved\n')
+
+    confirm.mockRestore()
+  })
+
+  it('Workspace File Save 401도 Editor에 머물지 않고 sessionExpired Login으로 올린다', async () => {
+    const confirm = vi.spyOn(window, 'confirm')
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async (_labInstanceId, path = '') => ({
+          path,
+          items: [
+            {
+              name: 'README.md',
+              path: 'README.md',
+              kind: 'file',
+            },
+          ],
+        }),
+        readWorkspaceFile: async (_labInstanceId, path) => ({
+          file: {
+            path,
+            content: '# Original\n',
+          },
+          etag: '"file-v1"',
+        }),
+        saveWorkspaceFile: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'README.md' }),
+    )
+    const editor = await screen.findByLabelText('파일 편집기')
+    fireEvent.change(editor, {
+      target: {
+        value: '# Changed\n',
+      },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '저장' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(confirm).not.toHaveBeenCalled()
+
+    confirm.mockRestore()
+  })
+
+  it('Workspace File API 401은 Editor panel에 숨기지 않고 sessionExpired Login으로 올린다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listWorkspaceFiles: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('Terminal target 503은 Workspace 전체를 가리지 않고 panel에서 다시 불러올 수 있다', async () => {
+    const listTerminalTargets = vi
+      .fn()
+      .mockRejectedValueOnce(new HttpError(503))
+      .mockResolvedValue({
+        generation: 1,
+        workspaceVmKey: 'vm-control-opaque',
+        items: [
+          {
+            vmKey: 'vm-control-opaque',
+            role: 'control',
+            instanceIndex: 0,
+          },
+        ],
+      })
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listTerminalTargets,
+      }),
+    )
+
+    expect(
+      await screen.findByText(
+        '터미널 연결 경로를 지금 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: 'Lab Workspace Shell' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'VM 목록 다시 불러오기' }),
+    )
+
+    expect(await screen.findByRole('combobox', { name: 'VM' })).toHaveValue(
+      'vm-control-opaque',
+    )
+    expect(listTerminalTargets).toHaveBeenCalledTimes(2)
+  })
+
+  it('Terminal target 401은 resume credential을 지우고 global sessionExpired Login으로 올린다', async () => {
+    const removeItem = vi.spyOn(Storage.prototype, 'removeItem')
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listTerminalTargets: async () => {
+          throw new HttpError(401)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Labbit에 로그인' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '세션이 만료되었거나 더 이상 유효하지 않습니다. 다시 로그인해 주세요.',
+      ),
+    ).toBeInTheDocument()
+    expect(removeItem).toHaveBeenCalledWith('labbit.terminal.resume.v1')
+
+    removeItem.mockRestore()
+  })
+
+  it('Terminal target 403은 Workspace를 유지한 채 Terminal panel 오류로 표시한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/lab',
+      createApi({
+        listTerminalTargets: async () => {
+          throw new HttpError(403)
+        },
+      }),
+    )
+
+    expect(
+      await screen.findByText(
+        '현재 계정에는 이 터미널을 사용할 권한이 없습니다.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: 'Lab Workspace Shell' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'VM 목록 다시 불러오기' }),
+    ).toBeInTheDocument()
   })
 
   it('Workspace URL에서 내 LabInstance가 없으면 환경 미할당 상태를 안내한다', async () => {

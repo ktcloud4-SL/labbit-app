@@ -1,0 +1,32 @@
+미전송 문의 초안 — 사용자 승인 전 KT 지원팀에 접수하지 않음
+
+제목: [Platform @D / DX-M1] 목록에 존재하는 테스트 Tier 2개의 API·포털 삭제 실패
+
+2026-10-07 DX-M1에서 생성한 추가 Custom Tier 2개를 삭제할 수 없어 확인을 요청드립니다.
+
+1. Lab Tier
+이름: labbit-lbt145-control-df3cb3919-g1-bf33bc516a-lab-tier
+NSM networkId: d1c45e11-f00b-4ec1-9f92-2716c2afa215
+Nova NIC refId: 3cd01fd7-36f8-4f7e-a32e-e968a6851c99
+CIDR: 172.25.240.0/24
+VLAN: 202
+
+2. Management Tier
+이름: labbit-lbt145-control-df3cb3919-g1-bf33bc516a-workspace-management-tier
+NSM networkId: 1dba8bfa-0cf0-494a-813b-35770b1e5c6c
+CIDR: 172.25.241.0/24
+VLAN: 1578
+
+관측 결과
+- POST /d1/nsm/v1/network에서 생성된 networkId를 저장했습니다.
+- GET /d1/nsm/v1/network?networkType=ALL의 전체 목록에 두 ID가 ACTIVE로 존재하며, networkId 필터 조회도 각각 정확히 1개를 반환합니다.
+- 문서화된 DELETE /d1/nsm/v1/network/{networkId}는 404와 network could not found를 반환합니다.
+- 사용자 재로그인 후 DX-M1 콘솔 Tier 화면에도 두 자원의 이름·CIDR이 표시됩니다.
+- 두 자원 각각을 선택하고 삭제를 확인했으나 모두 Tier 삭제 실패 / 해당 Tier를 조회할 수 없습니다. 오류를 받았습니다.
+- 테스트 Lab VM과 임시 Connector VM, Root Volume, Firewall, public IP, port-forward, imported keypair는 모두 삭제를 확인했습니다. Server·Volume은 정확한 ID GET 404로 확인했습니다.
+- 2026-10-07 20:55:10 KST 전체 조회에서 테스트 소유 잔여는 Tier 2개뿐이며 기존 공유 Tier 3개는 유지됐습니다.
+
+요청 사항
+두 NSM networkId의 조회·삭제 상태와 실제 네트워크 참조의 정합성, 삭제를 막는 연결/내부 상태를 확인해 주세요. 삭제 API의 정확한 사용 방법 또는 위 테스트 Tier 2개만 정리할 방법을 안내해 주세요. 기존 DMZ·Private 및 다른 공유 자원은 정리 대상이 아닙니다.
+
+인증 토큰·비밀번호·개인키는 첨부하지 않습니다. 필요한 프로젝트 확인은 인증된 고객 계정으로 진행할 수 있습니다.

@@ -19,6 +19,12 @@ type ExitStatusProvider interface {
 	ExitStatus() (exitCode *int, exited bool)
 }
 
+// TerminationProvider waits for the remote shell result after output is drained.
+// A missing exit code with an error identifies a lost SSH channel.
+type TerminationProvider interface {
+	WaitTermination() (exitCode *int, err error)
+}
+
 // MockPTY 는 테스트 및 시뮬레이션을 위한 In-memory Echo/Shell PTY 구현체입니다.
 type MockPTY struct {
 	mu       sync.Mutex

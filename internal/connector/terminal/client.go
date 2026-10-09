@@ -57,8 +57,10 @@ type DataWSSClient struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	closed bool
-	mu     sync.Mutex
+	closed     bool
+	mu         sync.Mutex
+	connectMu  sync.Mutex
+	streamOnce sync.Once
 }
 
 // NewDataWSSClient 는 지정된 설정과 세션에 대한 데이터 스트리머를 생성합니다.
@@ -108,6 +110,18 @@ func readBoundedMessage(ws *websocket.Conn, maxText int64) (kind int, data []byt
 // DialAndAttach 는 Relay 로 WebSocket 연결을 맺고, ATTACH 핸드셰이크 및 응답 correlation 검증을 완료한 후
 // 세션에 활성 데이터 연결을 바인딩합니다. 실패 시 연결을 닫고 에러를 반환합니다.
 func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
+	c.connectMu.Lock()
+	defer c.connectMu.Unlock()
+	ctx, cancel := context.WithTimeout(ctx, c.config.DialTimeout)
+	defer cancel()
+	stopClientCancel := context.AfterFunc(c.ctx, cancel)
+	defer stopClientCancel()
+	if c.ctx.Err() != nil {
+		return ErrSessionClosed
+	}
+	if err := c.session.claimDataClient(c); err != nil {
+		return err
+	}
 	if c.config.EndpointURL == "" {
 		return errors.New("terminal data wss endpoint URL is empty")
 	}
@@ -155,6 +169,8 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 		}
 		return fmt.Errorf("dial failed: %w", err)
 	}
+	stopSetupClose := context.AfterFunc(ctx, func() { _ = conn.Close() })
+	defer stopSetupClose()
 
 	// Subprotocol 협상 결과 검증 (Reviewer 3번 지적 사항)
 	if sub := conn.Subprotocol(); sub != protocol.SubprotocolTerminalData {
@@ -164,7 +180,14 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 
 	// Connection-wide 읽기 한도 설정 (PTY Binary 4 MiB 상한 허용)
 	conn.SetReadLimit(MaxBinaryMessageSize)
+	c.mu.Lock()
+	if c.closed {
+		c.mu.Unlock()
+		_ = conn.Close()
+		return ErrSessionClosed
+	}
 	c.conn = conn
+	c.mu.Unlock()
 
 	// 1. TERMINAL_DATA_ATTACH 핸드셰이크 발송
 	attachMsgID := generateUUID()
@@ -196,6 +219,12 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 	msgType, data, err := readBoundedMessage(c.conn, protocol.MaxJSONMessageSize)
 	if err != nil {
 		_ = c.conn.Close()
+		if c.session.GetStatus() == StatusClosed {
+			return ErrSessionClosed
+		}
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		return fmt.Errorf("failed to read ATTACHED response: %w", err)
 	}
 	_ = c.conn.SetReadDeadline(time.Time{})
@@ -248,11 +277,14 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 		return fmt.Errorf("invalid attached payload: historyAvailable must be false")
 	}
 
+	if !stopSetupClose() || ctx.Err() != nil {
+		_ = conn.Close()
+		return fmt.Errorf("terminal attach canceled: %w", ctx.Err())
+	}
 	// 3. 세션에 WebSocket 연결 바인딩 (CLOSED 세션 거절 시 새 연결 즉시 정리)
-	_, attachErr := c.session.AttachDataConn(c.conn)
+	_, attachErr := c.session.attachDataConn(conn, c)
 	if attachErr != nil {
 		_ = c.conn.Close()
-		c.conn = nil
 		return fmt.Errorf("failed to attach data conn to session: %w", attachErr)
 	}
 	return nil
@@ -260,7 +292,7 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context) error {
 
 // StartStreaming 은 Attach 성공 후 WebSocket 과 PTY 간의 양방향 수신 루프 및 자동 재연결 오너를 시작합니다.
 func (c *DataWSSClient) StartStreaming() {
-	go c.runStreaming()
+	c.streamOnce.Do(func() { go c.runStreaming() })
 }
 
 // ConnectAndStream 은 호환성을 위해 DialAndAttach 후 StartStreaming 을 수행합니다.
@@ -427,8 +459,14 @@ func validateBaseEnvelope(env protocol.BaseEnvelope) error {
 
 // pumpFromWebSocketToPTY 는 WebSocket 수신 메시지를 PTY 또는 제어 프레임으로 전달합니다.
 func (c *DataWSSClient) pumpFromWebSocketToPTY() {
+	c.mu.Lock()
+	conn := c.conn
+	c.mu.Unlock()
+	if conn == nil {
+		return
+	}
 	defer func() {
-		c.session.DetachDataConn(c.conn)
+		c.session.DetachDataConn(conn)
 	}()
 
 	for {
@@ -440,14 +478,14 @@ func (c *DataWSSClient) pumpFromWebSocketToPTY() {
 		default:
 		}
 
-		msgType, payload, err := readBoundedMessage(c.conn, protocol.MaxJSONMessageSize)
+		msgType, payload, err := readBoundedMessage(conn, protocol.MaxJSONMessageSize)
 		if err != nil {
 			if errors.Is(err, errJSONTooLarge) {
 				// 계약(1009): 1 MiB 초과 Text는 메모리에 적재하지 않고 WebSocket Close 1009 로 연결 종료
-				_ = c.conn.WriteControl(websocket.CloseMessage,
+				_ = conn.WriteControl(websocket.CloseMessage,
 					websocket.FormatCloseMessage(websocket.CloseMessageTooBig, "message too big"),
 					time.Now().Add(time.Second))
-				_ = c.conn.Close()
+				_ = conn.Close()
 			}
 			// 연결 끊김 또는 1009 종료 -> 세션 Detach 및 재연결/유예 루프로 전환
 			return
@@ -456,11 +494,9 @@ func (c *DataWSSClient) pumpFromWebSocketToPTY() {
 		switch msgType {
 		case websocket.BinaryMessage:
 			// 실제 터미널 stdin 데이터 -> PTY 로 쓰기
-			if c.session.PTY != nil {
-				_, writeErr := c.session.PTY.Write(payload)
-				if writeErr != nil {
-					return
-				}
+			if writeErr := c.session.WriteInput(payload); writeErr != nil {
+				c.session.Close(protocol.TerminalReasonSSHDisconnected, nil, writeErr)
+				return
 			}
 
 		case websocket.TextMessage:
@@ -496,7 +532,10 @@ func (c *DataWSSClient) pumpFromWebSocketToPTY() {
 					c.sendError(protocol.TerminalErrProtocolError, "invalid resize dimensions: cols and rows must be > 0", false)
 					continue
 				}
-				_ = c.session.Resize(resizeMsg.Payload.Cols, resizeMsg.Payload.Rows)
+				if err := c.session.Resize(resizeMsg.Payload.Cols, resizeMsg.Payload.Rows); err != nil {
+					c.session.Close(protocol.TerminalReasonSSHDisconnected, nil, err)
+					return
+				}
 
 			case protocol.MessageTypeTerminalDataClose:
 				var closeMsg protocol.TerminalDataCloseMessage

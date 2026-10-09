@@ -35,7 +35,7 @@ type SSHPTY struct {
 	closeChannel func() error
 	session      *ssh.Session
 	stdin        io.WriteCloser
-	stdout       io.Reader
+	stdout       io.ReadCloser
 
 	mu       sync.Mutex
 	resizeMu sync.Mutex
@@ -86,13 +86,14 @@ func newSSHSessionPTY(session *ssh.Session, client *ssh.Client, closeChannel fun
 		return nil, fmt.Errorf("failed to open stdin pipe: %w", err)
 	}
 
-	stdout, err := session.StdoutPipe()
-	if err != nil {
-		_ = session.Close()
-		return nil, fmt.Errorf("failed to open stdout pipe: %w", err)
-	}
+	// Both SSH output streams belong to the terminal. Pipe backpressure keeps
+	// memory bounded, and Wait drains both streams before reporting termination.
+	stdout, output := io.Pipe()
+	session.Stdout, session.Stderr = output, output
 
 	if err := session.Shell(); err != nil {
+		_ = stdout.Close()
+		_ = output.Close()
 		_ = session.Close()
 		return nil, fmt.Errorf("failed to start shell: %w", err)
 	}
@@ -111,6 +112,7 @@ func newSSHSessionPTY(session *ssh.Session, client *ssh.Client, closeChannel fun
 	go func() {
 		defer close(pty.waitDone)
 		waitErr := session.Wait()
+		_ = output.Close()
 		// A remote shell exit also releases the managed channel reservation.
 		if closeChannel != nil {
 			_ = closeChannel()
@@ -131,6 +133,13 @@ func newSSHSessionPTY(session *ssh.Session, client *ssh.Client, closeChannel fun
 	}()
 
 	return pty, nil
+}
+
+func (p *SSHPTY) WaitTermination() (*int, error) {
+	<-p.waitDone
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.exitCode, p.waitErr
 }
 
 // ExitStatus 는 관측된 원격 프로세스의 종료 코드를 반환합니다.
@@ -170,12 +179,13 @@ func (p *SSHPTY) Resize(cols, rows int) error {
 		p.mu.Unlock()
 		return io.ErrClosedPipe
 	}
-	p.cols = cols
-	p.rows = rows
 	p.mu.Unlock()
 	if err := p.session.WindowChange(rows, cols); err != nil {
 		return fmt.Errorf("window-change failed: %w", err)
 	}
+	p.mu.Lock()
+	p.cols, p.rows = cols, rows
+	p.mu.Unlock()
 	return nil
 }
 
@@ -189,6 +199,9 @@ func (p *SSHPTY) Close() error {
 	p.closed = true
 	p.mu.Unlock()
 
+	if p.stdout != nil {
+		_ = p.stdout.Close()
+	}
 	// The manager owns shared channel cleanup and must be able to close the
 	// transport even when a channel packet write is blocked.
 	if p.closeChannel != nil {
@@ -221,6 +234,9 @@ func NewManagedSSHPTY(ctx context.Context, manager *vmaccess.Manager, target vma
 		return setupErr
 	})
 	if err != nil {
+		if pty != nil {
+			_ = pty.Close()
+		}
 		return nil, err
 	}
 	return pty, nil

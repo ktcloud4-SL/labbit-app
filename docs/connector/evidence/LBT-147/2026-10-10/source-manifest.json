@@ -1,0 +1,82 @@
+{
+  "testedSource": "b0b5686d010f5c247ac007b76d373fbec109ea0f",
+  "baseMain": "6d675c74bff11f481d247267faefd4ce960dcd38",
+  "files": [
+    {
+      "path": "internal/connector/app/app.go",
+      "blobOID": "20f4e74288ec1401fc0b59588a6083bfd501bf55"
+    },
+    {
+      "path": "internal/connector/app/app_test.go",
+      "blobOID": "00892538554c58a44de70996b765144651691337"
+    },
+    {
+      "path": "internal/connector/app/main_integration_test.go",
+      "blobOID": "20819df4bf9d619ade4b58d25c68b071efce55a5"
+    },
+    {
+      "path": "internal/connector/app/runtime_provider.go",
+      "blobOID": "723fa6f54738fca13f819ad966a3c2a5ec89ff77"
+    },
+    {
+      "path": "internal/connector/app/vm_access.go",
+      "blobOID": "bcf9d4a2705d3e325c013da8ced12bc8b6fb6d55"
+    },
+    {
+      "path": "internal/connector/app/vm_access_test.go",
+      "blobOID": "b3c7875065370e91127379c2f6ad9740868be471"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target.go",
+      "blobOID": "abc3e2824d19b529e99d13fa49bf7a6eb9d61f47"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target_test.go",
+      "blobOID": "6277ef07b242db1d3cfa050655af1dd95fac7add"
+    },
+    {
+      "path": "internal/connector/provider/openstack/vm_access_integration_test.go",
+      "blobOID": "284362b200a3af751a7614aa799e259c4818cf69"
+    },
+    {
+      "path": "internal/connector/terminal/session.go",
+      "blobOID": "1495544c11fe9126f28a5e62822d41484cb15d05"
+    },
+    {
+      "path": "internal/connector/terminal/ssh_pty.go",
+      "blobOID": "24c6113f744525890b153e793ce9ab52fbde62e7"
+    },
+    {
+      "path": "internal/connector/terminal/terminal_test.go",
+      "blobOID": "b18db1d9cd8abe27e42b8969346269109174a854"
+    },
+    {
+      "path": "internal/connector/vmaccess/access.go",
+      "blobOID": "afeb73873e4bc40bf8e39705090b1d93738f9380"
+    },
+    {
+      "path": "internal/connector/vmaccess/access_test.go",
+      "blobOID": "364466601b4a54d17c34fd4afd916c7c65b09fa2"
+    },
+    {
+      "path": "internal/connector/vmaccess/cancellation_test.go",
+      "blobOID": "5d288430bbde26f2d7060dd501e90d18f227e511"
+    },
+    {
+      "path": "internal/connector/wss/handler.go",
+      "blobOID": "5cef151e54471184008b1fb9a91b5eb45563c712"
+    },
+    {
+      "path": "internal/connector/wss/vm_access_test.go",
+      "blobOID": "da99ef017fd23eed09e7d0ef5bad0369ba699754"
+    },
+    {
+      "path": "runtime/README.md",
+      "blobOID": "63b757dcce44aa58226b34b305c2d5fe646c9ac2"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "blobOID": "952da7064112ee0669628deb9e88068d94be40d0"
+    }
+  ]
+}

@@ -363,7 +363,7 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 			if err != nil {
 				endedMsg.Payload.Error = &protocol.SafeError{
 					Code:    "SESSION_ERROR",
-					Message: err.Error(),
+					Message: "Terminal SSH channel ended",
 				}
 			}
 			s.writeMu.Lock()

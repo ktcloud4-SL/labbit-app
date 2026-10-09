@@ -15,6 +15,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/wss"
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"golang.org/x/crypto/ssh"
@@ -25,6 +26,7 @@ type ConnectorApp struct {
 	Handler         *wss.Handler
 	TerminalManager *terminal.SessionManager
 	PTYFactory      wss.PTYFactoryFunc
+	VMAccess        *vmaccess.Manager
 }
 
 // BuildConnector 는 환경변수 및 Provider를 바탕으로 실제 Production 컴포넌트(SessionManager, SSHPTY, TerminalDataWSS)를 Wiring합니다.
@@ -168,11 +170,33 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 
 	handler := wss.NewHandler(p, sender)
 	handler.SetTerminalManager(sessionMgr, ptyFactory, termCfg)
+	var accessManager *vmaccess.Manager
+	if _, ok := p.(vmaccess.Resolver); isProduction && !ok {
+		return nil, fmt.Errorf("Provider VM access resolver is required in production")
+	}
+	if resolver, ok := p.(vmaccess.Resolver); ok {
+		idleTimeout, err := sshIdleTimeoutFromEnvironment()
+		if err != nil {
+			return nil, err
+		}
+		accessManager = vmaccess.NewManager(resolver, vmaccess.Config{IdleTimeout: idleTimeout})
+		// The inherited factory has no LabInstance/generation parameters. Once
+		// VM access is enabled, fail closed for callers of that legacy boundary.
+		ptyFactory = func(string, string, int, int) (terminal.PTYChannel, error) {
+			return nil, vmaccess.ErrInvalidTarget
+		}
+		handler = wss.NewHandler(&accessLifecycleProvider{Provider: p, manager: accessManager}, sender)
+		handler.SetTerminalManager(sessionMgr, ptyFactory, termCfg)
+		handler.SetVMPTYFactory(func(ctx context.Context, target vmaccess.Target, cols, rows int) (terminal.PTYChannel, error) {
+			return terminal.NewManagedSSHPTY(ctx, accessManager, target, cols, rows)
+		})
+	}
 
 	return &ConnectorApp{
 		Handler:         handler,
 		TerminalManager: sessionMgr,
 		PTYFactory:      ptyFactory,
+		VMAccess:        accessManager,
 	}, nil
 }
 
@@ -224,6 +248,9 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
 		return err
 	}
 	defer connectorApp.TerminalManager.CloseAll("SERVICE_RESTARTING")
+	if connectorApp.VMAccess != nil {
+		defer connectorApp.VMAccess.Close()
+	}
 	handler := connectorApp.Handler
 	handler.SetOnError(func(error) {
 		logger.Warn("Connector Control 메시지 처리 실패", "connector_id", connectorID)

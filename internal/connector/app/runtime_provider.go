@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -96,6 +97,18 @@ func (p *lazyProvider) ResolveServerAddress(ctx context.Context, targetVmKey, se
 		return "", errProviderInitialization
 	}
 	return resolver.ResolveServerAddress(ctx, targetVmKey, serverID)
+}
+
+func (p *lazyProvider) ResolveVMAccess(ctx context.Context, target vmaccess.Target) (vmaccess.Endpoint, error) {
+	initialized, err := p.get(ctx)
+	if err != nil {
+		return vmaccess.Endpoint{}, err
+	}
+	resolver, ok := initialized.(vmaccess.Resolver)
+	if !ok {
+		return vmaccess.Endpoint{}, errProviderInitialization
+	}
+	return resolver.ResolveVMAccess(ctx, target)
 }
 
 func (p *lazyProvider) SSHHostKeyCallback(ctx context.Context, serverID string) (ssh.HostKeyCallback, error) {

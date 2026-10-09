@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
@@ -29,10 +31,11 @@ type SSHConfig struct {
 
 // SSHPTY는 실제 SSH 세션과 PTY 채널을 래핑하여 PTYChannel 인터페이스를 구현합니다.
 type SSHPTY struct {
-	client  *ssh.Client
-	session *ssh.Session
-	stdin   io.WriteCloser
-	stdout  io.Reader
+	client       *ssh.Client
+	closeChannel func() error
+	session      *ssh.Session
+	stdin        io.WriteCloser
+	stdout       io.Reader
 
 	mu       sync.Mutex
 	cols     int
@@ -53,6 +56,10 @@ func NewSSHPTY(client *ssh.Client, cols, rows int) (*SSHPTY, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ssh session: %w", err)
 	}
+	return newSSHSessionPTY(session, client, nil, cols, rows)
+}
+
+func newSSHSessionPTY(session *ssh.Session, client *ssh.Client, closeChannel func() error, cols, rows int) (*SSHPTY, error) {
 
 	modes := ssh.TerminalModes{
 		ssh.ECHO:          1,
@@ -90,18 +97,23 @@ func NewSSHPTY(client *ssh.Client, cols, rows int) (*SSHPTY, error) {
 	}
 
 	pty := &SSHPTY{
-		client:   client,
-		session:  session,
-		stdin:    stdin,
-		stdout:   stdout,
-		cols:     cols,
-		rows:     rows,
-		waitDone: make(chan struct{}),
+		client:       client,
+		closeChannel: closeChannel,
+		session:      session,
+		stdin:        stdin,
+		stdout:       stdout,
+		cols:         cols,
+		rows:         rows,
+		waitDone:     make(chan struct{}),
 	}
 
 	go func() {
 		defer close(pty.waitDone)
 		waitErr := session.Wait()
+		// A remote shell exit also releases the managed channel reservation.
+		if closeChannel != nil {
+			_ = closeChannel()
+		}
 		pty.mu.Lock()
 		defer pty.mu.Unlock()
 		pty.waitErr = waitErr
@@ -188,7 +200,28 @@ func (p *SSHPTY) Close() error {
 			errs = append(errs, err)
 		}
 	}
+	if p.closeChannel != nil {
+		_ = p.closeChannel()
+	}
 	return errors.Join(errs...)
+}
+
+// NewManagedSSHPTY opens an independent PTY on a validated shared VM transport.
+func NewManagedSSHPTY(ctx context.Context, manager *vmaccess.Manager, target vmaccess.Target, cols, rows int) (PTYChannel, error) {
+	channel, err := manager.OpenSession(ctx, target)
+	if err != nil {
+		return nil, err
+	}
+	var pty *SSHPTY
+	err = channel.Setup(ctx, func(session *ssh.Session) error {
+		var setupErr error
+		pty, setupErr = newSSHSessionPTY(session, nil, channel.Close, cols, rows)
+		return setupErr
+	})
+	if err != nil {
+		return nil, err
+	}
+	return pty, nil
 }
 
 // DialSSHPTY는 지정된 주소로 SSH를 연결하고 새 SSHPTY를 반환합니다.

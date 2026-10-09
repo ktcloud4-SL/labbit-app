@@ -3,6 +3,7 @@ package openstackprovider
 import (
 	"context"
 	"errors"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"net"
 	"net/http"
 	"os"
@@ -41,6 +42,34 @@ func TestTerminalTargetRejectsInvalidInputsBeforeCloudLookup(t *testing.T) {
 	}
 	if _, err := a.SSHHostKeyCallback(context.Background(), ""); err == nil {
 		t.Fatal("empty server ID accepted for host-key verification")
+	}
+}
+
+func TestVMAccessRejectsMismatchedEnvelopeBeforeManagementLookup(t *testing.T) {
+	for _, kind := range []string{"other-lab", "stale-generation", "future-generation"} {
+		t.Run(kind, func(t *testing.T) {
+			a := newTestAdapter(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/compute/v2/servers/server-1" {
+					t.Errorf("mismatched envelope reached NIC lookup: %s", r.URL.Path)
+					w.WriteHeader(500)
+					return
+				}
+				writeJSON(t, w, 200, map[string]any{"server": servers.Server{ID: "server-1", TenantID: "project-1", Status: "ACTIVE", Name: provisionBaseName("lab-1", 2) + "-workspace", Metadata: map[string]string{"labbit_lab_instance_id": "lab-1", "labbit_generation": "2", "labbit_operation_id": "op-1", "labbit_vm_key": "workspace"}}})
+			}))
+			a.provision.ProjectID, a.provision.ManagementNetworkID = "project-1", "management"
+			target := vmaccess.Target{LabInstanceID: "lab-1", Generation: 2, VMKey: "workspace", ServerID: "server-1"}
+			switch kind {
+			case "other-lab":
+				target.LabInstanceID = "lab-2"
+			case "stale-generation":
+				target.Generation = 1
+			case "future-generation":
+				target.Generation = 3
+			}
+			if endpoint, err := a.ResolveVMAccess(context.Background(), target); !errors.Is(err, vmaccess.ErrInvalidTarget) || endpoint.Address != "" {
+				t.Fatalf("mismatched envelope accepted: %v", err)
+			}
+		})
 	}
 }
 

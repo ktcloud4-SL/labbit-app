@@ -31,6 +31,7 @@ var (
 )
 
 const finalDataWriteLockWait = 50 * time.Millisecond
+const dataWriteTimeout = 10 * time.Second
 
 // SessionEndedCallback 은 세션이 완전 종료되었을 때 호출되는 콜백입니다.
 type SessionEndedCallback func(session *Session, reason string, exitCode *int, err error)
@@ -493,7 +494,12 @@ func (s *Session) WriteMessage(messageType int, data []byte) error {
 	s.writeMu.Lock()
 	defer s.writeMu.Unlock()
 
-	return conn.WriteMessage(messageType, data)
+	_ = conn.SetWriteDeadline(time.Now().Add(dataWriteTimeout))
+	err := conn.WriteMessage(messageType, data)
+	if err != nil {
+		_ = conn.Close() // Wake the input reader so it enters detach/grace.
+	}
+	return err
 }
 
 // WriteJSON 은 활성 WebSocket 연결로 JSON 메시지를 단일 뮤텍스 직렬화하여 전송합니다.
@@ -511,7 +517,12 @@ func (s *Session) WriteJSON(v interface{}) error {
 	s.writeMu.Lock()
 	defer s.writeMu.Unlock()
 
-	return conn.WriteJSON(v)
+	_ = conn.SetWriteDeadline(time.Now().Add(dataWriteTimeout))
+	err := conn.WriteJSON(v)
+	if err != nil {
+		_ = conn.Close()
+	}
+	return err
 }
 
 // Resize 는 터미널 크기를 변경합니다.

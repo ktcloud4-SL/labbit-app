@@ -300,6 +300,11 @@ func safeError(ctx context.Context, fallback error) error {
 	if err := ctx.Err(); err != nil {
 		return errors.Join(fallback, err)
 	}
+	// The socket deadline can fire before the context timer delivers Done.
+	// Preserve timeout classification in either scheduling order.
+	if deadline, ok := ctx.Deadline(); ok && !time.Now().Before(deadline) {
+		return errors.Join(fallback, context.DeadlineExceeded)
+	}
 	return fallback
 }
 

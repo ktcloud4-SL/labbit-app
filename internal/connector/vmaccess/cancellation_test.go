@@ -3,12 +3,32 @@ package vmaccess
 import (
 	"context"
 	"errors"
-	"golang.org/x/crypto/ssh"
 	"io"
 	"net"
 	"testing"
 	"time"
+
+	"golang.org/x/crypto/ssh"
 )
+
+type pendingDeadlineContext struct {
+	context.Context
+	deadline time.Time
+}
+
+func (c pendingDeadlineContext) Deadline() (time.Time, bool) { return c.deadline, true }
+
+func TestSocketDeadlinePrecedesContextTimer(t *testing.T) {
+	ctx := pendingDeadlineContext{Context: context.Background(), deadline: time.Now().Add(-time.Second)}
+	err := safeError(ctx, ErrUnavailable)
+	if !errors.Is(err, ErrUnavailable) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expired socket deadline lost timeout classification: %v", err)
+	}
+	ctx.deadline = time.Now().Add(time.Minute)
+	if err := safeError(ctx, ErrUnavailable); errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal("future deadline classified as a timeout")
+	}
+}
 
 func TestHandshakeTimeoutAndCancellationCloseSocket(t *testing.T) {
 	for _, mode := range []string{"timeout", "cancel"} {

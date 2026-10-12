@@ -1,4 +1,4 @@
-name: Deliver Web Image
+name: Deliver Backend Image
 
 on:
   push:
@@ -6,14 +6,15 @@ on:
       - main
     tags: 
       - 'v*'
-    paths:
+    paths-ignore:
       - 'web/**'
-      - '.github/workflows/delivery.yml'
+      - 'docs/**'
+      - '*.md'
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/web
+  IMAGE_NAME: ${{ github.repository_owner }}/backend
 
 jobs:
   build-and-push:
@@ -50,8 +51,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./web
-          file: ./web/Dockerfile
+          context: .
+          file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

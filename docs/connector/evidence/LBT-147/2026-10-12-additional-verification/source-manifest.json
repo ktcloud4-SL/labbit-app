@@ -1,9 +1,9 @@
 {
-  "recordedAt": "2026-10-12T09:15:11.825811+00:00",
-  "codeCommit": "41f785e6e4e436f32c85ed21d1fed327ffaeb388",
+  "recordedAt": "2026-10-12T09:55:02.106539+00:00",
+  "codeCommit": "e8384cbbb1ddaa16153eae037ac8a37dbee08d6a",
   "main": "7aaa5ca4e7f58cb88f188f91e653a624e4caed03",
   "branch": "feat/LBT-147-vm-access",
-  "currentWorkingTree": "M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/AUDIT.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/README.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/archive-manifest.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/artifact-checksums.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/audit-logs.zip\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/file-review.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-checks.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-review.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/secret-scan.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/source-manifest.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/validation-summary.json",
+  "currentWorkingTree": "M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/AUDIT.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/README.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/archive-manifest.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/artifact-checksums.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/audit-logs.zip\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/file-review.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/independent-review.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-checks.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-review.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/reproduction-checks.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/secret-scan.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/source-manifest.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/validation-summary.json",
   "productFiles": [
     {
       "path": "contracts/http/openapi.yaml",
@@ -102,13 +102,13 @@
     },
     {
       "path": "internal/connector/terminal/final_frame_backpressure_test.go",
-      "byteSHA256": "d3ddab8f400e12c0fbc605236ef4c75f4d158da52a3d12596e564a433ec43159",
-      "gitBlob": "df384fb0d9cc39b87b1768e8d968245f6337578d"
+      "byteSHA256": "30e99efad72a40d28c1b40ddb478c74682cdd82614caf22939437e927f061eae",
+      "gitBlob": "fdd2071d34b5d6160834fecf307123b5eefc08d0"
     },
     {
       "path": "internal/connector/terminal/session.go",
-      "byteSHA256": "e7ab2a97ef9ab2dfe672548417a2186f80f4a1da176590495235acecdab141da",
-      "gitBlob": "8e21a3f0239959e2900d42b430d391508c9fb64e"
+      "byteSHA256": "ed7638b452a924b23907088da2cacdb727279fe683586d6ed42133e2de7b22c9",
+      "gitBlob": "4db5220349a6260c910e586639689fb4da3943a5"
     },
     {
       "path": "internal/connector/terminal/shutdown_test.go",
@@ -117,13 +117,13 @@
     },
     {
       "path": "internal/connector/terminal/ssh_backpressure_test.go",
-      "byteSHA256": "aaab0a0cec00ffef311a93677318d0431041ed93cc33ab1cfe9df62da1c4d3f2",
-      "gitBlob": "48d93ea57309c4c8b485f47ab2f266942edb895b"
+      "byteSHA256": "01efb0fd7bd72d0babfd4e823afc8b7228e053a4b8584d394b9e5a6bc2b25f08",
+      "gitBlob": "0ac2e98a98beed21f492e910ad6b1b312d837e14"
     },
     {
       "path": "internal/connector/terminal/ssh_manager_backpressure_test.go",
-      "byteSHA256": "ade7705ea5d4ee846744a8566e7e464f6314e253a50092c88940cdead6688502",
-      "gitBlob": "3026ae2c5fc63c2d2633fb090edcf369a34aa6c2"
+      "byteSHA256": "27a14e7ce33772473724d0cd1c1a60f1d5053baea85434f3da52f2314aeb0ef8",
+      "gitBlob": "f9182af9ee1c44e2d0025ab0b30d28dd270f4793"
     },
     {
       "path": "internal/connector/terminal/ssh_pty.go",
@@ -1268,6 +1268,6 @@
       }
     ]
   },
-  "cloud4Applicability": "Subsequent changes only Terminal close/resize and tracing test; original Provider integration_test.go, control_integration_test.go and relevant lifecycle algorithms unchanged. Go deps main update is distinct; do not relabel old execution as current-source cloud4 PASS.",
-  "sourceChangesAfterActual2VM": "Test metadata and standalone unread regression only; production bytes unchanged (failure-final-source-state.json)."
+  "cloud4Applicability": "Subsequent changes are Terminal close/resize/final Data ENDED handling and tracing/test changes; original Provider integration_test.go, control_integration_test.go and relevant lifecycle algorithms are unchanged. Go deps main update is distinct; do not relabel old execution as current-source cloud4 PASS.",
+  "sourceChangesAfterActual2VM": "The actual2VM run used a5b2d12 plus the working production/test files pinned in actual2VMSource. Later e8384cb adds the bounded 50ms final Data writer-lock wait and test-only SSH fixture/resize changes. Actual cloud was not rerun after that product delta; current loopback regressions, full local Go, independent review and Linux CI run 38231218638 cover it."
 }

@@ -4,7 +4,7 @@
 
 ## 1. 현재 판정과 소스
 
-**코드/동작 검증 범위는 통과.** 새로 재현된 Data WSS/SSH Close/Resize 결함은 수정 후 독립 회귀 및 최신 source actual VM/전체 자동 검증까지 충족했다. 검토 범위에서 미해결 confirmed product defect는 없다. 새 Evidence publication은 아직 생성 중이므로 최종 게시 판정은 별도 감사 후에 한다. 이 판정은 LBT-147 Jira 전체 완료나 KT/Browser/File acceptance를 뜻하지 않는다.
+**코드/동작 검증 범위는 통과.** 새로 재현된 Data WSS/SSH Close/Resize 결함과 후속 Linux CI가 드러낸 brief-writer Data ENDED race는 수정 후 독립 회귀 및 최신 source actual VM/전체 자동 검증까지 충족했다. 검토 범위에서 미해결 confirmed product defect는 없다. Evidence publication은 별도 감사로 판정한다. 이 판정은 LBT-147 Jira 전체 완료나 KT/Browser/File acceptance를 뜻하지 않는다.
 
 - repo: `C:\Users\user\Documents\ChatGPT\3차 2\tmp\labbit-vm-access-147`; branch feat/LBT-147-vm-access.
 - PR 기준 최신 origin/main 및 merge base: `7aaa5ca4e7f58cb88f188f91e653a624e4caed03`. 실행 snapshot HEAD `a5b2d1210c3941641dc96dfc4aa2201358e9293a` + local; 최종 코드 HEAD `bd8071d86659f2cce5d2c6e77cbb7f7ac0054d05`로 아래 section7에서 byte mapping을 확정했다.
@@ -97,11 +97,11 @@ Root 실제 실행 추가 suite 원본검토: M2Provision, M3Lifecycle, ControlW
 | `docs/connector/evidence/LBT-147/2026-10-10/secret-scan.json` | PR / historical-evidence | 과거 실행/요약/source/재현/원본 무결성 및 당시 범위 한계 확인; 최신 소스 PASS로 확대하지 않음 |
 | `docs/connector/evidence/LBT-147/2026-10-10/source-manifest.json` | PR / historical-evidence | 과거 실행/요약/source/재현/원본 무결성 및 당시 범위 한계 확인; 최신 소스 PASS로 확대하지 않음 |
 | `docs/connector/evidence/LBT-147/2026-10-10/validation-summary.json` | PR / historical-evidence | 과거 실행/요약/source/재현/원본 무결성 및 당시 범위 한계 확인; 최신 소스 PASS로 확대하지 않음 |
-| `docs/connector/evidence/LBT-147/2026-10-12-additional-verification/.gitattributes` | local / pending-publication | 새 Evidence 생성 중; source snapshot 목록만 확인. 게시 내용/재현/ZIP/secret/checksum 감사는 별도 요청 후 수행 |
-| `docs/connector/evidence/LBT-147/2026-10-12-additional-verification/.gitignore` | local / pending-publication | 새 Evidence 생성 중; source snapshot 목록만 확인. 게시 내용/재현/ZIP/secret/checksum 감사는 별도 요청 후 수행 |
-| `docs/connector/evidence/LBT-147/2026-10-12-additional-verification/AUDIT.md` | local / pending-publication | 새 Evidence 생성 중; source snapshot 목록만 확인. 게시 내용/재현/ZIP/secret/checksum 감사는 별도 요청 후 수행 |
-| `docs/connector/evidence/LBT-147/2026-10-12-additional-verification/README.md` | local / pending-publication | 새 Evidence 생성 중; source snapshot 목록만 확인. 게시 내용/재현/ZIP/secret/checksum 감사는 별도 요청 후 수행 |
-| `docs/connector/evidence/LBT-147/2026-10-12-additional-verification/prepare_overlays.py` | local / pending-publication | 새 Evidence 생성 중; source snapshot 목록만 확인. 게시 내용/재현/ZIP/secret/checksum 감사는 별도 요청 후 수행 |
+| `docs/connector/evidence/LBT-147/2026-10-12-additional-verification/.gitattributes` | 당시 local / pending-publication | 이 표 작성 당시 source snapshot만 확인했으며, 후속 게시 감사 결과는 publication-review.md와 section8 이후 기록을 따른다. |
+| `docs/connector/evidence/LBT-147/2026-10-12-additional-verification/.gitignore` | 당시 local / pending-publication | 이 표 작성 당시 source snapshot만 확인했으며, 후속 게시 감사 결과는 publication-review.md와 section8 이후 기록을 따른다. |
+| `docs/connector/evidence/LBT-147/2026-10-12-additional-verification/AUDIT.md` | 당시 local / pending-publication | 이 표 작성 당시 source snapshot만 확인했으며, 후속 게시 감사 결과는 publication-review.md와 section8 이후 기록을 따른다. |
+| `docs/connector/evidence/LBT-147/2026-10-12-additional-verification/README.md` | 당시 local / pending-publication | 이 표 작성 당시 source snapshot만 확인했으며, 후속 게시 감사 결과는 publication-review.md와 section8 이후 기록을 따른다. |
+| `docs/connector/evidence/LBT-147/2026-10-12-additional-verification/prepare_overlays.py` | 당시 local / pending-publication | 이 표 작성 당시 source snapshot만 확인했으며, 후속 게시 감사 결과는 publication-review.md와 section8 이후 기록을 따른다. |
 | `docs/connector/evidence/LBT-147/2026-10-12-review-followup/.gitattributes` | PR / historical-evidence | 과거 실행/요약/source/재현/원본 무결성 및 당시 범위 한계 확인; 최신 소스 PASS로 확대하지 않음 |
 | `docs/connector/evidence/LBT-147/2026-10-12-review-followup/.gitignore` | PR / historical-evidence | 과거 실행/요약/source/재현/원본 무결성 및 당시 범위 한계 확인; 최신 소스 PASS로 확대하지 않음 |
 | `docs/connector/evidence/LBT-147/2026-10-12-review-followup/AUDIT.md` | PR / historical-evidence | 과거 실행/요약/source/재현/원본 무결성 및 당시 범위 한계 확인; 최신 소스 PASS로 확대하지 않음 |
@@ -186,7 +186,7 @@ Root 실제 실행 추가 suite 원본검토: M2Provision, M3Lifecycle, ControlW
 
 - KT Cloud/LBT145미완료, real Browser↔actual SaaS ingress/routing/drain, LBT148CC02/LBT149productionFile acceptance는미검증/후속이다. MockWSS+actualVM은그전체E2E대체가아니다.
 - canceled contextlessSSH request는sharedactiveA를보존하기위해transport당pendingoperation1을유지할수있다. peerreply/idle/invalidate/managerClose가해제경계이며 즉시모든goroutine소멸을약속하지않는다. 기존 unacked B close fixture는dependencycopyoverlay의fault로준비/license/해시가과거package에포함되었다.
-- finalDataframe1s는session당best-effortbudget, sessions순차close와Control기존send10s는별도다. runtime전체1sSLA/SaaS LABBIT_SHUTDOWN_GRACE 구현이라고주장하지않는다. activewrite일때DataENDED는생략가능하나healthyControlENDED reason/once를검증한다.
+- finalDataframe1s는session당best-effortbudget, sessions순차close와Control기존send10s는별도다. brief writer는 최대50ms 기다리지만 그보다 긴 contention에서는 DataENDED가 생략될 수 있다. 독립20session fixture는 약1005ms를 관찰했으며 약 N×50ms 뒤 기존 frame/callback 비용이 더해질 수 있다. runtime전체/process-global shutdown SLA나 SaaS LABBIT_SHUTDOWN_GRACE 구현이라고주장하지않는다. healthyControlENDED reason/once를검증한다.
 - 현재 최신SSHfix 전체Go/race20/freshmain contextcheck/actualVM/cleanup결과및실행production source pins를확인했다. 새 Evidence 문서/요약이이결과와source identity를정확히연결하는지게시감사만남았다. 생산소스바이트변경시관련검증을다시한다.
 - 새Evidence publication package는아직검토하지않았다. source mapping/reproducer opt-in guard/dependencies/원본failure preservation/secret exclusion/ZIPexactset/checksums가최종게시전독립확인대상이다. Audit통과는외부mutation승인이아니다.
 
@@ -211,6 +211,16 @@ VM integration은현재production을그대로사용했다. cloud overlay는share
 PortableSSH별도확인: Current는최종Session/SSHPTYbyte로-race count3 실행한15test-actionPASS이며Cloud0/소스수정0; Before는동일fixture/currentVMAccess와a5rawSSHPTY+Datafix-onlySessionoverlay로count1 실제실행한예상5FAIL/exit1이다. 두result모두source/fixtureSHA,명령,before/aftergitstatus를보존했고prepareddependency/scenarioidentity를구분했다. Before실행당시HEAD는bd8071이지만production두파일만의oldbyteoverlay이므로최종코드의실패로해석하지않는다.
 
 **최종 production/동작 판정: 검토한PR범위에서미해결confirmed결함없음.** R1/R2/R3, partialfencing/lazyinit, 새Data/SSHbackpressure/ownership/Resize수정과최신actualPTY/SFTP/sharedidle/Reset/Cleanup을검증했다. PR84의로컬OpenStack구현범위는충족하며KT/Browser/actualSaaS/Fileproduction미검증범위는section6과같다. 새Evidence문서/ZIP/재현helper/secret/checksum의최종publication판정은아직별도검토대상이다.
+
+## 8. Linux CI 후속 수정 독립 검토
+
+후속 scoped reviewer는 commit `e8384cbbb1ddaa16153eae037ac8a37dbee08d6a`의 `session.go`, final-frame 회귀, SSH manager 회귀, SSH resize 회귀 네 파일이 검토 snapshot과 Git blob에서 동일함을 확인했다. 이전 immediate-TryLock production overlay는 새 brief-writer 회귀에서 예상 close1006으로 실패했고 current source는 통과했다. 관련 terminal/app 일반20회와 race20회는 각각180 PASS·fail0·skip0이며, 실제 unread TCP·pending SSH input·blocked TCP resize·shutdown/worker release 경계를 포함한다.
+
+50ms writer-lock poll은 logical close 뒤 state mutex 없이 실행되고, 획득한 경로만 Gorilla writer deadline/WriteJSON을 호출한다. 획득하지 못한 경로는 concurrent-safe connection Close로 blocked writer를 해제하고 PTY/Control cleanup을 계속한다. 새 lock cycle·Gorilla concurrent writer·wire/schema/runtime option은 발견되지 않았다.20개 busy session 외부 fixture는 약1005ms, callback20, registry0으로 통과해 누적 N×50ms 경계를 확인했다. 50ms 초과 Data ENDED best effort와 process-global shutdown budget 부재는 잔여 한계다.
+
+SSH fixture의 server1KiB receive-buffer 제거는 read pause, input200ms pending, shutdown750ms, worker release, backlog consume/`sc.Wait`, ErrClosed assertion을 유지한다. resize wrapper는 PTY.Resize 진입과200ms pending을 동기화하지만 wire의 WindowChange packet 자체를 관찰했다는 주장은 하지 않는다. reviewer는 추가 confirmed defect를 찾지 않았다. 코드 commit의 Linux Go run38231218638은 format·vet·unit·build·PostgreSQL16 integration을 통과했고 Web run38231218734, Contracts run38231218756, backend image build run38231218620도 통과했다. 최종 Evidence commit의 CI와 publication source pin은 root의 후속 검증 범위다.
+
+외부 보고서: `independent/final-write-contention-review/review.md` SHA256 `d3debe716d5458193c4fb1d8d6bcffd28a1ff6b57f37e5fa4aabd7d7f05e49ba`, `summary.json` SHA256 `181d6a769cdaa2fee53a78be806922e2e7c377a720f765c7c1cea2cdff0b5fc1`, committed mapping SHA256 `1299b380901c9aca075f51bad0762049a3fa2df41e328e523354772a74a53e89`.
 
 
 ### 게시 감사 P3/EOL 집계 정정

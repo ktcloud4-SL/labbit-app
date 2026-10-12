@@ -661,14 +661,56 @@
     "final-checks/initial-gofmt-crlf*",
     "reviewer red/initial candidate fixture",
     "remote Go format failure/publication-format-red",
-    "remote Linux manager fixture/remote-linux-fixture-red"
+    "remote Linux manager stack assertion/remote-linux-fixture-red",
+    "remote Linux server EOF/remote-linux-eof-red",
+    "remote Linux final Data ENDED and server EOF/remote-linux-finalframe-eof-red",
+    "independent immediate-TryLock red/final-write-contention-review"
   ],
+  "postLinuxFollowup": {
+    "codeCommit": "e8384cbbb1ddaa16153eae037ac8a37dbee08d6a",
+    "remoteGo": {
+      "runId": 38231218638,
+      "format": "PASS",
+      "vet": "PASS",
+      "unit": "PASS",
+      "build": "PASS",
+      "postgres16": "PASS"
+    },
+    "remoteWeb": {
+      "runId": 38231218734,
+      "result": "PASS"
+    },
+    "remoteContracts": {
+      "runId": 38231218756,
+      "result": "PASS"
+    },
+    "remoteBackendImageBuild": {
+      "runId": 38231218620,
+      "result": "PASS"
+    },
+    "local": [
+      "full Go PASS",
+      "gofmt/vet/build PASS",
+      "related terminal/app normal count20 PASS",
+      "related terminal/app race count20 PASS",
+      "terminal/app package race count5 PASS",
+      "resize race count20 PASS"
+    ],
+    "independent": {
+      "normal": "180 PASS, 0 fail, 0 skip",
+      "race": "180 PASS, 0 fail, 0 skip",
+      "priorImmediateTryLock": "expected close1006 failure",
+      "twentyBusySessions": "PASS; about 1005ms; callbacks20; registry0"
+    }
+  },
   "remaining": [
     "KTCloud gen2 Reset/owned Tier2 absence",
     "Browser/deployed SaaS CC02/routing/reconnect/Live",
     "production SFTP/File WSS",
     "real VM SSH packet-stall fault/actual key rotation/natural outage/packet loss/hard restart/long soak/large load",
-    "actual VM runControl child server-side SSH EOF not independently observed"
+    "actual VM runControl child server-side SSH EOF not independently observed",
+    "Data ENDED remains best effort when write-lock contention exceeds 50ms",
+    "sequential N-session close can add about N*50ms before existing per-frame and callback costs; no process-global shutdown budget was established"
   ],
-  "postgresLocal": "Not run; no DB/application SQL changes. New remote head Go CI PostgreSQL16 integration must be inspected after push."
+  "postgresLocal": "Not run; no DB/application SQL changes. Remote Go CI run 38231218638 on code commit e8384cb passed the PostgreSQL16 integration step."
 }

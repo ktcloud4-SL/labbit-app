@@ -748,7 +748,9 @@ func cleanupM2Resources(t *testing.T, adapter *Adapter, resources []coreprovider
 			t.Errorf("cleanup failed for %s id %s", resource.ResourceType, resource.ProviderID)
 		}
 	}
-	if !t.Failed() { t.Logf("Additional cleanup verify GET/404: resources=%d", len(resources)) }
+	if !t.Failed() {
+		t.Logf("Additional cleanup verify GET/404: resources=%d", len(resources))
+	}
 	for _, resource := range resources {
 		if err := verifyM2ResourceDeleted(ctx, adapter, resource); err != nil {
 			t.Errorf("resource remains after cleanup: %s id %s", resource.ResourceType, resource.ProviderID)

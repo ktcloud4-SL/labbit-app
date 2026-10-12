@@ -842,9 +842,9 @@
     },
     {
       "path": "root/integration_metadata_test.go",
-      "bytes": 33671,
-      "crc32": "4e610887",
-      "sha256": "0c482e82c4ccbe5eb2e81634dc731fea838261cfdfdcdfafc667de1dac4750dc"
+      "bytes": 32869,
+      "crc32": "8c20ee89",
+      "sha256": "8d93b8c4053004f27cb2a0968a71f0f4162793799534a851da7b6aea261ff58c"
     },
     {
       "path": "root/internet-policy-post-inventory.jsonl",
@@ -992,9 +992,9 @@
     },
     {
       "path": "root/pr-body-final.md",
-      "bytes": 8939,
-      "crc32": "b1944c3b",
-      "sha256": "328bbed69637226c45b7361cbaebc255001358aeec3a301057eb14dbfe6806fe"
+      "bytes": 10342,
+      "crc32": "1f440ce3",
+      "sha256": "3de19681bbce5dfcb69f60de34b9d6434058536792a995570f72a2198c01bab3"
     },
     {
       "path": "root/pre-inventory.jsonl",
@@ -1028,15 +1028,39 @@
     },
     {
       "path": "root/prepared-fixture-compile.jsonl",
-      "bytes": 1908,
-      "crc32": "c2c35703",
-      "sha256": "24bed0b2947e77300684bada8ad1a94a1aab2a3c13da6c74ddb72429d2099d81"
+      "bytes": 1909,
+      "crc32": "2917b00f",
+      "sha256": "0eb37abb2a541b0a00880bea8937b64f9bd5e15663639eddf7a926eac69dc4ea"
     },
     {
       "path": "root/prepared-fixture-compile.stderr.txt",
       "bytes": 0,
       "crc32": "00000000",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "root/publication-format-red/format-regression.json",
+      "bytes": 577,
+      "crc32": "eddc57ba",
+      "sha256": "21f4686000d5a069593c2688cc87b495f5b7c292e73b2020df655df2499518be"
+    },
+    {
+      "path": "root/publication-format-red/integration_metadata_test.go",
+      "bytes": 33671,
+      "crc32": "4e610887",
+      "sha256": "0c482e82c4ccbe5eb2e81634dc731fea838261cfdfdcdfafc667de1dac4750dc"
+    },
+    {
+      "path": "root/publication-format-red/read_only_residual_test.go",
+      "bytes": 4336,
+      "crc32": "dc2aa0f2",
+      "sha256": "72e3aac77dc3322ddb2afcf3ce19267b4fffdad930f2d9f6554147b8a2ba4eb4"
+    },
+    {
+      "path": "root/publication-format-red/remote-go-format-failure.json",
+      "bytes": 1233,
+      "crc32": "ad3043a0",
+      "sha256": "00e10b006efa738bca61fc3558a9d43ad994b8cedb7004532e555cb31c2780e4"
     },
     {
       "path": "root/publication_checks.py",
@@ -1046,9 +1070,9 @@
     },
     {
       "path": "root/read_only_residual_test.go",
-      "bytes": 4336,
-      "crc32": "dc2aa0f2",
-      "sha256": "72e3aac77dc3322ddb2afcf3ce19267b4fffdad930f2d9f6554147b8a2ba4eb4"
+      "bytes": 4200,
+      "crc32": "f77ff9af",
+      "sha256": "117152473e8384bfa309abaf88f2df50d84182ed16094a9efb05a15f74780842"
     },
     {
       "path": "root/real-failure-overlay.json",
@@ -1083,8 +1107,8 @@
     {
       "path": "root/reproduction-checks.json",
       "bytes": 1905,
-      "crc32": "bc0778bf",
-      "sha256": "4dea948d3b8d8371b7cfba4dbf129bf6cd0dae9d0fd656b477a01a97bc462fd0"
+      "crc32": "2d50cde3",
+      "sha256": "f732b6fac8eb9b643f4aa41699cd75c3f4e64428d353763f8c547387673349f1"
     },
     {
       "path": "root/run_additional_cloud.py",
@@ -1471,6 +1495,12 @@
       "sha256": "73a2cfe1bb9f0ec72bcb3c22e83568a57fef6ff1150461a3d447409b2ed8c678"
     },
     {
+      "path": "independent/publication-fixture-format-verification.json",
+      "bytes": 2283,
+      "crc32": "1073ed38",
+      "sha256": "368f7ad9f7807e07a1b68a1e807455800277b681fc570af22b491cdbe92cb2af"
+    },
+    {
       "path": "independent/publication-harness-repeat-verification.json",
       "bytes": 1114,
       "crc32": "b32e021d",
@@ -1490,15 +1520,39 @@
     },
     {
       "path": "independent/publication-review.md",
-      "bytes": 12702,
-      "crc32": "ae5f122f",
-      "sha256": "a8322d4ba9beb2ab074d8dca66c26be2e29fa33344a7ecd428de4e1b7b7ef2d2"
+      "bytes": 16052,
+      "crc32": "45ef124a",
+      "sha256": "0d3343a8ee553696a503e4da86a2d20c78cb81593091f7a9b101befb50df84b2"
+    },
+    {
+      "path": "independent/publication-staged-byte-whitespace-verification.json",
+      "bytes": 4245,
+      "crc32": "a0fdc792",
+      "sha256": "fbe2437ac519413f10ca2844712737f81ca7252b9e4377b481e2d35807637b99"
+    },
+    {
+      "path": "independent/publication-staged-final-verification.json",
+      "bytes": 20359,
+      "crc32": "29f5c336",
+      "sha256": "c7c11ca879593f38c4b36b5983db0af58183202e981bcb7099ec0973ff6ecec0"
     },
     {
       "path": "independent/publication-verification.json",
       "bytes": 61734,
       "crc32": "1cec303d",
       "sha256": "8f2ec87a21558ce9a5e9387b27f01a55c1769fb77d9658912bba9f0c965623d7"
+    },
+    {
+      "path": "independent/publication-whitespace-probe-4d294pvr/probe.txt",
+      "bytes": 17,
+      "crc32": "7f423409",
+      "sha256": "35b4f7458656ee6ac833fab49173a04728525458f6c4a631821f23a035d1b35c"
+    },
+    {
+      "path": "independent/remote-go-format-job-steps.json",
+      "bytes": 1975,
+      "crc32": "9e59b92b",
+      "sha256": "0f774c42e4c4e9f91682bd2a1c4bd5bf90a4be3a236bd5faa6cb7163a97accd1"
     },
     {
       "path": "independent/replacement_unread_test.go",
@@ -1789,6 +1843,12 @@
       "sha256": "4adaf11ad33ef50b0a88209b36ed7e13b93be9efa4b1f8f0c14a046d67b4e602"
     },
     {
+      "path": "independent/verify_format_fix_package21.py",
+      "bytes": 8910,
+      "crc32": "9e193556",
+      "sha256": "a73447aed0299fe5c42e090a86e12ae8295409bb40506b8981301f0845eb840c"
+    },
+    {
       "path": "independent/verify_publication.py",
       "bytes": 11950,
       "crc32": "093d9b13",
@@ -1799,6 +1859,12 @@
       "bytes": 7714,
       "crc32": "bc91e990",
       "sha256": "a2e64068e183da7db4ee3af4fbe9e290219054142759748c4d8149c30829b10d"
+    },
+    {
+      "path": "independent/verify_publication_fixture_gofmt.py",
+      "bytes": 2147,
+      "crc32": "af91ac0d",
+      "sha256": "949b152d1201919466ca9b672a747fbd6fbe7f4e05aeed5edbc9d1d9ed50c798"
     },
     {
       "path": "independent/verify_publication_harness_repeat.py",
@@ -1817,6 +1883,18 @@
       "bytes": 3240,
       "crc32": "6fb99bea",
       "sha256": "aa5a99a9fadf743965d1815d4dc3ce93b7396ce23b587b4b40a21e8ef641e11d"
+    },
+    {
+      "path": "independent/verify_staged_final_package21.py",
+      "bytes": 8904,
+      "crc32": "244db1b1",
+      "sha256": "74634f13ced348d056740a48b2977a8cd8251f2c90b07a2fb40baccc4fd909da"
+    },
+    {
+      "path": "independent/verify_staged_set_and_whitespace.py",
+      "bytes": 2505,
+      "crc32": "646f6acc",
+      "sha256": "eeb0c6a5828f2c480bce1a930e632a547d13290c12e4ebee8bee11bea1121264"
     },
     {
       "path": "independent/write_independent_review.py",
@@ -2017,6 +2095,6 @@
       "sha256": "e1949a1dad8f05de09e1a5d3045e2ea85e69bc4c24b0e14c14fc1ec912f15059"
     }
   ],
-  "count": 336,
+  "count": 349,
   "crc": "PASS"
 }

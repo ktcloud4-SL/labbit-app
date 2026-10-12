@@ -1,9 +1,9 @@
 {
-  "recordedAt": "2026-10-12T08:36:19.853259+00:00",
-  "codeCommit": "bd8071d86659f2cce5d2c6e77cbb7f7ac0054d05",
+  "recordedAt": "2026-10-12T08:51:53.024529+00:00",
+  "codeCommit": "fa7e5fc785e46b61cef4f7167082d4dd1dda2939",
   "main": "7aaa5ca4e7f58cb88f188f91e653a624e4caed03",
   "branch": "feat/LBT-147-vm-access",
-  "currentWorkingTree": "A  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/.gitattributes\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/.gitignore\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/AUDIT.md\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/README.md\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/actual_runtime_shutdown_test.go\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/integration_metadata_test.go\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/read_only_residual_test.go\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/real_failure_test.go\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/archive-manifest.json\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/artifact-checksums.json\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/audit-logs.zip\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/file-review.md\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/independent-review.md\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/prepare_overlays.py\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-checks.json\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-review.md\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/reproduction-checks.json\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/secret-scan.json\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/source-manifest.json\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/ssot-summary.json\nA  docs/connector/evidence/LBT-147/2026-10-12-additional-verification/validation-summary.json",
+  "currentWorkingTree": "M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/AUDIT.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/README.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/integration_metadata_test.go\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/read_only_residual_test.go\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/archive-manifest.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/artifact-checksums.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/audit-logs.zip\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-checks.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-review.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/reproduction-checks.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/secret-scan.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/source-manifest.json",
   "productFiles": [
     {
       "path": "contracts/http/openapi.yaml",
@@ -202,8 +202,8 @@
     }
   ],
   "fixtureSHA256": {
-    "integration_metadata_test.go": "0c482e82c4ccbe5eb2e81634dc731fea838261cfdfdcdfafc667de1dac4750dc",
-    "read_only_residual_test.go": "72e3aac77dc3322ddb2afcf3ce19267b4fffdad930f2d9f6554147b8a2ba4eb4",
+    "integration_metadata_test.go": "8d93b8c4053004f27cb2a0968a71f0f4162793799534a851da7b6aea261ff58c",
+    "read_only_residual_test.go": "117152473e8384bfa309abaf88f2df50d84182ed16094a9efb05a15f74780842",
     "real_failure_test.go": "b64c68abcf407a6432bb3055184895c322879709f16b32c9b7bb52b455123e09",
     "actual_runtime_shutdown_test.go": "71c11e8af394d0802721b556d4b0e68788b718fa612c2a5f079b42a20d92fa70"
   },

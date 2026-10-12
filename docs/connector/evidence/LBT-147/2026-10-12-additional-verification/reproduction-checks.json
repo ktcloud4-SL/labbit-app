@@ -38,7 +38,7 @@
       "-race",
       "-json",
       "-overlay",
-      "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\package-validation-04rk00i_\\prepared-reproduction\\real-failure-overlay.json",
+      "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\package-validation-1r5pnw8k\\prepared-reproduction\\real-failure-overlay.json",
       "-count=1",
       "-run",
       "^TestLBT147ReadOnlyResiduals$",

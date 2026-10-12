@@ -10,7 +10,7 @@ import (
 )
 
 func TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping(t *testing.T) {
-	for _, scenario := range []string{"valid", "wrong destination", "wrong source", "wrong source IP", "wrong port", "deny action", "NAT enabled", "FAILED job", "unknown job", "duplicate comment"} {
+	for _, scenario := range []string{"valid", "wrong destination", "wrong source", "wrong source IP", "wrong port", "deny action", "NAT enabled", "status disabled", "status empty", "status UNKNOWN", "status ERROR", "FAILED job", "unknown job", "duplicate comment"} {
 		t.Run(scenario, func(t *testing.T) {
 			createdTier, createdPolicy := false, false
 			deletes := 0
@@ -53,6 +53,14 @@ func TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping(t *testin
 							policy["services"] = []any{map[string]any{"protocol": "TCP", "startPort": "23", "endPort": "23"}}
 						case "deny action":
 							policy["action"] = "deny"
+						case "status disabled":
+							policy["status"] = "disable"
+						case "status empty":
+							policy["status"] = ""
+						case "status UNKNOWN":
+							policy["status"] = "UNKNOWN"
+						case "status ERROR":
+							policy["status"] = "ERROR"
 						case "NAT enabled":
 							policy["nat"] = "enable"
 						}

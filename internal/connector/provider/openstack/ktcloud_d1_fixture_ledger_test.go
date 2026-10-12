@@ -65,7 +65,7 @@ func TestKTFixtureCleanupUsesConfirmedIDsAndChecksAbsence(t *testing.T) {
 
 func TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping(t *testing.T) {
 	config := ProvisionConfig{KTCloudConnectorTierID: "connector", SSHAllowedCIDR: "172.25.0.10/32"}
-	for _, scenario := range []string{"valid", "wrong target", "wrong source IP", "deny", "NAT enabled", "duplicate", "missing"} {
+	for _, scenario := range []string{"valid", "wrong target", "wrong source IP", "deny", "NAT enabled", "status disabled", "status empty", "status UNKNOWN", "status ERROR", "duplicate", "missing"} {
 		t.Run(scenario, func(t *testing.T) {
 			p := ktCloudFirewallPolicy{ID: "candidate", Comment: "fixture", Action: "accept", Status: "enable", NAT: "disable", Source: []ktCloudInterface{{ID: "connector"}}, Destination: []ktCloudInterface{{ID: "owned-tier"}}, SourceIPs: []ktCloudAddress{{Name: config.SSHAllowedCIDR}}, DestinationIPs: []ktCloudAddress{{Name: "all"}}, Services: []ktCloudService{{Protocol: "TCP", Start: "22", End: "22"}}}
 			switch scenario {
@@ -75,6 +75,14 @@ func TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping(t *testing.T) {
 				p.SourceIPs[0].Name = "0.0.0.0/0"
 			case "deny":
 				p.Action = "deny"
+			case "status disabled":
+				p.Status = "disable"
+			case "status empty":
+				p.Status = ""
+			case "status UNKNOWN":
+				p.Status = "UNKNOWN"
+			case "status ERROR":
+				p.Status = "ERROR"
 			case "NAT enabled":
 				p.NAT = "enable"
 			}

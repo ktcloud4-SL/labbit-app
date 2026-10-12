@@ -234,7 +234,7 @@ func (a *Adapter) prepareKTCloudNICs(ctx context.Context, request coreprovider.P
 }
 
 func ktSSHPolicyMatches(policy ktCloudFirewallPolicy, config ProvisionConfig, tierID string) bool {
-	return strings.EqualFold(policy.Action, "accept") && ktPolicyEnabled(policy) && len(policy.Source) == 1 && policy.Source[0].ID == config.KTCloudConnectorTierID && len(policy.Destination) == 1 && policy.Destination[0].ID == tierID && len(policy.SourceIPs) == 1 && policy.SourceIPs[0].Name == config.SSHAllowedCIDR && len(policy.Services) == 1 && strings.EqualFold(policy.Services[0].Protocol, "TCP") && policy.Services[0].Start == "22" && policy.Services[0].End == "22" && strings.EqualFold(policy.NAT, "disable") && len(policy.DestinationIPs) == 1 && strings.EqualFold(policy.DestinationIPs[0].Name, "all")
+	return strings.EqualFold(policy.Action, "accept") && strings.EqualFold(policy.Status, "enable") && len(policy.Source) == 1 && policy.Source[0].ID == config.KTCloudConnectorTierID && len(policy.Destination) == 1 && policy.Destination[0].ID == tierID && len(policy.SourceIPs) == 1 && policy.SourceIPs[0].Name == config.SSHAllowedCIDR && len(policy.Services) == 1 && strings.EqualFold(policy.Services[0].Protocol, "TCP") && policy.Services[0].Start == "22" && policy.Services[0].End == "22" && strings.EqualFold(policy.NAT, "disable") && len(policy.DestinationIPs) == 1 && strings.EqualFold(policy.DestinationIPs[0].Name, "all")
 }
 
 func (a *Adapter) createKTCloudServer(ctx context.Context, opts servers.CreateOptsBuilder) (*servers.Server, error) {

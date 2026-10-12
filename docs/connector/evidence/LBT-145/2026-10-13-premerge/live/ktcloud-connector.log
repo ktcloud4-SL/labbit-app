@@ -1,0 +1,3 @@
+{"timestamp":"2026-10-13T01:57:49.340080821+09:00","level":"INFO","message":"Labbit Connector 시작","service":"labbit-connector","component":"bootstrap","version":"dev","environment":"production","connector_id":"lbt145-ktcloud-fixture"}
+{"timestamp":"2026-10-13T01:57:49.354721181+09:00","level":"INFO","message":"Connector Control WSS 연결 완료","service":"labbit-connector","component":"bootstrap","version":"dev","environment":"production","connector_id":"lbt145-ktcloud-fixture","heartbeat_interval_seconds":15,"offline_timeout_seconds":45}
+{"timestamp":"2026-10-13T02:08:08.22465485+09:00","level":"INFO","message":"Connector 종료 신호 수신","service":"labbit-connector","component":"bootstrap","version":"dev","environment":"production","connector_id":"lbt145-ktcloud-fixture"}

@@ -1,0 +1,7 @@
+=== RUN   TestKTCloudD1DisposableNetworkIntegration
+    ktcloud_d1_network_integration_test.go:75: KT Tier name length=46 (customer-reported deletion boundary: 50); name=labbit-086aa8de8d353994cc97-m-21a3230e03772a58
+    ktcloud_d1_network_integration_test.go:199: NSM create/list/job/delete API mapping PASS; Tier UUID and Nova network refId remain distinct
+    ktcloud_d1_network_integration_test.go:135: NSM fixture residual=0; Tier count 3 -> 3, policy count 0 -> 0; no VM was created
+--- PASS: TestKTCloudD1DisposableNetworkIntegration (46.33s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	48.579s

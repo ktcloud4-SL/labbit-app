@@ -2,7 +2,7 @@
 
 Date: 2026-10-07 KST. Inspected source revision: `a60d6ce53700bf5724e1a43a73bb5eb595c71933` (fetched `origin/main`).
 
-This is the historical October 7 record. See the [October 9 rerun](../2026-10-09/README.md) for the subsequent KT support response, confirmed absence of the original fixture, and the latest production Connector lifecycle result.
+This is the historical October 7 record. See the [October 13 latest-main acceptance](../2026-10-13-premerge/README.md) for the current two-generation production Connector lifecycle, cleanup and audit results. The failure and residual statements below describe the October 7 run.
 
 Jira: [LBT-145](https://samsunglions.atlassian.net/browse/LBT-145).
 Scope: execute CC-01 + OP-01 from a KT Cloud Connector VM and verify a separate Lab VM lifecycle. Joint Backend → CC-01 → OP-01 acceptance remains [LBT-16](https://samsunglions.atlassian.net/browse/LBT-16).

@@ -1,0 +1,64 @@
+[WARN] Moving @eslint/js that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving @testing-library/react that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving @types/react that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving @testing-library/jest-dom that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving @testing-library/dom that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving @types/node that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving @vitejs/plugin-react that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving @types/react-dom that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving eslint-plugin-react-hooks that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving eslint that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving jsdom that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving globals that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving typescript that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving typescript-eslint that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving vite that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving vitest that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving @xterm/xterm that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving @xterm/addon-fit that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving react that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving react-dom that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving react-router-dom that was installed by a different package manager to "node_modules/.ignored"
+[WARN] Moving @tanstack/react-query that was installed by a different package manager to "node_modules/.ignored"
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Progress: resolved 157, reused 129, downloaded 0, added 0
+Packages: +238
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Packages are hard linked from the content-addressable store to the virtual store.
+  Content-addressable store is at: C:\Users\user\AppData\Local\pnpm\store\v11
+  Virtual store is at:             node_modules/.pnpm
+Progress: resolved 263, reused 237, downloaded 0, added 21
+Progress: resolved 263, reused 237, downloaded 0, added 183
+Progress: resolved 263, reused 237, downloaded 0, added 236
+Progress: resolved 263, reused 237, downloaded 0, added 237
+Progress: resolved 263, reused 237, downloaded 1, added 237
+Progress: resolved 263, reused 237, downloaded 1, added 238, done
+
+dependencies:
++ @tanstack/react-query 5.104.1
++ @xterm/addon-fit 0.11.0
++ @xterm/xterm 6.0.0
++ react 19.3.0
++ react-dom 19.3.0
++ react-router-dom 7.18.4
+
+devDependencies:
++ @eslint/js 10.0.1
++ @testing-library/dom 10.4.2
++ @testing-library/jest-dom 7.0.1
++ @testing-library/react 16.3.3
++ @types/node 22.20.5 (26.6.5 is available)
++ @types/react 19.3.0
++ @types/react-dom 19.3.0
++ @vitejs/plugin-react 6.1.2
++ eslint 10.12.0
++ eslint-plugin-react-hooks 7.1.1
++ globals 17.13.0
++ jsdom 30.1.2
++ typescript 6.0.3 (7.0.2 is available)
++ typescript-eslint 8.71.1
++ vite 8.3.4
++ vitest 5.0.3
+
+Done in 12.6s using pnpm v11.25.0
+$ tsc --noEmit

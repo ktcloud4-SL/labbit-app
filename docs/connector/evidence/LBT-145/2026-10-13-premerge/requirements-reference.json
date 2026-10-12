@@ -1,0 +1,48 @@
+{
+  "retrievedDateKST": "2026-10-13",
+  "jira": [
+    {
+      "key": "LBT-158",
+      "url": "https://samsunglions.atlassian.net/browse/LBT-158",
+      "summary": "[OP-01] KT D1 인증·서비스 Endpoint 및 Network/Tier 호환 처리",
+      "description": "LBT-145 실제 KT D1 사전 검증에서 최신 main a60d6ce53700bf5724e1a43a73bb5eb595c71933의 OP-01 초기화가 실패하는 것을 재현했다.\n\n2026-10-07 실제 read-only 결과:\n\n* 기존 OP-01 New: OpenStack authentication failed.\n* 같은 Gophercloud 기본 인증 흐름의 GET /d1/identity/: HTTP 500.\n* POST /d1/identity/auth/tokens: HTTP 201, 선택한 Project scope 일치.\n* HEAD /d1/identity/auth/tokens: HTTP 200, 현재 토큰 검증 성공.\n* 카탈로그 Nova /d1/nova/v2.1/servers/detail 및 Glance /d1/glance/v2/images: HTTP 404.\n* 명시적 Gateway /d1/server/servers/detail: HTTP 200 (0개), flavors/detail: 235개, /d1/image/images: 12개.\n* 카탈로그 /d1/neutron/v2.0/networks 및 subnets: HTTP 404; Neutron root/version discovery도 404.\n* /d1/nsm/v1/network: HTTP 200 (3개), networkId/refId가 다른 항목 2개, refId 없는 항목 1개.\n\n범위:\n\n1. 기존 Provider Interface 및 lifecycle을 재사용하고 KT D1의 인증/검증 및 서비스 Endpoint 초기화만 최소 분리한다.\n2. Compute/Image 호출은 Gophercloud를 유지한다. 토큰 재발급·SDK locking·definitive 401 처리와 안전한 오류를 유지한다.\n3. Network/Tier는 공식 NSM 요청/응답과 실제 호출을 기준으로 필요한 부분만 분리한다. 표준 Port/Subnet/Router/SG 리소스가 없는 KT 모델을 같은 의미로 가장하지 않는다.\n4. networkId와 refId는 별도로 보존한다. 공식 문서는 VM networks.uuid에 refId를 명시하며 실제 생성 결과로 최종 확인한다.\n5. VM 생성의 root volume, NIC/IP, 삭제·Reconcile 및 잔여 리소스는 추가 검증 대상이며 아직 성공을 선언하지 않는다.\n\n검증:\n\n* Unit/httptest: method/path, 요청/응답/오류 mapping, ID 구분, UNKNOWN/FAILED, reauth 경계.\n* 일반 go test ./...는 실클라우드를 호출하지 않는다.\n* 실제 통합은 명시적 gate에서만 수행하며 LBT-145에서 Connector VM → CC-01 → OP-01 → KT lifecycle/SSH/cleanup을 별도 기록한다.\n* Credential/Token/Private Key/raw provider payload는 코드·로그·Evidence에 남기지 않는다.\n\n공식 문서:\n\n* https://cloud.kt.com/docs/open-api-guide/d/guide/how-to-use\n* https://cloud.kt.com/docs/open-api-guide/d/computing/tier\n* https://cloud.kt.com/docs/open-api-guide/d/nsm/how-to-use\n\nLBT-145는 이 작업과 실제 Connector VM 실행 검증이 끝날 때까지 진행 중이다. C1 전체 공동 수용은 LBT-16 범위다.",
+      "updated": "2026-10-07T21:01:01.657+0900",
+      "status": "진행 중"
+    },
+    {
+      "key": "LBT-145",
+      "url": "https://samsunglions.atlassian.net/browse/LBT-145",
+      "summary": "[OP-02] 사전 검증: KT Cloud ↔ OP-01 Provider 연동 및 VM SSH 접근 확인",
+      "description": "목표\n\nOP-02의 첫 번째 선행 작업으로, OP-01(LBT-15)에서 구현한 Provider가 실제 KT Cloud 환경에서 VM lifecycle을 수행하고 Connector 실행 위치에서 해당 VM에 SSH 접속할 수 있는지 검증한다. 이 검증을 통과한 뒤 SSH/SFTP/PTY 구현을 진행한다.\n\n참조\n\n* 상위 작업: [LBT-21 · OP-02 SSH / SFTP / PTY](https://samsunglions.atlassian.net/browse/LBT-21)\n* 기존 구현: [LBT-15 · OP-01 OpenStack Provider Foundation / VM Lifecycle](https://samsunglions.atlassian.net/browse/LBT-15)\n* OP-01 완료 기록은 실제 OpenStack 검증을 포함하지만, KT Cloud 대상 검증 여부는 별도로 확인한다.\n\n현재 확인된 사항\n\n* KT Cloud D1 / DX-M1에서 Gophercloud v2.15.0으로 토큰 발급, VM 목록 조회, Flavor 조회, Image 조회가 성공했다.\n* 인증 시 서비스 카탈로그에서 identity / compute / network / image 등 OpenStack 서비스 타입을 확인했다.\n* Tier 조회는 Gophercloud Neutron이 아니라 KT Cloud 전용 `/d1/nsm/v1/network` API로 성공했다.\n* KT Tier의 `networkId`와 Neutron `refId`는 서로 다른 값이므로 동일 ID로 가정하지 않는다.\n* 아직 표준 Neutron API 직접 호출, VM 생성/삭제, Connector→VM SSH, 실제 OP-01 Provider 연동은 검증되지 않았다.\n* 따라서 별도 KTCloudProvider 전체 구현을 선행하지 않고, 최신 OP-01을 KT D1에 실제 연결한 뒤 호환되지 않는 API 영역만 최소 범위로 Adapter/호환 수정한다.\n\n작업\n\n1. 최신 main의 OP-01 Provider를 기준으로 KT Cloud D1 API 호환성을 확인한다. 인증/compute/image는 기존 Gophercloud 경로를 우선 재사용하고, network/Tier는 표준 Neutron 직접 호출 가능 여부와 KT 전용 API 필요 범위를 실제 호출로 구분한다.\n2. KT Cloud 테스트 대상 환경의 endpoint/region/project, image/flavor, Tier/network ID 매핑, 관리망과 보안 정책 등 OP-01 실행에 필요한 설정을 정리한다.\n3. 최신 main의 OP-01 구현으로 테스트 VM을 Provision하고 ACTIVE 상태와 관리망 IP를 확인한다.\n4. 실제 Connector 실행 위치에서 VM 관리망 IP의 TCP 22 도달성과 SSH 로그인을 확인한다. VM 생성 성공과 Connector의 VM 접근 성공을 각각 기록한다.\n5. OP-01의 Reset 이후 generation과 접속 대상 정보가 일치하는지, Reconcile이 실제 KT Cloud 리소스 상태를 조회하는지 확인한다.\n6. Cleanup 후 이번 테스트에서 생성한 리소스가 남아 있지 않은지 확인한다.\n7. 검증한 코드 revision, 환경 설정 항목, 단계별 결과와 필요한 로그를 Evidence로 남긴다. 인증정보, 토큰, 개인키는 기록하지 않는다.\n8. 연동 실패 시 인증/API 호환성, 네트워크/보안 정책, OP-01 구현 문제를 구분해 기록한다. OP-01 수정이 필요하면 별도 버그/작업으로 분리해 이 하위 태스크와 연결한다.\n\n완료 조건\n\n* KT Cloud에서 OP-01을 이용한 Provision/Reset/Reconcile/Cleanup 검증 결과가 남아 있다.\n* OP-01로 생성한 VM에 실제 Connector 실행 위치에서 SSH 로그인할 수 있다.\n* 테스트 종료 후 이번 테스트에서 생성한 잔여 리소스가 0이다.\n* Gophercloud 재사용 범위와 KT Cloud 전용 Adapter/호환 수정이 필요한 범위가 실제 검증 결과로 구분되어 있다.\n* 실패 원인과 해결 여부, 남은 제약을 Evidence로 확인할 수 있다. 미해결 연동 또는 접근 문제가 있으면 OP-02 후속 구현의 선행 조건 미충족으로 명시한다.\n\n범위\n\n이 작업은 KT Cloud 연동과 기본 SSH 접근을 확인하는 사전 검증이다. Connector의 SSH 연결 관리, PTY 세션, SFTP 파일 전송 구현은 후속 OP-02 하위 태스크에서 다룬다.\n\nC1 전체 PASS는 이 작업의 완료 조건이 아니다. LBT-145에서 KT Cloud Provider/VM/SSH 선행 검증을 마친 뒤 LBT-16 C1에서 Backend → CC-01 → OP-01 → KT Cloud 실제 공동 통합을 검증한다.",
+      "updated": "2026-10-07T21:04:00.690+0900",
+      "status": "진행 중"
+    }
+  ],
+  "confluence": [
+    {
+      "title": "D-18 · 실습망·VM 관리 접속 구조",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/7241730/D-18+VM",
+      "lastModified": "9월 15, 2026"
+    },
+    {
+      "title": "D-20 · Lab 작업 충돌·재시도·부분 실패 정책",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/6881283/D-20+Lab",
+      "lastModified": "9월 17, 2026"
+    },
+    {
+      "title": "검증 설계 — 테스트 전략·추적성",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/9666637",
+      "lastModified": "9월 18, 2026"
+    },
+    {
+      "title": "02. Dependency Map",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/19398845/02.+Dependency+Map",
+      "lastModified": "10월 07, 2026"
+    },
+    {
+      "title": "D-17 · SaaS–Connector 통신·인증 방식",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/6914077/D-17+SaaS+Connector",
+      "lastModified": "9월 18, 2026"
+    }
+  ]
+}

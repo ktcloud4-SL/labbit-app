@@ -1,0 +1,37 @@
+Observed API mutation: method=POST route=identity/auth/tokens status=201
+Image option: os-debian13.1-image-20260929 status=active
+Image option: os-ubuntu24.04-image-20260929 status=active
+Image option: Rocky9.6-Tibero7.2.6-322443-EE status=active
+Image option: Rocky9.6-Tibero7.2.6-322443-TAC status=active
+Image option: Rocky9.6-Tibero7.2.6-322443-SE status=active
+Image option: Rocky8.10-Tibero7.2.6-322443-TAC status=active
+Image option: Rocky8.10-Tibero7.2.6-322443-EE status=active
+Image option: Rocky8.10-Tibero7.2.6-322443-SE status=active
+Image option: os-debian12-image-20260821 status=active
+Image option: rocky9.8-image-20260617 status=active
+Image option: win19std-sql17std-260514 status=active
+Image option: windows2022_260512 status=active
+Selected image constraints: minDisk=50 minRAM=0
+Small flavor option: 1x2.amd CPU=1 RAM=2048 disk=0 public=true
+Small flavor option: 1x2 CPU=1 RAM=2048 disk=0 public=true
+Small flavor option: 1x2.itl CPU=1 RAM=2048 disk=0 public=true
+Small flavor option: onprem-flavor-test-2 CPU=2 RAM=2048 disk=50 public=true
+Small flavor option: 2x2 CPU=2 RAM=2048 disk=0 public=true
+Small flavor option: 2x2.itl CPU=2 RAM=2048 disk=0 public=true
+Small flavor option: 2x2.amd CPU=2 RAM=2048 disk=0 public=true
+Small flavor option: rp.t4.2x2 CPU=2 RAM=2048 disk=0 public=true
+Small flavor option: onprem-flavor-test CPU=2 RAM=2048 disk=100 public=true
+Small flavor option: rp-48x2-rtx CPU=48 RAM=2048 disk=0 public=true
+Small flavor option: 2x4.amd CPU=2 RAM=4096 disk=0 public=true
+Small flavor option: rp_2x4 CPU=2 RAM=4096 disk=0 public=true
+Small flavor option: 2x4.itl CPU=2 RAM=4096 disk=0 public=true
+Small flavor option: 2x4 CPU=2 RAM=4096 disk=0 public=true
+Small flavor option: 4x4.amd CPU=4 RAM=4096 disk=0 public=true
+Small flavor option: 4x4.itl CPU=4 RAM=4096 disk=0 public=true
+Small flavor option: aidx-gpu-t4-5 CPU=4 RAM=4096 disk=100 public=true
+Small flavor option: 4x4 CPU=4 RAM=4096 disk=0 public=true
+Small flavor option: aidu-gpu-t4-5 CPU=4 RAM=4096 disk=50 public=true
+Small flavor option: 210326-t4-5-test CPU=4 RAM=4096 disk=0 public=true
+Selected flavor detail ID/name confirmed: 2x4.itl
+Selected Connector fixture: image=os-ubuntu24.04-image-20260929 flavor=2x4.itl CPU=2 RAM=4096 disk=0; DMZ UUID/refId separated
+Bootstrap: READ_ONLY_CHOICES_CONFIRMED

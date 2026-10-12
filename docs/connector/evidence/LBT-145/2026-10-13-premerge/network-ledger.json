@@ -1,0 +1,11 @@
+{
+  "name": "labbit-086aa8de8d353994cc97-m-21a3230e03772a58",
+  "cidr": "172.25.242.0/24",
+  "state": "CLEANUP_ABSENCE_CONFIRMED",
+  "tierId": "215d7591-163e-44cb-9091-891e16887b7a",
+  "refId": "bdeac92e-ac92-4364-b39e-ce33521c107a",
+  "policyId": "ba06ccc7-0669-45d9-a2b7-ab77b549cd98",
+  "policyJobId": "a912b2e52d529836dc39758e71420394",
+  "policyAttempted": true,
+  "deleted": true
+}

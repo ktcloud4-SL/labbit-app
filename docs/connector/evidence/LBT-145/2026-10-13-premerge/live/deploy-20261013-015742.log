@@ -1,0 +1,4 @@
+Observed API mutation: method=POST route=identity/auth/tokens status=201
+Verified deployed labbit-connector-ktcloud SHA256: 6e86adbbe49e1e39ac9c8eea4d76dfbbfff52b11940fb5ae8728ce1694ef090d
+Verified deployed lbt145-control-linux SHA256: 2eaf38ce1de1fb6d450e334316f5c848b28b02caf238c5adfde96fbfcc81cdb6
+Deployment: production Connector and Control harness uploaded through pinned authenticated SSH; remote files protected

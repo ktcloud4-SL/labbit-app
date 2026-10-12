@@ -1,0 +1,18 @@
+{
+  "verifiedAtUTC": "2026-10-12T17:13:16.012552+00:00",
+  "sourceHead": "6a6fb4f97e676a80cfce27f85269f0627970fc9c",
+  "plannedGenerations": 2,
+  "labTypedReferences": 10,
+  "allLabReferencesDeleted": true,
+  "bootstrapDeleted": true,
+  "disposableNetworkFixtureDeleted": true,
+  "ownedResidualTotal": 0,
+  "basicTierCount": 2,
+  "externalNetworkEntryCount": 1,
+  "finalInventoryBaselinePreserved": true,
+  "bootstrapLedgerExportOmittedFields": [
+    "projectId",
+    "sourceCIDR",
+    "publicIP"
+  ]
+}

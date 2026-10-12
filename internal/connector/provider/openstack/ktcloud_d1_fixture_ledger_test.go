@@ -63,6 +63,40 @@ func TestKTFixtureCleanupUsesConfirmedIDsAndChecksAbsence(t *testing.T) {
 	}
 }
 
+func TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping(t *testing.T) {
+	config := ProvisionConfig{KTCloudConnectorTierID: "connector", SSHAllowedCIDR: "172.25.0.10/32"}
+	for _, scenario := range []string{"valid", "wrong target", "wrong source IP", "deny", "NAT enabled", "duplicate", "missing"} {
+		t.Run(scenario, func(t *testing.T) {
+			p := ktCloudFirewallPolicy{ID: "candidate", Comment: "fixture", Action: "accept", Status: "enable", NAT: "disable", Source: []ktCloudInterface{{ID: "connector"}}, Destination: []ktCloudInterface{{ID: "owned-tier"}}, SourceIPs: []ktCloudAddress{{Name: config.SSHAllowedCIDR}}, DestinationIPs: []ktCloudAddress{{Name: "all"}}, Services: []ktCloudService{{Protocol: "TCP", Start: "22", End: "22"}}}
+			switch scenario {
+			case "wrong target":
+				p.Destination[0].ID = "foreign-tier"
+			case "wrong source IP":
+				p.SourceIPs[0].Name = "0.0.0.0/0"
+			case "deny":
+				p.Action = "deny"
+			case "NAT enabled":
+				p.NAT = "enable"
+			}
+			items := []ktCloudFirewallPolicy{p}
+			if scenario == "duplicate" {
+				items = append(items, p)
+			}
+			if scenario == "missing" {
+				items = nil
+			}
+			id, err := confirmedKTFixturePolicy(items, "fixture", config, "owned-tier")
+			if scenario == "valid" {
+				if err != nil || id != "candidate" {
+					t.Fatal("verified policy ID lost")
+				}
+			} else if id != "" || (scenario != "missing" && err == nil) {
+				t.Fatal("unverified candidate became a cleanup ID")
+			}
+		})
+	}
+}
+
 // Names and comments can locate candidates, but cannot replace a recorded
 // create receipt or the successful policy-job/mapping confirmation.
 func requireKTFixtureCleanupOwnership(tierID, policyID string, policyAttempted bool) error {

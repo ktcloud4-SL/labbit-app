@@ -226,10 +226,10 @@ func (a *Adapter) prepareKTCloudNICs(ctx context.Context, request coreprovider.P
 	if len(matches) != 1 || matches[0].ID == "" {
 		return provisionNICs{}, resources, ErrSecurityRuleCreate
 	}
-	resources = upsertResource(resources, ktResource(resourceIdentity(request.Generation, vm.VMKey+":management-ssh"), coreprovider.ResourceTypeFirewall, matches[0].ID, "PRESENT"))
 	if !ktSSHPolicyMatches(matches[0], config, tier.ID) {
 		return provisionNICs{}, resources, ErrSecurityRuleCreate
 	}
+	resources = upsertResource(resources, ktResource(resourceIdentity(request.Generation, vm.VMKey+":management-ssh"), coreprovider.ResourceTypeFirewall, matches[0].ID, "PRESENT"))
 	return provisionNICs{networkIDs: []string{tier.RefID, topology.tier.RefID}, managementTier: tier}, resources, nil
 }
 

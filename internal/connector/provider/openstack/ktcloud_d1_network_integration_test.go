@@ -183,20 +183,15 @@ func TestKTCloudD1DisposableNetworkIntegration(t *testing.T) {
 		if e != nil {
 			return false, e
 		}
-		matches := 0
-		for _, item := range items {
-			if item.Comment == comment {
-				state.PolicyID = item.ID
-				matches++
-				if len(item.Source) != 1 || item.Source[0].ID != connectorTier || len(item.Destination) != 1 || item.Destination[0].ID != state.TierID || len(item.Services) != 1 || item.Services[0].Protocol != "TCP" || item.Services[0].Start != "22" || item.Services[0].End != "22" {
-					return false, fmt.Errorf("policy mapping differs from the requested SSH rule")
-				}
-			}
+		id, e := confirmedKTFixturePolicy(items, comment, ProvisionConfig{KTCloudConnectorTierID: connectorTier, SSHAllowedCIDR: source.String()}, state.TierID)
+		if e != nil {
+			return false, e
 		}
-		if matches > 1 {
-			return false, fmt.Errorf("ambiguous fixture policy")
+		if id == "" {
+			return false, nil
 		}
-		return matches == 1, nil
+		state.PolicyID = id
+		return true, nil
 	}) {
 		t.Fatal("created policy mapping was not confirmed")
 	}
@@ -253,4 +248,20 @@ func cleanupKTFixtureKnownResources(ctx context.Context, n *ktCloudD1Network, ti
 		}
 	}
 	return nil
+}
+
+func confirmedKTFixturePolicy(items []ktCloudFirewallPolicy, comment string, config ProvisionConfig, tierID string) (string, error) {
+	matches := []ktCloudFirewallPolicy{}
+	for _, item := range items {
+		if item.Comment == comment {
+			matches = append(matches, item)
+		}
+	}
+	if len(matches) == 0 {
+		return "", nil
+	}
+	if len(matches) != 1 || matches[0].ID == "" || !ktSSHPolicyMatches(matches[0], config, tierID) {
+		return "", fmt.Errorf("fixture policy ownership mapping uncertain")
+	}
+	return matches[0].ID, nil
 }

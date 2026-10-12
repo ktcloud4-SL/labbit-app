@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -247,15 +248,19 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
 	if err != nil {
 		return err
 	}
-	defer connectorApp.TerminalManager.CloseAll("SERVICE_RESTARTING")
-	if connectorApp.VMAccess != nil {
-		defer connectorApp.VMAccess.Close()
-	}
+	shutdown := sync.OnceFunc(func() {
+		connectorApp.TerminalManager.Shutdown(protocol.TerminalReasonServiceRestart)
+		if connectorApp.VMAccess != nil {
+			_ = connectorApp.VMAccess.Close()
+		}
+	})
+	defer shutdown()
 	handler := connectorApp.Handler
 	handler.SetOnError(func(error) {
 		logger.Warn("Connector Control 메시지 처리 실패", "connector_id", connectorID)
 	})
 	supervisor := wss.NewSupervisor(config, handler, wss.NewDefaultBackoffPolicy())
+	supervisor.SetOnShutdown(shutdown)
 	supervisor.SetOnConnected(func(ack *protocol.HelloAckPayload) {
 		logger.Info("Connector Control WSS 연결 완료",
 			"connector_id", connectorID,

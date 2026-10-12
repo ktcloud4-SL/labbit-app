@@ -66,6 +66,7 @@ type SessionManager struct {
 	sessions      map[string]*Session
 	graceDuration time.Duration
 	onEnded       SessionEndedCallback
+	closed        bool
 }
 
 // NewSessionManager 는 지정된 Grace Period(기본 60초)를 갖는 세션 관리자를 생성합니다.
@@ -96,6 +97,9 @@ func (sm *SessionManager) GetOrCreateSession(
 ) (*Session, bool, error) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
+	if sm.closed {
+		return nil, false, ErrSessionClosed
+	}
 
 	sessionID := envelope.TerminalSessionID
 	if sessionID == "" {
@@ -185,7 +189,20 @@ func (sm *SessionManager) CloseSession(sessionID string, reason string) error {
 
 // CloseAll 은 관리 중인 모든 세션을 종료합니다.
 func (sm *SessionManager) CloseAll(reason string) {
+	sm.closeAll(reason, false)
+}
+
+// Shutdown closes admission as well as existing sessions. Delayed Control opens
+// cannot allocate a new PTY after the process has begun terminating.
+func (sm *SessionManager) Shutdown(reason string) {
+	sm.closeAll(reason, true)
+}
+
+func (sm *SessionManager) closeAll(reason string, shutdown bool) {
 	sm.mu.Lock()
+	if shutdown {
+		sm.closed = true
+	}
 	sessionsToClose := make([]*Session, 0, len(sm.sessions))
 	for _, s := range sm.sessions {
 		sessionsToClose = append(sessionsToClose, s)

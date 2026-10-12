@@ -35,6 +35,9 @@ type sshPeer struct {
 	connections  []net.Conn
 	stallOpen    atomic.Bool
 	stallRequest atomic.Bool
+	openCount    atomic.Int64
+	heldOpen     chan ssh.NewChannel
+	heldRequest  chan string
 }
 
 func newSSHPeer(t *testing.T) *sshPeer {
@@ -65,7 +68,7 @@ func newSSHPeer(t *testing.T) *sshPeer {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p := &sshPeer{listener: listener, endpoint: Endpoint{ProviderConnectionID: "provider-1", Address: listener.Addr().String(), Username: "test-user", PrivateKeyFile: keyFile, HostKeyCallback: ssh.FixedHostKey(host.PublicKey())}}
+	p := &sshPeer{listener: listener, heldOpen: make(chan ssh.NewChannel, 64), heldRequest: make(chan string, 64), endpoint: Endpoint{ProviderConnectionID: "provider-1", Address: listener.Addr().String(), Username: "test-user", PrivateKeyFile: keyFile, HostKeyCallback: ssh.FixedHostKey(host.PublicKey())}}
 	t.Cleanup(func() { _ = listener.Close(); p.disconnect() })
 	go func() {
 		for {
@@ -88,7 +91,9 @@ func newSSHPeer(t *testing.T) *sshPeer {
 				defer cc.Close()
 				go ssh.DiscardRequests(requests)
 				for next := range channels {
+					p.openCount.Add(1)
 					if p.stallOpen.Load() {
+						p.heldOpen <- next
 						continue
 					}
 					channel, requests, err := next.Accept()
@@ -99,6 +104,7 @@ func newSSHPeer(t *testing.T) *sshPeer {
 						defer channel.Close()
 						for request := range requests {
 							if p.stallRequest.Load() {
+								p.heldRequest <- request.Type
 								continue
 							}
 							_ = request.Reply(true, nil)
@@ -315,7 +321,7 @@ func TestStalledChannelOpenAndRequestCancellationCleanTransport(t *testing.T) {
 	for _, phase := range []string{"open", "request"} {
 		t.Run(phase, func(t *testing.T) {
 			p := newSSHPeer(t)
-			m := testManager(t, p, Config{SetupTimeout: 80 * time.Millisecond})
+			m := testManager(t, p, Config{SetupTimeout: 80 * time.Millisecond, IdleTimeout: 40 * time.Millisecond})
 			var err error
 			if phase == "open" {
 				p.stallOpen.Store(true)

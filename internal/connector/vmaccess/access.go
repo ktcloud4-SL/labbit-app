@@ -56,15 +56,19 @@ type Manager struct {
 }
 
 type connection struct {
-	target   Target
-	endpoint Endpoint
-	ready    chan struct{}
-	cancel   context.CancelFunc
-	client   *ssh.Client
-	err      error
-	retired  bool
-	users    int
-	idle     *time.Timer
+	target    Target
+	endpoint  Endpoint
+	ready     chan struct{}
+	cancel    context.CancelFunc
+	client    *ssh.Client
+	err       error
+	retired   bool
+	users     int
+	idle      *time.Timer
+	done      chan struct{}
+	opening   chan struct{}
+	closing   []*ssh.Session
+	closeWake chan struct{}
 }
 
 func NewManager(resolver Resolver, config Config) *Manager {
@@ -93,16 +97,16 @@ func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, err
 	}
 	endpoint, err := m.resolver.ResolveVMAccess(ctx, target)
 	if err != nil {
-		if errors.Is(err, ErrUnavailable) {
-			return nil, safeError(ctx, ErrUnavailable)
+		if errors.Is(err, ErrInvalidTarget) {
+			return nil, safeError(ctx, ErrInvalidTarget)
 		}
-		return nil, safeError(ctx, ErrInvalidTarget)
+		return nil, safeError(ctx, ErrUnavailable)
 	}
 	if endpoint.ProviderConnectionID == "" || endpoint.Address == "" || endpoint.Username == "" || endpoint.PrivateKeyFile == "" || endpoint.HostKeyCallback == nil {
-		return nil, ErrInvalidTarget
+		return nil, ErrUnavailable
 	}
 	if _, _, err := net.SplitHostPort(endpoint.Address); err != nil {
-		return nil, ErrInvalidTarget
+		return nil, ErrUnavailable
 	}
 	m.mu.Lock()
 	if err := m.targetErrorLocked(target); err != nil {
@@ -119,7 +123,8 @@ func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, err
 	c := m.entries[target]
 	if c == nil {
 		dialCtx, dialCancel := context.WithCancel(ctx)
-		c = &connection{target: target, endpoint: endpoint, ready: make(chan struct{}), cancel: dialCancel}
+		c = &connection{target: target, endpoint: endpoint, ready: make(chan struct{}), cancel: dialCancel,
+			done: make(chan struct{}), opening: make(chan struct{}, 1), closeWake: make(chan struct{}, 1)}
 		m.entries[target] = c
 		m.mu.Unlock()
 		client, dialErr := dialSSH(dialCtx, endpoint)
@@ -132,6 +137,7 @@ func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, err
 		if c.err != nil {
 			m.retireLocked(c)
 		} else {
+			go m.closeChannels(c)
 			go func() { _ = client.Wait(); m.retire(c) }()
 		}
 		close(c.ready)
@@ -159,16 +165,15 @@ func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, err
 	c.users++ // Includes channel setup so idle expiry cannot race an open.
 	m.mu.Unlock()
 
-	// x/crypto/ssh channel-open has no context. A stalled setup retires the
-	// transport to release all pending reads rather than leaving a goroutine.
-	stop := context.AfterFunc(ctx, func() { m.retire(c) })
-	sshSession, err := c.client.NewSession()
-	if !stop() || ctx.Err() != nil || err != nil {
-		if sshSession != nil {
-			_ = sshSession.Close()
-		}
+	result, err := m.channelOperation(ctx, c, func() channelResult {
+		s, err := c.client.NewSession()
+		return channelResult{session: s, err: err}
+	})
+	sshSession := result.session
+	if ctx.Err() != nil || err != nil || result.err != nil {
+		m.closeChannel(c, sshSession)
 		m.release(c)
-		return nil, safeError(ctx, ErrUnavailable)
+		return nil, m.connectionError(ctx, c)
 	}
 	m.mu.Lock()
 	err = m.targetErrorLocked(target)
@@ -177,7 +182,7 @@ func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, err
 	}
 	m.mu.Unlock()
 	if err != nil {
-		_ = sshSession.Close()
+		m.closeChannel(c, sshSession)
 		m.release(c)
 		return nil, err
 	}
@@ -220,7 +225,11 @@ func (m *Manager) retire(c *connection) {
 }
 
 func (m *Manager) retireLocked(c *connection) {
+	if !c.retired {
+		close(c.done)
+	}
 	c.retired = true
+	c.closing = nil
 	c.cancel()
 	if c.idle != nil {
 		c.idle.Stop()
@@ -236,6 +245,10 @@ func (m *Manager) retireLocked(c *connection) {
 func (m *Manager) release(c *connection) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.releaseLocked(c)
+}
+
+func (m *Manager) releaseLocked(c *connection) {
 	c.users--
 	if c.users == 0 && !c.retired {
 		var timer *time.Timer
@@ -267,25 +280,37 @@ type Session struct {
 	manager    *Manager
 	connection *connection
 	once       sync.Once
+	closed     bool // Protected by manager.mu.
 }
 
 func (s *Session) Close() error {
-	s.once.Do(func() { _ = s.Session.Close(); s.manager.release(s.connection) })
+	s.once.Do(func() {
+		s.manager.mu.Lock()
+		defer s.manager.mu.Unlock()
+		s.closed = true
+		s.manager.closeChannelLocked(s.connection, s.Session)
+		s.manager.releaseLocked(s.connection)
+	})
 	return nil
 }
 
 func (s *Session) Setup(ctx context.Context, setup func(*ssh.Session) error) error {
 	ctx, cancel := context.WithTimeout(ctx, s.manager.config.SetupTimeout)
 	defer cancel()
-	stop := context.AfterFunc(ctx, func() { s.manager.retire(s.connection) })
-	err := setup(s.Session)
-	if !stop() || ctx.Err() != nil || err != nil {
-		_ = s.Close()
+	s.manager.mu.Lock()
+	closed := s.closed
+	s.manager.mu.Unlock()
+	if closed {
 		return safeError(ctx, ErrUnavailable)
+	}
+	result, err := s.manager.channelOperation(ctx, s.connection, func() channelResult { return channelResult{err: setup(s.Session)} })
+	if ctx.Err() != nil || err != nil || result.err != nil {
+		_ = s.Close()
+		return s.manager.connectionError(ctx, s.connection)
 	}
 	s.manager.mu.Lock()
 	err = s.manager.targetErrorLocked(s.connection.target)
-	if s.connection.retired && err == nil {
+	if (s.connection.retired || s.closed) && err == nil {
 		err = ErrUnavailable
 	}
 	s.manager.mu.Unlock()
@@ -294,6 +319,109 @@ func (s *Session) Setup(ctx context.Context, setup func(*ssh.Session) error) err
 		return err
 	}
 	return nil
+}
+
+type channelResult struct {
+	session *ssh.Session
+	err     error
+}
+
+// The SSH API cannot cancel an open/request. Keep at most one such operation
+// per transport; canceled waiters start no worker. The worker owns late results
+// until the peer replies or idle expiry, invalidation or shutdown closes SSH.
+func (m *Manager) channelOperation(ctx context.Context, c *connection, operation func() channelResult) (channelResult, error) {
+	select {
+	case c.opening <- struct{}{}:
+	case <-ctx.Done():
+		return channelResult{}, ctx.Err()
+	case <-c.done:
+		return channelResult{}, ErrUnavailable
+	}
+	if ctx.Err() != nil {
+		<-c.opening
+		return channelResult{}, ctx.Err()
+	}
+	select {
+	case <-c.done:
+		<-c.opening
+		return channelResult{}, ErrUnavailable
+	default:
+	}
+	result := make(chan channelResult)
+	go func() {
+		defer func() { <-c.opening }()
+		r := operation()
+		select {
+		case result <- r: // Unbuffered delivery transfers ownership to the caller.
+		case <-ctx.Done():
+			m.closeChannel(c, r.session)
+		case <-c.done:
+			m.closeChannel(c, r.session)
+		}
+	}()
+	select {
+	case r := <-result:
+		return r, nil
+	case <-ctx.Done():
+		return channelResult{}, ctx.Err()
+	case <-c.done:
+		return channelResult{}, ErrUnavailable
+	}
+}
+
+func (m *Manager) connectionError(ctx context.Context, c *connection) error {
+	m.mu.Lock()
+	err := m.targetErrorLocked(c.target)
+	m.mu.Unlock()
+	if err == nil {
+		err = ErrUnavailable
+	}
+	return safeError(ctx, err)
+}
+
+func (m *Manager) closeChannel(c *connection, session *ssh.Session) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.closeChannelLocked(c, session)
+}
+
+func (m *Manager) closeChannelLocked(c *connection, session *ssh.Session) {
+	if session == nil || c.retired {
+		return
+	}
+	c.closing = append(c.closing, session)
+	select {
+	case c.closeWake <- struct{}{}:
+	default:
+	}
+}
+
+// One cleanup worker per transport keeps a blocked channel-close write from
+// blocking cancellation, reference release or idle retirement of the socket.
+func (m *Manager) closeChannels(c *connection) {
+	for {
+		m.mu.Lock()
+		if c.retired {
+			m.mu.Unlock()
+			return
+		}
+		var session *ssh.Session
+		if len(c.closing) > 0 {
+			session = c.closing[0]
+			c.closing[0] = nil
+			c.closing = c.closing[1:]
+		}
+		m.mu.Unlock()
+		if session != nil {
+			_ = session.Close()
+			continue
+		}
+		select {
+		case <-c.closeWake:
+		case <-c.done:
+			return
+		}
+	}
 }
 
 func safeError(ctx context.Context, fallback error) error {

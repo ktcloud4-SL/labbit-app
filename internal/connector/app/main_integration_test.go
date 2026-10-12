@@ -214,6 +214,46 @@ func TestLatestMainControlProviderAndTerminalShareRuntime(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("terminal SSH connection leaked on runtime shutdown")
 	}
+	endedRaw, err := relay.ReadText(time.Second)
+	if err != nil {
+		t.Fatalf("shutdown Data ENDED missing: %v", err)
+	}
+	var dataEnded protocol.TerminalDataEndedMessage
+	if err := json.Unmarshal(endedRaw, &dataEnded); err != nil {
+		t.Fatal(err)
+	}
+	if dataEnded.Type != protocol.MessageTypeTerminalDataEnded || dataEnded.Payload.Reason != protocol.TerminalReasonServiceRestart {
+		t.Fatalf("shutdown Data ENDED=%+v", dataEnded)
+	}
+	if _, err := relay.WaitForClose(time.Second); err != nil {
+		t.Fatal(err)
+	}
+	if duplicate, err := relay.ReadText(50 * time.Millisecond); err == nil {
+		t.Fatalf("duplicate Data ENDED: %s", duplicate)
+	}
+	deadline := time.Now().Add(time.Second)
+	for {
+		count := 0
+		for _, raw := range saas.ReceivedMessages() {
+			var ended protocol.TerminalEndedMessage
+			if json.Unmarshal(raw, &ended) == nil && ended.Type == protocol.MessageTypeTerminalEnded {
+				count++
+				if ended.TerminalSessionID != "session-1" || ended.Payload.Reason != protocol.TerminalReasonServiceRestart {
+					t.Fatalf("shutdown Control ENDED=%+v", ended)
+				}
+			}
+		}
+		if count == 1 {
+			break
+		}
+		if count > 1 {
+			t.Fatalf("duplicate Control ENDED: %d", count)
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("shutdown Control ENDED missing")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
 }
 
 func waitForControlReply(t *testing.T, saas *mock.MockSaaS, replyTo string) []byte {

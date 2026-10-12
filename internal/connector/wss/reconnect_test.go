@@ -161,6 +161,7 @@ func TestSupervisor_LifecycleAndReconnect(t *testing.T) {
 
 	connectedCount := 0
 	disconnectedCount := 0
+	shutdownCount := 0
 	var mu sync.Mutex
 
 	supervisor.SetOnConnected(func(ack *protocol.HelloAckPayload) {
@@ -172,6 +173,11 @@ func TestSupervisor_LifecycleAndReconnect(t *testing.T) {
 	supervisor.SetOnDisconnected(func(err error) {
 		mu.Lock()
 		disconnectedCount++
+		mu.Unlock()
+	})
+	supervisor.SetOnShutdown(func() {
+		mu.Lock()
+		shutdownCount++
 		mu.Unlock()
 	})
 
@@ -211,6 +217,7 @@ func TestSupervisor_LifecycleAndReconnect(t *testing.T) {
 	mu.Lock()
 	finalConn := connectedCount
 	finalDisc := disconnectedCount
+	shutdownBeforeCancel := shutdownCount
 	mu.Unlock()
 
 	if server.HelloCount() < 2 {
@@ -220,6 +227,9 @@ func TestSupervisor_LifecycleAndReconnect(t *testing.T) {
 
 	if finalDisc < 1 {
 		t.Fatalf("expected OnDisconnected callback to be invoked at least once, got %d", finalDisc)
+	}
+	if shutdownBeforeCancel != 0 {
+		t.Fatal("ordinary Control reconnect invoked process shutdown")
 	}
 
 	// 4. 컨텍스트 종료 시 정상 반환 확인
@@ -231,6 +241,11 @@ func TestSupervisor_LifecycleAndReconnect(t *testing.T) {
 		}
 	case <-time.After(1 * time.Second):
 		t.Fatal("supervisor did not stop within timeout after cancel")
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if shutdownCount != 1 {
+		t.Fatalf("shutdown callbacks=%d", shutdownCount)
 	}
 }
 

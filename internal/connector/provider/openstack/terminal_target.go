@@ -2,10 +2,12 @@ package openstackprovider
 
 import (
 	"context"
+	"errors"
 	"net"
 	"strconv"
 	"strings"
 
+	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
@@ -27,12 +29,16 @@ func (a *Adapter) ResolveServerAddress(ctx context.Context, targetVmKey, serverI
 // ResolveVMAccess includes the Control envelope's LabInstance/generation affinity
 // in the existing Provider-owned Server and management NIC validation.
 func (a *Adapter) ResolveVMAccess(ctx context.Context, target vmaccess.Target) (vmaccess.Endpoint, error) {
-	if target.LabInstanceID == "" || target.Generation < 1 {
+	if strings.TrimSpace(target.LabInstanceID) == "" || target.Generation < 1 || strings.TrimSpace(target.VMKey) == "" || strings.TrimSpace(target.ServerID) == "" {
 		return vmaccess.Endpoint{}, vmaccess.ErrInvalidTarget
 	}
 	address, err := a.resolveServerAddress(ctx, target.VMKey, target.ServerID, &target)
 	if err != nil {
-		return vmaccess.Endpoint{}, safeContextError(ctx, vmaccess.ErrInvalidTarget)
+		kind := vmaccess.ErrUnavailable
+		if errors.Is(err, vmaccess.ErrInvalidTarget) || errors.Is(err, ErrResourceOwnership) {
+			kind = vmaccess.ErrInvalidTarget
+		}
+		return vmaccess.Endpoint{}, safeContextError(ctx, kind)
 	}
 	callback, err := a.SSHHostKeyCallback(ctx, target.ServerID)
 	if err != nil {
@@ -57,6 +63,9 @@ func (a *Adapter) resolveServerAddress(ctx context.Context, targetVmKey, serverI
 	}
 	server, err := servers.Get(ctx, a.compute, serverID).Extract()
 	if err != nil {
+		if gophercloud.ResponseCodeIs(err, 404) && expected != nil {
+			return "", vmaccess.ErrInvalidTarget
+		}
 		return "", safeContextError(ctx, ErrServerGet)
 	}
 	generation, err := strconv.ParseInt(server.Metadata["labbit_generation"], 10, 64)
@@ -66,8 +75,11 @@ func (a *Adapter) resolveServerAddress(ctx context.Context, targetVmKey, serverI
 	}
 	if err != nil || generation < 1 || labID == "" || strings.TrimSpace(server.Metadata["labbit_operation_id"]) == "" ||
 		server.ID != serverID || server.TenantID != a.provision.ProjectID || server.Metadata["labbit_vm_key"] != targetVmKey ||
-		server.Name != provisionBaseName(labID, generation)+"-"+safeName(targetVmKey, 28) || normalizeStatus(server.Status) != "ACTIVE" {
+		server.Name != provisionBaseName(labID, generation)+"-"+safeName(targetVmKey, 28) {
 		return "", ErrResourceOwnership
+	}
+	if normalizeStatus(server.Status) != "ACTIVE" {
+		return "", ErrSSHNotReady
 	}
 	pages, err := ports.List(a.network, ports.ListOpts{DeviceID: serverID, NetworkID: a.provision.ManagementNetworkID}).AllPages(ctx)
 	if err != nil {

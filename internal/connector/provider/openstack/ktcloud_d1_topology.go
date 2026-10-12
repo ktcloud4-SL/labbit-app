@@ -292,18 +292,16 @@ func (a *Adapter) refreshKTCloudNICs(ctx context.Context, request coreprovider.P
 	if err != nil || server == nil || server.ID != serverID {
 		return "", resources, ErrServerGet
 	}
-	for _, attachment := range server.AttachedVolumes {
-		if attachment.ID != "" {
-			resources = upsertResource(resources, ktResource(resourceIdentity(request.Generation, vm.VMKey+":root-volume"), coreprovider.ResourceTypeVolume, attachment.ID, "PRESENT"))
-		}
-	}
-	if len(server.AttachedVolumes) != 1 {
+	if len(server.AttachedVolumes) != 1 || server.AttachedVolumes[0].ID == "" {
 		return "", resources, ErrReconcileLookup
 	}
 	root, err := volumes.Get(ctx, a.volume, server.AttachedVolumes[0].ID).Extract()
 	if err != nil || root == nil || root.ID != server.AttachedVolumes[0].ID || root.VolumeImageMetadata["image_id"] != vm.ImageID || root.Size != 50 || len(root.Attachments) != 1 || root.Attachments[0].ServerID != serverID {
 		return "", resources, ErrReconcileLookup
 	}
+	// Only the confirmed image-backed root mapping establishes a Volume ref.
+	// Other attachments remain candidates, never automatic cleanup targets.
+	resources = upsertResource(resources, ktResource(resourceIdentity(request.Generation, vm.VMKey+":root-volume"), coreprovider.ResourceTypeVolume, root.ID, "PRESENT"))
 	tier, exists, err := a.ktNetwork.tier(ctx, nics.managementTier.ID)
 	if err != nil || !exists || tier.RefID != nics.managementTier.RefID || tier.Name != nics.managementTier.Name || tier.CIDR != a.provision.KTCloudManagementCIDR {
 		return "", resources, ErrManagementIP

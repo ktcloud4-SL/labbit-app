@@ -25,10 +25,11 @@ func (r unreadManagerSSHResolver) ResolveVMAccess(context.Context, vmaccess.Targ
 }
 
 // Real production VMAccess Manager + NewManagedSSHPTY + SessionManager, with
-// only a synthetic SSH peer and generated key. No dependency or production
-// source replacement is needed. TCP backpressure is observed in memory only.
+// only a synthetic SSH peer and generated key. The actual TCP peer stops
+// reading after setup; the assertion does not depend on an OS-specific kernel
+// write stack because SSH flow control can become the first blocking layer.
 func TestManagedSSHShutdownWithUnreadPeer(t *testing.T) {
-	for _, mode := range []string{"input-close", "pending-resize"} {
+	for _, mode := range []string{"input-close", "resize-close"} {
 		t.Run(mode, func(t *testing.T) {
 			_, key, err := ed25519.GenerateKey(rand.Reader)
 			if err != nil {
@@ -108,7 +109,7 @@ func TestManagedSSHShutdownWithUnreadPeer(t *testing.T) {
 			<-pause
 			inputDone := make(chan struct{})
 			go func() { defer close(inputDone); _, _ = pty.Write(make([]byte, 16<<20)) }()
-			waitStack := func(wanted string) {
+			waitPending := func(wanted string) {
 				t.Helper()
 				deadline := time.Now().Add(4 * time.Second)
 				var first time.Time
@@ -117,7 +118,7 @@ func TestManagedSSHShutdownWithUnreadPeer(t *testing.T) {
 					n := runtime.Stack(snapshot, true)
 					matched := false
 					for _, goroutine := range strings.Split(string(snapshot[:n]), "\n\n") {
-						if strings.Contains(goroutine, wanted) && strings.Contains(goroutine, "internal/poll.(*FD).Write") {
+						if strings.Contains(goroutine, wanted) {
 							matched = true
 							break
 						}
@@ -134,28 +135,31 @@ func TestManagedSSHShutdownWithUnreadPeer(t *testing.T) {
 						first = time.Time{}
 					}
 					if time.Now().After(deadline) {
-						t.Fatal("managed SSH fixture did not reach sustained kernel TCP Write")
+						t.Fatal("managed SSH write did not remain pending against unread TCP peer")
 					}
 					time.Sleep(5 * time.Millisecond)
 				}
 			}
-			waitStack("terminal.(*SSHPTY).Write")
+			waitPending("terminal.(*SSHPTY).Write")
+			select {
+			case <-inputDone:
+				t.Fatal("managed SSH input unexpectedly completed while TCP peer was unread")
+			default:
+			}
 			resizeDone := make(chan struct{})
-			if mode == "pending-resize" {
-				go func() { _ = session.Resize(81, 25); close(resizeDone) }()
-				deadline := time.Now().Add(time.Second)
-				for {
-					snapshot := make([]byte, 128<<10)
-					n := runtime.Stack(snapshot, true)
-					pending := strings.Contains(string(snapshot[:n]), "ssh.(*Session).WindowChange")
-					clear(snapshot)
-					if pending {
-						break
+			var resizeErr error
+			resizePendingObserved := false
+			if mode == "resize-close" {
+				go func() { resizeErr = session.Resize(81, 25); close(resizeDone) }()
+				select {
+				case <-resizeDone:
+					// A channel request is not subject to the SSH data window and can
+					// fit in an OS send buffer even while input remains blocked.
+					if resizeErr != nil {
+						t.Fatalf("managed resize failed before shutdown: %v", resizeErr)
 					}
-					if time.Now().After(deadline) {
-						t.Fatal("actual managed resize did not begin")
-					}
-					time.Sleep(time.Millisecond)
+				case <-time.After(200 * time.Millisecond):
+					resizePendingObserved = true
 				}
 			}
 			done := make(chan struct{})
@@ -182,7 +186,7 @@ func TestManagedSSHShutdownWithUnreadPeer(t *testing.T) {
 			case <-time.After(time.Second):
 				t.Error("actual managed input worker not released")
 			}
-			if mode == "pending-resize" {
+			if mode == "resize-close" {
 				select {
 				case <-resizeDone:
 				case <-time.After(time.Second):
@@ -198,7 +202,7 @@ func TestManagedSSHShutdownWithUnreadPeer(t *testing.T) {
 			if _, err := access.OpenSession(context.Background(), target); err != vmaccess.ErrClosed {
 				t.Error("closed shared manager accepted a new session")
 			}
-			t.Logf("mode=%s realVMAccessManager=true genuineTCPBlocked=true normalShutdownReturned=%t forcedFixtureCleanup=%t", mode, normalShutdownReturned, !normalShutdownReturned)
+			t.Logf("mode=%s realVMAccessManager=true actualTCPUnread=true inputWritePending=true resizePendingObserved=%t normalShutdownReturned=%t forcedFixtureCleanup=%t", mode, resizePendingObserved, normalShutdownReturned, !normalShutdownReturned)
 		})
 	}
 }

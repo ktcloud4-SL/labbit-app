@@ -1,9 +1,9 @@
 {
-  "recordedAt": "2026-10-12T08:51:53.024529+00:00",
-  "codeCommit": "fa7e5fc785e46b61cef4f7167082d4dd1dda2939",
+  "recordedAt": "2026-10-12T09:15:11.825811+00:00",
+  "codeCommit": "41f785e6e4e436f32c85ed21d1fed327ffaeb388",
   "main": "7aaa5ca4e7f58cb88f188f91e653a624e4caed03",
   "branch": "feat/LBT-147-vm-access",
-  "currentWorkingTree": "M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/AUDIT.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/README.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/integration_metadata_test.go\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/read_only_residual_test.go\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/archive-manifest.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/artifact-checksums.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/audit-logs.zip\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-checks.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-review.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/reproduction-checks.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/secret-scan.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/source-manifest.json",
+  "currentWorkingTree": "M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/AUDIT.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/README.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/archive-manifest.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/artifact-checksums.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/audit-logs.zip\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/file-review.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-checks.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-review.md\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/secret-scan.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/source-manifest.json\n M docs/connector/evidence/LBT-147/2026-10-12-additional-verification/validation-summary.json",
   "productFiles": [
     {
       "path": "contracts/http/openapi.yaml",
@@ -122,8 +122,8 @@
     },
     {
       "path": "internal/connector/terminal/ssh_manager_backpressure_test.go",
-      "byteSHA256": "a8e344aa6141cc1d60c279465ce25e0a320515867736be405ed92680a724e875",
-      "gitBlob": "55e7fef5e1fe4183887352b1faace0dcd69ad241"
+      "byteSHA256": "ade7705ea5d4ee846744a8566e7e464f6314e253a50092c88940cdead6688502",
+      "gitBlob": "3026ae2c5fc63c2d2633fb090edcf369a34aa6c2"
     },
     {
       "path": "internal/connector/terminal/ssh_pty.go",
@@ -209,9 +209,9 @@
   },
   "cloud4Source": "da6b6701f13ba17c38b0778983545da62ac07212",
   "finalGoSource": {
-    "head": "a5b2d1210c3941641dc96dfc4aa2201358e9293a",
+    "head": "ce02b4c496c4ac931cb66db4adea92a71fbb3cc1",
     "main": "7aaa5ca4e7f58cb88f188f91e653a624e4caed03",
-    "workingTree": "M internal/connector/terminal/session.go\n M internal/connector/terminal/ssh_pty.go\n M internal/observability/tracing/runtime_test.go\n?? docs/connector/evidence/LBT-147/2026-10-12-additional-verification/\n?? internal/connector/app/backpressure_test.go\n?? internal/connector/terminal/backpressure_test.go\n?? internal/connector/terminal/data_connection_backpressure_test.go\n?? internal/connector/terminal/final_frame_backpressure_test.go\n?? internal/connector/terminal/ssh_backpressure_test.go\n?? internal/connector/terminal/ssh_manager_backpressure_test.go",
+    "workingTree": "M internal/connector/terminal/ssh_manager_backpressure_test.go",
     "files": [
       {
         "path": "docs/connector/evidence/LBT-147/2026-10-10/README.md",
@@ -250,8 +250,8 @@
       },
       {
         "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/.gitattributes",
-        "sha256": "57bf5457c28d645c9154bafcf8722f93add4c025ed6c9b8a88ee97f97f4b8e6f",
-        "gitBlob": "5757e446b74ee268f090b00154bcfed73a82b373"
+        "sha256": "730a35ae3d558080083c3103d9ac8100c3f6561678092abe341701dfa331eb1d",
+        "gitBlob": "4f7fc3ef1406bfab189a4a14744c344f36d77d9a"
       },
       {
         "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/.gitignore",
@@ -259,14 +259,99 @@
         "gitBlob": "7a60b85e148f80966a550e5ab6a762a907c69ca6"
       },
       {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/AUDIT.md",
+        "sha256": "80c1b06a5021a8953051d941d7aaa88a6031746605ed4360cd3b6726614ed835",
+        "gitBlob": "3bce339f29fc3195a36cf77b526279b9fa65190c"
+      },
+      {
         "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/README.md",
-        "sha256": "e5b66ad784834a26d6babe62ed9ee293dae458995f1af607ff4492416522d0a9",
-        "gitBlob": "7ca3b344901d0a2354b8475304dbead8aa0e0602"
+        "sha256": "8a935e5da05ca4ecf70c61f48f25bccfcd4d39868476420630525e65314c596a",
+        "gitBlob": "7c0e7604200f84391c60ffef74f7f8e14d7f92c7"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/actual_runtime_shutdown_test.go",
+        "sha256": "71c11e8af394d0802721b556d4b0e68788b718fa612c2a5f079b42a20d92fa70",
+        "gitBlob": "8c06d50309e28aeed66551468452896f0329edea"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/integration_metadata_test.go",
+        "sha256": "8d93b8c4053004f27cb2a0968a71f0f4162793799534a851da7b6aea261ff58c",
+        "gitBlob": "a6fd0e3bbbb0094bf6ad7d79eebd9a94274990c0"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/read_only_residual_test.go",
+        "sha256": "117152473e8384bfa309abaf88f2df50d84182ed16094a9efb05a15f74780842",
+        "gitBlob": "d6368df86b4715279b5cd07560673613a0f604bc"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/real_failure_test.go",
+        "sha256": "b64c68abcf407a6432bb3055184895c322879709f16b32c9b7bb52b455123e09",
+        "gitBlob": "6af876dda2397b456a6a84bc48ada4764c0f5292"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/archive-manifest.json",
+        "sha256": "9d2aad967c3ddf330505b61e5125f7a947c308d678f1334c55d90ef13144c8f2",
+        "gitBlob": "3c9f337de0ff692ff9f1eb2ad8bc1124304e466b"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/artifact-checksums.json",
+        "sha256": "31903974f3cb7765e56ac91f3d4f3fd3ff1a9234a88ae279156c613a72f36fd5",
+        "gitBlob": "96271a33f405e196a3f9f16be32e013f98d68d47"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/audit-logs.zip",
+        "sha256": "4cf5e103ba4046f485e587975d4fb64b35882635719fdf9920fc733e46d5cf00",
+        "gitBlob": "d1938453c864ffe182758ac32b1ba0943e2ddd55"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/file-review.md",
+        "sha256": "6c2700c55eccb9cbb60a7d69d4acb2cf03d7346235f55d0ad0a45720e08c0362",
+        "gitBlob": "d8129a020778c4414649d2caaa4840616588c69a"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/independent-review.md",
+        "sha256": "f57c7ee8d50734736254029e53a3918cb73b400d39d3886867531595d1ffc9ef",
+        "gitBlob": "56a0330d5020704bb8d7c13c1fcf49cf47942837"
       },
       {
         "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/prepare_overlays.py",
         "sha256": "f705f1f4ded0a8e84106acd1570d6598ca4f5a46a2c2ecca08c37efc359cf1ea",
         "gitBlob": "a965291ba9d4e0bc1a3d31ee30efdaab04150b46"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-checks.json",
+        "sha256": "707302f5a4fd21601fa2f5caadfd8fe3bcc62140992d7326cc0f3f4397f583c5",
+        "gitBlob": "18fdb14418a192130eab4873296c8d0197011c73"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/publication-review.md",
+        "sha256": "0d3343a8ee553696a503e4da86a2d20c78cb81593091f7a9b101befb50df84b2",
+        "gitBlob": "eabe051ee58cce3ac513de4b485d0e032974810b"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/reproduction-checks.json",
+        "sha256": "f732b6fac8eb9b643f4aa41699cd75c3f4e64428d353763f8c547387673349f1",
+        "gitBlob": "7fccb5dce054c14d71658247c7c76f28eeac9498"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/secret-scan.json",
+        "sha256": "3836f598f5bf4ae5f7b2b9e9830a7a30fe5b26c65b10e2a8a7425f867a728ab1",
+        "gitBlob": "a7e0dedd411e063863f55843a5d19346cc3da764"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/source-manifest.json",
+        "sha256": "e840d07233cb3f86e99888c0b12d3875ddae870d2d4ac45044a6bb247dc9f5ff",
+        "gitBlob": "f85a6727defd4c601da6eefa54a95b482b8fb2e9"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/ssot-summary.json",
+        "sha256": "0db4451f7d14c9b1ead4a41bda4c3ac7c640d235cef94181962e799bb3e814c4",
+        "gitBlob": "9ecd0d9b9a193755138496f83f67913ad712adb4"
+      },
+      {
+        "path": "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/validation-summary.json",
+        "sha256": "bf2023117d49a0c860ba558b6711b17014f8fc5c926522043d245a7382616d0c",
+        "gitBlob": "c665620293927158eabde086bcea29650f173d66"
       },
       {
         "path": "docs/connector/evidence/LBT-147/2026-10-12-review-followup/.gitattributes",
@@ -595,8 +680,8 @@
       },
       {
         "path": "internal/connector/terminal/ssh_manager_backpressure_test.go",
-        "sha256": "a8e344aa6141cc1d60c279465ce25e0a320515867736be405ed92680a724e875",
-        "gitBlob": "55e7fef5e1fe4183887352b1faace0dcd69ad241"
+        "sha256": "ade7705ea5d4ee846744a8566e7e464f6314e253a50092c88940cdead6688502",
+        "gitBlob": "3026ae2c5fc63c2d2633fb090edcf369a34aa6c2"
       },
       {
         "path": "internal/connector/terminal/ssh_pty.go",

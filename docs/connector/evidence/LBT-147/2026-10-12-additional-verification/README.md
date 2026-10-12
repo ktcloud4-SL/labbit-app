@@ -10,6 +10,7 @@
 - 최신 main `7aaa5ca`를 feature branch에 통합한 뒤, 최종 Terminal 수정 소스로 실제 VM 2개의 R1 exec cancel/deadline, 실제 target에 대한 scoped Nova/Neutron 503, affinity/404, host pin mismatch, production runControl healthy/unread Data 종료, VM별 30회 SSH open/exec/close와 idle 대기 후 인증 성공을 다시 실행했다. 이 부하 시험은 접속 identity를 비교하지 않는다.
 - 코드 커밋 `bd8071d`에서 정상 VM integration도 다시 실행했다. 실제 PTY input/output/resize, **PTY 종료 후 같은 공유 SSH의 SFTP INIT/VERSION/REALPATH**, idle 전후 SSH_CONNECTION identity 변화, gen2 Reset/new target/stale gen1 거절을 검증했다. tracked14 exact-ID 부재와 최종 matching residual0을 확인했다.
 - Data/SSH TCP backpressure 회귀는 실제 loopback TCP/SSH/WSS와 생성한 테스트 키를 사용한다. 배포된 SaaS/Browser나 실제 cloud의 packet blackhole 검증은 아니다.
+- 첫 Evidence 보완 push의 Linux Go CI는 format 누락을 검출했고, 다음 push는 manager 회귀가 특정 `internal/poll.(*FD).Write` stack을 요구한 OS 의존 assertion을 검출했다. 두 원격 실패와 수정 전 source를 ZIP에 보존했다. 최종 manager 회귀는 unread TCP에서 `SSHPTY.Write` 지속 대기와 종료·worker 해제·server EOF를 검증하며, 실제 kernel pending resize는 client write buffer를 줄이는 별도 회귀가 담당한다.
 - 전체 Go/race/20회 회귀와 Web typecheck/lint/test/build, 계약 validator 결과는 validation-summary에 있다. 일반 Go의 opt-in SKIP는 별도 cloud 실행 PASS와 구분한다.
 
 각 cloud suite의 exact-ID cleanup assertion과 사후 read-only inventory를 확인한다. `cleanup verify GET/404` 로그는 assertion **직전** 출력이므로 그 문구만 cleanup 성공으로 취급하지 않는다. 해당 testcase PASS와 뒤의 조회 결과를 함께 확인한다. 실패한 초기 fixture 실행도 ZIP에 보존하며 최종 PASS로 덮어쓰지 않는다.

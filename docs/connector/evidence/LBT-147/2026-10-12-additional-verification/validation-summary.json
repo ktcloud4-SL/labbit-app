@@ -489,8 +489,8 @@
         "build",
         "./..."
       ],
-      "startedAt": "2026-10-12T07:30:31.604451+00:00",
-      "endedAt": "2026-10-12T07:30:36.989862+00:00",
+      "startedAt": "2026-10-12T09:05:07.416196+00:00",
+      "endedAt": "2026-10-12T09:05:12.317864+00:00",
       "exitCode": 0
     },
     "go-mod-download-run": {
@@ -499,8 +499,8 @@
         "mod",
         "download"
       ],
-      "startedAt": "2026-10-12T07:30:03.857364+00:00",
-      "endedAt": "2026-10-12T07:30:03.930074+00:00",
+      "startedAt": "2026-10-12T09:04:41.006862+00:00",
+      "endedAt": "2026-10-12T09:04:41.062191+00:00",
       "exitCode": 0
     },
     "go-race-run": {
@@ -517,8 +517,8 @@
         "./internal/connector/wss",
         "./internal/observability/tracing"
       ],
-      "startedAt": "2026-10-12T07:30:36.990682+00:00",
-      "endedAt": "2026-10-12T07:30:53.311280+00:00",
+      "startedAt": "2026-10-12T09:05:12.318360+00:00",
+      "endedAt": "2026-10-12T09:05:29.262423+00:00",
       "exitCode": 0
     },
     "go-unit-run": {
@@ -529,8 +529,8 @@
         "-count=1",
         "./..."
       ],
-      "startedAt": "2026-10-12T07:30:06.714620+00:00",
-      "endedAt": "2026-10-12T07:30:31.602941+00:00",
+      "startedAt": "2026-10-12T09:04:43.338174+00:00",
+      "endedAt": "2026-10-12T09:05:07.416196+00:00",
       "exitCode": 0
     },
     "go-vet-run": {
@@ -539,13 +539,13 @@
         "vet",
         "./..."
       ],
-      "startedAt": "2026-10-12T07:30:03.930603+00:00",
-      "endedAt": "2026-10-12T07:30:06.713928+00:00",
+      "startedAt": "2026-10-12T09:04:41.063209+00:00",
+      "endedAt": "2026-10-12T09:04:43.337669+00:00",
       "exitCode": 0
     },
     "gofmt-run": {
       "exitCode": 0,
-      "filesChecked": 324,
+      "filesChecked": 328,
       "unformatted": []
     },
     "npm-version-run": {
@@ -576,8 +576,8 @@
         "./internal/connector/wss",
         "./internal/observability/tracing"
       ],
-      "startedAt": "2026-10-12T07:30:53.311280+00:00",
-      "endedAt": "2026-10-12T07:32:06.144549+00:00",
+      "startedAt": "2026-10-12T09:05:29.263409+00:00",
+      "endedAt": "2026-10-12T09:06:46.022685+00:00",
       "exitCode": 0
     },
     "reset-schema-run": {
@@ -659,7 +659,9 @@
     "initial-real-fixture-failure",
     "final-checks/initial-before-tracing-test-fix",
     "final-checks/initial-gofmt-crlf*",
-    "reviewer red/initial candidate fixture"
+    "reviewer red/initial candidate fixture",
+    "remote Go format failure/publication-format-red",
+    "remote Linux manager fixture/remote-linux-fixture-red"
   ],
   "remaining": [
     "KTCloud gen2 Reset/owned Tier2 absence",

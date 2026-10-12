@@ -429,8 +429,8 @@
     {
       "path": "root/final-checks/go-build-run.json",
       "bytes": 185,
-      "crc32": "1e35452e",
-      "sha256": "d3004bcd27a0eec83fbba8ef3b2af935269287338fb1393defaab651c9ec40ab"
+      "crc32": "c06171d9",
+      "sha256": "6aa4205a5c1a48b71675a4955fa0691d633f1cf4b2aa7e029509b09c85dc52d2"
     },
     {
       "path": "root/final-checks/go-build.log",
@@ -447,8 +447,8 @@
     {
       "path": "root/final-checks/go-mod-download-run.json",
       "bytes": 186,
-      "crc32": "fd81125e",
-      "sha256": "77a604d0d6c50396202c94749eaf9823448e81b31959b2fdcaeedca041fec4a8"
+      "crc32": "4e057fc6",
+      "sha256": "c2b047b061d724af7930ce056433ae215c0abb31a2c5aa8487463896cad7ae2b"
     },
     {
       "path": "root/final-checks/go-mod-download.log",
@@ -465,14 +465,14 @@
     {
       "path": "root/final-checks/go-race-run.json",
       "bytes": 446,
-      "crc32": "4846b632",
-      "sha256": "e0f7c1a73ed26ec1ca92a5729575c88585f7f1fa30f4aa65c410c98996ae40ee"
+      "crc32": "c5f1c263",
+      "sha256": "63d34a063cbe365941c29e18d462d9457a90b3d5ba85bf197a0f8a68fe40a850"
     },
     {
       "path": "root/final-checks/go-race.log",
-      "bytes": 522341,
-      "crc32": "a98ee6cf",
-      "sha256": "e6719c90385fa3d68330657a548de0edcb00e717050b7196294840978d9638e4"
+      "bytes": 522331,
+      "crc32": "e19b3496",
+      "sha256": "60a9b72ef6634310701c47d95aa3c45505d6fd6739cbeca521853386b537bb20"
     },
     {
       "path": "root/final-checks/go-race.stderr.txt",
@@ -483,14 +483,14 @@
     {
       "path": "root/final-checks/go-unit-run.json",
       "bytes": 215,
-      "crc32": "ef012dd8",
-      "sha256": "24d144e0fd78bec517a18559af26f375ab3ed424d183499c353e4fff747894ab"
+      "crc32": "ace23145",
+      "sha256": "c814c42231f5f15b9117c1e4110e4f66380411d0eddf01d988d2c5e665e84dd1"
     },
     {
       "path": "root/final-checks/go-unit.log",
-      "bytes": 3254817,
-      "crc32": "f895ecc3",
-      "sha256": "f6fdbd1727982c9ada01adeef1f7a9d16ea91c5042ffd52cd4fb1da02de35247"
+      "bytes": 3254946,
+      "crc32": "fc406068",
+      "sha256": "3f13e7f110be149fdc9314e7be92fdd12941709332500aaab9d0affbbae063d6"
     },
     {
       "path": "root/final-checks/go-unit.stderr.txt",
@@ -501,8 +501,8 @@
     {
       "path": "root/final-checks/go-vet-run.json",
       "bytes": 183,
-      "crc32": "d1c54eb6",
-      "sha256": "fd072d4a8e21d0243686d0b26b27867dc83a780c9a2e2df28d035dfc81cd3d78"
+      "crc32": "f1f1f7be",
+      "sha256": "8dc94d901331074ff8c41754638c8a2e71688387bfb84877e2d6cd575806838c"
     },
     {
       "path": "root/final-checks/go-vet.log",
@@ -519,8 +519,8 @@
     {
       "path": "root/final-checks/gofmt-run.json",
       "bytes": 69,
-      "crc32": "a13251c7",
-      "sha256": "4f197228b311b0853883c6951b11c76eb362a1185baa88bc1abbe756bb0ca702"
+      "crc32": "aa4a4d5b",
+      "sha256": "aa09c48fbb9ab34e28ac7e944c023df398e30e248a342864768dd9a68ba0da13"
     },
     {
       "path": "root/final-checks/gofmt.log",
@@ -603,14 +603,14 @@
     {
       "path": "root/final-checks/regression-repeat-run.json",
       "bytes": 1228,
-      "crc32": "acdc1df6",
-      "sha256": "1633b6e7e4c80f0ba679a29483d19ab332a39816b85ecee06ac52749782cab48"
+      "crc32": "9b36d3d1",
+      "sha256": "3f2e9da0d785c83b045727c7e652ed05c2d6b1877eb5c486123ff9423f9f28e6"
     },
     {
       "path": "root/final-checks/regression-repeat.log",
-      "bytes": 1063799,
-      "crc32": "f7c6ea33",
-      "sha256": "a8a9788861f9b36db0d5ac3d5bb84d2ab863ef8f3b4b05e378ad6c05ad1d6a03"
+      "bytes": 1065285,
+      "crc32": "0e98c042",
+      "sha256": "ed192009a4ba789d741274567c2f61ffd85451b9cc8b5c2ae804e6bbfb00d2d8"
     },
     {
       "path": "root/final-checks/regression-repeat.stderr.txt",
@@ -638,9 +638,9 @@
     },
     {
       "path": "root/final-checks/tested-source.json",
-      "bytes": 22766,
-      "crc32": "f20dc203",
-      "sha256": "095ff6c8453d4616d1bdfd4d6bc06ae37bde0a2e7f1eb306ec8bbc5a8843b05d"
+      "bytes": 26854,
+      "crc32": "13c5c2cc",
+      "sha256": "479efc318bb59dd4db62b445ff31f92e9311ef01fb9fc7fca65e6c700737b0f6"
     },
     {
       "path": "root/final-checks/web-build-run.json",
@@ -986,15 +986,15 @@
     },
     {
       "path": "root/package_evidence.py",
-      "bytes": 12468,
-      "crc32": "0dca7c49",
-      "sha256": "565398a7e7271d9a3811dc58a49853934ac3e017b2ecb260bd733c97a3dc7b76"
+      "bytes": 12576,
+      "crc32": "c223d1b5",
+      "sha256": "8a3a7cc2ffb4033c1f5fca65cafc8b4ce0cbf3098003947cd2572603bc7f92dd"
     },
     {
       "path": "root/pr-body-final.md",
-      "bytes": 10342,
-      "crc32": "1f440ce3",
-      "sha256": "3de19681bbce5dfcb69f60de34b9d6434058536792a995570f72a2198c01bab3"
+      "bytes": 10584,
+      "crc32": "b3ae9a34",
+      "sha256": "06f956324bbe42275af839b96a526283d4e8484fcf02513d50b91b7110e9fd4a"
     },
     {
       "path": "root/pre-inventory.jsonl",
@@ -1028,9 +1028,9 @@
     },
     {
       "path": "root/prepared-fixture-compile.jsonl",
-      "bytes": 1909,
-      "crc32": "2917b00f",
-      "sha256": "0eb37abb2a541b0a00880bea8937b64f9bd5e15663639eddf7a926eac69dc4ea"
+      "bytes": 1905,
+      "crc32": "0b1d1466",
+      "sha256": "0c8bb707bb72944dafa2c3a121005692d4239654701e803863a17008bbf71fc2"
     },
     {
       "path": "root/prepared-fixture-compile.stderr.txt",
@@ -1105,10 +1105,22 @@
       "sha256": "b64c68abcf407a6432bb3055184895c322879709f16b32c9b7bb52b455123e09"
     },
     {
+      "path": "root/remote-linux-fixture-red/remote-go-test-failure.json",
+      "bytes": 2471,
+      "crc32": "9029ed75",
+      "sha256": "0c1ea10b0df0d5b83aa8de7350a47132b85dc51f8e9dafe314167ec00d371fd4"
+    },
+    {
+      "path": "root/remote-linux-fixture-red/ssh_manager_backpressure_test.go",
+      "bytes": 6584,
+      "crc32": "8e0eb6d8",
+      "sha256": "a8e344aa6141cc1d60c279465ce25e0a320515867736be405ed92680a724e875"
+    },
+    {
       "path": "root/reproduction-checks.json",
       "bytes": 1905,
-      "crc32": "2d50cde3",
-      "sha256": "f732b6fac8eb9b643f4aa41699cd75c3f4e64428d353763f8c547387673349f1"
+      "crc32": "3d4f0b72",
+      "sha256": "92d7243bcef055aff6688186ea71ed4c3274f6501b998982273b73f06cb99971"
     },
     {
       "path": "root/run_additional_cloud.py",
@@ -1520,9 +1532,9 @@
     },
     {
       "path": "independent/publication-review.md",
-      "bytes": 16052,
-      "crc32": "45ef124a",
-      "sha256": "0d3343a8ee553696a503e4da86a2d20c78cb81593091f7a9b101befb50df84b2"
+      "bytes": 18892,
+      "crc32": "4a172b18",
+      "sha256": "69b76e1ad7749c2bce97ee71575185617e73a78d27f6297d161cee1a0e6bf76a"
     },
     {
       "path": "independent/publication-staged-byte-whitespace-verification.json",
@@ -2024,9 +2036,9 @@
     },
     {
       "path": "final-source/internal/connector/terminal/ssh_manager_backpressure_test.go",
-      "bytes": 6584,
-      "crc32": "8e0eb6d8",
-      "sha256": "a8e344aa6141cc1d60c279465ce25e0a320515867736be405ed92680a724e875"
+      "bytes": 6821,
+      "crc32": "1f5edea6",
+      "sha256": "ade7705ea5d4ee846744a8566e7e464f6314e253a50092c88940cdead6688502"
     },
     {
       "path": "final-source/internal/connector/terminal/ssh_pty.go",
@@ -2095,6 +2107,6 @@
       "sha256": "e1949a1dad8f05de09e1a5d3045e2ea85e69bc4c24b0e14c14fc1ec912f15059"
     }
   ],
-  "count": 349,
+  "count": 351,
   "crc": "PASS"
 }

@@ -1,0 +1,83 @@
+{
+  "checkedAt": "2026-10-12T03:00:04.478Z",
+  "sources": [
+    {
+      "key": "LBT-147",
+      "url": "https://samsunglions.atlassian.net/browse/LBT-147",
+      "updated": "2026-10-12T11:00:05.007+0900",
+      "status": "진행 중",
+      "descriptionSHA256": "86ceaea031150a02e914b5596401ba1f4c7c1fd5c8b8d947ace211ebb844042c",
+      "commentBodySHA256": [],
+      "bodyAndCommentsMatchRealRunAudit": true
+    },
+    {
+      "key": "LBT-145",
+      "url": "https://samsunglions.atlassian.net/browse/LBT-145",
+      "updated": "2026-10-07T21:04:00.690+0900",
+      "status": "진행 중",
+      "descriptionSHA256": "db2de343ffffd0455e926baee525e15f8a0208ddb756cf617b9ce4a84716dd02",
+      "commentBodySHA256": [
+        {
+          "id": "10395",
+          "sha256": "cf3d72d2ca7aff6ecfd03a57d2a8e1961aa4cc5607a3d82174067331f7e76f92"
+        }
+      ],
+      "bodyAndCommentsMatchRealRunAudit": true
+    },
+    {
+      "key": "LBT-21",
+      "url": "https://samsunglions.atlassian.net/browse/LBT-21",
+      "updated": "2026-10-12T10:59:49.378+0900",
+      "status": "진행 중",
+      "descriptionSHA256": "473b272c1bbea4669d8c765e19ea8afa067af76ef5afeea42725d8395eaa4718",
+      "commentBodySHA256": [],
+      "bodyAndCommentsMatchRealRunAudit": true
+    },
+    {
+      "key": "D-18",
+      "pageId": "7241730",
+      "title": "D-18 · 실습망·VM 관리 접속 구조",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/7241730/D-18+VM",
+      "version": 5,
+      "bodySHA256": "dcc18fe2e7c1b64b8e243d5a14af4a8ee21b65bf0bc6f7a131c3e7a3bdc6ec6a",
+      "bodyMatchesRealRunAudit": true
+    },
+    {
+      "key": "D-20",
+      "pageId": "6881283",
+      "title": "D-20 · Lab 작업 충돌·재시도·부분 실패 정책",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/6881283/D-20+Lab",
+      "version": 7,
+      "bodySHA256": "1898c728de6edba33f9e0cb05e3aec30effe3da2150adfc3a009905e7dd52847",
+      "bodyMatchesRealRunAudit": true
+    },
+    {
+      "key": "D-21",
+      "pageId": "6848516",
+      "title": "D-21 · Terminal·Live 세션·재접속 정책",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/6848516/D-21+Terminal+Live",
+      "version": 10,
+      "bodySHA256": "bffd4931f5151be58575ce3ea9c627fa3f23403ead862629dbce30be60358560",
+      "bodyMatchesRealRunAudit": true
+    },
+    {
+      "key": "test-strategy",
+      "pageId": "9666637",
+      "title": "검증 설계 — 테스트 전략·추적성",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/9666637",
+      "version": 3,
+      "bodySHA256": "06b414ddc18c18771d2002d0c659c6a438439299f7913f8b2029b1776fa62827",
+      "bodyMatchesRealRunAudit": true
+    },
+    {
+      "key": "MVP",
+      "pageId": "12845071",
+      "title": "Connector MVP 개발 실행 계획 — 백서빈 · 이주희",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/12845071/Connector+MVP",
+      "version": 19,
+      "bodySHA256": "dbbf75eee62ffce79ed92ba1da5b71e3baccdcf164457a1b9a482eb9db6ff499",
+      "bodyMatchesRealRunAudit": true
+    }
+  ],
+  "rawBodies": "Live Jira/Confluence original bodies read and compared; no duplicated body/credentials included in this distributable package."
+}

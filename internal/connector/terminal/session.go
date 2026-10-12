@@ -30,6 +30,8 @@ var (
 	ErrSessionConflict      = errors.New("terminal session conflict")
 )
 
+const finalDataWriteLockWait = 50 * time.Millisecond
+
 // SessionEndedCallback 은 세션이 완전 종료되었을 때 호출되는 콜백입니다.
 type SessionEndedCallback func(session *Session, reason string, exitCode *int, err error)
 
@@ -386,7 +388,7 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 			// Data ENDED is best effort; PTY cleanup and Control ENDED must
 			// not wait behind a blocked data write. Gorilla permits Close
 			// concurrently with writes, but SetWriteDeadline needs writeMu.
-			if s.writeMu.TryLock() {
+			if s.tryFinalDataWriteLock() {
 				// Bound only this final frame, independently of detach grace.
 				_ = conn.SetWriteDeadline(time.Now().Add(time.Second))
 				_ = conn.WriteJSON(endedMsg)
@@ -405,6 +407,24 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 			callback(s, reason, exitCode, err)
 		}
 	})
+}
+
+func (s *Session) tryFinalDataWriteLock() bool {
+	deadline := time.Now().Add(finalDataWriteLockWait)
+	for {
+		if s.writeMu.TryLock() {
+			return true
+		}
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return false
+		}
+		pause := time.Millisecond
+		if remaining < pause {
+			pause = remaining
+		}
+		time.Sleep(pause)
+	}
 }
 
 // WriteMessage 는 활성 WebSocket 연결로 메시지를 단일 뮤텍스 직렬화하여 전송합니다.

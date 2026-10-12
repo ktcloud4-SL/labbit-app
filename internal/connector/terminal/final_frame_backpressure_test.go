@@ -118,3 +118,50 @@ func TestSessionBoundsFinalDataEndedWrite(t *testing.T) {
 		t.Error("final-frame WriteJSON lacked a transport deadline and blocked cleanup")
 	}
 }
+
+func TestSessionFinalDataEndedWaitsForBriefWriter(t *testing.T) {
+	peerCh := make(chan *websocket.Conn, 1)
+	stop := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		peer, err := (&websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}).Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		peerCh <- peer
+		<-stop
+		_ = peer.Close()
+	}))
+	defer server.Close()
+	defer close(stop)
+
+	client, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	peer := <-peerCh
+
+	session := &Session{
+		SessionID:     "brief-writer-session",
+		LabInstanceID: "lab-1",
+		Generation:    1,
+		Status:        StatusActive,
+		DataConn:      client,
+		detachChan:    make(chan struct{}),
+	}
+	session.writeMu.Lock()
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		session.writeMu.Unlock()
+	}()
+
+	session.Close(protocol.TerminalReasonServiceRestart, nil, nil)
+	_ = peer.SetReadDeadline(time.Now().Add(time.Second))
+	var ended protocol.TerminalDataEndedMessage
+	if err := peer.ReadJSON(&ended); err != nil {
+		t.Fatalf("brief healthy writer contention dropped Data ENDED: %v", err)
+	}
+	if ended.Type != protocol.MessageTypeTerminalDataEnded || ended.Payload.Reason != protocol.TerminalReasonServiceRestart {
+		t.Fatalf("unexpected Data ENDED: %+v", ended)
+	}
+}

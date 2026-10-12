@@ -65,7 +65,6 @@ func TestManagedSSHShutdownWithUnreadPeer(t *testing.T) {
 					return
 				}
 				defer raw.Close()
-				_ = raw.(*net.TCPConn).SetReadBuffer(1024)
 				gate := &unreadSSHReadGate{Conn: raw, resume: resume}
 				cfg := &ssh.ServerConfig{NoClientAuth: true}
 				cfg.AddHostKey(signer)

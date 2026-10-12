@@ -6,8 +6,6 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"golang.org/x/crypto/ssh"
 	"net"
-	"runtime"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -31,6 +29,16 @@ type unreadSSHTCPWrite struct {
 	net.Conn
 	active  atomic.Int64
 	entered atomic.Int64
+}
+
+type resizeEnteredPTY struct {
+	PTYChannel
+	entered chan struct{}
+}
+
+func (p *resizeEnteredPTY) Resize(cols, rows int) error {
+	close(p.entered)
+	return p.PTYChannel.Resize(cols, rows)
 }
 
 func (c *unreadSSHTCPWrite) Write(p []byte) (int, error) {
@@ -171,28 +179,23 @@ func TestSSHPTYCloseWithUnreadPeer(t *testing.T) {
 
 func TestSessionShutdownWithUnreadSSHResize(t *testing.T) {
 	pty, transport := newUnreadSSHPTY(t, false)
+	observedPTY := &resizeEnteredPTY{PTYChannel: pty, entered: make(chan struct{})}
 	manager := NewSessionManager(time.Minute, nil)
-	session, _, err := manager.GetOrCreateSession(protocol.TerminalOpenPayload{TargetVmKey: "workspace", ProviderServerID: "server-1"}, protocol.BaseEnvelope{TerminalSessionID: "audit-resize", LabInstanceID: "lab-1", Generation: 1}, func() (PTYChannel, error) { return pty, nil })
+	session, _, err := manager.GetOrCreateSession(protocol.TerminalOpenPayload{TargetVmKey: "workspace", ProviderServerID: "server-1"}, protocol.BaseEnvelope{TerminalSessionID: "audit-resize", LabInstanceID: "lab-1", Generation: 1}, func() (PTYChannel, error) { return observedPTY, nil })
 	if err != nil {
 		t.Fatal(err)
 	}
 	resizing := make(chan struct{})
 	go func() { _ = session.Resize(81, 25); close(resizing) }()
-	// Observe the actual pending SSH request in memory; never dump the stack or
-	// terminal content into Evidence. This permits a fix to release state locks.
-	deadline := time.Now().Add(time.Second)
-	for {
-		snapshot := make([]byte, 64<<10)
-		n := runtime.Stack(snapshot, true)
-		pending := strings.Contains(string(snapshot[:n]), "ssh.(*Session).WindowChange")
-		clear(snapshot)
-		if pending {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatal("resize did not enter SSH window-change")
-		}
-		time.Sleep(time.Millisecond)
+	select {
+	case <-observedPTY.entered:
+	case <-time.After(time.Second):
+		t.Fatal("resize did not enter SSH PTY")
+	}
+	select {
+	case <-resizing:
+		t.Fatal("resize unexpectedly completed against unread SSH peer")
+	case <-time.After(200 * time.Millisecond):
 	}
 	shutdown := make(chan struct{})
 	go func() { manager.Shutdown(protocol.TerminalReasonServiceRestart); close(shutdown) }()

@@ -6,7 +6,7 @@
 >
 > 목적: Sprint 01 / AWS1 G1에서 시작한 Frontend 배포 입력을 Sprint 02의 Local/AWS Browser Acceptance까지 유지한다. **Web image/Helm/Istio의 배포 소유권은 Platform에 있고, Frontend는 Router·HTTP/WSS Consumer와 사용자 화면 검증을 담당한다.**
 >
-> 상태 경계: LBT-32 Web packaging과 공개 HTTPS Web 서빙은 준비됨. LBT-74의 Local 실제 HTTP Stage A는 검증했지만 고정 HTTPS Stage B는 **아직 미완료**(마지막 기록 `/api/v1/me = 503`). 실제 Backend LBT-36/DB/Secret readiness와 `401 + JSON` 확인 전에는 완성을 주장하지 않는다.
+> 상태 경계(2026-10-12 Browser 실측): LBT-32 Web packaging과 공개 HTTPS Web 서빙은 준비됨. LBT-74의 Local 실제 HTTP Stage A는 검증 완료. 고정 HTTPS Stage B에서도 개발 계정 3종의 로그인 `204` → `/me 200` → 수업 목록/상세 `200` → 로그아웃 `204` → `/me 401`, 비인가 접근 `403`, 없는 수업 `404`, 잘못된 로그인 `401`, Session Cookie의 `__Host-labbit-session`·Secure·HttpOnly·SameSite=Lax·Path=/를 확인했다. 그러나 Origin/Referer 거부, 실제 서버 측 세션 만료, 공유 환경의 5xx/복구는 미검증이므로 **Stage B 전체 PASS 또는 LBT-74 완료로 판정하지 않는다.** LBT-36의 DB/Migration/read-write/readiness/rollback 완료도 별도 검증 대상이다.
 
 ## 1. 현재 Web build 계약
 
@@ -146,7 +146,7 @@ Platform packaging에서 현재 필요한 Frontend 입력은 다음과 같다.
 - 실제 Backend 제품 HTTP endpoint가 준비되면 Browser → Frontend → Backend 최소 Product HTTP Flow 확인
 - Secret/Credential 원문이 Web artifact나 공개 Config에 들어가지 않음
 
-Auth/Class 로컬 실제 Backend HTTP Stage A는 완료(LBT-72/73)됐지만, 공유 고정 HTTPS Stage B(LBT-74)는 Backend 배포 LBT-36·DB/Secret·Public Origin과 미인증 `/api/v1/me = 401 + JSON`이 준비되어야 실행합니다. Web 정적 서빙 200이나 기존 `/me = 503`만으로 Stage B PASS가 아닙니다. FE-03 Terminal/File actual VM E2E는 LBT-21/22 이후 LBT-26/27에서, Local/AWS 사용자 Flow는 LBT-53에서 따로 확인합니다.
+Auth/Class 로컬 실제 Backend HTTP Stage A(LBT-72/73)는 완료됐고, 2026-10-12 고정 HTTPS Stage B(LBT-74)에서도 미인증 `/api/v1/me`의 `401 + application/problem+json`, 실제 계정 로그인·수업 조회·로그아웃, 대표 401/403/404 오류 및 Session Cookie 속성을 **부분 PASS**로 확인했습니다(상세 Evidence: Jira LBT-74 댓글 #10398·#10399). 과거 `/me = 503`은 당시 장애 기록이며 최신 Browser 관측이 아닙니다. Origin/Referer 검증, 서버 측 세션 만료, 공유 환경 장애·복구 및 LBT-36의 DB/Migration/readiness/rollback은 아직 별도 완료 판정이 필요합니다. Provision에서 확인된 Membership/LabSpec 요청의 404는 Backend LBT-17 등 후속 통합 범위로 구분합니다. FE-03 Terminal/File actual VM E2E는 LBT-21/22 준비 후 LBT-26/27에서, Local/AWS 사용자 Flow는 LBT-53에서 따로 검증합니다.
 
 ## 9. 이 문서에서 확정하지 않는 것
 

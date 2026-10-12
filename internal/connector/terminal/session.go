@@ -35,7 +35,8 @@ type SessionEndedCallback func(session *Session, reason string, exitCode *int, e
 
 // Session 은 단일 터미널 세션(PTY + WebSocket 스트림)의 상태 및 라이프사이클을 관리합니다.
 type Session struct {
-	mu sync.Mutex
+	mu       sync.Mutex
+	resizeMu sync.Mutex
 
 	SessionID        string
 	LabInstanceID    string
@@ -262,9 +263,9 @@ func (s *Session) AttachDataConn(conn *websocket.Conn) (resumed bool, err error)
 
 	// 이전 활성 연결이 남아있다면 s.mu 밖에서 안전하게 닫기
 	if oldConn != nil && oldConn != conn {
-		s.writeMu.Lock()
+		// Close can interrupt an active write. Waiting for writeMu would
+		// strand the old socket after the current connection has changed.
 		_ = oldConn.Close()
-		s.writeMu.Unlock()
 	}
 
 	return resumed, nil
@@ -330,9 +331,8 @@ func (s *Session) DetachDataConn(conn *websocket.Conn) {
 	s.mu.Unlock()
 
 	if oldConn != nil {
-		s.writeMu.Lock()
+		// Closing concurrently releases a writer blocked by an unread peer.
 		_ = oldConn.Close()
-		s.writeMu.Unlock()
 	}
 }
 
@@ -383,10 +383,18 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 					Message: "Terminal SSH channel ended",
 				}
 			}
-			s.writeMu.Lock()
-			_ = conn.WriteJSON(endedMsg)
-			_ = conn.Close()
-			s.writeMu.Unlock()
+			// Data ENDED is best effort; PTY cleanup and Control ENDED must
+			// not wait behind a blocked data write. Gorilla permits Close
+			// concurrently with writes, but SetWriteDeadline needs writeMu.
+			if s.writeMu.TryLock() {
+				// Bound only this final frame, independently of detach grace.
+				_ = conn.SetWriteDeadline(time.Now().Add(time.Second))
+				_ = conn.WriteJSON(endedMsg)
+				_ = conn.Close()
+				s.writeMu.Unlock()
+			} else {
+				_ = conn.Close()
+			}
 		}
 
 		if pty != nil {
@@ -437,17 +445,21 @@ func (s *Session) WriteJSON(v interface{}) error {
 
 // Resize 는 터미널 크기를 변경합니다.
 func (s *Session) Resize(cols, rows int) error {
+	s.resizeMu.Lock()
+	defer s.resizeMu.Unlock()
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	if s.Status == StatusClosed {
+		s.mu.Unlock()
 		return ErrSessionAlreadyClosed
 	}
 
 	s.Cols = cols
 	s.Rows = rows
-	if s.PTY != nil {
-		return s.PTY.Resize(cols, rows)
+	pty := s.PTY
+	s.mu.Unlock()
+	if pty != nil {
+		return pty.Resize(cols, rows)
 	}
 	return nil
 }

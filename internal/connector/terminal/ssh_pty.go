@@ -38,6 +38,7 @@ type SSHPTY struct {
 	stdout       io.Reader
 
 	mu       sync.Mutex
+	resizeMu sync.Mutex
 	cols     int
 	rows     int
 	closed   bool
@@ -162,13 +163,16 @@ func (p *SSHPTY) Write(buf []byte) (int, error) {
 
 // Resize는 터미널 창 크기(cols, rows)를 변경하는 RFC 4254 window-change 요청을 보냅니다.
 func (p *SSHPTY) Resize(cols, rows int) error {
+	p.resizeMu.Lock()
+	defer p.resizeMu.Unlock()
 	p.mu.Lock()
-	defer p.mu.Unlock()
 	if p.closed {
+		p.mu.Unlock()
 		return io.ErrClosedPipe
 	}
 	p.cols = cols
 	p.rows = rows
+	p.mu.Unlock()
 	if err := p.session.WindowChange(rows, cols); err != nil {
 		return fmt.Errorf("window-change failed: %w", err)
 	}
@@ -178,32 +182,30 @@ func (p *SSHPTY) Resize(cols, rows int) error {
 // Close는 SSH 세션 및 연결을 닫습니다.
 func (p *SSHPTY) Close() error {
 	p.mu.Lock()
-	defer p.mu.Unlock()
 	if p.closed {
+		p.mu.Unlock()
 		return nil
 	}
 	p.closed = true
+	p.mu.Unlock()
 
-	var errs []error
-	if p.stdin != nil {
-		if err := p.stdin.Close(); err != nil && !errors.Is(err, io.EOF) {
-			errs = append(errs, err)
-		}
-	}
-	if p.session != nil {
-		if err := p.session.Close(); err != nil && !errors.Is(err, io.EOF) {
-			errs = append(errs, err)
-		}
-	}
-	if p.client != nil {
-		if err := p.client.Close(); err != nil && !errors.Is(err, io.EOF) {
-			errs = append(errs, err)
-		}
-	}
+	// The manager owns shared channel cleanup and must be able to close the
+	// transport even when a channel packet write is blocked.
 	if p.closeChannel != nil {
-		_ = p.closeChannel()
+		return p.closeChannel()
 	}
-	return errors.Join(errs...)
+	// A standalone PTY owns its client. Close the socket before any SSH packet
+	// writes; closing stdin would also race with an in-flight channel Write.
+	var err error
+	if p.client != nil {
+		err = p.client.Close()
+	} else if p.session != nil {
+		err = p.session.Close()
+	}
+	if errors.Is(err, io.EOF) {
+		return nil
+	}
+	return err
 }
 
 // NewManagedSSHPTY opens an independent PTY on a validated shared VM transport.

@@ -2,12 +2,16 @@ package openstackprovider
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 )
 
@@ -15,6 +19,57 @@ import (
 // symlinks) are never adopted, even when an old run was marked deleted.
 type ktFixtureLedger struct {
 	*os.File
+}
+
+func TestKTFixtureCleanupDoesNotAdoptMatchingCandidates(t *testing.T) {
+	for _, kind := range []string{"unknown Tier create", "unknown policy create", "FAILED policy job", "successful job without confirmed mapping"} {
+		t.Run(kind, func(t *testing.T) {
+			var requests atomic.Int32
+			n := ktCloudNetworkPeer(t, func(w http.ResponseWriter, r *http.Request) {
+				requests.Add(1)
+				// An unrelated matching name/comment must never be turned into
+				// a cleanup reference when the create result is unconfirmed.
+				fmt.Fprint(w, `{"httpStatus":200,"pagination":{"total":1,"offset":0},"data":[{"networkId":"foreign-tier","policyId":"foreign-policy","networkName":"same-name","comment":"same-comment"}]}`)
+			})
+			tierID, attempted := "confirmed-tier", true
+			if kind == "unknown Tier create" {
+				tierID, attempted = "", false
+			}
+			if cleanupKTFixtureKnownResources(context.Background(), n, tierID, "", attempted) == nil {
+				t.Fatal("unconfirmed creation passed automatic cleanup")
+			}
+			if requests.Load() != 0 {
+				t.Fatal("unconfirmed cleanup searched or deleted a candidate")
+			}
+		})
+	}
+}
+
+func TestKTFixtureCleanupUsesConfirmedIDsAndChecksAbsence(t *testing.T) {
+	var mutations []string
+	n := ktCloudNetworkPeer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			mutations = append(mutations, r.URL.Path)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		fmt.Fprint(w, `{"httpStatus":200,"pagination":{"total":0,"offset":0},"data":[]}`)
+	})
+	if err := cleanupKTFixtureKnownResources(context.Background(), n, "confirmed-tier", "confirmed-policy", true); err != nil {
+		t.Fatal(err)
+	}
+	if len(mutations) != 2 || mutations[0] != "/nsm/v1/firewall/policy/confirmed-policy" || mutations[1] != "/nsm/v1/network/confirmed-tier" {
+		t.Fatal("confirmed cleanup scope or order changed")
+	}
+}
+
+// Names and comments can locate candidates, but cannot replace a recorded
+// create receipt or the successful policy-job/mapping confirmation.
+func requireKTFixtureCleanupOwnership(tierID, policyID string, policyAttempted bool) error {
+	if tierID == "" || (policyAttempted && policyID == "") {
+		return errors.New("fixture ownership unconfirmed; preserve ledger for manual review")
+	}
+	return nil
 }
 
 func openKTFixtureLedger(path string) (*ktFixtureLedger, error) {

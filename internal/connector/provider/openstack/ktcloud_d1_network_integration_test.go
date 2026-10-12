@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/netip"
 	"os"
@@ -97,69 +98,15 @@ func TestKTCloudD1DisposableNetworkIntegration(t *testing.T) {
 	t.Cleanup(func() {
 		cleanupCtx, stop := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer stop()
-		if state.TierID == "" {
-			items, e := n.tiers(cleanupCtx)
-			if e != nil {
-				t.Error("unknown create inventory unavailable")
-				return
-			}
-			for _, item := range items {
-				if item.Name == name && item.CIDR == prefix.String() {
-					if state.TierID != "" {
-						t.Error("ambiguous fixture Tier ownership")
-						return
-					}
-					state.TierID = item.ID
-				}
-			}
-		}
-		if state.PolicyAttempted && state.PolicyID == "" {
-			items, e := n.policies(cleanupCtx)
-			if e != nil {
-				t.Error("policy inventory unavailable; tracked ledger requires reconciliation")
-				return
-			}
-			for _, item := range items {
-				if item.Comment == comment {
-					if state.PolicyID != "" {
-						t.Error("ambiguous fixture policy ownership")
-						return
-					}
-					state.PolicyID = item.ID
-				}
-			}
+		if err := requireKTFixtureCleanupOwnership(state.TierID, state.PolicyID, state.PolicyAttempted); err != nil {
+			save("CLEANUP_OWNERSHIP_UNCONFIRMED_MANUAL_REVIEW_REQUIRED")
+			t.Error(err)
+			return
 		}
 		save("CLEANUP_CONFIRMED_IDS")
-		if state.PolicyID != "" {
-			if err := n.deletePolicy(cleanupCtx, state.PolicyID); err != nil {
-				t.Error(err)
-				return
-			}
-			if !waitKTFixture(cleanupCtx, func() (bool, error) {
-				items, e := n.policies(cleanupCtx)
-				if e != nil {
-					return false, e
-				}
-				for _, item := range items {
-					if item.ID == state.PolicyID {
-						return false, nil
-					}
-				}
-				return true, nil
-			}) {
-				t.Error("policy deletion not confirmed")
-				return
-			}
-		}
-		if state.TierID != "" {
-			if err := n.deleteTier(cleanupCtx, state.TierID); err != nil {
-				t.Error(err)
-				return
-			}
-			if !waitKTFixture(cleanupCtx, func() (bool, error) { _, exists, e := n.tier(cleanupCtx, state.TierID); return !exists, e }) {
-				t.Error("Tier deletion not confirmed")
-				return
-			}
+		if err := cleanupKTFixtureKnownResources(cleanupCtx, n, state.TierID, state.PolicyID, state.PolicyAttempted); err != nil {
+			t.Error(err)
+			return
 		}
 		finalTiers, e := n.tiers(cleanupCtx)
 		if e != nil {
@@ -272,4 +219,38 @@ func waitKTFixture(ctx context.Context, check func() (bool, error)) bool {
 		case <-time.After(2 * time.Second):
 		}
 	}
+}
+
+func cleanupKTFixtureKnownResources(ctx context.Context, n *ktCloudD1Network, tierID, policyID string, policyAttempted bool) error {
+	if err := requireKTFixtureCleanupOwnership(tierID, policyID, policyAttempted); err != nil {
+		return err
+	}
+	if policyID != "" {
+		if err := n.deletePolicy(ctx, policyID); err != nil {
+			return err
+		}
+		if !waitKTFixture(ctx, func() (bool, error) {
+			items, e := n.policies(ctx)
+			if e != nil {
+				return false, e
+			}
+			for _, item := range items {
+				if item.ID == policyID {
+					return false, nil
+				}
+			}
+			return true, nil
+		}) {
+			return errors.New("policy deletion not confirmed")
+		}
+	}
+	if tierID != "" {
+		if err := n.deleteTier(ctx, tierID); err != nil {
+			return err
+		}
+		if !waitKTFixture(ctx, func() (bool, error) { _, exists, e := n.tier(ctx, tierID); return !exists, e }) {
+			return errors.New("Tier deletion not confirmed")
+		}
+	}
+	return nil
 }

@@ -168,13 +168,13 @@ func (a *Adapter) createKTCloudTier(ctx context.Context, identity ResourceIdenti
 }
 
 func (a *Adapter) prepareKTCloudNetwork(ctx context.Context, request coreprovider.ProvisionRequest, config ProvisionConfig) (provisionTopology, []coreprovider.ResourceResult, error) {
-	tier, resources, err := a.createKTCloudTier(ctx, resourceIdentity(request.Generation, "lab-tier"), provisionBaseName(request.LabInstanceID, request.Generation)+"-lab-tier", config.LabSubnetCIDR, nil)
+	tier, resources, err := a.createKTCloudTier(ctx, resourceIdentity(request.Generation, "lab-tier"), ktCloudLabTierName(request.LabInstanceID, request.Generation), config.LabSubnetCIDR, nil)
 	return provisionTopology{tier: tier}, resources, err
 }
 
 func (a *Adapter) prepareKTCloudNICs(ctx context.Context, request coreprovider.ProvisionRequest, vm coreprovider.VMSpec, config ProvisionConfig, topology provisionTopology, resources []coreprovider.ResourceResult) (provisionNICs, []coreprovider.ResourceResult, error) {
 	baseName := provisionBaseName(request.LabInstanceID, request.Generation)
-	tierName := baseName + "-" + safeName(vm.VMKey, 28) + "-management-tier"
+	tierName := ktCloudManagementTierName(request.LabInstanceID, request.Generation, vm.VMKey)
 	tier, resources, err := a.createKTCloudTier(ctx, resourceIdentity(request.Generation, vm.VMKey+":management-tier"), tierName, config.KTCloudManagementCIDR, resources)
 	if err != nil {
 		return provisionNICs{}, resources, err

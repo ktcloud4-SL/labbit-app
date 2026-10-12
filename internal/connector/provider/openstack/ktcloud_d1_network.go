@@ -153,7 +153,7 @@ func (n *ktCloudD1Network) tier(ctx context.Context, id string) (ktCloudTier, bo
 
 func (n *ktCloudD1Network) createTier(ctx context.Context, name, cidr string) (ktCloudReceipt, error) {
 	prefix, err := netip.ParsePrefix(cidr)
-	if err != nil || !prefix.Addr().Is4() || prefix.Bits() != 24 || prefix != prefix.Masked() || strings.TrimSpace(name) == "" {
+	if err != nil || !prefix.Addr().Is4() || prefix.Bits() != 24 || prefix != prefix.Masked() || strings.TrimSpace(name) == "" || len(name) > ktCloudTierNameLimit {
 		return ktCloudReceipt{}, ErrInvalidResourceSpec
 	}
 	address := prefix.Addr().As4()

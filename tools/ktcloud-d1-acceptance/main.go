@@ -23,12 +23,13 @@ import (
 )
 
 type ledger struct {
-	LabID     string                            `json:"labInstanceId"`
-	Stage     string                            `json:"stage"`
-	Resources []protocol.ProviderResourceResult `json:"resources"`
-	Hello     bool                              `json:"hello"`
-	Heartbeat bool                              `json:"heartbeat"`
-	Passed    bool                              `json:"passed"`
+	PlannedGenerations int                               `json:"plannedGenerations,omitempty"`
+	LabID              string                            `json:"labInstanceId"`
+	Stage              string                            `json:"stage"`
+	Resources          []protocol.ProviderResourceResult `json:"resources"`
+	Hello              bool                              `json:"hello"`
+	Heartbeat          bool                              `json:"heartbeat"`
+	Passed             bool                              `json:"passed"`
 }
 
 var journal ledger
@@ -168,6 +169,10 @@ func run() error {
 	if os.Getenv("LABBIT_KTCLOUD_D1_CONTROL_TEST") != "1" {
 		return errors.New("explicit cloud Control gate is required")
 	}
+	generations, e := plannedGenerations(os.Getenv("LBT145_CONTROL_GENERATIONS"))
+	if e != nil {
+		return e
+	}
 	workspace := os.Getenv("LBT145_CONTROL_DIRECTORY")
 	if !filepath.IsAbs(workspace) {
 		return errors.New("absolute local Control directory is required")
@@ -184,6 +189,7 @@ func run() error {
 		}
 	}
 	if !recovery {
+		journal.PlannedGenerations = generations
 		r := make([]byte, 8)
 		if _, e := rand.Read(r); e != nil {
 			return errors.New("fixture identifier generation failed")
@@ -285,47 +291,30 @@ func run() error {
 				known = append(known, r.ProviderResourceRef)
 			}
 		}
-		observations, e := reconcile(ctx, "recover-observe-before-any-mutation", 2, known)
-		if e != nil {
-			return e
-		}
-		present := []protocol.ProviderResourceRef{}
-		for _, o := range observations {
-			ref := protocol.ProviderResourceRef{ResourceType: o.ResourceType, ProviderID: o.ProviderID, Generation: o.Generation, LogicalName: o.LogicalName}
-			if o.Source != "KNOWN_RESOURCE" {
-				return errors.New("recovery found an unowned candidate; manual review required")
-			}
-			if o.Exists {
-				present = append(present, ref)
-			} else if o.ObservedState == "ABSENT" {
-				merge([]protocol.ProviderResourceResult{{ProviderResourceRef: ref, ObservedState: "DELETED"}})
-			} else {
-				return errors.New("recovery observation uncertain")
-			}
-		}
-		if len(observations) != len(known) {
-			return errors.New("recovery inventory incomplete")
-		}
-		if e = save("RECOVERY_RECONCILE_BEFORE_MUTATION_PASS"); e != nil {
-			return e
-		}
-		if readOnly {
-			fmt.Printf("Actual WSS read-only Reconcile: known=%d present=%d absent=%d; no mutation requested\n", len(known), len(present), len(known)-len(present))
-			return save("CURRENT_CONNECTOR_READ_ONLY_RECONCILE_COMPLETE_FULL_ACCEPTANCE_PENDING")
-		}
-		if _, e = mutate(ctx, protocol.MutationTypeCleanup, "recovery-cleanup", 2, nil, present); e != nil {
-			return e
-		}
-		observations, e = reconcile(ctx, "recover-confirm-absence", 2, known)
-		if e != nil {
-			return e
-		}
-		for _, o := range observations {
-			if o.Exists || o.ObservedState != "ABSENT" {
-				return errors.New("recovery cleanup absence not confirmed")
-			}
-		}
-		return save("RECOVERY_KNOWN_RESOURCE_CLEANUP_ABSENCE_CONFIRMED")
+		return recoverKnownResources(ctx, known, readOnly, recoveryActions{
+			observe: func(ctx context.Context, stage string, refs []protocol.ProviderResourceRef) ([]protocol.ResourceObservation, error) {
+				return reconcile(ctx, stage, 2, refs)
+			},
+			cleanup: func(ctx context.Context, refs []protocol.ProviderResourceRef) error {
+				_, err := mutate(ctx, protocol.MutationTypeCleanup, "recovery-cleanup", 2, nil, refs)
+				return err
+			},
+			record: func(observations []protocol.ResourceObservation) {
+				present := 0
+				for _, o := range observations {
+					if o.Exists {
+						present++
+						continue
+					}
+					ref := protocol.ProviderResourceRef{ResourceType: o.ResourceType, ProviderID: o.ProviderID, Generation: o.Generation, LogicalName: o.LogicalName}
+					merge([]protocol.ProviderResourceResult{{ProviderResourceRef: ref, ObservedState: "DELETED"}})
+				}
+				if readOnly {
+					fmt.Printf("Actual WSS read-only Reconcile: known=%d present=%d absent=%d; no mutation requested\n", len(known), present, len(known)-present)
+				}
+			},
+			save: save,
+		})
 	}
 	var snapshot protocol.CreationSnapshot
 	b, e := os.ReadFile(filepath.Join(workspace, "snapshot.json"))
@@ -343,7 +332,14 @@ func run() error {
 		}
 		cleanupContext, stop := context.WithTimeout(context.Background(), 8*time.Minute)
 		defer stop()
-		_, err := mutate(cleanupContext, protocol.MutationTypeCleanup, "teardown", 2, nil, owned)
+		err := cleanupAfterReconcile(cleanupContext, owned,
+			func(ctx context.Context, known []protocol.ProviderResourceRef) ([]protocol.ResourceObservation, error) {
+				return reconcile(ctx, "teardown-observe-before-mutation", 2, known)
+			},
+			func(ctx context.Context, present []protocol.ProviderResourceRef) error {
+				_, err := mutate(ctx, protocol.MutationTypeCleanup, "teardown", 2, nil, present)
+				return err
+			})
 		if err != nil {
 			fmt.Println("CONTROL TEARDOWN NEEDS ATTENTION; safe tracked-ID ledger retained")
 		}
@@ -363,16 +359,25 @@ func run() error {
 	if e != nil {
 		return e
 	}
-	for _, o := range observations {
-		if !o.Exists || o.Source != "KNOWN_RESOURCE" {
-			return errors.New("Provision resource reality mismatch")
-		}
-	}
-	if len(observations) != 5 {
-		return errors.New("Provision reconcile cardinality mismatch")
+	if e = confirmKnownPresence(firstRefs, observations); e != nil {
+		return e
 	}
 	if e = save("GENERATION1_RECONCILE_PASS"); e != nil {
 		return e
+	}
+	if generations == 1 {
+		if _, e = mutate(ctx, protocol.MutationTypeCleanup, "cleanup-generation1", 1, nil, firstRefs); e != nil {
+			return e
+		}
+		observations, e = reconcile(ctx, "final-generation1-known-absence", 1, firstRefs)
+		if e != nil {
+			return e
+		}
+		if e = confirmKnownAbsence(firstRefs, observations); e != nil {
+			return e
+		}
+		journal.Passed = true
+		return save("SINGLE_GENERATION_PROVISION_SSH_CLEANUP_PASS_OWNED_RESIDUAL_0_RESET_NOT_RUN")
 	}
 	second, e := mutate(ctx, protocol.MutationTypeReset, "reset", 2, &snapshot, firstRefs)
 	if e != nil {
@@ -404,20 +409,8 @@ func run() error {
 	if e != nil {
 		return e
 	}
-	missing, present := 0, 0
-	for _, o := range observations {
-		if o.Source != "KNOWN_RESOURCE" {
-			return errors.New("unexpected candidate after Reset")
-		}
-		if o.Generation == 1 && !o.Exists && o.ObservedState == "ABSENT" {
-			missing++
-		}
-		if o.Generation == 2 && o.Exists {
-			present++
-		}
-	}
-	if missing != 5 || present != 5 {
-		return errors.New("Reset known Missing boundary differs from cloud reality")
+	if e = confirmResetReality(firstRefs, secondRefs, observations); e != nil {
+		return e
 	}
 	if e = save("RESET_TARGET_CHANGED_OLD_ABSENT_NEW_PRESENT_PASS"); e != nil {
 		return e
@@ -448,10 +441,8 @@ func run() error {
 	if e != nil {
 		return e
 	}
-	for _, o := range observations {
-		if !o.Exists {
-			return errors.New("empty Cleanup removed a discovered candidate")
-		}
+	if e = confirmKnownPresence(secondRefs, observations); e != nil {
+		return e
 	}
 	if e = save("CANDIDATE_NOT_OWNED_OR_AUTODELETED_PASS"); e != nil {
 		return e
@@ -463,13 +454,8 @@ func run() error {
 	if e != nil {
 		return e
 	}
-	for _, o := range observations {
-		if o.Exists || o.Source != "KNOWN_RESOURCE" || o.ObservedState != "ABSENT" {
-			return errors.New("final owned resource absence not confirmed")
-		}
-	}
-	if len(observations) != 10 {
-		return errors.New("final generation resources missing from reconciliation")
+	if e = confirmKnownAbsence(all, observations); e != nil {
+		return e
 	}
 	journal.Passed = true
 	return save("REAL_PRODUCTION_CONNECTOR_WSS_LIFECYCLE_PASS_OWNED_RESIDUAL_0")

@@ -38,14 +38,13 @@ func (a *Adapter) ResolveServerAddress(ctx context.Context, targetVmKey, serverI
 		return "", ErrResourceOwnership
 	}
 	if a.ktNetwork != nil {
-		expectedName := provisionBaseName(labID, generation) + "-" + safeName(targetVmKey, 28) + "-management-tier"
 		items, err := a.ktNetwork.tiers(ctx)
 		if err != nil {
 			return "", ErrManagementIP
 		}
 		matches := []ktCloudTier{}
 		for _, tier := range items {
-			if tier.Name == expectedName && tier.CIDR == a.provision.KTCloudManagementCIDR && !tier.Shared && normalizeStatus(tier.Status) == "ACTIVE" {
+			if ktCloudManagementTierNameMatches(tier.Name, labID, generation, targetVmKey) && tier.CIDR == a.provision.KTCloudManagementCIDR && !tier.Shared && normalizeStatus(tier.Status) == "ACTIVE" {
 				matches = append(matches, tier)
 			}
 		}

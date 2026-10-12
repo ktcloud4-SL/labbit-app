@@ -19,6 +19,8 @@ export LBT145_CONTROL_DIRECTORY=/absolute/protected/test-directory
 ./control-harness
 ```
 
+For a single VM-use-and-delete check, additionally set `LBT145_CONTROL_GENERATIONS=1`. This creates only generation 1, verifies the same pinned SSH execution and known-resource Reconcile, then cleans its five exact resource references and confirms every one absent. The ledger records `plannedGenerations: 1` and a `RESET_NOT_RUN` final stage. It does not run Reset or the generation-2 candidate/empty-Cleanup checks and cannot satisfy full LBT-145 acceptance. Unset the option or use `2` for the original two-generation sequence. Other values are rejected before fixture registration.
+
 `control-ledger.json` stores resource kinds, exact confirmed IDs, generations and stages without credentials. An existing ledger prevents a new fixture. Failure retains the ledger and attempts Cleanup of confirmed IDs; uncertain results require Reconcile before another mutation. Never delete by name or treat discovered candidates as owned. The harness generates a temporary Mock SaaS credential and test CA locally, trusts that CA through the process certificate store, and keeps normal certificate verification for KT APIs.
 
 For an interrupted fixture, set `LBT145_CONTROL_RECOVERY=1`. Recovery reconciles the exact known IDs before issuing Cleanup and confirms absence afterward. Add `LBT145_CONTROL_RECOVERY_READ_ONLY=1` to observe all ledger IDs without issuing any mutation. Recovery success is **not** a replacement for the full two-generation acceptance result. The separately prepared Connector VM and its installation resources must also be cleaned and reconciled by their own ownership ledger.

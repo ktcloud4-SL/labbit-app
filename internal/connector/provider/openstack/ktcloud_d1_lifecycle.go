@@ -90,7 +90,7 @@ func (a *Adapter) observeKTCloudResource(ctx context.Context, resource coreprovi
 	return "", false, ErrReconcileLookup
 }
 
-func (a *Adapter) discoverKTCloudNetworkCandidates(ctx context.Context, correlation coreprovider.Correlation) ([]coreprovider.ResourceObservation, error) {
+func (a *Adapter) discoverKTCloudNetworkCandidates(ctx context.Context, correlation coreprovider.Correlation, vmKeys []string) ([]coreprovider.ResourceObservation, error) {
 	baseName := provisionBaseName(correlation.LabInstanceID, correlation.Generation)
 	tiers, err := a.ktNetwork.tiers(ctx)
 	if err != nil {
@@ -100,18 +100,21 @@ func (a *Adapter) discoverKTCloudNetworkCandidates(ctx context.Context, correlat
 	if err != nil {
 		return nil, ErrReconcileLookup
 	}
+	for _, policy := range policies {
+		if strings.HasPrefix(policy.Comment, baseName+":") && strings.HasSuffix(policy.Comment, ":management-ssh") {
+			key := strings.TrimSuffix(strings.TrimPrefix(policy.Comment, baseName+":"), ":management-ssh")
+			if key != "" {
+				vmKeys = append(vmKeys, key)
+			}
+		}
+	}
 	candidates := make([]coreprovider.ResourceObservation, 0)
 	for _, tier := range tiers {
 		if tier.Shared || tier.ID == a.provision.KTCloudConnectorTierID {
 			continue
 		}
-		logical := ""
-		if tier.Name == baseName+"-lab-tier" {
-			logical = "lab-tier"
-		} else if strings.HasPrefix(tier.Name, baseName+"-") && strings.HasSuffix(tier.Name, "-management-tier") {
-			logical = strings.TrimSuffix(strings.TrimPrefix(tier.Name, baseName+"-"), "-management-tier") + ":management-tier"
-		}
-		if logical != "" {
+		logical, matches := ktCloudTierCandidate(tier.Name, correlation.LabInstanceID, correlation.Generation, vmKeys)
+		if matches {
 			candidates = append(candidates, candidateObservation(coreprovider.ResourceTypeTier, tier.ID, correlation.Generation, normalizeStatus(tier.Status), logical))
 		}
 	}

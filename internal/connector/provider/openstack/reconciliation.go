@@ -164,12 +164,16 @@ func (a *Adapter) discoverCandidates(ctx context.Context, correlation coreprovid
 		return nil, safeContextError(ctx, ErrReconcileLookup)
 	}
 	expectedGeneration := strconv.FormatInt(correlation.Generation, 10)
+	var ktVMKeys []string
 	for _, item := range serverItems {
 		if item.Metadata["labbit_lab_instance_id"] != correlation.LabInstanceID || item.Metadata["labbit_generation"] != expectedGeneration {
 			continue
 		}
 		appendCandidate(candidateObservation(coreprovider.ResourceTypeServer, item.ID, correlation.Generation, normalizeStatus(item.Status), item.Metadata["labbit_vm_key"]))
 		if a.ktNetwork != nil {
+			if key := item.Metadata["labbit_vm_key"]; key != "" {
+				ktVMKeys = append(ktVMKeys, key)
+			}
 			for _, attachment := range item.AttachedVolumes {
 				if attachment.ID != "" {
 					appendCandidate(candidateObservation(coreprovider.ResourceTypeVolume, attachment.ID, correlation.Generation, "PRESENT", item.Metadata["labbit_vm_key"]+":root-volume"))
@@ -178,7 +182,7 @@ func (a *Adapter) discoverCandidates(ctx context.Context, correlation coreprovid
 		}
 	}
 	if a.ktNetwork != nil {
-		items, err := a.discoverKTCloudNetworkCandidates(ctx, correlation)
+		items, err := a.discoverKTCloudNetworkCandidates(ctx, correlation, ktVMKeys)
 		if err != nil {
 			return nil, err
 		}

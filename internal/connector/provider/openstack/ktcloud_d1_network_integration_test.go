@@ -26,6 +26,11 @@ func TestKTCloudD1DisposableNetworkIntegration(t *testing.T) {
 	if !filepath.IsAbs(ledgerPath) || err != nil || !prefix.Addr().Is4() || prefix.Bits() != 24 || prefix != prefix.Masked() || sourceErr != nil || !source.Addr().Is4() || source.Bits() != 32 {
 		t.Fatal("explicit absolute ownership-ledger path, unused IPv4 /24 and source /32 are required")
 	}
+	journal, err := openKTFixtureLedger(ledgerPath)
+	if err != nil {
+		t.Fatal("fresh exclusive ownership ledger is required before cloud access")
+	}
+	t.Cleanup(func() { _ = journal.Close() })
 	cfg := ConfigFromEnvironment()
 	auth, _, _, err := loadConfig(cfg)
 	if err != nil || !isKTCloudD1Identity(auth.IdentityEndpoint) {
@@ -65,7 +70,8 @@ func TestKTCloudD1DisposableNetworkIntegration(t *testing.T) {
 	if _, err := rand.Read(random); err != nil {
 		t.Fatal("fixture identity generation failed")
 	}
-	name := "labbit-lbt145-network-" + hex.EncodeToString(random)
+	name := ktCloudManagementTierName("lbt145-network-"+hex.EncodeToString(random), 1, "workspace")
+	t.Logf("KT Tier name length=%d (customer-reported deletion boundary: 50); name=%s", len(name), name)
 	comment := name + ":ssh-policy"
 	state := struct {
 		Name            string `json:"name"`
@@ -80,8 +86,8 @@ func TestKTCloudD1DisposableNetworkIntegration(t *testing.T) {
 	}{Name: name, CIDR: prefix.String()}
 	save := func(stage string) {
 		state.State = stage
-		b, _ := json.MarshalIndent(state, "", "  ")
-		if os.WriteFile(ledgerPath, append(b, '\n'), 0600) != nil {
+		b, err := json.MarshalIndent(state, "", "  ")
+		if err != nil || journal.Save(append(b, '\n')) != nil {
 			t.Fatal("ownership ledger cannot be saved")
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -69,7 +70,15 @@ func Start(ctx context.Context, cfg Config, opts Options) *Runtime {
 
 	var exporter sdktrace.SpanExporter
 	if cfg.Exporter == ExporterOTLP {
-		exporter = newExporter(ctx, cfg, logger)
+		// ConfigFromEnv의 getenv는 unset과 empty를 구분할 수 없다. SDK가 읽는 환경 경계에서
+		// 명시적으로 빈 ratio argument를 차단한다. unset이면 SDK 기본 sampling을 유지한다.
+		sampler := strings.ToLower(strings.TrimSpace(os.Getenv(EnvSampler)))
+		arg, present := os.LookupEnv(EnvSamplerArg)
+		if (sampler == "traceidratio" || sampler == "parentbased_traceidratio") && present && strings.TrimSpace(arg) == "" {
+			logger.Warn("Trace 설정 오류로 외부 export를 비활성화합니다", "env", EnvSamplerArg, "reason", "invalid_sampler")
+		} else {
+			exporter = newExporter(ctx, cfg, logger)
+		}
 	}
 
 	sharedDiagnostics.startCapture()

@@ -12,3 +12,9 @@ tools
 bin
 *.md
 .editorconfig
+
+# 로컬 Secret/인증 파일은 Docker build context에서 제외
+.env*
+.local/
+*.pem
+*.key

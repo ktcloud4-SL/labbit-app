@@ -8,6 +8,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"golang.org/x/crypto/ssh"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -87,6 +88,9 @@ func TestManagedSSHShutdownWithUnreadPeer(t *testing.T) {
 						gate.pause.Store(true)
 						close(pause)
 						<-resume
+						// Consume the TCP/SSH receive backlog accumulated while the
+						// synthetic application was unread, then wait for transport EOF.
+						_, _ = io.Copy(io.Discard, ch)
 						_ = sc.Wait()
 						return
 					}

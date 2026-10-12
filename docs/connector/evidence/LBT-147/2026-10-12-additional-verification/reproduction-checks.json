@@ -1,0 +1,52 @@
+{
+  "prepareHelperSHA256": "f705f1f4ded0a8e84106acd1570d6598ca4f5a46a2c2ecca08c37efc359cf1ea",
+  "cases": [
+    {
+      "case": "matching-pins-and-external-output",
+      "exitCode": 0,
+      "expected": true,
+      "stdout": "Prepared overlays only; tests/cloud calls=0\r\n",
+      "stderr": ""
+    },
+    {
+      "case": "nonempty-output-rejected",
+      "exitCode": 2,
+      "expected": false,
+      "stdout": "",
+      "stderr": "usage: prepare_overlays.py [-h] --repo REPO --output OUTPUT [--verify-source]\r\nprepare_overlays.py: error: output must be a new or empty external directory\r\n"
+    },
+    {
+      "case": "repository-output-rejected",
+      "exitCode": 2,
+      "expected": false,
+      "stdout": "",
+      "stderr": "usage: prepare_overlays.py [-h] --repo REPO --output OUTPUT [--verify-source]\r\nprepare_overlays.py: error: output must be outside the repository\r\n"
+    },
+    {
+      "case": "source-mutation-rejected",
+      "exitCode": 2,
+      "expected": false,
+      "stdout": "",
+      "stderr": "usage: prepare_overlays.py [-h] --repo REPO --output OUTPUT [--verify-source]\r\nprepare_overlays.py: error: source mismatch: internal/connector/terminal/ssh_pty.go\r\n"
+    }
+  ],
+  "prepareCallsGoTestOrCloud": 0,
+  "overlayCompile": {
+    "command": [
+      "go",
+      "test",
+      "-race",
+      "-json",
+      "-overlay",
+      "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\package-validation-04rk00i_\\prepared-reproduction\\real-failure-overlay.json",
+      "-count=1",
+      "-run",
+      "^TestLBT147ReadOnlyResiduals$",
+      "./internal/connector/provider/openstack"
+    ],
+    "exitCode": 0,
+    "optInSkipped": 1,
+    "cloudMutations": 0
+  },
+  "scope": "Pinned-file identity and fixture preparation; does not claim an exhaustive ignored/untracked source guard."
+}

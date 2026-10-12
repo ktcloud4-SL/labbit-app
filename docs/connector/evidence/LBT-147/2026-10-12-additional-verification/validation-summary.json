@@ -1,0 +1,672 @@
+{
+  "dateKST": "2026-10-12",
+  "countsIncludeSubtests": true,
+  "go": {
+    "pass": 2885,
+    "fail": 0,
+    "skip": 7,
+    "skippedTests": [
+      "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600",
+      "TestOpenStackInternetPolicyIntegration",
+      "TestOpenStackM1Integration",
+      "TestOpenStackM2ControlWSSIntegration",
+      "TestOpenStackM2ProvisionIntegration",
+      "TestOpenStackM3LifecycleIntegration",
+      "TestOpenStackVMAccessIntegration"
+    ]
+  },
+  "relatedRace": {
+    "pass": 482,
+    "fail": 0,
+    "skip": 6,
+    "skippedTests": [
+      "TestOpenStackInternetPolicyIntegration",
+      "TestOpenStackM1Integration",
+      "TestOpenStackM2ControlWSSIntegration",
+      "TestOpenStackM2ProvisionIntegration",
+      "TestOpenStackM3LifecycleIntegration",
+      "TestOpenStackVMAccessIntegration"
+    ]
+  },
+  "regression20": {
+    "pass": 940,
+    "fail": 0,
+    "skip": 0,
+    "skippedTests": []
+  },
+  "cloud4": {
+    "head": "da6b6701f13ba17c38b0778983545da62ac07212",
+    "runs": [
+      {
+        "label": "pre-inventory",
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-overlay",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "-run",
+          "^(TestOpenStackM1Integration|TestLBT147ReadOnlyResiduals)$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-12T06:28:37.248213+00:00",
+        "endedAt": "2026-10-12T06:28:53.531745+00:00",
+        "exitCode": 0,
+        "counts": {
+          "pass": 2,
+          "fail": 0,
+          "skip": 0
+        },
+        "selectedFlags": [
+          "LABBIT_OPENSTACK_INTEGRATION",
+          "LABBIT_OPENSTACK_RESIDUAL_AUDIT"
+        ]
+      },
+      {
+        "label": "m2-provision",
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-overlay",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+          "-json",
+          "-count=1",
+          "-timeout=18m",
+          "-run",
+          "^(TestOpenStackM2ProvisionIntegration)$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-12T06:28:53.565593+00:00",
+        "endedAt": "2026-10-12T06:30:52.747561+00:00",
+        "exitCode": 0,
+        "counts": {
+          "pass": 1,
+          "fail": 0,
+          "skip": 0
+        },
+        "selectedFlags": [
+          "LABBIT_OPENSTACK_M2_TEST"
+        ]
+      },
+      {
+        "label": "m2-provision-post-inventory",
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-overlay",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "-run",
+          "^(TestLBT147ReadOnlyResiduals)$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-12T06:30:52.784407+00:00",
+        "endedAt": "2026-10-12T06:31:02.806962+00:00",
+        "exitCode": 0,
+        "counts": {
+          "pass": 1,
+          "fail": 0,
+          "skip": 0
+        },
+        "selectedFlags": [
+          "LABBIT_OPENSTACK_RESIDUAL_AUDIT"
+        ]
+      },
+      {
+        "label": "m3-lifecycle",
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-overlay",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+          "-json",
+          "-count=1",
+          "-timeout=24m",
+          "-run",
+          "^(TestOpenStackM3LifecycleIntegration)$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-12T06:31:02.841398+00:00",
+        "endedAt": "2026-10-12T06:34:56.262228+00:00",
+        "exitCode": 0,
+        "counts": {
+          "pass": 1,
+          "fail": 0,
+          "skip": 0
+        },
+        "selectedFlags": [
+          "LABBIT_OPENSTACK_M3_TEST"
+        ]
+      },
+      {
+        "label": "m3-lifecycle-post-inventory",
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-overlay",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "-run",
+          "^(TestLBT147ReadOnlyResiduals)$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-12T06:34:56.293422+00:00",
+        "endedAt": "2026-10-12T06:35:06.168861+00:00",
+        "exitCode": 0,
+        "counts": {
+          "pass": 1,
+          "fail": 0,
+          "skip": 0
+        },
+        "selectedFlags": [
+          "LABBIT_OPENSTACK_RESIDUAL_AUDIT"
+        ]
+      },
+      {
+        "label": "control-wss-full-lifecycle",
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-overlay",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+          "-json",
+          "-count=1",
+          "-timeout=20m",
+          "-run",
+          "^(TestOpenStackM2ControlWSSIntegration)$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-12T06:35:06.203861+00:00",
+        "endedAt": "2026-10-12T06:39:23.261388+00:00",
+        "exitCode": 0,
+        "counts": {
+          "pass": 1,
+          "fail": 0,
+          "skip": 0
+        },
+        "selectedFlags": [
+          "LABBIT_OPENSTACK_M2_WSS_TEST",
+          "LABBIT_OPENSTACK_M3_WSS_TEST"
+        ]
+      },
+      {
+        "label": "control-wss-full-lifecycle-post-inventory",
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-overlay",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "-run",
+          "^(TestLBT147ReadOnlyResiduals)$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-12T06:39:23.296772+00:00",
+        "endedAt": "2026-10-12T06:39:33.685908+00:00",
+        "exitCode": 0,
+        "counts": {
+          "pass": 1,
+          "fail": 0,
+          "skip": 0
+        },
+        "selectedFlags": [
+          "LABBIT_OPENSTACK_RESIDUAL_AUDIT"
+        ]
+      },
+      {
+        "label": "internet-policy",
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-overlay",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+          "-json",
+          "-count=1",
+          "-timeout=28m",
+          "-run",
+          "^(TestOpenStackInternetPolicyIntegration)$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-12T06:39:33.725261+00:00",
+        "endedAt": "2026-10-12T06:43:53.142325+00:00",
+        "exitCode": 0,
+        "counts": {
+          "pass": 3,
+          "fail": 0,
+          "skip": 0
+        },
+        "selectedFlags": [
+          "LABBIT_OPENSTACK_INTERNET_POLICY_TEST"
+        ]
+      },
+      {
+        "label": "internet-policy-post-inventory",
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-overlay",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "-run",
+          "^(TestLBT147ReadOnlyResiduals)$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-12T06:43:53.178837+00:00",
+        "endedAt": "2026-10-12T06:44:02.992921+00:00",
+        "exitCode": 0,
+        "counts": {
+          "pass": 1,
+          "fail": 0,
+          "skip": 0
+        },
+        "selectedFlags": [
+          "LABBIT_OPENSTACK_RESIDUAL_AUDIT"
+        ]
+      },
+      {
+        "label": "final-inventory",
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-overlay",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "-run",
+          "^(TestOpenStackM1Integration|TestLBT147ReadOnlyResiduals)$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-12T06:44:03.028923+00:00",
+        "endedAt": "2026-10-12T06:44:13.778507+00:00",
+        "exitCode": 0,
+        "counts": {
+          "pass": 2,
+          "fail": 0,
+          "skip": 0
+        },
+        "selectedFlags": [
+          "LABBIT_OPENSTACK_INTEGRATION",
+          "LABBIT_OPENSTACK_RESIDUAL_AUDIT"
+        ]
+      }
+    ]
+  },
+  "actual2VM": [
+    {
+      "label": "failure-pre-inventory",
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-overlay",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+        "-json",
+        "-count=1",
+        "-timeout=3m",
+        "-run",
+        "^(TestLBT147ReadOnlyResiduals)$",
+        "./internal/connector/provider/openstack"
+      ],
+      "selectedFlags": [
+        "LABBIT_OPENSTACK_RESIDUAL_AUDIT"
+      ],
+      "startedAt": "2026-10-12T07:23:36.696699+00:00",
+      "endedAt": "2026-10-12T07:23:48.717847+00:00",
+      "exitCode": 0,
+      "counts": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "real-failures",
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-overlay",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\real-failure-overlay.json",
+        "-json",
+        "-count=1",
+        "-timeout=24m",
+        "-run",
+        "^(TestLBT147AdditionalRealFailures)$",
+        "./internal/connector/provider/openstack"
+      ],
+      "selectedFlags": [
+        "LABBIT_LBT147_ADDITIONAL_REAL_TEST"
+      ],
+      "startedAt": "2026-10-12T07:23:48.718547+00:00",
+      "endedAt": "2026-10-12T07:28:54.327407+00:00",
+      "exitCode": 0,
+      "counts": {
+        "pass": 12,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "failure-final-inventory",
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-overlay",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+        "-json",
+        "-count=1",
+        "-timeout=3m",
+        "-run",
+        "^(TestLBT147ReadOnlyResiduals)$",
+        "./internal/connector/provider/openstack"
+      ],
+      "selectedFlags": [
+        "LABBIT_OPENSTACK_RESIDUAL_AUDIT"
+      ],
+      "startedAt": "2026-10-12T07:28:54.328399+00:00",
+      "endedAt": "2026-10-12T07:29:04.270027+00:00",
+      "exitCode": 0,
+      "counts": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    }
+  ],
+  "latestActualVM": [
+    {
+      "label": "latest-vm-pre-inventory",
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-overlay",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+        "-json",
+        "-count=1",
+        "-timeout=24m",
+        "-run",
+        "^TestLBT147ReadOnlyResiduals$",
+        "./internal/connector/provider/openstack"
+      ],
+      "selectedFlag": "LABBIT_OPENSTACK_RESIDUAL_AUDIT",
+      "startedAt": "2026-10-12T07:39:43.197376+00:00",
+      "endedAt": "2026-10-12T07:39:53.177053+00:00",
+      "exitCode": 0,
+      "counts": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "latest-vm-access",
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-overlay",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+        "-json",
+        "-count=1",
+        "-timeout=24m",
+        "-run",
+        "^TestOpenStackVMAccessIntegration$",
+        "./internal/connector/provider/openstack"
+      ],
+      "selectedFlag": "LABBIT_OPENSTACK_VM_ACCESS_TEST",
+      "startedAt": "2026-10-12T07:39:53.177641+00:00",
+      "endedAt": "2026-10-12T07:43:36.358531+00:00",
+      "exitCode": 0,
+      "counts": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "label": "latest-vm-final-inventory",
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-overlay",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-additional-verification-20261012\\cloud-overlay.json",
+        "-json",
+        "-count=1",
+        "-timeout=24m",
+        "-run",
+        "^TestLBT147ReadOnlyResiduals$",
+        "./internal/connector/provider/openstack"
+      ],
+      "selectedFlag": "LABBIT_OPENSTACK_RESIDUAL_AUDIT",
+      "startedAt": "2026-10-12T07:43:36.359025+00:00",
+      "endedAt": "2026-10-12T07:43:46.202274+00:00",
+      "exitCode": 0,
+      "counts": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    }
+  ],
+  "actualRunControlChild": {
+    "pass": 3,
+    "fail": 0,
+    "skip": 0,
+    "skippedTests": []
+  },
+  "checks": {
+    "contracts-run": {
+      "exitCode": 0,
+      "scope": "OpenAPI and exact current workflow JSON Schema/Runtime/Migration validators"
+    },
+    "go-build-run": {
+      "command": [
+        "go",
+        "build",
+        "./..."
+      ],
+      "startedAt": "2026-10-12T07:30:31.604451+00:00",
+      "endedAt": "2026-10-12T07:30:36.989862+00:00",
+      "exitCode": 0
+    },
+    "go-mod-download-run": {
+      "command": [
+        "go",
+        "mod",
+        "download"
+      ],
+      "startedAt": "2026-10-12T07:30:03.857364+00:00",
+      "endedAt": "2026-10-12T07:30:03.930074+00:00",
+      "exitCode": 0
+    },
+    "go-race-run": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-json",
+        "-count=1",
+        "./internal/connector/vmaccess",
+        "./internal/connector/provider/openstack",
+        "./internal/connector/app",
+        "./internal/connector/terminal",
+        "./internal/connector/wss",
+        "./internal/observability/tracing"
+      ],
+      "startedAt": "2026-10-12T07:30:36.990682+00:00",
+      "endedAt": "2026-10-12T07:30:53.311280+00:00",
+      "exitCode": 0
+    },
+    "go-unit-run": {
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./..."
+      ],
+      "startedAt": "2026-10-12T07:30:06.714620+00:00",
+      "endedAt": "2026-10-12T07:30:31.602941+00:00",
+      "exitCode": 0
+    },
+    "go-vet-run": {
+      "command": [
+        "go",
+        "vet",
+        "./..."
+      ],
+      "startedAt": "2026-10-12T07:30:03.930603+00:00",
+      "endedAt": "2026-10-12T07:30:06.713928+00:00",
+      "exitCode": 0
+    },
+    "gofmt-run": {
+      "exitCode": 0,
+      "filesChecked": 324,
+      "unformatted": []
+    },
+    "npm-version-run": {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+        "dlx",
+        "npm@11",
+        "--version"
+      ],
+      "startedAt": "2026-10-12T06:58:06.437857+00:00",
+      "endedAt": "2026-10-12T06:58:29.223275+00:00",
+      "exitCode": 0
+    },
+    "regression-repeat-run": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-json",
+        "-count=20",
+        "-timeout=5m",
+        "-run",
+        "TestCanceledChannelLeavesActivePTYUsable|TestCanceledOpenClosesLateChannelAndReusesTransport|TestStalledOpenDoesNotAccumulateCanceledSSHRequests|TestVMAccessProviderFailuresAndTargetMismatchControlCodes|TestLatestMainControlProviderAndTerminalShareRuntime|TestTerminalShutdownRejectsDelayedOpensAndEndsOnce|TestSupervisor_LifecycleAndReconnect|TestSessionShutdownWithUnreadDataPeer|TestSessionReleasesUnreadDataConnectionOnReplaceAndDetach|TestSessionRecoversFromUnreadDataConnectionWithoutEndingPTY|TestSessionBoundsFinalDataEndedWrite|TestRunControlShutdownWithUnreadDataPeer|TestSSHPTYCloseWithUnreadPeer|TestSessionShutdownWithUnreadSSHResize|TestManagedSSHShutdownWithUnreadPeer|TestShutdownIsBoundedByTheGivenBudgetWhenCollectorHangs",
+        "./internal/connector/vmaccess",
+        "./internal/connector/provider/openstack",
+        "./internal/connector/app",
+        "./internal/connector/terminal",
+        "./internal/connector/wss",
+        "./internal/observability/tracing"
+      ],
+      "startedAt": "2026-10-12T07:30:53.311280+00:00",
+      "endedAt": "2026-10-12T07:32:06.144549+00:00",
+      "exitCode": 0
+    },
+    "reset-schema-run": {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-vm-access-147\\contracts\\connector\\tests\\test_reset_schema.py",
+        "-v"
+      ],
+      "startedAt": "2026-10-12T06:58:08.483765+00:00",
+      "endedAt": "2026-10-12T06:58:08.739625+00:00",
+      "exitCode": 0
+    },
+    "web-build-run": {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+        "run",
+        "build"
+      ],
+      "startedAt": "2026-10-12T06:59:45.606004+00:00",
+      "endedAt": "2026-10-12T06:59:48.824011+00:00",
+      "exitCode": 0
+    },
+    "web-install-run": {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+        "dlx",
+        "npm@11",
+        "ci",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "startedAt": "2026-10-12T06:58:29.224268+00:00",
+      "endedAt": "2026-10-12T06:58:38.260413+00:00",
+      "exitCode": 0
+    },
+    "web-lint-run": {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+        "run",
+        "lint"
+      ],
+      "startedAt": "2026-10-12T06:59:03.154279+00:00",
+      "endedAt": "2026-10-12T06:59:21.158844+00:00",
+      "exitCode": 0
+    },
+    "web-test-run": {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+        "run",
+        "test"
+      ],
+      "startedAt": "2026-10-12T06:59:21.159993+00:00",
+      "endedAt": "2026-10-12T06:59:45.605507+00:00",
+      "exitCode": 0
+    },
+    "web-typecheck-run": {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+        "run",
+        "typecheck"
+      ],
+      "startedAt": "2026-10-12T06:58:38.261484+00:00",
+      "endedAt": "2026-10-12T06:59:03.153783+00:00",
+      "exitCode": 0
+    }
+  },
+  "web": {
+    "testFiles": 13,
+    "tests": 163,
+    "install": "npm ci using npm11.21.0 via pnpm dlx npm@11; package-lock unchanged"
+  },
+  "contracts": {
+    "openAPI": "PASS",
+    "jsonSchemas": 8,
+    "runtimeMigrationMetadata": "PASS",
+    "resetSchemaTests": 11
+  },
+  "initialFailuresPreserved": [
+    "initial-real-fixture-failure",
+    "final-checks/initial-before-tracing-test-fix",
+    "final-checks/initial-gofmt-crlf*",
+    "reviewer red/initial candidate fixture"
+  ],
+  "remaining": [
+    "KTCloud gen2 Reset/owned Tier2 absence",
+    "Browser/deployed SaaS CC02/routing/reconnect/Live",
+    "production SFTP/File WSS",
+    "real VM SSH packet-stall fault/actual key rotation/natural outage/packet loss/hard restart/long soak/large load",
+    "actual VM runControl child server-side SSH EOF not independently observed"
+  ],
+  "postgresLocal": "Not run; no DB/application SQL changes. New remote head Go CI PostgreSQL16 integration must be inspected after push."
+}

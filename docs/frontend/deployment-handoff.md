@@ -6,7 +6,7 @@
 >
 > 목적: Sprint 01 / AWS1 G1에서 시작한 Frontend 배포 입력을 Sprint 02의 Local/AWS Browser Acceptance까지 유지한다. **Web image/Helm/Istio의 배포 소유권은 Platform에 있고, Frontend는 Router·HTTP/WSS Consumer와 사용자 화면 검증을 담당한다.**
 >
-> 현재 판정: LBT-32 Web packaging과 공개 HTTPS Web 서빙은 준비됐고, LBT-74 Auth/Class는 Local Stage A **PASS**, 공개 HTTPS Stage B **부분 PASS**다(2026-10-12 정상 로그인·수업·로그아웃, 대표 401/403/404, Session Cookie 속성 실측). 미검증 보안·장애 시나리오가 남아 있어 LBT-74 최종 Acceptance는 Jira #10418에 따라 **완료**(상위 LBT-12 #10419도 완료)됐으며, 아래 미검증 항목은 별도 환경/실측 범위다. Backend 배포/DB/rollback은 LBT-36에서 별도 판정한다. 자세한 결과는 8절과 [Jira LBT-74](https://samsunglions.atlassian.net/browse/LBT-74)를 따른다.
+> 현재 판정(2026-10-12 14:50 Jira 최종 마감): LBT-32 Web packaging과 공개 HTTPS Web 서빙은 준비됐고, LBT-74 Auth/Class는 Local Stage A **PASS**와 공개 HTTPS Stage B의 정상 Login/Class/Logout·401/403/404·Session Cookie 및 오류 UX Browser Evidence를 종합해 **완료** 처리됐다([Jira LBT-74 #10418](https://samsunglions.atlassian.net/browse/LBT-74), 상위 LBT-12 #10419 완료). 다만 공유 HTTPS에서 FE가 직접 강제한 Session 만료·서버 5xx UI 등은 미실측이며 Backend Owner 검증은 별도 Evidence다. Backend 배포/DB/rollback은 LBT-36에서 독립 판정한다. 자세한 검증 범위는 8절을 따른다.
 
 ## 1. 현재 Web build 계약
 

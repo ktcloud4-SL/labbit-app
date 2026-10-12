@@ -58,16 +58,14 @@ func (p *accessLifecycleProvider) ListFlavors(ctx context.Context) ([]provider.F
 }
 func (p *accessLifecycleProvider) Reset(ctx context.Context, req provider.ResetRequest) (provider.OperationResult, error) {
 	result, err := p.Provider.Reset(ctx, req)
-	// A rejected preflight leaves the old generation usable. Success or an
-	// uncertain reset must never reuse its old transport or accept late opens.
-	if err != nil || result.Outcome == provider.OutcomeSucceeded || result.Outcome == provider.OutcomeUnknown {
+	if lifecycleInvalidatesAccess(result, err) {
 		p.manager.InvalidateBefore(req.LabInstanceID, req.Generation)
 	}
 	return result, err
 }
 func (p *accessLifecycleProvider) Cleanup(ctx context.Context, req provider.CleanupRequest) (provider.OperationResult, error) {
 	result, err := p.Provider.Cleanup(ctx, req)
-	if err != nil || result.Outcome == provider.OutcomeSucceeded || result.Outcome == provider.OutcomeUnknown {
+	if lifecycleInvalidatesAccess(result, err) {
 		generation := req.Generation
 		for _, resource := range req.ProviderResources {
 			if resource.Generation > generation {
@@ -77,4 +75,20 @@ func (p *accessLifecycleProvider) Cleanup(ctx context.Context, req provider.Clea
 		p.manager.InvalidateBefore(req.LabInstanceID, generation+1)
 	}
 	return result, err
+}
+
+func lifecycleInvalidatesAccess(result provider.OperationResult, err error) bool {
+	if err != nil || result.Outcome != provider.OutcomeFailed {
+		return true
+	}
+	// Validation/authentication failures have no resources, and Reset preflight
+	// reports every old resource as DELETE_NOT_ATTEMPTED. Once cleanup has been
+	// attempted, FAILED can include deleted resources or replacement failures;
+	// conservatively retire the old transport even if the first delete failed.
+	for _, resource := range result.ProviderResources {
+		if resource.ObservedState != "DELETE_NOT_ATTEMPTED" {
+			return true
+		}
+	}
+	return false
 }

@@ -19,7 +19,7 @@ func (r *rejectedAccessResolver) ResolveVMAccess(context.Context, vmaccess.Targe
 
 func TestOperationResultInvalidatesObsoleteAccess(t *testing.T) {
 	for _, mutation := range []string{"reset", "cleanup"} {
-		for _, outcome := range []string{"succeeded", "unknown", "preflight-failed", "internal-error"} {
+		for _, outcome := range []string{"succeeded", "unknown", "preflight-failed", "preflight-resources", "partial-failed", "delete-rejected", "replacement-failed", "internal-error"} {
 			t.Run(mutation+"/"+outcome, func(t *testing.T) {
 				resolver := &rejectedAccessResolver{}
 				manager := vmaccess.NewManager(resolver, vmaccess.Config{})
@@ -31,6 +31,15 @@ func TestOperationResultInvalidatesObsoleteAccess(t *testing.T) {
 					result.Outcome = provider.OutcomeUnknown
 				case "preflight-failed":
 					result.Outcome = provider.OutcomeFailed
+				case "preflight-resources", "partial-failed", "delete-rejected", "replacement-failed":
+					result.Outcome = provider.OutcomeFailed
+					state := "DELETE_NOT_ATTEMPTED"
+					if outcome == "partial-failed" || outcome == "replacement-failed" {
+						state = "DELETED"
+					} else if outcome == "delete-rejected" {
+						state = "DELETE_FAILED"
+					}
+					result.ProviderResources = []provider.ResourceResult{{ObservedState: state}}
 				case "internal-error":
 					mutationErr = errors.New("safe internal error")
 				}
@@ -50,7 +59,7 @@ func TestOperationResultInvalidatesObsoleteAccess(t *testing.T) {
 				}
 				_, _ = manager.OpenSession(context.Background(), target)
 				want := 0
-				if outcome == "preflight-failed" {
+				if outcome == "preflight-failed" || outcome == "preflight-resources" {
 					want = 1
 				}
 				if resolver.calls != want {

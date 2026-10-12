@@ -291,6 +291,64 @@ func TestUnreadableCertificateEnvironmentDisablesExportWithoutLoggingThePath(t *
 	_, _ = shutdownWithin(t, rt, time.Second)
 }
 
+func TestRatioSamplerArgumentPresence(t *testing.T) {
+	const invalidArg = "INVALID-RATIO-SENTINEL-82"
+	for _, sampler := range []string{"traceidratio", "parentbased_traceidratio"} {
+		for _, tt := range []struct {
+			name          string
+			arg           string
+			present       bool
+			wantExporting bool
+			wantSpans     int
+		}{
+			{name: "unset uses SDK default", wantExporting: true, wantSpans: 1},
+			{name: "set empty fails closed", present: true},
+			{name: "set whitespace fails closed", arg: " \t ", present: true},
+			{name: "ratio one exports", arg: "1", present: true, wantExporting: true, wantSpans: 1},
+			{name: "ratio zero keeps exporter without sampling", arg: "0", present: true, wantExporting: true},
+			{name: "invalid ratio fails closed", arg: invalidArg, present: true},
+		} {
+			t.Run(sampler+"/"+tt.name, func(t *testing.T) {
+				isolateOTelEnv(t)
+				var c collector
+				srv := newHTTPCollector(t, &c, http.StatusOK, "")
+				t.Setenv(EnvExporter, "otlp")
+				t.Setenv(EnvProtocol, "http/protobuf")
+				t.Setenv(EnvEndpoint, srv.URL+"/v1/traces")
+				t.Setenv(EnvSampler, sampler)
+				if tt.present {
+					t.Setenv(EnvSamplerArg, tt.arg)
+				}
+				var logs lockedBuffer
+				rt := Start(context.Background(), ConfigFromEnv(os.Getenv), newTestLogger(&logs))
+				defer shutdownWithin(t, rt, time.Second)
+				if rt.Exporting() != tt.wantExporting {
+					t.Fatalf("Exporting() = %v, want %v", rt.Exporting(), tt.wantExporting)
+				}
+
+				ctx, span := startSpan(rt, context.Background(), "ratio-presence")
+				sc := span.SpanContext()
+				wire := tracecontext.FromContext(ctx)
+				restored := trace.SpanContextFromContext(tracecontext.NewContext(context.Background(), wire))
+				span.End()
+				if !sc.IsValid() || restored.TraceID() != sc.TraceID() || restored.SpanID() != sc.SpanID() || restored.TraceFlags() != sc.TraceFlags() {
+					t.Fatalf("W3C propagation did not preserve valid SpanContext: %+v", wire)
+				}
+				if tt.wantExporting && sc.IsSampled() != (tt.wantSpans > 0) {
+					t.Fatalf("sampled = %v, want %v", sc.IsSampled(), tt.wantSpans > 0)
+				}
+				if _, err := shutdownWithin(t, rt, time.Second); err != nil {
+					t.Fatal(err)
+				}
+				if got := len(c.spans()); got != tt.wantSpans {
+					t.Fatalf("Collector received %d spans, want %d", got, tt.wantSpans)
+				}
+				mustNotContain(t, "log", logs.String(), invalidArg)
+			})
+		}
+	}
+}
+
 // 잘못된 sampler 설정은 Runtime Contract failure policy에 따라 안전한 진단 후 외부 export를 비활성화(fail-closed)한다.
 // fallback으로 AlwaysSample + OTLP export가 활성화되는 것을 막는다.
 func TestInvalidSamplerDisablesExternalExportAndFailsClosed(t *testing.T) {

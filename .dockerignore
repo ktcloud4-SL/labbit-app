@@ -1,0 +1,14 @@
+# Git 관련 민감 정보 차단
+.git
+.gitignore
+
+# 백엔드 빌드 불필요 폴더 제외
+.github
+docs
+web
+tools
+
+# 로컬 개발 임시 파일
+bin
+*.md
+.editorconfig

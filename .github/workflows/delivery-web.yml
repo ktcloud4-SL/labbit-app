@@ -64,7 +64,26 @@ jobs:
           context: ./web
           file: ./web/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
+
+      - name: Smoke test unprivileged Web image
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          image=$(printf '%s\n' '${{ steps.meta.outputs.tags }}' | head -n 1)
+          docker run -d --name labbit-web-smoke --cap-drop=ALL --security-opt=no-new-privileges -p 127.0.0.1:18080:8080 "$image"
+          trap 'docker logs labbit-web-smoke || true; docker rm -f labbit-web-smoke >/dev/null 2>&1 || true' EXIT
+          test "$(docker exec labbit-web-smoke id -u)" = 101
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:18080/healthz | grep -qx 'OK'; then
+              curl -fsS http://127.0.0.1:18080/login >/dev/null
+              test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/api/v1/test)" = 404
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1

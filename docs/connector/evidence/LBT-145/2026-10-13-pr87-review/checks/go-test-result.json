@@ -1,0 +1,40 @@
+{
+  "name": "go-test",
+  "exitCode": 1,
+  "startedAtUTC": "2026-10-13T01:10:08.755926+00:00",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-json",
+    "-count=1",
+    "./..."
+  ],
+  "passEvents": 3046,
+  "topLevelTests": 992,
+  "skip": [
+    "github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector",
+    "github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate",
+    "github.com/ktcloud4-SL/labbit-app/db/migrations",
+    "github.com/ktcloud4-SL/labbit-app/cmd/labbit-server",
+    "github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr",
+    "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest",
+    "github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest",
+    "github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest",
+    "github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest",
+    "TestOpenStackM2ControlWSSIntegration",
+    "TestOpenStackM1Integration",
+    "TestOpenStackM2ProvisionIntegration",
+    "TestOpenStackM3LifecycleIntegration",
+    "TestOpenStackInternetPolicyIntegration",
+    "github.com/ktcloud4-SL/labbit-app/web/node_modules/flatted/golang/pkg/flatted",
+    "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+    "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+    "TestKTCloudD1ReadOnlyIntegration",
+    "TestKTCloudD1DisposableNetworkIntegration",
+    "TestInstallCredentialFile/\uc0c8_credential_file\uc744_\ub9cc\ub4e4\uace0_\uc131\uacf5_\uba54\uc2dc\uc9c0\uc5d0\ub294_path\ub9cc_\ub0a8\uae34\ub2e4/POSIX_permission_0600"
+  ],
+  "fail": [
+    "TestShutdownIsBoundedByTheGivenBudgetWhenCollectorHangs",
+    "github.com/ktcloud4-SL/labbit-app/internal/observability/tracing"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "sourceHead": "943d0bdd5e60221638886b03aa37038976cb8a5f",
+  "name": "tracing-isolated-20",
+  "startedAtUTC": "2026-10-13T01:14:02.286214+00:00",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-json",
+    "-count=20",
+    "-run",
+    "^TestShutdownIsBoundedByTheGivenBudgetWhenCollectorHangs$",
+    "./internal/observability/tracing"
+  ],
+  "exitCode": 0,
+  "testPassEvents": 20,
+  "packagePassEvents": 1,
+  "topLevelTests": 20,
+  "skip": [],
+  "fail": []
+}

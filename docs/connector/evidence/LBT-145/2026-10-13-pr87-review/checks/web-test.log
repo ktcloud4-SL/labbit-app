@@ -1,0 +1,11 @@
+$ vitest run
+
+ RUN  v5.0.3 C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-ktcloud-145/web
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  13 passed (13)
+      Tests  163 passed (163)
+   Start at  10:11:47
+   Duration  37.80s (environment 72%, setup 24%, tests 2%, import 1%, transform 1%)
+

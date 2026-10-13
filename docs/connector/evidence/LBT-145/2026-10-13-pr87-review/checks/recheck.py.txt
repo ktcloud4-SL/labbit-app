@@ -1,0 +1,26 @@
+from pathlib import Path
+import os, subprocess, json, datetime
+
+root = Path.cwd()
+out = root / '.local/pr87-review-20261013/checks'
+go = r'C:\Users\user\AppData\Local\Programs\Go-1.27.1\go\bin\go.exe'
+env = {k:v for k,v in os.environ.items() if not k.startswith(('LABBIT_', 'LBT145_', 'LBT158_')) and k not in ('GOOS','GOARCH','CGO_ENABLED')}
+for name, args in [
+    ('tracing-isolated-20', [go, 'test', '-json', '-count=20', '-run', '^TestShutdownIsBoundedByTheGivenBudgetWhenCollectorHangs$', './internal/observability/tracing']),
+    ('go-test-sequential', [go, 'test', '-json', '-count=1', '-p=1', './...']),
+]:
+    started = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    with (out / (name+'.log')).open('wb') as log:
+        result = subprocess.run(args, cwd=root, env=env, stdout=log, stderr=subprocess.STDOUT)
+    events=[]
+    for line in (out / (name+'.log')).read_text(encoding='utf-8', errors='replace').splitlines():
+        try: events.append(json.loads(line))
+        except ValueError: pass
+    info = {'sourceHead':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(), 'name':name, 'startedAtUTC':started, 'command':args, 'exitCode':result.returncode,
+        'testPassEvents':sum(e.get('Action')=='pass' and 'Test' in e for e in events),
+        'packagePassEvents':sum(e.get('Action')=='pass' and 'Test' not in e for e in events),
+        'topLevelTests':sum(e.get('Action')=='pass' and 'Test' in e and '/' not in e['Test'] for e in events),
+        'skip':[e.get('Test',e.get('Package')) for e in events if e.get('Action')=='skip'],
+        'fail':[e.get('Test',e.get('Package')) for e in events if e.get('Action')=='fail']}
+    (out / (name+'-result.json')).write_text(json.dumps(info,indent=2)+'\n',encoding='utf-8')
+    print(json.dumps(info),flush=True)

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -43,10 +44,13 @@ func TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			const name = "owned-management-tier"
 			const cidr = "172.25.241.0/24"
+			var mu sync.Mutex
 			created, cleanup := false, false
 			postReads, posts := 0, 0
 			deleted := map[string]bool{}
 			a := ktTopologyAdapter(t, func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				defer mu.Unlock()
 				if r.Method == http.MethodDelete {
 					id := strings.TrimPrefix(r.URL.Path, "/compute/v2/nsm/network/")
 					if !cleanup || id == r.URL.Path {
@@ -152,8 +156,11 @@ func TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup(t *testing.T) {
 			if err != nil {
 				result = mutationFailure(resources, err, "VM network could not be created")
 			}
-			if result.Outcome != tc.outcome || posts != 1 || !reflect.DeepEqual(prior, before) {
-				t.Fatalf("outcome=%s, posts=%d, preserved=%t, err=%v", result.Outcome, posts, reflect.DeepEqual(prior, before), err)
+			mu.Lock()
+			postCount := posts
+			mu.Unlock()
+			if result.Outcome != tc.outcome || postCount != 1 || !reflect.DeepEqual(prior, before) {
+				t.Fatalf("outcome=%s, posts=%d, preserved=%t, err=%v", result.Outcome, postCount, reflect.DeepEqual(prior, before), err)
 			}
 			if tc.outcome == coreprovider.OutcomeSucceeded && (tier.ID != "receipt-tier" || tier.RefID != "physical-ref") {
 				t.Fatal("confirmed Tier mapping lost")
@@ -178,9 +185,14 @@ func TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup(t *testing.T) {
 			if tc.name == "body409" && !errors.Is(err, ErrMutationRejected) {
 				t.Fatal("definite rejection changed")
 			}
+			mu.Lock()
 			cleanup = true
+			mu.Unlock()
 			cleaned, cleanupErr := a.Cleanup(context.Background(), coreprovider.CleanupRequest{Correlation: coreprovider.Correlation{OperationID: "cleanup", LabInstanceID: "lab", Generation: 1}, ProviderResources: refs})
-			if cleanupErr != nil || cleaned.Outcome != coreprovider.OutcomeSucceeded || !deleted["prior-tier"] || deleted["receipt-tier"] != tc.owned || len(deleted) != want {
+			mu.Lock()
+			deletionMatches := deleted["prior-tier"] && deleted["receipt-tier"] == tc.owned && len(deleted) == want
+			mu.Unlock()
+			if cleanupErr != nil || cleaned.Outcome != coreprovider.OutcomeSucceeded || !deletionMatches {
 				t.Fatal("follow-up Cleanup crossed ownership boundary")
 			}
 		})

@@ -84,8 +84,8 @@ func newFileHarness(t *testing.T, mods ...func(*Options)) *fileHarness {
 		saved: workspacefile.Saved{Path: "src/app.py", Revision: "rev-2"},
 	}
 	opts := Options{
-		Auth:         fake,
-		Classes:      &fakeClasses{},
+		Auth:    fake,
+		Classes: &fakeClasses{}, LabSpecs: &fakeLabSpecs{},
 		Files:        files,
 		PublicOrigin: trustedOrigin,
 		Logger:       slog.New(slog.NewJSONHandler(logs, nil)),
@@ -583,7 +583,7 @@ func TestProblemDetailNeverEchoesThePath(t *testing.T) {
 func TestWorkspaceFilesWithoutAUseCaseAreUnavailable(t *testing.T) {
 	fake := newFakeAuth()
 	fake.sessions[fileCookie] = fake.principal
-	handler, err := New(Options{Auth: fake, Classes: &fakeClasses{}, PublicOrigin: trustedOrigin})
+	handler, err := New(Options{Auth: fake, Classes: &fakeClasses{}, LabSpecs: &fakeLabSpecs{}, PublicOrigin: trustedOrigin})
 	if err != nil {
 		t.Fatal(err)
 	}

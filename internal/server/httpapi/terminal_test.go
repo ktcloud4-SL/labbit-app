@@ -89,8 +89,8 @@ func newTerminalHarness(t *testing.T) *terminalHarness {
 		},
 	}
 	handler, err := New(Options{
-		Auth:         fake,
-		Classes:      classes,
+		Auth:    fake,
+		Classes: classes, LabSpecs: &fakeLabSpecs{},
 		Terminals:    h.terminals,
 		PublicOrigin: trustedOrigin,
 		Logger:       slog.New(slog.NewJSONHandler(logs, nil)),

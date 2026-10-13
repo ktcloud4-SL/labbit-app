@@ -137,6 +137,8 @@ type LiveSessionRepository interface {
 type Repositories interface {
 	IdentityRepository
 	ClassRepository
+	ClassMemberRepository
+	LabSpecRepository
 	BootstrapRepository
 	TerminalRepository
 	LiveSessionRepository

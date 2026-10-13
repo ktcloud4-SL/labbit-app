@@ -39,6 +39,9 @@ Confluence는 Domain/Data 의미·ownership·결정 이유를 관리하고, 실�
 6. `000006_operation_trace_context.sql`
    - `operations.traceparent` / `operations.tracestate` nullable metadata
    - D-25 API → Worker Context 복원용이며 기존 업무 제약/상태를 바꾸지 않음
+7. `000007_operation_updated_at.sql`
+   - `operations.updated_at` 필수 시각을 additive 변경으로 추가
+   - 기존 row는 `finished_at` / `started_at` / `created_at` 순으로 backfill하며, 이후 상태 갱신 writer는 같은 transaction에서 갱신
 
 ## 확정된 Domain/Data 모델과의 관계
 

@@ -135,8 +135,11 @@ type LiveSessionRepository interface {
 
 // Repositories는 하나의 DB session에서 사용할 수 있는 Repository 모음이다.
 type Repositories interface {
+	OperationRepository
 	IdentityRepository
 	ClassRepository
+	ClassMemberRepository
+	LabSpecRepository
 	BootstrapRepository
 	TerminalRepository
 	LiveSessionRepository

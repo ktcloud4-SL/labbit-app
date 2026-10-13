@@ -116,9 +116,16 @@ func TestManagedSSHShutdownWithUnreadPeer(t *testing.T) {
 				t.Helper()
 				deadline := time.Now().Add(4 * time.Second)
 				var first time.Time
+				snapshot := make([]byte, 128<<10)
 				for {
-					snapshot := make([]byte, 128<<10)
 					n := runtime.Stack(snapshot, true)
+					if n == len(snapshot) {
+						if len(snapshot) >= 8<<20 {
+							t.Fatal("goroutine stack snapshot exceeded 8 MiB")
+						}
+						snapshot = make([]byte, len(snapshot)*2)
+						continue
+					}
 					matched := false
 					for _, goroutine := range strings.Split(string(snapshot[:n]), "\n\n") {
 						if strings.Contains(goroutine, wanted) {
@@ -136,6 +143,11 @@ func TestManagedSSHShutdownWithUnreadPeer(t *testing.T) {
 						}
 					} else {
 						first = time.Time{}
+					}
+					select {
+					case <-inputDone:
+						t.Fatal("managed SSH input unexpectedly completed while TCP peer was unread")
+					default:
 					}
 					if time.Now().After(deadline) {
 						t.Fatal("managed SSH write did not remain pending against unread TCP peer")

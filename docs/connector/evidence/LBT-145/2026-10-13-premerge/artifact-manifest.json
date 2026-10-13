@@ -1,0 +1,469 @@
+{
+  "recordedAtUTC": "2026-10-12T17:30:14.264794+00:00",
+  "selfExcluded": true,
+  "hashFormat": "sha256/bytes describe Git-published LF text; originalWorktree fields preserve pre-Git raw bytes",
+  "files": [
+    {
+      "path": "bootstrap-helper-source/access.go.txt",
+      "bytes": 13217,
+      "sha256": "6dad622d3a98c1827272eebbbf8711baba1395658848066229e0e113dcb5110c",
+      "originalWorktreeBytes": 13217,
+      "originalWorktreeSHA256": "6dad622d3a98c1827272eebbbf8711baba1395658848066229e0e113dcb5110c"
+    },
+    {
+      "path": "bootstrap-helper-source/access_test.go.txt",
+      "bytes": 2913,
+      "sha256": "9ce27a6fafa85fbe650e29940eaf2b068ca89db0543c5ed6dbdb632018979aec",
+      "originalWorktreeBytes": 2913,
+      "originalWorktreeSHA256": "9ce27a6fafa85fbe650e29940eaf2b068ca89db0543c5ed6dbdb632018979aec"
+    },
+    {
+      "path": "bootstrap-helper-source/baseline.go.txt",
+      "bytes": 3666,
+      "sha256": "4d2c0f600c8249c1588b29c6ae24948866963fd3c7fdfd45920f59e267994a21",
+      "originalWorktreeBytes": 3666,
+      "originalWorktreeSHA256": "4d2c0f600c8249c1588b29c6ae24948866963fd3c7fdfd45920f59e267994a21"
+    },
+    {
+      "path": "bootstrap-helper-source/cancellation.go.txt",
+      "bytes": 253,
+      "sha256": "d47ac760cdd85376638bae90e5001d1f23d40105b6d2c790084d9e80c6624bab",
+      "originalWorktreeBytes": 253,
+      "originalWorktreeSHA256": "d47ac760cdd85376638bae90e5001d1f23d40105b6d2c790084d9e80c6624bab"
+    },
+    {
+      "path": "bootstrap-helper-source/cancellation_test.go.txt",
+      "bytes": 930,
+      "sha256": "0093c6a1feb537941028ae1a3f128f3d180404c546f1eeda59251e060aac8ad5",
+      "originalWorktreeBytes": 930,
+      "originalWorktreeSHA256": "0093c6a1feb537941028ae1a3f128f3d180404c546f1eeda59251e060aac8ad5"
+    },
+    {
+      "path": "bootstrap-helper-source/deploy.go.txt",
+      "bytes": 27286,
+      "sha256": "10d428d475ae1a8bff58ef6e70c769d144d9d70aadc4f3b65914bc0a2956b820",
+      "originalWorktreeBytes": 27286,
+      "originalWorktreeSHA256": "10d428d475ae1a8bff58ef6e70c769d144d9d70aadc4f3b65914bc0a2956b820"
+    },
+    {
+      "path": "bootstrap-helper-source/main.go.txt",
+      "bytes": 25162,
+      "sha256": "f9bfa98c6178c4848e77e5c132e0b0230f26969003a7807325f1b3028498e7e5",
+      "originalWorktreeBytes": 25162,
+      "originalWorktreeSHA256": "f9bfa98c6178c4848e77e5c132e0b0230f26969003a7807325f1b3028498e7e5"
+    },
+    {
+      "path": "bootstrap-helper-source/ownership_test.go.txt",
+      "bytes": 3292,
+      "sha256": "717826173a7cdba0de8ed7a48144c9c174e6d953fa5110b549d3d0e64b4448c9",
+      "originalWorktreeBytes": 3292,
+      "originalWorktreeSHA256": "717826173a7cdba0de8ed7a48144c9c174e6d953fa5110b549d3d0e64b4448c9"
+    },
+    {
+      "path": "bootstrap-helper-source/run-phase.ps1.txt",
+      "bytes": 861,
+      "sha256": "7d4fc7dd410b78875fb0fd867fea8741032931c6e62bf3326db2085795049e2c",
+      "originalWorktreeBytes": 861,
+      "originalWorktreeSHA256": "7d4fc7dd410b78875fb0fd867fea8741032931c6e62bf3326db2085795049e2c"
+    },
+    {
+      "path": "bootstrap-helper-source/ssh_observe.go.txt",
+      "bytes": 5300,
+      "sha256": "da996d47e0986b22888d5723120350beb719755b1e4fb951a78a808fd3f98e42",
+      "originalWorktreeBytes": 5300,
+      "originalWorktreeSHA256": "da996d47e0986b22888d5723120350beb719755b1e4fb951a78a808fd3f98e42"
+    },
+    {
+      "path": "bootstrap-helper-source/ssh_observe_test.go.txt",
+      "bytes": 2349,
+      "sha256": "acd86b3af9ca7f5429fac14388c301770c5922fab678ba8f46ac751619f7762e",
+      "originalWorktreeBytes": 2349,
+      "originalWorktreeSHA256": "acd86b3af9ca7f5429fac14388c301770c5922fab678ba8f46ac751619f7762e"
+    },
+    {
+      "path": "candidate-files.json",
+      "bytes": 87898,
+      "sha256": "e1f34a210afe80fe91e22fb125b341cc1b02561d95721261b4b8d493d3f554fe",
+      "originalWorktreeBytes": 89088,
+      "originalWorktreeSHA256": "ea65fd53482cb6d31637e803b47db0918c0f1a77a560266408c3777ac9e71131"
+    },
+    {
+      "path": "checks/contracts-openapi.log",
+      "bytes": 38,
+      "sha256": "877a8cad798e5a6fdb8abe115c231236d5bb3b36d624bb3a4ba9c08f868c3b3f",
+      "originalWorktreeBytes": 39,
+      "originalWorktreeSHA256": "a8fcd9d740747b138a072615fb861aa2c0b94e7b2f8124cc170ba61af47b1009"
+    },
+    {
+      "path": "checks/contracts-schema-runtime.log",
+      "bytes": 631,
+      "sha256": "78143891b1c542949b0ec8e4fdc3c35cb20ccbd72034ac1624cbcaa80c8af17b",
+      "originalWorktreeBytes": 641,
+      "originalWorktreeSHA256": "894c44d176d37e5183a01b729ad20c4a7ea908d90ffcc2ba668486eb580b76fb"
+    },
+    {
+      "path": "checks/go-build-result.json",
+      "bytes": 217,
+      "sha256": "457120b281f1e6b62e33854040695de981aae07f6fe907ada64927dbae3f72ac",
+      "originalWorktreeBytes": 226,
+      "originalWorktreeSHA256": "b15b7844f9b7f16bcc4062b465904b780b3024034365b28352145f8ab515294c"
+    },
+    {
+      "path": "checks/go-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originalWorktreeBytes": 0,
+      "originalWorktreeSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "checks/go-format.log",
+      "bytes": 53,
+      "sha256": "bf80afd0497115c88f9ce1cab1855cf50b51edc041c16e0add18f5be422b385e",
+      "originalWorktreeBytes": 54,
+      "originalWorktreeSHA256": "bfcf17a34b6c2c09c79ace7ad8b0db24d0960130f417b03ed54182914b6a14fb"
+    },
+    {
+      "path": "checks/go-race-result.json",
+      "bytes": 832,
+      "sha256": "b3c24ffe7070e34cf94316183b649bd238d806da456cd931b4c360218ba953bf",
+      "originalWorktreeBytes": 859,
+      "originalWorktreeSHA256": "f025d555c5433474720d9e8ae43c21245270e99b7e1cd00032f14026d787d58e"
+    },
+    {
+      "path": "checks/go-race.log",
+      "bytes": 357451,
+      "sha256": "4a071f4eb0ef00f1f22b182212640c7048f87964c973f14e22540c246592d61d",
+      "originalWorktreeBytes": 357451,
+      "originalWorktreeSHA256": "4a071f4eb0ef00f1f22b182212640c7048f87964c973f14e22540c246592d61d"
+    },
+    {
+      "path": "checks/go-test-result.json",
+      "bytes": 1635,
+      "sha256": "51e1a311e72914b08d52bb005cac9883f79a618704e7a29b90e34d0077661e46",
+      "originalWorktreeBytes": 1671,
+      "originalWorktreeSHA256": "75a488491d5534598edfcaaa7de18b8b7307c53981a47049b82e488f3250188c"
+    },
+    {
+      "path": "checks/go-test.log",
+      "bytes": 3320314,
+      "sha256": "dc68d6c8557a0c49fe4b1145fbcb405930d5a90ea211df892ba91c8434b069d6",
+      "originalWorktreeBytes": 3320314,
+      "originalWorktreeSHA256": "dc68d6c8557a0c49fe4b1145fbcb405930d5a90ea211df892ba91c8434b069d6"
+    },
+    {
+      "path": "checks/go-vet-result.json",
+      "bytes": 213,
+      "sha256": "458f82e84fd25a16465bf246c661a1e57f147343e757036159a4596592fb1a11",
+      "originalWorktreeBytes": 222,
+      "originalWorktreeSHA256": "7d2e907eb05cecc46662a67d4bb0b4fbcdc869cc47bf1db3e1490718cb140a38"
+    },
+    {
+      "path": "checks/go-vet.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "originalWorktreeBytes": 0,
+      "originalWorktreeSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "checks/helper-export-build.log",
+      "bytes": 72,
+      "sha256": "c7384a3a0ba8f3cfc2829bac56abf73144f33995254bf8b794bb4990f840c0ba",
+      "originalWorktreeBytes": 73,
+      "originalWorktreeSHA256": "2e1cd55ca801bd4a498a359bf5062834767c13f21387da39c3b4639112aec1b2"
+    },
+    {
+      "path": "checks/summary.json",
+      "bytes": 4990,
+      "sha256": "f0391e6fea235436e03ed3cd70203dc67207f80aae5e3c7be1c5ae3f6da8962e",
+      "originalWorktreeBytes": 5123,
+      "originalWorktreeSHA256": "ebf238d46d32d6f741fc2d5d2c23d9e9b1a1e0ea6de4439c1e1962b630fae437"
+    },
+    {
+      "path": "checks/web-build-result.json",
+      "bytes": 369,
+      "sha256": "334360ef68b98be6fe04f84b7065a8f53bd89c0e092319dc79efe062fd2146fd",
+      "originalWorktreeBytes": 379,
+      "originalWorktreeSHA256": "84483966c0c5416cc985e49ee1ce366d30cb798fff5014936b45f839b2c7db0b"
+    },
+    {
+      "path": "checks/web-build.log",
+      "bytes": 725,
+      "sha256": "0cd84ca5675af0c4a1bf9750b740dd08d82f637dabf4a1d4f5f7164cb191a34a",
+      "originalWorktreeBytes": 725,
+      "originalWorktreeSHA256": "0cd84ca5675af0c4a1bf9750b740dd08d82f637dabf4a1d4f5f7164cb191a34a"
+    },
+    {
+      "path": "checks/web-install.log",
+      "bytes": 144,
+      "sha256": "7fe73f471a21c578be29fab44aee5539b1cca56f77a2c8dc99a90658d7d63c5a",
+      "originalWorktreeBytes": 151,
+      "originalWorktreeSHA256": "b2e6c78b477d9e3ea0b058d823435d1c009901ce36a5345ecc194cef9dcfffec"
+    },
+    {
+      "path": "checks/web-lint-result.json",
+      "bytes": 367,
+      "sha256": "6b591961c930def351f2aa2a278d13c4dd1d3d470b5aa46b4dbacce7d3f2f4f4",
+      "originalWorktreeBytes": 377,
+      "originalWorktreeSHA256": "5b360f9024f495cebb31f9b5c200f0334dc8380ded078b7e20a6405efc67d835"
+    },
+    {
+      "path": "checks/web-lint.log",
+      "bytes": 28,
+      "sha256": "b543827ce56a63357c629028555ecec2cc964dda33dbbf2a9a2872b1a2ab20f8",
+      "originalWorktreeBytes": 28,
+      "originalWorktreeSHA256": "b543827ce56a63357c629028555ecec2cc964dda33dbbf2a9a2872b1a2ab20f8"
+    },
+    {
+      "path": "checks/web-test-result.json",
+      "bytes": 367,
+      "sha256": "35f678ad876cad70d26c88eab6cecdddc6f101fba3446a0c6140d4929202dd86",
+      "originalWorktreeBytes": 377,
+      "originalWorktreeSHA256": "71a2cc8c072155720aca67803be496832b1777a79537377c6618826d1071b109"
+    },
+    {
+      "path": "checks/web-test.log",
+      "bytes": 360,
+      "sha256": "79f506e5014c9ca8f5d24c4a77f363d222ba6e7e2fc42a9a69f5628dfca8091c",
+      "originalWorktreeBytes": 360,
+      "originalWorktreeSHA256": "79f506e5014c9ca8f5d24c4a77f363d222ba6e7e2fc42a9a69f5628dfca8091c"
+    },
+    {
+      "path": "checks/web-typecheck-result.json",
+      "bytes": 377,
+      "sha256": "ccaf674c2b591c42451fb6e7bec743fbb558b209df6b8c5c05ecb2207e4032fe",
+      "originalWorktreeBytes": 387,
+      "originalWorktreeSHA256": "01f74dbf41a49ba6beec7c2c0a7a93300f438f7d85edc1d4a2a2c47e02c20260"
+    },
+    {
+      "path": "checks/web-typecheck.log",
+      "bytes": 3744,
+      "sha256": "d27c00ca01dfac8c06d994dea086e93f2ec31467e75e29c9c5fab62076b116e5",
+      "originalWorktreeBytes": 3744,
+      "originalWorktreeSHA256": "d27c00ca01dfac8c06d994dea086e93f2ec31467e75e29c9c5fab62076b116e5"
+    },
+    {
+      "path": "execution-summary.json",
+      "bytes": 503,
+      "sha256": "2b7b9a76c2e22e63cce1da43409689a0a860aff0b77f65f8c01e302d43c6013b",
+      "originalWorktreeBytes": 521,
+      "originalWorktreeSHA256": "69fa531b1e6b4cbe8680ecd03a7da2deea51bcd1b09a094e9bc1b7a6b8883e70"
+    },
+    {
+      "path": "INDEPENDENT_REVIEW.md",
+      "bytes": 17227,
+      "sha256": "1cb391e87f6820fad4a67640f3778d26e60b6503eca1611392563056d76c5689",
+      "originalWorktreeBytes": 17320,
+      "originalWorktreeSHA256": "9482f3e7ed72c46ba9c43e15569c29f52790937de5e5e5ff301961fd46b109fb"
+    },
+    {
+      "path": "kt-network.log",
+      "bytes": 640,
+      "sha256": "ee321f00b2de4e6ce0f845730af9020180543788e774ce18b2c2f2150fc9d738",
+      "originalWorktreeBytes": 647,
+      "originalWorktreeSHA256": "871d78810f067fbcb1971ba096fcc34a86719b948e81dcf7df65c61204e13014"
+    },
+    {
+      "path": "kt-readonly.log",
+      "bytes": 322,
+      "sha256": "46ae62cff06f1514b858a0040c1561fba65c75e25769a1201cdc7ffa13324fd5",
+      "originalWorktreeBytes": 327,
+      "originalWorktreeSHA256": "95bc2ee6b1b3d0262d178c1dd896b540a3c003b2ae33f512057fe0724b134d25"
+    },
+    {
+      "path": "live/access-20261013-015647.log",
+      "bytes": 1090,
+      "sha256": "07c0a1f75a50111e358a8a34c56628c46feef29ada897264a199dd627c9f5719",
+      "originalWorktreeBytes": 1111,
+      "originalWorktreeSHA256": "74511bca9699bcd532a584be38d7cb9efd65ff5c1b624d17e0d71495d41ec599"
+    },
+    {
+      "path": "live/baseline-inventory.json",
+      "bytes": 252,
+      "sha256": "d2507e9633aec8c27009907139b308e296a4dbb3f5ae280ff65d73849f05981a",
+      "originalWorktreeBytes": 252,
+      "originalWorktreeSHA256": "d2507e9633aec8c27009907139b308e296a4dbb3f5ae280ff65d73849f05981a"
+    },
+    {
+      "path": "live/cleanup-20261013-021022.log",
+      "bytes": 358,
+      "sha256": "5dbf70f9cc76b80c715d54309dd946e541b8baf5aaa9a6a8e924fda453ef8913",
+      "originalWorktreeBytes": 367,
+      "originalWorktreeSHA256": "e698fe763e8399d5dec79df89b7a04e6ef8d22474836e809ff2e263dbc6f8140"
+    },
+    {
+      "path": "live/collect-20261013-020957.log",
+      "bytes": 161,
+      "sha256": "2c2e6f7f345a2b4c6c0d01a1162d29168a910481985ec2f4d382ca74e6c21ee6",
+      "originalWorktreeBytes": 163,
+      "originalWorktreeSHA256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7"
+    },
+    {
+      "path": "live/control-20261013-015748.log",
+      "bytes": 1456,
+      "sha256": "1342445fe816b818bee79e7574fea6447208394eebb0eae855b964b3c3539455",
+      "originalWorktreeBytes": 1481,
+      "originalWorktreeSHA256": "45eaefd683f43d4f6798dc76ddfffc69a83e3462deeb9292e4add81400c16aef"
+    },
+    {
+      "path": "live/create-20261013-015412.log",
+      "bytes": 785,
+      "sha256": "bc35bb4fe18c9a328e164912c04f4450aa502afbd8a3d396d0798aa5b46d0813",
+      "originalWorktreeBytes": 801,
+      "originalWorktreeSHA256": "da03230f53f3116357da1181c77d64b5fba9896f779cc05687a4ac4764c2f543"
+    },
+    {
+      "path": "live/deploy-20261013-015742.log",
+      "bytes": 420,
+      "sha256": "d7ed38d8ed24ae41acc6cd039e231f59ebb3660eef09564547012a3cf1be7d3c",
+      "originalWorktreeBytes": 424,
+      "originalWorktreeSHA256": "6674df90cb326903f5ecc3fadc5f42dfcc7b87e0dc4571b40ff9bf0d3993f3c7"
+    },
+    {
+      "path": "live/final-20261013-021201.log",
+      "bytes": 175,
+      "sha256": "3c92a6bb2a07498ac4575113d635c43e3d54719efaf626446a600eb984fb2a38",
+      "originalWorktreeBytes": 177,
+      "originalWorktreeSHA256": "d7bb2317263983cb6a97c8bf50428bb4cf3f9f0715ee4885a145e0854a06774f"
+    },
+    {
+      "path": "live/final-inventory.json",
+      "bytes": 464,
+      "sha256": "47220efa8aa8b065960ac20fcc161ae6deaaff6e2d106cf09900b4af1faef579",
+      "originalWorktreeBytes": 464,
+      "originalWorktreeSHA256": "47220efa8aa8b065960ac20fcc161ae6deaaff6e2d106cf09900b4af1faef579"
+    },
+    {
+      "path": "live/inventory-20261013-015312.log",
+      "bytes": 2319,
+      "sha256": "ff12d77d0315fb1fb43d2dbf228cff7bfe500ef2e1054a0bcdfd3862507b716b",
+      "originalWorktreeBytes": 2356,
+      "originalWorktreeSHA256": "8a13f995c4a5ce473bd06d150d5c1f48e7d655015c07c7e521ea15fd8b1c7f82"
+    },
+    {
+      "path": "live/ktcloud-bootstrap-ledger.json",
+      "bytes": 1451,
+      "sha256": "950d516e8426c8ea7345c47534f7279bd7bd73ba894da208f2f0a7a50786f492",
+      "originalWorktreeBytes": 1495,
+      "originalWorktreeSHA256": "142abadf2de0c8b445b78a114ee53f25740d0bf463a2829e7f40be21f8836098"
+    },
+    {
+      "path": "live/ktcloud-connector.log",
+      "bytes": 796,
+      "sha256": "53227719db00ac877799181fb06cd3ac4be5108004e09dbb87e7a5e125e0533c",
+      "originalWorktreeBytes": 796,
+      "originalWorktreeSHA256": "53227719db00ac877799181fb06cd3ac4be5108004e09dbb87e7a5e125e0533c"
+    },
+    {
+      "path": "live/ktcloud-control-acceptance.log",
+      "bytes": 1383,
+      "sha256": "c8bddb30ca0749bae1581ff95abacc5b5fca6cddda58e288316a456755f56a97",
+      "originalWorktreeBytes": 1383,
+      "originalWorktreeSHA256": "c8bddb30ca0749bae1581ff95abacc5b5fca6cddda58e288316a456755f56a97"
+    },
+    {
+      "path": "live/ktcloud-control-ledger.json",
+      "bytes": 2299,
+      "sha256": "b06a2ac0e876ba39bafab5323666327114610b11c0ad7737cea64fd76d4c830d",
+      "originalWorktreeBytes": 2299,
+      "originalWorktreeSHA256": "b06a2ac0e876ba39bafab5323666327114610b11c0ad7737cea64fd76d4c830d"
+    },
+    {
+      "path": "live/ktcloud-residual-current.json",
+      "bytes": 512,
+      "sha256": "62a633724e82674a962546562f8b0072fca893c51b610034ee3b4c34b9b1b34e",
+      "originalWorktreeBytes": 512,
+      "originalWorktreeSHA256": "62a633724e82674a962546562f8b0072fca893c51b610034ee3b4c34b9b1b34e"
+    },
+    {
+      "path": "live/residual-20261013-020958.log",
+      "bytes": 580,
+      "sha256": "273fa6c353dfee429c3522fd37a7a975750f680dae1d2d245f8ba06c90bf8c5c",
+      "originalWorktreeBytes": 601,
+      "originalWorktreeSHA256": "fc2908c97525885a157420fa7815484e3e91c36cb9ed3e6d7f334114c043fd9c"
+    },
+    {
+      "path": "live/residual-20261013-021159.log",
+      "bytes": 585,
+      "sha256": "c95b4d4e6a25aad06679f21dbe0740185ab9a1ce31d48c8a3ddf0a7cf19d03de",
+      "originalWorktreeBytes": 606,
+      "originalWorktreeSHA256": "ee7cb60e0fdcf730adeca804453e33c8358cccb67d61a8559a16a70cd4281672"
+    },
+    {
+      "path": "live/ssh-20261013-015739.log",
+      "bytes": 167,
+      "sha256": "edb6d1baf18c93c7ef8c938b89a72c498b33b68c284983ab8edf012cbb5a0e39",
+      "originalWorktreeBytes": 174,
+      "originalWorktreeSHA256": "ccce98c783d252d69316872ec629a3ab6d5d27583ec5d71e480d8f32f40fa76e"
+    },
+    {
+      "path": "network-ledger.json",
+      "bytes": 388,
+      "sha256": "653c9482952beae1da6101c899114e8a474294f96b16e16702c8fb0b4ad0f763",
+      "originalWorktreeBytes": 388,
+      "originalWorktreeSHA256": "653c9482952beae1da6101c899114e8a474294f96b16e16702c8fb0b4ad0f763"
+    },
+    {
+      "path": "PRE_MERGE_AUDIT_RESULT.md",
+      "bytes": 29533,
+      "sha256": "a8eff3244ba22fba685c3a80d91be6056d1da9998e768d057e9522c5268beba3",
+      "originalWorktreeBytes": 29533,
+      "originalWorktreeSHA256": "a8eff3244ba22fba685c3a80d91be6056d1da9998e768d057e9522c5268beba3"
+    },
+    {
+      "path": "preservation-check.json",
+      "bytes": 4221,
+      "sha256": "940bcdf2928cb722554295710b3277608df0be50f6326a175d8a75a9c66506d6",
+      "originalWorktreeBytes": 4315,
+      "originalWorktreeSHA256": "cca989bd35bb1b828a78a75488f4a37969d1636ad2c0d4638dfe786d1d6baa28"
+    },
+    {
+      "path": "publication-scan.json",
+      "bytes": 339,
+      "sha256": "eae1ecef629b3579beaa5747e7a4f3c852fd2171c0f26a45c2d2c3963aa6ad88",
+      "originalWorktreeBytes": 350,
+      "originalWorktreeSHA256": "34cb8e2ff781d23c4d52f12504fefdf6ab0e3f82acb02a1d7c7fe37c9742669b"
+    },
+    {
+      "path": "README.md",
+      "bytes": 9135,
+      "sha256": "d5e9711fa7792a569859a5e37a7ae2b7d1d30679efa8487de827b86d4bfd4593",
+      "originalWorktreeBytes": 9135,
+      "originalWorktreeSHA256": "d5e9711fa7792a569859a5e37a7ae2b7d1d30679efa8487de827b86d4bfd4593"
+    },
+    {
+      "path": "repository-rulesets.json",
+      "bytes": 3241,
+      "sha256": "d1bb78782707464172a404fd8ecb619229e9730333ae956b149a59361b85b179",
+      "originalWorktreeBytes": 3365,
+      "originalWorktreeSHA256": "4da916e8a5f58eca6613a976854eba888365b7977e46512afc7429b229822d89"
+    },
+    {
+      "path": "requirements-reference.json",
+      "bytes": 8268,
+      "sha256": "fae548c8643bf666ab40e51a432ea133ec27ea872c34af0416367109a1d7d93c",
+      "originalWorktreeBytes": 8268,
+      "originalWorktreeSHA256": "fae548c8643bf666ab40e51a432ea133ec27ea872c34af0416367109a1d7d93c"
+    },
+    {
+      "path": "residual-before-bootstrap-cleanup.json",
+      "bytes": 507,
+      "sha256": "d8ceacfe5b151a696437a95b10ec7e255b37825fc92ce9dd6e076bf428eee745",
+      "originalWorktreeBytes": 507,
+      "originalWorktreeSHA256": "d8ceacfe5b151a696437a95b10ec7e255b37825fc92ce9dd6e076bf428eee745"
+    },
+    {
+      "path": "tested-source-after-live.json",
+      "bytes": 325,
+      "sha256": "cdfcd760fc247082ee03de20c5015d08c76bffc5229bb5d28b53730657045d26",
+      "originalWorktreeBytes": 335,
+      "originalWorktreeSHA256": "0429e60936a764b1fb65e0628cc832a57a93821825c99a84a67e661a2d427d43"
+    },
+    {
+      "path": "tested-source-before-live.json",
+      "bytes": 54943,
+      "sha256": "66b621b221adecd5d30b736e04cc32bd93f15bf2699599590cd5931854cfab35",
+      "originalWorktreeBytes": 56356,
+      "originalWorktreeSHA256": "f6b25ae13f7a540b468b21446928e5b23b0e86f84aaa78256d4b0be4b96298ad"
+    }
+  ]
+}

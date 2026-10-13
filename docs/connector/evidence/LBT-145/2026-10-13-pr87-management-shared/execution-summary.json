@@ -1,0 +1,148 @@
+{
+  "testedSource": "804f9239b3386c4d029ef7d52df842d2f3f3c17f",
+  "verifiedAtUTC": "2026-10-13T03:01:10.452824+00:00",
+  "stats": {
+    "checks/before-regression.jsonl": {
+      "topLevelPass": 0,
+      "testPass": 5,
+      "packagePass": 0,
+      "failedTests": [
+        "TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/short/missing",
+        "TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/short/null",
+        "TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/legacy/missing",
+        "TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/legacy/null",
+        "TestKTCloudTerminalRequiresExplicitNonSharedManagementTier",
+        "TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources/true",
+        "TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources/missing",
+        "TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources/null",
+        "TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources"
+      ],
+      "skippedTests": []
+    },
+    "checks/after-regression.jsonl": {
+      "topLevelPass": 4,
+      "testPass": 32,
+      "packagePass": 1,
+      "failedTests": [],
+      "skippedTests": []
+    },
+    "checks-final/before-fixture-regression.jsonl": {
+      "topLevelPass": 0,
+      "testPass": 2,
+      "packagePass": 0,
+      "failedTests": [
+        "TestKTFixtureTierOwnershipBeforePolicyAndCleanup/body409",
+        "TestKTFixtureTierOwnershipBeforePolicyAndCleanup/body500",
+        "TestKTFixtureTierOwnershipBeforePolicyAndCleanup/baseline_ID",
+        "TestKTFixtureTierOwnershipBeforePolicyAndCleanup/wrong_name",
+        "TestKTFixtureTierOwnershipBeforePolicyAndCleanup/wrong_CIDR",
+        "TestKTFixtureTierOwnershipBeforePolicyAndCleanup/shared_true",
+        "TestKTFixtureTierOwnershipBeforePolicyAndCleanup/shared_missing",
+        "TestKTFixtureTierOwnershipBeforePolicyAndCleanup/shared_null",
+        "TestKTFixtureTierOwnershipBeforePolicyAndCleanup/unconfirmed_lookup_failure",
+        "TestKTFixtureTierOwnershipBeforePolicyAndCleanup"
+      ],
+      "skippedTests": []
+    },
+    "checks-final/after-fixture-regression.jsonl": {
+      "topLevelPass": 1,
+      "testPass": 12,
+      "packagePass": 1,
+      "failedTests": [],
+      "skippedTests": []
+    },
+    "checks-merged/go-test.log": {
+      "topLevelPass": 1002,
+      "testPass": 3065,
+      "packagePass": 32,
+      "failedTests": [],
+      "skippedTests": [
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration",
+        "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+      ]
+    },
+    "checks-merged/go-race.log": {
+      "topLevelPass": 128,
+      "testPass": 421,
+      "packagePass": 1,
+      "failedTests": [
+        "TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_timeout",
+        "TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup"
+      ],
+      "skippedTests": [
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration"
+      ]
+    },
+    "checks-audited/go-test.log": {
+      "topLevelPass": 1002,
+      "testPass": 3065,
+      "packagePass": 32,
+      "failedTests": [],
+      "skippedTests": [
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration",
+        "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+      ]
+    },
+    "checks-audited/go-race.log": {
+      "topLevelPass": 129,
+      "testPass": 423,
+      "packagePass": 2,
+      "failedTests": [],
+      "skippedTests": [
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration"
+      ]
+    },
+    "checks-audited/go-timeout-race.log": {
+      "topLevelPass": 20,
+      "testPass": 40,
+      "packagePass": 1,
+      "failedTests": [],
+      "skippedTests": []
+    }
+  },
+  "webTestPassed": 163,
+  "webResultReuse": {
+    "source": "7a692097587d55896bd8b233bbd636d321436f2d",
+    "trackedInputFilesCompared": 62,
+    "mismatches": []
+  },
+  "localGoPostgresIntegration": "not run; final HEAD CI PostgreSQL16 required separately",
+  "KTCloudIntegration": "not run; no current-source VM/SSH/Reset/create/delete claim",
+  "standardOpenStackLive": "not run",
+  "fixtureRedSource": "Old fixture create/receipt/ACTIVE/refId logic extracted into the callable test helper; this is local reproduction, not an unmodified historical gated execution.",
+  "fixtureEarlyGreenSource": "Intermediate helper/test with 50ms context. Committed context is 1s; full checks-final at 3fed and checks-merged verify it.",
+  "publicProvisionSSHZero": "caller early-return code review, not a new E2E counter measurement",
+  "newRegressionCases": 23
+}

@@ -1,0 +1,752 @@
+package openstackprovider
+
+import (
+	"bytes"
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"net/netip"
+	"os"
+	"path/filepath"
+	"reflect"
+	"sort"
+	"strings"
+	"testing"
+	"time"
+
+	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+)
+
+// External test-only overlay. Production methods and responses are unchanged.
+// No VM, existing Tier, auth header, token, raw error or response body is saved.
+type pr87HTTPEvent struct {
+	At            string          `json:"at"`
+	Phase         string          `json:"phase"`
+	Method        string          `json:"method"`
+	Route         string          `json:"route"`
+	HTTPStatus    int             `json:"httpStatus"`
+	BodyStatus    json.RawMessage `json:"bodyStatus,omitempty"`
+	ReceiptTierID string          `json:"unconfirmedReceiptTierId,omitempty"`
+	JobID         string          `json:"jobId,omitempty"`
+	JobStatus     string          `json:"jobStatus,omitempty"`
+	Pagination    *struct {
+		Total  *int `json:"total"`
+		Offset *int `json:"offset"`
+	} `json:"pagination,omitempty"`
+}
+
+type pr87TierView struct {
+	ktCloudTier
+	SharedExplicit bool `json:"sharedExplicit"`
+}
+
+type pr87Ledger struct {
+	SourceHead            string                        `json:"sourceHead"`
+	Started               string                        `json:"started"`
+	Finished              string                        `json:"finished,omitempty"`
+	State                 string                        `json:"state"`
+	Correlation           coreprovider.Correlation      `json:"correlation"`
+	TierName              string                        `json:"tierName"`
+	TierCIDR              string                        `json:"tierCidr"`
+	SourceCIDR            string                        `json:"sourceCidr"`
+	PolicyComment         string                        `json:"policyComment"`
+	ConnectorTierID       string                        `json:"readOnlyConnectorTierId"`
+	PrivateTierID         string                        `json:"readOnlyPrivateTierId"`
+	BaselineTiers         []pr87TierView                `json:"baselineTiers"`
+	BaselinePolicies      []ktCloudFirewallPolicy       `json:"baselinePolicies"`
+	BaselineServers       []coreprovider.Server         `json:"baselineServers"`
+	FlavorCount           int                           `json:"flavorCount"`
+	ImageCount            int                           `json:"imageCount"`
+	Resources             []coreprovider.ResourceResult `json:"confirmedResources"`
+	ReturnedResources     []coreprovider.ResourceResult `json:"unconfirmedReturnedResources"`
+	CreatedTier           *pr87TierView                 `json:"createdTier,omitempty"`
+	CreatedPolicy         *ktCloudFirewallPolicy        `json:"createdPolicy,omitempty"`
+	BeforeCleanup         *coreprovider.ReconcileResult `json:"beforeCleanup,omitempty"`
+	Cleanup               *coreprovider.OperationResult `json:"cleanup,omitempty"`
+	AfterCleanup          *coreprovider.ReconcileResult `json:"afterCleanup,omitempty"`
+	AbsentCleanup         *coreprovider.OperationResult `json:"alreadyAbsentCleanup,omitempty"`
+	AfterAbsentCleanup    *coreprovider.ReconcileResult `json:"afterAlreadyAbsentCleanup,omitempty"`
+	FinalTiers            []pr87TierView                `json:"finalTiers"`
+	FinalPolicies         []ktCloudFirewallPolicy       `json:"finalPolicies"`
+	FinalServers          []coreprovider.Server         `json:"finalServers"`
+	Events                []pr87HTTPEvent               `json:"events"`
+	PolicyAttempted       bool                          `json:"policyAttempted"`
+	CleanupStarted        bool                          `json:"cleanupStarted"`
+	ExactAbsenceConfirmed bool                          `json:"exactAbsenceConfirmed"`
+	FullBaselineRestored  bool                          `json:"fullBaselineRestored"`
+	NoVMMutations         bool                          `json:"noVmMutations"`
+}
+
+type pr87Transport struct {
+	inner        http.RoundTripper
+	state        *pr87Ledger
+	save         func() error
+	postCounts   map[string]int
+	deleteCounts map[string]int
+}
+
+func (p *pr87Transport) RoundTrip(r *http.Request) (*http.Response, error) {
+	path := r.URL.Path
+	nsm := strings.Contains(path, "/nsm/v1/")
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		if !nsm {
+			return nil, errors.New("live probe prohibits non-NSM mutations")
+		}
+		if r.Method == http.MethodPost && (strings.HasSuffix(path, "/network") || strings.HasSuffix(path, "/firewall/policy")) {
+			p.postCounts[path]++
+			if p.postCounts[path] != 1 {
+				return nil, errors.New("live probe prohibits create retries")
+			}
+			if strings.HasSuffix(path, "/firewall/policy") {
+				p.state.PolicyAttempted = true
+			}
+			if err := p.save(); err != nil {
+				return nil, errors.New("pre-mutation ledger persistence failed")
+			}
+		} else if r.Method == http.MethodDelete {
+			allowed := false
+			for _, ref := range p.state.Resources {
+				suffix := "/network/" + ref.ProviderID
+				if ref.ResourceType == coreprovider.ResourceTypeFirewall {
+					suffix = "/firewall/policy/" + ref.ProviderID
+				}
+				if ref.ProviderID != "" && strings.HasSuffix(path, suffix) {
+					allowed = true
+				}
+			}
+			if !allowed {
+				return nil, errors.New("live probe prohibits deletion of unconfirmed IDs")
+			}
+			p.deleteCounts[path]++
+			if p.deleteCounts[path] > 1 && !p.state.ExactAbsenceConfirmed {
+				return nil, errors.New("live probe prohibits deletion retries before confirmed absence")
+			}
+			if p.deleteCounts[path] > 2 {
+				return nil, errors.New("live probe deletion budget exceeded")
+			}
+		} else {
+			return nil, errors.New("live probe mutation outside allowed routes")
+		}
+	}
+	response, err := p.inner.RoundTrip(r)
+	if !nsm {
+		return response, err
+	}
+	event := pr87HTTPEvent{At: time.Now().UTC().Format(time.RFC3339Nano), Phase: p.state.State, Method: r.Method, Route: path[strings.Index(path, "/nsm/v1/"):]}
+	if response != nil {
+		event.HTTPStatus = response.StatusCode
+		if response.Body != nil {
+			raw, e := io.ReadAll(response.Body)
+			_ = response.Body.Close()
+			response.Body = io.NopCloser(bytes.NewReader(raw))
+			if e != nil {
+				return nil, errors.New("live probe response capture incomplete")
+			}
+			var safe struct {
+				Status     json.RawMessage `json:"httpStatus"`
+				JobID      string          `json:"jobId"`
+				JobStatus  string          `json:"jobStatus"`
+				Pagination *struct {
+					Total  *int `json:"total"`
+					Offset *int `json:"offset"`
+				} `json:"pagination"`
+				Data json.RawMessage `json:"data"`
+			}
+			if json.Unmarshal(raw, &safe) == nil {
+				// Only numeric status fields are exported, never messages or raw bodies.
+				var numeric ktCloudStatus
+				if len(safe.Status) != 0 && json.Unmarshal(safe.Status, &numeric) == nil {
+					event.BodyStatus = safe.Status
+				}
+				event.Pagination = safe.Pagination
+				if strings.Contains(path, "/job/status/") {
+					switch strings.ToUpper(safe.JobStatus) {
+					case "SUCCESS", "FAILED", "FAILURE", "PROCESSING", "RUNNING", "PENDING":
+						event.JobID, event.JobStatus = safe.JobID, strings.ToUpper(safe.JobStatus)
+					}
+				}
+				if r.Method == http.MethodPost {
+					event.JobID = safe.JobID
+					var tier struct {
+						ID string `json:"networkId"`
+					}
+					if json.Unmarshal(safe.Data, &tier) == nil {
+						event.ReceiptTierID = tier.ID
+					}
+				}
+			}
+		}
+	}
+	p.state.Events = append(p.state.Events, event)
+	if p.save() != nil {
+		return nil, errors.New("post-response ledger persistence failed")
+	}
+	return response, err
+}
+
+func pr87TierViews(items []ktCloudTier) []pr87TierView {
+	result := make([]pr87TierView, len(items))
+	for i, item := range items {
+		result[i] = pr87TierView{item, item.sharedKnown}
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
+	return result
+}
+
+func pr87ReconcileCheck(result coreprovider.ReconcileResult, refs []coreprovider.ResourceRef, exists bool) bool {
+	if result.Error != nil || len(result.Observations) != len(refs) {
+		return false
+	}
+	for _, ref := range refs {
+		matches := 0
+		for _, observed := range result.Observations {
+			if observed.ResourceType == ref.ResourceType && observed.ProviderID == ref.ProviderID && observed.Generation == ref.Generation && observed.LogicalName == ref.LogicalName {
+				if observed.Exists != exists || observed.Source != coreprovider.SourceKnownResource || (!exists && observed.ObservedState != stateAbsent) {
+					return false
+				}
+				matches++
+			}
+		}
+		if matches != 1 {
+			return false
+		}
+	}
+	return true
+}
+
+func pr87CleanupCheck(result coreprovider.OperationResult, refs []coreprovider.ResourceRef) bool {
+	if result.Outcome != coreprovider.OutcomeSucceeded || result.Error != nil || len(result.ProviderResources) != len(refs) {
+		return false
+	}
+	for _, ref := range refs {
+		matches := 0
+		for _, observed := range result.ProviderResources {
+			if observed.ResourceRef == ref && observed.ObservedState == stateDeleted {
+				matches++
+			}
+		}
+		if matches != 1 {
+			return false
+		}
+	}
+	return true
+}
+
+// Returned references are observations, not cleanup authority. Confirm every
+// reference and mapping before granting any deletion (including fallback).
+func pr87ConfirmRefs(state *pr87Ledger, resources []coreprovider.ResourceResult, tiers []ktCloudTier, policies []ktCloudFirewallPolicy) ([]coreprovider.ResourceRef, error) {
+	invalid := errors.New("live probe returned ownership profile is unconfirmed")
+	if len(resources) == 0 || len(resources) > 2 {
+		return nil, invalid
+	}
+	baseline := map[string]bool{}
+	for _, item := range state.BaselineTiers {
+		baseline[item.ID] = true
+	}
+	for _, item := range state.BaselinePolicies {
+		baseline[item.ID] = true
+	}
+	ids, kinds := map[string]bool{}, map[string]bool{}
+	tierID := ""
+	for _, item := range resources {
+		if item.ProviderID == "" || strings.ContainsAny(item.ProviderID, "/?#") || baseline[item.ProviderID] || ids[item.ProviderID] || kinds[item.ResourceType] || item.Generation != state.Correlation.Generation {
+			return nil, invalid
+		}
+		ids[item.ProviderID] = true
+		kinds[item.ResourceType] = true
+		switch item.ResourceType {
+		case coreprovider.ResourceTypeTier:
+			if item.LogicalName != "workspace:management-tier" {
+				return nil, invalid
+			}
+			tierID = item.ProviderID
+		case coreprovider.ResourceTypeFirewall:
+			if item.LogicalName != "workspace:management-ssh" {
+				return nil, invalid
+			}
+		default:
+			return nil, invalid
+		}
+	}
+	if tierID == "" {
+		return nil, invalid
+	}
+	matches := 0
+	for _, tier := range tiers {
+		if tier.ID == tierID {
+			if tier.Name != state.TierName || tier.CIDR != state.TierCIDR || !tier.sharedKnown || tier.Shared || tier.ID == tier.RefID {
+				return nil, invalid
+			}
+			matches++
+		}
+	}
+	if matches != 1 {
+		return nil, invalid
+	}
+	config := ProvisionConfig{KTCloudConnectorTierID: state.ConnectorTierID, SSHAllowedCIDR: state.SourceCIDR}
+	for _, item := range resources {
+		if item.ResourceType != coreprovider.ResourceTypeFirewall {
+			continue
+		}
+		matches = 0
+		commentMatches := 0
+		for _, policy := range policies {
+			if policy.Comment == state.PolicyComment {
+				commentMatches++
+			}
+			if policy.ID == item.ProviderID {
+				if policy.Comment != state.PolicyComment || !ktSSHPolicyMatches(policy, config, tierID) {
+					return nil, invalid
+				}
+				matches++
+			}
+		}
+		if matches != 1 || commentMatches != 1 {
+			return nil, invalid
+		}
+	}
+	refs := make([]coreprovider.ResourceRef, 0, len(resources))
+	for _, item := range resources {
+		refs = append(refs, item.ResourceRef)
+	}
+	return refs, nil
+}
+
+type pr87RoundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f pr87RoundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestPR87LiveOwnershipGuard(t *testing.T) {
+	for _, scenario := range []string{"Private ID", "existing other Tier", "existing policy", "wrong type", "wrong generation", "wrong logical", "duplicate ID", "duplicate kind", "wrong name", "wrong CIDR", "shared true", "shared missing", "wrong policy source", "wrong policy target", "wrong policy comment", "policy absent", "Tier absent", "missing Tier", "empty ID", "valid partial", "valid complete"} {
+		t.Run(scenario, func(t *testing.T) {
+			state := pr87Ledger{Correlation: coreprovider.Correlation{Generation: 1}, TierName: "new-name", TierCIDR: "172.25.242.0/24", SourceCIDR: "172.25.0.10/32", ConnectorTierID: "dmz", PolicyComment: "new-comment", BaselineTiers: []pr87TierView{{ktCloudTier: ktCloudTier{ID: "private"}}, {ktCloudTier: ktCloudTier{ID: "other"}}}, BaselinePolicies: []ktCloudFirewallPolicy{{ID: "existing-policy"}}}
+			tier := ktCloudTier{ID: "new-tier", RefID: "physical-ref", Name: state.TierName, CIDR: state.TierCIDR, sharedKnown: true, Status: "ACTIVE"}
+			policy := ktCloudFirewallPolicy{ID: "new-policy", Comment: state.PolicyComment, Action: "accept", Status: "enable", NAT: "disable", Source: []ktCloudInterface{{ID: "dmz"}}, Destination: []ktCloudInterface{{ID: "new-tier"}}, SourceIPs: []ktCloudAddress{{Name: state.SourceCIDR}}, DestinationIPs: []ktCloudAddress{{Name: "all"}}, Services: []ktCloudService{{Protocol: "TCP", Start: "22", End: "22"}}}
+			resources := []coreprovider.ResourceResult{ktResource(resourceIdentity(1, "workspace:management-tier"), coreprovider.ResourceTypeTier, "new-tier", "ACTIVE"), ktResource(resourceIdentity(1, "workspace:management-ssh"), coreprovider.ResourceTypeFirewall, "new-policy", "PRESENT")}
+			switch scenario {
+			case "Private ID":
+				resources[0].ProviderID = "private"
+				tier.ID = "private"
+				policy.Destination[0].ID = "private"
+			case "existing other Tier":
+				resources[0].ProviderID = "other"
+				tier.ID = "other"
+				policy.Destination[0].ID = "other"
+			case "existing policy":
+				resources[1].ProviderID = "existing-policy"
+				policy.ID = "existing-policy"
+			case "wrong type":
+				resources[0].ResourceType = coreprovider.ResourceTypeServer
+			case "wrong generation":
+				resources[0].Generation = 2
+			case "wrong logical":
+				resources[0].LogicalName = "lab-tier"
+			case "duplicate ID":
+				resources[1].ProviderID = resources[0].ProviderID
+			case "duplicate kind":
+				resources[1].ResourceType = coreprovider.ResourceTypeTier
+			case "wrong name":
+				tier.Name = "foreign-name"
+			case "wrong CIDR":
+				tier.CIDR = "172.25.243.0/24"
+			case "shared true":
+				tier.Shared = true
+			case "shared missing":
+				tier.sharedKnown = false
+			case "wrong policy source":
+				policy.Source[0].ID = "foreign"
+			case "wrong policy target":
+				policy.Destination[0].ID = "foreign"
+			case "wrong policy comment":
+				policy.Comment = "foreign"
+			case "missing Tier":
+				resources = resources[1:]
+			case "empty ID":
+				resources[0].ProviderID = ""
+			case "valid partial":
+				resources = resources[:1]
+			}
+			tiers, policies := []ktCloudTier{tier}, []ktCloudFirewallPolicy{policy}
+			if scenario == "Tier absent" {
+				tiers = nil
+			}
+			if scenario == "policy absent" {
+				policies = nil
+			}
+			refs, err := pr87ConfirmRefs(&state, resources, tiers, policies)
+			valid := strings.HasPrefix(scenario, "valid ")
+			if valid {
+				if err != nil || len(refs) != len(resources) {
+					t.Fatal("valid partial/complete ownership lost")
+				}
+				return
+			}
+			if err == nil || len(refs) != 0 {
+				t.Fatal("unconfirmed refs gained cleanup authority")
+			}
+			calls := 0
+			transport := pr87Transport{inner: pr87RoundTripFunc(func(*http.Request) (*http.Response, error) {
+				calls++
+				return &http.Response{StatusCode: 204, Body: io.NopCloser(strings.NewReader(""))}, nil
+			}), state: &state, save: func() error { return nil }, postCounts: map[string]int{}, deleteCounts: map[string]int{}}
+			for _, item := range resources {
+				path := "network/" + item.ProviderID
+				if item.ResourceType == coreprovider.ResourceTypeFirewall {
+					path = "firewall/policy/" + item.ProviderID
+				}
+				r, _ := http.NewRequest(http.MethodDelete, "https://example.invalid/nsm/v1/"+path, nil)
+				if _, e := transport.RoundTrip(r); e == nil {
+					t.Fatal("transport accepted unconfirmed deletion")
+				}
+			}
+			if calls != 0 {
+				t.Fatal("unconfirmed deletion reached underlying HTTP transport")
+			}
+		})
+	}
+}
+
+func TestPR87KTCloudProductionNetworkLifecycle(t *testing.T) {
+	if os.Getenv("LABBIT_PR87_KTCLOUD_LIVE") != "1" {
+		t.Skip("explicit live mutation gate required")
+	}
+	ledgerPath := os.Getenv("LABBIT_PR87_LIVE_LEDGER")
+	prefix, pe := netip.ParsePrefix(os.Getenv("LABBIT_PR87_LIVE_CIDR"))
+	source, se := netip.ParsePrefix(os.Getenv("LABBIT_PR87_LIVE_SOURCE_CIDR"))
+	if !filepath.IsAbs(ledgerPath) || pe != nil || prefix.Bits() != 24 || !prefix.Addr().Is4() || prefix != prefix.Masked() || se != nil || !source.Addr().Is4() || source.Bits() != 32 {
+		t.Fatal("explicit fresh ledger, unused IPv4 /24 and source /32 required")
+	}
+	journal, err := openKTFixtureLedger(ledgerPath)
+	if err != nil {
+		t.Fatal("exclusive ledger claim failed before cloud access")
+	}
+	t.Cleanup(func() { _ = journal.Close() })
+	state := pr87Ledger{SourceHead: os.Getenv("LABBIT_PR87_SOURCE_HEAD"), Started: time.Now().UTC().Format(time.RFC3339Nano), TierCIDR: prefix.String(), SourceCIDR: source.String(), State: "PREFLIGHT", NoVMMutations: true}
+	save := func() error {
+		raw, e := json.MarshalIndent(state, "", "  ")
+		if e != nil {
+			return e
+		}
+		return journal.Save(append(raw, '\n'))
+	}
+	record := func(stage string) {
+		state.State = stage
+		if save() != nil {
+			t.Fatal("safe ledger save failed")
+		}
+		t.Log(stage)
+	}
+	if save() != nil {
+		t.Fatal("initial ledger save failed")
+	}
+	cfg := ConfigFromEnvironment()
+	auth, _, _, e := loadConfig(cfg)
+	if e != nil || !isKTCloudD1Identity(auth.IdentityEndpoint) {
+		t.Fatal("verified-TLS KT D1 configuration required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
+	defer cancel()
+	a, e := New(ctx, cfg)
+	if e != nil {
+		t.Fatal("KT D1 adapter authentication failed; raw error omitted")
+	}
+	inner := a.provider.HTTPClient.Transport
+	if inner == nil {
+		inner = http.DefaultTransport
+	}
+	transport := &pr87Transport{inner: inner, state: &state, save: save, postCounts: map[string]int{}, deleteCounts: map[string]int{}}
+	a.provider.HTTPClient.Transport = transport
+	if a.ValidateConnection(ctx) != nil {
+		t.Fatal("KT D1 connection validation failed")
+	}
+	state.BaselineServers, e = a.ListServers(ctx)
+	if e != nil {
+		t.Fatal("baseline server query failed")
+	}
+	flavors, e := a.ListFlavors(ctx)
+	if e != nil || len(flavors) == 0 {
+		t.Fatal("flavor query failed")
+	}
+	state.FlavorCount = len(flavors)
+	images, e := a.ListImages(ctx)
+	if e != nil || len(images) == 0 {
+		t.Fatal("image query failed")
+	}
+	state.ImageCount = len(images)
+	tiers, e := a.ktNetwork.tiers(ctx)
+	if e != nil {
+		t.Fatal("full baseline Tier query failed")
+	}
+	state.BaselineTiers = pr87TierViews(tiers)
+	state.BaselinePolicies, e = a.ktNetwork.policies(ctx)
+	if e != nil {
+		t.Fatal("full baseline policy query failed")
+	}
+	sort.Slice(state.BaselinePolicies, func(i, j int) bool { return state.BaselinePolicies[i].ID < state.BaselinePolicies[j].ID })
+	var private ktCloudTier
+	for _, tier := range tiers {
+		if tier.ID == "" {
+			t.Fatal("baseline Tier ID missing")
+		}
+		if tier.CIDR != "" {
+			known, e := netip.ParsePrefix(tier.CIDR)
+			if e != nil || known.Overlaps(prefix) {
+				t.Fatal("baseline CIDR invalid or probe overlaps existing Tier")
+			}
+			if tier.Name == "DMZ" && known.Contains(source.Addr()) && tier.RefID != "" && normalizeStatus(tier.Status) == "ACTIVE" {
+				state.ConnectorTierID = tier.ID
+			}
+		}
+		if tier.Name == "Private" && tier.RefID != "" && normalizeStatus(tier.Status) == "ACTIVE" {
+			private = tier
+			state.PrivateTierID = tier.ID
+		}
+	}
+	if state.ConnectorTierID == "" || private.ID == "" {
+		t.Fatal("read-only basic DMZ and Private references required")
+	}
+	random := make([]byte, 12)
+	if _, e := rand.Read(random); e != nil {
+		t.Fatal("random operation identity failed")
+	}
+	randomID := hex.EncodeToString(random)
+	state.Correlation = coreprovider.Correlation{OperationID: "pr87-live-" + randomID, LabInstanceID: "lbt158-pr87-live-" + randomID, Generation: 1}
+	state.TierName = ktCloudManagementTierName(state.Correlation.LabInstanceID, 1, "workspace")
+	state.PolicyComment = provisionBaseName(state.Correlation.LabInstanceID, 1) + ":workspace:management-ssh"
+	if len(state.TierName) > 50 {
+		t.Fatal("production Tier name exceeds deletion boundary")
+	}
+	for _, tier := range tiers {
+		if tier.Name == state.TierName {
+			t.Fatal("probe name exists at baseline")
+		}
+	}
+	for _, p := range state.BaselinePolicies {
+		if p.Comment == state.PolicyComment {
+			t.Fatal("probe policy comment exists at baseline")
+		}
+	}
+	config := a.provision
+	config.KTCloudManagementCIDR = prefix.String()
+	config.KTCloudConnectorTierID = state.ConnectorTierID
+	config.SSHAllowedCIDR = source.String()
+	a.provision = config
+	record("PREFLIGHT_PASSED_NO_MUTATION")
+	finalInventory := func(checkCtx context.Context) bool {
+		final, e := a.ktNetwork.tiers(checkCtx)
+		if e != nil {
+			return false
+		}
+		state.FinalTiers = pr87TierViews(final)
+		state.FinalPolicies, e = a.ktNetwork.policies(checkCtx)
+		if e != nil {
+			return false
+		}
+		sort.Slice(state.FinalPolicies, func(i, j int) bool { return state.FinalPolicies[i].ID < state.FinalPolicies[j].ID })
+		state.FinalServers, e = a.ListServers(checkCtx)
+		if e != nil {
+			return false
+		}
+		state.FullBaselineRestored = reflect.DeepEqual(state.BaselineTiers, state.FinalTiers) && reflect.DeepEqual(state.BaselinePolicies, state.FinalPolicies) && reflect.DeepEqual(state.BaselineServers, state.FinalServers)
+		return state.FullBaselineRestored
+	}
+	refs := []coreprovider.ResourceRef{}
+	t.Cleanup(func() {
+		if state.ExactAbsenceConfirmed {
+			return
+		}
+		cleanupCtx, stop := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer stop()
+		if state.CleanupStarted {
+			_ = finalInventory(cleanupCtx)
+			record("CLEANUP_UNCERTAIN_NO_BLIND_RETRY")
+			t.Error("cleanup absence not confirmed")
+			return
+		}
+		tierID, policyID := "", ""
+		for _, ref := range refs {
+			if ref.ResourceType == coreprovider.ResourceTypeTier {
+				tierID = ref.ProviderID
+			}
+			if ref.ResourceType == coreprovider.ResourceTypeFirewall {
+				policyID = ref.ProviderID
+			}
+		}
+		if requireKTFixtureCleanupOwnership(tierID, policyID, state.PolicyAttempted) != nil {
+			_ = finalInventory(cleanupCtx)
+			record("OWNERSHIP_UNCONFIRMED_MANUAL_REVIEW_REQUIRED")
+			t.Error("automatic cleanup withheld for unconfirmed ownership")
+			return
+		}
+		state.CleanupStarted = true
+		record("FALLBACK_CLEANUP_CONFIRMED_IDS")
+		result, e := a.Cleanup(cleanupCtx, coreprovider.CleanupRequest{Correlation: state.Correlation, ProviderResources: refs})
+		state.Cleanup = pr87SnapshotCleanup(result)
+		observed, oe := a.Reconcile(cleanupCtx, coreprovider.ReconcileRequest{Correlation: state.Correlation, KnownResources: refs, DiscoverCandidates: false})
+		state.AfterCleanup = pr87SnapshotReconcile(observed)
+		state.ExactAbsenceConfirmed = e == nil && oe == nil && pr87CleanupCheck(result, refs) && pr87ReconcileCheck(observed, refs, false)
+		_ = finalInventory(cleanupCtx)
+		state.Finished = time.Now().UTC().Format(time.RFC3339Nano)
+		record("FALLBACK_CLEANUP_RECORDED")
+		if !state.ExactAbsenceConfirmed || !state.FullBaselineRestored {
+			t.Error("fallback cleanup or baseline restoration not confirmed")
+		}
+	})
+	record("PRODUCTION_PREPARE_NICS")
+	// Private's physical refId is only an unused second-NIC return value here.
+	// It is never made an owned resource, attached to a VM, updated or deleted.
+	nics, resources, e := a.prepareKTCloudNICs(ctx, coreprovider.ProvisionRequest{Correlation: state.Correlation}, coreprovider.VMSpec{VMKey: "workspace"}, config, provisionTopology{tier: private}, nil)
+	state.ReturnedResources = resources
+	record("PRODUCTION_PREPARE_NICS_RETURNED")
+	confirmationCtx, confirmationCancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer confirmationCancel()
+	currentTiers, te := a.ktNetwork.tiers(confirmationCtx)
+	currentPolicies, fe := a.ktNetwork.policies(confirmationCtx)
+	if te != nil || fe != nil {
+		t.Fatal("post-create inventory failed; no automatic cleanup authority")
+	}
+	verified, ve := pr87ConfirmRefs(&state, resources, currentTiers, currentPolicies)
+	if ve != nil {
+		t.Fatal("returned ownership profile unconfirmed; no automatic cleanup authority")
+	}
+	if e == nil && (len(verified) != 2 || nics.managementTier.ID == "" || nics.managementTier.ID == nics.managementTier.RefID || !nics.managementTier.sharedKnown || nics.managementTier.Shared || nics.managementTier.Name != state.TierName || nics.managementTier.CIDR != prefix.String() || len(nics.networkIDs) != 2 || nics.networkIDs[0] != nics.managementTier.RefID || nics.networkIDs[1] != private.RefID) {
+		t.Fatal("production Tier mapping/typed ownership mismatch")
+	}
+	if e == nil {
+		for _, ref := range verified {
+			if ref.ResourceType == coreprovider.ResourceTypeTier && ref.ProviderID != nics.managementTier.ID {
+				t.Fatal("owned Tier and returned NIC Tier differ; no cleanup authority")
+			}
+		}
+	}
+	// Both fallback and transport gain authority only after ALL validation.
+	refs = verified
+	state.Resources = cloneResourceResults(resources)
+	record("EXACT_PROFILE_AND_MAPPING_CONFIRMED")
+	if e != nil {
+		t.Fatal("production Tier/policy creation failed; verified partial refs retained")
+	}
+	view := pr87TierView{nics.managementTier, nics.managementTier.sharedKnown}
+	state.CreatedTier = &view
+	for _, ref := range refs {
+		if ref.ResourceType == coreprovider.ResourceTypeFirewall {
+			for _, p := range currentPolicies {
+				if p.ID == ref.ProviderID && p.Comment == state.PolicyComment && ktSSHPolicyMatches(p, config, nics.managementTier.ID) {
+					copy := p
+					state.CreatedPolicy = &copy
+				}
+			}
+		}
+	}
+	if state.CreatedPolicy == nil {
+		t.Fatal("exact owned policy mapping missing")
+	}
+	observed, e := a.Reconcile(ctx, coreprovider.ReconcileRequest{Correlation: state.Correlation, KnownResources: refs, DiscoverCandidates: false})
+	state.BeforeCleanup = pr87SnapshotReconcile(observed)
+	if e != nil || !pr87ReconcileCheck(observed, refs, true) {
+		t.Fatal("known typed resource existence not confirmed")
+	}
+	record("CREATE_AND_PUBLIC_RECONCILE_PASSED")
+	state.CleanupStarted = true
+	record("PUBLIC_CLEANUP_CONFIRMED_IDS")
+	result, e := a.Cleanup(ctx, coreprovider.CleanupRequest{Correlation: state.Correlation, ProviderResources: refs})
+	state.Cleanup = pr87SnapshotCleanup(result)
+	if e != nil || !pr87CleanupCheck(result, refs) {
+		t.Fatal("public cleanup failed or uncertain")
+	}
+	observed, e = a.Reconcile(ctx, coreprovider.ReconcileRequest{Correlation: state.Correlation, KnownResources: refs, DiscoverCandidates: false})
+	state.AfterCleanup = pr87SnapshotReconcile(observed)
+	if e != nil || !pr87ReconcileCheck(observed, refs, false) {
+		t.Fatal("known ID absence not confirmed")
+	}
+	state.ExactAbsenceConfirmed = true
+	if !finalInventory(ctx) {
+		t.Fatal("full baseline not restored after owned cleanup")
+	}
+	record("EXACT_ABSENCE_AND_FULL_BASELINE_CONFIRMED")
+	// Intentional idempotency check AFTER actual absence; never an uncertain retry.
+	record("ALREADY_ABSENT_PUBLIC_CLEANUP")
+	result, e = a.Cleanup(ctx, coreprovider.CleanupRequest{Correlation: state.Correlation, ProviderResources: refs})
+	state.AbsentCleanup = pr87SnapshotCleanup(result)
+	if e != nil || !pr87CleanupCheck(result, refs) {
+		t.Fatal("already-absent cleanup failed")
+	}
+	observed, e = a.Reconcile(ctx, coreprovider.ReconcileRequest{Correlation: state.Correlation, KnownResources: refs, DiscoverCandidates: false})
+	state.AfterAbsentCleanup = pr87SnapshotReconcile(observed)
+	if e != nil || !pr87ReconcileCheck(observed, refs, false) || !finalInventory(ctx) {
+		t.Fatal("final exact absence or baseline failed")
+	}
+	if len(transport.postCounts) != 2 || len(transport.deleteCounts) != 2 {
+		t.Fatal("unexpected mutation scope")
+	}
+	for _, count := range transport.postCounts {
+		if count != 1 {
+			t.Fatal("create repeated")
+		}
+	}
+	for _, count := range transport.deleteCounts {
+		if count != 2 {
+			t.Fatal("cleanup request count mismatch")
+		}
+	}
+	state.Finished = time.Now().UTC().Format(time.RFC3339Nano)
+	record("PASS_OWNED_RESIDUAL_ZERO_FULL_BASELINE_RESTORED")
+	t.Logf("modified production network create/list/delete PASS; Tier name length=%d; owned resources=2, residual=0; no VM created", len(state.TierName))
+}
+
+// Preserve each phase as an independent snapshot even when the caller reuses
+// its result variable, slice storage or SafeError pointer in later phases.
+func pr87SnapshotReconcile(result coreprovider.ReconcileResult) *coreprovider.ReconcileResult {
+	value := result
+	value.Observations = append([]coreprovider.ResourceObservation(nil), result.Observations...)
+	if result.Error != nil {
+		errCopy := *result.Error
+		value.Error = &errCopy
+	}
+	return &value
+}
+func pr87SnapshotCleanup(result coreprovider.OperationResult) *coreprovider.OperationResult {
+	value := result
+	value.ProviderResources = append([]coreprovider.ResourceResult(nil), result.ProviderResources...)
+	if result.Error != nil {
+		errCopy := *result.Error
+		value.Error = &errCopy
+	}
+	return &value
+}
+func TestPR87EvidenceSnapshots(t *testing.T) {
+	t.Run("present before absent", func(t *testing.T) {
+		result := coreprovider.ReconcileResult{Observations: []coreprovider.ResourceObservation{{ResourceType: coreprovider.ResourceTypeTier, ProviderID: "owned", Generation: 1, LogicalName: "workspace:management-tier", Exists: true, ObservedState: "ACTIVE", Source: coreprovider.SourceKnownResource}}}
+		initial := pr87SnapshotReconcile(result)
+		result.Observations[0].Exists = false
+		result.Observations[0].ObservedState = stateAbsent
+		result = coreprovider.ReconcileResult{Observations: result.Observations}
+		final := pr87SnapshotReconcile(result)
+		if !initial.Observations[0].Exists || initial.Observations[0].ObservedState != "ACTIVE" || final.Observations[0].Exists || initial == final {
+			t.Fatal("phase snapshot changed after reassignment or shared slice mutation")
+		}
+	})
+	t.Run("cleanup before unknown", func(t *testing.T) {
+		result := coreprovider.OperationResult{Outcome: coreprovider.OutcomeSucceeded, ProviderResources: []coreprovider.ResourceResult{ktResource(resourceIdentity(1, "workspace:management-tier"), coreprovider.ResourceTypeTier, "owned", stateDeleted)}}
+		initial := pr87SnapshotCleanup(result)
+		result.ProviderResources[0].ObservedState = stateDeleteUnknown
+		result = coreprovider.OperationResult{Outcome: coreprovider.OutcomeUnknown, ProviderResources: result.ProviderResources}
+		if initial.Outcome != coreprovider.OutcomeSucceeded || initial.ProviderResources[0].ObservedState != stateDeleted {
+			t.Fatal("first cleanup receipt changed after later UNKNOWN result")
+		}
+	})
+	t.Run("independent safe error", func(t *testing.T) {
+		errValue := &coreprovider.SafeError{Code: "OLD", Message: "safe original"}
+		first := pr87SnapshotCleanup(coreprovider.OperationResult{Error: errValue})
+		second := pr87SnapshotReconcile(coreprovider.ReconcileResult{Error: errValue})
+		errValue.Code = "NEW"
+		errValue.Message = "safe changed"
+		if first.Error.Code != "OLD" || second.Error.Message != "safe original" {
+			t.Fatal("saved SafeError aliased mutable caller error")
+		}
+	})
+}

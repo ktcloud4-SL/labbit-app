@@ -1,0 +1,10 @@
+{
+  "sourceHead": "42a865041b3855dad185adf2034fbf39a36746c3",
+  "verifiedAtUTC": "2026-10-13T02:34:37.040248+00:00",
+  "openapi": true,
+  "jsonSchemas": 8,
+  "localRefs": true,
+  "runtimeMigrationMetadata": true,
+  "resetSchemaExitCode": 0,
+  "formatExitCode": 0
+}

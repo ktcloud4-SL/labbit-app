@@ -25,6 +25,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/bootstrap"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/labspec"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 )
 
@@ -99,6 +100,7 @@ func newStackWith(t *testing.T, build func(hash repository.PasswordHash) []boots
 	s.handler, err = httpapi.New(httpapi.Options{
 		Auth:         auth.NewService(store, auth.Argon2id{}, s.clock.Now),
 		Classes:      class.NewService(store),
+		LabSpecs:     labspec.NewService(store),
 		PublicOrigin: trustedOrigin,
 		Logger:       slog.New(slog.NewJSONHandler(s.logs, nil)),
 	})

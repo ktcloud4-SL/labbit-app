@@ -30,10 +30,14 @@ type fakeClasses struct {
 	listErr error
 	// detail이 nil이면 어떤 ID도 존재하지 않는다.
 	detail func(user repository.User, classID string) (class.View, error)
+	// members가 nil이면 어떤 ID도 존재하지 않는다.
+	members func(user repository.User, classID string) ([]class.Member, error)
 
 	listCalls int
 	listUsers []repository.User
 	getCalls  []classGetCall
+	// memberCalls는 Members 호출이다.
+	memberCalls []classGetCall
 }
 
 func (f *fakeClasses) List(_ context.Context, user repository.User) ([]class.View, error) {
@@ -48,6 +52,14 @@ func (f *fakeClasses) Get(_ context.Context, user repository.User, classID strin
 		return class.View{}, class.ErrNotFound
 	}
 	return f.detail(user, classID)
+}
+
+func (f *fakeClasses) Members(_ context.Context, user repository.User, classID string) ([]class.Member, error) {
+	f.memberCalls = append(f.memberCalls, classGetCall{user: user, classID: classID})
+	if f.members == nil {
+		return nil, class.ErrNotFound
+	}
+	return f.members(user, classID)
 }
 
 // signIn은 유효한 Session을 만들고 그 Cookie를 붙이는 modifier를 반환한다.
@@ -324,14 +336,15 @@ func TestClassResponsesAreNotCacheable(t *testing.T) {
 	}
 }
 
-// 이번 Work Unit은 Membership 목록을 구현하지 않는다. 계약에는 있지만 아직 제공하지 않는 endpoint를 흉내 내지 않는다.
-func TestClassMembershipsEndpointIsNotServedYet(t *testing.T) {
+// memberships 경로는 Class 상세 handler가 아니라 참여자 목록 handler가 처리한다.
+func TestClassMembershipsRouteIsNotClassDetail(t *testing.T) {
 	h := newHarness(t)
+	h.classes.members = func(repository.User, string) ([]class.Member, error) { return nil, nil }
 
 	rec := h.send(http.MethodGet, "/api/v1/classes/"+uuid.NewString()+"/memberships", "", h.signIn())
 
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("status = %d, want 404", rec.Code)
+	if rec.Code != http.StatusOK || len(h.classes.memberCalls) != 1 {
+		t.Fatalf("status = %d, Members 호출 = %d, want 200 and 1", rec.Code, len(h.classes.memberCalls))
 	}
 	if len(h.classes.getCalls) != 0 {
 		t.Fatal("memberships 경로가 Class 상세 handler로 처리되었습니다")

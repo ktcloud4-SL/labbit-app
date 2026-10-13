@@ -1,0 +1,32 @@
+{
+  "baselineHead": "42a865041b3855dad185adf2034fbf39a36746c3",
+  "testedSource": "7a692097587d55896bd8b233bbd636d321436f2d",
+  "baselineTrackedAndNonIgnoredUntrackedFiles": 1215,
+  "unchangedFiles": 1212,
+  "modified": [
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_root_ownership_test.go",
+      "beforeSHA256": "3f8175335e29fc9f51248377159c01c47603fbb5e4f89450ab30e7d083f836e9",
+      "afterSHA256": "ea8d2503d62f228486128b96197dbca41c64d7df374e085f395a6a2936ee1633"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_topology.go",
+      "beforeSHA256": "89eacda68349d6cb66901f3016354365919f03d48d5334e181dd5f39f97e1c0e",
+      "afterSHA256": "6fd83080916b1d291e5424d8038849702bca7ee033d2d84540f99e4a6475a574"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target.go",
+      "beforeSHA256": "ee4e64ea34046a01d087e73da745c4dbd414cff0a59e88dab6eb018ba5ecaf8b",
+      "afterSHA256": "e0df014dc68c8fbd3fd1771a60773f0036dfb8f11a698315deddc3db8e703c1f"
+    }
+  ],
+  "missing": [],
+  "newSourcePaths": [
+    "internal/connector/provider/openstack/ktcloud_d1_management_shared_test.go"
+  ],
+  "historicalEvidencePreserved": true,
+  "oldUntrackedWorkPreserved": true,
+  "rawBeforeManifestLocal": ".local/pr87-shared-20261013/before-files.json",
+  "historical433NotCurrentFileCount": true,
+  "unchangedSetSHA256": "0c80ae009277f72a2483b423745dc4c765bfbe34b6fd87b7583e4adb01fc0a99"
+}

@@ -1,0 +1,2 @@
+Observed API mutation: method=POST route=identity/auth/tokens status=201
+Collection: safe lifecycle ledger and Connector log saved locally; credentials excluded

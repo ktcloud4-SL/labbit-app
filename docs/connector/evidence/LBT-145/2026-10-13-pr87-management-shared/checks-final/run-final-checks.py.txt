@@ -1,0 +1,25 @@
+from pathlib import Path
+import os, subprocess, json, concurrent.futures, datetime
+
+root=Path.cwd(); out=root/'.local/pr87-shared-20261013/checks-final';out.mkdir(exist_ok=False)
+go=r'C:\Users\user\AppData\Local\Programs\Go-1.27.1\go\bin\go.exe'
+node=r'C:\Users\user\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe'
+pnpm=r'C:\Users\user\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\node_modules\pnpm\bin\pnpm.mjs'
+env={k:v for k,v in os.environ.items() if not k.startswith(('LABBIT_', 'LBT145_', 'LBT158_')) and k not in ('GOOS','GOARCH','CGO_ENABLED')}
+jobs=[('go-vet',[go,'vet','./...'],root),('go-test',[go,'test','-json','-count=1','-p','1','./...'],root),('go-build',[go,'build','./...'],root),('go-race',[go,'test','-race','-json','-count=1','./internal/connector/provider/openstack','./tools/ktcloud-d1-acceptance'],root)]
+def run(job):
+ name,args,cwd=job; started=datetime.datetime.now(datetime.timezone.utc).isoformat()
+ with (out/(name+'.log')).open('wb') as f:
+  result=subprocess.run(args,cwd=cwd,env=env,stdout=f,stderr=subprocess.STDOUT)
+ info={'name':name,'exitCode':result.returncode,'startedAtUTC':started,'command':args}
+ if name in ('go-test','go-race'):
+  events=[]
+  for line in (out/(name+'.log')).read_text(encoding='utf-8',errors='replace').splitlines():
+   try: events.append(json.loads(line))
+   except ValueError:pass
+  info.update(passEvents=sum(e.get('Action')=='pass' for e in events),topLevelTests=sum(e.get('Action')=='pass' and 'Test' in e and '/' not in e['Test'] for e in events),skip=[e.get('Test',e.get('Package')) for e in events if e.get('Action')=='skip'],fail=[e.get('Test',e.get('Package')) for e in events if e.get('Action')=='fail'])
+ (out/(name+'-result.json')).write_text(json.dumps(info,indent=2),encoding='utf-8');print(json.dumps(info),flush=True);return info
+results=[run(job) for job in jobs]
+# Web artifacts from the first pass remain valid: no web/source/build inputs changed in the fixture-only follow-up.
+(out/'summary.json').write_text(json.dumps({'sourceHead':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'results':results},indent=2),encoding='utf-8')
+raise SystemExit(1 if any(r['exitCode'] for r in results) else 0)

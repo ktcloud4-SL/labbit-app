@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/gophercloud/gophercloud/v2"
-	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
@@ -58,10 +57,10 @@ func (a *Adapter) resolveServerAddress(ctx context.Context, targetVmKey, serverI
 		return "", err
 	}
 	targetVmKey, serverID = strings.TrimSpace(targetVmKey), strings.TrimSpace(serverID)
-	if !adapterAvailable(a) || targetVmKey == "" || serverID == "" || a.provision.ManagementNetworkID == "" || a.provision.ProjectID == "" {
+	if !adapterAvailable(a) || targetVmKey == "" || serverID == "" || (a.ktNetwork == nil && a.provision.ManagementNetworkID == "") || a.provision.ProjectID == "" {
 		return "", ErrInvalidResourceSpec
 	}
-	server, err := servers.Get(ctx, a.compute, serverID).Extract()
+	server, err := a.lookupServer(ctx, serverID)
 	if err != nil {
 		if gophercloud.ResponseCodeIs(err, 404) && expected != nil {
 			return "", vmaccess.ErrInvalidTarget
@@ -80,6 +79,22 @@ func (a *Adapter) resolveServerAddress(ctx context.Context, targetVmKey, serverI
 	}
 	if normalizeStatus(server.Status) != "ACTIVE" {
 		return "", ErrSSHNotReady
+	}
+	if a.ktNetwork != nil {
+		items, err := a.ktNetwork.tiers(ctx)
+		if err != nil {
+			return "", ErrManagementIP
+		}
+		matches := []ktCloudTier{}
+		for _, tier := range items {
+			if ktCloudManagementTierNameMatches(tier.Name, labID, generation, targetVmKey) && tier.CIDR == a.provision.KTCloudManagementCIDR && tier.sharedKnown && !tier.Shared && normalizeStatus(tier.Status) == "ACTIVE" {
+				matches = append(matches, tier)
+			}
+		}
+		if len(matches) != 1 {
+			return "", ErrManagementIP
+		}
+		return ktServerManagementAddress(*server, matches[0])
 	}
 	pages, err := ports.List(a.network, ports.ListOpts{DeviceID: serverID, NetworkID: a.provision.ManagementNetworkID}).AllPages(ctx)
 	if err != nil {

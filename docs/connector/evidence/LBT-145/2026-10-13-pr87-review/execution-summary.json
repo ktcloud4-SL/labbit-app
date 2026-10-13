@@ -1,0 +1,69 @@
+{
+  "testedSource": "943d0bdd5e60221638886b03aa37038976cb8a5f",
+  "sourceEqualsReviewedHead": true,
+  "actualKTNotRun": true,
+  "initialWholeGoFailed": true,
+  "initialFailure": "tracing TestShutdownIsBoundedByTheGivenBudgetWhenCollectorHangs; elapsed299.9859ms versus300ms lower bound; unchanged from main",
+  "isolated20ThenSequentialWholePassed": true,
+  "stats": {
+    "provider-test-final.jsonl": {
+      "testPass": 337,
+      "packagePass": 1,
+      "topLevelPass": 118,
+      "failedTests": [],
+      "skippedTests": [
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration"
+      ]
+    },
+    "go-race.log": {
+      "testPass": 397,
+      "packagePass": 2,
+      "topLevelPass": 126,
+      "failedTests": [],
+      "skippedTests": [
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration"
+      ]
+    },
+    "go-test-sequential.log": {
+      "testPass": 3017,
+      "packagePass": 31,
+      "topLevelPass": 993,
+      "failedTests": [],
+      "skippedTests": [
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration",
+        "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+      ]
+    },
+    "tracing-isolated-20.log": {
+      "testPass": 20,
+      "packagePass": 1,
+      "topLevelPass": 20,
+      "failedTests": [],
+      "skippedTests": []
+    }
+  }
+}

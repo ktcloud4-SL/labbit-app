@@ -1,0 +1,20 @@
+# Git 관련 민감 정보 차단
+.git
+.gitignore
+
+# 백엔드 빌드 불필요 폴더 제외
+.github
+docs
+web
+tools
+
+# 로컬 개발 임시 파일
+bin
+*.md
+.editorconfig
+
+# 로컬 Secret/인증 파일은 Docker build context에서 제외
+.env*
+.local/
+*.pem
+*.key

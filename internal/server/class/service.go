@@ -30,6 +30,7 @@ var (
 // Store는 Service가 사용하는 persistence 경계다. postgres.Store가 구현한다.
 type Store interface {
 	repository.ClassRepository
+	repository.ClassMemberRepository
 }
 
 // Service는 Class 조회 use case다.
@@ -101,6 +102,36 @@ func (s *Service) Get(ctx context.Context, user repository.User, classID string)
 		return View{}, ErrInconsistentData
 	}
 	return View{ID: class.ID, Name: class.Name, MyRole: membership.Role}, nil
+}
+
+// Member는 Class 참여자와 그 Class에서의 역할이다.
+type Member struct {
+	UserID   uuid.UUID
+	Username string
+	Role     repository.ClassRole
+}
+
+// Members는 user가 접근할 수 있는 Class의 모든 참여자를 INSTRUCTOR, STUDENT 순서로 반환한다.
+//
+// 접근 판정은 Get과 같다. Class가 없으면 ErrNotFound, 다른 Organization의 Class이거나 user의 Membership이 없으면 ErrForbidden이며
+// organizationRole=ADMIN은 Membership을 대신하지 않는다. INSTRUCTOR와 STUDENT 모두 같은 목록을 본다. Membership을 바꾸는 기능은 없다.
+func (s *Service) Members(ctx context.Context, user repository.User, classID string) ([]Member, error) {
+	view, err := s.Get(ctx, user, classID)
+	if err != nil {
+		return nil, err
+	}
+	items, err := s.store.ClassMembers(ctx, view.ID)
+	if err != nil {
+		return nil, fmt.Errorf("class: 참여자 조회: %w", err)
+	}
+	members := make([]Member, 0, len(items))
+	for _, item := range items {
+		if item.OrganizationID != user.OrganizationID || !item.Role.Valid() {
+			return nil, ErrInconsistentData
+		}
+		members = append(members, Member{UserID: item.UserID, Username: item.Username, Role: item.Role})
+	}
+	return members, nil
 }
 
 // parseID는 이 서버가 발급하는 canonical UUID 문자열만 받아들인다. uuid.Parse는 braces, urn: prefix,

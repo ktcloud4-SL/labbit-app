@@ -1,0 +1,69 @@
+from pathlib import Path
+import os, json, subprocess, sys, hashlib, datetime, re
+
+root = Path.cwd()
+out = root / '.local/pr87-live-20261013'
+source = out / 'source/pr87_live_test.go'
+go = r'C:\Users\user\AppData\Local\Programs\Go-1.27.1\go\bin\go.exe'
+head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+expected = '905ed25d1f2e04022bb814b83b61fb8eaa490366'
+if head != expected:
+    raise SystemExit('Unexpected source HEAD; no cloud access')
+if subprocess.check_output(['git', 'diff', '--name-only', 'HEAD'], text=True).strip():
+    raise SystemExit('Tracked working diff present; no cloud access')
+if source.is_symlink() or not source.is_file():
+    raise SystemExit('Missing regular overlay source')
+target = root / 'internal/connector/provider/openstack/pr87_live_revalidation_test.go'
+if target.exists():
+    raise SystemExit('Overlay would replace a real source file')
+overlay = out / 'overlay.json'
+overlay.write_text(json.dumps({'Replace': {str(target): str(source)}}, indent=2)+'\n', encoding='utf-8')
+env = dict(os.environ)
+for key in list(env):
+    if key.startswith(('OS_', 'LABBIT_', 'KTCLOUD_', 'KT_CLOUD_')):
+        env.pop(key)
+env['PATH'] = str(Path(go).parent) + os.pathsep + env.get('PATH', '')
+mode = sys.argv[1] if len(sys.argv)>1 else 'compile'
+if mode not in ('compile', 'vet', 'guard', 'live'):
+    raise SystemExit('Explicit compile/vet/guard/live mode required')
+label = sys.argv[2] if len(sys.argv)>2 else ''
+if label and not re.fullmatch(r'[a-z0-9-]{1,40}', label):
+    raise SystemExit('Invalid evidence label')
+log_prefix = mode + ('-'+label if label else '')
+ledger = out / 'ownership-ledger.json'
+if mode == 'live':
+    if ledger.exists() or ledger.is_symlink():
+        raise SystemExit('Existing ledger; no cloud access')
+    cfg = Path(r'C:\Users\user\.config\openstack\ktcloud-d1\clouds.yaml')
+    if not cfg.is_file():
+        raise SystemExit('Protected cloud config missing')
+    env.update({
+        'LABBIT_PROVIDER_CONFIG_FILE': str(cfg), 'OS_CLOUD': 'ktcloud-d1',
+        'LABBIT_PR87_KTCLOUD_LIVE': '1', 'LABBIT_PR87_LIVE_LEDGER': str(ledger),
+        'LABBIT_PR87_LIVE_CIDR': '172.25.242.0/24',
+        'LABBIT_PR87_LIVE_SOURCE_CIDR': '172.25.0.10/32',
+        'LABBIT_PR87_SOURCE_HEAD': head,
+    })
+pattern = '^TestPR87LiveOwnershipGuard$' if mode == 'guard' else '^TestPR87KTCloudProductionNetworkLifecycle$'
+command = [go, 'test', '-timeout=20m', '-overlay', str(overlay), '-count=1', '-json', '-run', pattern, './internal/connector/provider/openstack']
+if mode == 'vet':
+    command = [go, 'vet', '-overlay', str(overlay), './internal/connector/provider/openstack']
+started = datetime.datetime.now(datetime.timezone.utc).isoformat()
+with (out / (log_prefix+'.jsonl')).open('xb') as log:
+    proc = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    for line in proc.stdout:
+        log.write(line); log.flush()
+        # Go outputs contain only constant helper stages/safe errors. Never print raw SDK output.
+        try:
+            event = json.loads(line)
+            if event.get('Test') == 'TestPR87KTCloudProductionNetworkLifecycle' and event.get('Action') == 'output':
+                output=event.get('Output','').strip()
+                if any(word in output for word in ('PREFLIGHT_', 'PRODUCTION_', 'CREATE_AND_PUBLIC', 'PUBLIC_CLEANUP_', 'EXACT_ABSENCE_', 'ALREADY_ABSENT_', 'PASS_OWNED_', 'safe ledger', 'failed', 'uncertain', 'not confirmed', 'mismatch', 'required', 'baseline', 'prohibits', 'confirmed refs')):
+                    print(output, flush=True)
+        except (ValueError, TypeError):
+            pass
+    code = proc.wait()
+receipt = {'mode':mode, 'head':head, 'started':started, 'finished':datetime.datetime.now(datetime.timezone.utc).isoformat(), 'exitCode':code, 'overlaySourceSha256':hashlib.sha256(source.read_bytes()).hexdigest(), 'runnerSha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), 'goTestTimeout':'20m' if mode!='vet' else None, 'realNetworkGate':mode=='live', 'vmMutations':False, 'sourceFilesUnmodified':not subprocess.check_output(['git','diff','--name-only','HEAD'],text=True).strip()}
+(out/(log_prefix+'-receipt.json')).write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8')
+print(json.dumps(receipt),flush=True)
+raise SystemExit(code)

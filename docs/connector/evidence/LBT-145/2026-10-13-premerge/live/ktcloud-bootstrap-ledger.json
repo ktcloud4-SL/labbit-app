@@ -1,0 +1,44 @@
+{
+  "name": "labbit-lbt145-connector-991ec6bd7339",
+  "stage": "BOOTSTRAP_CLEANUP_CONFIRMED",
+  "imageId": "56e47487-c6bb-4c7d-89f4-3bf4c294924c",
+  "imageName": "os-ubuntu24.04-image-20260929",
+  "flavorId": "698f032f-db57-4804-9a37-f41922f36eae",
+  "flavorName": "2x4.itl",
+  "vcpus": 2,
+  "ramMiB": 4096,
+  "diskGiB": 0,
+  "tierId": "e6ab10ea-196c-4be7-8465-056e0c716c8b",
+  "tierRefId": "4b9056bf-fcb8-44fb-a243-c53a6e9e183d",
+  "externalTierId": "79f63dca-4215-4625-9a1f-986d3b2e56d7",
+  "keypairName": "labbit-lbt145-connector-991ec6bd7339-key",
+  "keyCreated": true,
+  "serverId": "442841bd-6a50-4976-84b9-3810d9887812",
+  "volumeIds": [
+    "dca85f23-676b-474d-9e0f-c5fbb03eaa7d"
+  ],
+  "privateIP": "172.25.0.130",
+  "publicIpId": "ed037716-eeb6-4fec-9ca2-fe2c9f83b6b8",
+  "forwardId": "82b1a1fa-309b-4438-ac09-52f1f42baef8",
+  "policyIds": [
+    "9702ba43-3614-49ac-bea2-ce446097a5d9",
+    "208823df-52e2-4cdc-a284-8fa2baab63c7",
+    "701328c6-9588-4b02-a008-6c3b69c814b7"
+  ],
+  "jobIds": [
+    "aae39e9c8dc8f4919d46d09c897faa14",
+    "13cddfad9cd0b1a6ca08023b66d78848",
+    "d4cafde6cecadab6f4f8ed3afd00a19b"
+  ],
+  "deleted": true,
+  "policyJobs": {
+    "bootstrap-dns": "d4cafde6cecadab6f4f8ed3afd00a19b",
+    "bootstrap-https": "13cddfad9cd0b1a6ca08023b66d78848",
+    "bootstrap-ssh": "aae39e9c8dc8f4919d46d09c897faa14"
+  },
+  "policyAttempted": {
+    "bootstrap-dns": true,
+    "bootstrap-https": true,
+    "bootstrap-ssh": true
+  }
+}

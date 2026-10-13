@@ -1,0 +1,32 @@
+{
+  "name": "go-race",
+  "exitCode": 1,
+  "startedAtUTC": "2026-10-13T02:54:41.269387+00:00",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-race",
+    "-json",
+    "-count=1",
+    "./internal/connector/provider/openstack",
+    "./tools/ktcloud-d1-acceptance"
+  ],
+  "passEvents": 422,
+  "topLevelTests": 128,
+  "skip": [
+    "TestOpenStackM2ControlWSSIntegration",
+    "TestOpenStackM1Integration",
+    "TestOpenStackM2ProvisionIntegration",
+    "TestOpenStackM3LifecycleIntegration",
+    "TestOpenStackInternetPolicyIntegration",
+    "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+    "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+    "TestKTCloudD1ReadOnlyIntegration",
+    "TestKTCloudD1DisposableNetworkIntegration"
+  ],
+  "fail": [
+    "TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_timeout",
+    "TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup",
+    "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+  ]
+}

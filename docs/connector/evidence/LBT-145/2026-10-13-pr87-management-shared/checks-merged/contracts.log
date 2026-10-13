@@ -1,0 +1,17 @@
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.052s
+
+OK
+OpenAPI validation: OK
+contracts\connector\connector.schema.json: Draft 2020-12 schema OK
+contracts\connector\file-control.schema.json: Draft 2020-12 schema OK
+contracts\connector\file-data.schema.json: Draft 2020-12 schema OK
+contracts\connector\preview-control.schema.json: Draft 2020-12 schema OK
+contracts\connector\preview-data.schema.json: Draft 2020-12 schema OK
+contracts\connector\terminal-control.schema.json: Draft 2020-12 schema OK
+contracts\connector\terminal-data.schema.json: Draft 2020-12 schema OK
+contracts\realtime\terminal-live.schema.json: Draft 2020-12 schema OK
+JSON Schema validation: OK
+Runtime/Migration metadata validation: OK
+Contracts Connector Reset schema behavior:

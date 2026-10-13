@@ -1,0 +1,632 @@
+{
+  "sourceHead": "905ed25d1f2e04022bb814b83b61fb8eaa490366",
+  "started": "2026-10-13T01:48:31.6938267Z",
+  "finished": "2026-10-13T01:49:24.7492843Z",
+  "state": "PASS_OWNED_RESIDUAL_ZERO_FULL_BASELINE_RESTORED",
+  "correlation": {
+    "OperationID": "pr87-live-52f6ca368d8feb412dfd2dad",
+    "LabInstanceID": "lbt158-pr87-live-52f6ca368d8feb412dfd2dad",
+    "Generation": 1
+  },
+  "tierName": "labbit-683d3cb3ea6eec280de5-m-21a3230e03772a58",
+  "tierCidr": "172.25.242.0/24",
+  "sourceCidr": "172.25.0.10/32",
+  "policyComment": "labbit-lbt158-pr87-live-52f6ca3-g1-683d3cb3ea:workspace:management-ssh",
+  "readOnlyConnectorTierId": "e6ab10ea-196c-4be7-8465-056e0c716c8b",
+  "readOnlyPrivateTierId": "49e40dc2-0c15-4169-a912-f3aa8e8baa9a",
+  "baselineTiers": [
+    {
+      "networkId": "49e40dc2-0c15-4169-a912-f3aa8e8baa9a",
+      "refId": "e988f9f1-384a-4d14-9111-7aba1f3077b4",
+      "networkName": "Private",
+      "cidr": "172.25.1.0/24",
+      "status": "ACTIVE",
+      "shared": false,
+      "sharedExplicit": true
+    },
+    {
+      "networkId": "79f63dca-4215-4625-9a1f-986d3b2e56d7",
+      "refId": "",
+      "networkName": "external",
+      "cidr": "",
+      "status": "",
+      "shared": false,
+      "sharedExplicit": false
+    },
+    {
+      "networkId": "e6ab10ea-196c-4be7-8465-056e0c716c8b",
+      "refId": "4b9056bf-fcb8-44fb-a243-c53a6e9e183d",
+      "networkName": "DMZ",
+      "cidr": "172.25.0.0/24",
+      "status": "ACTIVE",
+      "shared": false,
+      "sharedExplicit": true
+    }
+  ],
+  "baselinePolicies": [],
+  "baselineServers": [],
+  "flavorCount": 235,
+  "imageCount": 12,
+  "confirmedResources": [
+    {
+      "ResourceType": "KT_TIER",
+      "ProviderID": "b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+      "Generation": 1,
+      "LogicalName": "workspace:management-tier",
+      "ObservedState": "ACTIVE"
+    },
+    {
+      "ResourceType": "KT_FIREWALL_POLICY",
+      "ProviderID": "e5616932-61c0-4016-afa9-66655c4cf260",
+      "Generation": 1,
+      "LogicalName": "workspace:management-ssh",
+      "ObservedState": "PRESENT"
+    }
+  ],
+  "unconfirmedReturnedResources": [
+    {
+      "ResourceType": "KT_TIER",
+      "ProviderID": "b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+      "Generation": 1,
+      "LogicalName": "workspace:management-tier",
+      "ObservedState": "ACTIVE"
+    },
+    {
+      "ResourceType": "KT_FIREWALL_POLICY",
+      "ProviderID": "e5616932-61c0-4016-afa9-66655c4cf260",
+      "Generation": 1,
+      "LogicalName": "workspace:management-ssh",
+      "ObservedState": "PRESENT"
+    }
+  ],
+  "createdTier": {
+    "networkId": "b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+    "refId": "d299f160-b30f-4c6d-b9de-1910c64a5c9a",
+    "networkName": "labbit-683d3cb3ea6eec280de5-m-21a3230e03772a58",
+    "cidr": "172.25.242.0/24",
+    "status": "ACTIVE",
+    "shared": false,
+    "sharedExplicit": true
+  },
+  "createdPolicy": {
+    "policyId": "e5616932-61c0-4016-afa9-66655c4cf260",
+    "action": "accept",
+    "status": "enable",
+    "comment": "labbit-lbt158-pr87-live-52f6ca3-g1-683d3cb3ea:workspace:management-ssh",
+    "nat": "disable",
+    "srcInterface": [
+      {
+        "networkId": "e6ab10ea-196c-4be7-8465-056e0c716c8b",
+        "name": "DMZ"
+      }
+    ],
+    "dstInterface": [
+      {
+        "networkId": "b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+        "name": "labbit-683d3cb3ea6eec280de5-m-21a3230e03772a58"
+      }
+    ],
+    "srcAddress": [
+      {
+        "name": "172.25.0.10/32"
+      }
+    ],
+    "dstAddress": [
+      {
+        "name": "all"
+      }
+    ],
+    "services": [
+      {
+        "protocol": "TCP",
+        "startPort": "22",
+        "endPort": "22"
+      }
+    ]
+  },
+  "beforeCleanup": {
+    "Observations": [
+      {
+        "ResourceType": "KT_TIER",
+        "ProviderID": "b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+        "Generation": 1,
+        "Exists": false,
+        "ObservedState": "ABSENT",
+        "Source": "KNOWN_RESOURCE",
+        "LogicalName": "workspace:management-tier"
+      },
+      {
+        "ResourceType": "KT_FIREWALL_POLICY",
+        "ProviderID": "e5616932-61c0-4016-afa9-66655c4cf260",
+        "Generation": 1,
+        "Exists": false,
+        "ObservedState": "ABSENT",
+        "Source": "KNOWN_RESOURCE",
+        "LogicalName": "workspace:management-ssh"
+      }
+    ],
+    "Error": null
+  },
+  "cleanup": {
+    "Outcome": "SUCCEEDED",
+    "ProviderResources": [
+      {
+        "ResourceType": "KT_FIREWALL_POLICY",
+        "ProviderID": "e5616932-61c0-4016-afa9-66655c4cf260",
+        "Generation": 1,
+        "LogicalName": "workspace:management-ssh",
+        "ObservedState": "DELETED"
+      },
+      {
+        "ResourceType": "KT_TIER",
+        "ProviderID": "b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+        "Generation": 1,
+        "LogicalName": "workspace:management-tier",
+        "ObservedState": "DELETED"
+      }
+    ],
+    "Error": null
+  },
+  "afterCleanup": {
+    "Observations": [
+      {
+        "ResourceType": "KT_TIER",
+        "ProviderID": "b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+        "Generation": 1,
+        "Exists": false,
+        "ObservedState": "ABSENT",
+        "Source": "KNOWN_RESOURCE",
+        "LogicalName": "workspace:management-tier"
+      },
+      {
+        "ResourceType": "KT_FIREWALL_POLICY",
+        "ProviderID": "e5616932-61c0-4016-afa9-66655c4cf260",
+        "Generation": 1,
+        "Exists": false,
+        "ObservedState": "ABSENT",
+        "Source": "KNOWN_RESOURCE",
+        "LogicalName": "workspace:management-ssh"
+      }
+    ],
+    "Error": null
+  },
+  "alreadyAbsentCleanup": {
+    "Outcome": "SUCCEEDED",
+    "ProviderResources": [
+      {
+        "ResourceType": "KT_FIREWALL_POLICY",
+        "ProviderID": "e5616932-61c0-4016-afa9-66655c4cf260",
+        "Generation": 1,
+        "LogicalName": "workspace:management-ssh",
+        "ObservedState": "DELETED"
+      },
+      {
+        "ResourceType": "KT_TIER",
+        "ProviderID": "b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+        "Generation": 1,
+        "LogicalName": "workspace:management-tier",
+        "ObservedState": "DELETED"
+      }
+    ],
+    "Error": null
+  },
+  "afterAlreadyAbsentCleanup": {
+    "Observations": [
+      {
+        "ResourceType": "KT_TIER",
+        "ProviderID": "b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+        "Generation": 1,
+        "Exists": false,
+        "ObservedState": "ABSENT",
+        "Source": "KNOWN_RESOURCE",
+        "LogicalName": "workspace:management-tier"
+      },
+      {
+        "ResourceType": "KT_FIREWALL_POLICY",
+        "ProviderID": "e5616932-61c0-4016-afa9-66655c4cf260",
+        "Generation": 1,
+        "Exists": false,
+        "ObservedState": "ABSENT",
+        "Source": "KNOWN_RESOURCE",
+        "LogicalName": "workspace:management-ssh"
+      }
+    ],
+    "Error": null
+  },
+  "finalTiers": [
+    {
+      "networkId": "49e40dc2-0c15-4169-a912-f3aa8e8baa9a",
+      "refId": "e988f9f1-384a-4d14-9111-7aba1f3077b4",
+      "networkName": "Private",
+      "cidr": "172.25.1.0/24",
+      "status": "ACTIVE",
+      "shared": false,
+      "sharedExplicit": true
+    },
+    {
+      "networkId": "79f63dca-4215-4625-9a1f-986d3b2e56d7",
+      "refId": "",
+      "networkName": "external",
+      "cidr": "",
+      "status": "",
+      "shared": false,
+      "sharedExplicit": false
+    },
+    {
+      "networkId": "e6ab10ea-196c-4be7-8465-056e0c716c8b",
+      "refId": "4b9056bf-fcb8-44fb-a243-c53a6e9e183d",
+      "networkName": "DMZ",
+      "cidr": "172.25.0.0/24",
+      "status": "ACTIVE",
+      "shared": false,
+      "sharedExplicit": true
+    }
+  ],
+  "finalPolicies": [],
+  "finalServers": [],
+  "events": [
+    {
+      "at": "2026-10-13T01:48:33.378548Z",
+      "phase": "PREFLIGHT",
+      "method": "GET",
+      "route": "/nsm/v1/network",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 3,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:48:33.5757894Z",
+      "phase": "PREFLIGHT",
+      "method": "GET",
+      "route": "/nsm/v1/firewall/policy",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 0,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:48:33.8304407Z",
+      "phase": "PRODUCTION_PREPARE_NICS",
+      "method": "GET",
+      "route": "/nsm/v1/network",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 3,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:48:54.8887927Z",
+      "phase": "PRODUCTION_PREPARE_NICS",
+      "method": "POST",
+      "route": "/nsm/v1/network",
+      "httpStatus": 201,
+      "bodyStatus": 201,
+      "unconfirmedReceiptTierId": "b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+      "jobId": "e646c907910e7bcfe1af66d8799db762"
+    },
+    {
+      "at": "2026-10-13T01:48:55.2413025Z",
+      "phase": "PRODUCTION_PREPARE_NICS",
+      "method": "GET",
+      "route": "/nsm/v1/network",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 4,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:48:55.4627973Z",
+      "phase": "PRODUCTION_PREPARE_NICS",
+      "method": "GET",
+      "route": "/nsm/v1/firewall/policy",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 0,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:48:55.6676812Z",
+      "phase": "PRODUCTION_PREPARE_NICS",
+      "method": "POST",
+      "route": "/nsm/v1/firewall/policy",
+      "httpStatus": 202,
+      "bodyStatus": 202,
+      "jobId": "89a7b1c35a02dfe9e7efa8d3ba3f98ac"
+    },
+    {
+      "at": "2026-10-13T01:48:55.8311559Z",
+      "phase": "PRODUCTION_PREPARE_NICS",
+      "method": "GET",
+      "route": "/nsm/v1/job/status/89a7b1c35a02dfe9e7efa8d3ba3f98ac",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "jobId": "89a7b1c35a02dfe9e7efa8d3ba3f98ac",
+      "jobStatus": "RUNNING"
+    },
+    {
+      "at": "2026-10-13T01:48:57.9615222Z",
+      "phase": "PRODUCTION_PREPARE_NICS",
+      "method": "GET",
+      "route": "/nsm/v1/job/status/89a7b1c35a02dfe9e7efa8d3ba3f98ac",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "jobId": "89a7b1c35a02dfe9e7efa8d3ba3f98ac",
+      "jobStatus": "SUCCESS"
+    },
+    {
+      "at": "2026-10-13T01:48:58.1823006Z",
+      "phase": "PRODUCTION_PREPARE_NICS",
+      "method": "GET",
+      "route": "/nsm/v1/firewall/policy",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 1,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:48:58.5012163Z",
+      "phase": "PRODUCTION_PREPARE_NICS_RETURNED",
+      "method": "GET",
+      "route": "/nsm/v1/network",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 4,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:48:59.2164419Z",
+      "phase": "PRODUCTION_PREPARE_NICS_RETURNED",
+      "method": "GET",
+      "route": "/nsm/v1/firewall/policy",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 1,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:48:59.603626Z",
+      "phase": "EXACT_PROFILE_AND_MAPPING_CONFIRMED",
+      "method": "GET",
+      "route": "/nsm/v1/network",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 4,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:48:59.8231308Z",
+      "phase": "EXACT_PROFILE_AND_MAPPING_CONFIRMED",
+      "method": "GET",
+      "route": "/nsm/v1/firewall/policy",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 1,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:00.3568466Z",
+      "phase": "PUBLIC_CLEANUP_CONFIRMED_IDS",
+      "method": "DELETE",
+      "route": "/nsm/v1/firewall/policy/e5616932-61c0-4016-afa9-66655c4cf260",
+      "httpStatus": 204
+    },
+    {
+      "at": "2026-10-13T01:49:00.6052972Z",
+      "phase": "PUBLIC_CLEANUP_CONFIRMED_IDS",
+      "method": "GET",
+      "route": "/nsm/v1/firewall/policy",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 0,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:20.9538678Z",
+      "phase": "PUBLIC_CLEANUP_CONFIRMED_IDS",
+      "method": "DELETE",
+      "route": "/nsm/v1/network/b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+      "httpStatus": 202,
+      "bodyStatus": 202
+    },
+    {
+      "at": "2026-10-13T01:49:21.2300242Z",
+      "phase": "PUBLIC_CLEANUP_CONFIRMED_IDS",
+      "method": "GET",
+      "route": "/nsm/v1/network",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 3,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:21.5369774Z",
+      "phase": "PUBLIC_CLEANUP_CONFIRMED_IDS",
+      "method": "GET",
+      "route": "/nsm/v1/network",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 3,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:21.8077593Z",
+      "phase": "PUBLIC_CLEANUP_CONFIRMED_IDS",
+      "method": "GET",
+      "route": "/nsm/v1/firewall/policy",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 0,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:22.0699981Z",
+      "phase": "PUBLIC_CLEANUP_CONFIRMED_IDS",
+      "method": "GET",
+      "route": "/nsm/v1/network",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 3,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:22.2742156Z",
+      "phase": "PUBLIC_CLEANUP_CONFIRMED_IDS",
+      "method": "GET",
+      "route": "/nsm/v1/firewall/policy",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 0,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:22.5178449Z",
+      "phase": "ALREADY_ABSENT_PUBLIC_CLEANUP",
+      "method": "DELETE",
+      "route": "/nsm/v1/firewall/policy/e5616932-61c0-4016-afa9-66655c4cf260",
+      "httpStatus": 404,
+      "bodyStatus": 404
+    },
+    {
+      "at": "2026-10-13T01:49:22.6991136Z",
+      "phase": "ALREADY_ABSENT_PUBLIC_CLEANUP",
+      "method": "GET",
+      "route": "/nsm/v1/firewall/policy",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 0,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:22.8991295Z",
+      "phase": "ALREADY_ABSENT_PUBLIC_CLEANUP",
+      "method": "GET",
+      "route": "/nsm/v1/firewall/policy",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 0,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:22.9771443Z",
+      "phase": "ALREADY_ABSENT_PUBLIC_CLEANUP",
+      "method": "DELETE",
+      "route": "/nsm/v1/network/b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+      "httpStatus": 404,
+      "bodyStatus": 404
+    },
+    {
+      "at": "2026-10-13T01:49:23.2371515Z",
+      "phase": "ALREADY_ABSENT_PUBLIC_CLEANUP",
+      "method": "GET",
+      "route": "/nsm/v1/network",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 3,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:23.5026087Z",
+      "phase": "ALREADY_ABSENT_PUBLIC_CLEANUP",
+      "method": "GET",
+      "route": "/nsm/v1/network",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 3,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:23.8751639Z",
+      "phase": "ALREADY_ABSENT_PUBLIC_CLEANUP",
+      "method": "GET",
+      "route": "/nsm/v1/network",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 3,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:24.1271259Z",
+      "phase": "ALREADY_ABSENT_PUBLIC_CLEANUP",
+      "method": "GET",
+      "route": "/nsm/v1/firewall/policy",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 0,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:24.3797393Z",
+      "phase": "ALREADY_ABSENT_PUBLIC_CLEANUP",
+      "method": "GET",
+      "route": "/nsm/v1/network",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 3,
+        "offset": 0
+      }
+    },
+    {
+      "at": "2026-10-13T01:49:24.5862468Z",
+      "phase": "ALREADY_ABSENT_PUBLIC_CLEANUP",
+      "method": "GET",
+      "route": "/nsm/v1/firewall/policy",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "pagination": {
+        "total": 0,
+        "offset": 0
+      }
+    }
+  ],
+  "policyAttempted": true,
+  "cleanupStarted": true,
+  "exactAbsenceConfirmed": true,
+  "fullBaselineRestored": true,
+  "noVmMutations": true
+}

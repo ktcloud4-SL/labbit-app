@@ -887,10 +887,10 @@ func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Conte
 			return readCtx.Err()
 		default:
 			_, msg, err := conn.ReadMessage()
-			if err != nil {
-				return err
+			if ctxErr := readCtx.Err(); ctxErr != nil {
+				return ctxErr
 			}
-			if err := readCtx.Err(); err != nil {
+			if err != nil {
 				return err
 			}
 			// HandleMessage 에러를 무시하지 않고 등록된 onError 콜백으로 전달 (팀장님 리뷰 6번)

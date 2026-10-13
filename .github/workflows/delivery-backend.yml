@@ -79,3 +79,22 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
+          
+      - name: Update image tag in labbit-gitops
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          SHORT_SHA: sha-${{ steps.meta.outputs.version }}
+        run: |
+          SHORT_TAG="sha-$(echo ${{ github.sha }} | cut -c1-7)"
+          git clone https://x-access-token:${{ secrets.GITOPS_PAT }}@github.com/ktcloud4-SL/labbit-gitops.git /tmp/labbit-gitops
+          cd /tmp/labbit-gitops
+          sed -i "s|tag: \"sha-.*\"|tag: \"${SHORT_TAG}\"|g" environments/local/apps/backend-values.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No changes to commit"
+          else
+            git add environments/local/apps/backend-values.yaml
+            git commit -m "chore(backend): [LBT-32] backend 이미지 태그 자동 업데이트 (${SHORT_TAG})"
+            git push origin main
+          fi

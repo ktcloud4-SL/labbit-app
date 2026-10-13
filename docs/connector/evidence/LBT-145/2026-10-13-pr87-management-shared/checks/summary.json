@@ -1,0 +1,136 @@
+{
+  "sourceHead": "42a865041b3855dad185adf2034fbf39a36746c3",
+  "results": [
+    {
+      "name": "go-vet",
+      "exitCode": 0,
+      "startedAtUTC": "2026-10-13T02:34:02.253656+00:00",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "vet",
+        "./..."
+      ]
+    },
+    {
+      "name": "go-test",
+      "exitCode": 0,
+      "startedAtUTC": "2026-10-13T02:34:05.851124+00:00",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "test",
+        "-json",
+        "-count=1",
+        "-p",
+        "1",
+        "./..."
+      ],
+      "passEvents": 3062,
+      "topLevelTests": 995,
+      "skip": [
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-server",
+        "github.com/ktcloud4-SL/labbit-app/db/migrations",
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest",
+        "TestInstallCredentialFile/\uc0c8_credential_file\uc744_\ub9cc\ub4e4\uace0_\uc131\uacf5_\uba54\uc2dc\uc9c0\uc5d0\ub294_path\ub9cc_\ub0a8\uae34\ub2e4/POSIX_permission_0600",
+        "github.com/ktcloud4-SL/labbit-app/web/node_modules/flatted/golang/pkg/flatted"
+      ],
+      "fail": []
+    },
+    {
+      "name": "go-build",
+      "exitCode": 0,
+      "startedAtUTC": "2026-10-13T02:35:58.948201+00:00",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "build",
+        "./..."
+      ]
+    },
+    {
+      "name": "go-race",
+      "exitCode": 0,
+      "startedAtUTC": "2026-10-13T02:36:04.578364+00:00",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "test",
+        "-race",
+        "-json",
+        "-count=1",
+        "./internal/connector/provider/openstack",
+        "./tools/ktcloud-d1-acceptance"
+      ],
+      "passEvents": 413,
+      "topLevelTests": 128,
+      "skip": [
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration"
+      ],
+      "fail": []
+    },
+    {
+      "name": "web-typecheck",
+      "exitCode": 0,
+      "startedAtUTC": "2026-10-13T02:36:19.602841+00:00",
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\node_modules\\pnpm\\bin\\pnpm.mjs",
+        "run",
+        "typecheck"
+      ]
+    },
+    {
+      "name": "web-lint",
+      "exitCode": 0,
+      "startedAtUTC": "2026-10-13T02:36:22.571078+00:00",
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\node_modules\\pnpm\\bin\\pnpm.mjs",
+        "run",
+        "lint"
+      ]
+    },
+    {
+      "name": "web-test",
+      "exitCode": 0,
+      "startedAtUTC": "2026-10-13T02:36:26.789848+00:00",
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\node_modules\\pnpm\\bin\\pnpm.mjs",
+        "run",
+        "test"
+      ]
+    },
+    {
+      "name": "web-build",
+      "exitCode": 0,
+      "startedAtUTC": "2026-10-13T02:36:37.628514+00:00",
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\node_modules\\pnpm\\bin\\pnpm.mjs",
+        "run",
+        "build"
+      ]
+    }
+  ]
+}

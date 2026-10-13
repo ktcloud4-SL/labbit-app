@@ -1,0 +1,92 @@
+{
+  "sourceHead": "3fed94d1a08be0ca9321fd50cc37d0958830ea10",
+  "results": [
+    {
+      "name": "go-vet",
+      "exitCode": 0,
+      "startedAtUTC": "2026-10-13T02:47:05.221197+00:00",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "vet",
+        "./..."
+      ]
+    },
+    {
+      "name": "go-test",
+      "exitCode": 0,
+      "startedAtUTC": "2026-10-13T02:47:08.238386+00:00",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "test",
+        "-json",
+        "-count=1",
+        "-p",
+        "1",
+        "./..."
+      ],
+      "passEvents": 3074,
+      "topLevelTests": 996,
+      "skip": [
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-server",
+        "github.com/ktcloud4-SL/labbit-app/db/migrations",
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest",
+        "TestInstallCredentialFile/\uc0c8_credential_file\uc744_\ub9cc\ub4e4\uace0_\uc131\uacf5_\uba54\uc2dc\uc9c0\uc5d0\ub294_path\ub9cc_\ub0a8\uae34\ub2e4/POSIX_permission_0600",
+        "github.com/ktcloud4-SL/labbit-app/web/node_modules/flatted/golang/pkg/flatted"
+      ],
+      "fail": []
+    },
+    {
+      "name": "go-build",
+      "exitCode": 0,
+      "startedAtUTC": "2026-10-13T02:49:02.705321+00:00",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "build",
+        "./..."
+      ]
+    },
+    {
+      "name": "go-race",
+      "exitCode": 0,
+      "startedAtUTC": "2026-10-13T02:49:07.722160+00:00",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "test",
+        "-race",
+        "-json",
+        "-count=1",
+        "./internal/connector/provider/openstack",
+        "./tools/ktcloud-d1-acceptance"
+      ],
+      "passEvents": 425,
+      "topLevelTests": 129,
+      "skip": [
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration"
+      ],
+      "fail": []
+    }
+  ]
+}

@@ -46,14 +46,19 @@ func (q queries) OperationByIdempotency(ctx context.Context, user uuid.UUID, kin
  WHERE requested_by_user_id=$1 AND operation_type=$2 AND idempotency_key_hash=$3`, user, kind, hash), "OperationByIdempotency")
 }
 func (q queries) CreateOperationItem(ctx context.Context, i repository.NewOperationItem) error {
-	tag, err := q.db.Exec(ctx, `INSERT INTO operation_items
+	tag, err := q.db.Exec(ctx, `WITH target AS MATERIALIZED (
+ SELECT o.operation_type, li.generation
+ FROM operations o JOIN lab_instances li ON li.organization_id=o.organization_id
+ WHERE o.id=$3 AND o.organization_id=$2 AND li.id=$4
+ AND ((o.operation_type='RESET' AND o.lab_instance_id=li.id)
+ OR (o.operation_type IN ('PROVISION','CLEANUP') AND o.lab_execution_id=li.lab_execution_id))
+ FOR SHARE OF li
+ )
+ INSERT INTO operation_items
  (id,organization_id,operation_id,lab_instance_id,generation,status,created_at)
- SELECT $1,$2,$3,$4,$5,'PENDING',$6
- WHERE EXISTS (
- SELECT 1 FROM operations o JOIN lab_instances i ON i.organization_id=o.organization_id
- WHERE o.id=$3 AND o.organization_id=$2 AND i.id=$4
- AND ((o.operation_type='RESET' AND o.lab_instance_id=i.id)
- OR (o.operation_type IN ('PROVISION','CLEANUP') AND o.lab_execution_id=i.lab_execution_id)))`, i.ID, i.OrganizationID, i.OperationID, i.LabInstanceID, i.Generation, i.CreatedAt)
+ SELECT $1,$2,$3,$4,$5::bigint::integer,'PENDING',$6 FROM target
+ WHERE $5::bigint = CASE WHEN operation_type='RESET' THEN generation::bigint + 1 ELSE generation END`,
+		i.ID, i.OrganizationID, i.OperationID, i.LabInstanceID, i.Generation, i.CreatedAt)
 	if err != nil {
 		return normalize("CreateOperationItem", err)
 	}

@@ -107,3 +107,47 @@ func TestRegistrationRejectsInvalidAndPropagatesItemFailure(t *testing.T) {
 		t.Fatalf("item failure: %v", err)
 	}
 }
+
+func TestHashKeyUnicodeContract(t *testing.T) {
+	tests := []struct {
+		name, key string
+		valid     bool
+	}{
+		{"empty", "", false},
+		{"single Korean code point", "한", true},
+		{"review regression 200 Korean code points", strings.Repeat("한", 200), true},
+		{"255 Korean code points", strings.Repeat("한", 255), true},
+		{"256 Korean code points", strings.Repeat("한", 256), false},
+		{"255 supplementary code points", strings.Repeat("😀", 255), true},
+		{"256 supplementary code points", strings.Repeat("😀", 256), false},
+		{"combining sequence at 255 code points", strings.Repeat("e\u0301", 127) + "x", true},
+		{"128 combining graphemes are 256 code points", strings.Repeat("e\u0301", 128), false},
+		{"valid replacement code point", strings.Repeat("\ufffd", 255), true},
+		{"invalid leading byte", string([]byte{0xff}), false},
+		{"invalid continuation byte", string([]byte{0x80}), false},
+		{"truncated sequence", string([]byte{0xe2, 0x82}), false},
+		{"overlong encoding", string([]byte{0xc0, 0xaf}), false},
+		{"surrogate", string([]byte{0xed, 0xa0, 0x80}), false},
+		{"above Unicode maximum", string([]byte{0xf4, 0x90, 0x80, 0x80}), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hash, err := HashKey(tt.key)
+			if !tt.valid {
+				if !errors.Is(err, ErrInvalid) || hash != nil {
+					t.Fatalf("invalid key returned hash/error %x/%v", hash, err)
+				}
+				return
+			}
+			want := sha256.Sum256([]byte(tt.key))
+			if err != nil || !bytes.Equal(hash, want[:]) {
+				t.Fatalf("valid key hash/error %x/%v", hash, err)
+			}
+		})
+	}
+	composed, _ := HashKey("é")
+	decomposed, _ := HashKey("e\u0301")
+	if bytes.Equal(composed, decomposed) {
+		t.Fatal("opaque key was Unicode normalized")
+	}
+}

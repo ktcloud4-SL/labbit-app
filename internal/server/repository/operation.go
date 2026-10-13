@@ -59,7 +59,10 @@ type OperationRepository interface {
 	InsertOperation(context.Context, NewOperation) (bool, error)
 	OperationByIdempotency(context.Context, uuid.UUID, string, []byte) (Operation, error)
 	OperationByID(context.Context, uuid.UUID) (Operation, error)
-	// CreateOperationItem rejects items outside the Operation target (including another execution).
+	// CreateOperationItem rejects items outside the target or its authoritative generation.
+	// PROVISION/CLEANUP use the current generation; RESET uses current+1 (Connector README §11).
+	// Use inside Transactor: FOR SHARE holds the LabInstance generation stable until commit/rollback.
+	// It does not activate RESET's new generation or change ProviderResource history.
 	CreateOperationItem(context.Context, NewOperationItem) error
 	OperationItems(context.Context, uuid.UUID) ([]OperationItem, error)
 	OperationTarget(context.Context, Operation) (OperationTarget, error)

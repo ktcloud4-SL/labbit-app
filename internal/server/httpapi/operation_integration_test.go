@@ -71,6 +71,7 @@ func TestOperationHTTPAgainstPostgres(t *testing.T) {
 	in.LabExecutionID = nil
 	in.LabInstanceID = &f.LabInstanceID
 	in.Items = in.Items[:1]
+	in.Items[0].Generation = 2
 	in.IdempotencyKey = "http-reset-dummy"
 	in.Fingerprint = operation.SemanticFingerprint([]byte("reset-instance-generation-dummy"))
 	reset := register(in)

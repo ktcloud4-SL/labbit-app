@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 
@@ -33,7 +34,11 @@ func SemanticFingerprint(canonical []byte) Fingerprint { return sha256.Sum256(ca
 
 // HashKey hashes the exact opaque key, without trimming or storing its raw value.
 func HashKey(key string) ([]byte, error) {
-	if len(key) == 0 || len(key) > 255 {
+	if !utf8.ValidString(key) {
+		return nil, ErrInvalid
+	}
+	length := utf8.RuneCountInString(key)
+	if length < 1 || length > 255 {
 		return nil, ErrInvalid
 	}
 	h := sha256.Sum256([]byte(key))

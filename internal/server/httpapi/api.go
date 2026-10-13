@@ -48,8 +48,9 @@ type Classes interface {
 
 // Options는 Handler 구성이다.
 type Options struct {
-	Auth    Authenticator
-	Classes Classes
+	Auth       Authenticator
+	Classes    Classes
+	Operations Operations
 	// LabSpecs는 LabSpec 목록·상세·생성·수정 use case다. 필수다.
 	LabSpecs LabSpecs
 	// Terminals가 nil이면 Terminal Relay가 없는 구성으로 보고 Terminal target 조회와 TerminalSession 생성/종료를 503(terminal_unavailable)으로 응답한다.
@@ -73,6 +74,7 @@ type api struct {
 	auth         Authenticator
 	classes      Classes
 	labSpecs     LabSpecs
+	operations   Operations
 	terminals    Terminals
 	files        Files
 	previews     Previews
@@ -121,7 +123,7 @@ func New(opts Options) (http.Handler, error) {
 		liveSessions = unavailableLiveSessions{}
 	}
 
-	a := &api{auth: opts.Auth, classes: opts.Classes, labSpecs: opts.LabSpecs, terminals: terminals, files: files, previews: previews, liveSessions: liveSessions, origin: origin, logger: logger}
+	a := &api{operations: opts.Operations, auth: opts.Auth, classes: opts.Classes, labSpecs: opts.LabSpecs, terminals: terminals, files: files, previews: previews, liveSessions: liveSessions, origin: origin, logger: logger}
 	mux := http.NewServeMux()
 	routes := make(map[string]string)
 	handle := func(pattern string, handler http.Handler) {
@@ -131,6 +133,7 @@ func New(opts Options) (http.Handler, error) {
 	}
 	handle("POST /api/v1/auth/login", http.HandlerFunc(a.login))
 	handle("POST /api/v1/auth/logout", a.authenticated(http.HandlerFunc(a.logout)))
+	handle("GET /api/v1/operations/{operationId}", a.authenticated(http.HandlerFunc(a.getOperation)))
 	handle("GET /api/v1/me", a.authenticated(http.HandlerFunc(a.me)))
 	handle("GET /api/v1/classes", a.authenticated(http.HandlerFunc(a.listClasses)))
 	handle("GET /api/v1/classes/{classId}", a.authenticated(http.HandlerFunc(a.getClass)))

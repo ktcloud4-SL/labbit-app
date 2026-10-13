@@ -43,7 +43,7 @@ func TestMigrateFreshDatabaseAppliesAllMigrations(t *testing.T) {
 	if len(applied) != len(all) {
 		t.Fatalf("applied = %d, want %d", len(applied), len(all))
 	}
-	assertAppliedVersions(t, conn, 1, 2, 3, 4, 5, 6)
+	assertAppliedVersions(t, conn, 1, 2, 3, 4, 5, 6, 7)
 	for _, table := range productTables {
 		if !tableExists(t, conn, table) {
 			t.Fatalf("table %s was not created", table)
@@ -62,12 +62,12 @@ func TestMigrateFreshDatabaseAppliesAllMigrations(t *testing.T) {
 	if len(again) != 0 {
 		t.Fatalf("second Migrate() applied %d migrations, want 0", len(again))
 	}
-	assertAppliedVersions(t, conn, 1, 2, 3, 4, 5, 6)
+	assertAppliedVersions(t, conn, 1, 2, 3, 4, 5, 6, 7)
 }
 
 func TestMigrateApplies000006AdditivelyOn000005Database(t *testing.T) {
 	ctx := t.Context()
-	all := embeddedMigrations(t)
+	all := migrationsUpTo(embeddedMigrations(t), 6)
 	upTo5 := migrationsUpTo(all, 5)
 	dsn := postgrestest.NewDatabase(t)
 	conn := postgrestest.Connect(t, dsn)
@@ -111,25 +111,25 @@ func TestMigrateApplies000006AdditivelyOn000005Database(t *testing.T) {
 func TestMigrateFailureRollsBackFailedMigrationAndCanBeRetried(t *testing.T) {
 	ctx := t.Context()
 	all := embeddedMigrations(t)
-	broken := loadMigrations(t, withExtraFile(t, "000007_it_probe.sql",
+	broken := loadMigrations(t, withExtraFile(t, "000008_it_probe.sql",
 		"BEGIN;\nCREATE TABLE it_probe (id integer);\nSELECT 1 / 0;\nCOMMIT;\n"))
-	fixed := loadMigrations(t, withExtraFile(t, "000007_it_probe.sql",
+	fixed := loadMigrations(t, withExtraFile(t, "000008_it_probe.sql",
 		"BEGIN;\nCREATE TABLE it_probe (id integer);\nCOMMIT;\n"))
 	dsn := postgrestest.NewDatabase(t)
 	conn := postgrestest.Connect(t, dsn)
 
 	applied, err := postgres.Migrate(ctx, conn, broken, discardLogger)
-	if err == nil || !strings.Contains(err.Error(), "000007_it_probe.sql") {
-		t.Fatalf("Migrate() error = %v, want failure of 000007", err)
+	if err == nil || !strings.Contains(err.Error(), "000008_it_probe.sql") {
+		t.Fatalf("Migrate() error = %v, want failure of 000008", err)
 	}
 	if len(applied) != len(all) {
-		t.Fatalf("applied before failure = %v, want 000001~000006", migrationNames(applied))
+		t.Fatalf("applied before failure = %v, want 000001~000007", migrationNames(applied))
 	}
 	// 실패한 migration의 DDL과 적용 기록은 함께 rollback된다.
 	if tableExists(t, conn, "it_probe") {
 		t.Fatal("failed migration left a partial table behind")
 	}
-	assertAppliedVersions(t, conn, 1, 2, 3, 4, 5, 6)
+	assertAppliedVersions(t, conn, 1, 2, 3, 4, 5, 6, 7)
 	if err := postgres.CheckSchema(ctx, conn, broken); !errors.Is(err, postgres.ErrSchemaIncompatible) {
 		t.Fatalf("CheckSchema() after failure = %v, want ErrSchemaIncompatible", err)
 	}
@@ -139,8 +139,8 @@ func TestMigrateFailureRollsBackFailedMigrationAndCanBeRetried(t *testing.T) {
 	if err != nil {
 		t.Fatalf("retry Migrate() error = %v", err)
 	}
-	if len(applied) != 1 || applied[0].Version != 7 {
-		t.Fatalf("retry applied = %v, want only 000007", migrationNames(applied))
+	if len(applied) != 1 || applied[0].Version != 8 {
+		t.Fatalf("retry applied = %v, want only 000008", migrationNames(applied))
 	}
 	if !tableExists(t, conn, "it_probe") {
 		t.Fatal("retried migration did not create it_probe")
@@ -192,7 +192,7 @@ func TestMigrateRejectsBodyThatEscapesRunnerTransaction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			escaping := loadMigrations(t, withExtraFile(t, "000007_it_escape.sql",
+			escaping := loadMigrations(t, withExtraFile(t, "000008_it_escape.sql",
 				"BEGIN;\n"+tt.body+"\nCOMMIT;\n"))
 
 			applied, err := postgres.Migrate(ctx, conn, escaping, discardLogger)
@@ -208,26 +208,26 @@ func TestMigrateRejectsBodyThatEscapesRunnerTransaction(t *testing.T) {
 					t.Fatalf("%s was committed outside the runner transaction", table)
 				}
 			}
-			assertAppliedVersions(t, conn, 1, 2, 3, 4, 5, 6)
+			assertAppliedVersions(t, conn, 1, 2, 3, 4, 5, 6, 7)
 		})
 	}
 
 	// 거부된 뒤에도 정상 migration으로 고치면 같은 version부터 다시 적용할 수 있다.
-	fixed := loadMigrations(t, withExtraFile(t, "000007_it_escape.sql",
+	fixed := loadMigrations(t, withExtraFile(t, "000008_it_escape.sql",
 		"BEGIN;\nCREATE TABLE it_before (id integer);\nCREATE TABLE it_after (id integer);\nCOMMIT;\n"))
 	applied, err := postgres.Migrate(ctx, conn, fixed, discardLogger)
 	if err != nil {
 		t.Fatalf("fixed Migrate() error = %v", err)
 	}
-	if len(applied) != 1 || applied[0].Version != 7 {
-		t.Fatalf("fixed applied = %v, want only 000007", migrationNames(applied))
+	if len(applied) != 1 || applied[0].Version != 8 {
+		t.Fatalf("fixed applied = %v, want only 000008", migrationNames(applied))
 	}
 	for _, table := range []string{"it_before", "it_after"} {
 		if !tableExists(t, conn, table) {
 			t.Fatalf("fixed migration did not create %s", table)
 		}
 	}
-	assertAppliedVersions(t, conn, 1, 2, 3, 4, 5, 6, 7)
+	assertAppliedVersions(t, conn, 1, 2, 3, 4, 5, 6, 7, 8)
 
 	// runner가 바꾼 session 기본값이 연결에 남지 않는다.
 	var readOnly string
@@ -286,7 +286,7 @@ func TestMigrateConcurrentRunnersApplyEachMigrationOnce(t *testing.T) {
 	if total != len(all) {
 		t.Fatalf("migrations applied across runners = %d, want %d", total, len(all))
 	}
-	assertAppliedVersions(t, conns[0], 1, 2, 3, 4, 5, 6)
+	assertAppliedVersions(t, conns[0], 1, 2, 3, 4, 5, 6, 7)
 }
 
 func TestCheckSchema(t *testing.T) {
@@ -302,13 +302,13 @@ func TestCheckSchema(t *testing.T) {
 
 	t.Run("newer migration from a later release is tolerated", func(t *testing.T) {
 		conn := postgrestest.Connect(t, postgrestest.NewDatabase(t))
-		newer := loadMigrations(t, withExtraFile(t, "000007_it_newer.sql",
+		newer := loadMigrations(t, withExtraFile(t, "000008_it_newer.sql",
 			"BEGIN;\nCREATE TABLE it_newer (id integer);\nCOMMIT;\n"))
 		if _, err := postgres.Migrate(ctx, conn, newer, discardLogger); err != nil {
 			t.Fatalf("Migrate() error = %v", err)
 		}
 
-		// rollout 중인 이전 build는 자신이 아는 000001~000006이 모두 있으면 호환된다.
+		// rollout 중인 이전 build는 자신이 아는 000001~000007이 모두 있으면 호환된다.
 		if err := postgres.CheckSchema(ctx, conn, all); err != nil {
 			t.Fatalf("CheckSchema() = %v, want nil", err)
 		}
@@ -325,8 +325,8 @@ func embeddedMigrations(t *testing.T) []postgres.Migration {
 	if err != nil {
 		t.Fatalf("LoadMigrations() error = %v", err)
 	}
-	if len(migrations) != 6 {
-		t.Fatalf("embedded migrations = %d, want 000001~000006", len(migrations))
+	if len(migrations) != 7 {
+		t.Fatalf("embedded migrations = %d, want 000001~000007", len(migrations))
 	}
 	return migrations
 }

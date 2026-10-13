@@ -1,0 +1,16 @@
+Observed API mutation: method=POST route=identity/auth/tokens status=201
+Bootstrap: KEY_IMPORT_ATTEMPTED
+Observed API mutation: method=POST route=server/os-keypairs status=200
+Bootstrap: KEY_IMPORT_CONFIRMED
+Nova registered public key matches protected local key: true; name matches: true
+Bootstrap: SERVER_CREATE_ATTEMPTED
+Using documented boot-from-image volume mapping without empty imageRef
+Observed API mutation: method=POST route=server/servers status=202
+Mutation response envelope keys: [server]
+Bootstrap: SERVER_CREATE_RESPONSE_RECORDED
+Bootstrap: SERVER_BUILD_OBSERVED
+Bootstrap: SERVER_BUILD_OBSERVED
+Bootstrap: SERVER_BUILD_OBSERVED
+Bootstrap: SERVER_BUILD_OBSERVED
+Bootstrap: SERVER_ACTIVE_OBSERVED
+Connector VM ACTIVE; physical Tier refId accepted; root volume count: 1

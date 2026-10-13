@@ -1,0 +1,13 @@
+{
+  "FORWARD": [],
+  "KEYPAIR": [],
+  "POLICY": [],
+  "PUBLIC_IP": [],
+  "SERVER": [],
+  "TIER": [
+    "49e40dc2-0c15-4169-a912-f3aa8e8baa9a",
+    "79f63dca-4215-4625-9a1f-986d3b2e56d7",
+    "e6ab10ea-196c-4be7-8465-056e0c716c8b"
+  ],
+  "VOLUME": []
+}

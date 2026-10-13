@@ -27,13 +27,14 @@ var (
 )
 
 type ServerSpec struct {
-	Name     string
-	ImageID  string
-	FlavorID string
-	KeyPair  string
-	PortIDs  []string
-	UserData []byte
-	Metadata map[string]string
+	Name       string
+	ImageID    string
+	FlavorID   string
+	KeyPair    string
+	PortIDs    []string
+	NetworkIDs []string
+	UserData   []byte
+	Metadata   map[string]string
 }
 
 func (a *Adapter) EnsureServer(
@@ -49,17 +50,14 @@ func (a *Adapter) EnsureServer(
 	flavorID := strings.TrimSpace(spec.FlavorID)
 	keyPair := strings.TrimSpace(spec.KeyPair)
 	portIDs := normalizedOrderedIDs(spec.PortIDs)
-	if !validIdentity(identity) || name == "" || imageID == "" || flavorID == "" || keyPair == "" || len(portIDs) == 0 {
+	networkIDs := normalizedOrderedIDs(spec.NetworkIDs)
+	if !validIdentity(identity) || name == "" || imageID == "" || flavorID == "" || keyPair == "" || (len(portIDs) == 0 && len(networkIDs) == 0) || (len(networkIDs) != 0 && (a.ktNetwork == nil || len(portIDs) != 0)) {
 		return coreprovider.ResourceResult{}, servers.Server{}, ErrInvalidResourceSpec
 	}
 
-	pages, err := servers.List(a.compute, servers.ListOpts{Name: name}).AllPages(ctx)
+	items, err := a.listServerItems(ctx, servers.ListOpts{Name: name})
 	if err != nil {
 		return coreprovider.ResourceResult{}, servers.Server{}, safeContextError(ctx, ErrServerList)
-	}
-	items, err := servers.ExtractServers(pages)
-	if err != nil {
-		return coreprovider.ResourceResult{}, servers.Server{}, ErrServerList
 	}
 	exact := make([]servers.Server, 0, len(items))
 	for _, item := range items {
@@ -69,8 +67,11 @@ func (a *Adapter) EnsureServer(
 	}
 	switch len(exact) {
 	case 1:
-		detail, err := servers.Get(ctx, a.compute, exact[0].ID).Extract()
-		if err != nil {
+		if len(networkIDs) != 0 {
+			return coreprovider.ResourceResult{}, servers.Server{}, ErrResourceOwnership
+		}
+		detail, err := a.lookupServer(ctx, exact[0].ID)
+		if err != nil || detail == nil {
 			return coreprovider.ResourceResult{}, servers.Server{}, safeContextError(ctx, ErrServerGet)
 		}
 		attachedPortIDs, err := a.serverPortIDs(ctx, detail.ID)
@@ -91,19 +92,26 @@ func (a *Adapter) EnsureServer(
 	for _, portID := range portIDs {
 		networks = append(networks, servers.Network{Port: portID})
 	}
-	createOpts := keypairs.CreateOptsExt{
-		CreateOptsBuilder: servers.CreateOpts{
-			Name:      name,
-			ImageRef:  imageID,
-			FlavorRef: flavorID,
-			Networks:  networks,
-			UserData:  append([]byte(nil), spec.UserData...),
-			Metadata:  cloneStringMap(spec.Metadata),
-		},
-		KeyName: keyPair,
+	for _, networkID := range networkIDs {
+		networks = append(networks, servers.Network{UUID: networkID})
 	}
-	created, err := servers.Create(ctx, a.compute, createOpts, nil).Extract()
-	if err != nil {
+	serverOpts := servers.CreateOpts{Name: name, ImageRef: imageID, FlavorRef: flavorID, Networks: networks, UserData: append([]byte(nil), spec.UserData...), Metadata: cloneStringMap(spec.Metadata)}
+	if len(networkIDs) != 0 {
+		serverOpts.ImageRef = ""
+		serverOpts.AvailabilityZone = "DX-M1"
+		serverOpts.BlockDevice = []servers.BlockDevice{{SourceType: servers.SourceImage, UUID: imageID, DestinationType: servers.DestinationVolume, BootIndex: 0, VolumeSize: 50, DeleteOnTermination: true}}
+	}
+	createOpts := keypairs.CreateOptsExt{
+		CreateOptsBuilder: serverOpts,
+		KeyName:           keyPair,
+	}
+	var created *servers.Server
+	if len(networkIDs) != 0 {
+		created, err = a.createKTCloudServer(ctx, createOpts)
+	} else {
+		created, err = servers.Create(ctx, a.compute, createOpts, nil).Extract()
+	}
+	if err != nil || created == nil || created.ID == "" {
 		return coreprovider.ResourceResult{}, servers.Server{}, safeMutationError(ctx, err, ErrServerCreate)
 	}
 	return serverResource(identity, *created), *created, nil
@@ -135,8 +143,8 @@ func (a *Adapter) waitServerActive(ctx context.Context, identity ResourceIdentit
 	ticker := time.NewTicker(a.provision.PollInterval)
 	defer ticker.Stop()
 	for {
-		item, err := servers.Get(ctx, a.compute, serverID).Extract()
-		if err != nil {
+		item, err := a.lookupServer(ctx, serverID)
+		if err != nil || item == nil || item.ID != serverID {
 			return coreprovider.ResourceResult{}, safeContextError(ctx, ErrServerGet)
 		}
 		resource := serverResource(identity, *item)
@@ -159,6 +167,10 @@ func (a *Adapter) waitSSHReady(ctx context.Context, port ports.Port, serverID st
 	if err != nil {
 		return err
 	}
+	return a.waitSSHReadyAddress(ctx, address, serverID)
+}
+
+func (a *Adapter) waitSSHReadyAddress(ctx context.Context, address, serverID string) error {
 	probe := a.sshProbe
 	if probe == nil {
 		hostIdentity, identityErr := sshHostKeyIdentity(a.provision.ProviderConnectionID, serverID)

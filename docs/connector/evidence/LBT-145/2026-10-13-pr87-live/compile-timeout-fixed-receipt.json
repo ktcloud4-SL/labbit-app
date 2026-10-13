@@ -1,0 +1,13 @@
+{
+  "mode": "compile",
+  "head": "905ed25d1f2e04022bb814b83b61fb8eaa490366",
+  "started": "2026-10-13T01:43:38.680041+00:00",
+  "finished": "2026-10-13T01:43:42.447901+00:00",
+  "exitCode": 0,
+  "overlaySourceSha256": "ff562f77cd05444b62cd715dadb27a17b5f765ceaef4ccee1bfa2153d90ac59a",
+  "runnerSha256": "750058ed708706d4f0837ed72efb6d5c551410c5d10b8454605c02fb49395492",
+  "goTestTimeout": "15m",
+  "realNetworkGate": false,
+  "vmMutations": false,
+  "sourceFilesUnmodified": true
+}

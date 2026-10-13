@@ -1,0 +1,10 @@
+{
+  "name": "go-vet",
+  "exitCode": 0,
+  "startedAtUTC": "2026-10-13T01:10:08.755412+00:00",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "vet",
+    "./..."
+  ]
+}

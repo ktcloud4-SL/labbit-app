@@ -1,0 +1,108 @@
+{
+  "testedSource": "905ed25d1f2e04022bb814b83b61fb8eaa490366",
+  "state": "PASS_OWNED_RESIDUAL_ZERO_FULL_BASELINE_RESTORED",
+  "started": "2026-10-13T01:48:31.6938267Z",
+  "finished": "2026-10-13T01:49:24.7492843Z",
+  "createdTierId": "b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+  "physicalRefId": "d299f160-b30f-4c6d-b9de-1910c64a5c9a",
+  "sharedExplicit": true,
+  "shared": false,
+  "name": "labbit-683d3cb3ea6eec280de5-m-21a3230e03772a58",
+  "nameLength": 46,
+  "cidr": "172.25.242.0/24",
+  "createdPolicyId": "e5616932-61c0-4016-afa9-66655c4cf260",
+  "confirmedResources": [
+    {
+      "ResourceType": "KT_TIER",
+      "ProviderID": "b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+      "Generation": 1,
+      "LogicalName": "workspace:management-tier",
+      "ObservedState": "ACTIVE"
+    },
+    {
+      "ResourceType": "KT_FIREWALL_POLICY",
+      "ProviderID": "e5616932-61c0-4016-afa9-66655c4cf260",
+      "Generation": 1,
+      "LogicalName": "workspace:management-ssh",
+      "ObservedState": "PRESENT"
+    }
+  ],
+  "ownedResidual": 0,
+  "fullBaselineRestored": true,
+  "basicTiers": 2,
+  "baselineNsmEntries": 3,
+  "finalNsmEntries": 3,
+  "baselinePolicies": 0,
+  "finalPolicies": 0,
+  "baselineServers": 0,
+  "finalServers": 0,
+  "vmCreated": false,
+  "sshRetested": false,
+  "publicReconcileBeforeAfter": true,
+  "publicCleanup": "SUCCEEDED",
+  "alreadyAbsentPublicCleanup": "SUCCEEDED",
+  "singleCreatePerKind": true,
+  "deleteReceipts": [
+    {
+      "at": "2026-10-13T01:49:00.3568466Z",
+      "phase": "PUBLIC_CLEANUP_CONFIRMED_IDS",
+      "method": "DELETE",
+      "route": "/nsm/v1/firewall/policy/e5616932-61c0-4016-afa9-66655c4cf260",
+      "httpStatus": 204
+    },
+    {
+      "at": "2026-10-13T01:49:20.9538678Z",
+      "phase": "PUBLIC_CLEANUP_CONFIRMED_IDS",
+      "method": "DELETE",
+      "route": "/nsm/v1/network/b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+      "httpStatus": 202,
+      "bodyStatus": 202
+    },
+    {
+      "at": "2026-10-13T01:49:22.5178449Z",
+      "phase": "ALREADY_ABSENT_PUBLIC_CLEANUP",
+      "method": "DELETE",
+      "route": "/nsm/v1/firewall/policy/e5616932-61c0-4016-afa9-66655c4cf260",
+      "httpStatus": 404,
+      "bodyStatus": 404
+    },
+    {
+      "at": "2026-10-13T01:49:22.9771443Z",
+      "phase": "ALREADY_ABSENT_PUBLIC_CLEANUP",
+      "method": "DELETE",
+      "route": "/nsm/v1/network/b10cb63d-9e5d-49c4-82b2-d7adb125c258",
+      "httpStatus": 404,
+      "bodyStatus": 404
+    }
+  ],
+  "jobStates": [
+    {
+      "at": "2026-10-13T01:48:55.8311559Z",
+      "phase": "PRODUCTION_PREPARE_NICS",
+      "method": "GET",
+      "route": "/nsm/v1/job/status/89a7b1c35a02dfe9e7efa8d3ba3f98ac",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "jobId": "89a7b1c35a02dfe9e7efa8d3ba3f98ac",
+      "jobStatus": "RUNNING"
+    },
+    {
+      "at": "2026-10-13T01:48:57.9615222Z",
+      "phase": "PRODUCTION_PREPARE_NICS",
+      "method": "GET",
+      "route": "/nsm/v1/job/status/89a7b1c35a02dfe9e7efa8d3ba3f98ac",
+      "httpStatus": 200,
+      "bodyStatus": 200,
+      "jobId": "89a7b1c35a02dfe9e7efa8d3ba3f98ac",
+      "jobStatus": "SUCCESS"
+    }
+  ],
+  "scope": "actual production prepareKTCloudNICs/createKTCloudTier/NSM + public Reconcile/Cleanup; no VM/SSH/reset/fault injection",
+  "initialReconcileLedgerSnapshotLost": true,
+  "initialReconcileProof": "executed pr87ReconcileCheck(exists=true) + live.jsonl CREATE_AND_PUBLIC_RECONCILE_PASSED at 2026-10-13T01:48:59.8246212Z; beforeCleanup raw JSON was overwritten by local pointer alias",
+  "firstCleanupSnapshotAliased": true,
+  "ledgerOriginalPreserved": true,
+  "fixtureSnapshotFixLiveTested": false,
+  "fixtureSnapshotFixLocalLeafPass": 24,
+  "snapshotFixDoesNotRetroactivelyRepairOriginalEvidence": true
+}

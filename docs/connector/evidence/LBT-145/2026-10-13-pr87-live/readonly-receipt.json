@@ -1,0 +1,10 @@
+{
+  "started": "2026-10-13T01:42:31.188813+00:00",
+  "finished": "2026-10-13T01:42:36.267046+00:00",
+  "exitCode": 0,
+  "head": "905ed25d1f2e04022bb814b83b61fb8eaa490366",
+  "gate": "LABBIT_KTCLOUD_D1_INTEGRATION=1",
+  "mutations": false,
+  "testPass": true,
+  "testSkip": false
+}

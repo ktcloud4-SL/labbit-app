@@ -1,0 +1,9 @@
+Observed API mutation: method=POST route=identity/auth/tokens status=201
+Project server count: 1
+Bootstrap: SERVER_ACTIVE_OBSERVED
+Tracked Connector VM status: ACTIVE
+Project volume count: 1
+Bootstrap: READ_ONLY_INSPECTION_COMPLETE
+Bootstrap: ACCESS_CLEANUP_IDS_CONFIRMED
+Bootstrap: BOOTSTRAP_COMPUTE_CLEANUP_ATTEMPTED
+Bootstrap: BOOTSTRAP_CLEANUP_CONFIRMED

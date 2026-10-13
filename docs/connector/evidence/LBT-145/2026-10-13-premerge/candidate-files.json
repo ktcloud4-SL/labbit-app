@@ -1,0 +1,1190 @@
+{
+  "base": "4501f447d7a8c527b17ff2e08ee1d2d2fd88a8aa",
+  "testedSource": "6a6fb4f97e676a80cfce27f85269f0627970fc9c",
+  "fullCandidateFiles": 118,
+  "files": [
+    {
+      "path": "contracts/connector/README.md",
+      "role": "owning protocol/runtime compatibility documentation/settings",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/KT-support-request.txt",
+      "role": "historical October7 evidence; current index points to October13",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/README.md",
+      "role": "historical October7 evidence; current index points to October13",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/bootstrap-cleanup.log",
+      "role": "historical October7 evidence; current index points to October13",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/control-first-attempt.log",
+      "role": "historical October7 evidence; current index points to October13",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/control-readonly-reconcile.log",
+      "role": "historical October7 evidence; current index points to October13",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/gateway-probe.json",
+      "role": "historical October7 evidence; current index points to October13",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/network-adapter-integration.log",
+      "role": "historical October7 evidence; current index points to October13",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/network-inspection.log",
+      "role": "historical October7 evidence; current index points to October13",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/op01-readonly.log",
+      "role": "historical October7 evidence; current index points to October13",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/portal-delete-observation.json",
+      "role": "historical October7 evidence; current index points to October13",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/portal-tier-delete-failure.jpg",
+      "role": "historical October7 evidence; current index points to October13",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/residual-current.json",
+      "role": "historical October7 evidence; current index points to October13",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/tier-probe.log",
+      "role": "historical October7 evidence; current index points to October13",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/INDEPENDENT_REVIEW.md",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/PRE_MERGE_AUDIT_RESULT.md",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/README.md",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/artifact-manifest.json",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/bootstrap-helper-source/access.go.txt",
+      "role": "frozen disposable execution helper (not production package)",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/bootstrap-helper-source/access_test.go.txt",
+      "role": "frozen disposable execution helper (not production package)",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/bootstrap-helper-source/baseline.go.txt",
+      "role": "frozen disposable execution helper (not production package)",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/bootstrap-helper-source/cancellation.go.txt",
+      "role": "frozen disposable execution helper (not production package)",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/bootstrap-helper-source/cancellation_test.go.txt",
+      "role": "frozen disposable execution helper (not production package)",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/bootstrap-helper-source/deploy.go.txt",
+      "role": "frozen disposable execution helper (not production package)",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/bootstrap-helper-source/main.go.txt",
+      "role": "frozen disposable execution helper (not production package)",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/bootstrap-helper-source/ownership_test.go.txt",
+      "role": "frozen disposable execution helper (not production package)",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/bootstrap-helper-source/run-phase.ps1.txt",
+      "role": "frozen disposable execution helper (not production package)",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/bootstrap-helper-source/ssh_observe.go.txt",
+      "role": "frozen disposable execution helper (not production package)",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/bootstrap-helper-source/ssh_observe_test.go.txt",
+      "role": "frozen disposable execution helper (not production package)",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/candidate-files.json",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/contracts-openapi.log",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/contracts-schema-runtime.log",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/go-build-result.json",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/go-build.log",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/go-format.log",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/go-race-result.json",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/go-race.log",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/go-test-result.json",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/go-test.log",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/go-vet-result.json",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/go-vet.log",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/helper-export-build.log",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/summary.json",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/web-build-result.json",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/web-build.log",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/web-install.log",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/web-lint-result.json",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/web-lint.log",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/web-test-result.json",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/web-test.log",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/web-typecheck-result.json",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/checks/web-typecheck.log",
+      "role": "executed automatic check receipt/raw log",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/execution-summary.json",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/kt-network.log",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/kt-readonly.log",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/access-20261013-015647.log",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/baseline-inventory.json",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/cleanup-20261013-021022.log",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/collect-20261013-020957.log",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/control-20261013-015748.log",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/create-20261013-015412.log",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/deploy-20261013-015742.log",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/final-20261013-021201.log",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/final-inventory.json",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/inventory-20261013-015312.log",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/ktcloud-bootstrap-ledger.json",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/ktcloud-connector.log",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/ktcloud-control-acceptance.log",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/ktcloud-control-ledger.json",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/ktcloud-residual-current.json",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/residual-20261013-020958.log",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/residual-20261013-021159.log",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/live/ssh-20261013-015739.log",
+      "role": "actual KT execution and exact-ID cleanup evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/network-ledger.json",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/preservation-check.json",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/publication-scan.json",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/repository-rulesets.json",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/requirements-reference.json",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/residual-before-bootstrap-cleanup.json",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/tested-source-after-live.json",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-13-premerge/tested-source-before-live.json",
+      "role": "audit, source provenance, traceability or preservation evidence",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/client.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_client.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_client_test.go",
+      "role": "unit/Fake/regression or explicitly gated actual test",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_compute.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_delete.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_fixture_ledger_test.go",
+      "role": "unit/Fake/regression or explicitly gated actual test",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_integration_test.go",
+      "role": "unit/Fake/regression or explicitly gated actual test",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_lifecycle.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_names.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_names_test.go",
+      "role": "unit/Fake/regression or explicitly gated actual test",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_network.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_network_integration_test.go",
+      "role": "unit/Fake/regression or explicitly gated actual test",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_network_test.go",
+      "role": "unit/Fake/regression or explicitly gated actual test",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_policy_ownership_test.go",
+      "role": "unit/Fake/regression or explicitly gated actual test",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_root_ownership_test.go",
+      "role": "unit/Fake/regression or explicitly gated actual test",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_topology.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_topology_test.go",
+      "role": "unit/Fake/regression or explicitly gated actual test",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/lifecycle.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/query.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/quota.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/reconciliation.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/server.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/startup.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/topology.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "internal/connector/provider/query.go",
+      "role": "production KT compatibility boundary or existing caller integration",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "runtime/README.md",
+      "role": "owning protocol/runtime compatibility documentation/settings",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "role": "owning protocol/runtime compatibility documentation/settings",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/README.md",
+      "role": "explicit-gate acceptance/recovery tool",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/main.go",
+      "role": "explicit-gate acceptance/recovery tool",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/recovery.go",
+      "role": "explicit-gate acceptance/recovery tool",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/recovery_test.go",
+      "role": "unit/Fake/regression or explicitly gated actual test",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/reset_evidence_test.go",
+      "role": "unit/Fake/regression or explicitly gated actual test",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/scope.go",
+      "role": "explicit-gate acceptance/recovery tool",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/scope_test.go",
+      "role": "unit/Fake/regression or explicitly gated actual test",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/ssh.go",
+      "role": "explicit-gate acceptance/recovery tool",
+      "requirement": "LBT-158 / LBT-145 and D-18 / D-20"
+    }
+  ],
+  "excludedUntrackedPreservedLocally": [
+    "docs/connector/evidence/LBT-145/2026-10-09/README.md",
+    "docs/connector/evidence/LBT-145/2026-10-09/bootstrap-cleanup.log",
+    "docs/connector/evidence/LBT-145/2026-10-09/connector.log",
+    "docs/connector/evidence/LBT-145/2026-10-09/control-acceptance.log",
+    "docs/connector/evidence/LBT-145/2026-10-09/control-ledger.json",
+    "docs/connector/evidence/LBT-145/2026-10-09/op01-readonly.log",
+    "docs/connector/evidence/LBT-145/2026-10-09/prior-fixture-residual.json",
+    "docs/connector/evidence/LBT-145/2026-10-09/residual-current.json",
+    "docs/connector/evidence/LBT-145/2026-10-09/tier-delete-observation.json",
+    "docs/connector/evidence/LBT-145/2026-10-09/tier-filter-diagnostic.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/FINDINGS_BEFORE_RUN.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/PRE_MERGE_AUDIT_RESULT.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/README.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/access-20261012-171023.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/candidate-source.patch",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/cleanup-20261012-174421.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/collect-20261012-171353.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/collect-20261012-171548.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/collect-20261012-171706.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/collect-20261012-171927.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/collect-20261012-172309.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/collect-20261012-172529.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/collect-20261012-172710.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/collect-20261012-173030.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/collect-20261012-173247.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/collect-20261012-173709.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/collect-20261012-173953.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/collect-20261012-174300.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/collect-20261012-174350.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/control-20261012-171128.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/create-20261012-170531.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/deploy-20261012-171114.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/evidence-checks-tests.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/evidence_checks.py.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/evidence_checks_test.py.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/export-results.py.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/export-verification.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/final-artifact-verification.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/final-execution-receipt.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/full-diff-local-status.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/full-diff-tracked-files.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/full-diff-untracked-files.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/independent-review.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/inspect-20261012-165740.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/inspect-20261012-171012.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/inspect-20261012-174608.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/inventory-20261012-165606.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/ktcloud-bootstrap-ledger.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/ktcloud-connector.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/ktcloud-control-acceptance.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/ktcloud-control-ledger.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/ktcloud-generation-timing-ledger.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/ktcloud-residual-current.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/ktcloud-ssh-monitor.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/ktcloud-ssh-timing-results.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-bootstrap-source-v2/access.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-bootstrap-source-v2/access_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-bootstrap-source-v2/deploy.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-bootstrap-source-v2/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-bootstrap-source-v2/ssh_observe.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-bootstrap-source-v2/ssh_observe_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-bootstrap-source/access.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-bootstrap-source/access_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-bootstrap-source/deploy.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-bootstrap-source/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-bootstrap-source/ssh_observe.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-bootstrap-source/ssh_observe_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source-v2/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source-v2/reset_evidence_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source-v2/scope.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source-v2/scope_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source-v2/ssh.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source-v2/timing.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source-v2/timing_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source/reset_evidence_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source/scope.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source/scope_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source/ssh.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source/timing.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-harness-source/timing_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-monitor-source-v2/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-monitor-source-v2/main_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-monitor-source-v2/timing.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-monitor-source-v2/timing_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-monitor-source/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-monitor-source/main_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-monitor-source/timing.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/lbt145-five-timing-monitor-source/timing_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/network-inventory-20261012-165629.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/network-inventory-20261012-174651.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/process-check.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/process-check.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/production-binary-build-info.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/report-optimized-rejection.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/residual-20261012-174405.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/residual-20261012-174609.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/resource-id-table.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/run-phase.ps1.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/source-verification-before-create.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/ssh-20261012-171103.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/ssot-versions.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/tested-source-before-live-v2.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/tested-source-before-live.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/timing-tests-corrected-contract.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/timing-tests-final-profile.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/timing-tests-final.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/timing-tests-pre-live-final.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/timing-tests.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/timing-vet-final.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/timing-vet.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-five-generation-timing/verification-results.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/PRE_MERGE_AUDIT_RESULT.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/README.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/access-20261012-124926.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/bootstrap-candidate-source.patch",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/bootstrap-helper-source/access.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/bootstrap-helper-source/access_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/bootstrap-helper-source/deploy.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/bootstrap-helper-source/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/bootstrap-helper-source/run-phase.ps1.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/bootstrap-source-before-live.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/candidate-source.patch",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/cleanup-20261012-130715.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/collect-20261012-125909.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/collect-20261012-130133.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/collect-20261012-130406.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/control-20261012-125357.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/create-20261012-124847.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/deploy-20261012-125336.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/export-verification.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/format-repository.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/full-diff-file-list.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/go-build.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/go-test.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/go-vet.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/harness-regression.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/independent-review.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/inspect-20261012-130020.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/inspect-20261012-130823.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/inventory-20261012-124822.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/ktcloud-bootstrap-ledger.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/ktcloud-connector.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/ktcloud-control-acceptance.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/ktcloud-control-ledger.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/ktcloud-residual-current.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/network-inventory-20261012-124824.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/network-inventory-20261012-130011.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/network-inventory-20261012-130827.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/post-failure-diagnostic.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/reality-20261012-130159.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/residual-20261012-130531.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/residual-20261012-130824.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/source-capture-transition.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/ssh-20261012-125238.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/ssh-config-diagnostic-source.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/ssh-config-diagnostic.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/tested-source-before-live.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-lifecycle/verification-results.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/FINDINGS_BEFORE_RUN.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/PRE_MERGE_AUDIT_RESULT.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/README.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/baseline-inventory.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/boot-journal.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/cloud-init-final-status.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/cloud-init-output.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/cloud-init-status.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/cloud-init.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/collection-receipt.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/collection-verified-before-delete.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/connection-observations.jsonl",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/console-after-collection.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/console-attempt-001.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/diagnostic-source/access.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/diagnostic-source/access_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/diagnostic-source/diagnostic.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/diagnostic-source/diagnostic_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/diagnostic-source/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/diagnostic-source/ownership_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/diagnostic-source/ssh_observe.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/diagnostic-source/ssh_observe_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/execution-result.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/export-verification.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/file-manifest.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/final-inventory.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/helper-tests-final.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/helper-tests-ownership-fixture-failed.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/helper-tests.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/helper-vet-final.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/identity-and-boot.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/independent-review.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/inventory-20261012-222954.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/ktcloud-bootstrap-ledger.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/owned-before-cleanup.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/pam-and-ssh-configuration.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/prior-source-verification.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/run-20261012-223823.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/run-phase.ps1.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/single-diag-evidence.py.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/single-diag-verify.py.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/source-verification-before-run.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/ssh-and-session-journal.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/startup-result.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/tested-source.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-single-ssh-diagnostic/verification-results.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/FINDINGS_BEFORE_FIX.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/PRE_MERGE_AUDIT_RESULT.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/README.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/artifact-manifest.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/candidate-before.patch",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/client.go.scope.patch",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/collect_local_evidence.py.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/diff-check.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/executed-provider-top-level-tests.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/execution-receipts.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/final-verification.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/full-candidate-files.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/full-candidate-source.patch",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/gofmt-check.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/gofmt-managed-check.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/gofmt-scope-check.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/independent-review.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/make-go-checks-before-caller-fix.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/make-go-checks.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/provider-race-before-caller-fix.jsonl",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/provider-race.jsonl",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/server.go.scope.patch",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/source-snapshot/internal/connector/provider/openstack/client.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_names.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_names_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/source-snapshot/internal/connector/provider/openstack/server.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/source-snapshot/internal/connector/provider/openstack/ssh_readiness.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/source-snapshot/internal/connector/provider/openstack/ssh_readiness_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/source-snapshot/internal/connector/provider/openstack/startup.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/source-snapshot/tools/ktcloud-d1-acceptance/reset_evidence_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/source-snapshot/tools/ktcloud-d1-acceptance/scope.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/source-snapshot/tools/ktcloud-d1-acceptance/scope_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/ssh-ready-tests-final.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/ssh-ready-tests-first.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/ssot-read-receipts.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/startup.go.scope.patch",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/status-after.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/status-before.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/tested-source-manifest.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/web-build.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/web-lint.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/web-test.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-ready-code/web-typecheck.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/FINDINGS_BEFORE_RECHECK.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/PRE_MERGE_AUDIT_RESULT.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/README.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/access-20261012-155443.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/additional-read-only-diagnostic-source/lbt145-console-observer/access.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/additional-read-only-diagnostic-source/lbt145-console-observer/console.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/additional-read-only-diagnostic-source/lbt145-console-observer/deploy.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/additional-read-only-diagnostic-source/lbt145-console-observer/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/additional-read-only-diagnostic-source/lbt145-console-observer/ssh_observe.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/additional-read-only-diagnostic-source/lbt145-process-check/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/additional-read-only-diagnostic.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-before-review/access.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-before-review/access_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-before-review/deploy.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-before-review/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-before-review/run-phase.ps1.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-before-review/ssh_observe.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-before-review/ssh_observe_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-source/access.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-source/access_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-source/deploy.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-source/export-results.py.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-source/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-source/run-phase.ps1.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-source/snapshot-source.py.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-source/ssh_observe.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-helper-source/ssh_observe_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/bootstrap-source-before-review.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/candidate-source.patch",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/cleanup-20261012-161320.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/collect-20261012-161227.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/collect-20261012-161316.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/control-20261012-155541.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/create-20261012-155013.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/deploy-20261012-155533.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/diagnostic-tests-after-review.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/diagnostic-tests-final.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/diagnostic-tests.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/diagnostic-validation.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/diagnostic-vet-all.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/diagnostic-vet-final.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/diagnostic-vet.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/export-verification.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/full-diff-file-list.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/guest-console-observation.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/independent-review.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/inspect-20261012-154959.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/inspect-20261012-155441.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/inspect-20261012-161500.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/inventory-20261012-154933.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ktcloud-bootstrap-ledger.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ktcloud-connector.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ktcloud-control-acceptance.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ktcloud-control-ledger.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ktcloud-residual-current.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ktcloud-ssh-monitor.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/network-inventory-20261012-154936.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/network-inventory-20261012-161503.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/process-check.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/residual-20261012-161318.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/residual-20261012-161501.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/resource-id-table.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/source-capture-transition.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-20261012-155504.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-monitor-source/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-monitor-source/main_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-observation-summary.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-observe-20261012-155611.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-observe-20261012-155712.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-observe-20261012-155815.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-observe-20261012-155912.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-observe-20261012-160049.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-observe-20261012-160225.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-observe-20261012-160304.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-observe-20261012-160500.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-observe-20261012-160618.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-observe-20261012-160913.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssh-observe-20261012-161204.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/ssot-versions.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/tested-source-before-live.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-ssh-recheck/verification-results.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/PRE_MERGE_AUDIT_RESULT.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/README.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/access-20261012-122521.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/bootstrap-helper-source/access.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/bootstrap-helper-source/access_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/bootstrap-helper-source/deploy.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/bootstrap-helper-source/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/bootstrap-helper-source/run-phase.ps1.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/candidate-source.patch",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/cleanup-20261012-123505.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/collect-20261012-122852.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/collect-20261012-123252.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/collect-20261012-123451.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/control-20261012-122615.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/create-20261012-122449.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/deploy-20261012-122603.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/export-verification.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/format-repository.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/format.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/full-diff-file-list.txt",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/go-build.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/go-test.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/go-vet.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/harness-regression.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/helper-regression.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/independent-review.md",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/inspect-20261012-122809.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/inspect-20261012-123327.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/inspect-20261012-123558.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/inventory-20261012-122028.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/ktcloud-bootstrap-ledger.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/ktcloud-connector.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/ktcloud-control-acceptance.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/ktcloud-control-ledger.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/ktcloud-residual-current.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/network-inventory-20261012-122434.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/network-inventory-20261012-122818.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/network-inventory-20261012-123453.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/network-inventory-20261012-123601.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/residual-20261012-123559.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/ssh-20261012-122555.log",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/tested-source-before-live.json",
+    "docs/connector/evidence/LBT-145/2026-10-12-vm-used/verification-results.json",
+    "docs/connector/evidence/LBT-145/2026-10-12/PRE_MERGE_AUDIT_RESULT.md",
+    "docs/connector/evidence/LBT-145/2026-10-12/README.md",
+    "docs/connector/evidence/LBT-145/2026-10-12/contracts.log",
+    "docs/connector/evidence/LBT-145/2026-10-12/go-test.log",
+    "docs/connector/evidence/LBT-145/2026-10-12/independent-review.md",
+    "docs/connector/evidence/LBT-145/2026-10-12/naming-change.patch",
+    "docs/connector/evidence/LBT-145/2026-10-12/naming-regression.log",
+    "docs/connector/evidence/LBT-145/2026-10-12/network-after.log",
+    "docs/connector/evidence/LBT-145/2026-10-12/readonly.log",
+    "docs/connector/evidence/LBT-145/2026-10-12/short-tier-integration.log",
+    "docs/connector/evidence/LBT-145/2026-10-12/short-tier-ledger.json",
+    "docs/connector/evidence/LBT-145/2026-10-12/source-manifest.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/Findings-before-run.md",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/PRE_MERGE_AUDIT_RESULT.md",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/README.md",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/access-20261013-000227.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/artifact-manifest.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/baseline-inventory.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/binary-manifest.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/bootstrap-owned-ledger-redacted.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/cleanup-20261013-000955.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/collect-20261013-000529.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/collect-20261013-000715.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/collect-20261013-000908.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/collect-20261013-000951.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/connector-log-redacted.jsonl",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/control-20261013-000422.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/create-20261013-000153.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/deploy-20261013-000416.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/ephemeral-key-cleanup.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/evidence-patch-verification.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/execution-receipts.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/export-ssh-ready-live.py.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/final-20261013-001143.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/final-inventory.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/finalize-ssh-ready-live-evidence.py.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/full-candidate-files.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/full-candidate-source.patch",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-manifest.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-process-check__main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-run-2026-10-12-ssh-ready-live__run-phase.ps1",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-bootstrap__access.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-bootstrap__access_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-bootstrap__baseline.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-bootstrap__cancellation.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-bootstrap__cancellation_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-bootstrap__deploy.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-bootstrap__main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-bootstrap__ownership_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-bootstrap__ssh_observe.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-bootstrap__ssh_observe_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-harness__live_scope.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-harness__live_scope_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-harness__main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-harness__process_lifetime.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-harness__process_lifetime_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-harness__reset_evidence_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-harness__scope.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-harness__scope_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-harness__ssh.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-harness__timing.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-source-snapshot/.local__lbt145-ssh-ready-live-harness__timing_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/helper-tests.jsonl",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/independent-review.md",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/inventory-20261012-235656.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/ktcloud-control-acceptance.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/ktcloud-control-ledger.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/ktcloud-residual-current.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/process-check.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/production-ssh-ready-events.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/residual-20261013-000953.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/residual-20261013-001141.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/contracts/connector/README.md.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/client.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_client.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_client_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_compute.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_delete.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_integration_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_lifecycle.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_names.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_names_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_network.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_network_integration_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_network_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_topology.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_topology_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/lifecycle.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/provision.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/query.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/quota.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/reconciliation.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/server.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ssh_readiness.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/ssh_readiness_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/startup.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/terminal_target.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/openstack/topology.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/internal/connector/provider/query.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/runtime/README.md.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/runtime/contract.yaml.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/tools/ktcloud-d1-acceptance/README.md.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/tools/ktcloud-d1-acceptance/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/tools/ktcloud-d1-acceptance/reset_evidence_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/tools/ktcloud-d1-acceptance/scope.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/tools/ktcloud-d1-acceptance/scope_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/source-snapshot/tools/ktcloud-d1-acceptance/ssh.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/ssh-20261013-000245.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/ssh-20261013-000406.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/ssh-ready-initial-observations.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/ssot-read-receipts.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/tested-source-manifest.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/verification-summary.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-live/working-tree-source.patch",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/FINDINGS_BEFORE_REVERT.md",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/PRE_MERGE_AUDIT_RESULT.md",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/README.md",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/after-patch-reverse-check.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/artifact-manifest.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/audit_revert.py.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/base-to-head.patch",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/branch-before.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/capture-summary.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/classification.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/completion-receipt.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/exact-baseline/internal/connector/provider/openstack/client.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/exact-baseline/internal/connector/provider/openstack/server.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/exact-baseline/internal/connector/provider/openstack/startup.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/full-candidate-after.patch",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/full-candidate-before.patch",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/full-candidate-source-files.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/git-diff-check.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/go-build-result.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/go-build.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/go-provider-race-result.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/go-provider-race-summary.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/go-provider-race.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/go-test-result.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/go-test-summary.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/go-test.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/go-vet-result.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/go-vet.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/gofmt-result.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/head-before.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/independent-review.md",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/optimized-guard-check.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/original-ssh-ready-candidate-before.patch",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/original-ssh-ready-status-before.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/patch-validation.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/preservation-verification.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/preserved-evidence-before.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/preserved-helpers-before.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/remaining-working-tree.patch",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/run_local_checks.py.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/selective-revert.patch",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/snapshot-export-verification.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-after-manifest.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-before-manifest.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/contracts/connector/README.md.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/client.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_client.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_client_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_compute.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_delete.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_integration_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_lifecycle.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_names.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_names_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_network.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_network_integration_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_network_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_topology.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/ktcloud_d1_topology_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/lifecycle.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/provision.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/query.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/quota.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/reconciliation.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/server.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/startup.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/terminal_target.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/openstack/topology.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/internal/connector/provider/query.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/runtime/README.md.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/runtime/contract.yaml.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/tools/ktcloud-d1-acceptance/README.md.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/tools/ktcloud-d1-acceptance/main.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/tools/ktcloud-d1-acceptance/reset_evidence_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/tools/ktcloud-d1-acceptance/scope.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/tools/ktcloud-d1-acceptance/scope_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/source-snapshot/tools/ktcloud-d1-acceptance/ssh.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/ssot-1.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/ssot-2.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/ssot-3.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/ssot-4.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/ssot-5.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/ssot-6.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/ssot-7.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/staged-before.patch",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/status-after.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/status-before.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/target-before/internal/connector/provider/openstack/client.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/target-before/internal/connector/provider/openstack/server.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/target-before/internal/connector/provider/openstack/ssh_readiness.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/target-before/internal/connector/provider/openstack/ssh_readiness_test.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/target-before/internal/connector/provider/openstack/startup.go.txt",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/unstaged-before.patch",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/verification-summary.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/web-build-result.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/web-build.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/web-checks-summary.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/web-lint-result.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/web-lint.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/web-test-result.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/web-test.log",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/web-typecheck-result.json",
+    "docs/connector/evidence/LBT-145/2026-10-13-ssh-ready-revert/web-typecheck.log",
+    "web/pnpm-lock.yaml"
+  ],
+  "ignoredExecutionDependencies": ".local/premerge-20261013, protected customer clouds.yaml/SSH key; helper source exported, secret values excluded"
+}

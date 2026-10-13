@@ -1,0 +1,17 @@
+param([Parameter(Mandatory=$true)][string]$Phase)
+$ErrorActionPreference='Stop'
+$env:LABBIT_KTCLOUD_D1_BOOTSTRAP='1'
+$env:LBT145_PREMERGE_LIVE_TEST='1'
+$env:LABBIT_PROVIDER_CONFIG_FILE='C:\Users\user\.config\openstack\ktcloud-d1\clouds.yaml'
+$env:OS_CLOUD='ktcloud-d1'
+$env:LBT145_BOOTSTRAP_LEDGER=Join-Path $PSScriptRoot 'ktcloud-bootstrap-ledger.json'
+$env:LBT145_BOOTSTRAP_KEY='C:\Users\user\.config\openstack\ktcloud-d1\lbt158-premerge-20261013.pem'
+$env:LBT145_BOOTSTRAP_FLAVOR='2x4.itl'
+$env:LBT145_BOOTSTRAP_STRICT_DOCUMENTED='1'
+$env:LBT145_CONTROL_GENERATIONS='2'
+$env:LBT145_CONTROL_RECOVERY='0'
+$env:LBT145_CONTROL_RECOVERY_READ_ONLY='0'
+$env:LBT145_BOOTSTRAP_PHASE=$Phase
+$log=Join-Path $PSScriptRoot ($Phase+'-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'.log')
+& (Join-Path $PSScriptRoot 'bootstrap.exe') | Tee-Object -FilePath $log
+exit $LASTEXITCODE

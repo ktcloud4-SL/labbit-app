@@ -1,0 +1,8 @@
+Tier probe: READ_ONLY_PREFLIGHT
+Tier probe: CREATE_ATTEMPTED
+Tier probe: CREATE_ID_CONFIRMED
+Tier probe: ACTIVE_AND_DISTINCT_REF_ID_CONFIRMED
+networkId differs from refId: true
+Tier probe: DELETE_ATTEMPTED
+Tier probe: DELETED_AND_ABSENCE_CONFIRMED
+Test-owned Tier residual: 0 ; baseline count: 3 ; final count: 3

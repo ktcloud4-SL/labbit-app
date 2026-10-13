@@ -1,0 +1,7 @@
+Observed API mutation: method=POST route=identity/auth/tokens status=201
+Connector host: Linux
+x86_64
+labbit
+
+status: done
+Bootstrap: BOOTSTRAP_AUTHENTICATED_SSH_PASS

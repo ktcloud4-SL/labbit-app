@@ -1,0 +1,38 @@
+from pathlib import Path
+import sys, subprocess, json, datetime
+root=Path.cwd(); out=root/'.local/pr87-review-20261013/checks'
+sys.path.insert(0,str(root/'.local/contract-validators'))
+import yaml
+from openapi_spec_validator import validate_spec
+from openapi_spec_validator.readers import read_from_filename
+gofmt=r'C:\Users\user\AppData\Local\Programs\Go-1.27.1\go\bin\gofmt.exe'
+paths=[s for s in subprocess.check_output(['git','ls-files'],text=True).splitlines() if s.endswith('.go')]
+fail=[]
+for rel in paths:
+    raw=(root/rel).read_bytes().replace(b'\r\n',b'\n')
+    p=subprocess.run([gofmt],input=raw,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    if p.returncode or p.stdout!=raw: fail.append(rel)
+fmt={'sourceHead':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(), 'checkedFiles':len(paths), 'normalization':'Git-published LF', 'mismatches':fail}
+(out/'format-result.json').write_text(json.dumps(fmt,indent=2)+'\n',encoding='utf-8')
+print(json.dumps(fmt),flush=True)
+workflow=yaml.safe_load((root/'.github/workflows/contracts.yml').read_text(encoding='utf-8'))
+steps=workflow['jobs']['validate']['steps']
+with (out/'contracts.log').open('w',encoding='utf-8') as log:
+    document,base_uri=read_from_filename(str(root/'contracts/http/openapi.yaml'))
+    validate_spec(document,base_uri=base_uri)
+    print('OpenAPI validation: OK',file=log)
+    for step in steps:
+        script=step.get('run','')
+        if "python <<'PY'" in script:
+            code=script.split("python <<'PY'\n",1)[1].rsplit('\nPY',1)[0]
+            old_stdout=sys.stdout
+            try:
+                sys.stdout=log
+                exec(compile(code,'.github/workflows/contracts.yml:'+step['name'],'exec'),{})
+            finally: sys.stdout=old_stdout
+    print('Contracts Connector Reset schema behavior:',file=log)
+    p=subprocess.run([sys.executable,'contracts/connector/tests/test_reset_schema.py'],cwd=root,stdout=log,stderr=subprocess.STDOUT,env={**__import__('os').environ,'PYTHONPATH':str(root/'.local/contract-validators')})
+result={'sourceHead':fmt['sourceHead'], 'verifiedAtUTC':datetime.datetime.now(datetime.timezone.utc).isoformat(), 'openapi':True, 'jsonSchemas':len(list((root/'contracts').rglob('*.json'))),'localRefs':True,'runtimeMigrationMetadata':True,'resetSchemaExitCode':p.returncode,'formatExitCode':1 if fail else 0}
+(out/'contracts-result.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
+print(json.dumps(result),flush=True)
+raise SystemExit(1 if fail or p.returncode else 0)

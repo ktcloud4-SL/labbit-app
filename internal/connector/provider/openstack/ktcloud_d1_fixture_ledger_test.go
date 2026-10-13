@@ -13,6 +13,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // Fixture-only ledger, held open through cleanup. Existing paths (including
@@ -40,6 +41,92 @@ func TestKTFixtureCleanupDoesNotAdoptMatchingCandidates(t *testing.T) {
 			}
 			if requests.Load() != 0 {
 				t.Fatal("unconfirmed cleanup searched or deleted a candidate")
+			}
+		})
+	}
+}
+
+func TestKTFixtureTierOwnershipBeforePolicyAndCleanup(t *testing.T) {
+	for _, scenario := range []string{"valid", "body409", "body500", "baseline ID", "wrong name", "wrong CIDR", "shared true", "shared missing", "shared null", "unconfirmed lookup failure", "confirmed BUILD then lookup failure"} {
+		t.Run(scenario, func(t *testing.T) {
+			created, deleted := false, false
+			posts, policyPosts, deletes, postReads := 0, 0, 0, 0
+			a := ktTopologyAdapter(t, func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.Method == http.MethodPost && r.URL.Path == "/compute/v2/nsm/network":
+					posts++
+					created = true
+					status, code := 201, 201
+					if scenario == "body409" || scenario == "body500" {
+						status, code = 200, 409
+						if scenario == "body500" {
+							code = 500
+						}
+					}
+					writeJSON(t, w, status, map[string]any{"httpStatus": code, "data": map[string]any{"networkId": "receipt-tier"}})
+				case r.Method == http.MethodPost && r.URL.Path == "/compute/v2/nsm/firewall/policy":
+					policyPosts++
+					writeJSON(t, w, 202, map[string]any{"httpStatus": 202, "jobId": "job"})
+				case r.Method == http.MethodDelete && r.URL.Path == "/compute/v2/nsm/network/receipt-tier":
+					deletes++
+					deleted = true
+					w.WriteHeader(204)
+				case r.Method == http.MethodGet && r.URL.Path == "/compute/v2/nsm/network":
+					if created && !deleted {
+						postReads++
+						if scenario == "unconfirmed lookup failure" || (scenario == "confirmed BUILD then lookup failure" && postReads > 1) {
+							w.WriteHeader(503)
+							return
+						}
+					}
+					items := []any{}
+					if (created || scenario == "baseline ID") && !deleted {
+						tier := map[string]any{"networkId": "receipt-tier", "networkName": "owned-tier", "cidr": "172.25.242.0/24", "refId": "physical-ref", "status": "ACTIVE", "shared": false}
+						switch scenario {
+						case "baseline ID":
+							if !created {
+								tier["networkName"], tier["cidr"] = "baseline-tier", "172.25.243.0/24"
+							}
+						case "wrong name":
+							tier["networkName"] = "foreign-tier"
+						case "wrong CIDR":
+							tier["cidr"] = "172.25.243.0/24"
+						case "shared true":
+							tier["shared"] = true
+						case "shared missing":
+							delete(tier, "shared")
+						case "shared null":
+							tier["shared"] = nil
+						case "confirmed BUILD then lookup failure":
+							tier["status"] = "BUILD"
+						}
+						items = append(items, tier)
+					}
+					writeJSON(t, w, 200, map[string]any{"httpStatus": 200, "pagination": map[string]any{"total": len(items), "offset": 0}, "data": items})
+				default:
+					t.Errorf("unexpected fixture request: %s %s", r.Method, r.URL.Path)
+					w.WriteHeader(500)
+				}
+			})
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			_, ownedID, err := createKTFixtureTier(ctx, a, "owned-tier", "172.25.242.0/24")
+			if err == nil {
+				_, err = a.ktNetwork.createPolicy(context.Background(), ktCloudFirewallSpec{Accept: true, Source: []string{"connector"}, Destination: []string{ownedID}, Comment: "fixture"})
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			cleanupErr := cleanupKTFixtureKnownResources(context.Background(), a.ktNetwork, ownedID, "", false)
+			confirmed := scenario == "valid" || scenario == "confirmed BUILD then lookup failure"
+			if (ownedID != "") != confirmed || (cleanupErr == nil) != confirmed || (deletes == 1) != confirmed || posts != 1 {
+				t.Fatalf("fixture cleanup authority incorrect: id=%q cleanupErr=%v deletes=%d posts=%d", ownedID, cleanupErr, deletes, posts)
+			}
+			if (policyPosts == 1) != (scenario == "valid") {
+				t.Fatalf("unconfirmed Tier used for policy creation: policyPosts=%d", policyPosts)
+			}
+			if (scenario == "valid") != (err == nil) {
+				t.Fatalf("unexpected create outcome: %v", err)
 			}
 		})
 	}

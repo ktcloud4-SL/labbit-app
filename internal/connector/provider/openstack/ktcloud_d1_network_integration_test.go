@@ -10,7 +10,6 @@ import (
 	"net/netip"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 )
@@ -135,32 +134,20 @@ func TestKTCloudD1DisposableNetworkIntegration(t *testing.T) {
 		t.Logf("NSM fixture residual=0; Tier count %d -> %d, policy count %d -> %d; no VM was created", len(baseline), len(finalTiers), len(policies), len(finalPolicies))
 	})
 	save("TIER_CREATE_ATTEMPTED")
-	receipt, err := n.createTier(ctx, name, prefix.String())
-	state.TierID = receipt.Data.ID
-	save("TIER_CREATE_RESPONSE_RECORDED")
+	tier, ownedID, err := createKTFixtureTier(ctx, a, name, prefix.String())
+	state.TierID = ownedID
+	save("TIER_CREATE_RESULT_RECORDED")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !waitKTFixture(ctx, func() (bool, error) {
-		item, exists, e := n.tier(ctx, state.TierID)
-		if e != nil {
-			return false, e
-		}
-		if exists && strings.EqualFold(item.Status, "ACTIVE") && item.RefID != "" {
-			state.RefID = item.RefID
-			return true, nil
-		}
-		return false, nil
-	}) {
-		t.Fatal("Tier did not become ACTIVE with a physical refId")
-	}
+	state.RefID = tier.RefID
 	if state.TierID == state.RefID {
 		t.Fatal("unexpected Tier UUID/refId identity; mapping requires investigation")
 	}
 	save("TIER_ACTIVE_DISTINCT_REF_CONFIRMED")
 	state.PolicyAttempted = true
 	save("POLICY_CREATE_ATTEMPTED")
-	receipt, err = n.createPolicy(ctx, ktCloudFirewallSpec{Accept: true, Protocol: "TCP", Start: "22", End: "22", Source: []string{connectorTier}, Destination: []string{state.TierID}, SourceIPs: []string{source.String()}, Comment: comment})
+	receipt, err := n.createPolicy(ctx, ktCloudFirewallSpec{Accept: true, Protocol: "TCP", Start: "22", End: "22", Source: []string{connectorTier}, Destination: []string{state.TierID}, SourceIPs: []string{source.String()}, Comment: comment})
 	state.PolicyJobID = receipt.JobID
 	save("POLICY_JOB_RECORDED")
 	if err != nil {
@@ -197,6 +184,18 @@ func TestKTCloudD1DisposableNetworkIntegration(t *testing.T) {
 	}
 	save("POLICY_MAPPING_CONFIRMED")
 	t.Log("NSM create/list/job/delete API mapping PASS; Tier UUID and Nova network refId remain distinct")
+}
+
+func createKTFixtureTier(ctx context.Context, a *Adapter, name, cidr string) (ktCloudTier, string, error) {
+	// Reuse production ownership confirmation, including preservation of a
+	// matching BUILD ref after an uncertain observation. A receipt ID alone
+	// must never authorize the fixture's deferred cleanup.
+	tier, resources, err := a.createKTCloudTier(ctx, resourceIdentity(1, "fixture-tier"), name, cidr, nil)
+	ownedID := ""
+	if len(resources) == 1 {
+		ownedID = resources[0].ProviderID
+	}
+	return tier, ownedID, err
 }
 
 func waitKTFixture(ctx context.Context, check func() (bool, error)) bool {

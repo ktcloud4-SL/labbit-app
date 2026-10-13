@@ -110,6 +110,12 @@ const (
 
 	// CloseMessageTooBig 은 1 MiB 초과 시 사용하는 WebSocket close code (1009)
 	CloseMessageTooBig = 1009
+
+	// CloseCredentialRevoked 는 Connector Credential revoke 시 사용하는 WebSocket close code (4001, contracts/connector §15)
+	CloseCredentialRevoked = 4001
+
+	// CloseSessionReplaced 는 같은 Connector의 새 Control connection이 기존 connection을 대체할 때 사용하는 WebSocket close code (4002, contracts/connector §15)
+	CloseSessionReplaced = 4002
 )
 
 // HelloPayload 는 HELLO 메시지 본문입니다.

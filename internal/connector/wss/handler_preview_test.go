@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/mock"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
@@ -1018,5 +1019,272 @@ func TestHandler_PreviewOpen_AttachTimeout_ReturnsUnavailableErrorCode(t *testin
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatalf("timeout waiting for PREVIEW_OPEN_RESULT FAILED")
+	}
+}
+
+// TestHandler_ControlTrustTermination_4001_CleansUpIdlePreviewSessions 은
+// Data WSS 가 정상(1000) 종료되어 logical PreviewSession 만 남은 상태에서
+// Control WSS 가 4001(Credential Revoke)로 종료될 때,
+// logical PreviewSession 이 Connector 메모리(SessionManager)에서 완전히 제거되는지 검증합니다.
+func TestHandler_ControlTrustTermination_4001_CleansUpIdlePreviewSessions(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen: %v", err)
+	}
+	defer listener.Close()
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+
+	mockProv := &provider.MockProvider{}
+	sentMessages := make(chan interface{}, 10)
+	sender := wss.SendMessageFunc(func(ctx context.Context, msg interface{}) error {
+		sentMessages <- msg
+		return nil
+	})
+
+	h := wss.NewHandler(mockProv, sender)
+	forwarder := preview.NewDirectTCPForwarder(nil)
+	mgr := preview.NewSessionManager(forwarder, nil)
+
+	h.SetPreviewManager(mgr, preview.DataWSSClientConfig{
+		EndpointURL:   gateway.URL(),
+		Credential:    "valid-token",
+		RuntimeID:     "runtime-test-4001",
+		AllowInsecure: true,
+	})
+
+	sessID := "preview-idle-sess-4001"
+	openReq := protocol.PreviewOpenMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:             protocol.MessageTypePreviewOpen,
+			MessageID:        "open-msg-4001",
+			SentAt:           time.Now().UTC(),
+			PreviewSessionID: sessID,
+			LabInstanceID:    "inst-1",
+			Generation:       1,
+		},
+		Payload: protocol.PreviewOpenPayload{
+			TargetVmKey:      "vm-web-1",
+			ProviderServerID: "srv-uuid-1",
+			TargetPort:       port,
+		},
+	}
+	openRaw, _ := json.Marshal(openReq)
+
+	if err := h.HandleMessage(context.Background(), openRaw); err != nil {
+		t.Fatalf("HandleMessage(PREVIEW_OPEN) failed: %v", err)
+	}
+
+	// Gateway 측 ATTACH 수신 대기
+	if _, err := gateway.WaitForAttach(2 * time.Second); err != nil {
+		t.Fatalf("WaitForAttach failed: %v", err)
+	}
+
+	if mgr.Count() != 1 {
+		t.Fatalf("expected 1 session in manager, got %d", mgr.Count())
+	}
+
+	// 1. Data WSS 가 정상 1000 으로 종료 (upstream 작업 완료)
+	if err := gateway.SendClose(1000, "normal closure"); err != nil {
+		t.Fatalf("SendClose failed: %v", err)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Data WSS 1000 정상 종료 후에는 순차 터널 계약에 따라 logical session 이 유지되어야 함
+	if mgr.Count() != 1 {
+		t.Fatalf("expected logical session preserved on 1000 close, got %d", mgr.Count())
+	}
+	sess, exists := mgr.GetSession(sessID)
+	if !exists || sess.IsDestroyed() {
+		t.Fatalf("expected session alive in manager")
+	}
+
+	// 2. Control WSS 가 4001 (Credential Revoke)로 명시적 trust termination
+	h.OnControlDisconnected(&websocket.CloseError{
+		Code: 4001,
+		Text: "credential revoked",
+	})
+
+	// 3. Manager 에서 모든 logical session 이 즉시 정리되어야 함
+	if mgr.Count() != 0 {
+		t.Fatalf("expected manager count 0 after Control 4001, got %d", mgr.Count())
+	}
+	if _, exists := mgr.GetSession(sessID); exists {
+		t.Fatalf("expected session removed from manager after Control 4001")
+	}
+	if !sess.IsDestroyed() {
+		t.Fatalf("expected session destroyed after Control 4001")
+	}
+}
+
+// TestHandler_ControlTrustTermination_4002_CleansUpIdlePreviewSessions 은
+// Data WSS 가 정상(1000) 종료된 후 Control WSS 가 4002(Control Session Replaced)로 종료될 때
+// logical PreviewSession 이 Connector 메모리에서 완전히 제거되는지 검증합니다.
+func TestHandler_ControlTrustTermination_4002_CleansUpIdlePreviewSessions(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen: %v", err)
+	}
+	defer listener.Close()
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+
+	mockProv := &provider.MockProvider{}
+	sentMessages := make(chan interface{}, 10)
+	sender := wss.SendMessageFunc(func(ctx context.Context, msg interface{}) error {
+		sentMessages <- msg
+		return nil
+	})
+
+	h := wss.NewHandler(mockProv, sender)
+	forwarder := preview.NewDirectTCPForwarder(nil)
+	mgr := preview.NewSessionManager(forwarder, nil)
+
+	h.SetPreviewManager(mgr, preview.DataWSSClientConfig{
+		EndpointURL:   gateway.URL(),
+		Credential:    "valid-token",
+		RuntimeID:     "runtime-test-4002",
+		AllowInsecure: true,
+	})
+
+	sessID := "preview-idle-sess-4002"
+	openReq := protocol.PreviewOpenMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:             protocol.MessageTypePreviewOpen,
+			MessageID:        "open-msg-4002",
+			SentAt:           time.Now().UTC(),
+			PreviewSessionID: sessID,
+			LabInstanceID:    "inst-1",
+			Generation:       1,
+		},
+		Payload: protocol.PreviewOpenPayload{
+			TargetVmKey:      "vm-web-1",
+			ProviderServerID: "srv-uuid-1",
+			TargetPort:       port,
+		},
+	}
+	openRaw, _ := json.Marshal(openReq)
+
+	if err := h.HandleMessage(context.Background(), openRaw); err != nil {
+		t.Fatalf("HandleMessage(PREVIEW_OPEN) failed: %v", err)
+	}
+
+	if _, err := gateway.WaitForAttach(2 * time.Second); err != nil {
+		t.Fatalf("WaitForAttach failed: %v", err)
+	}
+
+	// 1. Data WSS 가 정상 1000 으로 종료
+	if err := gateway.SendClose(1000, "normal closure"); err != nil {
+		t.Fatalf("SendClose failed: %v", err)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	if mgr.Count() != 1 {
+		t.Fatalf("expected logical session preserved on 1000 close, got %d", mgr.Count())
+	}
+
+	// 2. Control WSS 가 4002 (Control Session Replaced)로 명시적 trust termination
+	h.OnControlDisconnected(&websocket.CloseError{
+		Code: 4002,
+		Text: "replaced by a newer connection",
+	})
+
+	// 3. Manager 에서 logical session 이 즉시 정리되어야 함
+	if mgr.Count() != 0 {
+		t.Fatalf("expected manager count 0 after Control 4002, got %d", mgr.Count())
+	}
+	if _, exists := mgr.GetSession(sessID); exists {
+		t.Fatalf("expected session removed from manager after Control 4002")
+	}
+}
+
+// TestHandler_ControlNormalDisconnect_PreservesIdlePreviewSessions 은
+// Data WSS 가 정상(1000) 종료된 후 Control WSS 가 일반 네트워크 단절(1006 / EOF)을 겪더라도
+// logical PreviewSession 이 임의로 폐기되지 않고 유지되는지 대조 검증합니다.
+func TestHandler_ControlNormalDisconnect_PreservesIdlePreviewSessions(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen: %v", err)
+	}
+	defer listener.Close()
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+
+	mockProv := &provider.MockProvider{}
+	sentMessages := make(chan interface{}, 10)
+	sender := wss.SendMessageFunc(func(ctx context.Context, msg interface{}) error {
+		sentMessages <- msg
+		return nil
+	})
+
+	h := wss.NewHandler(mockProv, sender)
+	forwarder := preview.NewDirectTCPForwarder(nil)
+	mgr := preview.NewSessionManager(forwarder, nil)
+
+	h.SetPreviewManager(mgr, preview.DataWSSClientConfig{
+		EndpointURL:   gateway.URL(),
+		Credential:    "valid-token",
+		RuntimeID:     "runtime-test-normal-disc",
+		AllowInsecure: true,
+	})
+
+	sessID := "preview-idle-sess-normal-disc"
+	openReq := protocol.PreviewOpenMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:             protocol.MessageTypePreviewOpen,
+			MessageID:        "open-msg-disc",
+			SentAt:           time.Now().UTC(),
+			PreviewSessionID: sessID,
+			LabInstanceID:    "inst-1",
+			Generation:       1,
+		},
+		Payload: protocol.PreviewOpenPayload{
+			TargetVmKey:      "vm-web-1",
+			ProviderServerID: "srv-uuid-1",
+			TargetPort:       port,
+		},
+	}
+	openRaw, _ := json.Marshal(openReq)
+
+	if err := h.HandleMessage(context.Background(), openRaw); err != nil {
+		t.Fatalf("HandleMessage(PREVIEW_OPEN) failed: %v", err)
+	}
+
+	if _, err := gateway.WaitForAttach(2 * time.Second); err != nil {
+		t.Fatalf("WaitForAttach failed: %v", err)
+	}
+
+	// 1. Data WSS 가 정상 1000 으로 종료
+	if err := gateway.SendClose(1000, "normal closure"); err != nil {
+		t.Fatalf("SendClose failed: %v", err)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	if mgr.Count() != 1 {
+		t.Fatalf("expected logical session preserved on 1000 close, got %d", mgr.Count())
+	}
+
+	// 2. Control WSS 가 일반 네트워크 단절 (CloseAbnormalClosure 1006)
+	h.OnControlDisconnected(&websocket.CloseError{
+		Code: websocket.CloseAbnormalClosure,
+		Text: "unexpected EOF",
+	})
+
+	// 3. 일반 단절에서는 logical session 이 폐기되지 않고 유지되어야 함
+	if mgr.Count() != 1 {
+		t.Fatalf("expected manager count 1 preserved after normal Control disconnect, got %d", mgr.Count())
+	}
+	sess, exists := mgr.GetSession(sessID)
+	if !exists || sess.IsDestroyed() {
+		t.Fatalf("expected session preserved and not destroyed after normal Control disconnect")
 	}
 }

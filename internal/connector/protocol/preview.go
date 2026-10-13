@@ -2,15 +2,17 @@ package protocol
 
 // Preview Close 사유 상수 (preview-control.schema.json 기준)
 const (
-	PreviewReasonSessionClosed   = "SESSION_CLOSED"
-	PreviewReasonSessionExpired  = "SESSION_EXPIRED"
-	PreviewReasonLabReset        = "LAB_RESET"
-	PreviewReasonLabCleanup      = "LAB_CLEANUP"
-	PreviewReasonOpenTimeout     = "OPEN_TIMEOUT"
-	PreviewReasonRequestCanceled = "REQUEST_CANCELED"
-	PreviewReasonOpenFailed      = "OPEN_FAILED"
-	PreviewReasonServiceRestart  = "SERVICE_RESTARTING"
-	PreviewReasonTargetClosed    = "TARGET_CLOSED"
+	PreviewReasonSessionClosed     = "SESSION_CLOSED"
+	PreviewReasonSessionExpired    = "SESSION_EXPIRED"
+	PreviewReasonLabReset          = "LAB_RESET"
+	PreviewReasonLabCleanup        = "LAB_CLEANUP"
+	PreviewReasonOpenTimeout       = "OPEN_TIMEOUT"
+	PreviewReasonRequestCanceled   = "REQUEST_CANCELED"
+	PreviewReasonOpenFailed        = "OPEN_FAILED"
+	PreviewReasonServiceRestart    = "SERVICE_RESTARTING"
+	PreviewReasonTargetClosed      = "TARGET_CLOSED"
+	PreviewReasonCredentialRevoked = "CREDENTIAL_REVOKED"
+	PreviewReasonControlReplaced   = "CONTROL_SESSION_REPLACED"
 )
 
 // Preview SafeError 코드 상수 (preview-control.schema.json 기준)

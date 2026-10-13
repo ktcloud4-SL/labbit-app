@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
@@ -312,8 +313,24 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
 			"offline_timeout_seconds", ack.OfflineTimeoutSeconds,
 		)
 	})
-	supervisor.SetOnDisconnected(func(error) {
-		logger.Warn("Connector Control WSS 연결 종료; 재연결 대기", "connector_id", connectorID)
+	supervisor.SetOnDisconnected(func(err error) {
+		var closeErr *websocket.CloseError
+		if errors.As(err, &closeErr) && (closeErr.Code == protocol.CloseCredentialRevoked || closeErr.Code == protocol.CloseSessionReplaced) {
+			logger.Warn("Connector Control WSS 신뢰 종료(4001/4002); logical preview 세션 정리",
+				"connector_id", connectorID,
+				"code", closeErr.Code,
+				"reason", closeErr.Text,
+			)
+			if connectorApp.PreviewManager != nil {
+				reason := protocol.PreviewReasonCredentialRevoked
+				if closeErr.Code == protocol.CloseSessionReplaced {
+					reason = protocol.PreviewReasonControlReplaced
+				}
+				connectorApp.PreviewManager.CloseAll(reason)
+			}
+		} else {
+			logger.Warn("Connector Control WSS 연결 종료; 재연결 대기", "connector_id", connectorID)
+		}
 	})
 
 	err = supervisor.Run(ctx)

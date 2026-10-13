@@ -149,6 +149,7 @@ func (s *Supervisor) Run(ctx context.Context) error {
 
 		if s.handler != nil {
 			s.handler.SetSender(nil)
+			s.handler.OnControlDisconnected(err)
 		}
 
 		select {

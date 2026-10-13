@@ -911,6 +911,7 @@ func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Conte
 		default:
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
+				h.OnControlDisconnected(err)
 				return err
 			}
 			if err := readCtx.Err(); err != nil {
@@ -925,6 +926,26 @@ func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Conte
 					onErr(handleErr)
 				}
 			}
+		}
+	}
+}
+
+// OnControlDisconnected 는 Control WSS 연결 종료 시 호출되어,
+// Credential Revoke(4001) 또는 Control Session 교체(4002) 같은 명시적 trust retirement 에 대해
+// PreviewManager 의 기존 logical PreviewSession 들을 즉시 정리합니다.
+// 단순 네트워크 단절(EOF, 1006 등)에서는 세션을 폐기하지 않고 보존합니다.
+func (h *Handler) OnControlDisconnected(err error) {
+	var closeErr *websocket.CloseError
+	if errors.As(err, &closeErr) && (closeErr.Code == protocol.CloseCredentialRevoked || closeErr.Code == protocol.CloseSessionReplaced) {
+		h.mu.RLock()
+		mgr := h.previewMgr
+		h.mu.RUnlock()
+		if mgr != nil {
+			reason := protocol.PreviewReasonCredentialRevoked
+			if closeErr.Code == protocol.CloseSessionReplaced {
+				reason = protocol.PreviewReasonControlReplaced
+			}
+			mgr.CloseAll(reason)
 		}
 	}
 }

@@ -1,0 +1,13 @@
+{
+  "mode": "guard",
+  "head": "905ed25d1f2e04022bb814b83b61fb8eaa490366",
+  "started": "2026-10-13T01:46:42.688605+00:00",
+  "finished": "2026-10-13T01:46:47.258793+00:00",
+  "exitCode": 0,
+  "overlaySourceSha256": "fa22e3518cecb9a2c5ce2d0370844537f4b940f3f14a259df5b1abffea1f386f",
+  "runnerSha256": "0e2354a62dde91e020ec8ace811582a43e4b857c75302b49c859b99f78074cbb",
+  "goTestTimeout": "20m",
+  "realNetworkGate": false,
+  "vmMutations": false,
+  "sourceFilesUnmodified": true
+}

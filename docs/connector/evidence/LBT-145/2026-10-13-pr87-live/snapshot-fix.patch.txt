@@ -1,0 +1,79 @@
+diff --git a/pr87_live_test.go b/pr87_live_test.go
+index f1a1758..7706f51 100644
+--- a/pr87_live_test.go
++++ b/pr87_live_test.go
+@@ -588 +588 @@ func TestPR87KTCloudProductionNetworkLifecycle(t *testing.T) {
+-		state.Cleanup = &result
++		state.Cleanup = pr87SnapshotCleanup(result)
+@@ -590 +590 @@ func TestPR87KTCloudProductionNetworkLifecycle(t *testing.T) {
+-		state.AfterCleanup = &observed
++		state.AfterCleanup = pr87SnapshotReconcile(observed)
+@@ -649 +649 @@ func TestPR87KTCloudProductionNetworkLifecycle(t *testing.T) {
+-	state.BeforeCleanup = &observed
++	state.BeforeCleanup = pr87SnapshotReconcile(observed)
+@@ -657 +657 @@ func TestPR87KTCloudProductionNetworkLifecycle(t *testing.T) {
+-	state.Cleanup = &result
++	state.Cleanup = pr87SnapshotCleanup(result)
+@@ -662 +662 @@ func TestPR87KTCloudProductionNetworkLifecycle(t *testing.T) {
+-	state.AfterCleanup = &observed
++	state.AfterCleanup = pr87SnapshotReconcile(observed)
+@@ -674 +674 @@ func TestPR87KTCloudProductionNetworkLifecycle(t *testing.T) {
+-	state.AbsentCleanup = &result
++	state.AbsentCleanup = pr87SnapshotCleanup(result)
+@@ -679 +679 @@ func TestPR87KTCloudProductionNetworkLifecycle(t *testing.T) {
+-	state.AfterAbsentCleanup = &observed
++	state.AfterAbsentCleanup = pr87SnapshotReconcile(observed)
+@@ -699,0 +700,53 @@ func TestPR87KTCloudProductionNetworkLifecycle(t *testing.T) {
++
++// Preserve each phase as an independent snapshot even when the caller reuses
++// its result variable, slice storage or SafeError pointer in later phases.
++func pr87SnapshotReconcile(result coreprovider.ReconcileResult) *coreprovider.ReconcileResult {
++	value := result
++	value.Observations = append([]coreprovider.ResourceObservation(nil), result.Observations...)
++	if result.Error != nil {
++		errCopy := *result.Error
++		value.Error = &errCopy
++	}
++	return &value
++}
++func pr87SnapshotCleanup(result coreprovider.OperationResult) *coreprovider.OperationResult {
++	value := result
++	value.ProviderResources = append([]coreprovider.ResourceResult(nil), result.ProviderResources...)
++	if result.Error != nil {
++		errCopy := *result.Error
++		value.Error = &errCopy
++	}
++	return &value
++}
++func TestPR87EvidenceSnapshots(t *testing.T) {
++	t.Run("present before absent", func(t *testing.T) {
++		result := coreprovider.ReconcileResult{Observations: []coreprovider.ResourceObservation{{ResourceType: coreprovider.ResourceTypeTier, ProviderID: "owned", Generation: 1, LogicalName: "workspace:management-tier", Exists: true, ObservedState: "ACTIVE", Source: coreprovider.SourceKnownResource}}}
++		initial := pr87SnapshotReconcile(result)
++		result.Observations[0].Exists = false
++		result.Observations[0].ObservedState = stateAbsent
++		result = coreprovider.ReconcileResult{Observations: result.Observations}
++		final := pr87SnapshotReconcile(result)
++		if !initial.Observations[0].Exists || initial.Observations[0].ObservedState != "ACTIVE" || final.Observations[0].Exists || initial == final {
++			t.Fatal("phase snapshot changed after reassignment or shared slice mutation")
++		}
++	})
++	t.Run("cleanup before unknown", func(t *testing.T) {
++		result := coreprovider.OperationResult{Outcome: coreprovider.OutcomeSucceeded, ProviderResources: []coreprovider.ResourceResult{ktResource(resourceIdentity(1, "workspace:management-tier"), coreprovider.ResourceTypeTier, "owned", stateDeleted)}}
++		initial := pr87SnapshotCleanup(result)
++		result.ProviderResources[0].ObservedState = stateDeleteUnknown
++		result = coreprovider.OperationResult{Outcome: coreprovider.OutcomeUnknown, ProviderResources: result.ProviderResources}
++		if initial.Outcome != coreprovider.OutcomeSucceeded || initial.ProviderResources[0].ObservedState != stateDeleted {
++			t.Fatal("first cleanup receipt changed after later UNKNOWN result")
++		}
++	})
++	t.Run("independent safe error", func(t *testing.T) {
++		errValue := &coreprovider.SafeError{Code: "OLD", Message: "safe original"}
++		first := pr87SnapshotCleanup(coreprovider.OperationResult{Error: errValue})
++		second := pr87SnapshotReconcile(coreprovider.ReconcileResult{Error: errValue})
++		errValue.Code = "NEW"
++		errValue.Message = "safe changed"
++		if first.Error.Code != "OLD" || second.Error.Message != "safe original" {
++			t.Fatal("saved SafeError aliased mutable caller error")
++		}
++	})
++}

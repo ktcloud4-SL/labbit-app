@@ -3,9 +3,11 @@
 package httpapi_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -247,9 +249,13 @@ func TestLabSpecAuthorizationBoundariesAgainstPostgres(t *testing.T) {
 		}
 		return ids
 	}
-	// 강사는 같은 Organization의 LabSpec을 이름 순서로 본다. 다른 Organization은 없다.
-	if got, want := strings.Join(listIDs(f.ireneToken), ","), irenes.ID+","+ivans.ID; got != want {
-		t.Fatalf("irene 목록 = %s, want %s", got, want)
+	// 목록은 자신이 owner인 LabSpec만이다. 같은 Organization의 다른 강사 것(D-11: Organization 단위 공유는 후속 범위)과
+	// 다른 Organization의 것은 없다.
+	if got := listIDs(f.ireneToken); len(got) != 1 || got[0] != irenes.ID {
+		t.Fatalf("irene 목록 = %v, want [%s]", got, irenes.ID)
+	}
+	if got := listIDs(f.ivanToken); len(got) != 1 || got[0] != ivans.ID {
+		t.Fatalf("ivan 목록 = %v, want [%s]", got, ivans.ID)
 	}
 	if got := listIDs(f.bobToken); len(got) != 1 || got[0] != bobs.ID {
 		t.Fatalf("bob 목록 = %v", got)
@@ -267,7 +273,8 @@ func TestLabSpecAuthorizationBoundariesAgainstPostgres(t *testing.T) {
 		status int
 		code   string
 	}{
-		{"다른 강사 GET", f.getLabSpec(f.ivanToken, irenes.ID), http.StatusOK, ""},
+		{"owner GET", f.getLabSpec(f.ireneToken, irenes.ID), http.StatusOK, ""},
+		{"같은 Organization 다른 강사 GET", f.getLabSpec(f.ivanToken, irenes.ID), http.StatusForbidden, "forbidden"},
 		{"학생 GET", f.getLabSpec(f.samToken, irenes.ID), http.StatusForbidden, "forbidden"},
 		{"ADMIN GET", f.getLabSpec(f.adminT, irenes.ID), http.StatusForbidden, "forbidden"},
 		{"다른 Organization GET", f.getLabSpec(f.bobToken, irenes.ID), http.StatusNotFound, "not_found"},
@@ -462,4 +469,94 @@ func TestListClassMembershipsAgainstPostgres(t *testing.T) {
 	if len(list.Items) != 1 || list.Items[0] != want[0] {
 		t.Fatalf("삭제 뒤 items = %+v", list.Items)
 	}
+}
+
+// GET은 LabSpec 본문(revision, workspaceVm)과 VM Role을 같은 version에서 읽어야 한다. 수정이 계속 commit되는 동안 읽은 모든 응답이
+// 그 ETag의 revision에 실제로 저장된 정의와 정확히 같은지 확인한다. 본문과 VM Role을 서로 다른 snapshot에서 읽으면 이전 ETag와
+// 새 VM Role 배열이 섞인 응답이 관측된다.
+func TestLabSpecGetIsConsistentWithConcurrentUpdatesAgainstPostgres(t *testing.T) {
+	f := newLabSpecFixture(t)
+	definition := func(k int) string {
+		vms := make([]string, 0, k)
+		for j := 0; j < k; j++ {
+			vms = append(vms, fmt.Sprintf(`{"role":"r%02d","imageRef":%q,"sizeRef":%q,"count":1}`, j, f.image1, f.flavor1))
+		}
+		return fmt.Sprintf(`{"name":"v%d","vms":[%s],"workspaceVm":{"role":"r%02d","instanceIndex":0},"internetOutbound":false}`,
+			k, strings.Join(vms, ","), k-1)
+	}
+	type snapshot struct {
+		name, workspaceRole string
+		roles               int
+	}
+	created := f.createLabSpec(f.ireneToken, definition(1))
+	if created.Code != http.StatusCreated {
+		t.Fatalf("POST = %d: %s", created.Code, created.Body.String())
+	}
+	id := decodeLabSpec(t, created).ID
+	// ETag → 그 revision에서 저장한 정의. writer 하나만 쓰므로 응답으로 받은 값이 그 revision의 전부다.
+	saved := map[string]snapshot{`"1"`: {name: "v1", workspaceRole: "r00", roles: 1}}
+
+	const writes = 150
+	done := make(chan struct{})
+	var readers sync.WaitGroup
+	type observed struct {
+		etag string
+		body labSpecBody
+	}
+	// reader마다 자기 slice에만 기록하고 모두 끝난 뒤 검증한다.
+	results := make([][]observed, 4)
+	for i := range results {
+		readers.Add(1)
+		go func() {
+			defer readers.Done()
+			for {
+				select {
+				case <-done:
+					return
+				default:
+				}
+				rec := f.getLabSpec(f.ireneToken, id)
+				if rec.Code != http.StatusOK {
+					t.Errorf("GET = %d: %s", rec.Code, rec.Body.String())
+					return
+				}
+				var body labSpecBody
+				if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+					t.Errorf("GET body: %v", err)
+					return
+				}
+				results[i] = append(results[i], observed{etag: rec.Header().Get("ETag"), body: body})
+			}
+		}()
+	}
+
+	etag := `"1"`
+	for i := 0; i < writes; i++ {
+		// 1~6개 사이를 오가며 VM Role 개수가 매번 바뀌게 한다.
+		k := i%6 + 1
+		rec := f.putLabSpec(f.ireneToken, id, etag, definition(k))
+		if rec.Code != http.StatusOK {
+			close(done)
+			readers.Wait()
+			t.Fatalf("PUT %d = %d: %s", i, rec.Code, rec.Body.String())
+		}
+		etag = rec.Header().Get("ETag")
+		saved[etag] = snapshot{name: fmt.Sprintf("v%d", k), workspaceRole: fmt.Sprintf("r%02d", k-1), roles: k}
+	}
+	close(done)
+	readers.Wait()
+
+	n := 0
+	for _, r := range slices.Concat(results...) {
+		n++
+		want, ok := saved[r.etag]
+		got := snapshot{name: r.body.Name, workspaceRole: r.body.WorkspaceVM.Role, roles: len(r.body.VMs)}
+		if !ok || got != want {
+			t.Fatalf("GET ETag %s = %+v, 그 revision에 저장한 정의 = %+v (기록 %v)", r.etag, got, want, ok)
+		}
+	}
+	if n == 0 {
+		t.Fatal("GET 응답을 하나도 관측하지 못했습니다")
+	}
+	t.Logf("PUT %d번 동안 GET %d번이 모두 같은 revision의 정의였습니다", writes, n)
 }

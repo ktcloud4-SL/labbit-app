@@ -61,13 +61,13 @@ func (f *fakeStore) HasClassRole(_ context.Context, userID uuid.UUID, role repos
 	return role == repository.ClassRoleInstructor && f.instructors[userID], nil
 }
 
-func (f *fakeStore) LabSpecSummariesByOrganization(_ context.Context, orgID uuid.UUID) ([]repository.LabSpecSummary, error) {
+func (f *fakeStore) LabSpecSummariesByOwner(_ context.Context, orgID, ownerID uuid.UUID) ([]repository.LabSpecSummary, error) {
 	if f.queryErr != nil {
 		return nil, f.queryErr
 	}
 	var out []repository.LabSpecSummary
 	for _, s := range f.specs {
-		if s.OrganizationID == orgID {
+		if s.OrganizationID == orgID && s.OwnerUserID == ownerID {
 			out = append(out, s.LabSpecSummary)
 		}
 	}
@@ -296,38 +296,56 @@ func TestCreateSemanticValidation(t *testing.T) {
 	}
 }
 
-func TestListShowsOrganizationSpecsToInstructorsAndOnlyOwnToOthers(t *testing.T) {
+// D-11은 Organization 단위 공유를 후속 범위로 두었다. 강사도 같은 Organization의 다른 강사 LabSpec을 목록에서 보지 못한다.
+func TestListShowsOnlyOwnLabSpecs(t *testing.T) {
 	e := newEnv()
 	mine := e.create(t, e.instructor)
-	theirs := e.create(t, e.other)
-	// 다른 Organization의 LabSpec
+	e.create(t, e.other)
+	// 다른 Organization의 같은 owner ID
 	foreign := uuid.New()
-	e.store.specs[foreign] = repository.LabSpec{LabSpecSummary: repository.LabSpecSummary{ID: foreign, OrganizationID: uuid.New(), Name: "Foreign"}, Revision: 1}
-	// 강사 Membership을 잃은 owner는 자기 것만 본다.
+	e.store.specs[foreign] = repository.LabSpec{LabSpecSummary: repository.LabSpecSummary{ID: foreign, OrganizationID: uuid.New(), OwnerUserID: e.instructor.ID, Name: "Foreign"}, Revision: 1}
+	// 강사 Membership을 잃은 owner도 자기 것은 본다.
 	formerOwner := e.student
 	formerSpec := uuid.New()
 	e.store.specs[formerSpec] = repository.LabSpec{LabSpecSummary: repository.LabSpecSummary{ID: formerSpec, OrganizationID: e.org, OwnerUserID: formerOwner.ID, Name: "Former"}, Revision: 1}
 
 	got, err := e.svc.List(t.Context(), e.instructor)
-	if err != nil || len(got) != 3 {
-		t.Fatalf("강사 List() = %+v, %v, want 같은 Organization의 3개", got, err)
+	if err != nil || len(got) != 1 || got[0].ID != mine.ID {
+		t.Fatalf("강사 List() = %+v, %v, want 자신의 것 하나", got, err)
 	}
-	ids := map[uuid.UUID]bool{}
-	for _, s := range got {
-		ids[s.ID] = true
-	}
-	if !ids[mine.ID] || !ids[theirs.ID] || !ids[formerSpec] || ids[foreign] {
-		t.Fatalf("강사 List() = %+v", got)
-	}
-
 	got, err = e.svc.List(t.Context(), formerOwner)
 	if err != nil || len(got) != 1 || got[0].ID != formerSpec {
-		t.Fatalf("비강사 List() = %+v, %v, want 자신의 것만", got, err)
+		t.Fatalf("Membership을 잃은 owner List() = %+v, %v, want 자신의 것만", got, err)
 	}
 	got, err = e.svc.List(t.Context(), e.admin)
 	if err != nil || got == nil || len(got) != 0 {
 		t.Fatalf("ADMIN List() = %#v, %v, want empty non-nil", got, err)
 	}
+}
+
+func TestListFailsClosedOnRowOfAnotherOwner(t *testing.T) {
+	e := newEnv()
+	e.create(t, e.other)
+	store := &allSummariesStore{fakeStore: e.store}
+
+	got, err := NewService(store).List(t.Context(), e.instructor)
+
+	if !errors.Is(err, ErrInconsistentData) || got != nil {
+		t.Fatalf("List() = %+v, %v, want ErrInconsistentData", got, err)
+	}
+}
+
+// allSummariesStore는 owner 조건을 무시하고 Organization의 모든 LabSpec을 돌려주는 잘못된 저장소다.
+type allSummariesStore struct{ *fakeStore }
+
+func (s *allSummariesStore) LabSpecSummariesByOwner(ctx context.Context, orgID, _ uuid.UUID) ([]repository.LabSpecSummary, error) {
+	var out []repository.LabSpecSummary
+	for _, spec := range s.specs {
+		if spec.OrganizationID == orgID {
+			out = append(out, spec.LabSpecSummary)
+		}
+	}
+	return out, nil
 }
 
 func TestGetBoundaries(t *testing.T) {
@@ -347,7 +365,8 @@ func TestGetBoundaries(t *testing.T) {
 		want error
 	}{
 		{"owner", e.other, spec.ID.String(), nil},
-		{"같은 Organization의 다른 강사", e.instructor, spec.ID.String(), nil},
+		// Organization 단위 공유는 후속 범위다. 다른 강사도 볼 수 없다.
+		{"같은 Organization의 다른 강사", e.instructor, spec.ID.String(), ErrForbidden},
 		{"같은 Organization 학생", e.student, spec.ID.String(), ErrForbidden},
 		{"같은 Organization ADMIN", e.admin, spec.ID.String(), ErrForbidden},
 		{"다른 Organization의 LabSpec", e.instructor, foreign.String(), ErrNotFound},
@@ -461,10 +480,10 @@ func TestRepositoryFailuresAreInternal(t *testing.T) {
 	spec := e.create(t, e.instructor)
 	internal := &repository.Error{Kind: repository.KindInternal, Op: "x", Cause: errors.New("password=hunter2")}
 
-	e.store.roleErr = internal
+	e.store.roleErr, e.store.queryErr = internal, internal
 	for name, call := range map[string]func() error{
 		"List":   func() error { _, err := e.svc.List(t.Context(), e.instructor); return err },
-		"Get":    func() error { _, err := e.svc.Get(t.Context(), e.other, spec.ID.String()); return err },
+		"Get":    func() error { _, err := e.svc.Get(t.Context(), e.instructor, spec.ID.String()); return err },
 		"Create": func() error { _, err := e.svc.Create(t.Context(), e.instructor, e.write()); return err },
 		"Update": func() error {
 			_, err := e.svc.Update(t.Context(), e.instructor, spec.ID.String(), "1", e.write())

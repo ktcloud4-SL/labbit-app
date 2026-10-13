@@ -6,8 +6,8 @@
 // 권한(D-11, 기능 명세 F-LAB-01):
 //   - LabSpec을 작성하는 사용자는 강사다. 강사는 같은 Organization의 어떤 Class에서든 INSTRUCTOR ClassMembership을 가진 User다.
 //     users.organization_role(ADMIN|MEMBER)은 이 판정에 쓰지 않는다.
-//   - 목록·상세: 같은 Organization의 LabSpec 중 강사는 모두, 그 밖의 사용자는 자신이 owner인 것만 볼 수 있다.
-//     다른 Organization의 LabSpec은 존재하지 않는 것과 같다(ErrNotFound).
+//   - 목록·상세: 자신이 owner인 LabSpec만 볼 수 있다. D-11은 Organization 단위 공유를 후속 범위로 두었으므로 같은 Organization의
+//     다른 강사 LabSpec도 볼 수 없다(ErrForbidden). 다른 Organization의 LabSpec은 존재하지 않는 것과 같다(ErrNotFound).
 //   - 생성: 강사만. owner는 요청한 사용자다.
 //   - 수정: 강사이면서 owner인 사용자만. 공동 편집과 Organization 단위 공유는 없다.
 //
@@ -99,30 +99,24 @@ type Write struct {
 	StartupScript    *string
 }
 
-// List는 user가 볼 수 있는 LabSpec을 이름, ID 순서로 반환한다. 볼 수 있는 것이 없으면 빈 목록이며 오류가 아니다.
+// List는 user가 owner인 LabSpec을 이름, ID 순서로 반환한다. 없으면 빈 목록이며 오류가 아니다.
 func (s *Service) List(ctx context.Context, user repository.User) ([]Summary, error) {
-	instructor, err := s.store.HasClassRole(ctx, user.ID, repository.ClassRoleInstructor)
-	if err != nil {
-		return nil, fmt.Errorf("labspec: 강사 여부 조회: %w", err)
-	}
-	items, err := s.store.LabSpecSummariesByOrganization(ctx, user.OrganizationID)
+	items, err := s.store.LabSpecSummariesByOwner(ctx, user.OrganizationID, user.ID)
 	if err != nil {
 		return nil, fmt.Errorf("labspec: 목록 조회: %w", err)
 	}
 	out := make([]Summary, 0, len(items))
 	for _, item := range items {
-		if item.OrganizationID != user.OrganizationID {
+		if item.OrganizationID != user.OrganizationID || item.OwnerUserID != user.ID {
 			return nil, ErrInconsistentData
-		}
-		if !instructor && item.OwnerUserID != user.ID {
-			continue
 		}
 		out = append(out, Summary{ID: item.ID, OwnerUserID: item.OwnerUserID, Name: item.Name, Description: item.Description})
 	}
 	return out, nil
 }
 
-// Get은 user가 볼 수 있는 LabSpec 상세를 반환한다.
+// Get은 user가 owner인 LabSpec 상세를 반환한다. 다른 Organization의 것이면 ErrNotFound, 같은 Organization의 다른 사용자 것이면
+// ErrForbidden이다. 조회는 강사 Membership을 요구하지 않는다(Membership을 잃은 owner도 자신의 정의를 볼 수 있다).
 func (s *Service) Get(ctx context.Context, user repository.User, labSpecID string) (Definition, error) {
 	id, ok := parseID(labSpecID)
 	if !ok {
@@ -139,13 +133,7 @@ func (s *Service) Get(ctx context.Context, user repository.User, labSpecID strin
 		return Definition{}, ErrNotFound
 	}
 	if spec.OwnerUserID != user.ID {
-		instructor, err := s.store.HasClassRole(ctx, user.ID, repository.ClassRoleInstructor)
-		if err != nil {
-			return Definition{}, fmt.Errorf("labspec: 강사 여부 조회: %w", err)
-		}
-		if !instructor {
-			return Definition{}, ErrForbidden
-		}
+		return Definition{}, ErrForbidden
 	}
 	return toDefinition(spec)
 }

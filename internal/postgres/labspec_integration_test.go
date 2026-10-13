@@ -104,11 +104,13 @@ func TestLabSpecCreateAndReadRoundTrip(t *testing.T) {
 		t.Fatalf("CreateLabSpec() 반환 = %+v", created)
 	}
 
-	summaries, err := e.db.store.LabSpecSummariesByOrganization(t.Context(), e.s.OrganizationID)
+	// 같은 Organization의 다른 owner LabSpec은 목록에 없다.
+	e.create(t, e.s.StudentID, e.definition("Other Owner"))
+	summaries, err := e.db.store.LabSpecSummariesByOwner(t.Context(), e.s.OrganizationID, e.s.InstructorID)
 	if err != nil || len(summaries) != 2 || summaries[0].Name != "Alpha Spec" || summaries[0].Description != nil || summaries[1].ID != created.ID {
-		t.Fatalf("LabSpecSummariesByOrganization() = %+v, %v", summaries, err)
+		t.Fatalf("LabSpecSummariesByOwner() = %+v, %v", summaries, err)
 	}
-	other, err := e.db.store.LabSpecSummariesByOrganization(t.Context(), uuid.New())
+	other, err := e.db.store.LabSpecSummariesByOwner(t.Context(), uuid.New(), e.s.InstructorID)
 	if err != nil || len(other) != 0 {
 		t.Fatalf("다른 Organization 목록 = %+v, %v", other, err)
 	}
@@ -373,5 +375,53 @@ func TestClassMembersAndHasClassRole(t *testing.T) {
 		if err != nil || got != tt.want {
 			t.Fatalf("HasClassRole(%s, %s) = %v, %v, want %v", tt.user, tt.role, got, err, tt.want)
 		}
+	}
+}
+
+// LabSpecByID는 본문과 VM Role을 statement 하나로 읽으므로 commit되지 않은 수정은 보이지 않고, commit된 뒤에는 둘 다 새 revision이다.
+func TestLabSpecByIDReadsBodyAndRolesFromOneCommit(t *testing.T) {
+	e := newLabSpecEnv(t)
+	spec := e.create(t, e.s.InstructorID, e.definition("Original"))
+
+	tx, err := e.db.pool.Begin(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(context.Background()) }()
+	if _, err := tx.Exec(t.Context(), `UPDATE lab_specs SET revision = 2, name = 'Pending', workspace_role = 'solo' WHERE id = $1`, spec.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(t.Context(), `DELETE FROM lab_spec_vm_roles WHERE lab_spec_id = $1`, spec.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(t.Context(), `INSERT INTO lab_spec_vm_roles (id, organization_id, lab_spec_id, role, image_mapping_id, flavor_mapping_id, vm_count)
+		VALUES ($1, $2, $3, 'solo', $4, $5, 1)`, uuid.New(), e.s.OrganizationID, spec.ID, e.image, e.flavor); err != nil {
+		t.Fatal(err)
+	}
+
+	before, err := e.db.store.LabSpecByID(t.Context(), spec.ID)
+	if err != nil || before.Revision != 1 || before.Name != "Original" || len(before.VMRoles) != 2 {
+		t.Fatalf("commit 전 = %+v, %v", before, err)
+	}
+	if err := tx.Commit(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	after, err := e.db.store.LabSpecByID(t.Context(), spec.ID)
+	if err != nil || after.Revision != 2 || after.WorkspaceRole != "solo" || len(after.VMRoles) != 1 || after.VMRoles[0].Role != "solo" {
+		t.Fatalf("commit 후 = %+v, %v", after, err)
+	}
+}
+
+// VM Role이 없는 row도 LEFT JOIN으로 본문을 읽고 빈 VMRoles를 돌려준다. 모순 판정은 Application이 한다.
+func TestLabSpecByIDWithoutRolesReturnsEmptyRoles(t *testing.T) {
+	e := newLabSpecEnv(t)
+	id := uuid.New()
+	mustExec(t, e.db, `INSERT INTO lab_specs (id, organization_id, owner_user_id, name, internet_outbound, workspace_role, workspace_instance_index)
+		VALUES ($1, $2, $3, 'Empty', false, 'x', 0)`, id, e.s.OrganizationID, e.s.InstructorID)
+
+	got, err := e.db.store.LabSpecByID(t.Context(), id)
+
+	if err != nil || got.ID != id || got.Name != "Empty" || len(got.VMRoles) != 0 {
+		t.Fatalf("LabSpecByID() = %+v, %v", got, err)
 	}
 }

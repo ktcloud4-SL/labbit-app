@@ -50,15 +50,15 @@ func (q queries) HasClassRole(ctx context.Context, userID uuid.UUID, role reposi
 	return exists, nil
 }
 
-func (q queries) LabSpecSummariesByOrganization(ctx context.Context, organizationID uuid.UUID) ([]repository.LabSpecSummary, error) {
-	const op = "LabSpecSummariesByOrganization"
+func (q queries) LabSpecSummariesByOwner(ctx context.Context, organizationID, ownerUserID uuid.UUID) ([]repository.LabSpecSummary, error) {
+	const op = "LabSpecSummariesByOwner"
 
 	rows, err := q.db.Query(ctx,
 		`SELECT id, organization_id, owner_user_id, name, description
 		 FROM lab_specs
-		 WHERE organization_id = $1
+		 WHERE organization_id = $1 AND owner_user_id = $2
 		 ORDER BY name, id`,
-		organizationID,
+		organizationID, ownerUserID,
 	)
 	if err != nil {
 		return nil, normalize(op, err)
@@ -74,20 +74,71 @@ func (q queries) LabSpecSummariesByOrganization(ctx context.Context, organizatio
 	return items, nil
 }
 
-const selectLabSpec = `SELECT id, organization_id, owner_user_id, name, description, revision, internet_outbound,
-	startup_script, workspace_role, workspace_instance_index, created_at, updated_at
-	FROM lab_specs WHERE id = $1`
+const labSpecColumns = `s.id, s.organization_id, s.owner_user_id, s.name, s.description, s.revision, s.internet_outbound,
+	s.startup_script, s.workspace_role, s.workspace_instance_index, s.created_at, s.updated_at`
 
+// LabSpecByID는 본문과 VM Role을 statement 하나로 읽는다. PostgreSQL은 statement 하나를 하나의 snapshot으로 실행하므로
+// 같은 commit의 본문(revision)과 VM Role만 함께 보인다. 본문과 VM Role을 별도 query로 읽으면 READ COMMITTED에서는 두 query
+// 사이에 commit된 수정 때문에(transaction으로 묶어도 statement마다 snapshot이 새로 잡힘) 이전 revision과 새 VM Role이 섞일 수 있다.
 func (q queries) LabSpecByID(ctx context.Context, id uuid.UUID) (repository.LabSpec, error) {
-	return q.labSpec(ctx, "LabSpecByID", selectLabSpec, id)
+	const op = "LabSpecByID"
+
+	rows, err := q.db.Query(ctx,
+		`SELECT `+labSpecColumns+`,
+			r.id, r.role, r.display_name, r.image_mapping_id, r.flavor_mapping_id, r.vm_count
+		 FROM lab_specs s
+		 LEFT JOIN lab_spec_vm_roles r ON r.lab_spec_id = s.id
+		 WHERE s.id = $1
+		 ORDER BY r.role`,
+		id,
+	)
+	if err != nil {
+		return repository.LabSpec{}, normalize(op, err)
+	}
+	defer rows.Close()
+
+	var spec repository.LabSpec
+	found := false
+	for rows.Next() {
+		var (
+			s       repository.LabSpec
+			roleID  *uuid.UUID
+			role    repository.LabSpecVMRole
+			roleStr *string
+			image   *uuid.UUID
+			flavor  *uuid.UUID
+			count   *int64
+		)
+		if err := rows.Scan(&s.ID, &s.OrganizationID, &s.OwnerUserID, &s.Name, &s.Description, &s.Revision, &s.InternetOutbound,
+			&s.StartupScript, &s.WorkspaceRole, &s.WorkspaceInstanceIndex, &s.CreatedAt, &s.UpdatedAt,
+			&roleID, &roleStr, &role.DisplayName, &image, &flavor, &count); err != nil {
+			return repository.LabSpec{}, normalize(op, err)
+		}
+		if !found {
+			spec, found = s, true
+		}
+		// VM Role이 없는 LabSpec도 LEFT JOIN이므로 본문 row 하나가 온다. 판정(빈 VM Role은 모순)은 Application이 한다.
+		if roleID != nil {
+			role.ID, role.Role, role.ImageMappingID, role.FlavorMappingID, role.VMCount = *roleID, *roleStr, *image, *flavor, *count
+			spec.VMRoles = append(spec.VMRoles, role)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return repository.LabSpec{}, normalize(op, err)
+	}
+	if !found {
+		return repository.LabSpec{}, notFound(op)
+	}
+	return spec, nil
 }
 
+// LabSpecForUpdate는 먼저 본문 row를 FOR UPDATE로 잠그고 그 뒤 VM Role을 읽는다. VM Role을 바꾸는 쓰기(UpdateLabSpec)는 항상 같은
+// transaction에서 본문 row를 먼저 UPDATE(잠금)하므로, 잠금을 얻은 뒤에 시작한 VM Role query는 잠금을 가진 동안 바뀌지 않는 마지막 commit
+// 상태를 본다. FOR UPDATE를 outer join과 함께 쓰면 갱신된 본문을 다시 평가할 때 VM Role이 이전 row로 남을 수 있어 나누어 읽는다.
 func (q queries) LabSpecForUpdate(ctx context.Context, id uuid.UUID) (repository.LabSpec, error) {
-	return q.labSpec(ctx, "LabSpecForUpdate", selectLabSpec+` FOR UPDATE`, id)
-}
+	const op = "LabSpecForUpdate"
 
-func (q queries) labSpec(ctx context.Context, op, query string, id uuid.UUID) (repository.LabSpec, error) {
-	spec, err := scanLabSpec(q.db.QueryRow(ctx, query, id))
+	spec, err := scanLabSpec(q.db.QueryRow(ctx, `SELECT `+labSpecColumns+` FROM lab_specs s WHERE s.id = $1 FOR UPDATE`, id))
 	if err != nil {
 		return repository.LabSpec{}, normalize(op, err)
 	}

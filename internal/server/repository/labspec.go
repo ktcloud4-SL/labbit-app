@@ -21,8 +21,8 @@ type ClassMemberRepository interface {
 // 조회 권한, owner 여부, revision 일치 여부, 입력의 의미 검증은 판단하지 않는다.
 // LabSpec 저장은 정의만 저장하며 Operation, ProviderResource, Connector 호출과 무관하다.
 type LabSpecRepository interface {
-	// LabSpecSummariesByOrganization은 Organization의 LabSpec 요약을 이름, ID 순서로 반환한다. 없으면 빈 목록이다.
-	LabSpecSummariesByOrganization(ctx context.Context, organizationID uuid.UUID) ([]LabSpecSummary, error)
+	// LabSpecSummariesByOwner는 Organization에서 ownerUserID가 owner인 LabSpec 요약을 이름, ID 순서로 반환한다. 없으면 빈 목록이다.
+	LabSpecSummariesByOwner(ctx context.Context, organizationID, ownerUserID uuid.UUID) ([]LabSpecSummary, error)
 	// LabSpecByID는 Organization과 무관하게 ID로 LabSpec과 VM Role을 잠그지 않고 반환한다. 없으면 ErrNotFound다.
 	LabSpecByID(ctx context.Context, id uuid.UUID) (LabSpec, error)
 	// LabSpecForUpdate는 lab_specs row를 FOR UPDATE로 잠그고 LabSpec과 VM Role을 반환한다. 없으면 ErrNotFound다.

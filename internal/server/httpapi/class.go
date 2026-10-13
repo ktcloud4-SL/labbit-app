@@ -66,6 +66,41 @@ func (a *api) getClass(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// classMembershipResponse는 OpenAPI ClassMembership이다.
+type classMembershipResponse struct {
+	UserID   string `json:"userId"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+}
+
+type classMembershipListResponse struct {
+	Items []classMembershipResponse `json:"items"`
+}
+
+// listClassMemberships는 Class 참여자 목록이다. 403/404 의미는 getClass와 같고 판정은 class.Service가 한다.
+func (a *api) listClassMemberships(w http.ResponseWriter, r *http.Request) {
+	principal, ok := PrincipalFrom(r.Context())
+	if !ok {
+		a.internalError(w, r, "list_class_memberships", errors.New("인증 context가 없습니다"))
+		return
+	}
+	members, err := a.classes.Members(r.Context(), principal.User, r.PathValue("classId"))
+	switch {
+	case err == nil:
+		items := make([]classMembershipResponse, 0, len(members))
+		for _, m := range members {
+			items = append(items, classMembershipResponse{UserID: m.UserID.String(), Username: m.Username, Role: string(m.Role)})
+		}
+		writeJSON(w, http.StatusOK, classMembershipListResponse{Items: items})
+	case errors.Is(err, class.ErrForbidden):
+		writeProblem(w, r, http.StatusForbidden, codeForbidden, "이 Class에 접근할 권한이 없습니다.")
+	case errors.Is(err, class.ErrNotFound):
+		writeProblem(w, r, http.StatusNotFound, codeNotFound, "요청한 Class를 찾을 수 없습니다.")
+	default:
+		a.internalError(w, r, "list_class_memberships", err)
+	}
+}
+
 func writeJSON(w http.ResponseWriter, status int, body any) {
 	payload, err := json.Marshal(body)
 	if err != nil {

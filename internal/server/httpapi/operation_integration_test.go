@@ -22,6 +22,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/labspec"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/operation"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest"
@@ -42,7 +43,7 @@ func TestOperationHTTPAgainstPostgres(t *testing.T) {
 	}
 	t.Cleanup(pool.Close)
 	store := postgres.NewStore(pool)
-	h, err := httpapi.New(httpapi.Options{Auth: auth.NewService(store, auth.Argon2id{}, nil), Classes: class.NewService(store), Operations: operation.NewService(store), PublicOrigin: trustedOrigin})
+	h, err := httpapi.New(httpapi.Options{Auth: auth.NewService(store, auth.Argon2id{}, nil), Classes: class.NewService(store), LabSpecs: labspec.NewService(store), Operations: operation.NewService(store), PublicOrigin: trustedOrigin})
 	if err != nil {
 		t.Fatal(err)
 	}

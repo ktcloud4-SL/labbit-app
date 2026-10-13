@@ -36,7 +36,7 @@ func TestOperationHTTPContract(t *testing.T) {
 	id := uuid.New()
 	target := uuid.New()
 	f := &fakeOperations{view: operation.View{ID: id, Type: "RESET", Status: "PENDING", Target: operation.Target{Type: "LAB_INSTANCE", ID: target}, CreatedAt: at, UpdatedAt: at}}
-	h, err := New(Options{Auth: a, Classes: &fakeClasses{}, Operations: f, PublicOrigin: trustedOrigin})
+	h, err := New(Options{Auth: a, Classes: &fakeClasses{}, LabSpecs: &fakeLabSpecs{}, Operations: f, PublicOrigin: trustedOrigin})
 	if err != nil {
 		t.Fatal(err)
 	}

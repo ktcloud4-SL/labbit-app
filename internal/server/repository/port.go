@@ -138,6 +138,8 @@ type Repositories interface {
 	OperationRepository
 	IdentityRepository
 	ClassRepository
+	ClassMemberRepository
+	LabSpecRepository
 	BootstrapRepository
 	TerminalRepository
 	LiveSessionRepository

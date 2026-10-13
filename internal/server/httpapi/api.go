@@ -22,6 +22,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/labspec"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
@@ -42,6 +43,7 @@ type Authenticator interface {
 type Classes interface {
 	List(ctx context.Context, user repository.User) ([]class.View, error)
 	Get(ctx context.Context, user repository.User, classID string) (class.View, error)
+	Members(ctx context.Context, user repository.User, classID string) ([]class.Member, error)
 }
 
 // Options는 Handler 구성이다.
@@ -49,6 +51,8 @@ type Options struct {
 	Auth       Authenticator
 	Classes    Classes
 	Operations Operations
+	// LabSpecs는 LabSpec 목록·상세·생성·수정 use case다. 필수다.
+	LabSpecs LabSpecs
 	// Terminals가 nil이면 Terminal Relay가 없는 구성으로 보고 Terminal target 조회와 TerminalSession 생성/종료를 503(terminal_unavailable)으로 응답한다.
 	Terminals Terminals
 	// Files가 nil이면 Workspace file use case가 없는 구성으로 보고 file Tree/Read/Save를 503(file_transport_unavailable)으로 응답한다.
@@ -69,6 +73,7 @@ type Options struct {
 type api struct {
 	auth         Authenticator
 	classes      Classes
+	labSpecs     LabSpecs
 	operations   Operations
 	terminals    Terminals
 	files        Files
@@ -85,6 +90,9 @@ func New(opts Options) (http.Handler, error) {
 	}
 	if opts.Classes == nil {
 		return nil, errors.New("httpapi: Classes가 필요합니다")
+	}
+	if opts.LabSpecs == nil {
+		return nil, errors.New("httpapi: LabSpecs가 필요합니다")
 	}
 	origin, err := ParseOrigin(opts.PublicOrigin)
 	if err != nil {
@@ -115,7 +123,7 @@ func New(opts Options) (http.Handler, error) {
 		liveSessions = unavailableLiveSessions{}
 	}
 
-	a := &api{operations: opts.Operations, auth: opts.Auth, classes: opts.Classes, terminals: terminals, files: files, previews: previews, liveSessions: liveSessions, origin: origin, logger: logger}
+	a := &api{operations: opts.Operations, auth: opts.Auth, classes: opts.Classes, labSpecs: opts.LabSpecs, terminals: terminals, files: files, previews: previews, liveSessions: liveSessions, origin: origin, logger: logger}
 	mux := http.NewServeMux()
 	routes := make(map[string]string)
 	handle := func(pattern string, handler http.Handler) {
@@ -129,6 +137,11 @@ func New(opts Options) (http.Handler, error) {
 	handle("GET /api/v1/me", a.authenticated(http.HandlerFunc(a.me)))
 	handle("GET /api/v1/classes", a.authenticated(http.HandlerFunc(a.listClasses)))
 	handle("GET /api/v1/classes/{classId}", a.authenticated(http.HandlerFunc(a.getClass)))
+	handle("GET /api/v1/classes/{classId}/memberships", a.authenticated(http.HandlerFunc(a.listClassMemberships)))
+	handle("GET /api/v1/lab-specs", a.authenticated(http.HandlerFunc(a.listLabSpecs)))
+	handle("POST /api/v1/lab-specs", a.authenticated(http.HandlerFunc(a.createLabSpec)))
+	handle("GET /api/v1/lab-specs/{labSpecId}", a.authenticated(http.HandlerFunc(a.getLabSpec)))
+	handle("PUT /api/v1/lab-specs/{labSpecId}", a.authenticated(http.HandlerFunc(a.updateLabSpec)))
 	handle("GET /api/v1/lab-instances/{labInstanceId}/terminal-targets", a.authenticated(http.HandlerFunc(a.listTerminalTargets)))
 	handle("POST /api/v1/lab-instances/{labInstanceId}/terminal-sessions", a.authenticated(http.HandlerFunc(a.createTerminalSession)))
 	handle("DELETE /api/v1/terminal-sessions/{terminalSessionId}", a.authenticated(http.HandlerFunc(a.closeTerminalSession)))
@@ -237,7 +250,7 @@ func errorClassification(err error) []any {
 	case errors.Is(err, auth.ErrMalformedPasswordHash):
 		return []any{"error_kind", "unusable_password_hash"}
 	case errors.Is(err, class.ErrInconsistentData), errors.Is(err, terminal.ErrInconsistentData), errors.Is(err, workspacefile.ErrInconsistentData),
-		errors.Is(err, previewsession.ErrInconsistentData):
+		errors.Is(err, previewsession.ErrInconsistentData), errors.Is(err, labspec.ErrInconsistentData):
 		return []any{"error_kind", "inconsistent_data"}
 	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 		return []any{"error_kind", "context"}

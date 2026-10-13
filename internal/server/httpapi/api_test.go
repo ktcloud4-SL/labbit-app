@@ -112,8 +112,8 @@ func newHarness(t *testing.T, mods ...func(*Options)) *harness {
 	classes := &fakeClasses{}
 	logs := &bytes.Buffer{}
 	opts := Options{
-		Auth:         fake,
-		Classes:      classes,
+		Auth:    fake,
+		Classes: classes, LabSpecs: &fakeLabSpecs{},
 		PublicOrigin: trustedOrigin,
 		Logger:       observability.NewJSONLoggerTo(logs, "labbit-server", "httpapi", "development", "info"),
 	}
@@ -882,14 +882,17 @@ func TestEachRequestGetsItsOwnRequestID(t *testing.T) {
 }
 
 func TestNewValidatesOptions(t *testing.T) {
-	if _, err := New(Options{Classes: &fakeClasses{}, PublicOrigin: trustedOrigin}); err == nil {
+	if _, err := New(Options{Classes: &fakeClasses{}, LabSpecs: &fakeLabSpecs{}, PublicOrigin: trustedOrigin}); err == nil {
 		t.Error("Authenticator가 없으면 오류여야 합니다")
 	}
-	if _, err := New(Options{Auth: newFakeAuth(), PublicOrigin: trustedOrigin}); err == nil {
+	if _, err := New(Options{Auth: newFakeAuth(), LabSpecs: &fakeLabSpecs{}, PublicOrigin: trustedOrigin}); err == nil {
 		t.Error("Classes가 없으면 오류여야 합니다")
 	}
+	if _, err := New(Options{Auth: newFakeAuth(), Classes: &fakeClasses{}, PublicOrigin: trustedOrigin}); err == nil {
+		t.Error("LabSpecs가 없으면 오류여야 합니다")
+	}
 	for _, origin := range []string{"", "labbit.test", "https://labbit.test/app"} {
-		if _, err := New(Options{Auth: newFakeAuth(), Classes: &fakeClasses{}, PublicOrigin: origin}); err == nil {
+		if _, err := New(Options{Auth: newFakeAuth(), Classes: &fakeClasses{}, LabSpecs: &fakeLabSpecs{}, PublicOrigin: origin}); err == nil {
 			t.Errorf("PublicOrigin %q는 오류여야 합니다", origin)
 		}
 	}

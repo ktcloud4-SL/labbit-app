@@ -57,7 +57,7 @@ func TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference(t *te
 						w.WriteHeader(503)
 						return
 					}
-					writeJSON(t, w, 200, map[string]any{"httpStatus": 200, "pagination": map[string]any{"total": 1, "offset": 0}, "data": []any{map[string]any{"networkId": "management-id", "refId": "management-ref", "networkName": "management", "cidr": "172.25.241.0/24", "status": "ACTIVE"}}})
+					writeJSON(t, w, 200, map[string]any{"httpStatus": 200, "pagination": map[string]any{"total": 1, "offset": 0}, "data": []any{map[string]any{"networkId": "management-id", "refId": "management-ref", "networkName": "management", "cidr": "172.25.241.0/24", "status": "ACTIVE", "shared": false}}})
 				default:
 					t.Errorf("unexpected mapping lookup: %s", r.URL.Path)
 					w.WriteHeader(500)

@@ -44,7 +44,7 @@ func (a *Adapter) ResolveServerAddress(ctx context.Context, targetVmKey, serverI
 		}
 		matches := []ktCloudTier{}
 		for _, tier := range items {
-			if ktCloudManagementTierNameMatches(tier.Name, labID, generation, targetVmKey) && tier.CIDR == a.provision.KTCloudManagementCIDR && !tier.Shared && normalizeStatus(tier.Status) == "ACTIVE" {
+			if ktCloudManagementTierNameMatches(tier.Name, labID, generation, targetVmKey) && tier.CIDR == a.provision.KTCloudManagementCIDR && tier.sharedKnown && !tier.Shared && normalizeStatus(tier.Status) == "ACTIVE" {
 				matches = append(matches, tier)
 			}
 		}

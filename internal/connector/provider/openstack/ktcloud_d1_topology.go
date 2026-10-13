@@ -311,7 +311,7 @@ func (a *Adapter) refreshKTCloudNICs(ctx context.Context, request coreprovider.P
 	// Other attachments remain candidates, never automatic cleanup targets.
 	resources = upsertResource(resources, ktResource(resourceIdentity(request.Generation, vm.VMKey+":root-volume"), coreprovider.ResourceTypeVolume, root.ID, "PRESENT"))
 	tier, exists, err := a.ktNetwork.tier(ctx, nics.managementTier.ID)
-	if err != nil || !exists || tier.RefID != nics.managementTier.RefID || tier.Name != nics.managementTier.Name || tier.CIDR != a.provision.KTCloudManagementCIDR {
+	if err != nil || !exists || tier.RefID != nics.managementTier.RefID || tier.Name != nics.managementTier.Name || tier.CIDR != a.provision.KTCloudManagementCIDR || !tier.sharedKnown || tier.Shared {
 		return "", resources, ErrManagementIP
 	}
 	address, err := ktServerManagementAddress(*server, tier)

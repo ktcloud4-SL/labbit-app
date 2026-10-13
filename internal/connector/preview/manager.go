@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/gorilla/websocket"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 )
 
@@ -128,6 +129,10 @@ func (sm *SessionManager) GetOrCreateSession(
 		payload.TargetPort,
 		nil,
 		func(s *PreviewSession, reason string, err error) {
+			var closeErr *websocket.CloseError
+			if (errors.As(err, &closeErr) && (closeErr.Code == 4001 || closeErr.Code == 4002)) || s.IsDestroyed() {
+				sm.removeSession(s.SessionID)
+			}
 			sm.mu.RLock()
 			cb := sm.onEnded
 			sm.mu.RUnlock()

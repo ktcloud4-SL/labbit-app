@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -753,6 +754,267 @@ func TestHandler_PreviewOpen_NilPreviewManager_FailClosed(t *testing.T) {
 		}
 		if res.ReplyToMessageID != "open-msg-prod-fail" {
 			t.Fatalf("expected replyTo open-msg-prod-fail, got %s", res.ReplyToMessageID)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatalf("timeout waiting for PREVIEW_OPEN_RESULT FAILED")
+	}
+}
+
+type mockCredentialedSender struct {
+	dialCredential string
+	sentMessages   chan interface{}
+}
+
+func (s *mockCredentialedSender) SendMessage(ctx context.Context, msg interface{}) error {
+	if s.sentMessages != nil {
+		s.sentMessages <- msg
+	}
+	return nil
+}
+
+func (s *mockCredentialedSender) DialCredential() string {
+	return s.dialCredential
+}
+
+// TestHandler_PreviewDataCredential_SyncWithControlReconnect 은
+// Control WSS 재연결 시 Preview Data WSS 가 새 세션의 dial credential 로 동기화되는지 검증합니다 (Blocker 1).
+func TestHandler_PreviewDataCredential_SyncWithControlReconnect(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen: %v", err)
+	}
+	defer listener.Close()
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	// Gateway: rotated 토큰(token-rotated-B)만 200 수락하고 이전 토큰(token-stale-A)은 401 거절
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+
+	gateway.SetAuthValidator(func(req *http.Request) int {
+		auth := req.Header.Get("Authorization")
+		if auth == "Bearer token-rotated-B" {
+			return http.StatusOK
+		}
+		return http.StatusUnauthorized
+	})
+
+	mockProv := &provider.MockProvider{}
+	sentMessages := make(chan interface{}, 10)
+	sender := &mockCredentialedSender{
+		dialCredential: "token-rotated-B",
+		sentMessages:   sentMessages,
+	}
+
+	h := wss.NewHandler(mockProv, sender)
+
+	forwarder := preview.NewDirectTCPForwarder(nil)
+	mgr := preview.NewSessionManager(forwarder, nil)
+
+	// 초기 설정에는 오래된 token-A 가 설정되어 있다고 가정
+	h.SetPreviewManager(mgr, preview.DataWSSClientConfig{
+		EndpointURL:   gateway.URL(),
+		Credential:    "token-stale-A",
+		RuntimeID:     "runtime-test-cred-sync",
+		DialTimeout:   2 * time.Second,
+		AllowInsecure: true,
+	})
+
+	sessID := "preview-cred-sync-sess-1"
+	openReq := protocol.PreviewOpenMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:             protocol.MessageTypePreviewOpen,
+			MessageID:        "open-msg-cred-sync",
+			SentAt:           time.Now().UTC(),
+			PreviewSessionID: sessID,
+			LabInstanceID:    "inst-1",
+			Generation:       1,
+		},
+		Payload: protocol.PreviewOpenPayload{
+			TargetVmKey:      "vm-web-1",
+			ProviderServerID: "srv-uuid-1",
+			TargetPort:       port,
+		},
+	}
+	openRaw, _ := json.Marshal(openReq)
+
+	// HandleMessage 실행 시, ActiveDialCredential 에 의해 sender 의 token-rotated-B 로 다이얼되어 성공해야 함
+	if err := h.HandleMessage(context.Background(), openRaw); err != nil {
+		t.Fatalf("HandleMessage(PREVIEW_OPEN) failed: %v", err)
+	}
+
+	select {
+	case msg := <-sentMessages:
+		res, ok := msg.(protocol.PreviewOpenResultMessage)
+		if !ok {
+			t.Fatalf("expected PreviewOpenResultMessage, got %T", msg)
+		}
+		if res.Payload.Outcome != protocol.OutcomeSucceeded {
+			t.Fatalf("expected outcome SUCCEEDED, got %s (err: %+v)", res.Payload.Outcome, res.Payload.Error)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatalf("timeout waiting for PREVIEW_OPEN_RESULT SUCCEEDED")
+	}
+}
+
+// TestHandler_PreviewOpen_InitialAttachFailure_CleansUpLogicalSession 은
+// 초기 PREVIEW_OPEN 에서 attach 실패 시 logical session 이 manager 에서 즉시 정리되는지 검증합니다 (Blocker 2).
+func TestHandler_PreviewOpen_InitialAttachFailure_CleansUpLogicalSession(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen: %v", err)
+	}
+	defer listener.Close()
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	// Gateway: 인증 실패 401 반환
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+	gateway.SetAuthValidator(func(req *http.Request) int {
+		return http.StatusUnauthorized
+	})
+
+	mockProv := &provider.MockProvider{}
+	sentMessages := make(chan interface{}, 10)
+	sender := wss.SendMessageFunc(func(ctx context.Context, msg interface{}) error {
+		sentMessages <- msg
+		return nil
+	})
+
+	h := wss.NewHandler(mockProv, sender)
+	forwarder := preview.NewDirectTCPForwarder(nil)
+	mgr := preview.NewSessionManager(forwarder, nil)
+
+	h.SetPreviewManager(mgr, preview.DataWSSClientConfig{
+		EndpointURL:   gateway.URL(),
+		Credential:    "invalid-token",
+		RuntimeID:     "runtime-test-cleanup",
+		DialTimeout:   2 * time.Second,
+		AllowInsecure: true,
+	})
+
+	sessID := "preview-fail-sess-cleanup"
+	openReq := protocol.PreviewOpenMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:             protocol.MessageTypePreviewOpen,
+			MessageID:        "open-msg-fail-cleanup",
+			SentAt:           time.Now().UTC(),
+			PreviewSessionID: sessID,
+			LabInstanceID:    "inst-1",
+			Generation:       1,
+		},
+		Payload: protocol.PreviewOpenPayload{
+			TargetVmKey:      "vm-web-1",
+			ProviderServerID: "srv-uuid-1",
+			TargetPort:       port,
+		},
+	}
+	openRaw, _ := json.Marshal(openReq)
+
+	err = h.HandleMessage(context.Background(), openRaw)
+	if err == nil {
+		t.Fatalf("expected error from HandleMessage on attach failure")
+	}
+
+	// 초기 생성에서 attach 실패 시 logical session 은 manager 에서 즉시 제거되어야 함 (Blocker 2)
+	if mgr.Count() != 0 {
+		t.Fatalf("expected manager count 0 after initial attach failure, got %d", mgr.Count())
+	}
+	if _, exists := mgr.GetSession(sessID); exists {
+		t.Fatalf("expected session removed from manager on initial attach failure")
+	}
+
+	select {
+	case msg := <-sentMessages:
+		res, ok := msg.(protocol.PreviewOpenResultMessage)
+		if !ok {
+			t.Fatalf("expected PreviewOpenResultMessage, got %T", msg)
+		}
+		if res.Payload.Outcome != protocol.OutcomeFailed {
+			t.Fatalf("expected outcome FAILED, got %s", res.Payload.Outcome)
+		}
+		if res.Payload.Error == nil || res.Payload.Error.Code != protocol.PreviewErrorCodeUnavailable {
+			t.Fatalf("expected error code UNAVAILABLE, got %+v", res.Payload.Error)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatalf("timeout waiting for PREVIEW_OPEN_RESULT FAILED")
+	}
+}
+
+// TestHandler_PreviewOpen_AttachTimeout_ReturnsUnavailableErrorCode 은
+// attach timeout 시 에러 코드가 UNAVAILABLE 로 매핑되고 세션이 정리되는지 검증합니다.
+func TestHandler_PreviewOpen_AttachTimeout_ReturnsUnavailableErrorCode(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen: %v", err)
+	}
+	defer listener.Close()
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	// Gateway: ATTACH 응답을 주지 않고 타임아웃 유발
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+	gateway.SetSimulateAttachTimeout(true)
+
+	mockProv := &provider.MockProvider{}
+	sentMessages := make(chan interface{}, 10)
+	sender := wss.SendMessageFunc(func(ctx context.Context, msg interface{}) error {
+		sentMessages <- msg
+		return nil
+	})
+
+	h := wss.NewHandler(mockProv, sender)
+	forwarder := preview.NewDirectTCPForwarder(nil)
+	mgr := preview.NewSessionManager(forwarder, nil)
+
+	h.SetPreviewManager(mgr, preview.DataWSSClientConfig{
+		EndpointURL:   gateway.URL(),
+		Credential:    "valid-token",
+		RuntimeID:     "runtime-test-timeout",
+		DialTimeout:   500 * time.Millisecond,
+		AttachTimeout: 200 * time.Millisecond,
+		AllowInsecure: true,
+	})
+
+	sessID := "preview-timeout-sess"
+	openReq := protocol.PreviewOpenMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:             protocol.MessageTypePreviewOpen,
+			MessageID:        "open-msg-timeout",
+			SentAt:           time.Now().UTC(),
+			PreviewSessionID: sessID,
+			LabInstanceID:    "inst-1",
+			Generation:       1,
+		},
+		Payload: protocol.PreviewOpenPayload{
+			TargetVmKey:      "vm-web-1",
+			ProviderServerID: "srv-uuid-1",
+			TargetPort:       port,
+		},
+	}
+	openRaw, _ := json.Marshal(openReq)
+
+	err = h.HandleMessage(context.Background(), openRaw)
+	if err == nil {
+		t.Fatalf("expected error from HandleMessage on attach timeout")
+	}
+
+	// 세션 정리 검증
+	if mgr.Count() != 0 {
+		t.Fatalf("expected manager count 0 after initial attach timeout, got %d", mgr.Count())
+	}
+
+	select {
+	case msg := <-sentMessages:
+		res, ok := msg.(protocol.PreviewOpenResultMessage)
+		if !ok {
+			t.Fatalf("expected PreviewOpenResultMessage, got %T", msg)
+		}
+		if res.Payload.Outcome != protocol.OutcomeFailed {
+			t.Fatalf("expected outcome FAILED, got %s", res.Payload.Outcome)
+		}
+		// ErrAttachTimeout 은 VM_UNREACHABLE 이 아니라 UNAVAILABLE 이어야 함
+		if res.Payload.Error == nil || res.Payload.Error.Code != protocol.PreviewErrorCodeUnavailable {
+			t.Fatalf("expected error code UNAVAILABLE, got %+v", res.Payload.Error)
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatalf("timeout waiting for PREVIEW_OPEN_RESULT FAILED")

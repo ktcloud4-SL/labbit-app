@@ -87,6 +87,23 @@ func (h *Handler) SetPreviewManager(mgr *preview.SessionManager, cfg preview.Dat
 	h.previewCfg = cfg
 }
 
+// ActiveDialCredential 은 현재 활성 Control Session 의 실제 다이얼 인증 토큰을 반환합니다.
+// sender 가 DialCredential() 을 제공하면 해당 토큰을 우선 반환하고, 그렇지 않으면 previewCfg 에 설정된 값을 반환합니다.
+func (h *Handler) ActiveDialCredential() string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	if provider, ok := h.sender.(interface{ DialCredential() string }); ok {
+		if cred := provider.DialCredential(); cred != "" {
+			return cred
+		}
+	}
+	if h.previewCfg.Credential != "" {
+		return h.previewCfg.Credential
+	}
+	return ""
+}
+
 // Sender 는 현재 설정된 MessageSender 를 반환합니다.
 func (h *Handler) Sender() MessageSender {
 	h.mu.RLock()
@@ -1218,6 +1235,12 @@ func (h *Handler) handlePreviewOpen(ctx context.Context, env protocol.BaseEnvelo
 	dataCfg := h.previewCfg
 	h.mu.RUnlock()
 
+	if activeCred := h.ActiveDialCredential(); activeCred != "" {
+		dataCfg.Credential = activeCred
+		dataCfg.CredentialFile = ""
+		dataCfg.CredentialProvider = nil
+	}
+
 	sender := h.Sender()
 
 	// 1. Envelope 필수 필드 검증
@@ -1397,11 +1420,14 @@ func (h *Handler) handlePreviewOpen(ctx context.Context, env protocol.BaseEnvelo
 		dataClient := preview.NewDataWSSClient(dataCfg)
 		if attachErr := dataClient.DialAndAttach(ctx, session, openMsg.MessageID); attachErr != nil {
 			session.CloseCurrentTunnel("open failed")
+			if !session.EverAttached() {
+				_ = mgr.CloseSession(openMsg.PreviewSessionID, "initial attach failed")
+			}
 
 			safeCode := protocol.PreviewErrorCodeUnavailable
 			safeMsg := "failed to attach preview data channel"
 			if errors.Is(attachErr, preview.ErrAttachTimeout) {
-				safeCode = protocol.PreviewErrorCodeVMUnreachable
+				safeCode = protocol.PreviewErrorCodeUnavailable
 				safeMsg = "preview gateway attach timed out"
 			}
 

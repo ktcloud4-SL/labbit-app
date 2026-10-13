@@ -863,3 +863,253 @@ func TestPreview_SequentialTunnels_SameSession(t *testing.T) {
 		t.Fatalf("session must be removed after CloseSession")
 	}
 }
+
+// TestPreviewSession_TrustTermination_4001_CleansUpLogicalSession 은
+// Data WSS 에서 4001(Credential Revoke) 수신 시 logical session 이 즉시 정리되는지 검증합니다.
+func TestPreviewSession_TrustTermination_4001_CleansUpLogicalSession(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen failed: %v", err)
+	}
+	defer listener.Close()
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+
+	forwarder := NewDirectTCPForwarder(nil)
+	mgr := NewSessionManager(forwarder, nil)
+
+	sessID := "sess-trust-term-4001"
+	openPayload := protocol.PreviewOpenPayload{
+		TargetVmKey:      "vm-1",
+		ProviderServerID: "srv-1",
+		TargetPort:       port,
+	}
+	env := protocol.BaseEnvelope{
+		MessageID:        "msg-1",
+		PreviewSessionID: sessID,
+		LabInstanceID:    "lab-1",
+		Generation:       1,
+	}
+
+	session, _, err := mgr.GetOrCreateSession(context.Background(), openPayload, env)
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+
+	client := NewDataWSSClient(DataWSSClientConfig{
+		EndpointURL:   gateway.URL(),
+		Credential:    "test-token",
+		RuntimeID:     "runtime-1",
+		AllowInsecure: true,
+	})
+	if err := client.DialAndAttach(context.Background(), session, env.MessageID); err != nil {
+		t.Fatalf("DialAndAttach failed: %v", err)
+	}
+	if _, err := gateway.WaitForAttach(3 * time.Second); err != nil {
+		t.Fatalf("WaitForAttach failed: %v", err)
+	}
+
+	if mgr.Count() != 1 {
+		t.Fatalf("expected 1 session in manager, got %d", mgr.Count())
+	}
+
+	// Gateway 에서 4001 (Credential Revoke) 프레임 전송
+	if err := gateway.SendClose(4001, "credential revoked"); err != nil {
+		t.Fatalf("SendClose failed: %v", err)
+	}
+
+	// 비동기 종료 후 logical session 이 manager 에서 완전히 제거되어야 함
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if mgr.Count() == 0 {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	if mgr.Count() != 0 {
+		t.Fatalf("expected manager count 0 after 4001 close, got %d", mgr.Count())
+	}
+	if !session.IsDestroyed() {
+		t.Fatalf("expected session destroyed after 4001 close")
+	}
+}
+
+// TestPreviewSession_TrustTermination_4002_CleansUpLogicalSession 은
+// Data WSS 에서 4002(Control Session Replaced) 수신 시 logical session 이 즉시 정리되는지 검증합니다.
+func TestPreviewSession_TrustTermination_4002_CleansUpLogicalSession(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen failed: %v", err)
+	}
+	defer listener.Close()
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+
+	forwarder := NewDirectTCPForwarder(nil)
+	mgr := NewSessionManager(forwarder, nil)
+
+	sessID := "sess-trust-term-4002"
+	openPayload := protocol.PreviewOpenPayload{
+		TargetVmKey:      "vm-1",
+		ProviderServerID: "srv-1",
+		TargetPort:       port,
+	}
+	env := protocol.BaseEnvelope{
+		MessageID:        "msg-1",
+		PreviewSessionID: sessID,
+		LabInstanceID:    "lab-1",
+		Generation:       1,
+	}
+
+	session, _, err := mgr.GetOrCreateSession(context.Background(), openPayload, env)
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+
+	client := NewDataWSSClient(DataWSSClientConfig{
+		EndpointURL:   gateway.URL(),
+		Credential:    "test-token",
+		RuntimeID:     "runtime-1",
+		AllowInsecure: true,
+	})
+	if err := client.DialAndAttach(context.Background(), session, env.MessageID); err != nil {
+		t.Fatalf("DialAndAttach failed: %v", err)
+	}
+	if _, err := gateway.WaitForAttach(3 * time.Second); err != nil {
+		t.Fatalf("WaitForAttach failed: %v", err)
+	}
+
+	if mgr.Count() != 1 {
+		t.Fatalf("expected 1 session in manager, got %d", mgr.Count())
+	}
+
+	// Gateway 에서 4002 (Control Session Replaced) 프레임 전송
+	if err := gateway.SendClose(4002, "control session replaced"); err != nil {
+		t.Fatalf("SendClose failed: %v", err)
+	}
+
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if mgr.Count() == 0 {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	if mgr.Count() != 0 {
+		t.Fatalf("expected manager count 0 after 4002 close, got %d", mgr.Count())
+	}
+	if !session.IsDestroyed() {
+		t.Fatalf("expected session destroyed after 4002 close")
+	}
+}
+
+// TestPreviewSession_NormalClose1000_PreservesLogicalSession 은
+// Data WSS 정상 1000 Close 시 터널만 닫히고 logical session 은 유지되는지 검증합니다.
+func TestPreviewSession_NormalClose1000_PreservesLogicalSession(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen failed: %v", err)
+	}
+	defer listener.Close()
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+
+	forwarder := NewDirectTCPForwarder(nil)
+	mgr := NewSessionManager(forwarder, nil)
+
+	sessID := "sess-normal-close-1000"
+	openPayload := protocol.PreviewOpenPayload{
+		TargetVmKey:      "vm-1",
+		ProviderServerID: "srv-1",
+		TargetPort:       port,
+	}
+	env := protocol.BaseEnvelope{
+		MessageID:        "msg-1",
+		PreviewSessionID: sessID,
+		LabInstanceID:    "lab-1",
+		Generation:       1,
+	}
+
+	session, _, err := mgr.GetOrCreateSession(context.Background(), openPayload, env)
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+
+	client := NewDataWSSClient(DataWSSClientConfig{
+		EndpointURL:   gateway.URL(),
+		Credential:    "test-token",
+		RuntimeID:     "runtime-1",
+		AllowInsecure: true,
+	})
+	if err := client.DialAndAttach(context.Background(), session, env.MessageID); err != nil {
+		t.Fatalf("DialAndAttach failed: %v", err)
+	}
+	if _, err := gateway.WaitForAttach(3 * time.Second); err != nil {
+		t.Fatalf("WaitForAttach failed: %v", err)
+	}
+
+	// Gateway 에서 1000 (Normal Closure) 전송
+	if err := gateway.SendClose(1000, "normal close"); err != nil {
+		t.Fatalf("SendClose failed: %v", err)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	// 세션은 파기되지 않고 유지되어야 함
+	if mgr.Count() != 1 {
+		t.Fatalf("expected manager count 1 after 1000 close, got %d", mgr.Count())
+	}
+	if session.IsDestroyed() {
+		t.Fatalf("expected session not destroyed after 1000 close")
+	}
+
+	// 후속 sequential 터널 바인딩 가능 확인
+	env2 := protocol.BaseEnvelope{
+		MessageID:        "msg-2",
+		PreviewSessionID: sessID,
+		LabInstanceID:    "lab-1",
+		Generation:       1,
+	}
+	s2, resumed, err := mgr.GetOrCreateSession(context.Background(), openPayload, env2)
+	if err != nil {
+		t.Fatalf("sequential GetOrCreateSession failed: %v", err)
+	}
+	if resumed {
+		t.Fatalf("expected resumed=false for sequential tunnel")
+	}
+	if s2 != session {
+		t.Fatalf("expected same session instance")
+	}
+}
+
+// TestPreviewTunnel_ReplaceRaceCondition 은 터널 교체 및 동시 종료 시 data race 가 발생하지 않는지 검증합니다.
+func TestPreviewTunnel_ReplaceRaceCondition(t *testing.T) {
+	session := NewPreviewSession("race-sess", "lab-1", 1, "vm-1", "srv-1", 8080, nil, nil)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			serverConn, clientConn := net.Pipe()
+			defer serverConn.Close()
+
+			tunnel, err := session.BindTunnel(fmt.Sprintf("msg-%d", id), clientConn)
+			if err != nil {
+				_ = clientConn.Close()
+				return
+			}
+			go tunnel.Close("test concurrent close")
+		}(i)
+	}
+	wg.Wait()
+	session.Close("cleanup")
+}

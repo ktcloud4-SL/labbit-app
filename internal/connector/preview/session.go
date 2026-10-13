@@ -118,10 +118,14 @@ func (t *PreviewTunnel) pipeWSSToTCP() {
 		msgType, r, err := t.dataConn.NextReader()
 		if err != nil {
 			var closeErr *websocket.CloseError
-			if errors.As(err, &closeErr) && closeErr.Text != "" {
-				t.Close(closeErr.Text)
+			if errors.As(err, &closeErr) {
+				reason := closeErr.Text
+				if reason == "" {
+					reason = protocol.PreviewReasonSessionClosed
+				}
+				t.closeWithReason(reason, closeErr)
 			} else {
-				t.Close(protocol.PreviewReasonSessionClosed)
+				t.closeWithReason(protocol.PreviewReasonSessionClosed, err)
 			}
 			return
 		}
@@ -164,6 +168,7 @@ type PreviewSession struct {
 	Status           SessionStatus
 	currentAttemptID string
 	activeTunnel     *PreviewTunnel
+	everAttached     bool
 	destroyed        bool
 
 	// 하위 호환성 필드: 현재 활성 터널의 커넥션 참조
@@ -207,6 +212,13 @@ func (s *PreviewSession) GetStatus() SessionStatus {
 	return s.Status
 }
 
+// EverAttached 는 이 세션에 최소 1회 이상 Data WSS 연결이 성공적으로 attach 되었는지 여부를 반환합니다.
+func (s *PreviewSession) EverAttached() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.everAttached
+}
+
 // IsDestroyed 는 세션이 완전히 파기(종료)되었는지 여부를 반환합니다.
 func (s *PreviewSession) IsDestroyed() bool {
 	s.mu.Lock()
@@ -243,8 +255,6 @@ func (s *PreviewSession) BindTunnel(openMessageID string, tcpConn net.Conn) (*Pr
 
 	if s.activeTunnel != nil {
 		old := s.activeTunnel
-		s.activeTunnel = nil
-		old.onClosed = nil
 		go old.Close(protocol.PreviewReasonTargetClosed)
 	}
 
@@ -268,17 +278,25 @@ func (s *PreviewSession) BindTunnel(openMessageID string, tcpConn net.Conn) (*Pr
 
 func (s *PreviewSession) onTunnelFinished(t *PreviewTunnel, reason string, err error) {
 	s.mu.Lock()
-	if s.activeTunnel == t {
-		s.activeTunnel = nil
-		s.TCPConn = nil
-		s.DataConn = nil
-		s.Status = StatusClosed
+	if s.activeTunnel != t {
+		s.mu.Unlock()
+		return
 	}
-	isDestroyed := s.destroyed
+	s.activeTunnel = nil
+	s.TCPConn = nil
+	s.DataConn = nil
+	s.Status = StatusClosed
+
+	var closeErr *websocket.CloseError
+	isTrustTermination := errors.As(err, &closeErr) && (closeErr.Code == 4001 || closeErr.Code == 4002)
+	if isTrustTermination {
+		s.destroyed = true
+	}
+	wasExplicitlyDestroyed := s.destroyed && !isTrustTermination
 	cb := s.onEnded
 	s.mu.Unlock()
 
-	if isDestroyed {
+	if wasExplicitlyDestroyed {
 		return
 	}
 
@@ -317,6 +335,7 @@ func (s *PreviewSession) AttachDataConn(conn *websocket.Conn) error {
 
 	t.dataConn = conn
 	s.DataConn = conn
+	s.everAttached = true
 	s.Status = StatusActive
 	s.mu.Unlock()
 
@@ -351,7 +370,6 @@ func (s *PreviewSession) Close(reason string) {
 		s.mu.Unlock()
 
 		if t != nil {
-			t.onClosed = nil
 			t.Close(reason)
 		}
 

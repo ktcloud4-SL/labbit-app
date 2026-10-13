@@ -225,12 +225,14 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 	}
 
 	prevCfg := preview.DataWSSClientConfig{
-		EndpointURL:    previewGatewayURL,
-		Credential:     credential,
-		CredentialFile: "", // Control Session의 인증 스냅샷 고정 바인딩 (Blocker 5: 디스크 재조회 차단)
-		RuntimeID:      runtimeID,
-		DialTimeout:    10 * time.Second,
-		AllowInsecure:  !isProduction,
+		EndpointURL:   previewGatewayURL,
+		Credential:    credential,
+		RuntimeID:     runtimeID,
+		DialTimeout:   10 * time.Second,
+		AllowInsecure: !isProduction,
+	}
+	if controlConfig != nil {
+		prevCfg.CredentialProvider = controlConfig.GetCredential
 	}
 
 	handler := wss.NewHandler(p, sender)

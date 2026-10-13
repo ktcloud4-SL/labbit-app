@@ -30,7 +30,7 @@ func TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping(t *testin
 					}
 					items := []any{}
 					if createdTier {
-						items = append(items, map[string]any{"networkId": "new-tier", "refId": "new-ref", "networkName": ktCloudManagementTierName("lab", 1, "workspace"), "cidr": "172.25.241.0/24", "status": "ACTIVE"})
+						items = append(items, map[string]any{"networkId": "new-tier", "refId": "new-ref", "networkName": ktCloudManagementTierName("lab", 1, "workspace"), "cidr": "172.25.241.0/24", "status": "ACTIVE", "shared": false})
 					}
 					writeJSON(t, w, 200, map[string]any{"httpStatus": 200, "pagination": map[string]any{"total": len(items), "offset": 0}, "data": items})
 				case strings.HasSuffix(r.URL.Path, "/nsm/firewall/policy"):

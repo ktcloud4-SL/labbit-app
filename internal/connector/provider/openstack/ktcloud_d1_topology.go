@@ -134,12 +134,15 @@ func (a *Adapter) createKTCloudTier(ctx context.Context, identity ResourceIdenti
 		}
 	}
 	receipt, err := a.ktNetwork.createTier(ctx, name, cidr)
-	if receipt.Data.ID != "" {
-		resources = upsertResource(resources, ktResource(identity, coreprovider.ResourceTypeTier, receipt.Data.ID, "BUILD"))
-	}
 	if err != nil {
 		return ktCloudTier{}, resources, err
 	}
+	for _, item := range inventory {
+		if item.ID == receipt.Data.ID {
+			return ktCloudTier{}, resources, ErrNetworkCreate
+		}
+	}
+	priorResources := cloneResourceResults(resources)
 	wait, cancel := context.WithTimeout(ctx, a.provision.ActiveTimeout)
 	defer cancel()
 	for {
@@ -148,10 +151,15 @@ func (a *Adapter) createKTCloudTier(ctx context.Context, identity ResourceIdenti
 			return ktCloudTier{}, resources, ErrNetworkCreate
 		}
 		if exists {
-			resources = upsertResource(resources, ktResource(identity, coreprovider.ResourceTypeTier, item.ID, item.Status))
-			if item.Name != name || item.CIDR != cidr || item.Shared {
+			if (item.Name != "" && item.Name != name) || (item.CIDR != "" && item.CIDR != cidr) || (item.sharedKnown && item.Shared) {
+				// A contradictory mapping revokes this Tier's automatic cleanup
+				// authority, including a previously matching BUILD observation.
+				return ktCloudTier{}, priorResources, ErrNetworkCreate
+			}
+			if item.Name == "" || item.CIDR == "" || !item.sharedKnown {
 				return ktCloudTier{}, resources, ErrNetworkCreate
 			}
+			resources = upsertResource(resources, ktResource(identity, coreprovider.ResourceTypeTier, item.ID, item.Status))
 			if normalizeStatus(item.Status) == "ACTIVE" && item.RefID != "" {
 				return item, resources, nil
 			}

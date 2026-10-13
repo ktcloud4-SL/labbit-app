@@ -17,12 +17,30 @@ var errKTCloudResponse = errors.New("KT D1 API response is unavailable")
 // NSM owns Tier UUIDs and firewall policies; refId is only the physical
 // Neutron network attachment ID. Neither IDs nor resource kinds are aliases.
 type ktCloudTier struct {
-	ID     string `json:"networkId"`
-	RefID  string `json:"refId"`
-	Name   string `json:"networkName"`
-	CIDR   string `json:"cidr"`
-	Status string `json:"status"`
-	Shared bool   `json:"shared"`
+	ID          string `json:"networkId"`
+	RefID       string `json:"refId"`
+	Name        string `json:"networkName"`
+	CIDR        string `json:"cidr"`
+	Status      string `json:"status"`
+	Shared      bool   `json:"shared"`
+	sharedKnown bool
+}
+
+func (tier *ktCloudTier) UnmarshalJSON(raw []byte) error {
+	type fields ktCloudTier
+	var value struct {
+		fields
+		Shared *bool `json:"shared"`
+	}
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return err
+	}
+	*tier = ktCloudTier(value.fields)
+	tier.sharedKnown = value.Shared != nil
+	if value.Shared != nil {
+		tier.Shared = *value.Shared
+	}
+	return nil
 }
 
 type ktCloudInterface struct {
@@ -76,8 +94,8 @@ func (s *ktCloudStatus) UnmarshalJSON(raw []byte) error {
 type ktCloudPage[T any] struct {
 	Status     ktCloudStatus `json:"httpStatus"`
 	Pagination struct {
-		Total  int `json:"total"`
-		Offset int `json:"offset"`
+		Total  *int `json:"total"`
+		Offset *int `json:"offset"`
 	} `json:"pagination"`
 	Data []T `json:"data"`
 }
@@ -100,14 +118,14 @@ func ktCloudList[T any](ctx context.Context, client *gophercloud.ServiceClient, 
 		if err != nil {
 			return nil, safeContextError(ctx, errKTCloudResponse)
 		}
-		if response.Status != 200 || response.Data == nil || response.Pagination.Total < 0 || response.Pagination.Offset != len(items) {
+		if response.Status != 200 || response.Data == nil || response.Pagination.Total == nil || response.Pagination.Offset == nil || *response.Pagination.Total < 0 || *response.Pagination.Offset != len(items) {
 			return nil, errKTCloudResponse
 		}
 		items = append(items, response.Data...)
-		if len(items) == response.Pagination.Total {
+		if len(items) == *response.Pagination.Total {
 			return items, nil
 		}
-		if len(items) > response.Pagination.Total || len(response.Data) == 0 {
+		if len(items) > *response.Pagination.Total || len(response.Data) == 0 {
 			return nil, errKTCloudResponse
 		}
 	}
@@ -238,6 +256,9 @@ func (n *ktCloudD1Network) delete(ctx context.Context, resource, id string) erro
 	}
 	var result ktCloudReceipt
 	response, err := n.client.Delete(ctx, n.client.ServiceURL(resource, url.PathEscape(id)), &gophercloud.RequestOpts{OkCodes: []int{200, 202, 204}, JSONResponse: &result})
+	if err == nil && response.StatusCode != 204 {
+		err = ktCloudReceiptError(result.Status)
+	}
 	if gophercloud.ResponseCodeIs(err, 404) {
 		// NSM has returned 404 for IDs still present in its complete inventory.
 		// Confirm absence from that inventory rather than accepting the receipt.
@@ -258,9 +279,6 @@ func (n *ktCloudD1Network) delete(ctx context.Context, resource, id string) erro
 			}
 		}
 		return nil
-	}
-	if err == nil && response.StatusCode != 204 {
-		err = ktCloudReceiptError(result.Status)
 	}
 	if err != nil {
 		return safeMutationError(ctx, err, ErrResourceDelete)

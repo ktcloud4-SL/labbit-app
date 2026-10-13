@@ -78,7 +78,7 @@ func TestKTCloudPrepareNetworkUsesBoundedTierName(t *testing.T) {
 		case "GET":
 			items := []any{}
 			if name != "" {
-				items = append(items, map[string]any{"networkId": "owned-tier", "networkName": name, "cidr": "172.25.240.0/24", "refId": "physical-ref", "status": "ACTIVE"})
+				items = append(items, map[string]any{"networkId": "owned-tier", "networkName": name, "cidr": "172.25.240.0/24", "refId": "physical-ref", "status": "ACTIVE", "shared": false})
 			}
 			writeJSON(t, w, 200, map[string]any{"httpStatus": 200, "pagination": map[string]any{"total": len(items), "offset": 0}, "data": items})
 		}
@@ -107,7 +107,7 @@ func TestKTCloudPrepareManagementNICUsesBoundedTierName(t *testing.T) {
 		case r.Method == "GET" && strings.HasSuffix(r.URL.Path, "/network"):
 			items := []any{}
 			if name != "" {
-				items = append(items, map[string]any{"networkId": "management-tier", "networkName": name, "cidr": "172.25.241.0/24", "refId": "management-ref", "status": "ACTIVE"})
+				items = append(items, map[string]any{"networkId": "management-tier", "networkName": name, "cidr": "172.25.241.0/24", "refId": "management-ref", "status": "ACTIVE", "shared": false})
 			}
 			writeJSON(t, w, 200, map[string]any{"httpStatus": 200, "pagination": map[string]any{"total": len(items), "offset": 0}, "data": items})
 		case r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/firewall/policy"):

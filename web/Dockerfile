@@ -10,13 +10,14 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# 2단계: 실행 환경 (초경량 Nginx)
-FROM nginx:alpine
+# 2단계: 비루트 Nginx 실행 환경
+FROM nginxinc/nginx-unprivileged:stable-alpine
 
 # 빌드 결과물(dist)과 Nginx 설정 복사
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --chown=101:101 --from=builder /app/dist /usr/share/nginx/html
+COPY --chown=101:101 nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+EXPOSE 8080
 
+USER 101:101
 CMD ["nginx", "-g", "daemon off;"]

@@ -6,7 +6,7 @@
 >
 > 목적: Sprint 01 / AWS1 G1에서 시작한 Frontend 배포 입력을 Sprint 02의 Local/AWS Browser Acceptance까지 유지한다. **Web image/Helm/Istio의 배포 소유권은 Platform에 있고, Frontend는 Router·HTTP/WSS Consumer와 사용자 화면 검증을 담당한다.**
 >
-> 현재 판정: LBT-32 Web packaging과 공개 HTTPS Web 서빙은 준비됐고, LBT-74 Auth/Class는 Local Stage A **PASS**, 공개 HTTPS Stage B **부분 PASS**다(2026-10-12 정상 로그인·수업·로그아웃, 대표 401/403/404, Session Cookie 속성 실측). 미검증 보안·장애 시나리오가 남아 있어 LBT-74 전체 완료는 아니다. Backend 배포/DB/rollback은 LBT-36에서 별도 판정한다. 자세한 결과는 8절과 [Jira LBT-74](https://samsunglions.atlassian.net/browse/LBT-74)를 따른다.
+> 현재 판정(2026-10-12 14:50 Jira 최종 마감): LBT-32 Web packaging과 공개 HTTPS Web 서빙은 준비됐고, LBT-74 Auth/Class는 Local Stage A **PASS**와 공개 HTTPS Stage B의 정상 Login/Class/Logout·401/403/404·Session Cookie 및 오류 UX Browser Evidence를 종합해 **완료** 처리됐다([Jira LBT-74 #10418](https://samsunglions.atlassian.net/browse/LBT-74), 상위 LBT-12 #10419 완료). 다만 공유 HTTPS에서 FE가 직접 강제한 Session 만료·서버 5xx UI 등은 미실측이며 Backend Owner 검증은 별도 Evidence다. Backend 배포/DB/rollback은 LBT-36에서 독립 판정한다. 자세한 검증 범위는 8절을 따른다.
 
 ## 1. 현재 Web build 계약
 
@@ -148,11 +148,11 @@ Platform packaging에서 현재 필요한 Frontend 입력은 다음과 같다.
 - 실제 Backend에 구현·배포된 제품 HTTP endpoint별로 Browser → Frontend → Backend Flow 확인(계약이나 Consumer만 있는 경로를 E2E PASS로 보지 않음)
 - Secret/Credential 원문이 Web artifact나 공개 Config에 들어가지 않음
 
-**실제 통합 검증 현황(2026-10-12)**
+**실제 통합 검증 현황(2026-10-12 14:50 Jira 최종 마감 기준)**
 
 - **Local Stage A PASS:** LBT-72/73의 실제 Backend HTTP Auth/Class 연동 확인.
-- **고정 HTTPS Stage B 부분 PASS(LBT-74):** 개발용 관리자·강사·학생 계정의 Login `204` → `/me 200` → Class 목록/상세 `200` → Logout `204` → `/me 401`, 관리자/학생의 비인가 Class 접근 `403`, 없는 Class `404`, 잘못된 비밀번호 `401`, 새로고침 후 세션 유지·로그아웃 후 보호 Route 차단 및 `__Host-labbit-session` Cookie의 Secure/HttpOnly/SameSite=Lax/Path=/를 Browser에서 관측. [Jira LBT-74](https://samsunglions.atlassian.net/browse/LBT-74) 댓글 #10398·#10399가 상세 Evidence이며, 과거 `/me 503`은 최신 결과가 아닙니다.
-- **Stage B 미완료:** Origin/Referer 거부 경계, 시간 경과에 따른 서버 측 세션 만료, 공유 환경의 5xx·장애/복구는 담당자 협의 후 검증. LBT-36의 DB/Migration/read-write/readiness/rollback도 별도 Gate입니다.
+- **고정 HTTPS Stage B Browser 부분 PASS(LBT-74 최종 Acceptance의 직접 검증 근거):** 개발용 관리자·강사·학생 계정의 Login `204` → `/me 200` → Class 목록/상세 `200` → Logout `204` → `/me 401`, 관리자/학생의 비인가 Class 접근 `403`, 없는 Class `404`, 잘못된 비밀번호 `401`, 새로고침 후 세션 유지·로그아웃 후 보호 Route 차단 및 `__Host-labbit-session` Cookie의 Secure/HttpOnly/SameSite=Lax/Path=/를 Browser에서 관측. [Jira LBT-74](https://samsunglions.atlassian.net/browse/LBT-74) 댓글 #10398·#10399가 상세 Evidence이며, 과거 `/me 503`은 최신 결과가 아닙니다.
+- **공유 HTTPS에서 FE 직접 미검증인 별도 시나리오:** FE가 강제한 Origin/Referer 거부, 시간 경과에 따른 서버 측 세션 만료, 실제 서버 5xx·장애/복구 UI는 이번 FE Browser 직접 실측이 아님. Backend Owner의 LBT-68 #10405 Origin/Referer·세션/격리 오류 계약 증거는 별도 Owner Evidence로 재사용하며 LBT-74 Jira 완료 판정과 구분한다. LBT-36의 DB/Migration/read-write/readiness/rollback도 별도 Gate입니다.
 - **Provision의 별도 404:** Browser에서 `GET /classes/{classId}/memberships`와 `GET /lab-specs`가 404였습니다. 두 경로 모두 현재 Backend HTTP router에 등록되지 않았습니다. LabSpec은 LBT-17 후속 구현 범위이나 Membership 목록 조회는 LBT-67 완료 범위에 명시되지 않았으므로 **Backend 담당자와 Owner/일정을 별도로 확인**합니다. 이를 Auth/Class Stage B의 실패나 Provision E2E 완료로 판정하지 않습니다.
 - **후속 E2E:** Terminal/File 실제 VM은 LBT-21/22 준비 후 LBT-26/27에서, Local/AWS 전체 사용자 Flow는 LBT-53에서 각각 검증합니다.
 

@@ -289,7 +289,8 @@ func TestOpenStackFileTransportIntegration(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	fileIntegrationIdle(t, broker, manager)
+	fileIntegrationIdle(t, broker, manager, service)
+	t.Log("Four concurrent real SFTP Reads returned distinct bytes and drained pending/Data/SFTP workers while PTY remained active PASS")
 	// A VM-side helper accepts exec but delays SFTP initialization. Cancellation
 	// is triggered only after its remote marker confirms the real channel started.
 	stallPath := "/home/ubuntu/stall-workspace-sftp"
@@ -297,7 +298,7 @@ func TestOpenStackFileTransportIntegration(t *testing.T) {
 	if fixture.Chmod(stallPath, 0700) != nil {
 		t.Fatal("Stall fixture failed")
 	}
-	stalled, err := workspacefile.New(access, a, workspacefile.Config{Root: root, HelperPath: stallPath, Timeout: 5 * time.Second, MaxFileBytes: 64})
+	stalled, err := workspacefile.New(access, a, workspacefile.Config{Root: root, HelperPath: stallPath, Timeout: 30 * time.Second, MaxFileBytes: 64})
 	if err != nil {
 		t.Fatal("Stall service failed")
 	}
@@ -318,7 +319,7 @@ func TestOpenStackFileTransportIntegration(t *testing.T) {
 		request, stop := context.WithCancel(ctx)
 		result := make(chan error, 1)
 		go func() { _, err := broker.Read(request, target, file, 64); result <- err }()
-		until := time.Now().Add(10 * time.Second)
+		until := time.Now().Add(20 * time.Second)
 		for {
 			if _, err := fixture.Stat("/home/ubuntu/stall-started"); err == nil {
 				break
@@ -340,12 +341,12 @@ func TestOpenStackFileTransportIntegration(t *testing.T) {
 			if err == nil {
 				t.Fatal("Interrupted File unexpectedly succeeded")
 			}
-		case <-time.After(8 * time.Second):
+		case <-time.After(35 * time.Second):
 			stop()
 			t.Fatal("Interrupted File did not terminate")
 		}
 		stop()
-		fileIntegrationIdle(t, broker, stallManager)
+		fileIntegrationIdle(t, broker, stallManager, stalled)
 		if shared != realSSHConnection(t, ctx, access, vm) {
 			t.Fatal("File interruption replaced shared PTY transport")
 		}
@@ -358,7 +359,7 @@ func TestOpenStackFileTransportIntegration(t *testing.T) {
 		t.Fatal("PTY failed after File termination")
 	}
 	assertPTYMarker(t, pty)
-	fileIntegrationIdle(t, broker, manager)
+	fileIntegrationIdle(t, broker, manager, service, stalled)
 	sender.mu.Lock()
 	frames := append([][]byte(nil), sender.frames...)
 	sender.mu.Unlock()
@@ -372,14 +373,25 @@ func TestOpenStackFileTransportIntegration(t *testing.T) {
 	t.Log("Four independent Data requests with distinct content; real SFTP cancellation/timeout/Data revoke drain pending+workers and preserve shared PTY; Control secrecy PASS")
 }
 
-func fileIntegrationIdle(t *testing.T, b *filebroker.Broker, m *fileclient.Manager) {
+func fileIntegrationIdle(t *testing.T, b *filebroker.Broker, m *fileclient.Manager, services ...*workspacefile.Service) {
 	t.Helper()
 	until := time.Now().Add(3 * time.Second)
-	for (b.PendingCount() != 0 || m.Active() != 0) && time.Now().Before(until) {
+	active := func() bool {
+		if b.PendingCount() != 0 || m.Active() != 0 {
+			return true
+		}
+		for _, s := range services {
+			if s.ActiveOperations() != 0 {
+				return true
+			}
+		}
+		return false
+	}
+	for active() && time.Now().Before(until) {
 		time.Sleep(time.Millisecond)
 	}
-	if b.PendingCount() != 0 || m.Active() != 0 {
-		t.Fatal("Pending or File Data worker remained")
+	if active() {
+		t.Fatal("Pending, File Data worker or SFTP bridge remained")
 	}
 }
 

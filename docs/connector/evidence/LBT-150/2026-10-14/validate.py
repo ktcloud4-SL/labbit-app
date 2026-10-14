@@ -31,6 +31,13 @@ def live():
     finally:
         v.run('post-discovery',['go','test','-mod=readonly','-json','-count=1','-timeout=2m','-run','^TestOpenStackM1Integration$','./internal/connector/provider/openstack'],env=dict(env,LABBIT_OPENSTACK_INTEGRATION='1'))
 
+def residual():
+    for name in ['OS_CLOUD','LABBIT_PROVIDER_CONFIG_FILE']:
+        if not os.environ.get(name): raise SystemExit('Missing explicit read-only input: '+name)
+    overlay=v.OUT/'overlay.json'
+    v.save('overlay.json',{'Replace':{str(repo/'internal/connector/provider/openstack/residual150_audit_test.go'):str(Path(__file__).resolve().parent/'residual150.go.txt')}})
+    v.run('fixture-residual',['go','test','-mod=readonly','-json','-count=1','-timeout=2m','-overlay',str(overlay),'-run','^TestLBT150ReadOnlyFixtureResiduals$','./internal/connector/provider/openstack'],env=dict(v.clean_env(),LABBIT_OPENSTACK_RESIDUAL_AUDIT='1'))
+
 mode = sys.argv[1]
 before = v.snapshot(mode+'-before')
 try:
@@ -40,8 +47,8 @@ try:
         v.run('workspace-race',['go','test','-mod=readonly','-race','-json','-count=1','-timeout=3m','./internal/connector/workspacefile','./internal/connector/workspacefs'],env=v.clean_env())
         v.run('file-repeat',['go','test','-mod=readonly','-race','-json','-count=20','-timeout=3m','-run','^(TestConcurrentRequestsAndCorrelatedClose|TestTimeoutPeerDisconnectAndCredentialRevokeCancelSFTP|TestCompletedAndCanceledIDsNeverRedialAcrossControlReconnect|TestFileOpenCapturesControlSenderAndActualDialCredential|TestReviewNoAdmissionAfterOldControlRetirement|TestReviewLateOldFrameNeverBindsNewControlOwner|TestFileOldOwnerCleanupPreservesNewOwnerAndRevocationUses4001|TestUnknownSaveOutcomeNeverReplaysAndRequiresFreshRead|TestReadCeilingAndOversizeSaveWithRequiredBinary)$','./internal/connector/filetransport','./internal/connector/wss'],env=v.clean_env())
     elif mode in ('web','contracts'): getattr(v,mode)()
-    elif mode in ('live','targeted'): globals()[mode]()
-    else: raise SystemExit('Expected auto, web, contracts, targeted or live')
+    elif mode in ('live','targeted','residual'): globals()[mode]()
+    else: raise SystemExit('Expected auto, web, contracts, targeted, live or residual')
 finally:
     after = v.snapshot(mode+'-after')
     v.save(mode+'-source-stability.json',{'unchanged':before['head']==after['head'] and before['files']==after['files'],'headBefore':before['head'],'headAfter':after['head']})

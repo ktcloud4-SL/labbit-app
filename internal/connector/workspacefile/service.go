@@ -91,6 +91,10 @@ func New(access *vmaccess.Manager, validator WorkspaceValidator, config Config) 
 	}
 	return &Service{access: access, validator: validator, config: config, slots: make(chan struct{}, 16), locks: make(map[lockKey]*fileLock)}, nil
 }
+
+// ActiveOperations includes draining SSH bridges after a canceled caller has
+// returned. A request's Data worker ending alone does not prove SFTP drained.
+func (s *Service) ActiveOperations() int { return len(s.slots) }
 func validAbsolute(p string) bool {
 	return strings.HasPrefix(p, "/") && p != "/" && path.Clean(p) == p && !strings.ContainsAny(p, "\x00\r\n\\")
 }

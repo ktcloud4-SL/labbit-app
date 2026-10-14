@@ -397,7 +397,15 @@ func (s *Service) run(parent context.Context, target vmaccess.Target, p string, 
 		bridges.Go(func() { defer recvW.Close(); _, _ = io.Copy(recvW, stdout) })
 		bridges.Go(func() { defer sendR.Close(); _, _ = io.Copy(stdin, sendR) })
 		// Keep the bounded slot and file lock while any SSH bridge remains.
-		defer func() { stop(); closePipes(); bridges.Wait() }()
+		defer func() {
+			stop()
+			closePipes()
+			bridges.Wait()
+			// Join ssh.Session's stderr and exit-status workers as well as
+			// our bridges before releasing this request's slot/path lock.
+			// A killed helper's ExitError is not a File business error.
+			_ = session.Wait()
+		}()
 		client, err := sftp.NewClientPipe(recvR, sendW, sftp.UseConcurrentReads(false), sftp.UseConcurrentWrites(false))
 		if err != nil {
 			done <- result{err: ErrUnavailable}

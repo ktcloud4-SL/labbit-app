@@ -31,7 +31,7 @@ function label(item: MappingCandidate) {
 
 /**
  * Presentational component only. No API call, persistence, or Provider mutation.
- * Integrate into LabSpecEditor only after the server catalog contract is agreed.
+ * LabSpecEditor supplies candidates from the agreed read-only Mapping options API.
  */
 export function LabSpecMappingFields({
   value,
@@ -72,42 +72,42 @@ export function LabSpecMappingFields({
 
   return (
     <>
-        <label className="field">
-          <span>Image 참조</span>
-          <select
-            value={value.imageRef}
-            disabled={disabled || allowedImages.length === 0}
-            onChange={chooseImage}
-          >
-            <option value="">Image를 선택해 주세요</option>
-            {missingImage && (
-              <option value={value.imageRef} disabled>
-                현재 Image 참조 (후보에 없음)
-              </option>
-            )}
-            {allowedImages.map((item) => (
-              <option key={item.id} value={item.id}>{label(item)}</option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Size 참조</span>
-          <select
-            value={value.sizeRef}
-            disabled={disabled || !image || allowedSizes.length === 0}
-            onChange={chooseSize}
-          >
-            <option value="">Size를 선택해 주세요</option>
-            {missingSize && (
-              <option value={value.sizeRef} disabled>
-                현재 Size 참조 (후보에 없음)
-              </option>
-            )}
-            {allowedSizes.map((item) => (
-              <option key={item.id} value={item.id}>{label(item)}</option>
-            ))}
-          </select>
-        </label>
+      <label className="field">
+        <span>Image 참조</span>
+        <select
+          value={value.imageRef}
+          disabled={disabled || allowedImages.length === 0}
+          onChange={chooseImage}
+        >
+          <option value="">Image를 선택해 주세요</option>
+          {missingImage && (
+            <option value={value.imageRef} disabled>
+              현재 Image 참조 (후보에 없음)
+            </option>
+          )}
+          {allowedImages.map((item) => (
+            <option key={item.id} value={item.id}>{label(item)}</option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span>Size 참조</span>
+        <select
+          value={value.sizeRef}
+          disabled={disabled || !image || allowedSizes.length === 0}
+          onChange={chooseSize}
+        >
+          <option value="">Size를 선택해 주세요</option>
+          {missingSize && (
+            <option value={value.sizeRef} disabled>
+              현재 Size 참조 (후보에 없음)
+            </option>
+          )}
+          {allowedSizes.map((item) => (
+            <option key={item.id} value={item.id}>{label(item)}</option>
+          ))}
+        </select>
+      </label>
       {allowedImages.length === 0 && (
         <p className="muted" role="status">
           선택 가능한 Image Mapping이 없습니다. 기관 설정의 허용 후보를 확인해 주세요.

@@ -159,7 +159,7 @@ const initialLabSpecs: LabSpec[] = [
   {
     id: 'lab-spec-linux-networking',
     name: 'Linux Networking',
-    description: '다른 Instructor가 소유한 읽기 전용 예시',
+    description: '다른 Instructor가 소유한 접근 차단 검증 예시',
     ownerUserId: 'user-instructor-other',
     vms: [
       {
@@ -460,12 +460,15 @@ export const mockLabbitApi: LabbitApi = {
     requireSession()
 
     const result: LabSpecList = {
-      items: labSpecs.map(({ id, name, description, ownerUserId }) => ({
-        id,
-        name,
-        description,
-        ownerUserId,
-      })),
+      items: labSpecs
+        .filter((labSpec) => labSpec.ownerUserId === mockMe.id)
+        .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
+        .map(({ id, name, description, ownerUserId }) => ({
+          id,
+          name,
+          description,
+          ownerUserId,
+        })),
     }
 
     return result
@@ -477,6 +480,9 @@ export const mockLabbitApi: LabbitApi = {
     const labSpec = labSpecs.find((item) => item.id === labSpecId)
     if (!labSpec) {
       throw new HttpError(404)
+    }
+    if (labSpec.ownerUserId !== mockMe.id) {
+      throw new HttpError(403)
     }
 
     return {

@@ -1,0 +1,181 @@
+{
+  "recordedAt": "2026-10-14T04:18:48.700688+00:00",
+  "base": "0599947407e9edd4539690e2f56eecf0622909ce",
+  "sourceHEAD": "a495184e13a159c0cca25256dd8d0766da83283e",
+  "branch": "feat/LBT-149-sftp-workspace",
+  "originMain": "0599947407e9edd4539690e2f56eecf0622909ce",
+  "files": [
+    {
+      "path": "cmd/labbit-workspace-sftp/main.go",
+      "byteSHA256": "5aca2e0eabe90d51f8ca2c13c968ca744945ac0a5cd1388ba96ec35a6cccf898",
+      "testedGitBlob": "6ea8ace8fa534f380f4a2edfd52397f650849673",
+      "deliveryGitBlob": "6ea8ace8fa534f380f4a2edfd52397f650849673"
+    },
+    {
+      "path": "docs/connector/workspace-sftp.md",
+      "byteSHA256": "0024fdf16be92954e79f541c2f9027a954d4bf0a122cbc1f12d58c057516d97b",
+      "testedGitBlob": "1b63757afd4ccffbca7704b8b41a45528733dec1",
+      "deliveryGitBlob": "1b63757afd4ccffbca7704b8b41a45528733dec1"
+    },
+    {
+      "path": "go.mod",
+      "byteSHA256": "d9edb3cb0b349c2aaf878eac77e312dbb8fa03e9ad79f8c9569d309baecbf4b4",
+      "testedGitBlob": "5780e443a170e48fc83fe8b440f5f62cca121775",
+      "deliveryGitBlob": "5780e443a170e48fc83fe8b440f5f62cca121775"
+    },
+    {
+      "path": "go.sum",
+      "byteSHA256": "accde73f8f6e210dc68e55c2293110f83d3d87902f84edf169b426a5fb5a0d90",
+      "testedGitBlob": "911224e5cfe030f3889dfd695e459380d27f63a2",
+      "deliveryGitBlob": "911224e5cfe030f3889dfd695e459380d27f63a2"
+    },
+    {
+      "path": "internal/connector/app/app.go",
+      "byteSHA256": "90cd67343eb183cfc289f225b273013dfe9a4de6c5b992b102d781a076079c32",
+      "testedGitBlob": "273e1ab92729193d4c06e394d57140a4c653fe53",
+      "deliveryGitBlob": "273e1ab92729193d4c06e394d57140a4c653fe53"
+    },
+    {
+      "path": "internal/connector/app/runtime_provider.go",
+      "byteSHA256": "9a328f770284b94ef0478c6c6cbb8f5085683f0928fab6c2cf8a4dce7fe3b4c0",
+      "testedGitBlob": "c0377bc8a6d8bcff248ce6d1cc27a72e2966793d",
+      "deliveryGitBlob": "c0377bc8a6d8bcff248ce6d1cc27a72e2966793d"
+    },
+    {
+      "path": "internal/connector/app/runtime_provider_test.go",
+      "byteSHA256": "1a51ce37dace88f5b9429bccdc5d61f40af3b90eeee028ebd117acff9b45d9ee",
+      "testedGitBlob": "558490915f6502dfbd2e129a7387bac6ea7706c3",
+      "deliveryGitBlob": "558490915f6502dfbd2e129a7387bac6ea7706c3"
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision.go",
+      "byteSHA256": "9ff0973facd09026534f4bbc4c29dcf614dbd7bfc73d54d9101d838099aae9ff",
+      "testedGitBlob": "cb628d8a7c0bc21af4561f81c0b94c3e8df4ee94",
+      "deliveryGitBlob": "cb628d8a7c0bc21af4561f81c0b94c3e8df4ee94"
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision_test.go",
+      "byteSHA256": "d7bfee3f019089a85ec511abffbe6ec36893753f78797ba76cddf4c2397bfeb9",
+      "testedGitBlob": "33d528e604a44dd960688ae84e33ef82bc4f4ea2",
+      "deliveryGitBlob": "33d528e604a44dd960688ae84e33ef82bc4f4ea2"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target.go",
+      "byteSHA256": "ae7cd838fd5cabb66ee9f45b8b3bbd663ec241d24e3a32227445e8e53b93ce49",
+      "testedGitBlob": "5ae0e5f69730109cdde8639bba96dd26dfe52780",
+      "deliveryGitBlob": "5ae0e5f69730109cdde8639bba96dd26dfe52780"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target_test.go",
+      "byteSHA256": "d94e0e6e38d04622e466247fde9b7a4fe4b5d3440dc975eac3951df80a9e2d64",
+      "testedGitBlob": "4c17ca81b5647f794459da0de64d5411c99b2f7b",
+      "deliveryGitBlob": "4c17ca81b5647f794459da0de64d5411c99b2f7b"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_file_integration_test.go",
+      "byteSHA256": "f79dd4d53e511dd5f8fcadd5da9cd79c129cad419da30c2bca6b52d66842d4bf",
+      "testedGitBlob": "889e0a0df57981ea2d929dfceb6ab9e1e64c8200",
+      "deliveryGitBlob": "889e0a0df57981ea2d929dfceb6ab9e1e64c8200"
+    },
+    {
+      "path": "internal/connector/workspacefile/service.go",
+      "byteSHA256": "8c91105289f90197a56d5ae6a7fb983c1dc2c6a467936f98cd1db98091c64998",
+      "testedGitBlob": "ac85f79e3a2effa4aa5384a52430eec7866828cd",
+      "deliveryGitBlob": "ac85f79e3a2effa4aa5384a52430eec7866828cd"
+    },
+    {
+      "path": "internal/connector/workspacefile/service_test.go",
+      "byteSHA256": "04e7877c7e9d13a99a00989410722a18a090531b9afec2ee470348bedd115c79",
+      "testedGitBlob": "e1a53fd6b921dcc5a31bd4bd5432f9356d9a5e4d",
+      "deliveryGitBlob": "e1a53fd6b921dcc5a31bd4bd5432f9356d9a5e4d"
+    },
+    {
+      "path": "internal/connector/workspacefs/path.go",
+      "byteSHA256": "2d2317dca1a120aad8a815ebbcb55b028cbecc36d22d9ec06ecfd2663507bcb9",
+      "testedGitBlob": "c1394b043cfe013af44e5d127ccf6d0d75b97273",
+      "deliveryGitBlob": "c1394b043cfe013af44e5d127ccf6d0d75b97273"
+    },
+    {
+      "path": "internal/connector/workspacefs/root_linux.go",
+      "byteSHA256": "d5c72cc7b7cae2c68dc91dd33bae5362ec6689cadd9a54cf0ca2869c08cccec8",
+      "testedGitBlob": "d77cbad1a8bc44ec71181342608aae33cd6dec84",
+      "deliveryGitBlob": "d77cbad1a8bc44ec71181342608aae33cd6dec84"
+    },
+    {
+      "path": "internal/connector/workspacefs/root_other.go",
+      "byteSHA256": "6f60c5a43fc4930c17d000a17f4e39c30039b8441ad9cc0f52cf26daeb9ca5fd",
+      "testedGitBlob": "8f404762eac573829d872345286b5a0d02f6b25b",
+      "deliveryGitBlob": "8f404762eac573829d872345286b5a0d02f6b25b"
+    },
+    {
+      "path": "internal/connector/workspacefs/root_windows.go",
+      "byteSHA256": "7afacf81af999592fb6fe8451ef20e4768de3d74249a8c87399c9868ebe18b3e",
+      "testedGitBlob": "75570b1af58d36b9ec695e5b12cd367e9d4b0862",
+      "deliveryGitBlob": "75570b1af58d36b9ec695e5b12cd367e9d4b0862"
+    },
+    {
+      "path": "internal/connector/workspacefs/security_linux_test.go",
+      "byteSHA256": "3d88a1ae7ea41706989d573b1b8050a4ee0a0235bff769abbbdeddbf6382aa1d",
+      "testedGitBlob": "cf2fbda02bc18217b2f1069d9fc61d417e4bc047",
+      "deliveryGitBlob": "cf2fbda02bc18217b2f1069d9fc61d417e4bc047"
+    },
+    {
+      "path": "internal/connector/workspacefs/server.go",
+      "byteSHA256": "7d4aa69a2f7f3fe1e5492ee864958dd20c913aac3cadba51b829eafdce21df23",
+      "testedGitBlob": "0eab1c3c335a07c5d99d56601b3df439f53eddc6",
+      "deliveryGitBlob": "0eab1c3c335a07c5d99d56601b3df439f53eddc6"
+    },
+    {
+      "path": "internal/connector/workspacefs/server_test.go",
+      "byteSHA256": "b61c3b7f985bce838fb9e3842bc4faf0dca8fdf1b7779ea02f3d65851fb4a1c3",
+      "testedGitBlob": "2247f006fa4aff088b9696ea1ccb5f7db8b6c283",
+      "deliveryGitBlob": "2247f006fa4aff088b9696ea1ccb5f7db8b6c283"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "byteSHA256": "b27562edba0fe953cacb00b7b8d085e6101dfd294e3db5e5ea8e93e4019838a4",
+      "testedGitBlob": "83a4d5f8a9054c4f8510a263e48c67f4118a0587",
+      "deliveryGitBlob": "625459938f4cd63c27586f658bc09eb24965d440"
+    }
+  ],
+  "liveSourceBeforeAfterIdentical": true,
+  "liveVMHelperGoSourceBytesStillMatch": true,
+  "postTestRuntimeWhitespaceChange": {
+    "path": "runtime/contract.yaml",
+    "testedByteSHA256": "fbb35a80ba6a7c85e50cf96401323cb7494c31613f83e790340d109e2fb02033",
+    "deliveryByteSHA256": "b27562edba0fe953cacb00b7b8d085e6101dfd294e3db5e5ea8e93e4019838a4",
+    "equalAfterNormalizeLineEndingsAndTrimTrailingNewlines": true,
+    "validation": "contracts-final/source-contracts-before.json and full current Contracts PASS"
+  },
+  "binaryManifest": {
+    "head": "a495184e13a159c0cca25256dd8d0766da83283e",
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "CGO_ENABLED": "0",
+    "binaries": [
+      {
+        "name": "labbit-workspace-sftp",
+        "sha256": "03b5ff87764854afc630a6b9d8b0b3b9a1a60c67c9f928874a13416e0c412002"
+      },
+      {
+        "name": "workspacefs-tests",
+        "sha256": "85ab4668b1a2d8db83804178a6dfc244ef955b890b48b5c1dfbf7910a17bc6f8"
+      }
+    ],
+    "sourceSnapshot": "source-live-before.json"
+  },
+  "webAndInitialContractsTestedHEAD": "c753ce9c72c7f13773d3bcfbdb53bddc331343b2",
+  "finalContractsTestedCandidate": "a495 + trailing empty runtime line removed; snapshot bytes identify exact candidate",
+  "subsequentChangedFiles": [
+    "internal/connector/provider/openstack/workspace_file_integration_test.go",
+    "internal/connector/workspacefs/security_linux_test.go",
+    "internal/connector/workspacefs/server.go",
+    "internal/connector/workspacefs/server_test.go"
+  ],
+  "webHTTPRuntimeWireDependencySemanticChangeAfterWebChecks": false,
+  "baselineRunner": {
+    "path": "docs/connector/evidence/LBT-148/2026-10-14/validate.py",
+    "byteSHA256": "ef8696db4588b68089fc7c2534e998097c92d1f0df9ae94f8897516eb64915bb"
+  },
+  "deliveryAdditions": "runtime trailing empty line cleanup + this Evidence directory; reviewed separately"
+}

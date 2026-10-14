@@ -7,6 +7,7 @@ import (
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -38,6 +39,7 @@ type providerInitialization struct {
 
 var _ runtimeProvider = (*lazyProvider)(nil)
 var _ provider.ServerAddressResolver = (*lazyProvider)(nil)
+var _ workspacefile.WorkspaceValidator = (*lazyProvider)(nil)
 
 func newLazyProvider(providerConnectionID string, factory providerFactory) *lazyProvider {
 	return &lazyProvider{
@@ -147,6 +149,18 @@ func (p *lazyProvider) ResolveVMAccess(ctx context.Context, target vmaccess.Targ
 		return vmaccess.Endpoint{}, errProviderInitialization
 	}
 	return resolver.ResolveVMAccess(ctx, target)
+}
+
+func (p *lazyProvider) ValidateWorkspace(ctx context.Context, target vmaccess.Target) error {
+	initialized, err := p.get(ctx)
+	if err != nil {
+		return err
+	}
+	validator, ok := initialized.(workspacefile.WorkspaceValidator)
+	if !ok {
+		return errProviderInitialization
+	}
+	return validator.ValidateWorkspace(ctx, target)
 }
 
 func (p *lazyProvider) SSHHostKeyCallback(ctx context.Context, serverID string) (ssh.HostKeyCallback, error) {

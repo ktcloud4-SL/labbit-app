@@ -19,6 +19,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/wss"
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"golang.org/x/crypto/ssh"
@@ -30,6 +31,7 @@ type ConnectorApp struct {
 	TerminalManager *terminal.SessionManager
 	PTYFactory      wss.PTYFactoryFunc
 	VMAccess        *vmaccess.Manager
+	WorkspaceFiles  *workspacefile.Service
 	PreviewManager  *preview.SessionManager
 }
 
@@ -265,12 +267,26 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 	if previewMgr != nil {
 		handler.SetPreviewManager(previewMgr, prevCfg)
 	}
+	var files *workspacefile.Service
+	root, helper := os.Getenv("LABBIT_WORKSPACE_ROOT"), os.Getenv("LABBIT_WORKSPACE_SFTP_HELPER")
+	if root != "" || helper != "" {
+		validator, ok := p.(workspacefile.WorkspaceValidator)
+		if accessManager == nil || !ok {
+			return nil, fmt.Errorf("Workspace Provider validation is required for File access")
+		}
+		var err error
+		files, err = workspacefile.New(accessManager, validator, workspacefile.Config{Root: root, HelperPath: helper})
+		if err != nil {
+			return nil, fmt.Errorf("invalid Workspace File configuration")
+		}
+	}
 
 	return &ConnectorApp{
 		Handler:         handler,
 		TerminalManager: sessionMgr,
 		PTYFactory:      ptyFactory,
 		VMAccess:        accessManager,
+		WorkspaceFiles:  files,
 		PreviewManager:  previewMgr,
 	}, nil
 }

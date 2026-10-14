@@ -73,10 +73,11 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 		}
 
 		metadata := map[string]string{
-			"labbit_operation_id":    request.OperationID,
-			"labbit_lab_instance_id": request.LabInstanceID,
-			"labbit_generation":      strconv.FormatInt(request.Generation, 10),
-			"labbit_vm_key":          vm.VMKey,
+			"labbit_operation_id":     request.OperationID,
+			"labbit_lab_instance_id":  request.LabInstanceID,
+			"labbit_generation":       strconv.FormatInt(request.Generation, 10),
+			"labbit_vm_key":           vm.VMKey,
+			"labbit_workspace_vm_key": request.CreationSnapshot.WorkspaceVMKey,
 		}
 		userData := []byte(nil)
 		if request.CreationSnapshot.StartupScript != nil {

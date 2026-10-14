@@ -80,6 +80,9 @@ func TestDispatchOperationProvisionCreatesDualNICServerAndTracksResources(t *tes
 	if fake.serverKeyPair != "openstack2" {
 		t.Fatalf("Nova key pair = %q", fake.serverKeyPair)
 	}
+	if fake.serverMetadata["labbit_workspace_vm_key"] != snapshot.WorkspaceVMKey || fake.serverMetadata["labbit_vm_key"] != "workspace" {
+		t.Fatal("Nova creation omitted the immutable Workspace designation")
+	}
 	if fake.userData != "#!/bin/sh\necho ready\n" {
 		t.Fatalf("unexpected user data: %q", fake.userData)
 	}
@@ -551,6 +554,7 @@ type m2OpenStackFake struct {
 	startupProbes                 int
 	serverPortIDs                 []string
 	serverKeyPair                 string
+	serverMetadata                map[string]string
 	userData                      string
 	subnetGateway                 string
 	subnetGatewaySet              bool
@@ -813,9 +817,10 @@ func (f *m2OpenStackFake) handleServerCollection(response http.ResponseWriter, r
 		}
 		var body struct {
 			Server struct {
-				Name     string `json:"name"`
-				KeyName  string `json:"key_name"`
-				UserData string `json:"user_data"`
+				Name     string            `json:"name"`
+				KeyName  string            `json:"key_name"`
+				UserData string            `json:"user_data"`
+				Metadata map[string]string `json:"metadata"`
 				Networks []struct {
 					Port string `json:"port"`
 				} `json:"networks"`
@@ -823,6 +828,7 @@ func (f *m2OpenStackFake) handleServerCollection(response http.ResponseWriter, r
 		}
 		decodeJSON(f.t, request, &body)
 		f.serverKeyPair = body.Server.KeyName
+		f.serverMetadata = body.Server.Metadata
 		decoded, err := base64.StdEncoding.DecodeString(body.Server.UserData)
 		if err != nil {
 			f.t.Fatalf("decode user data: %v", err)

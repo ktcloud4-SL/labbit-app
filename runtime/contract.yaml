@@ -549,6 +549,14 @@ connector:
     control_path: "/connector/v1/control"
     subprotocol: "labbit.connector.v1"
   config:
+    LABBIT_WORKSPACE_ROOT:
+      required_when: "Connector SFTP File boundary is configured"
+      secret: false
+      note: "VM 안의 canonical 절대 POSIX Workspace root입니다. 기본값은 없고 /는 금지하며 symlink root는 거절합니다. root의 부모/상위 디렉터리는 root 소유이고 group/other writable이면 안 됩니다. root 자체만 VM 관리 사용자에게 쓰기를 허용합니다."
+    LABBIT_WORKSPACE_SFTP_HELPER:
+      required_when: "LABBIT_WORKSPACE_ROOT is configured"
+      secret: false
+      note: "VM에 설치한 Linux labbit-workspace-sftp 실행 파일의 절대 경로입니다. executable과 상위 디렉터리는 root 소유이고 group/other writable이면 안 됩니다. 두 설정을 함께 주입하면 공유 VMAccess를 사용하는 WorkspaceFiles 경계를 구성합니다. file-v1 광고/File WSS 연결은 LBT-150에서 별도로 구성합니다."
     LABBIT_SAAS_BASE_URL:
       required: true
       secret: false

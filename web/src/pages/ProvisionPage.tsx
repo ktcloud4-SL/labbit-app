@@ -276,20 +276,30 @@ export function ProvisionPage() {
                 실습 정의 관리
               </Link>
             </div>
-            <label className="field">
-              <span>LabSpec</span>
-              <select
-                value={labSpecId}
-                onChange={(event) => setLabSpecId(event.target.value)}
-              >
-                <option value="">선택해 주세요</option>
-                {labSpecsQuery.data.items.map((labSpec) => (
-                  <option key={labSpec.id} value={labSpec.id}>
-                    {labSpec.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {labSpecsQuery.data.items.length === 0 ? (
+              <div className="empty-state compact-empty">
+                <h3>선택할 수 있는 LabSpec이 없습니다.</h3>
+                <p>실습 정의를 먼저 작성하고 저장하면 여기에서 선택할 수 있습니다.</p>
+                <Link className="secondary-link" to="/lab-specs/new">
+                  새 실습 정의 작성하기
+                </Link>
+              </div>
+            ) : (
+              <label className="field">
+                <span>LabSpec</span>
+                <select
+                  value={labSpecId}
+                  onChange={(event) => setLabSpecId(event.target.value)}
+                >
+                  <option value="">선택해 주세요</option>
+                  {labSpecsQuery.data.items.map((labSpec) => (
+                    <option key={labSpec.id} value={labSpec.id}>
+                      {labSpec.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </section>
 
           <section className="form-section">
@@ -342,7 +352,11 @@ export function ProvisionPage() {
             <Link className="secondary-link" to={`/classes/${encodeURIComponent(resolvedClassId)}`}>
               취소
             </Link>
-            <button className="primary-button" type="submit">
+            <button
+              className="primary-button"
+              type="submit"
+              disabled={labSpecsQuery.data.items.length === 0}
+            >
               생성 내용 확인
             </button>
           </div>

@@ -709,7 +709,7 @@ export function LabSpecEditorPage() {
         key={
           isNew
             ? 'new-lab-spec'
-            : `${resolvedLabSpecId}:${versionedLabSpec?.etag ?? 'missing-etag'}:${mappingError ? 'mapping-error' : 'mapping-ready'}`
+            : `${resolvedLabSpecId}:${versionedLabSpec?.etag ?? 'missing-etag'}:${providerForInitial(initial, mappingOptionsQuery.data ?? { items: [] })}`
         }
         initial={initial}
         readOnly={!isOwner || Boolean(mappingError)}

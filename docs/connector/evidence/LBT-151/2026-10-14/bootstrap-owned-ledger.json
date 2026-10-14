@@ -1,0 +1,45 @@
+{
+  "name": "labbit-lbt145-connector-df841443756e",
+  "stage": "BOOTSTRAP_CLEANUP_CONFIRMED",
+  "imageId": "56e47487-c6bb-4c7d-89f4-3bf4c294924c",
+  "imageName": "os-ubuntu24.04-image-20260929",
+  "flavorId": "698f032f-db57-4804-9a37-f41922f36eae",
+  "flavorName": "2x4.itl",
+  "vcpus": 2,
+  "ramMiB": 4096,
+  "diskGiB": 0,
+  "tierId": "e6ab10ea-196c-4be7-8465-056e0c716c8b",
+  "tierRefId": "4b9056bf-fcb8-44fb-a243-c53a6e9e183d",
+  "externalTierId": "79f63dca-4215-4625-9a1f-986d3b2e56d7",
+  "keypairName": "labbit-lbt145-connector-df841443756e-key",
+  "keyCreated": true,
+  "serverId": "e4c18ac7-43a1-4a42-92db-fd7e170bca9e",
+  "volumeIds": [
+    "002c4668-60ff-4f07-8465-d317f38d9c28"
+  ],
+  "publicIpId": "7a12e192-b6c1-42bb-bfcb-7c82f444875b",
+  "forwardId": "60f59ce0-7a6c-4a01-817a-5a7dc1efa139",
+  "policyIds": [
+    "eb361b7f-51ad-44fd-9ddf-d98cf8401eab",
+    "bf24c6ad-38e7-4f88-9732-97ed9213198a",
+    "4990c2d0-aa44-4819-a5b6-e11ddb73bcaa"
+  ],
+  "jobIds": [
+    "245475dad0b5849b0a06c964ee0c0f24",
+    "c769eec0da59d09da1be53187a8b9e23",
+    "7444aa7fa505fbfb47973b35d5cc0467"
+  ],
+  "deleted": true,
+  "policyJobs": {
+    "bootstrap-dns": "7444aa7fa505fbfb47973b35d5cc0467",
+    "bootstrap-https": "c769eec0da59d09da1be53187a8b9e23",
+    "bootstrap-ssh": "245475dad0b5849b0a06c964ee0c0f24"
+  },
+  "policyAttempted": {
+    "bootstrap-dns": true,
+    "bootstrap-https": true,
+    "bootstrap-ssh": true
+  },
+  "publicIpCreateAttempted": true,
+  "forwardCreateAttempted": true
+}

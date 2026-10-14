@@ -1,0 +1,23 @@
+Control evidence: CONTROL_FIXTURE_REGISTERED
+Control evidence: HELLO_HELLO_ACK_HEARTBEAT_PASS
+Production Provider query VALIDATE_CONNECTION PASS; items=0
+Control evidence: QUERY_VALIDATE_CONNECTION_PASS
+Production Provider query LIST_IMAGES PASS; items=12
+Control evidence: QUERY_LIST_IMAGES_PASS
+Production Provider query LIST_FLAVORS PASS; items=235
+Control evidence: QUERY_LIST_FLAVORS_PASS
+Control evidence: provision_SUCCEEDED
+Actual WSS PROVISION(g1): outcome=SUCCEEDED resources=5
+Management g1: Provider-owned IP resolved; pinned key-authenticated SSH exec PASS; external TCP22/443 denied PASS
+Control evidence: GENERATION1_MANAGEMENT_IP_PINNED_SSH_EGRESS_DENY_PASS
+Control evidence: GENERATION1_RECONCILE_PASS
+Installed Workspace helper g1: latest binary SHA256=2ad7fce4f34425f300e597ff4093d655e649a15b43b519b55b4a9cb939b42804; helper/root owner and mode checked; pinned SSH used
+Control evidence: OP02_G1_TWO_PTY_AND_SFTP_SAME_SSH_CONNECTION_PASS
+Control evidence: OP02_G1_PRODUCTION_PTY_RESIZE_INDEPENDENCE_RECONNECT_FILE_BINARY_BOUNDARIES_PASS
+Control evidence: OP02_PRODUCTION_60_SECOND_IDLE_SHARED_SSH_SOCKET_RETIRED_PASS
+Control evidence: OP02_PRODUCTION_60_SECOND_GRACE_EXPIRES_ENDED_SESSION_NOT_REUSED_PASS
+Control evidence: teardown_SUCCEEDED
+Actual WSS CLEANUP(g2): outcome=SUCCEEDED resources=5
+Control evidence: OP02_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS
+Production Connector shutdown: exited successfully within 5s; forcedKill=false
+Control acceptance failed: OP02 failures failed: Control response timeout

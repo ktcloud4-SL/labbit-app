@@ -1,0 +1,4025 @@
+[
+  {
+    "path": "validation/auto-final/auto-source-stability.json",
+    "originalSha256": "ac697a85110974fc42766af2ab3229cd13d0551d7cd4bbf4b039eac6cb7b15fe",
+    "publishedSha256": "ac697a85110974fc42766af2ab3229cd13d0551d7cd4bbf4b039eac6cb7b15fe",
+    "bytes": 163,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/compiled-source-auto-after.json",
+    "originalSha256": "a9e8fd5bf3cee7aa77a7952431687b01432df1ea0081a1e6f86b487589c5d52a",
+    "publishedSha256": "a9e8fd5bf3cee7aa77a7952431687b01432df1ea0081a1e6f86b487589c5d52a",
+    "bytes": 76525,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/compiled-source-auto-before.json",
+    "originalSha256": "afda2c4b4007babe2e9d655d8eb63aa50e8afbe84dc1413ed356dbb968e5a66a",
+    "publishedSha256": "afda2c4b4007babe2e9d655d8eb63aa50e8afbe84dc1413ed356dbb968e5a66a",
+    "bytes": 76525,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/file-race-run.json",
+    "originalSha256": "ba844d321c71eab72d231f13b82623f16c270a7b239953f797dd529e8662ab06",
+    "publishedSha256": "ba844d321c71eab72d231f13b82623f16c270a7b239953f797dd529e8662ab06",
+    "bytes": 540,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/file-race.log",
+    "originalSha256": "e7496a04cdc01d39ca65432e3fa458fd57d7428851bd4d419ae24a718c974358",
+    "publishedSha256": "e7496a04cdc01d39ca65432e3fa458fd57d7428851bd4d419ae24a718c974358",
+    "bytes": 77768,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/file-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/file-repeat-run.json",
+    "originalSha256": "d7870c80367e57aaf36b534d1b6096c9269b727c8fb2fc56670132d3d97987cf",
+    "publishedSha256": "d7870c80367e57aaf36b534d1b6096c9269b727c8fb2fc56670132d3d97987cf",
+    "bytes": 930,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/file-repeat.log",
+    "originalSha256": "9651d5b7c56e7af6820d947f9b2364e1a7ba9749666a08da6db6613217ee5d24",
+    "publishedSha256": "9651d5b7c56e7af6820d947f9b2364e1a7ba9749666a08da6db6613217ee5d24",
+    "bytes": 339207,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/file-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/fixture-race-run.json",
+    "originalSha256": "971306162629308c285f963bc1470f5a1280f84e74a6b4c14e5a66e98e25e1d2",
+    "publishedSha256": "971306162629308c285f963bc1470f5a1280f84e74a6b4c14e5a66e98e25e1d2",
+    "bytes": 432,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/fixture-race.log",
+    "originalSha256": "e58f940f838d999fd722b1f58ba64b1dcb8546bf47c50306c90ebece9a3af80c",
+    "publishedSha256": "e58f940f838d999fd722b1f58ba64b1dcb8546bf47c50306c90ebece9a3af80c",
+    "bytes": 2398432,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/fixture-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/go-build-run.json",
+    "originalSha256": "875e00c74eea929db68d863ca6f52bcf265b3563035a8dc92fcab9d8361a2e8c",
+    "publishedSha256": "875e00c74eea929db68d863ca6f52bcf265b3563035a8dc92fcab9d8361a2e8c",
+    "bytes": 301,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/go-build.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/go-build.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/go-race-run.json",
+    "originalSha256": "ed78a70671ff9a1c9fa2721beb1b4480bf42e1fa5e63382cfe2bef3fc833ef22",
+    "publishedSha256": "ed78a70671ff9a1c9fa2721beb1b4480bf42e1fa5e63382cfe2bef3fc833ef22",
+    "bytes": 615,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/go-race.log",
+    "originalSha256": "5a95c50f52159702429e9d1edd8929d981b8ae1f86a8356392e6a2ab860cffb6",
+    "publishedSha256": "5a95c50f52159702429e9d1edd8929d981b8ae1f86a8356392e6a2ab860cffb6",
+    "bytes": 788053,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/go-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/go-unit-run.json",
+    "originalSha256": "a2212269d5a758e96de831e3d661c28e16aeb55e5492710607f9d3665c0baddd",
+    "publishedSha256": "a2212269d5a758e96de831e3d661c28e16aeb55e5492710607f9d3665c0baddd",
+    "bytes": 356,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/go-unit.log",
+    "originalSha256": "bdad86e69a44657cd54775bd320183360bfd0883b756f30f6d126e2978c63a4d",
+    "publishedSha256": "bdad86e69a44657cd54775bd320183360bfd0883b756f30f6d126e2978c63a4d",
+    "bytes": 4061210,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/go-unit.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/go-vet-run.json",
+    "originalSha256": "132f677ca268b7f471b52888a4d456cef44c468b47ade963dcfaa5ad132fed8b",
+    "publishedSha256": "132f677ca268b7f471b52888a4d456cef44c468b47ade963dcfaa5ad132fed8b",
+    "bytes": 299,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/go-vet.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/go-vet.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/gofmt-run.json",
+    "originalSha256": "1f6b1cd139eb23d5d47478d750be307861fecf5f65c07ed7f1284398b89c4215",
+    "publishedSha256": "1f6b1cd139eb23d5d47478d750be307861fecf5f65c07ed7f1284398b89c4215",
+    "bytes": 110,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/regression-repeat-run.json",
+    "originalSha256": "3581536f24b730956acc45521525f0beeae27df7e99ee5c66160cb7acf4b38f5",
+    "publishedSha256": "3581536f24b730956acc45521525f0beeae27df7e99ee5c66160cb7acf4b38f5",
+    "bytes": 1044,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/regression-repeat.log",
+    "originalSha256": "3a09f966aff5cf4d2ab46a67d1e3ca135a6a4ba94665b29e31895cbaed7fc0f0",
+    "publishedSha256": "3a09f966aff5cf4d2ab46a67d1e3ca135a6a4ba94665b29e31895cbaed7fc0f0",
+    "bytes": 419500,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final/regression-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/auto-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/compiled-source-auto-after.json",
+    "originalSha256": "7c23c27f6cfdaf62f504288b0178457970730a20ae7e92d72b631cd71bafff56",
+    "publishedSha256": "7c23c27f6cfdaf62f504288b0178457970730a20ae7e92d72b631cd71bafff56",
+    "bytes": 76694,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/compiled-source-auto-before.json",
+    "originalSha256": "69cbdc29e3741fec6a2756d44e12d3a4bba1b7f6712c790a95c1ebeb85e2ca38",
+    "publishedSha256": "69cbdc29e3741fec6a2756d44e12d3a4bba1b7f6712c790a95c1ebeb85e2ca38",
+    "bytes": 76694,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/file-race-run.json",
+    "originalSha256": "9ce1e08406143c3ab37e9b44664fe549a0d378823784ff597694f3ce2e257e0a",
+    "publishedSha256": "9ce1e08406143c3ab37e9b44664fe549a0d378823784ff597694f3ce2e257e0a",
+    "bytes": 540,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/file-race.log",
+    "originalSha256": "d37cedf623a3a5e88616874c4478a6e7ccf170daa1a8b2732ddee1f0e1e0ea05",
+    "publishedSha256": "d37cedf623a3a5e88616874c4478a6e7ccf170daa1a8b2732ddee1f0e1e0ea05",
+    "bytes": 77764,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/file-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/file-repeat-run.json",
+    "originalSha256": "a4275136632656b7aa0afedc988dafc882bdc9004d68814e79da33816a334afe",
+    "publishedSha256": "a4275136632656b7aa0afedc988dafc882bdc9004d68814e79da33816a334afe",
+    "bytes": 930,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/file-repeat.log",
+    "originalSha256": "073578709d84bf8c87bca7b8c26d0fe4912af82b51fb0eaf3442c75499efc280",
+    "publishedSha256": "073578709d84bf8c87bca7b8c26d0fe4912af82b51fb0eaf3442c75499efc280",
+    "bytes": 339263,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/file-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/fixture-race-run.json",
+    "originalSha256": "7da0d2229140eb05768d99adb2620f2b734eac42bd1aac90e2847fde5788835f",
+    "publishedSha256": "7da0d2229140eb05768d99adb2620f2b734eac42bd1aac90e2847fde5788835f",
+    "bytes": 432,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/fixture-race.log",
+    "originalSha256": "3ef01942b3f97590ab057420a2953a959b50b15af203f58da4541e65c445abd7",
+    "publishedSha256": "3ef01942b3f97590ab057420a2953a959b50b15af203f58da4541e65c445abd7",
+    "bytes": 2760524,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/fixture-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/go-build-run.json",
+    "originalSha256": "693ca24b98c6a2b117b1f8a514bc49b0d343add96dcfd7770f3c5c79301294b9",
+    "publishedSha256": "693ca24b98c6a2b117b1f8a514bc49b0d343add96dcfd7770f3c5c79301294b9",
+    "bytes": 301,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/go-build.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/go-build.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/go-race-run.json",
+    "originalSha256": "d361d587f35ef831436c19a414e53b09bf3e48d1e12eaedf9587b3d7928d505f",
+    "publishedSha256": "d361d587f35ef831436c19a414e53b09bf3e48d1e12eaedf9587b3d7928d505f",
+    "bytes": 615,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/go-race.log",
+    "originalSha256": "8c67faacceb96d4ede72f587e1fb6c223ccbe27153a859efd14260a72abeff2b",
+    "publishedSha256": "8c67faacceb96d4ede72f587e1fb6c223ccbe27153a859efd14260a72abeff2b",
+    "bytes": 788094,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/go-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/go-unit-run.json",
+    "originalSha256": "36036e296470a1103f43d27a910fca41ca163ed74f383b6d73c8c137a06f0014",
+    "publishedSha256": "36036e296470a1103f43d27a910fca41ca163ed74f383b6d73c8c137a06f0014",
+    "bytes": 356,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/go-unit.log",
+    "originalSha256": "7cf246c1da1c10b093f44cc029b6d68a162929ec74722a03b7f5fd6d98227b70",
+    "publishedSha256": "7cf246c1da1c10b093f44cc029b6d68a162929ec74722a03b7f5fd6d98227b70",
+    "bytes": 4079314,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/go-unit.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/go-vet-run.json",
+    "originalSha256": "e20ee8065c860604455a730ab92f5e0e3f76c15c45a01be3af61f8d5464f35c6",
+    "publishedSha256": "e20ee8065c860604455a730ab92f5e0e3f76c15c45a01be3af61f8d5464f35c6",
+    "bytes": 299,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/go-vet.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/go-vet.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/gofmt-run.json",
+    "originalSha256": "479293c5adb8fd1a754a05106bdd0bd8b11e1571e0171113af38ae03e9cf8c31",
+    "publishedSha256": "479293c5adb8fd1a754a05106bdd0bd8b11e1571e0171113af38ae03e9cf8c31",
+    "bytes": 110,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/regression-repeat-run.json",
+    "originalSha256": "051bf5015bbe09d4513424654320b646079fdd5b6640c791d84f53ab61b8a74c",
+    "publishedSha256": "051bf5015bbe09d4513424654320b646079fdd5b6640c791d84f53ab61b8a74c",
+    "bytes": 1044,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/regression-repeat.log",
+    "originalSha256": "bfe3892cb4f99ffe82fa03097aab056a345a05b58c242560e239ee58cdd4d894",
+    "publishedSha256": "bfe3892cb4f99ffe82fa03097aab056a345a05b58c242560e239ee58cdd4d894",
+    "bytes": 419470,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-final-current/regression-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/auto-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/compiled-source-auto-after.json",
+    "originalSha256": "56bcc8f8fd3fbad238afcd65f89db77c62c2c22e4ff1358a76afce1ea0524fe3",
+    "publishedSha256": "56bcc8f8fd3fbad238afcd65f89db77c62c2c22e4ff1358a76afce1ea0524fe3",
+    "bytes": 76694,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/compiled-source-auto-before.json",
+    "originalSha256": "d745c0cc349686b95a15944d52daeefc14278fa0f3241a4a3638a30123d19358",
+    "publishedSha256": "d745c0cc349686b95a15944d52daeefc14278fa0f3241a4a3638a30123d19358",
+    "bytes": 76694,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/file-race-run.json",
+    "originalSha256": "5400179ce53369b12519b23dcf1bd48413da8bd821e114da83119d1c1e738174",
+    "publishedSha256": "5400179ce53369b12519b23dcf1bd48413da8bd821e114da83119d1c1e738174",
+    "bytes": 540,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/file-race.log",
+    "originalSha256": "be735a1dc493f3a1522baaa3d82fc36ad36aaffc3af48969572b1490816899b1",
+    "publishedSha256": "be735a1dc493f3a1522baaa3d82fc36ad36aaffc3af48969572b1490816899b1",
+    "bytes": 77774,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/file-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/file-repeat-run.json",
+    "originalSha256": "1a8618e59f1b1c202fd359ec8b4cf6f7af404de7580d8986b025df8b27ba9231",
+    "publishedSha256": "1a8618e59f1b1c202fd359ec8b4cf6f7af404de7580d8986b025df8b27ba9231",
+    "bytes": 930,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/file-repeat.log",
+    "originalSha256": "3b4ca1f89870fc6ff761df2f24b43aaf1b9834024df6218271ba925d99b685f4",
+    "publishedSha256": "3b4ca1f89870fc6ff761df2f24b43aaf1b9834024df6218271ba925d99b685f4",
+    "bytes": 339293,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/file-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/fixture-race-run.json",
+    "originalSha256": "a3833c7d0f435dbf311e43f91a41884a22d250121e6043abf91d937779638b4e",
+    "publishedSha256": "a3833c7d0f435dbf311e43f91a41884a22d250121e6043abf91d937779638b4e",
+    "bytes": 432,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/fixture-race.log",
+    "originalSha256": "af53bfa6459ebe4694f66fecf204f93bf0879ba8f5fb4dc6765aaee4a56d8d99",
+    "publishedSha256": "af53bfa6459ebe4694f66fecf204f93bf0879ba8f5fb4dc6765aaee4a56d8d99",
+    "bytes": 2760554,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/fixture-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/go-build-run.json",
+    "originalSha256": "e2d353b719c6a2f20b39e8723d8352ad7bf065bb0770720a79694054666edc5b",
+    "publishedSha256": "e2d353b719c6a2f20b39e8723d8352ad7bf065bb0770720a79694054666edc5b",
+    "bytes": 301,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/go-build.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/go-build.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/go-race-run.json",
+    "originalSha256": "8751a0b40ac73c4073fe2d0aecf0465560fa7ef4467be68e2b8b3ae6d58e3c80",
+    "publishedSha256": "8751a0b40ac73c4073fe2d0aecf0465560fa7ef4467be68e2b8b3ae6d58e3c80",
+    "bytes": 615,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/go-race.log",
+    "originalSha256": "a1f2f0e0c0330eba0cc84afb2e7ace5cba8c748fbd90f45da1b951c6fe8b6275",
+    "publishedSha256": "a1f2f0e0c0330eba0cc84afb2e7ace5cba8c748fbd90f45da1b951c6fe8b6275",
+    "bytes": 788142,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/go-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/go-unit-run.json",
+    "originalSha256": "94368c6d54a6d657bdb70debb78a42177e593d81d701c3aabfefc578bfe168da",
+    "publishedSha256": "94368c6d54a6d657bdb70debb78a42177e593d81d701c3aabfefc578bfe168da",
+    "bytes": 356,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/go-unit.log",
+    "originalSha256": "549b15f4f637089763ea4f8c0cd76d58538760dc8f6967261598d4c95c169714",
+    "publishedSha256": "549b15f4f637089763ea4f8c0cd76d58538760dc8f6967261598d4c95c169714",
+    "bytes": 4079419,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/go-unit.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/go-vet-run.json",
+    "originalSha256": "8ac03a006034e9340eccfdcc09fb306451184694a605478c394b0fae76be0789",
+    "publishedSha256": "8ac03a006034e9340eccfdcc09fb306451184694a605478c394b0fae76be0789",
+    "bytes": 299,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/go-vet.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/go-vet.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/gofmt-run.json",
+    "originalSha256": "479293c5adb8fd1a754a05106bdd0bd8b11e1571e0171113af38ae03e9cf8c31",
+    "publishedSha256": "479293c5adb8fd1a754a05106bdd0bd8b11e1571e0171113af38ae03e9cf8c31",
+    "bytes": 110,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/regression-repeat-run.json",
+    "originalSha256": "b7176b5fe78415e8724eec51217247385f05e72b8aa5fa5b045ed685dc15193a",
+    "publishedSha256": "b7176b5fe78415e8724eec51217247385f05e72b8aa5fa5b045ed685dc15193a",
+    "bytes": 1044,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/regression-repeat.log",
+    "originalSha256": "5f6806454f77117abb69d0b705419572a62cd2d1756d18ac26d339115c6833b0",
+    "publishedSha256": "5f6806454f77117abb69d0b705419572a62cd2d1756d18ac26d339115c6833b0",
+    "bytes": 419526,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-retry-final/regression-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/auto-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/compiled-source-auto-after.json",
+    "originalSha256": "c4a277837f761c9b47388095c8a2179276d3a7d7ba37be7ee23b337912cc716a",
+    "publishedSha256": "c4a277837f761c9b47388095c8a2179276d3a7d7ba37be7ee23b337912cc716a",
+    "bytes": 76525,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/compiled-source-auto-before.json",
+    "originalSha256": "4411d299ab019c46e84205b31cd09956988ab950e1d23d559b368bb2e6ec98ae",
+    "publishedSha256": "4411d299ab019c46e84205b31cd09956988ab950e1d23d559b368bb2e6ec98ae",
+    "bytes": 76525,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/file-race-run.json",
+    "originalSha256": "e222c9ab9e34dac1a47c1752d14d911a6e3e5465dbab5191cf32bb51963cbeb6",
+    "publishedSha256": "e222c9ab9e34dac1a47c1752d14d911a6e3e5465dbab5191cf32bb51963cbeb6",
+    "bytes": 540,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/file-race.log",
+    "originalSha256": "1f9afcc3be584395030063890a8a8dd9a2461e51a4687c90e9a45cb0af5c5ed2",
+    "publishedSha256": "1f9afcc3be584395030063890a8a8dd9a2461e51a4687c90e9a45cb0af5c5ed2",
+    "bytes": 77766,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/file-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/file-repeat-run.json",
+    "originalSha256": "be482aad501ae51978743f0be21fc4a08a6a2efff038567e60bb7e26310e9945",
+    "publishedSha256": "be482aad501ae51978743f0be21fc4a08a6a2efff038567e60bb7e26310e9945",
+    "bytes": 930,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/file-repeat.log",
+    "originalSha256": "49771c831a0f93422912c0cbfa1c743d4cec882e69cdd7c9476ee1aaabd053fc",
+    "publishedSha256": "49771c831a0f93422912c0cbfa1c743d4cec882e69cdd7c9476ee1aaabd053fc",
+    "bytes": 339267,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/file-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/fixture-race-run.json",
+    "originalSha256": "f5d1388774b91546af02903ca25fe44a54633d0899bc6aa22bccc57b8b6cb3b6",
+    "publishedSha256": "f5d1388774b91546af02903ca25fe44a54633d0899bc6aa22bccc57b8b6cb3b6",
+    "bytes": 432,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/fixture-race.log",
+    "originalSha256": "67190d14591633ca27b123ff0fc7c8077fe62280d38e65dd6ae46b98f5abfb1c",
+    "publishedSha256": "67190d14591633ca27b123ff0fc7c8077fe62280d38e65dd6ae46b98f5abfb1c",
+    "bytes": 2398481,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/fixture-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/go-build-run.json",
+    "originalSha256": "ee501facb9c742cfd5e78c2cc751241906581d72525828430f9ff029e352035e",
+    "publishedSha256": "ee501facb9c742cfd5e78c2cc751241906581d72525828430f9ff029e352035e",
+    "bytes": 301,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/go-build.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/go-build.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/go-race-run.json",
+    "originalSha256": "1b4add6d5e7db79c978d7dcce87743953099378965a930dcae092babf8197236",
+    "publishedSha256": "1b4add6d5e7db79c978d7dcce87743953099378965a930dcae092babf8197236",
+    "bytes": 615,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/go-race.log",
+    "originalSha256": "f0e9bd96ed027341d9fe37dd808178fd36b0d418d0122743e5171de384612659",
+    "publishedSha256": "f0e9bd96ed027341d9fe37dd808178fd36b0d418d0122743e5171de384612659",
+    "bytes": 788003,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/go-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/go-unit-run.json",
+    "originalSha256": "cc69bd3d8a310dc834635e1ca75ec679ca3070c0592542c0cadc005c19ce0c0f",
+    "publishedSha256": "cc69bd3d8a310dc834635e1ca75ec679ca3070c0592542c0cadc005c19ce0c0f",
+    "bytes": 356,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/go-unit.log",
+    "originalSha256": "9094b84195b303d59c9050e36c1d8f9d4c0e8dc381043bb6a6d79fd082c75c47",
+    "publishedSha256": "9094b84195b303d59c9050e36c1d8f9d4c0e8dc381043bb6a6d79fd082c75c47",
+    "bytes": 4061367,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/go-unit.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/go-vet-run.json",
+    "originalSha256": "74c568d2b5860edcb62dcdc0cf7b07369df071d81b2d0d793abe0d716e10cdce",
+    "publishedSha256": "74c568d2b5860edcb62dcdc0cf7b07369df071d81b2d0d793abe0d716e10cdce",
+    "bytes": 299,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/go-vet.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/go-vet.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/gofmt-run.json",
+    "originalSha256": "1f6b1cd139eb23d5d47478d750be307861fecf5f65c07ed7f1284398b89c4215",
+    "publishedSha256": "1f6b1cd139eb23d5d47478d750be307861fecf5f65c07ed7f1284398b89c4215",
+    "bytes": 110,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/regression-repeat-run.json",
+    "originalSha256": "c7a1b2030a44eb8a6a15dc98d7a31678af05a4a1bc819c500dec9ca3164e1db8",
+    "publishedSha256": "c7a1b2030a44eb8a6a15dc98d7a31678af05a4a1bc819c500dec9ca3164e1db8",
+    "bytes": 1044,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/regression-repeat.log",
+    "originalSha256": "d52602f136d3c724acb02e8541e9fb11c33f18b32df56df8326484083b5fad5e",
+    "publishedSha256": "d52602f136d3c724acb02e8541e9fb11c33f18b32df56df8326484083b5fad5e",
+    "bytes": 419504,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-reviewed-final/regression-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/auto-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/compiled-source-auto-after.json",
+    "originalSha256": "433398be87fad1fc6b569fa0715a433efd619c3130b4ce98794569c16bed2f07",
+    "publishedSha256": "433398be87fad1fc6b569fa0715a433efd619c3130b4ce98794569c16bed2f07",
+    "bytes": 76867,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/compiled-source-auto-before.json",
+    "originalSha256": "8024796da073b23a7e45cd71ffc530200922147e0f81d99c5e30972c8ff3e6c8",
+    "publishedSha256": "8024796da073b23a7e45cd71ffc530200922147e0f81d99c5e30972c8ff3e6c8",
+    "bytes": 76867,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/file-race-run.json",
+    "originalSha256": "18358f3a1f2ee6decc8739135cadb1a389c53cfec094a4d9e507807ba81ee21a",
+    "publishedSha256": "18358f3a1f2ee6decc8739135cadb1a389c53cfec094a4d9e507807ba81ee21a",
+    "bytes": 540,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/file-race.log",
+    "originalSha256": "418ca658f707ece5ff7ce0e99de1c62393bc97381c62a9f3aca7a4d275b24083",
+    "publishedSha256": "418ca658f707ece5ff7ce0e99de1c62393bc97381c62a9f3aca7a4d275b24083",
+    "bytes": 77786,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/file-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/file-repeat-run.json",
+    "originalSha256": "a34f346a6ac526cb7dc3c4038125ba5fcee055db4bbb11006d21e6de9d1213f6",
+    "publishedSha256": "a34f346a6ac526cb7dc3c4038125ba5fcee055db4bbb11006d21e6de9d1213f6",
+    "bytes": 930,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/file-repeat.log",
+    "originalSha256": "57d8be9e860fcc4393020533fbc597e620db537f17d5d0b9a6c78c9730b60b2e",
+    "publishedSha256": "57d8be9e860fcc4393020533fbc597e620db537f17d5d0b9a6c78c9730b60b2e",
+    "bytes": 339261,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/file-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/fixture-race-run.json",
+    "originalSha256": "6fab548ef4f221d169c6cb20517b097d27f5acaef24351f925a52180129d3be2",
+    "publishedSha256": "6fab548ef4f221d169c6cb20517b097d27f5acaef24351f925a52180129d3be2",
+    "bytes": 432,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/fixture-race.log",
+    "originalSha256": "791f6a85db71e9d323af957da8e3dd46fbc4f8c6ec0d37578d64a64db21f768c",
+    "publishedSha256": "791f6a85db71e9d323af957da8e3dd46fbc4f8c6ec0d37578d64a64db21f768c",
+    "bytes": 2786483,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/fixture-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/go-build-run.json",
+    "originalSha256": "71b692e109f19796aa5daf6f1114fab206891b3527d284af7e8e1c074b53eab3",
+    "publishedSha256": "71b692e109f19796aa5daf6f1114fab206891b3527d284af7e8e1c074b53eab3",
+    "bytes": 301,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/go-build.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/go-build.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/go-race-run.json",
+    "originalSha256": "613886afc141254e75fdbe0140d10a85d0b0d33054e87adcafad318925554a16",
+    "publishedSha256": "613886afc141254e75fdbe0140d10a85d0b0d33054e87adcafad318925554a16",
+    "bytes": 615,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/go-race.log",
+    "originalSha256": "313f16022326564815a130e2e4d77fcac782f1707b00211d10d86dd586917569",
+    "publishedSha256": "313f16022326564815a130e2e4d77fcac782f1707b00211d10d86dd586917569",
+    "bytes": 787989,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/go-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/go-unit-run.json",
+    "originalSha256": "f6bbdaab888c1f26715decf544161b33f5045a2a5eeea72f24ae60bc1bdc31de",
+    "publishedSha256": "f6bbdaab888c1f26715decf544161b33f5045a2a5eeea72f24ae60bc1bdc31de",
+    "bytes": 356,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/go-unit.log",
+    "originalSha256": "6ee1a19b88c0f4ba21751e7c624ff7c99a650948a4e29e822d883543ecfe962d",
+    "publishedSha256": "6ee1a19b88c0f4ba21751e7c624ff7c99a650948a4e29e822d883543ecfe962d",
+    "bytes": 4080792,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/go-unit.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/go-vet-run.json",
+    "originalSha256": "6bb4416764231ace4ec9ee2509f0d7f079a58787e31123ba981ee8049ea2df0a",
+    "publishedSha256": "6bb4416764231ace4ec9ee2509f0d7f079a58787e31123ba981ee8049ea2df0a",
+    "bytes": 299,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/go-vet.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/go-vet.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/gofmt-run.json",
+    "originalSha256": "c5482f6e659b5e5182b73dc18f649c942c5fa9c0b92461dbe8dea35dfed737e4",
+    "publishedSha256": "c5482f6e659b5e5182b73dc18f649c942c5fa9c0b92461dbe8dea35dfed737e4",
+    "bytes": 110,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/regression-repeat-run.json",
+    "originalSha256": "8f08208ea4e9d8c5ea7fc4c5a338d906a5021bdc818513269696b325bda3429e",
+    "publishedSha256": "8f08208ea4e9d8c5ea7fc4c5a338d906a5021bdc818513269696b325bda3429e",
+    "bytes": 1044,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/regression-repeat.log",
+    "originalSha256": "fb3aebb5c0babc47cefb1bacf950b0ad60ff88ab5b7246f33fdce2f95b1c7ebb",
+    "publishedSha256": "fb3aebb5c0babc47cefb1bacf950b0ad60ff88ab5b7246f33fdce2f95b1c7ebb",
+    "bytes": 419450,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run4-final/regression-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/auto-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/compiled-source-auto-after.json",
+    "originalSha256": "50853a5a637e2864b7a19dc6e402e2d104b0cc8962360542af4d39020039dc6f",
+    "publishedSha256": "50853a5a637e2864b7a19dc6e402e2d104b0cc8962360542af4d39020039dc6f",
+    "bytes": 76867,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/compiled-source-auto-before.json",
+    "originalSha256": "7bf85319b824b863a9bc1e4e1d6c492c51f67ed72a6885d44fe323b022cd0685",
+    "publishedSha256": "7bf85319b824b863a9bc1e4e1d6c492c51f67ed72a6885d44fe323b022cd0685",
+    "bytes": 76867,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/file-race-run.json",
+    "originalSha256": "02db0799ff092bb31ec680a370494ab9937402a3d9a91ecb82aa418f59da76dd",
+    "publishedSha256": "02db0799ff092bb31ec680a370494ab9937402a3d9a91ecb82aa418f59da76dd",
+    "bytes": 540,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/file-race.log",
+    "originalSha256": "a61ccd35ef958a664cc5cadcdaebd8a75c86040e3a204f36d48385f95b480462",
+    "publishedSha256": "a61ccd35ef958a664cc5cadcdaebd8a75c86040e3a204f36d48385f95b480462",
+    "bytes": 77784,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/file-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/file-repeat-run.json",
+    "originalSha256": "f35c51a91fcf12a5b594dc2cfc27145007062474acb8b5fe8c213cbad1473b97",
+    "publishedSha256": "f35c51a91fcf12a5b594dc2cfc27145007062474acb8b5fe8c213cbad1473b97",
+    "bytes": 930,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/file-repeat.log",
+    "originalSha256": "2c556ada968972d7dc612c949a83aa46819c4ee42079dc64402e7d6ac8934038",
+    "publishedSha256": "2c556ada968972d7dc612c949a83aa46819c4ee42079dc64402e7d6ac8934038",
+    "bytes": 339256,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/file-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/fixture-race-run.json",
+    "originalSha256": "978630697dc906cc329c5fe0ef2bfc80181af1b60bdc4cdc4f44473016d6e3b2",
+    "publishedSha256": "978630697dc906cc329c5fe0ef2bfc80181af1b60bdc4cdc4f44473016d6e3b2",
+    "bytes": 432,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/fixture-race.log",
+    "originalSha256": "aa0a7f6a6d015a6f3f6902929ec927ebd718fab5622d8c29a14f7536f0b7f61b",
+    "publishedSha256": "aa0a7f6a6d015a6f3f6902929ec927ebd718fab5622d8c29a14f7536f0b7f61b",
+    "bytes": 2786044,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/fixture-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/go-build-run.json",
+    "originalSha256": "340bce49308e515291181be09ce14e3adf89c499957785d4593f0142e67d48d2",
+    "publishedSha256": "340bce49308e515291181be09ce14e3adf89c499957785d4593f0142e67d48d2",
+    "bytes": 301,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/go-build.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/go-build.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/go-race-run.json",
+    "originalSha256": "46a6b25086446bad8e602b67a881273941acc2b51b5e0481acd0204a29a3c645",
+    "publishedSha256": "46a6b25086446bad8e602b67a881273941acc2b51b5e0481acd0204a29a3c645",
+    "bytes": 615,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/go-race.log",
+    "originalSha256": "16b305a9a7cdb1e451fd3ef62a87a18b0f12c1d96e34829e6b5ad87ab7ebba3e",
+    "publishedSha256": "16b305a9a7cdb1e451fd3ef62a87a18b0f12c1d96e34829e6b5ad87ab7ebba3e",
+    "bytes": 788054,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/go-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/go-unit-run.json",
+    "originalSha256": "1170456403f913c35582ae7a15a62f2f8b96675f10e8c0983cc62dbf1ff4dabe",
+    "publishedSha256": "1170456403f913c35582ae7a15a62f2f8b96675f10e8c0983cc62dbf1ff4dabe",
+    "bytes": 356,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/go-unit.log",
+    "originalSha256": "016dd356075723a1158013210cefe4f09b36c12f13c9df9f688d6b09f2e9071a",
+    "publishedSha256": "016dd356075723a1158013210cefe4f09b36c12f13c9df9f688d6b09f2e9071a",
+    "bytes": 4080754,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/go-unit.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/go-vet-run.json",
+    "originalSha256": "62e0799f71be5733553dc836a77108eb229c7c050f66c0794b6db7d5a22f18b4",
+    "publishedSha256": "62e0799f71be5733553dc836a77108eb229c7c050f66c0794b6db7d5a22f18b4",
+    "bytes": 299,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/go-vet.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/go-vet.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/gofmt-run.json",
+    "originalSha256": "c5482f6e659b5e5182b73dc18f649c942c5fa9c0b92461dbe8dea35dfed737e4",
+    "publishedSha256": "c5482f6e659b5e5182b73dc18f649c942c5fa9c0b92461dbe8dea35dfed737e4",
+    "bytes": 110,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/regression-repeat-run.json",
+    "originalSha256": "aa9b90d365b4f9e50344c4cb746653b2cfe481ef82b2c67d6fdfaeec30a76f09",
+    "publishedSha256": "aa9b90d365b4f9e50344c4cb746653b2cfe481ef82b2c67d6fdfaeec30a76f09",
+    "bytes": 1044,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/regression-repeat.log",
+    "originalSha256": "439ba4ec6d03cd58cfff2de7deba0287bf5535205dde7d3d0869556f62faf00a",
+    "publishedSha256": "439ba4ec6d03cd58cfff2de7deba0287bf5535205dde7d3d0869556f62faf00a",
+    "bytes": 419492,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run5-final/regression-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/auto-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/compiled-source-auto-after.json",
+    "originalSha256": "5decf7149e5a753e6dda62454121ad06271fc5f30d44b55a54f18565efc801eb",
+    "publishedSha256": "5decf7149e5a753e6dda62454121ad06271fc5f30d44b55a54f18565efc801eb",
+    "bytes": 76867,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/compiled-source-auto-before.json",
+    "originalSha256": "d0273ffab3b2ce8ade91fd6a9a837082dc533f7bf29680ac3b2a98cbbb2c9545",
+    "publishedSha256": "d0273ffab3b2ce8ade91fd6a9a837082dc533f7bf29680ac3b2a98cbbb2c9545",
+    "bytes": 76867,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/file-race-run.json",
+    "originalSha256": "b1a3bf2f943bd2addb59e3127db8a0d26be498e6f70ce0188e245d196b90bd83",
+    "publishedSha256": "b1a3bf2f943bd2addb59e3127db8a0d26be498e6f70ce0188e245d196b90bd83",
+    "bytes": 540,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/file-race.log",
+    "originalSha256": "92650c13af9861ebfa787d8cf5428307cf09f94f793d22c87818dc972e52058e",
+    "publishedSha256": "92650c13af9861ebfa787d8cf5428307cf09f94f793d22c87818dc972e52058e",
+    "bytes": 77766,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/file-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/file-repeat-run.json",
+    "originalSha256": "6134d833910d1a03a8b8ffc8d206fcb85a90fad2c807aebf64239aefe05cd244",
+    "publishedSha256": "6134d833910d1a03a8b8ffc8d206fcb85a90fad2c807aebf64239aefe05cd244",
+    "bytes": 930,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/file-repeat.log",
+    "originalSha256": "14c1f396a0bbf33d3f5b4f6c865a99afa724d21a78afe8da4c4b42b341634a3d",
+    "publishedSha256": "14c1f396a0bbf33d3f5b4f6c865a99afa724d21a78afe8da4c4b42b341634a3d",
+    "bytes": 339282,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/file-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/fixture-race-run.json",
+    "originalSha256": "36bd18692ea2ae35078c3cb4c8a359d065cb3cb6abd1e90450cf1385dd06d229",
+    "publishedSha256": "36bd18692ea2ae35078c3cb4c8a359d065cb3cb6abd1e90450cf1385dd06d229",
+    "bytes": 432,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/fixture-race.log",
+    "originalSha256": "1a9445bbc77da06af01b3e179127c8de58c4ed9f939db9cacb92beeb1f50ac48",
+    "publishedSha256": "1a9445bbc77da06af01b3e179127c8de58c4ed9f939db9cacb92beeb1f50ac48",
+    "bytes": 2786396,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/fixture-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/go-build-run.json",
+    "originalSha256": "083c66a3e19d477547b67e9e4ad6803222767272c92267d707dff6c3955fc972",
+    "publishedSha256": "083c66a3e19d477547b67e9e4ad6803222767272c92267d707dff6c3955fc972",
+    "bytes": 301,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/go-build.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/go-build.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/go-race-run.json",
+    "originalSha256": "4cae214a14d8c30ab5d4d3c3b1481db6aa39fb9a0432d34a3016c711813a4093",
+    "publishedSha256": "4cae214a14d8c30ab5d4d3c3b1481db6aa39fb9a0432d34a3016c711813a4093",
+    "bytes": 615,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/go-race.log",
+    "originalSha256": "eb60def7e7f7fc9048adf2e58eb52d850a2232e7069d502f9aa4b857e6456f1f",
+    "publishedSha256": "eb60def7e7f7fc9048adf2e58eb52d850a2232e7069d502f9aa4b857e6456f1f",
+    "bytes": 788084,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/go-race.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/go-unit-run.json",
+    "originalSha256": "2507d2f56caea107775c65e2caf74ad4f2856909d09dcaa0a651a7bd144cfad9",
+    "publishedSha256": "2507d2f56caea107775c65e2caf74ad4f2856909d09dcaa0a651a7bd144cfad9",
+    "bytes": 356,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/go-unit.log",
+    "originalSha256": "81e43e4c34c5675ce6820112508b5eca1864b821b9b91079ff193c24d67821a1",
+    "publishedSha256": "81e43e4c34c5675ce6820112508b5eca1864b821b9b91079ff193c24d67821a1",
+    "bytes": 4080451,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/go-unit.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/go-vet-run.json",
+    "originalSha256": "46ea8bec8849f58a4dfdf61aedab65ba7cee44e6bc9528b3d594c848ed36d0a7",
+    "publishedSha256": "46ea8bec8849f58a4dfdf61aedab65ba7cee44e6bc9528b3d594c848ed36d0a7",
+    "bytes": 299,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/go-vet.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/go-vet.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/gofmt-run.json",
+    "originalSha256": "c5482f6e659b5e5182b73dc18f649c942c5fa9c0b92461dbe8dea35dfed737e4",
+    "publishedSha256": "c5482f6e659b5e5182b73dc18f649c942c5fa9c0b92461dbe8dea35dfed737e4",
+    "bytes": 110,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/regression-repeat-run.json",
+    "originalSha256": "8e7326221ab4e6dc56ea0949fe796a53db7ac52bacb5ec98ab6405f7d39a2799",
+    "publishedSha256": "8e7326221ab4e6dc56ea0949fe796a53db7ac52bacb5ec98ab6405f7d39a2799",
+    "bytes": 1044,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/regression-repeat.log",
+    "originalSha256": "9de9e0c5e513b6c274283d227f343938c6ea230cfc20b1761a8adb8d54fb8189",
+    "publishedSha256": "9de9e0c5e513b6c274283d227f343938c6ea230cfc20b1761a8adb8d54fb8189",
+    "bytes": 419484,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/auto-run6-final/regression-repeat.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/contracts-final/compiled-source-contracts-after.json",
+    "originalSha256": "9316165f532cbaab0b7f928808f4a19d5dcba5d5f2bdb39fead681ca267eef12",
+    "publishedSha256": "9316165f532cbaab0b7f928808f4a19d5dcba5d5f2bdb39fead681ca267eef12",
+    "bytes": 76525,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/contracts-final/compiled-source-contracts-before.json",
+    "originalSha256": "aa96776f95e5e737698a662f16b9db6f8a1e2aac1149b05db5f404088ed7fca4",
+    "publishedSha256": "aa96776f95e5e737698a662f16b9db6f8a1e2aac1149b05db5f404088ed7fca4",
+    "bytes": 76525,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/contracts-final/contracts-run.json",
+    "originalSha256": "0b8703761d718c9148117a5fbdc74435fefdd7434a62fb88152e63b44430cd7f",
+    "publishedSha256": "0b8703761d718c9148117a5fbdc74435fefdd7434a62fb88152e63b44430cd7f",
+    "bytes": 226,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/contracts-final/contracts-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/contracts-final/contracts.log",
+    "originalSha256": "05647133453470a8d9ab7335b4cfa073e650409f56be918f8c86bef3f3cbcb0d",
+    "publishedSha256": "05647133453470a8d9ab7335b4cfa073e650409f56be918f8c86bef3f3cbcb0d",
+    "bytes": 665,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/contracts-final/reset-schema-run.json",
+    "originalSha256": "3c98f0a6fab8a489bd5878beb2495c2b45e397a7e1697abc24dff7d16eed71d4",
+    "publishedSha256": "3c98f0a6fab8a489bd5878beb2495c2b45e397a7e1697abc24dff7d16eed71d4",
+    "bytes": 482,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/contracts-final/reset-schema.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/contracts-final/reset-schema.stderr.txt",
+    "originalSha256": "70745bceeb5bfce1be146c224afec181ad4d7fb2719c6bb6b744f1a1acfcc121",
+    "publishedSha256": "70745bceeb5bfce1be146c224afec181ad4d7fb2719c6bb6b744f1a1acfcc121",
+    "bytes": 1569,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/compiled-source-web-after.json",
+    "originalSha256": "bb7ac7c5fd8d025b511c9ec83e8c90e0d6c4c7ecdec807877567122aed2e7af9",
+    "publishedSha256": "bb7ac7c5fd8d025b511c9ec83e8c90e0d6c4c7ecdec807877567122aed2e7af9",
+    "bytes": 76525,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/compiled-source-web-before.json",
+    "originalSha256": "aa96776f95e5e737698a662f16b9db6f8a1e2aac1149b05db5f404088ed7fca4",
+    "publishedSha256": "aa96776f95e5e737698a662f16b9db6f8a1e2aac1149b05db5f404088ed7fca4",
+    "bytes": 76525,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-build-run.json",
+    "originalSha256": "fc2f47801b120390b581b778ce096d7c7cdad7641915c39988eec36c78adb984",
+    "publishedSha256": "fc2f47801b120390b581b778ce096d7c7cdad7641915c39988eec36c78adb984",
+    "bytes": 367,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-build.log",
+    "originalSha256": "4476ad1c151c15f44d27a7be49dce8fc640c1f021957c342c58f480cf06fee4f",
+    "publishedSha256": "4476ad1c151c15f44d27a7be49dce8fc640c1f021957c342c58f480cf06fee4f",
+    "bytes": 352,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-build.stderr.txt",
+    "originalSha256": "71c384b4a1fc1546eb87bba07c964be608de350d69432bec5e901de1eb81699c",
+    "publishedSha256": "71c384b4a1fc1546eb87bba07c964be608de350d69432bec5e901de1eb81699c",
+    "bytes": 373,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-install-run.json",
+    "originalSha256": "9ad3973a6f8691d76522f2399d217eddbce3c1699d70cd39c89008237c8879f3",
+    "publishedSha256": "9ad3973a6f8691d76522f2399d217eddbce3c1699d70cd39c89008237c8879f3",
+    "bytes": 383,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-install.log",
+    "originalSha256": "036cb11206261773ed9507f75fa7d18ece1112099da7ba65e85ecf113e040dde",
+    "publishedSha256": "036cb11206261773ed9507f75fa7d18ece1112099da7ba65e85ecf113e040dde",
+    "bytes": 1240,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-install.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-lint-run.json",
+    "originalSha256": "d0cdd4c30d7f20e314616f2f079531795f664c03f3e3bb6203d6c8c4496f6dc1",
+    "publishedSha256": "d0cdd4c30d7f20e314616f2f079531795f664c03f3e3bb6203d6c8c4496f6dc1",
+    "bytes": 366,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-lint.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-lint.stderr.txt",
+    "originalSha256": "b543827ce56a63357c629028555ecec2cc964dda33dbbf2a9a2872b1a2ab20f8",
+    "publishedSha256": "b543827ce56a63357c629028555ecec2cc964dda33dbbf2a9a2872b1a2ab20f8",
+    "bytes": 28,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-lock-check.json",
+    "originalSha256": "6b6f4618b23d88ae03c28f92114eb450e3454e5762c4cb663befe9ce667f815e",
+    "publishedSha256": "6b6f4618b23d88ae03c28f92114eb450e3454e5762c4cb663befe9ce667f815e",
+    "bytes": 304,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-lock-import-run.json",
+    "originalSha256": "d2078028a08b9fbd2d17b36829cd7e7536ca6b7c4498dd25ddcc17d397cdc9a9",
+    "publishedSha256": "d2078028a08b9fbd2d17b36829cd7e7536ca6b7c4498dd25ddcc17d397cdc9a9",
+    "bytes": 356,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-lock-import.log",
+    "originalSha256": "43eb98e3543f28293210c8ae9ae94e7827409486bbefbb2081ac7ccb7ae04bfb",
+    "publishedSha256": "43eb98e3543f28293210c8ae9ae94e7827409486bbefbb2081ac7ccb7ae04bfb",
+    "bytes": 173,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-lock-import.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-test-run.json",
+    "originalSha256": "158868766615b8277ce599ad487e1ea5a141910efc6714b4c157125376d6c346",
+    "publishedSha256": "158868766615b8277ce599ad487e1ea5a141910efc6714b4c157125376d6c346",
+    "bytes": 366,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-test.log",
+    "originalSha256": "a2df51a5c8736c3f95d31481f7cd7b7fb20376ea935628fecc9806a9ed454447",
+    "publishedSha256": "a2df51a5c8736c3f95d31481f7cd7b7fb20376ea935628fecc9806a9ed454447",
+    "bytes": 245,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-test.stderr.txt",
+    "originalSha256": "cb9a9ce0c8bc8e28fbb606c6801e25657d60af633a9ca7b3fdfeeb4717d478de",
+    "publishedSha256": "cb9a9ce0c8bc8e28fbb606c6801e25657d60af633a9ca7b3fdfeeb4717d478de",
+    "bytes": 113,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-typecheck-run.json",
+    "originalSha256": "8ebb595c442de10b69ab2db37a436cfef9141ff6c592cfda63858e5b4478aea7",
+    "publishedSha256": "8ebb595c442de10b69ab2db37a436cfef9141ff6c592cfda63858e5b4478aea7",
+    "bytes": 371,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-typecheck.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "validation/web-final/web-typecheck.stderr.txt",
+    "originalSha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+    "publishedSha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+    "bytes": 15,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/access-20261014-174424.log",
+    "originalSha256": "74511bca9699bcd532a584be38d7cb9efd65ff5c1b624d17e0d71495d41ec599",
+    "publishedSha256": "74511bca9699bcd532a584be38d7cb9efd65ff5c1b624d17e0d71495d41ec599",
+    "bytes": 1111,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/archive-control-20261014-181848.log",
+    "originalSha256": "8344f4d23f5b7fe81ba80a89baea2cae9b4f4c4c1a9ca1e42a0ccc30a8ba5dc5",
+    "publishedSha256": "8344f4d23f5b7fe81ba80a89baea2cae9b4f4c4c1a9ca1e42a0ccc30a8ba5dc5",
+    "bytes": 783,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/bootstrap-green.log",
+    "originalSha256": "9d52d8c4051d786050b23c6342672000ac7026d90b509506e7feb70aa7061d01",
+    "publishedSha256": "9d52d8c4051d786050b23c6342672000ac7026d90b509506e7feb70aa7061d01",
+    "bytes": 76,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/bootstrap-unknown-red.log",
+    "originalSha256": "87cd26d4ead9a81f0f681965ff52802f9d4666159118860b1873f3ea42e68645",
+    "publishedSha256": "87cd26d4ead9a81f0f681965ff52802f9d4666159118860b1873f3ea42e68645",
+    "bytes": 794,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/collect-20261014-180853.log",
+    "originalSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "publishedSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "bytes": 163,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/collect-20261014-181018.log",
+    "originalSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "publishedSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "bytes": 163,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/collect-20261014-181701.log",
+    "originalSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "publishedSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "bytes": 163,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/control-20261014-180019.log",
+    "originalSha256": "30f55c3ce12434d7f7a517fa687dbf17b77c9e14b393f947699d9016bc106422",
+    "publishedSha256": "30f55c3ce12434d7f7a517fa687dbf17b77c9e14b393f947699d9016bc106422",
+    "bytes": 1678,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/create-20261014-174030.log",
+    "originalSha256": "506d8b008096b6ca29f4d657391bbebaacc1e2ff685190440f33505c56aa8ab2",
+    "publishedSha256": "506d8b008096b6ca29f4d657391bbebaacc1e2ff685190440f33505c56aa8ab2",
+    "bytes": 2025,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/deploy-20261014-175621.log",
+    "originalSha256": "9339964ad8cdab0cf3c24c845ba1a48858cfbe54149e2ec1381ef1a07e15be3a",
+    "publishedSha256": "9339964ad8cdab0cf3c24c845ba1a48858cfbe54149e2ec1381ef1a07e15be3a",
+    "bytes": 538,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/deploy-20261014-175744.log",
+    "originalSha256": "ff39b5d08a4fa35d9ef460a382e5d7503b02b11345f5d8bc547e87531862cb3c",
+    "publishedSha256": "ff39b5d08a4fa35d9ef460a382e5d7503b02b11345f5d8bc547e87531862cb3c",
+    "bytes": 538,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/deploy-20261014-180011.log",
+    "originalSha256": "f2c09a9dfa41908011481de867661271fd2d12e9fedb07eb13503a43f299b043",
+    "publishedSha256": "f2c09a9dfa41908011481de867661271fd2d12e9fedb07eb13503a43f299b043",
+    "bytes": 538,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/inventory-20261014-171943.log",
+    "originalSha256": "8a13f995c4a5ce473bd06d150d5c1f48e7d655015c07c7e521ea15fd8b1c7f82",
+    "publishedSha256": "8a13f995c4a5ce473bd06d150d5c1f48e7d655015c07c7e521ea15fd8b1c7f82",
+    "bytes": 2356,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/ktcloud-connector.log",
+    "originalSha256": "a3c62545185774d13e2a86bbb66ae305d32e0503ecf326fca18a6df45f19148e",
+    "publishedSha256": "a3c62545185774d13e2a86bbb66ae305d32e0503ecf326fca18a6df45f19148e",
+    "bytes": 797,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/ktcloud-control-acceptance.log",
+    "originalSha256": "cdf19e950014efe64f07bc2997ffced1946264d17ec0ce69dea0efda0ccaf7f7",
+    "publishedSha256": "cdf19e950014efe64f07bc2997ffced1946264d17ec0ce69dea0efda0ccaf7f7",
+    "bytes": 1457,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/ktcloud-control-recovery-1791969260784568800.log",
+    "originalSha256": "b9059cc698d25a3c8e971e40101fcfdf1c81dd343e794264cdbbe7ef50284b8c",
+    "publishedSha256": "b9059cc698d25a3c8e971e40101fcfdf1c81dd343e794264cdbbe7ef50284b8c",
+    "bytes": 578,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/ktcloud-control-recovery-1791969359956855900.log",
+    "originalSha256": "c78dcdce230c25fb65326e389c8e58c3ab6bd60d8c1e67ac24faeba807194315",
+    "publishedSha256": "c78dcdce230c25fb65326e389c8e58c3ab6bd60d8c1e67ac24faeba807194315",
+    "bytes": 574,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/recover-cleanup-20261014-181558.log",
+    "originalSha256": "e66dcfb8dbcc884f8a585d694749959daec919500b82672335f3c333420cc912",
+    "publishedSha256": "e66dcfb8dbcc884f8a585d694749959daec919500b82672335f3c333420cc912",
+    "bytes": 659,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/recover-observe-20261014-181417.log",
+    "originalSha256": "0aae94a701031c37d4fa10c55700f0a263015f882a90f1cdfa10fec28300baa3",
+    "publishedSha256": "0aae94a701031c37d4fa10c55700f0a263015f882a90f1cdfa10fec28300baa3",
+    "bytes": 662,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/residual-20261014-181020.log",
+    "originalSha256": "5a58a015e2c537be45ded48c393914190a8d2245f7b642c8c5e5b3daea8c5ff1",
+    "publishedSha256": "5a58a015e2c537be45ded48c393914190a8d2245f7b642c8c5e5b3daea8c5ff1",
+    "bytes": 602,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/residual-20261014-181702.log",
+    "originalSha256": "53d39d04ca7f9196398f452725abb10ee117b1c601d030600f2819b645f1462e",
+    "publishedSha256": "53d39d04ca7f9196398f452725abb10ee117b1c601d030600f2819b645f1462e",
+    "bytes": 601,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/residual-20261014-193207.log",
+    "originalSha256": "92e34183cc0fee860ae29b0bb0b53498fe1c63d63c096d7806cea7e6b8744f9c",
+    "publishedSha256": "92e34183cc0fee860ae29b0bb0b53498fe1c63d63c096d7806cea7e6b8744f9c",
+    "bytes": 606,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/ssh-20261014-174654.log",
+    "originalSha256": "ccce98c783d252d69316872ec629a3ab6d5d27583ec5d71e480d8f32f40fa76e",
+    "publishedSha256": "ccce98c783d252d69316872ec629a3ab6d5d27583ec5d71e480d8f32f40fa76e",
+    "bytes": 174,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/tools-race.log",
+    "originalSha256": "e7db0b7f3bc1d40f973c4e417382a9a3c1954690ba6b7e98780dbfbf4dae998f",
+    "publishedSha256": "e7db0b7f3bc1d40f973c4e417382a9a3c1954690ba6b7e98780dbfbf4dae998f",
+    "bytes": 151,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/binary-manifest.json",
+    "originalSha256": "fbd483792b98514079ee13570a071b6c7160351d7de31e7f694c4d5fedddd628",
+    "publishedSha256": "fbd483792b98514079ee13570a071b6c7160351d7de31e7f694c4d5fedddd628",
+    "bytes": 765,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/build-bootstrap-run.json",
+    "originalSha256": "26557df63ac347ae77fbaf1a12f6e7a352ccf104c322d15daa255eb28069fc62",
+    "publishedSha256": "26557df63ac347ae77fbaf1a12f6e7a352ccf104c322d15daa255eb28069fc62",
+    "bytes": 494,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/build-bootstrap.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/build-bootstrap.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/build-labbit-connector-ktcloud-run.json",
+    "originalSha256": "770d9722b1b7dd0c1677d18d2fbacae8a10d0d87482053eb2c9a02f392447db4",
+    "publishedSha256": "770d9722b1b7dd0c1677d18d2fbacae8a10d0d87482053eb2c9a02f392447db4",
+    "bytes": 497,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/build-labbit-connector-ktcloud.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/build-labbit-connector-ktcloud.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/build-labbit-workspace-sftp-run.json",
+    "originalSha256": "38e2ba4a3d18b818cf9e517e7f9976bf7bb868c2e579d2eee44c22dc9740eb32",
+    "publishedSha256": "38e2ba4a3d18b818cf9e517e7f9976bf7bb868c2e579d2eee44c22dc9740eb32",
+    "bytes": 499,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/build-labbit-workspace-sftp.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/build-labbit-workspace-sftp.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/build-lbt145-control-linux-run.json",
+    "originalSha256": "51465d629ca6c511030f502db8832a9995ce1200e2b3311da0d62d56af93e88d",
+    "publishedSha256": "51465d629ca6c511030f502db8832a9995ce1200e2b3311da0d62d56af93e88d",
+    "bytes": 500,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/build-lbt145-control-linux.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/build-lbt145-control-linux.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/build-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/compiled-source-build-after.json",
+    "originalSha256": "690f79e8a77be22c246b3f6021e475d5a98f9f93265382e5d6d1ab3c05dc7f14",
+    "publishedSha256": "690f79e8a77be22c246b3f6021e475d5a98f9f93265382e5d6d1ab3c05dc7f14",
+    "bytes": 105355,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-final/compiled-source-build-before.json",
+    "originalSha256": "b16b4f807d3d70373e4f52c04d965f4245ebb9b325cf4ef35c81f46a74599903",
+    "publishedSha256": "b16b4f807d3d70373e4f52c04d965f4245ebb9b325cf4ef35c81f46a74599903",
+    "bytes": 105355,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/binary-manifest.json",
+    "originalSha256": "f52b3912eb6f50dc1a2fd94553a8eaf9e474413c3ce76fdd9a8084e31ccd4a79",
+    "publishedSha256": "f52b3912eb6f50dc1a2fd94553a8eaf9e474413c3ce76fdd9a8084e31ccd4a79",
+    "bytes": 765,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/build-bootstrap-run.json",
+    "originalSha256": "3aff96d94df2c21f5e8840bfd21c793450f31f2a8131d7f39479a314cfd9b52a",
+    "publishedSha256": "3aff96d94df2c21f5e8840bfd21c793450f31f2a8131d7f39479a314cfd9b52a",
+    "bytes": 499,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/build-bootstrap.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/build-bootstrap.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/build-labbit-connector-ktcloud-run.json",
+    "originalSha256": "dc1bfa2667d256c4a537be4e8dc389f791251b2082dd4761d410f28440948144",
+    "publishedSha256": "dc1bfa2667d256c4a537be4e8dc389f791251b2082dd4761d410f28440948144",
+    "bytes": 502,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/build-labbit-connector-ktcloud.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/build-labbit-connector-ktcloud.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/build-labbit-workspace-sftp-run.json",
+    "originalSha256": "c3af815e6aa9789085f32d68b18394a58b3e1eb651adbdcce464a01e66f3fcfc",
+    "publishedSha256": "c3af815e6aa9789085f32d68b18394a58b3e1eb651adbdcce464a01e66f3fcfc",
+    "bytes": 504,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/build-labbit-workspace-sftp.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/build-labbit-workspace-sftp.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/build-lbt145-control-linux-run.json",
+    "originalSha256": "6ca788fb1f2e78db7430bc230197e4bc6cf74ca701d6e95f1ebde84cebacd5f6",
+    "publishedSha256": "6ca788fb1f2e78db7430bc230197e4bc6cf74ca701d6e95f1ebde84cebacd5f6",
+    "bytes": 505,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/build-lbt145-control-linux.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/build-lbt145-control-linux.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/build-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/compiled-source-build-after.json",
+    "originalSha256": "4ba729fd3aabeab4e95c87947beb4829dc894c794cee03d8b5ef97aa35415c30",
+    "publishedSha256": "4ba729fd3aabeab4e95c87947beb4829dc894c794cee03d8b5ef97aa35415c30",
+    "bytes": 76525,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-live-final/compiled-source-build-before.json",
+    "originalSha256": "2f3cec02abd1b602363604ab3b9953600bbe19e8b1e3263dacf6a9b48bc65ab1",
+    "publishedSha256": "2f3cec02abd1b602363604ab3b9953600bbe19e8b1e3263dacf6a9b48bc65ab1",
+    "bytes": 76525,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/binary-manifest.json",
+    "originalSha256": "ab50e49f66d75bde6d80a9711132d8d9362f6f96870b5a515187cf873d4b6eac",
+    "publishedSha256": "ab50e49f66d75bde6d80a9711132d8d9362f6f96870b5a515187cf873d4b6eac",
+    "bytes": 765,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/build-bootstrap-run.json",
+    "originalSha256": "b6e67258b14702506061483dfbb8b469bb3028136608022cb5d81bf7c5abe9a9",
+    "publishedSha256": "b6e67258b14702506061483dfbb8b469bb3028136608022cb5d81bf7c5abe9a9",
+    "bytes": 497,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/build-bootstrap.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/build-bootstrap.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/build-labbit-connector-ktcloud-run.json",
+    "originalSha256": "e3435d7393d168db2a0248d7e8601c25dead7b7b95b7298831f7d5291709a6ba",
+    "publishedSha256": "e3435d7393d168db2a0248d7e8601c25dead7b7b95b7298831f7d5291709a6ba",
+    "bytes": 500,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/build-labbit-connector-ktcloud.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/build-labbit-connector-ktcloud.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/build-labbit-workspace-sftp-run.json",
+    "originalSha256": "4f11d617acbe3699ac6c374ed8bc881ad8fcd36b7ca7f32dac23488c7ca7e782",
+    "publishedSha256": "4f11d617acbe3699ac6c374ed8bc881ad8fcd36b7ca7f32dac23488c7ca7e782",
+    "bytes": 502,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/build-labbit-workspace-sftp.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/build-labbit-workspace-sftp.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/build-lbt145-control-linux-run.json",
+    "originalSha256": "7caa904485d95e28d67e2a6b51972bdd11f5756a4c7a4ddc266a99f589488480",
+    "publishedSha256": "7caa904485d95e28d67e2a6b51972bdd11f5756a4c7a4ddc266a99f589488480",
+    "bytes": 503,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/build-lbt145-control-linux.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/build-lbt145-control-linux.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/build-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/compiled-source-build-after.json",
+    "originalSha256": "3f6f4295b5f2e8342e12f5310f210cbc25dee4d903ff0bdc6db6d50395a5dcfb",
+    "publishedSha256": "3f6f4295b5f2e8342e12f5310f210cbc25dee4d903ff0bdc6db6d50395a5dcfb",
+    "bytes": 76525,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/build-reviewed/compiled-source-build-before.json",
+    "originalSha256": "b46a0f644c45591d0195e2605c5b60de65263c51fa68c83e770f73411908225a",
+    "publishedSha256": "b46a0f644c45591d0195e2605c5b60de65263c51fa68c83e770f73411908225a",
+    "bytes": 76525,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/ktcloud-residual-current.json",
+    "originalSha256": "314504878d1b84b5a504daa56af98af23bb2e602774c3062b4f66ec976251d46",
+    "publishedSha256": "314504878d1b84b5a504daa56af98af23bb2e602774c3062b4f66ec976251d46",
+    "bytes": 512,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/attempt-1-failed/ktcloud-connector.log",
+    "originalSha256": "a3c62545185774d13e2a86bbb66ae305d32e0503ecf326fca18a6df45f19148e",
+    "publishedSha256": "a3c62545185774d13e2a86bbb66ae305d32e0503ecf326fca18a6df45f19148e",
+    "bytes": 797,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/attempt-1-failed/ktcloud-control-acceptance.log",
+    "originalSha256": "cdf19e950014efe64f07bc2997ffced1946264d17ec0ce69dea0efda0ccaf7f7",
+    "publishedSha256": "cdf19e950014efe64f07bc2997ffced1946264d17ec0ce69dea0efda0ccaf7f7",
+    "bytes": 1457,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-1/attempt-1-failed/ktcloud-residual-current.json",
+    "originalSha256": "3af2a76dfacb875885714db70c9cb6136a301e8e353e5e59f94862c6413ea029",
+    "publishedSha256": "3af2a76dfacb875885714db70c9cb6136a301e8e353e5e59f94862c6413ea029",
+    "bytes": 508,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/archive-control-20261014-182833.log",
+    "originalSha256": "e4592275e82a6a6e9f1a14dd099509e95006d1843aec82583683f0c9c056f5de",
+    "publishedSha256": "e4592275e82a6a6e9f1a14dd099509e95006d1843aec82583683f0c9c056f5de",
+    "bytes": 783,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/collect-20261014-182513.log",
+    "originalSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "publishedSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "bytes": 163,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/control-20261014-181942.log",
+    "originalSha256": "ea7c89ddbb0f2b662e9bca6bf3021585ea1266e9097b275307d42bd67fc0f4cf",
+    "publishedSha256": "ea7c89ddbb0f2b662e9bca6bf3021585ea1266e9097b275307d42bd67fc0f4cf",
+    "bytes": 1104,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/deploy-20261014-181935.log",
+    "originalSha256": "2c43a6337c86d2fcc2e9480bda3bb7745109a64fb21f6da2b3add37dcb30f908",
+    "publishedSha256": "2c43a6337c86d2fcc2e9480bda3bb7745109a64fb21f6da2b3add37dcb30f908",
+    "bytes": 538,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/ktcloud-connector.log",
+    "originalSha256": "ca838d8c8c9262d529a3f3fa277ceeeae6e77f39814ff6bdc05da00bf887b49c",
+    "publishedSha256": "ca838d8c8c9262d529a3f3fa277ceeeae6e77f39814ff6bdc05da00bf887b49c",
+    "bytes": 797,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/ktcloud-control-acceptance.log",
+    "originalSha256": "d39d7148206f902b8f943ff1037df337f585363e0d051854224f8d784b8177a2",
+    "publishedSha256": "d39d7148206f902b8f943ff1037df337f585363e0d051854224f8d784b8177a2",
+    "bytes": 890,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/observe-ssh-20261014-182731.log",
+    "originalSha256": "22e1b7232b13b048184da2c3f2419b9a0bdf5b9652599846be65f656d5ebbce7",
+    "publishedSha256": "22e1b7232b13b048184da2c3f2419b9a0bdf5b9652599846be65f656d5ebbce7",
+    "bytes": 245,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/residual-20261014-182831.log",
+    "originalSha256": "ce0ac58db7b971d6764e727c5ddc0de1cb6306cb7d52853f7b80709f75ca16a3",
+    "publishedSha256": "ce0ac58db7b971d6764e727c5ddc0de1cb6306cb7d52853f7b80709f75ca16a3",
+    "bytes": 601,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/residual-20261014-193207.log",
+    "originalSha256": "92e34183cc0fee860ae29b0bb0b53498fe1c63d63c096d7806cea7e6b8744f9c",
+    "publishedSha256": "92e34183cc0fee860ae29b0bb0b53498fe1c63d63c096d7806cea7e6b8744f9c",
+    "bytes": 606,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/binary-manifest.json",
+    "originalSha256": "77044353ec93ea19193c5e53e9ebc5e5a5f92290c99323ceb185920fe8918f05",
+    "publishedSha256": "77044353ec93ea19193c5e53e9ebc5e5a5f92290c99323ceb185920fe8918f05",
+    "bytes": 765,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/build-bootstrap-run.json",
+    "originalSha256": "ceeef5750da1aa974b7645680e8528a85eeee0b7428fe9a5a120db277195b1b4",
+    "publishedSha256": "ceeef5750da1aa974b7645680e8528a85eeee0b7428fe9a5a120db277195b1b4",
+    "bytes": 495,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/build-bootstrap.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/build-bootstrap.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/build-labbit-connector-ktcloud-run.json",
+    "originalSha256": "880a106632e8de2eaf864148bfbd917939434a775c0eec115ea29b08a9a8377a",
+    "publishedSha256": "880a106632e8de2eaf864148bfbd917939434a775c0eec115ea29b08a9a8377a",
+    "bytes": 498,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/build-labbit-connector-ktcloud.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/build-labbit-connector-ktcloud.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/build-labbit-workspace-sftp-run.json",
+    "originalSha256": "8dc4ecc178bd4fd646146d484b03dcbcc40adb61b3104e67ddba05ae776f1be8",
+    "publishedSha256": "8dc4ecc178bd4fd646146d484b03dcbcc40adb61b3104e67ddba05ae776f1be8",
+    "bytes": 500,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/build-labbit-workspace-sftp.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/build-labbit-workspace-sftp.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/build-lbt145-control-linux-run.json",
+    "originalSha256": "1fe7535c819fb94ed91e691861091ff998bdb810af61ffee1a93ec506249bf4a",
+    "publishedSha256": "1fe7535c819fb94ed91e691861091ff998bdb810af61ffee1a93ec506249bf4a",
+    "bytes": 501,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/build-lbt145-control-linux.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/build-lbt145-control-linux.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/build-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/compiled-source-build-after.json",
+    "originalSha256": "57503387e168fa4cdf01154b1eab5a87836df86f5bf94fa481fbeff2cc04d3b4",
+    "publishedSha256": "57503387e168fa4cdf01154b1eab5a87836df86f5bf94fa481fbeff2cc04d3b4",
+    "bytes": 76694,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/build-final/compiled-source-build-before.json",
+    "originalSha256": "339f7143f55c46eb84bdde8c2e3efe618de3abc7cbc848fb3c80390d8541f2f4",
+    "publishedSha256": "339f7143f55c46eb84bdde8c2e3efe618de3abc7cbc848fb3c80390d8541f2f4",
+    "bytes": 76694,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/ktcloud-residual-current.json",
+    "originalSha256": "314504878d1b84b5a504daa56af98af23bb2e602774c3062b4f66ec976251d46",
+    "publishedSha256": "314504878d1b84b5a504daa56af98af23bb2e602774c3062b4f66ec976251d46",
+    "bytes": 512,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/attempt-2-failed/ktcloud-connector.log",
+    "originalSha256": "ca838d8c8c9262d529a3f3fa277ceeeae6e77f39814ff6bdc05da00bf887b49c",
+    "publishedSha256": "ca838d8c8c9262d529a3f3fa277ceeeae6e77f39814ff6bdc05da00bf887b49c",
+    "bytes": 797,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/attempt-2-failed/ktcloud-control-acceptance.log",
+    "originalSha256": "d39d7148206f902b8f943ff1037df337f585363e0d051854224f8d784b8177a2",
+    "publishedSha256": "d39d7148206f902b8f943ff1037df337f585363e0d051854224f8d784b8177a2",
+    "bytes": 890,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-2/attempt-2-failed/ktcloud-residual-current.json",
+    "originalSha256": "efb2b0f4d3201e107fe4750ad5018ecc486b8e93ab69c9146db033f357d40491",
+    "publishedSha256": "efb2b0f4d3201e107fe4750ad5018ecc486b8e93ab69c9146db033f357d40491",
+    "bytes": 507,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/archive-control-20261014-184739.log",
+    "originalSha256": "f2a71033e3d8f06941ab0f9d6c6ebb2aac12a1003cfb05a614df6faa4813eb99",
+    "publishedSha256": "f2a71033e3d8f06941ab0f9d6c6ebb2aac12a1003cfb05a614df6faa4813eb99",
+    "bytes": 783,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/collect-20261014-184414.log",
+    "originalSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "publishedSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "bytes": 163,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/control-20261014-182851.log",
+    "originalSha256": "f534b89e97a2255614bc8a022aa240059bca478b1e97d7fb320cd7f54a1d7fe7",
+    "publishedSha256": "f534b89e97a2255614bc8a022aa240059bca478b1e97d7fb320cd7f54a1d7fe7",
+    "bytes": 1763,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/deploy-20261014-182842.log",
+    "originalSha256": "2c43a6337c86d2fcc2e9480bda3bb7745109a64fb21f6da2b3add37dcb30f908",
+    "publishedSha256": "2c43a6337c86d2fcc2e9480bda3bb7745109a64fb21f6da2b3add37dcb30f908",
+    "bytes": 538,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/ktcloud-connector.log",
+    "originalSha256": "005b1e45af892d6f9cb395485974fee508b73c4a5b3d47f0aa23b979e4868937",
+    "publishedSha256": "005b1e45af892d6f9cb395485974fee508b73c4a5b3d47f0aa23b979e4868937",
+    "bytes": 1053,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/ktcloud-control-acceptance.log",
+    "originalSha256": "9806cd1f4824377d8272d6785f8563cc2e9e06383e8369f38b165dd27f33c04d",
+    "publishedSha256": "9806cd1f4824377d8272d6785f8563cc2e9e06383e8369f38b165dd27f33c04d",
+    "bytes": 1542,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/observe-ssh-20261014-183342.log",
+    "originalSha256": "6998846a78fdc23fa20a7394bccc680ba6a5bd6d7e8deb0b716cf9ff9ca4f5f3",
+    "publishedSha256": "f64ef9130eb985f7cc1907b9f80a082a2043c9d35b5b762d19fed22fb01f92c9",
+    "bytes": 758,
+    "ipv4Redactions": 1,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/residual-20261014-184416.log",
+    "originalSha256": "11dcf4edc35ca757edcf26ff6d5ea101d46e984be6060ada29ae382f25066e8d",
+    "publishedSha256": "11dcf4edc35ca757edcf26ff6d5ea101d46e984be6060ada29ae382f25066e8d",
+    "bytes": 601,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/residual-20261014-193207.log",
+    "originalSha256": "92e34183cc0fee860ae29b0bb0b53498fe1c63d63c096d7806cea7e6b8744f9c",
+    "publishedSha256": "92e34183cc0fee860ae29b0bb0b53498fe1c63d63c096d7806cea7e6b8744f9c",
+    "bytes": 606,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/unknown-save-green.log",
+    "originalSha256": "bc3629f1e3b59719402ed6ddb85863f3e2269eea8aeddf7bbac70b131eeb7130",
+    "publishedSha256": "bc3629f1e3b59719402ed6ddb85863f3e2269eea8aeddf7bbac70b131eeb7130",
+    "bytes": 75,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/unknown-save-red.log",
+    "originalSha256": "f7e80080a81e031dd40a8dc72a6744d3cb04d81cdec6fe961ac20839d89add3a",
+    "publishedSha256": "f7e80080a81e031dd40a8dc72a6744d3cb04d81cdec6fe961ac20839d89add3a",
+    "bytes": 255,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/binary-manifest.json",
+    "originalSha256": "e1fe038a7acd0e8d95648e0a7ad1f30363de34b899d6f546f6d0cfc82717fb1c",
+    "publishedSha256": "e1fe038a7acd0e8d95648e0a7ad1f30363de34b899d6f546f6d0cfc82717fb1c",
+    "bytes": 765,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/build-bootstrap-run.json",
+    "originalSha256": "a3f3f0e175dd9b6263bae895bbd95f1184834a541c368b72a51081f4d2bd76f4",
+    "publishedSha256": "a3f3f0e175dd9b6263bae895bbd95f1184834a541c368b72a51081f4d2bd76f4",
+    "bytes": 494,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/build-bootstrap.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/build-bootstrap.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/build-labbit-connector-ktcloud-run.json",
+    "originalSha256": "5210ce6c4a3cdce3da5cacb47ba041f864c89babb8698c763d162cdba4b54cb0",
+    "publishedSha256": "5210ce6c4a3cdce3da5cacb47ba041f864c89babb8698c763d162cdba4b54cb0",
+    "bytes": 497,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/build-labbit-connector-ktcloud.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/build-labbit-connector-ktcloud.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/build-labbit-workspace-sftp-run.json",
+    "originalSha256": "aa98c7fb7f4568111a18396dfc60d28d91a85ae32c74f8636dd258f0c9f2c6ae",
+    "publishedSha256": "aa98c7fb7f4568111a18396dfc60d28d91a85ae32c74f8636dd258f0c9f2c6ae",
+    "bytes": 499,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/build-labbit-workspace-sftp.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/build-labbit-workspace-sftp.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/build-lbt145-control-linux-run.json",
+    "originalSha256": "ee3c4232fd67f2fe8cbcf3731db4d1173c905bb920166a6cf54d23f9ca1e21f4",
+    "publishedSha256": "ee3c4232fd67f2fe8cbcf3731db4d1173c905bb920166a6cf54d23f9ca1e21f4",
+    "bytes": 500,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/build-lbt145-control-linux.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/build-lbt145-control-linux.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/build-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/compiled-source-build-after.json",
+    "originalSha256": "99d7f6151dece60d9e7b64ce469483ebf62d6a988437c793913490c6ab475e60",
+    "publishedSha256": "99d7f6151dece60d9e7b64ce469483ebf62d6a988437c793913490c6ab475e60",
+    "bytes": 76694,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/build-final/compiled-source-build-before.json",
+    "originalSha256": "0ba617765efd462571cc20e357fa48c299941525bf4572a87dd19d15e5659a71",
+    "publishedSha256": "0ba617765efd462571cc20e357fa48c299941525bf4572a87dd19d15e5659a71",
+    "bytes": 76694,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/ktcloud-residual-current.json",
+    "originalSha256": "314504878d1b84b5a504daa56af98af23bb2e602774c3062b4f66ec976251d46",
+    "publishedSha256": "314504878d1b84b5a504daa56af98af23bb2e602774c3062b4f66ec976251d46",
+    "bytes": 512,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/attempt-3-failed/ktcloud-connector.log",
+    "originalSha256": "005b1e45af892d6f9cb395485974fee508b73c4a5b3d47f0aa23b979e4868937",
+    "publishedSha256": "005b1e45af892d6f9cb395485974fee508b73c4a5b3d47f0aa23b979e4868937",
+    "bytes": 1053,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/attempt-3-failed/ktcloud-control-acceptance.log",
+    "originalSha256": "9806cd1f4824377d8272d6785f8563cc2e9e06383e8369f38b165dd27f33c04d",
+    "publishedSha256": "9806cd1f4824377d8272d6785f8563cc2e9e06383e8369f38b165dd27f33c04d",
+    "bytes": 1542,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-3/attempt-3-failed/ktcloud-residual-current.json",
+    "originalSha256": "f0d8787d5abaf7427150d6208a15bb28791531baebb4822c3f979a9d3417f82f",
+    "publishedSha256": "f0d8787d5abaf7427150d6208a15bb28791531baebb4822c3f979a9d3417f82f",
+    "bytes": 507,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/archive-control-20261014-185926.log",
+    "originalSha256": "6768dd3fa836106501a5de134e590d04fe2da3b7c1a95f5bda8d075c4c9a6da3",
+    "publishedSha256": "6768dd3fa836106501a5de134e590d04fe2da3b7c1a95f5bda8d075c4c9a6da3",
+    "bytes": 783,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/collect-20261014-185725.log",
+    "originalSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "publishedSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "bytes": 163,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/control-20261014-184853.log",
+    "originalSha256": "33eb50e70ac81bedc7a98bd746c36c66ce2c76e109ce941779d6f55979f1b6bf",
+    "publishedSha256": "33eb50e70ac81bedc7a98bd746c36c66ce2c76e109ce941779d6f55979f1b6bf",
+    "bytes": 1870,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/deploy-20261014-184825.log",
+    "originalSha256": "fdb54482cb9e8e3525358963848efbd13f55b1c74c019562ce2d1194fa7eb6be",
+    "publishedSha256": "fdb54482cb9e8e3525358963848efbd13f55b1c74c019562ce2d1194fa7eb6be",
+    "bytes": 538,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/ktcloud-connector.log",
+    "originalSha256": "2b59ff1ef2525df7910a64792b0badab89ee087861efd23d0627676ee40a006d",
+    "publishedSha256": "2b59ff1ef2525df7910a64792b0badab89ee087861efd23d0627676ee40a006d",
+    "bytes": 1052,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/ktcloud-control-acceptance.log",
+    "originalSha256": "0be3d3687142cd39f929496aceb45e5cb1d72cb7c023931504c66c5694dcd517",
+    "publishedSha256": "0be3d3687142cd39f929496aceb45e5cb1d72cb7c023931504c66c5694dcd517",
+    "bytes": 1648,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/residual-20261014-185726.log",
+    "originalSha256": "4f96874b73ff549237083e124ba571289664b9f6c9dc4cf7996db2c632c69551",
+    "publishedSha256": "4f96874b73ff549237083e124ba571289664b9f6c9dc4cf7996db2c632c69551",
+    "bytes": 601,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/residual-20261014-193207.log",
+    "originalSha256": "92e34183cc0fee860ae29b0bb0b53498fe1c63d63c096d7806cea7e6b8744f9c",
+    "publishedSha256": "92e34183cc0fee860ae29b0bb0b53498fe1c63d63c096d7806cea7e6b8744f9c",
+    "bytes": 606,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/binary-manifest.json",
+    "originalSha256": "dd5e7f8d0852614153dcaea34977ac40e5a120925b0fc0265ff0194c452092c2",
+    "publishedSha256": "dd5e7f8d0852614153dcaea34977ac40e5a120925b0fc0265ff0194c452092c2",
+    "bytes": 765,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/build-bootstrap-run.json",
+    "originalSha256": "141165011267ec33a17552b7d3b8ad927dcded38f9d41e3ced269e343f4e944e",
+    "publishedSha256": "141165011267ec33a17552b7d3b8ad927dcded38f9d41e3ced269e343f4e944e",
+    "bytes": 494,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/build-bootstrap.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/build-bootstrap.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/build-labbit-connector-ktcloud-run.json",
+    "originalSha256": "58f87f884365afc6256a46cbf192ce0abc5f119aca81a2248e7f51990a9576e1",
+    "publishedSha256": "58f87f884365afc6256a46cbf192ce0abc5f119aca81a2248e7f51990a9576e1",
+    "bytes": 497,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/build-labbit-connector-ktcloud.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/build-labbit-connector-ktcloud.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/build-labbit-workspace-sftp-run.json",
+    "originalSha256": "dea956a56ea9ba1d5fd10b6c32d0a52a43b86417f250a09e8e4fd66856ba9da2",
+    "publishedSha256": "dea956a56ea9ba1d5fd10b6c32d0a52a43b86417f250a09e8e4fd66856ba9da2",
+    "bytes": 499,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/build-labbit-workspace-sftp.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/build-labbit-workspace-sftp.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/build-lbt145-control-linux-run.json",
+    "originalSha256": "d75e13db2e65971b61d23abb4d252f9546c96a30ca694144e71908f456e866ce",
+    "publishedSha256": "d75e13db2e65971b61d23abb4d252f9546c96a30ca694144e71908f456e866ce",
+    "bytes": 500,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/build-lbt145-control-linux.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/build-lbt145-control-linux.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/build-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/compiled-source-build-after.json",
+    "originalSha256": "759caeb2aefcc4808f1e7064c5442a9efb65f55a8d7d1d5bb02eba3384e087c9",
+    "publishedSha256": "759caeb2aefcc4808f1e7064c5442a9efb65f55a8d7d1d5bb02eba3384e087c9",
+    "bytes": 76867,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/build-final/compiled-source-build-before.json",
+    "originalSha256": "4519b4bd7ecf7ee19c5d5c2cd221072653086f6cec07a6a633f9078d01240569",
+    "publishedSha256": "4519b4bd7ecf7ee19c5d5c2cd221072653086f6cec07a6a633f9078d01240569",
+    "bytes": 76867,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/ktcloud-residual-current.json",
+    "originalSha256": "314504878d1b84b5a504daa56af98af23bb2e602774c3062b4f66ec976251d46",
+    "publishedSha256": "314504878d1b84b5a504daa56af98af23bb2e602774c3062b4f66ec976251d46",
+    "bytes": 512,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/attempt-4-failed/ktcloud-connector.log",
+    "originalSha256": "2b59ff1ef2525df7910a64792b0badab89ee087861efd23d0627676ee40a006d",
+    "publishedSha256": "2b59ff1ef2525df7910a64792b0badab89ee087861efd23d0627676ee40a006d",
+    "bytes": 1052,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/attempt-4-failed/ktcloud-control-acceptance.log",
+    "originalSha256": "0be3d3687142cd39f929496aceb45e5cb1d72cb7c023931504c66c5694dcd517",
+    "publishedSha256": "0be3d3687142cd39f929496aceb45e5cb1d72cb7c023931504c66c5694dcd517",
+    "bytes": 1648,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-4/attempt-4-failed/ktcloud-residual-current.json",
+    "originalSha256": "7772dddd62d95297b4bd480327fe959bf0030d35b4bff6e24de7045dd10e4dc7",
+    "publishedSha256": "7772dddd62d95297b4bd480327fe959bf0030d35b4bff6e24de7045dd10e4dc7",
+    "bytes": 507,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/archive-control-20261014-191511.log",
+    "originalSha256": "cbd96548df5b5ced4d889591e678d15efe0a530582ff086fbb04d51a2ccfec83",
+    "publishedSha256": "cbd96548df5b5ced4d889591e678d15efe0a530582ff086fbb04d51a2ccfec83",
+    "bytes": 783,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/collect-20261014-190934.log",
+    "originalSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "publishedSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "bytes": 163,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/collect-20261014-191308.log",
+    "originalSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "publishedSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "bytes": 163,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/control-20261014-185946.log",
+    "originalSha256": "d60753df31530e574ef4052cc19b0241a44b274ac5caf8d8ad1921b29243d9cc",
+    "publishedSha256": "d60753df31530e574ef4052cc19b0241a44b274ac5caf8d8ad1921b29243d9cc",
+    "bytes": 3470,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/deploy-20261014-185935.log",
+    "originalSha256": "8d3937655f43551fa7f6f001a24051b9667c2361dd529102568b6574e67f7e81",
+    "publishedSha256": "8d3937655f43551fa7f6f001a24051b9667c2361dd529102568b6574e67f7e81",
+    "bytes": 538,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/ktcloud-connector.log",
+    "originalSha256": "a8025379fa5cac1a67b97e6ff9bc695d03d3bd990e3e21ae2081cbf88653fe2d",
+    "publishedSha256": "a8025379fa5cac1a67b97e6ff9bc695d03d3bd990e3e21ae2081cbf88653fe2d",
+    "bytes": 2080,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/ktcloud-control-acceptance.log",
+    "originalSha256": "f065fe29b858770c2668dac8f153226d7fabe1af0f72aed277e5d2b206e50b0a",
+    "publishedSha256": "f065fe29b858770c2668dac8f153226d7fabe1af0f72aed277e5d2b206e50b0a",
+    "bytes": 3228,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/residual-20261014-191309.log",
+    "originalSha256": "5a3528706ce3f15b35f1006ddc19d84c215674a50f8d7ffd3850dd0c525b65af",
+    "publishedSha256": "5a3528706ce3f15b35f1006ddc19d84c215674a50f8d7ffd3850dd0c525b65af",
+    "bytes": 601,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/residual-20261014-193207.log",
+    "originalSha256": "92e34183cc0fee860ae29b0bb0b53498fe1c63d63c096d7806cea7e6b8744f9c",
+    "publishedSha256": "92e34183cc0fee860ae29b0bb0b53498fe1c63d63c096d7806cea7e6b8744f9c",
+    "bytes": 606,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/binary-manifest.json",
+    "originalSha256": "1a3785133d7ea13c61eed202368561ea2c8b64c96418c2faba98641e70f4bcc1",
+    "publishedSha256": "1a3785133d7ea13c61eed202368561ea2c8b64c96418c2faba98641e70f4bcc1",
+    "bytes": 765,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/build-bootstrap-run.json",
+    "originalSha256": "4272c28120106a2978582b27072f2411c38d0de5c5380b64c2cc84d5830ba5e8",
+    "publishedSha256": "4272c28120106a2978582b27072f2411c38d0de5c5380b64c2cc84d5830ba5e8",
+    "bytes": 494,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/build-bootstrap.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/build-bootstrap.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/build-labbit-connector-ktcloud-run.json",
+    "originalSha256": "a1c6c2a6ba20c227cc5f1555304defbac6a1967604441b32f56f536c574cceb0",
+    "publishedSha256": "a1c6c2a6ba20c227cc5f1555304defbac6a1967604441b32f56f536c574cceb0",
+    "bytes": 497,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/build-labbit-connector-ktcloud.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/build-labbit-connector-ktcloud.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/build-labbit-workspace-sftp-run.json",
+    "originalSha256": "56456941e87828fe6f2c18e2311b36f26fde3a68ae84440f068a516b69e85fcf",
+    "publishedSha256": "56456941e87828fe6f2c18e2311b36f26fde3a68ae84440f068a516b69e85fcf",
+    "bytes": 499,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/build-labbit-workspace-sftp.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/build-labbit-workspace-sftp.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/build-lbt145-control-linux-run.json",
+    "originalSha256": "3f22d3424431ea527a5046f35d9c051eff4add1cbd33a989e7b0f53a916613ef",
+    "publishedSha256": "3f22d3424431ea527a5046f35d9c051eff4add1cbd33a989e7b0f53a916613ef",
+    "bytes": 500,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/build-lbt145-control-linux.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/build-lbt145-control-linux.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/build-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/compiled-source-build-after.json",
+    "originalSha256": "d855951320825e4fdc5a9b6344f13db870868eff4821f7c52e994b442038d715",
+    "publishedSha256": "d855951320825e4fdc5a9b6344f13db870868eff4821f7c52e994b442038d715",
+    "bytes": 76867,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/build-final/compiled-source-build-before.json",
+    "originalSha256": "bbaff8b50ef66329aa5711cd01e0be9319a587187f1f2ff7810da9ea66f153dd",
+    "publishedSha256": "bbaff8b50ef66329aa5711cd01e0be9319a587187f1f2ff7810da9ea66f153dd",
+    "bytes": 76867,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/ktcloud-residual-current.json",
+    "originalSha256": "314504878d1b84b5a504daa56af98af23bb2e602774c3062b4f66ec976251d46",
+    "publishedSha256": "314504878d1b84b5a504daa56af98af23bb2e602774c3062b4f66ec976251d46",
+    "bytes": 512,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/attempt-5-failed/ktcloud-connector.log",
+    "originalSha256": "a8025379fa5cac1a67b97e6ff9bc695d03d3bd990e3e21ae2081cbf88653fe2d",
+    "publishedSha256": "a8025379fa5cac1a67b97e6ff9bc695d03d3bd990e3e21ae2081cbf88653fe2d",
+    "bytes": 2080,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/attempt-5-failed/ktcloud-control-acceptance.log",
+    "originalSha256": "f065fe29b858770c2668dac8f153226d7fabe1af0f72aed277e5d2b206e50b0a",
+    "publishedSha256": "f065fe29b858770c2668dac8f153226d7fabe1af0f72aed277e5d2b206e50b0a",
+    "bytes": 3228,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-5/attempt-5-failed/ktcloud-residual-current.json",
+    "originalSha256": "0365284c5d66ef87877e164b31d17a8c3799617d63c5cd5cfe8e95e2fd86b7dd",
+    "publishedSha256": "0365284c5d66ef87877e164b31d17a8c3799617d63c5cd5cfe8e95e2fd86b7dd",
+    "bytes": 507,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/cleanup-20261014-193103.log",
+    "originalSha256": "e698fe763e8399d5dec79df89b7a04e6ef8d22474836e809ff2e263dbc6f8140",
+    "publishedSha256": "e698fe763e8399d5dec79df89b7a04e6ef8d22474836e809ff2e263dbc6f8140",
+    "bytes": 367,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/collect-20261014-192611.log",
+    "originalSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "publishedSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "bytes": 163,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/collect-20261014-193059.log",
+    "originalSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "publishedSha256": "e9923a629ba9dc88eeb52c1f3fd71a93d7da8724172d6fd7f89817542d4debd7",
+    "bytes": 163,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/control-20261014-191530.log",
+    "originalSha256": "f804aef8f33e6283053cc0bebf04d49cfde4ae4dded571ef76a1769acce9e766",
+    "publishedSha256": "f804aef8f33e6283053cc0bebf04d49cfde4ae4dded571ef76a1769acce9e766",
+    "bytes": 3619,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/deploy-20261014-191521.log",
+    "originalSha256": "9b1b4b87636617b76cbb9464c9e7813cb6d18390a0a76762216d95163266f013",
+    "publishedSha256": "9b1b4b87636617b76cbb9464c9e7813cb6d18390a0a76762216d95163266f013",
+    "bytes": 538,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/final-20261014-193124.log",
+    "originalSha256": "d7bb2317263983cb6a97c8bf50428bb4cf3f9f0715ee4885a145e0854a06774f",
+    "publishedSha256": "d7bb2317263983cb6a97c8bf50428bb4cf3f9f0715ee4885a145e0854a06774f",
+    "bytes": 177,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/ktcloud-connector.log",
+    "originalSha256": "71adb762e1c090abfbe417f2e9ca2881373a5cd5a3e118d0d60f163d7832563b",
+    "publishedSha256": "71adb762e1c090abfbe417f2e9ca2881373a5cd5a3e118d0d60f163d7832563b",
+    "bytes": 2082,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/ktcloud-control-acceptance.log",
+    "originalSha256": "fdd584b87bf9dc733785085f230b7e879329f3cf15450bf42a1d3ddc4022e793",
+    "publishedSha256": "fdd584b87bf9dc733785085f230b7e879329f3cf15450bf42a1d3ddc4022e793",
+    "bytes": 3498,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/residual-20261014-193100.log",
+    "originalSha256": "4dfe90d0441889ebf9342aadbe772445e053da8ceb075b55823200d5491862cd",
+    "publishedSha256": "4dfe90d0441889ebf9342aadbe772445e053da8ceb075b55823200d5491862cd",
+    "bytes": 601,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/residual-20261014-193122.log",
+    "originalSha256": "747a27cf5ad04dfb8816d19c2ab6da0aaa1e1092c082d294fb438a4ebd61d403",
+    "publishedSha256": "747a27cf5ad04dfb8816d19c2ab6da0aaa1e1092c082d294fb438a4ebd61d403",
+    "bytes": 606,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/binary-manifest.json",
+    "originalSha256": "91ba45aa75c4337e6ece8aeb4309a2352037844062a17df726cf0d588d473615",
+    "publishedSha256": "91ba45aa75c4337e6ece8aeb4309a2352037844062a17df726cf0d588d473615",
+    "bytes": 765,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/build-bootstrap-run.json",
+    "originalSha256": "3a4882bd75d9510e52aaab920344cd8c02611425e8165102a9d068d5b00672ae",
+    "publishedSha256": "3a4882bd75d9510e52aaab920344cd8c02611425e8165102a9d068d5b00672ae",
+    "bytes": 494,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/build-bootstrap.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/build-bootstrap.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/build-labbit-connector-ktcloud-run.json",
+    "originalSha256": "3fc497d61747849dad5786d49427ffa39eb84bcfe820b45830e4c3766330e57c",
+    "publishedSha256": "3fc497d61747849dad5786d49427ffa39eb84bcfe820b45830e4c3766330e57c",
+    "bytes": 497,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/build-labbit-connector-ktcloud.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/build-labbit-connector-ktcloud.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/build-labbit-workspace-sftp-run.json",
+    "originalSha256": "cc0a567df89f045cfa96887f4b70f88c85c7ffcbb7900af56ca4ab185dade230",
+    "publishedSha256": "cc0a567df89f045cfa96887f4b70f88c85c7ffcbb7900af56ca4ab185dade230",
+    "bytes": 499,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/build-labbit-workspace-sftp.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/build-labbit-workspace-sftp.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/build-lbt145-control-linux-run.json",
+    "originalSha256": "ab06eae3e9b09166dd5e2fa708763597846d5413a541a5eedda525fb59b0f681",
+    "publishedSha256": "ab06eae3e9b09166dd5e2fa708763597846d5413a541a5eedda525fb59b0f681",
+    "bytes": 500,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/build-lbt145-control-linux.log",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/build-lbt145-control-linux.stderr.txt",
+    "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "publishedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/build-source-stability.json",
+    "originalSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "publishedSha256": "581b80230b36d114de993589993507c58392a5754f8786e307edd88e793428c1",
+    "bytes": 162,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/compiled-source-build-after.json",
+    "originalSha256": "82a170686308d991a866364ed9e8df7c38a681856ae79c7525a4f443ad385710",
+    "publishedSha256": "82a170686308d991a866364ed9e8df7c38a681856ae79c7525a4f443ad385710",
+    "bytes": 76867,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/build-final/compiled-source-build-before.json",
+    "originalSha256": "b09c5ccc34a447e0de8b80297643c902154595429fb21dc04ee03379652acef8",
+    "publishedSha256": "b09c5ccc34a447e0de8b80297643c902154595429fb21dc04ee03379652acef8",
+    "bytes": 76867,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/ktcloud-residual-current.json",
+    "originalSha256": "e3054ff4b3863a83b78f4b3df9c71de0eaae89ef33a6bdffd3f5b159e7db2147",
+    "publishedSha256": "e3054ff4b3863a83b78f4b3df9c71de0eaae89ef33a6bdffd3f5b159e7db2147",
+    "bytes": 512,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  },
+  {
+    "path": "cloud/attempt-6/pre-bootstrap-cleanup-residual.json",
+    "originalSha256": "70a0a15d4a5fb1601cd06d73d5d31ede32d898235cd49835d38ac5903ad6fc13",
+    "publishedSha256": "70a0a15d4a5fb1601cd06d73d5d31ede32d898235cd49835d38ac5903ad6fc13",
+    "bytes": 507,
+    "ipv4Redactions": 0,
+    "utf8BomRemoved": false,
+    "originalPreserved": true
+  }
+]

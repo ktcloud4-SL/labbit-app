@@ -1,0 +1,321 @@
+{
+  "recordedAt": "2026-10-14T10:50:12.600520+00:00",
+  "base": "7917531fe630357eeb1f055ea2ad08dbee93a00e",
+  "branch": "feat/LBT-151-ktcloud-final-regression",
+  "changedPaths": [
+    "docs/connector/evidence/LBT-151/2026-10-14/AUDIT.md",
+    "docs/connector/evidence/LBT-151/2026-10-14/C2-HANDOFF.md",
+    "docs/connector/evidence/LBT-151/2026-10-14/README.md",
+    "docs/connector/evidence/LBT-151/2026-10-14/actual-final.log",
+    "docs/connector/evidence/LBT-151/2026-10-14/all-attempt-residuals.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/artifact-manifest.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/attempt-1-final-ledger.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/attempt-1-original-failed-ledger.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/attempt-2-final-ledger.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/attempt-2-original-failed-ledger.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/attempt-3-final-ledger.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/attempt-3-original-failed-ledger.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/attempt-4-final-ledger.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/attempt-4-original-failed-ledger.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/attempt-5-final-ledger.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/attempt-5-original-failed-ledger.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/attempt-6-final-ledger.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/baseline-inventory.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/binary-manifest.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/bootstrap-owned-ledger.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/default-suite-skips.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/export_evidence.py",
+    "docs/connector/evidence/LBT-151/2026-10-14/failed-attempt-1.log",
+    "docs/connector/evidence/LBT-151/2026-10-14/failed-attempt-2.log",
+    "docs/connector/evidence/LBT-151/2026-10-14/failed-attempt-3.log",
+    "docs/connector/evidence/LBT-151/2026-10-14/failed-attempt-4.log",
+    "docs/connector/evidence/LBT-151/2026-10-14/failed-attempt-5.log",
+    "docs/connector/evidence/LBT-151/2026-10-14/final-inventory.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/independent-review.md",
+    "docs/connector/evidence/LBT-151/2026-10-14/ktcloud-residual-current.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/publication-scan.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/raw-log-manifest.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/source-manifest.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/typed-export-manifest.json",
+    "docs/connector/evidence/LBT-151/2026-10-14/validate.py",
+    "docs/connector/evidence/LBT-151/2026-10-14/validation-logs.zip",
+    "docs/connector/evidence/LBT-151/2026-10-14/validation-summary.json",
+    "tools/ktcloud-d1-acceptance/inbox_test.go",
+    "tools/ktcloud-d1-acceptance/main.go",
+    "tools/ktcloud-d1-acceptance/op02.go",
+    "tools/ktcloud-d1-acceptance/op02_binding_test.go",
+    "tools/ktcloud-d1-acceptance/op02_failures.go",
+    "tools/ktcloud-d1-acceptance/op02_identity_test.go",
+    "tools/ktcloud-d1-acceptance/op02_peer.go",
+    "tools/ktcloud-d1-acceptance/op02_peer_test.go",
+    "tools/ktcloud-d1-acceptance/op02_ssh.go",
+    "tools/ktcloud-d1-acceptance/op02_unknown_save_test.go",
+    "tools/ktcloud-op02-bootstrap/README.md",
+    "tools/ktcloud-op02-bootstrap/access.go",
+    "tools/ktcloud-op02-bootstrap/access_test.go",
+    "tools/ktcloud-op02-bootstrap/access_unknown_test.go",
+    "tools/ktcloud-op02-bootstrap/baseline.go",
+    "tools/ktcloud-op02-bootstrap/cancellation.go",
+    "tools/ktcloud-op02-bootstrap/cancellation_test.go",
+    "tools/ktcloud-op02-bootstrap/deploy.go",
+    "tools/ktcloud-op02-bootstrap/main.go",
+    "tools/ktcloud-op02-bootstrap/ownership_test.go",
+    "tools/ktcloud-op02-bootstrap/ssh_observe.go",
+    "tools/ktcloud-op02-bootstrap/ssh_observe_test.go"
+  ],
+  "artifacts": [
+    {
+      "path": "actual-final.log",
+      "bytesRaw": 3498,
+      "sha256Raw": "fdd584b87bf9dc733785085f230b7e879329f3cf15450bf42a1d3ddc4022e793",
+      "bytesLF": 3498,
+      "sha256LF": "fdd584b87bf9dc733785085f230b7e879329f3cf15450bf42a1d3ddc4022e793"
+    },
+    {
+      "path": "all-attempt-residuals.json",
+      "bytesRaw": 4980,
+      "sha256Raw": "672f9b18df47143423ad7272381809aab218a4b6a4424d0e925ba7006e517a06",
+      "bytesLF": 4820,
+      "sha256LF": "3069598c539c455d56185bfefa889362c834190c72cfd95ecc5e0f8b3c914b0e"
+    },
+    {
+      "path": "attempt-1-final-ledger.json",
+      "bytesRaw": 1302,
+      "sha256Raw": "729958e38e173c331feedcac346362909ed99d43a258a193998c18d59fbef3cb",
+      "bytesLF": 1257,
+      "sha256LF": "43feb2ffcfed5c82495dbf97417102a151123bf6a1af438f9547386ced4c60d1"
+    },
+    {
+      "path": "attempt-1-original-failed-ledger.json",
+      "bytesRaw": 1347,
+      "sha256Raw": "0e523b20b8b19e647574341a51d62d2f369fc3a9303874abb11a06d2c1ad5bcb",
+      "bytesLF": 1302,
+      "sha256LF": "ede3d0c35c5636291003d6b2068fbc603346d6e1ab6fc132e60c244b4ea55f8b"
+    },
+    {
+      "path": "attempt-2-final-ledger.json",
+      "bytesRaw": 1308,
+      "sha256Raw": "4770f582bf7b614bca01f1998a314de1db8a280a0d2f4d350fa4bdf158d10936",
+      "bytesLF": 1263,
+      "sha256LF": "2690c1a8067f22c6638eff52cd9255da663e96617d3c711efe1f6a93dd0ab3ee"
+    },
+    {
+      "path": "attempt-2-original-failed-ledger.json",
+      "bytesRaw": 1308,
+      "sha256Raw": "4770f582bf7b614bca01f1998a314de1db8a280a0d2f4d350fa4bdf158d10936",
+      "bytesLF": 1263,
+      "sha256LF": "2690c1a8067f22c6638eff52cd9255da663e96617d3c711efe1f6a93dd0ab3ee"
+    },
+    {
+      "path": "attempt-3-final-ledger.json",
+      "bytesRaw": 1308,
+      "sha256Raw": "2878a2473d795496a0bb35a422829e92ab4e9e95a9eccebda2be17425941abcf",
+      "bytesLF": 1263,
+      "sha256LF": "94431da7df21f64db1f97481f8aa28793340a267759ddb49f1c751243ddc51a6"
+    },
+    {
+      "path": "attempt-3-original-failed-ledger.json",
+      "bytesRaw": 1308,
+      "sha256Raw": "2878a2473d795496a0bb35a422829e92ab4e9e95a9eccebda2be17425941abcf",
+      "bytesLF": 1263,
+      "sha256LF": "94431da7df21f64db1f97481f8aa28793340a267759ddb49f1c751243ddc51a6"
+    },
+    {
+      "path": "attempt-4-final-ledger.json",
+      "bytesRaw": 1308,
+      "sha256Raw": "55185ad5469cb7513d967deefb36535b8ae074e31a272ee2bd24d59392236840",
+      "bytesLF": 1263,
+      "sha256LF": "9254bea9d41e18f5f67678195c42ac0f2da733984516ffd88e9def066554ccf3"
+    },
+    {
+      "path": "attempt-4-original-failed-ledger.json",
+      "bytesRaw": 1308,
+      "sha256Raw": "55185ad5469cb7513d967deefb36535b8ae074e31a272ee2bd24d59392236840",
+      "bytesLF": 1263,
+      "sha256LF": "9254bea9d41e18f5f67678195c42ac0f2da733984516ffd88e9def066554ccf3"
+    },
+    {
+      "path": "attempt-5-final-ledger.json",
+      "bytesRaw": 2374,
+      "sha256Raw": "194b8aace0bedb561bbfe7181942e2a1c4c5b4e1c9fefa248496baeaaac964b2",
+      "bytesLF": 2294,
+      "sha256LF": "fa2af313e3ed7c364975eb83f1fa8759a30b4fea65a884e64db5c37ffe51ca40"
+    },
+    {
+      "path": "attempt-5-original-failed-ledger.json",
+      "bytesRaw": 2374,
+      "sha256Raw": "194b8aace0bedb561bbfe7181942e2a1c4c5b4e1c9fefa248496baeaaac964b2",
+      "bytesLF": 2294,
+      "sha256LF": "fa2af313e3ed7c364975eb83f1fa8759a30b4fea65a884e64db5c37ffe51ca40"
+    },
+    {
+      "path": "attempt-6-final-ledger.json",
+      "bytesRaw": 2373,
+      "sha256Raw": "a7b4a9e81cc72867c8922682e61c6275bb5da92089b1f7338a656f1bbd21554b",
+      "bytesLF": 2293,
+      "sha256LF": "3c2726288ddd21ea42d463dac08efc93c296657f70f668d99e33f01d6492f1c7"
+    },
+    {
+      "path": "AUDIT.md",
+      "bytesRaw": 27147,
+      "sha256Raw": "80a53d362247451f38cc22450caeba6191dc34ec558b152b69da957f569c3354",
+      "bytesLF": 27147,
+      "sha256LF": "80a53d362247451f38cc22450caeba6191dc34ec558b152b69da957f569c3354"
+    },
+    {
+      "path": "baseline-inventory.json",
+      "bytesRaw": 265,
+      "sha256Raw": "83de386a6f8abc0d2a4a5a1deb0916b19268ef939bc290636f17b8b78ca98991",
+      "bytesLF": 252,
+      "sha256LF": "d2507e9633aec8c27009907139b308e296a4dbb3f5ae280ff65d73849f05981a"
+    },
+    {
+      "path": "binary-manifest.json",
+      "bytesRaw": 765,
+      "sha256Raw": "91ba45aa75c4337e6ece8aeb4309a2352037844062a17df726cf0d588d473615",
+      "bytesLF": 741,
+      "sha256LF": "12c9603ca3347e8e9d1aea60569755a1b2e3134c1e73143689770d7ee549e5cf"
+    },
+    {
+      "path": "bootstrap-owned-ledger.json",
+      "bytesRaw": 1534,
+      "sha256Raw": "b1959e404eadee5b31f2cf6c04886dac09c72f9d889c7679b01aad899f72768f",
+      "bytesLF": 1489,
+      "sha256LF": "f5b16ebe540e79b67f0f748e2e92818d5c35ed550f9e1f6e53ce928860ede6f1"
+    },
+    {
+      "path": "C2-HANDOFF.md",
+      "bytesRaw": 3648,
+      "sha256Raw": "413c0eac9a2f9f8ca93983d85460ddfb4bbbd410f40c61d90c5ba6a169ca2791",
+      "bytesLF": 3648,
+      "sha256LF": "413c0eac9a2f9f8ca93983d85460ddfb4bbbd410f40c61d90c5ba6a169ca2791"
+    },
+    {
+      "path": "default-suite-skips.json",
+      "bytesRaw": 6213,
+      "sha256Raw": "5caec34396dc696b2f29e0c4807f504223ed0f7b6db44ac82ea113179f53386a",
+      "bytesLF": 6136,
+      "sha256LF": "8c32ad871f84edc1ae4868b594fd821b786ac4e72be76a5c0187cd056c4d815c"
+    },
+    {
+      "path": "export_evidence.py",
+      "bytesRaw": 11853,
+      "sha256Raw": "34317c5f5c923fd11298f9f9aca25c544422ee9f701c95ee842fae4f55747cd7",
+      "bytesLF": 11853,
+      "sha256LF": "34317c5f5c923fd11298f9f9aca25c544422ee9f701c95ee842fae4f55747cd7"
+    },
+    {
+      "path": "failed-attempt-1.log",
+      "bytesRaw": 1457,
+      "sha256Raw": "cdf19e950014efe64f07bc2997ffced1946264d17ec0ce69dea0efda0ccaf7f7",
+      "bytesLF": 1457,
+      "sha256LF": "cdf19e950014efe64f07bc2997ffced1946264d17ec0ce69dea0efda0ccaf7f7"
+    },
+    {
+      "path": "failed-attempt-2.log",
+      "bytesRaw": 890,
+      "sha256Raw": "d39d7148206f902b8f943ff1037df337f585363e0d051854224f8d784b8177a2",
+      "bytesLF": 890,
+      "sha256LF": "d39d7148206f902b8f943ff1037df337f585363e0d051854224f8d784b8177a2"
+    },
+    {
+      "path": "failed-attempt-3.log",
+      "bytesRaw": 1542,
+      "sha256Raw": "9806cd1f4824377d8272d6785f8563cc2e9e06383e8369f38b165dd27f33c04d",
+      "bytesLF": 1542,
+      "sha256LF": "9806cd1f4824377d8272d6785f8563cc2e9e06383e8369f38b165dd27f33c04d"
+    },
+    {
+      "path": "failed-attempt-4.log",
+      "bytesRaw": 1648,
+      "sha256Raw": "0be3d3687142cd39f929496aceb45e5cb1d72cb7c023931504c66c5694dcd517",
+      "bytesLF": 1648,
+      "sha256LF": "0be3d3687142cd39f929496aceb45e5cb1d72cb7c023931504c66c5694dcd517"
+    },
+    {
+      "path": "failed-attempt-5.log",
+      "bytesRaw": 3228,
+      "sha256Raw": "f065fe29b858770c2668dac8f153226d7fabe1af0f72aed277e5d2b206e50b0a",
+      "bytesLF": 3228,
+      "sha256LF": "f065fe29b858770c2668dac8f153226d7fabe1af0f72aed277e5d2b206e50b0a"
+    },
+    {
+      "path": "final-inventory.json",
+      "bytesRaw": 484,
+      "sha256Raw": "fe3a942c1a71fd9ba20c6098dc0b31ed4907c98e4e8d376150b83baa6e1a2afe",
+      "bytesLF": 464,
+      "sha256LF": "833226fd3949736b7e5898eb173a9b1b522692a76fc5d3403fdfeac4c479d016"
+    },
+    {
+      "path": "independent-review.md",
+      "bytesRaw": 11508,
+      "sha256Raw": "5e556799217b6f96a7959d7a7373efd904c18c6a99019b2db5e91762c8550980",
+      "bytesLF": 11508,
+      "sha256LF": "5e556799217b6f96a7959d7a7373efd904c18c6a99019b2db5e91762c8550980"
+    },
+    {
+      "path": "ktcloud-residual-current.json",
+      "bytesRaw": 532,
+      "sha256Raw": "2b7893528cbc22dc7b4939fb32abaf6f4490da3e837ad58b456be0a202bbccff",
+      "bytesLF": 512,
+      "sha256LF": "e3054ff4b3863a83b78f4b3df9c71de0eaae89ef33a6bdffd3f5b159e7db2147"
+    },
+    {
+      "path": "publication-scan.json",
+      "bytesRaw": 407,
+      "sha256Raw": "36122ca197a1fdc4a4b4975ad1c16f7ca0d39b9713c0c62bddc3b02351efc758",
+      "bytesLF": 398,
+      "sha256LF": "8e555598db03d42093a89276f57f796eb9637091f18e750ac0fea723021fbb38"
+    },
+    {
+      "path": "raw-log-manifest.json",
+      "bytesRaw": 164080,
+      "sha256Raw": "6f02c1bda39d956c86ca40e7382571132a2636db51bd772eccfc84e369b8ff37",
+      "bytesLF": 160055,
+      "sha256LF": "1fb3331dc74902191f531d7e585116529d5f0cb752c96b17f980db1d2091412c"
+    },
+    {
+      "path": "README.md",
+      "bytesRaw": 6417,
+      "sha256Raw": "fedda2c616450d19ddae3696aa6a42caaba4800d3ca3aabb2482b9fc859192bb",
+      "bytesLF": 6417,
+      "sha256LF": "fedda2c616450d19ddae3696aa6a42caaba4800d3ca3aabb2482b9fc859192bb"
+    },
+    {
+      "path": "source-manifest.json",
+      "bytesRaw": 77850,
+      "sha256Raw": "108e1a39b0e3d1771bf6705766e524a3308b793557674b413f0cadd264b869d6",
+      "bytesLF": 75947,
+      "sha256LF": "4e24817537f87b9ecd657841b70b0b530d199e3ed693ff969d7fca4dd0afbbd8"
+    },
+    {
+      "path": "typed-export-manifest.json",
+      "bytesRaw": 3349,
+      "sha256Raw": "d9a10c7cb28a9b04622152b054f8b98e888d8db5f5ac5b8ada6691950e1672b0",
+      "bytesLF": 3275,
+      "sha256LF": "57724abfce2dfccd60a7bbcae227900116ba6be234327759453ddc3839c04b8d"
+    },
+    {
+      "path": "validate.py",
+      "bytesRaw": 4073,
+      "sha256Raw": "0f3f4629ad950fa26b0906ed1f9eb9970464308d465c5783c6447101b431a564",
+      "bytesLF": 4073,
+      "sha256LF": "0f3f4629ad950fa26b0906ed1f9eb9970464308d465c5783c6447101b431a564"
+    },
+    {
+      "path": "validation-logs.zip",
+      "bytesRaw": 3560160,
+      "sha256Raw": "ff31cb5d23dfda630258e78c41a286d98551ac0a1e9a26d350a69be2c028fd1c"
+    },
+    {
+      "path": "validation-summary.json",
+      "bytesRaw": 13270,
+      "sha256Raw": "09b75dd5046f5e833958a61187e915a5430bae91e8950c4ecf56b3570d855aa5",
+      "bytesLF": 12871,
+      "sha256LF": "f8a182062d2aa02b280ece5d19ecdfb56539b45db48319659a6237549e9978af"
+    }
+  ],
+  "independentReviewOriginalSHA256": "5e556799217b6f96a7959d7a7373efd904c18c6a99019b2db5e91762c8550980",
+  "hashSemantics": "raw original bytes and LF-normalized text; ZIP bytes are preserved; this manifest excludes its own hash to avoid recursion",
+  "sourceIdentity": "source-manifest.json: base HEAD plus compiled LF hashes; final commit adds the same tested Go tree and reviewed documentation"
+}

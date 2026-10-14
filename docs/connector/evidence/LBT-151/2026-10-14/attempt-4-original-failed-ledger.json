@@ -1,0 +1,45 @@
+{
+  "plannedGenerations": 2,
+  "labInstanceId": "lbt145-control-73c5f06aba3221a5",
+  "stage": "OP02_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS",
+  "hello": true,
+  "heartbeat": true,
+  "passed": false,
+  "resources": [
+    {
+      "resourceType": "KT_TIER",
+      "providerId": "dee313bd-a68b-46c2-a7a3-ef0756f8fe00",
+      "generation": 1,
+      "logicalName": "lab-tier",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_TIER",
+      "providerId": "afb546a6-42de-49b9-935b-172116715cda",
+      "generation": 1,
+      "logicalName": "workspace:management-tier",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_FIREWALL_POLICY",
+      "providerId": "756c06ed-3c84-463f-abd2-41d30983e0e8",
+      "generation": 1,
+      "logicalName": "workspace:management-ssh",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "SERVER",
+      "providerId": "88a54c34-4777-4fce-a171-a5428e9c8e5c",
+      "generation": 1,
+      "logicalName": "workspace",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "VOLUME",
+      "providerId": "6dc8c0d2-64fa-4730-9330-0cb1ac7cca90",
+      "generation": 1,
+      "logicalName": "workspace:root-volume",
+      "observedState": "DELETED"
+    }
+  ]
+}

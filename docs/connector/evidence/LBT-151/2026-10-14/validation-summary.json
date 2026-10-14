@@ -1,0 +1,399 @@
+{
+  "recordedAt": "2026-10-14T10:32:41.698172+00:00",
+  "base": "7917531fe630357eeb1f055ea2ad08dbee93a00e",
+  "testedHead": "7917531fe630357eeb1f055ea2ad08dbee93a00e",
+  "branch": "feat/LBT-151-ktcloud-final-regression",
+  "currentCompiledSourceMatchesTested": true,
+  "automaticChecks": [
+    {
+      "command": [
+        "go",
+        "test",
+        "-mod=readonly",
+        "-race",
+        "-json",
+        "-count=1",
+        "-timeout=5m",
+        "./internal/connector/filetransport",
+        "./internal/connector/workspacefile",
+        "./internal/connector/workspacefs",
+        "./internal/jsonnum",
+        "./internal/server/jsonnum"
+      ],
+      "startedAt": "2026-10-14T10:16:53.915112+00:00",
+      "endedAt": "2026-10-14T10:17:04.559152+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 74,
+        "skip": 1,
+        "fail": 0,
+        "packagesPass": 5
+      },
+      "name": "auto-run6-final/file-race-run"
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "-mod=readonly",
+        "-race",
+        "-json",
+        "-count=20",
+        "-timeout=5m",
+        "-run",
+        "^(TestConcurrentRequestsAndCorrelatedClose|TestTimeoutPeerDisconnectAndCredentialRevokeCancelSFTP|TestCompletedAndCanceledIDsNeverRedialAcrossControlReconnect|TestFileOpenCapturesControlSenderAndActualDialCredential|TestReviewNoAdmissionAfterOldControlRetirement|TestReviewLateOldFrameNeverBindsNewControlOwner|TestFileOldOwnerCleanupPreservesNewOwnerAndRevocationUses4001|TestUnknownSaveOutcomeNeverReplaysAndRequiresFreshRead|TestReadCeilingAndOversizeSaveWithRequiredBinary)$",
+        "./internal/connector/filetransport",
+        "./internal/connector/wss"
+      ],
+      "startedAt": "2026-10-14T10:18:57.005815+00:00",
+      "endedAt": "2026-10-14T10:19:19.413830+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 320,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 2
+      },
+      "name": "auto-run6-final/file-repeat-run"
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "-mod=readonly",
+        "-race",
+        "-json",
+        "-count=20",
+        "-timeout=5m",
+        "./tools/ktcloud-d1-acceptance",
+        "./tools/ktcloud-op02-bootstrap"
+      ],
+      "startedAt": "2026-10-14T10:17:04.579102+00:00",
+      "endedAt": "2026-10-14T10:18:56.963019+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 2500,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 2
+      },
+      "name": "auto-run6-final/fixture-race-run"
+    },
+    {
+      "command": [
+        "go",
+        "build",
+        "-mod=readonly",
+        "./..."
+      ],
+      "startedAt": "2026-10-14T10:15:55.008769+00:00",
+      "endedAt": "2026-10-14T10:15:59.226303+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      },
+      "name": "auto-run6-final/go-build-run"
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "-mod=readonly",
+        "-race",
+        "-json",
+        "-count=1",
+        "-timeout=5m",
+        "./internal/connector/vmaccess",
+        "./internal/connector/provider/openstack",
+        "./internal/connector/app",
+        "./internal/connector/terminal",
+        "./internal/connector/wss",
+        "./internal/connector/mock",
+        "./internal/connector/preview"
+      ],
+      "startedAt": "2026-10-14T10:15:59.227519+00:00",
+      "endedAt": "2026-10-14T10:16:27.587354+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 708,
+        "skip": 13,
+        "fail": 0,
+        "packagesPass": 7
+      },
+      "name": "auto-run6-final/go-race-run"
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "-mod=readonly",
+        "-json",
+        "-count=1",
+        "-timeout=5m",
+        "./..."
+      ],
+      "startedAt": "2026-10-14T10:15:29.990976+00:00",
+      "endedAt": "2026-10-14T10:15:54.923405+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 3638,
+        "skip": 15,
+        "fail": 0,
+        "packagesPass": 41
+      },
+      "name": "auto-run6-final/go-unit-run"
+    },
+    {
+      "command": [
+        "go",
+        "vet",
+        "-mod=readonly",
+        "./..."
+      ],
+      "startedAt": "2026-10-14T10:15:28.661753+00:00",
+      "endedAt": "2026-10-14T10:15:29.988911+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      },
+      "name": "auto-run6-final/go-vet-run"
+    },
+    {
+      "checked": 465,
+      "lineEndings": "LF-normalized comparison",
+      "unformatted": [],
+      "exitCode": 0,
+      "name": "auto-run6-final/gofmt-run"
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "-mod=readonly",
+        "-race",
+        "-json",
+        "-count=20",
+        "-timeout=5m",
+        "-run",
+        "^(TestManagedPTYCanceledSetupReleasesOutputWorkers|TestReplacedDataReaderCannotDispatchBufferedFrames|TestOldInputFailureCannotEndReplacement|TestDataInputAndResizeFailuresCloseOnlyTheirSession|TestReplacementDataClientStopsPreviousReconnectOwner|TestPreviewGatewayConcurrentFrames|TestPreview_SequentialTunnels_SameSession|TestCanceledChannelLeavesActivePTYUsable|TestCanceledOpenClosesLateChannelAndReusesTransport|TestStalledOpenDoesNotAccumulateCanceledSSHRequests|TestTerminalShutdownRejectsDelayedOpensAndEndsOnce)$",
+        "./internal/connector/terminal",
+        "./internal/connector/vmaccess",
+        "./internal/connector/mock",
+        "./internal/connector/preview"
+      ],
+      "startedAt": "2026-10-14T10:16:27.611650+00:00",
+      "endedAt": "2026-10-14T10:16:53.888533+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 420,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 4
+      },
+      "name": "auto-run6-final/regression-repeat-run"
+    },
+    {
+      "command": [
+        "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+        "run",
+        "build"
+      ],
+      "startedAt": "2026-10-14T09:01:03.152835+00:00",
+      "endedAt": "2026-10-14T09:01:05.393176+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      },
+      "name": "web-final/web-build-run"
+    },
+    {
+      "command": [
+        "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+        "install",
+        "--frozen-lockfile"
+      ],
+      "startedAt": "2026-10-14T08:59:28.265006+00:00",
+      "endedAt": "2026-10-14T08:59:32.506246+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      },
+      "name": "web-final/web-install-run"
+    },
+    {
+      "command": [
+        "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+        "run",
+        "lint"
+      ],
+      "startedAt": "2026-10-14T08:59:45.464204+00:00",
+      "endedAt": "2026-10-14T09:00:29.581489+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      },
+      "name": "web-final/web-lint-run"
+    },
+    {
+      "command": [
+        "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+        "import"
+      ],
+      "startedAt": "2026-10-14T08:59:24.482107+00:00",
+      "endedAt": "2026-10-14T08:59:28.249462+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      },
+      "name": "web-final/web-lock-import-run"
+    },
+    {
+      "command": [
+        "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+        "run",
+        "test"
+      ],
+      "startedAt": "2026-10-14T09:00:29.582043+00:00",
+      "endedAt": "2026-10-14T09:01:03.146186+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      },
+      "name": "web-final/web-test-run"
+    },
+    {
+      "command": [
+        "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+        "run",
+        "typecheck"
+      ],
+      "startedAt": "2026-10-14T08:59:32.516879+00:00",
+      "endedAt": "2026-10-14T08:59:45.463610+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      },
+      "name": "web-final/web-typecheck-run"
+    },
+    {
+      "exitCode": 0,
+      "versions": {
+        "PyYAML": "6.0.3",
+        "jsonschema": "4.26.0",
+        "openapi-spec-validator": "0.9.0"
+      },
+      "scope": "OpenAPI and exact current workflow JSON Schema/runtime/migration scripts",
+      "name": "contracts-final/contracts-run"
+    },
+    {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-final-151\\contracts\\connector\\tests\\test_reset_schema.py",
+        "-v"
+      ],
+      "startedAt": "2026-10-14T08:59:26.848581+00:00",
+      "endedAt": "2026-10-14T08:59:27.176263+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      },
+      "name": "contracts-final/reset-schema-run"
+    }
+  ],
+  "defaultUnitSkipCount": 15,
+  "countSemantics": "Go PASS/SKIP events include parent tests and subtests; web 13 files / 170 cases",
+  "actualCloudPassed": true,
+  "actualCloudStages": [
+    "CONTROL_FIXTURE_REGISTERED",
+    "HELLO_HELLO_ACK_HEARTBEAT_PASS",
+    "QUERY_VALIDATE_CONNECTION_PASS",
+    "QUERY_LIST_IMAGES_PASS",
+    "QUERY_LIST_FLAVORS_PASS",
+    "provision_SUCCEEDED",
+    "GENERATION1_MANAGEMENT_IP_PINNED_SSH_EGRESS_DENY_PASS",
+    "GENERATION1_RECONCILE_PASS",
+    "OP02_G1_TWO_PTY_AND_SFTP_SAME_SSH_CONNECTION_PASS",
+    "OP02_G1_PRODUCTION_PTY_RESIZE_INDEPENDENCE_RECONNECT_FILE_BINARY_BOUNDARIES_PASS",
+    "OP02_PRODUCTION_60_SECOND_IDLE_SHARED_SSH_SOCKET_RETIRED_PASS",
+    "OP02_PRODUCTION_60_SECOND_GRACE_EXPIRES_ENDED_SESSION_NOT_REUSED_PASS",
+    "OP02_REAL_SAVE_RESULT_LOST_OLD_ID_NOT_REPLAYED_FRESH_READ_REQUIRED_PASS",
+    "OP02_TWO_CONCURRENT_SFTP_CHANNELS_SHARED_SSH_CLOSE_ONE_OTHER_FILE_AND_PTY_SURVIVE_PASS",
+    "OP02_FILE_cancel_REAL_HELPER_DRAIN_OTHER_PTY_SURVIVES_NO_RETRY_PASS",
+    "OP02_FILE_disconnect_REAL_HELPER_DRAIN_OTHER_PTY_SURVIVES_NO_RETRY_PASS",
+    "OP02_FILE_revoke_REAL_HELPER_DRAIN_OTHER_PTY_SURVIVES_NO_RETRY_PASS",
+    "OP02_FILE_timeout_REAL_HELPER_DRAIN_OTHER_PTY_SURVIVES_NO_RETRY_PASS",
+    "OP02_REAL_SSH_DISCONNECT_VM_UNREACHABLE_SAFE_FAILURE_EXPLICIT_RECOVERY_PASS",
+    "OP02_LAB_RESET_ACTIVE_TERMINAL_FILE_CLOSED_HELPER_DRAINED_BEFORE_MUTATION_PASS",
+    "reset_SUCCEEDED",
+    "GENERATION2_MANAGEMENT_IP_PINNED_SSH_EGRESS_DENY_PASS",
+    "RESET_TARGET_CHANGED_OLD_ABSENT_NEW_PRESENT_PASS",
+    "OP02_G1_RETIRED_TARGET_TERMINAL_FILE_REJECTED_PASS",
+    "OP02_G2_TWO_PTY_AND_SFTP_SAME_SSH_CONNECTION_PASS",
+    "OP02_G2_PRODUCTION_PTY_RESIZE_INDEPENDENCE_RECONNECT_FILE_BINARY_BOUNDARIES_PASS",
+    "OP02_ACTIVE_G2_SERVER_STALE_G1_TERMINAL_FILE_REJECTED_PASS",
+    "OP02_LAB_CLEANUP_ACTIVE_TERMINAL_FILE_CLOSED_HELPER_DRAINED_BEFORE_MUTATION_PASS",
+    "empty-cleanup_SUCCEEDED",
+    "CANDIDATE_NOT_OWNED_OR_AUTODELETED_PASS",
+    "cleanup_SUCCEEDED",
+    "OP02_G2_RETIRED_TARGET_TERMINAL_FILE_REJECTED_PASS",
+    "OP02_ALL_TERMINAL_FILE_DATA_CONNECTIONS_DRAINED_PASS",
+    "REAL_PRODUCTION_CONNECTOR_WSS_LIFECYCLE_PASS_OWNED_RESIDUAL_0",
+    "OP02_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS"
+  ],
+  "ownedResidualTotal": 0,
+  "baselinePreserved": true,
+  "attempts": [
+    {
+      "number": 1,
+      "result": "FAILED: SSH identity output absent; cleanup UNKNOWN then observed recovery"
+    },
+    {
+      "number": 2,
+      "result": "FAILED: production SSH Ready timeout; deferred owned cleanup succeeded"
+    },
+    {
+      "number": 3,
+      "result": "FAILED: fixture incorrectly awaited duplicate completed File ACK; deferred owned cleanup succeeded"
+    },
+    {
+      "number": 4,
+      "result": "FAILED: additional fixture pinned SSH unavailable after unknown Save PASS; deferred owned cleanup succeeded; exact SSH cause unconfirmed"
+    },
+    {
+      "number": 5,
+      "result": "FAILED: fixture opened g2 Terminal after successful empty Cleanup invalidated access; both generations cleaned; production lifecycle was correct"
+    },
+    {
+      "number": 6,
+      "result": "PASS"
+    }
+  ],
+  "boundary": "synthetic TLS SaaS peers; real production Connector, KT API/VM, pinned SSH, PTY and rooted SFTP; Browser/Backend C2 not executed"
+}

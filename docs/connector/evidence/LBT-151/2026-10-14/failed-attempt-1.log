@@ -1,0 +1,23 @@
+Control evidence: CONTROL_FIXTURE_REGISTERED
+Control evidence: HELLO_HELLO_ACK_HEARTBEAT_PASS
+Production Provider query VALIDATE_CONNECTION PASS; items=0
+Control evidence: QUERY_VALIDATE_CONNECTION_PASS
+Production Provider query LIST_IMAGES PASS; items=12
+Control evidence: QUERY_LIST_IMAGES_PASS
+Production Provider query LIST_FLAVORS PASS; items=235
+Control evidence: QUERY_LIST_FLAVORS_PASS
+Control evidence: provision_SUCCEEDED
+Actual WSS PROVISION(g1): outcome=SUCCEEDED resources=5
+Management g1: Provider-owned IP resolved; pinned key-authenticated SSH exec PASS; external TCP22/443 denied PASS
+Control evidence: GENERATION1_MANAGEMENT_IP_PINNED_SSH_EGRESS_DENY_PASS
+Control evidence: GENERATION1_RECONCILE_PASS
+Installed Workspace helper g1: latest binary SHA256=2ad7fce4f34425f300e597ff4093d655e649a15b43b519b55b4a9cb939b42804; helper/root owner and mode checked; pinned SSH used
+Control evidence: teardown_UNKNOWN
+Actual WSS CLEANUP(g2): outcome=UNKNOWN resources=5
+Safe Provider error: ERR_UNKNOWN_RECONCILING OpenStack resource cleanup could not be verified
+CONTROL TEARDOWN NEEDS ATTENTION; safe tracked-ID ledger retained
+Control evidence: OP02_OWNED_CLEANUP_FAILED
+Control evidence: OP02_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS
+Production Connector shutdown: exited successfully within 5s; forcedKill=false
+Control acceptance failed: OP02 generation1 failed: SSH identity output absent
+owned Control fixture cleanup did not finish

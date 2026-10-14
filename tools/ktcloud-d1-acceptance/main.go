@@ -36,6 +36,7 @@ var journal ledger
 var messages = make(chan []byte, 256)
 var service *mock.MockSaaS
 var journalPath string
+var unmatched [][]byte
 
 func save(stage string) error {
 	journal.Stage = stage
@@ -68,7 +69,25 @@ func envelope(kind, label string, generation int64) protocol.BaseEnvelope {
 	return protocol.BaseEnvelope{Type: kind, MessageID: label + "-message", SentAt: time.Now().UTC(), RequestID: label + "-request", OperationID: label + "-operation", LabInstanceID: journal.LabID, Generation: generation}
 }
 func await(ctx context.Context, kind, reply string) ([]byte, error) {
+	return awaitMatch(ctx, func(env protocol.BaseEnvelope) bool {
+		return env.Type == kind && (reply == "" || env.ReplyToMessageID == reply)
+	})
+}
+
+// Only the harness driver consumes this inbox. Preserve unrelated lifecycle
+// frames, including ENDED arriving before a mutation ACK/RESULT.
+func awaitMatch(ctx context.Context, match func(protocol.BaseEnvelope) bool) ([]byte, error) {
 	for {
+		for i, b := range unmatched {
+			var env protocol.BaseEnvelope
+			if json.Unmarshal(b, &env) != nil {
+				return nil, errors.New("Control response decode failed")
+			}
+			if match(env) {
+				unmatched = append(unmatched[:i], unmatched[i+1:]...)
+				return b, nil
+			}
+		}
 		select {
 		case <-ctx.Done():
 			return nil, errors.New("Control response timeout")
@@ -84,9 +103,13 @@ func await(ctx context.Context, kind, reply string) ([]byte, error) {
 			if env.Type == "ERROR" {
 				return nil, errors.New("Connector returned a protocol error")
 			}
-			if env.Type == kind && (reply == "" || env.ReplyToMessageID == reply) {
+			if match(env) {
 				return b, nil
 			}
+			if len(unmatched) >= 256 {
+				return nil, errors.New("Control inbox capacity exceeded")
+			}
+			unmatched = append(unmatched, b)
 		}
 	}
 }
@@ -165,7 +188,7 @@ func reconcile(ctx context.Context, label string, generation int64, known []prot
 	}
 	return result.Payload.Observations, nil
 }
-func run() error {
+func run() (runErr error) {
 	if os.Getenv("LABBIT_KTCLOUD_D1_CONTROL_TEST") != "1" {
 		return errors.New("explicit cloud Control gate is required")
 	}
@@ -179,6 +202,9 @@ func run() error {
 	}
 	journalPath = filepath.Join(workspace, "control-ledger.json")
 	recovery := os.Getenv("LBT145_CONTROL_RECOVERY") == "1"
+	if op02Enabled() && (generations != 2 || recovery) {
+		return errors.New("OP02 requires a fresh two-generation fixture")
+	}
 	if _, e := os.Stat(journalPath); e == nil {
 		if !recovery {
 			return errors.New("prior fixture ledger exists; reconcile/cleanup before another run")
@@ -214,6 +240,13 @@ func run() error {
 	service = mock.NewMockSaaS(token)
 	handler := service.Server.Config.Handler
 	service.Server.Close()
+	var op02 *op02Run
+	if op02Enabled() {
+		peer := newOP02Peer(token)
+		op02 = &op02Run{peer: peer}
+		handler = peer.handler(handler)
+		defer peer.close()
+	}
 	service.Server = httptest.NewTLSServer(handler)
 	defer service.Close()
 	certificatePath := filepath.Join(workspace, "mock-ca.pem")
@@ -247,18 +280,47 @@ func run() error {
 	}
 	defer func() {
 		_ = command.Process.Signal(syscall.SIGTERM)
-		done := make(chan struct{})
-		go func() { _ = command.Wait(); close(done) }()
+		done := make(chan error, 1)
+		go func() { done <- command.Wait() }()
 		select {
-		case <-done:
+		case waitErr := <-done:
+			if op02 != nil {
+				if waitErr != nil {
+					journal.Passed = false
+					runErr = errors.Join(runErr, errors.New("production Connector did not exit successfully"))
+					_ = save("OP02_CONNECTOR_SHUTDOWN_FAILED")
+				} else {
+					if err := save("OP02_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS"); err != nil {
+						runErr = errors.Join(runErr, err)
+					}
+					fmt.Println("Production Connector shutdown: exited successfully within 5s; forcedKill=false")
+				}
+			}
 		case <-time.After(5 * time.Second):
 			_ = command.Process.Kill()
+			// Reap the process even on forced teardown; never leave Wait racing
+			// with evidence collection or report a forced kill as graceful drain.
+			select {
+			case <-done:
+			case <-time.After(5 * time.Second):
+			}
+			if op02 != nil {
+				journal.Passed = false
+				runErr = errors.Join(runErr, errors.New("production Connector required forced shutdown"))
+				_ = save("OP02_CONNECTOR_FORCED_SHUTDOWN_FAILED")
+			}
 		}
 	}()
 	helloContext, stopHello := context.WithTimeout(ctx, 45*time.Second)
 	defer stopHello()
-	if _, e = await(helloContext, protocol.MessageTypeHello, ""); e != nil {
+	hello, e := await(helloContext, protocol.MessageTypeHello, "")
+	if e != nil {
 		return e
+	}
+	if op02 != nil {
+		if e = requireFileCapability(hello); e != nil {
+			return e
+		}
 	}
 	journal.Hello = true
 	for !journal.Heartbeat {
@@ -342,6 +404,11 @@ func run() error {
 			})
 		if err != nil {
 			fmt.Println("CONTROL TEARDOWN NEEDS ATTENTION; safe tracked-ID ledger retained")
+			if op02 != nil {
+				journal.Passed = false
+				runErr = errors.Join(runErr, errors.New("owned Control fixture cleanup did not finish"))
+				_ = save("OP02_OWNED_CLEANUP_FAILED")
+			}
 		}
 	}()
 	first, e := mutate(ctx, protocol.MutationTypeProvision, "provision", 1, &snapshot, nil)
@@ -365,6 +432,20 @@ func run() error {
 	if e = save("GENERATION1_RECONCILE_PASS"); e != nil {
 		return e
 	}
+	if op02 != nil {
+		if e = op02.normal(ctx, firstRefs, 1); e != nil {
+			return op02Error("generation1", e)
+		}
+		if e = op02.idle(ctx, serverRef(firstRefs), 1); e != nil {
+			return op02Error("idle", e)
+		}
+		if e = op02.grace(ctx, serverRef(firstRefs), 1); e != nil {
+			return op02Error("grace", e)
+		}
+		if e = op02.failures(ctx, firstRefs, 1); e != nil {
+			return op02Error("failures", e)
+		}
+	}
 	if generations == 1 {
 		if _, e = mutate(ctx, protocol.MutationTypeCleanup, "cleanup-generation1", 1, nil, firstRefs); e != nil {
 			return e
@@ -378,6 +459,11 @@ func run() error {
 		}
 		journal.Passed = true
 		return save("SINGLE_GENERATION_PROVISION_SSH_CLEANUP_PASS_OWNED_RESIDUAL_0_RESET_NOT_RUN")
+	}
+	if op02 != nil {
+		if e = op02.beforeMutation(ctx, serverRef(firstRefs), 1, protocol.TerminalReasonLabReset); e != nil {
+			return e
+		}
 	}
 	second, e := mutate(ctx, protocol.MutationTypeReset, "reset", 2, &snapshot, firstRefs)
 	if e != nil {
@@ -415,6 +501,17 @@ func run() error {
 	if e = save("RESET_TARGET_CHANGED_OLD_ABSENT_NEW_PRESENT_PASS"); e != nil {
 		return e
 	}
+	if op02 != nil {
+		if e = op02.stale(ctx, oldServer, 1); e != nil {
+			return e
+		}
+		if e = op02.normal(ctx, secondRefs, 2); e != nil {
+			return op02Error("generation2", e)
+		}
+		if e = op02.rejectTarget(ctx, newServer, 1, "OP02_ACTIVE_G2_SERVER_STALE_G1_TERMINAL_FILE_REJECTED_PASS"); e != nil {
+			return e
+		}
+	}
 	subset := []protocol.ProviderResourceRef{}
 	for _, item := range secondRefs {
 		if item.ResourceType != "SERVER" {
@@ -433,6 +530,14 @@ func run() error {
 	}
 	if !candidate {
 		return errors.New("untracked server was not a discovered candidate")
+	}
+	// Even an empty successful Cleanup retires this generation's runtime
+	// access. Close active work before the first Cleanup, then observe that
+	// empty ownership still cannot adopt/delete a physical candidate.
+	if op02 != nil {
+		if e = op02.beforeMutation(ctx, newServer, 2, protocol.TerminalReasonLabCleanup); e != nil {
+			return e
+		}
 	}
 	if _, e = mutate(ctx, protocol.MutationTypeCleanup, "empty-cleanup", 2, nil, []protocol.ProviderResourceRef{}); e != nil {
 		return e
@@ -456,6 +561,14 @@ func run() error {
 	}
 	if e = confirmKnownAbsence(all, observations); e != nil {
 		return e
+	}
+	if op02 != nil {
+		if e = op02.stale(ctx, newServer, 2); e != nil {
+			return e
+		}
+		if e = op02.drained(ctx); e != nil {
+			return e
+		}
 	}
 	journal.Passed = true
 	return save("REAL_PRODUCTION_CONNECTOR_WSS_LIFECYCLE_PASS_OWNED_RESIDUAL_0")

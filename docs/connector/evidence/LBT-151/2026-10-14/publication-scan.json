@@ -1,0 +1,9 @@
+{
+  "allowlistedSourcesOnly": true,
+  "secretPatternScan": "PASS for published raw log archive entries",
+  "protectedInputsAndBinariesExcluded": true,
+  "terminalFileBodiesNotPersistedByHarness": true,
+  "ipv4Redactions": 1,
+  "scope": "all published raw entries; typed journals and human audit are separate",
+  "archiveSha256": "ff31cb5d23dfda630258e78c41a286d98551ac0a1e9a26d350a69be2c028fd1c"
+}

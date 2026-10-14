@@ -22,6 +22,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/labexecution"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/labspec"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
@@ -51,6 +52,8 @@ type Options struct {
 	Auth       Authenticator
 	Classes    Classes
 	Operations Operations
+	// LabExecutions는 Provision 접수와 LabExecution/LabInstance 조회 use case다. nil이면 해당 요청은 인증 뒤 500이다.
+	LabExecutions LabExecutions
 	// LabSpecs는 LabSpec 목록·상세·생성·수정 use case다. 필수다.
 	LabSpecs LabSpecs
 	// Terminals가 nil이면 Terminal Relay가 없는 구성으로 보고 Terminal target 조회와 TerminalSession 생성/종료를 503(terminal_unavailable)으로 응답한다.
@@ -71,16 +74,17 @@ type Options struct {
 }
 
 type api struct {
-	auth         Authenticator
-	classes      Classes
-	labSpecs     LabSpecs
-	operations   Operations
-	terminals    Terminals
-	files        Files
-	previews     Previews
-	liveSessions LiveSessions
-	origin       string
-	logger       *slog.Logger
+	auth          Authenticator
+	classes       Classes
+	labSpecs      LabSpecs
+	operations    Operations
+	labExecutions LabExecutions
+	terminals     Terminals
+	files         Files
+	previews      Previews
+	liveSessions  LiveSessions
+	origin        string
+	logger        *slog.Logger
 }
 
 // New는 /api/v1 아래 Auth와 Class endpoint를 제공하는 http.Handler를 만든다.
@@ -123,7 +127,7 @@ func New(opts Options) (http.Handler, error) {
 		liveSessions = unavailableLiveSessions{}
 	}
 
-	a := &api{operations: opts.Operations, auth: opts.Auth, classes: opts.Classes, labSpecs: opts.LabSpecs, terminals: terminals, files: files, previews: previews, liveSessions: liveSessions, origin: origin, logger: logger}
+	a := &api{operations: opts.Operations, labExecutions: opts.LabExecutions, auth: opts.Auth, classes: opts.Classes, labSpecs: opts.LabSpecs, terminals: terminals, files: files, previews: previews, liveSessions: liveSessions, origin: origin, logger: logger}
 	mux := http.NewServeMux()
 	routes := make(map[string]string)
 	handle := func(pattern string, handler http.Handler) {
@@ -142,6 +146,9 @@ func New(opts Options) (http.Handler, error) {
 	handle("POST /api/v1/lab-specs", a.authenticated(http.HandlerFunc(a.createLabSpec)))
 	handle("GET /api/v1/lab-specs/{labSpecId}", a.authenticated(http.HandlerFunc(a.getLabSpec)))
 	handle("PUT /api/v1/lab-specs/{labSpecId}", a.authenticated(http.HandlerFunc(a.updateLabSpec)))
+	handle("POST /api/v1/classes/{classId}/lab-executions", a.authenticated(http.HandlerFunc(a.createLabExecution)))
+	handle("GET /api/v1/lab-executions/{labExecutionId}", a.authenticated(http.HandlerFunc(a.getLabExecution)))
+	handle("GET /api/v1/lab-instances/{labInstanceId}", a.authenticated(http.HandlerFunc(a.getLabInstance)))
 	handle("GET /api/v1/lab-instances/{labInstanceId}/terminal-targets", a.authenticated(http.HandlerFunc(a.listTerminalTargets)))
 	handle("POST /api/v1/lab-instances/{labInstanceId}/terminal-sessions", a.authenticated(http.HandlerFunc(a.createTerminalSession)))
 	handle("DELETE /api/v1/terminal-sessions/{terminalSessionId}", a.authenticated(http.HandlerFunc(a.closeTerminalSession)))
@@ -250,7 +257,8 @@ func errorClassification(err error) []any {
 	case errors.Is(err, auth.ErrMalformedPasswordHash):
 		return []any{"error_kind", "unusable_password_hash"}
 	case errors.Is(err, class.ErrInconsistentData), errors.Is(err, terminal.ErrInconsistentData), errors.Is(err, workspacefile.ErrInconsistentData),
-		errors.Is(err, previewsession.ErrInconsistentData), errors.Is(err, labspec.ErrInconsistentData):
+		errors.Is(err, previewsession.ErrInconsistentData), errors.Is(err, labspec.ErrInconsistentData),
+		errors.Is(err, labexecution.ErrInconsistentData):
 		return []any{"error_kind", "inconsistent_data"}
 	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 		return []any{"error_kind", "context"}

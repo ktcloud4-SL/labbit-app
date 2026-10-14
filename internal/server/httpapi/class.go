@@ -8,12 +8,20 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
 )
 
-// classResponse는 OpenAPI ClassSummary와 ClassDetail이 공통으로 필수로 요구하는 필드다.
-// activeLabExecution과 myLabInstance는 optional이며 LabExecution/LabInstance 조회가 구현되기 전에는 생략한다.
+// classResponse는 OpenAPI ClassSummary와 ClassDetail이다. activeLabExecution과 myLabInstance는 optional이며 없으면 생략한다.
+// myLabInstance는 상세 조회(ClassDetail)에서만 채운다.
 type classResponse struct {
+	ID                 string                       `json:"id"`
+	Name               string                       `json:"name"`
+	MyRole             string                       `json:"myRole"`
+	ActiveLabExecution *labExecutionSummaryResponse `json:"activeLabExecution,omitempty"`
+	MyLabInstance      *labInstanceSummaryResponse  `json:"myLabInstance,omitempty"`
+}
+
+// labExecutionSummaryResponse는 OpenAPI LabExecutionSummary다.
+type labExecutionSummaryResponse struct {
 	ID     string `json:"id"`
-	Name   string `json:"name"`
-	MyRole string `json:"myRole"`
+	Status string `json:"status"`
 }
 
 type classListResponse struct {
@@ -21,7 +29,14 @@ type classListResponse struct {
 }
 
 func newClassResponse(view class.View) classResponse {
-	return classResponse{ID: view.ID.String(), Name: view.Name, MyRole: string(view.MyRole)}
+	out := classResponse{ID: view.ID.String(), Name: view.Name, MyRole: string(view.MyRole)}
+	if e := view.ActiveLabExecution; e != nil {
+		out.ActiveLabExecution = &labExecutionSummaryResponse{ID: e.ID.String(), Status: e.Status}
+	}
+	if i := view.MyLabInstance; i != nil {
+		out.MyLabInstance = &labInstanceSummaryResponse{ID: i.ID.String(), UserID: i.UserID.String(), Status: i.Status, Generation: i.Generation}
+	}
+	return out
 }
 
 // listClasses는 현재 사용자가 ClassMembership으로 참여 중인 Class만 반환한다. 참여 Class가 없으면

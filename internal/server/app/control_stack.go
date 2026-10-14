@@ -18,6 +18,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/filetransport"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/labexecution"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/labspec"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/livesession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/operation"
@@ -221,18 +222,19 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	registry.SetRevokeObserver(observers)
 
 	stack.API, err = httpapi.New(httpapi.Options{
-		Auth:         authService,
-		Classes:      class.NewService(store),
-		LabSpecs:     labspec.NewService(store),
-		Operations:   operation.NewService(store),
-		Terminals:    terminals,
-		Files:        files,
-		Previews:     previews,
-		LiveSessions: liveSessions,
-		PublicOrigin: opts.PublicOrigin,
-		Logger:       logger,
-		Metrics:      opts.HTTPMetrics,
-		Tracer:       opts.Tracer,
+		Auth:          authService,
+		Classes:       class.NewService(store),
+		LabSpecs:      labspec.NewService(store),
+		Operations:    operation.NewService(store),
+		LabExecutions: labexecution.NewService(store),
+		Terminals:     terminals,
+		Files:         files,
+		Previews:      previews,
+		LiveSessions:  liveSessions,
+		PublicOrigin:  opts.PublicOrigin,
+		Logger:        logger,
+		Metrics:       opts.HTTPMetrics,
+		Tracer:        opts.Tracer,
 	})
 	if err != nil {
 		return nil, err

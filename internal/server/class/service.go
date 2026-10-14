@@ -31,6 +31,7 @@ var (
 type Store interface {
 	repository.ClassRepository
 	repository.ClassMemberRepository
+	repository.LabExecutionRepository
 }
 
 // Service는 Class 조회 use case다.
@@ -47,6 +48,24 @@ type View struct {
 	ID     uuid.UUID
 	Name   string
 	MyRole repository.ClassRole
+	// ActiveLabExecution은 Class의 active LabExecution이다. 없으면 nil이다.
+	ActiveLabExecution *ExecutionSummary
+	// MyLabInstance는 active LabExecution에 속한 현재 사용자의 LabInstance다. Get에서만 채우며 없으면 nil이다.
+	MyLabInstance *InstanceSummary
+}
+
+// ExecutionSummary는 active LabExecution 요약이다.
+type ExecutionSummary struct {
+	ID     uuid.UUID
+	Status string
+}
+
+// InstanceSummary는 현재 사용자의 LabInstance 요약이다.
+type InstanceSummary struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	Status     string
+	Generation int64
 }
 
 // List는 user가 ClassMembership으로 참여 중인 Class만 이름, ID 순서로 반환한다.
@@ -63,7 +82,11 @@ func (s *Service) List(ctx context.Context, user repository.User) ([]View, error
 		if item.Class.OrganizationID != user.OrganizationID || !item.Role.Valid() {
 			return nil, ErrInconsistentData
 		}
-		views = append(views, View{ID: item.Class.ID, Name: item.Class.Name, MyRole: item.Role})
+		view := View{ID: item.Class.ID, Name: item.Class.Name, MyRole: item.Role}
+		if e := item.ActiveLabExecution; e != nil {
+			view.ActiveLabExecution = &ExecutionSummary{ID: e.ID, Status: e.Status}
+		}
+		views = append(views, view)
 	}
 	return views, nil
 }
@@ -73,7 +96,20 @@ func (s *Service) List(ctx context.Context, user repository.User) ([]View, error
 // classID는 client 입장에서 opaque하다. 현재 physical ID인 UUID의 canonical 형식이 아니면 존재하지 않는
 // Class와 같은 ErrNotFound다. Class가 없으면 ErrNotFound, 있지만 다른 Organization의 Class이거나
 // Membership이 없으면 ErrForbidden이다.
+// 접근할 수 있으면 active LabExecution과 그 안의 현재 사용자 LabInstance 요약을 함께 반환한다.
 func (s *Service) Get(ctx context.Context, user repository.User, classID string) (View, error) {
+	view, err := s.access(ctx, user, classID)
+	if err != nil {
+		return View{}, err
+	}
+	if err := s.attachLab(ctx, user, &view); err != nil {
+		return View{}, err
+	}
+	return view, nil
+}
+
+// access는 Get의 접근 판정이다. LabExecution projection은 붙이지 않는다.
+func (s *Service) access(ctx context.Context, user repository.User, classID string) (View, error) {
 	id, ok := parseID(classID)
 	if !ok {
 		return View{}, ErrNotFound
@@ -104,6 +140,31 @@ func (s *Service) Get(ctx context.Context, user repository.User, classID string)
 	return View{ID: class.ID, Name: class.Name, MyRole: membership.Role}, nil
 }
 
+// attachLab은 Class의 active LabExecution과 그 안의 현재 사용자 LabInstance를 view에 붙인다. 둘 다 없을 수 있으며 오류가 아니다.
+// 대상 학생 집합은 LabInstance로 고정되어 있으므로 Membership이 있어도 LabInstance가 없을 수 있다.
+func (s *Service) attachLab(ctx context.Context, user repository.User, view *View) error {
+	execution, err := s.store.ActiveLabExecutionByClass(ctx, view.ID)
+	if errors.Is(err, repository.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("class: active LabExecution 조회: %w", err)
+	}
+	view.ActiveLabExecution = &ExecutionSummary{ID: execution.ID, Status: execution.Status}
+	instance, err := s.store.LabInstanceByExecutionUser(ctx, execution.ID, user.ID)
+	if errors.Is(err, repository.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("class: LabInstance 조회: %w", err)
+	}
+	if instance.LabExecutionID != execution.ID || instance.UserID != user.ID || instance.OrganizationID != user.OrganizationID {
+		return ErrInconsistentData
+	}
+	view.MyLabInstance = &InstanceSummary{ID: instance.ID, UserID: instance.UserID, Status: instance.Status, Generation: instance.Generation}
+	return nil
+}
+
 // Member는 Class 참여자와 그 Class에서의 역할이다.
 type Member struct {
 	UserID   uuid.UUID
@@ -116,7 +177,7 @@ type Member struct {
 // 접근 판정은 Get과 같다. Class가 없으면 ErrNotFound, 다른 Organization의 Class이거나 user의 Membership이 없으면 ErrForbidden이며
 // organizationRole=ADMIN은 Membership을 대신하지 않는다. INSTRUCTOR와 STUDENT 모두 같은 목록을 본다. Membership을 바꾸는 기능은 없다.
 func (s *Service) Members(ctx context.Context, user repository.User, classID string) ([]Member, error) {
-	view, err := s.Get(ctx, user, classID)
+	view, err := s.access(ctx, user, classID)
 	if err != nil {
 		return nil, err
 	}

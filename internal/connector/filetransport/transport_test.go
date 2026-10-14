@@ -167,6 +167,18 @@ func newPeer(t *testing.T, files Files, mutate ...func(*Config)) (*tlsPeer, *Man
 		if ws.WriteJSON(response) != nil {
 			return
 		}
+		if plan.attached != nil {
+			// These cases deliberately reject ATTACHED. Observe that boundary
+			// before sending any request/body on the rejected connection.
+			_, _, err := ws.ReadMessage()
+			code := 0
+			var ce *websocket.CloseError
+			if errors.As(err, &ce) {
+				code = ce.Code
+			}
+			plan.closed <- code
+			return
+		}
 		request := testFrame(id, "FILE_"+strings.Split(id, "-")[0], plan.payload)
 		if plan.request != nil {
 			plan.request(request)
@@ -446,6 +458,11 @@ func TestMalformedFramesNeverReachSave(t *testing.T) {
 			p, m := newPeer(t, f)
 			plan := planFor("SAVE")
 			tc.edit(plan)
+			// Rejected metadata cannot request a body. Avoid racing an extra
+			// Binary write with the close whose code this peer is observing.
+			if tc.name != "text_body" && tc.name != "long_body" && tc.name != "short_body" {
+				plan.omitBody = true
+			}
 			start(t, p, m, "SAVE-malformed", plan)
 			closeCode := await(t, plan.closed)
 			if closeCode != 1008 && !(tc.name == "json_limit" && closeCode == 1009) {

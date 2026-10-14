@@ -266,6 +266,9 @@ func TestConcurrentSaveRejectsOneStaleWriter(t *testing.T) {
 func TestBoundaryAndSharedPTY(t *testing.T) {
 	s, p, m := serviceFixture(t)
 	fixtureFile(t, p, "file", []byte("body"))
+	if data, err := s.Read(context.Background(), fixtureTarget(), "file", 65); err != nil || string(data.Content) != "body" {
+		t.Fatal("Small file rejected by larger requested ceiling")
+	}
 	ctx := context.Background()
 	target := fixtureTarget()
 	pty, err := m.OpenSession(ctx, target)

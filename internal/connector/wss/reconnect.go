@@ -170,8 +170,8 @@ func (s *Supervisor) Run(ctx context.Context) error {
 		s.mu.Unlock()
 
 		if s.handler != nil {
-			s.handler.SetSender(nil)
 			s.handler.OnControlDisconnected(err)
+			s.handler.SetSender(nil)
 		}
 
 		select {

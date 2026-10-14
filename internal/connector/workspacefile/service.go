@@ -160,8 +160,11 @@ func (s *Service) Read(ctx context.Context, target vmaccess.Target, p string, ma
 	if err := ValidatePath(p, false); err != nil {
 		return File{}, err
 	}
-	if maxBytes < 1 || maxBytes > s.config.MaxFileBytes {
+	if maxBytes < 1 {
 		return File{}, ErrTooLarge
+	}
+	if maxBytes > s.config.MaxFileBytes {
+		maxBytes = s.config.MaxFileBytes
 	}
 	v, err := s.run(ctx, target, p, func(c *sftp.Client) (any, error) {
 		if err := checkPath(c, p, false); err != nil {

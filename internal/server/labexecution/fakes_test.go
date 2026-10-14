@@ -41,6 +41,8 @@ func (s *state) clone() *state {
 type fakeStore struct {
 	repository.Repositories
 	committed *state
+	// beforeTransaction이 있으면 transaction을 시작하기 직전(transaction 밖의 권한 확인 뒤)에 commit된 상태로 호출된다.
+	beforeTransaction func(committed *state)
 	// beforeExecutionInsert가 있으면 CreateLabExecution 직전에 호출된다. 경쟁 요청의 commit을 재현한다.
 	beforeExecutionInsert func(committed *state)
 	// failInstance가 있으면 CreateLabInstance가 이 오류를 반환한다.
@@ -60,6 +62,9 @@ func newFakeStore() *fakeStore {
 }
 
 func (f *fakeStore) WithinTransaction(ctx context.Context, fn func(context.Context, repository.Repositories) error) error {
+	if f.beforeTransaction != nil {
+		f.beforeTransaction(f.committed)
+	}
 	tx := &fakeTx{store: f, s: f.committed.clone()}
 	if err := fn(ctx, tx); err != nil {
 		return err

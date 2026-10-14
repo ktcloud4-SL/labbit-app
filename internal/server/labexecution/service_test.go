@@ -353,3 +353,28 @@ func TestFingerprintIsCanonicalSemanticOnly(t *testing.T) {
 		}
 	}
 }
+
+// transaction 밖의 Class 권한 확인 뒤 commit 전에 강사 Membership이 삭제되거나 STUDENT로 바뀌면 transaction 안의 재확인이
+// ErrForbidden으로 거절하고 row를 남기지 않는다.
+func TestProvisionRechecksInstructorMembershipInsideTransaction(t *testing.T) {
+	for name, change := range map[string]func(w *world, s *state){
+		"membership deleted": func(w *world, s *state) { delete(s.memberships, [2]uuid.UUID{w.class.ID, w.instructor.ID}) },
+		"demoted to student": func(w *world, s *state) {
+			key := [2]uuid.UUID{w.class.ID, w.instructor.ID}
+			m := s.memberships[key]
+			m.Role = repository.ClassRoleStudent
+			s.memberships[key] = m
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			w := newWorld(t)
+			w.store.beforeTransaction = func(s *state) { change(w, s) }
+			if _, err := w.svc.Provision(t.Context(), w.instructor, w.input("key-1", w.studentA)); !errors.Is(err, ErrForbidden) {
+				t.Fatalf("err=%v", err)
+			}
+			if w.store.committed.rowCounts() != [5]int{} {
+				t.Fatalf("rows=%v", w.store.committed.rowCounts())
+			}
+		})
+	}
+}

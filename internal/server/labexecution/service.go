@@ -107,7 +107,7 @@ type Accepted struct {
 // Provision은 Provision 요청을 durable하게 접수한다.
 //
 // 판정 순서: Idempotency-Key 형식 → Class 존재(ErrNotFound) → Class 권한(ErrForbidden) → LabSpec ID·학생 목록 형식 →
-// committed replay 확인 → transaction 안에서 active LabExecution → LabSpec 존재·권한 → 대상 학생 → mapping resolve → INSERT.
+// committed replay 확인 → transaction 안에서 강사 Membership 재확인(FOR SHARE, ErrForbidden) → active LabExecution → LabSpec 존재·권한 → 대상 학생 → mapping resolve → INSERT.
 // 같은 의미의 replay는 Class 권한을 확인한 뒤에만 반환하며 이후 LabSpec·Membership·mapping 변화와 무관하게 기존 Operation이다.
 //
 // 동시성: Class당 active LabExecution partial unique index가 경쟁을 결정한다. 같은 key의 동시 요청은 한 요청이 commit할 때까지
@@ -142,6 +142,11 @@ func (s *Service) Provision(ctx context.Context, user repository.User, in Provis
 	executionID := s.newID()
 	var registered operation.Result
 	err = s.store.WithinTransaction(ctx, func(ctx context.Context, repos repository.Repositories) error {
+		// transaction 밖의 Class 권한 확인과 commit 사이에 Membership이 삭제되거나 역할이 바뀔 수 있다. 등록 전에 요청 강사의
+		// 현재 Membership을 FOR SHARE로 다시 확인하고 잠가, commit까지 그 Membership의 삭제·역할 변경이 기다리게 한다.
+		if err := requireInstructorForShare(ctx, repos, class, user); err != nil {
+			return err
+		}
 		// D-10: 이미 active LabExecution이 있으면 LabSpec·대상 검증보다 먼저 Cleanup이 필요하다고 알린다. 경쟁의 최종 판정은
 		// 아래 CreateLabExecution의 partial unique index다.
 		if _, err := repos.ActiveLabExecutionByClass(ctx, class.ID); err == nil {
@@ -298,6 +303,31 @@ func parseStudents(raw []string) ([]uuid.UUID, error) {
 		ids = append(ids, id)
 	}
 	return ids, nil
+}
+
+// requireInstructorForShare는 user가 지금 이 Class의 INSTRUCTOR Membership을 가졌는지 Membership row를 FOR SHARE로 잠근 채
+// 확인한다. 진행 중인 삭제·역할 변경이 있으면 그 commit/rollback을 기다린 뒤의 상태로 판정한다. Membership이 없거나 INSTRUCTOR가
+// 아니면 ErrForbidden이며 row를 만들지 않는다. organizationRole은 쓰지 않는다.
+func requireInstructorForShare(ctx context.Context, repos repository.Repositories, class repository.Class, user repository.User) error {
+	memberships, err := repos.ClassMembershipsForShare(ctx, class.ID, []uuid.UUID{user.ID})
+	if err != nil {
+		return fmt.Errorf("labexecution: 강사 Membership 조회: %w", err)
+	}
+	switch len(memberships) {
+	case 0:
+		return ErrForbidden
+	case 1:
+	default:
+		return ErrInconsistentData
+	}
+	m := memberships[0]
+	if m.ClassID != class.ID || m.UserID != user.ID || m.OrganizationID != class.OrganizationID || m.OrganizationID != user.OrganizationID || !m.Role.Valid() {
+		return ErrInconsistentData
+	}
+	if m.Role != repository.ClassRoleInstructor {
+		return ErrForbidden
+	}
+	return nil
 }
 
 // requireStudents는 모든 대상이 이 Class의 현재 STUDENT Membership인지 확인한다. Membership row를 FOR SHARE로 잠가

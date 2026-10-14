@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sort"
 	"sync"
 	"testing"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
@@ -540,4 +542,93 @@ func TestProvisionAuthorizationAgainstPostgres(t *testing.T) {
 	if c := p.counts(t); c != [5]int{} {
 		t.Fatalf("rows=%v", c)
 	}
+}
+
+// 강사 Membership 경쟁: transaction 밖의 Class 권한 확인은 아직 commit되지 않은 삭제·역할 변경을 보지 못한다. 등록 transaction이
+// 강사 Membership을 FOR SHARE로 다시 읽으며 그 commit/rollback을 기다린 뒤 판정한다. commit이면 ErrForbidden이고 다섯 table 모두
+// row가 없으며, rollback이면 정상 접수된다.
+func TestProvisionRechecksInstructorMembershipUnderConcurrentChange(t *testing.T) {
+	for _, change := range []struct {
+		name, sql string
+	}{
+		{"delete", `DELETE FROM class_memberships WHERE class_id = $1 AND user_id = $2`},
+		{"demote", `UPDATE class_memberships SET role = 'STUDENT' WHERE class_id = $1 AND user_id = $2`},
+	} {
+		for _, commit := range []bool{true, false} {
+			t.Run(fmt.Sprintf("%s commit=%v", change.name, commit), func(t *testing.T) {
+				p := newProvisionDB(t)
+				instructor := p.user(t, p.f.InstructorID)
+				tx, err := p.holder.Begin(t.Context())
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer func() { _ = tx.Rollback(context.Background()) }()
+				if _, err := tx.Exec(t.Context(), change.sql, p.f.ClassID, p.f.InstructorID); err != nil {
+					t.Fatal(err)
+				}
+				done := make(chan provisionResult, 1)
+				go func() {
+					a, err := p.svc.Provision(context.Background(), instructor, p.input("membership-race", p.f.StudentAID))
+					done <- provisionResult{a, err}
+				}()
+				// 사전 권한 확인(commit된 상태)을 통과한 요청이 Membership FOR SHARE에서 기다린다.
+				p.waitForLockWaiters(t, 1)
+				if commit {
+					err = tx.Commit(t.Context())
+				} else {
+					err = tx.Rollback(t.Context())
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				r := <-done
+				if commit {
+					if !errors.Is(r.err, labexecution.ErrForbidden) {
+						t.Fatalf("err=%v", r.err)
+					}
+					if c := p.counts(t); c != [5]int{} {
+						t.Fatalf("rows=%v", c)
+					}
+					return
+				}
+				if r.err != nil || r.accepted.Replayed {
+					t.Fatalf("result=%+v %v", r.accepted, r.err)
+				}
+				if c := p.counts(t); c != [5]int{1, 1, 2, 1, 2} {
+					t.Fatalf("rows=%v", c)
+				}
+			})
+		}
+	}
+}
+
+// 등록이 진행 중인 동안(LabSpec 잠금에서 멈춘 상태) 강사 Membership은 FOR SHARE로 잠겨 있어 삭제가 lock을 얻지 못한다.
+// 등록이 commit된 뒤에는 같은 삭제가 성공한다.
+func TestProvisionHoldsInstructorMembershipLockUntilCommit(t *testing.T) {
+	p := newProvisionDB(t)
+	instructor := p.user(t, p.f.InstructorID)
+	release := p.holdLabSpec(t)
+	done := make(chan provisionResult, 1)
+	go func() {
+		a, err := p.svc.Provision(context.Background(), instructor, p.input("membership-lock", p.f.StudentAID))
+		done <- provisionResult{a, err}
+	}()
+	p.waitForLockWaiters(t, 1)
+
+	writer := postgrestest.Connect(t, p.dsn)
+	labexecutiontest.Exec(t, writer, `SET lock_timeout = '200ms'`)
+	_, err := writer.Exec(t.Context(), `DELETE FROM class_memberships WHERE class_id = $1 AND user_id = $2`, p.f.ClassID, p.f.InstructorID)
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) || pgErr.Code != "55P03" {
+		t.Fatalf("delete during registration err=%v, want lock_not_available", err)
+	}
+
+	release()
+	if r := <-done; r.err != nil || r.accepted.Replayed {
+		t.Fatalf("result=%+v %v", r.accepted, r.err)
+	}
+	if c := p.counts(t); c != [5]int{1, 1, 2, 1, 2} {
+		t.Fatalf("rows=%v", c)
+	}
+	labexecutiontest.Exec(t, writer, `DELETE FROM class_memberships WHERE class_id = $1 AND user_id = $2`, p.f.ClassID, p.f.InstructorID)
 }

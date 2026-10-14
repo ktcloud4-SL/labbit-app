@@ -173,11 +173,26 @@ func newPeer(t *testing.T, files Files, mutate ...func(*Config)) (*tlsPeer, *Man
 		}
 		if plan.oversized {
 			raw, _ := json.Marshal(request)
-			raw = append(raw[:len(raw)-1], []byte(`,"unknown":"`+strings.Repeat("x", 1<<20)+`"}`)...)
-			// Read concurrently with the oversized write: the receiver can close
-			// from the frame header before the peer has finished sending its body.
+			// Exactly JSON-limit+1 fits the independent hard Binary read limit.
+			// Consume a fragmented valid JSON document before the predecode guard
+			// closes, avoiding a TCP reset from an unfinished huge frame write.
+			raw = append(raw, bytes.Repeat([]byte{' '}, int(protocol.MaxJSONMessageSize)+1-len(raw))...)
 			written := make(chan struct{})
-			go func() { defer close(written); _ = ws.WriteMessage(websocket.TextMessage, raw) }()
+			go func() {
+				defer close(written)
+				writer, err := ws.NextWriter(websocket.TextMessage)
+				if err != nil {
+					return
+				}
+				defer writer.Close()
+				for len(raw) > 0 {
+					n := min(len(raw), 4096)
+					if _, err := writer.Write(raw[:n]); err != nil {
+						return
+					}
+					raw = raw[n:]
+				}
+			}()
 			_, _, err := ws.ReadMessage()
 			code := 0
 			var ce *websocket.CloseError

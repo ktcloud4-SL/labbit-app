@@ -72,7 +72,6 @@ export function LabSpecMappingFields({
 
   return (
     <>
-      <div className="form-grid">
         <label className="field">
           <span>Image 참조</span>
           <select
@@ -109,7 +108,6 @@ export function LabSpecMappingFields({
             ))}
           </select>
         </label>
-      </div>
       {allowedImages.length === 0 && (
         <p className="muted" role="status">
           선택 가능한 Image Mapping이 없습니다. 기관 설정의 허용 후보를 확인해 주세요.

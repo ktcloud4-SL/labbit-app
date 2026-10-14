@@ -24,6 +24,15 @@ var errHarnessLedger = errors.New("C1: exclusive persistent ledger unavailable; 
 
 var c1BaselineKinds = []string{"SERVER", "VOLUME", "KT_TIER", "KT_FIREWALL_POLICY", "PUBLIC_IP", "PORT_FORWARD", "KEYPAIR"}
 
+// NSM inventory metadata, keyed explicitly by networkId rather than by position.
+// refId is the physical attachment ID, not the baseline resource identity.
+type c1ExistingTier struct {
+	NetworkID string `json:"networkId"`
+	RefID     string `json:"refId"`
+	Name      string `json:"networkName"`
+	CIDR      string `json:"cidr"`
+}
+
 // Operator attestation, not a SaaS Runtime/wire contract. Provider secrets stay
 // on the Connector. The Backend cannot inspect its local Provider configuration.
 type c1Plan struct {
@@ -42,7 +51,7 @@ type c1Plan struct {
 	CleanupApproved      bool                      `json:"cleanupApproved"`
 	BaselineComplete     bool                      `json:"baselineComplete"`
 	Baseline             map[string][]string       `json:"baseline"`
-	ExistingTierCIDRs    []string                  `json:"existingTierCidrs"`
+	ExistingTiers        []c1ExistingTier          `json:"existingTiers"`
 	LabCIDR              string                    `json:"labCidr"`
 	ManagementCIDR       string                    `json:"managementCidr"`
 	Snapshot             protocol.CreationSnapshot `json:"creationSnapshot"`
@@ -75,7 +84,7 @@ func (p c1Plan) validate(now time.Time, podName string, podUID uuid.UUID) error 
 			seen[id] = true
 		}
 	}
-	if len(p.Baseline["KT_TIER"]) == 0 || len(p.ExistingTierCIDRs) != len(p.Baseline["KT_TIER"]) {
+	if len(p.Baseline["KT_TIER"]) == 0 || len(p.ExistingTiers) != len(p.Baseline["KT_TIER"]) {
 		return errHarnessGate
 	}
 	lab, err := netip.ParsePrefix(p.LabCIDR)
@@ -84,8 +93,25 @@ func (p c1Plan) validate(now time.Time, podName string, podUID uuid.UUID) error 
 		lab.Bits() != 24 || management.Bits() != 24 || lab != lab.Masked() || management != management.Masked() || lab.Overlaps(management) {
 		return errHarnessGate
 	}
-	for _, raw := range p.ExistingTierCIDRs {
-		prefix, err := netip.ParsePrefix(raw)
+	pendingTiers := make(map[string]bool, len(p.ExistingTiers))
+	for _, id := range p.Baseline["KT_TIER"] {
+		pendingTiers[id] = true
+	}
+	for _, tier := range p.ExistingTiers {
+		if !pendingTiers[tier.NetworkID] {
+			return errHarnessGate
+		}
+		delete(pendingTiers, tier.NetworkID)
+		// The existing Provider fixture and LBT-145 inventory identify the
+		// external entry by name, empty refId and absent CIDR. A name alone
+		// cannot excuse a regular attached Tier's missing CIDR.
+		if tier.Name == "external" && tier.RefID == "" {
+			if tier.CIDR != "" {
+				return errHarnessGate
+			}
+			continue
+		}
+		prefix, err := netip.ParsePrefix(tier.CIDR)
 		if err != nil || !prefix.Addr().Is4() || prefix != prefix.Masked() || lab.Overlaps(prefix) || management.Overlaps(prefix) {
 			return errHarnessGate
 		}

@@ -35,10 +35,29 @@ operator는 **그 Pod의 로그 및 실제 연결 상태**로 Connector 인증·
 | `projectId`, `evidenceSha256` | 같은 KT Project의 read-only preflight 보고서와 그 SHA256. 보고서는 runtime artifact/config fingerprint, ProviderConnection affinity, Tier networkId/refId, SSH source/key/known_hosts, cost/time cap, quota 제한, Cleanup 담당·허가 범위를 포함한다. |
 | `providerRuntimeReady`, `linuxImageVerified`, `rootGiB`, `costAndQuotaApproved`, `cleanupApproved` | 전부 확인/승인되어야 한다. root는 50GiB. Credential과 private key는 Connector 로컬 보호 경계에만 존재한다. |
 | `baselineComplete`, `baseline` | SERVER/VOLUME/KT_TIER/KT_FIREWALL_POLICY/PUBLIC_IP/PORT_FORWARD/KEYPAIR 전체 exact-ID inventory. 각 key와 배열 필수, 미조회 결과를 빈 배열로 쓰지 않는다. 기존 공유 자산·Connector VM 보존 목록이다. |
-| `existingTierCidrs`, `labCidr`, `managementCidr` | baseline Tier마다 현재 CIDR, 서로와 baseline 모두 겹치지 않는 canonical IPv4 /24 두 개. 승인 파일 값은 준비된 Connector Runtime 값과 일치해야 한다. |
+| `existingTiers`, `labCidr`, `managementCidr` | baseline `KT_TIER`의 모든 networkId마다 NSM에서 관측한 `networkId/refId/networkName/cidr` 항목을 정확히 하나씩 제공한다. CIDR이 있는 항목 모두와 겹치지 않는 canonical IPv4 /24 두 개를 사용한다. 승인 파일 값은 준비된 Connector Runtime 값과 일치해야 한다. |
 | `creationSnapshot` | resolved ProviderConnection/Image/Flavor UUID와 FlavorSpec, VMKey/role/workspaceVMKey=`workspace`, VM 1개/index 0, internetOutbound=false, StartupScript 없음. |
 
 Backend는 원격 Connector의 설정 파일이나 실제 7종 inventory를 직접 읽을 수 없다. 이 항목들은 operator attestation이며 `evidenceSha256`에 대응하는 실측 보고서를 먼저 확보해야 한다. Connector의 기존 KT Provider preflight가 실제 Project affinity·키 일치·quota·CIDR 충돌 등을 별도로 검증한다. bool만 채워 준비 완료를 추정하지 않는다.
+
+NSM의 CIDR 없는 항목은 기존 [Provider fixture](../../internal/connector/provider/openstack/ktcloud_d1_network_test.go)와 [LBT-145 inventory Evidence](evidence/LBT-145/2026-10-13-premerge/README.md)에 따른 `networkName="external"`, 빈 `refId`, CIDR 없음인 형태만 허용한다. external의 networkId도 전체 baseline과 `existingTiers`에 보존한다. 일반 Tier의 CIDR 누락, 이름만 external로 바꾼 attached Tier, external에 가짜 CIDR을 채운 입력, 누락·중복·외부 ID 매핑은 거부한다. `refId`를 baseline networkId로 대체하지 않는다. operator는 같은 Project의 완전한 NSM 조회에서 위 metadata를 확인해야 하며, Backend가 완전히 위조된 operator attestation을 실측 없이 식별할 수 있다고 주장하지 않는다. 이전 positional `existingTierCidrs` 입력은 지원하지 않는다.
+
+아래는 비실환경 ID를 사용한 Network 부분 발췌다. 나머지 6종 baseline과 다른 승인 필수 항목도 그대로 필요하며, 실제 값은 최신 inventory로 교체한다.
+
+```json
+{
+  "baseline": {
+    "KT_TIER": ["mock-dmz-id", "mock-private-id", "mock-external-id"]
+  },
+  "existingTiers": [
+    {"networkId": "mock-dmz-id", "refId": "mock-dmz-ref", "networkName": "DMZ", "cidr": "172.25.0.0/24"},
+    {"networkId": "mock-private-id", "refId": "mock-private-ref", "networkName": "Private", "cidr": "172.25.1.0/24"},
+    {"networkId": "mock-external-id", "refId": "", "networkName": "external"}
+  ],
+  "labCidr": "172.25.240.0/24",
+  "managementCidr": "172.25.241.0/24"
+}
+```
 
 ## 단발 실행과 중단
 

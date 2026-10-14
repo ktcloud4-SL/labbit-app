@@ -25,12 +25,84 @@ func c1TestPlan() c1Plan {
 	for _, kind := range c1BaselineKinds {
 		baseline[kind] = []string{}
 	}
-	baseline["KT_TIER"] = []string{uuid.NewString()}
+	dmzID, privateID, externalID := uuid.NewString(), uuid.NewString(), uuid.NewString()
+	baseline["KT_TIER"] = []string{dmzID, privateID, externalID}
 	return c1Plan{
 		Approval: "PROVISION_AND_EXACT_ID_CLEANUP", ExpiresAt: time.Now().Add(time.Minute), PodName: "mock-backend", PodUID: uuid.New(), ConnectorID: uuid.New(), SessionID: uuid.New(), ProjectID: uuid.New(),
 		EvidenceSHA256: strings.Repeat("a", 64), ProviderRuntimeReady: true, LinuxImageVerified: true, RootGiB: 50, CostAndQuotaApproved: true, CleanupApproved: true, BaselineComplete: true,
-		Baseline: baseline, ExistingTierCIDRs: []string{"172.25.0.0/24"}, LabCIDR: "172.25.240.0/24", ManagementCIDR: "172.25.241.0/24",
+		Baseline: baseline, ExistingTiers: []c1ExistingTier{
+			{NetworkID: dmzID, RefID: uuid.NewString(), Name: "DMZ", CIDR: "172.25.0.0/24"},
+			{NetworkID: privateID, RefID: uuid.NewString(), Name: "Private", CIDR: "172.25.1.0/24"},
+			{NetworkID: externalID, Name: "external"},
+		}, LabCIDR: "172.25.240.0/24", ManagementCIDR: "172.25.241.0/24",
 		Snapshot: protocol.CreationSnapshot{ProviderConnectionID: uuid.NewString(), WorkspaceVMKey: "workspace", VMs: []protocol.ResolvedVmSpec{{VMKey: "workspace", Role: "workspace", ImageID: uuid.NewString(), FlavorID: uuid.NewString(), FlavorSpec: &protocol.ResolvedFlavorSpec{VCPUs: 1, RAMMiB: 1024, DiskGiB: 0}}}},
+	}
+}
+
+func TestC1NSMExternalInventoryGate(t *testing.T) {
+	tests := []struct {
+		name   string
+		change func(*c1Plan)
+		valid  bool
+	}{
+		{"DMZ-Private-external", func(*c1Plan) {}, true},
+		{"order-independent-ID-mapping", func(p *c1Plan) {
+			p.ExistingTiers[0], p.ExistingTiers[2] = p.ExistingTiers[2], p.ExistingTiers[0]
+		}, true},
+		{"regular-Tier-missing-CIDR", func(p *c1Plan) { p.ExistingTiers[0].CIDR = "" }, false},
+		{"unattached-regular-Tier-missing-CIDR", func(p *c1Plan) {
+			p.ExistingTiers[0].CIDR, p.ExistingTiers[0].RefID = "", ""
+		}, false},
+		{"regular-Tier-disguised-as-external", func(p *c1Plan) {
+			p.ExistingTiers[0].Name, p.ExistingTiers[0].CIDR = "external", ""
+		}, false},
+		{"external-with-attachment", func(p *c1Plan) { p.ExistingTiers[2].RefID = uuid.NewString() }, false},
+		{"external-with-fabricated-CIDR", func(p *c1Plan) { p.ExistingTiers[2].CIDR = "172.25.2.0/24" }, false},
+		{"external-baseline-ID-omitted", func(p *c1Plan) { p.Baseline["KT_TIER"] = p.Baseline["KT_TIER"][:2] }, false},
+		{"baseline-ID-replaced", func(p *c1Plan) { p.Baseline["KT_TIER"][2] = uuid.NewString() }, false},
+		{"baseline-ID-duplicated", func(p *c1Plan) { p.Baseline["KT_TIER"][2] = p.Baseline["KT_TIER"][0] }, false},
+		{"inventory-entry-omitted", func(p *c1Plan) { p.ExistingTiers = p.ExistingTiers[:2] }, false},
+		{"inventory-ID-duplicated", func(p *c1Plan) { p.ExistingTiers[2].NetworkID = p.ExistingTiers[0].NetworkID }, false},
+		{"foreign-inventory-ID", func(p *c1Plan) { p.ExistingTiers[2].NetworkID = uuid.NewString() }, false},
+		{"physical-refId-used-as-networkId", func(p *c1Plan) { p.ExistingTiers[0].NetworkID = p.ExistingTiers[0].RefID }, false},
+		{"lab-overlaps-DMZ", func(p *c1Plan) { p.LabCIDR = "172.25.0.0/24" }, false},
+		{"management-overlaps-Private", func(p *c1Plan) { p.ManagementCIDR = "172.25.1.0/24" }, false},
+		{"existing-supernet-overlap", func(p *c1Plan) { p.ExistingTiers[0].CIDR = "172.25.0.0/16" }, false},
+		{"invalid-existing-CIDR", func(p *c1Plan) { p.ExistingTiers[0].CIDR = "not-a-cidr" }, false},
+		{"noncanonical-existing-CIDR", func(p *c1Plan) { p.ExistingTiers[0].CIDR = "172.25.0.1/24" }, false},
+		{"IPv6-existing-CIDR", func(p *c1Plan) { p.ExistingTiers[0].CIDR = "2001:db8::/64" }, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := c1TestPlan()
+			tt.change(&p)
+			before, err := json.Marshal(p.Baseline)
+			if err != nil {
+				t.Fatal(err)
+			}
+			root := c1TestRoot(t, p)
+			loaded, _, err := c1ReadPlan(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = loaded.validate(time.Now(), p.PodName, p.PodUID)
+			if (err == nil) != tt.valid {
+				t.Fatalf("gate = %v, valid = %v", err, tt.valid)
+			}
+			after, err := json.Marshal(loaded.Baseline)
+			if err != nil || string(before) != string(after) {
+				t.Fatal("seven-kind exact-ID baseline altered")
+			}
+			if !tt.valid {
+				h := &routerHarness{events: &c1Events{ch: make(chan connector.Event, 32)}}
+				if err := h.run(t.Context(), nil, root, p.PodName, p.PodUID); !errors.Is(err, errHarnessGate) {
+					t.Fatalf("invalid inventory did not stop at approval gate: %v", err)
+				}
+				if _, err := root.Lstat("attempt.jsonl"); !os.IsNotExist(err) {
+					t.Fatal("invalid inventory claimed mutation attempt")
+				}
+			}
+		})
 	}
 }
 
@@ -170,9 +242,9 @@ func TestC1StopsBeforeCleanupOnUncertainty(t *testing.T) {
 			p := c1TestPlan()
 			resources := c1TestResources()
 			if scenario == "baseline" {
-				p.Baseline[resources[0].ResourceType] = []string{resources[0].ProviderID}
+				p.Baseline[resources[0].ResourceType] = append(p.Baseline[resources[0].ResourceType], resources[0].ProviderID)
 				if resources[0].ResourceType == "KT_TIER" {
-					p.ExistingTierCIDRs = []string{"172.25.0.0/24"}
+					p.ExistingTiers = append(p.ExistingTiers, c1ExistingTier{NetworkID: resources[0].ProviderID, RefID: uuid.NewString(), Name: "existing-lab", CIDR: "172.25.2.0/24"})
 				}
 			}
 			response := func(string, connector.Correlation) protocol.OperationResultPayload {

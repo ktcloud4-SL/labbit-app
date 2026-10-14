@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
@@ -28,6 +30,7 @@ type ConnectorApp struct {
 	TerminalManager *terminal.SessionManager
 	PTYFactory      wss.PTYFactoryFunc
 	VMAccess        *vmaccess.Manager
+	PreviewManager  *preview.SessionManager
 }
 
 // BuildConnector 는 환경변수 및 Provider를 바탕으로 실제 Production 컴포넌트(SessionManager, SSHPTY, TerminalDataWSS)를 Wiring합니다.
@@ -169,6 +172,73 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 		AllowInsecure:  !isProduction,
 	}
 
+	// 5. Preview Gateway Endpoint 및 SessionManager 배선
+	previewGatewayURL := strings.TrimSpace(os.Getenv("LABBIT_PREVIEW_GATEWAY_URL"))
+	if previewGatewayURL == "" {
+		u, err := url.Parse(saasBaseURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid LABBIT_SAAS_BASE_URL: %w", err)
+		}
+		switch u.Scheme {
+		case "https":
+			u.Scheme = "wss"
+		case "http":
+			if isProduction {
+				return nil, fmt.Errorf("http scheme is prohibited in production: TLS is required")
+			}
+			u.Scheme = "ws"
+		default:
+			if !strings.HasPrefix(u.Scheme, "ws") {
+				u.Scheme = "wss"
+			}
+		}
+		u.Path = "/connector/v1/preview-data"
+		previewGatewayURL = u.String()
+	}
+
+	// 5. Preview Forwarder 및 SessionManager 배선
+	// 프로덕션 환경(isProduction)에서는 반드시 Provider가 preview.TCPForwarder를 구현해야 하며,
+	// 미구현 시 DirectTCPForwarder 로 우회(fallback)하지 않고 fail-closed 처리합니다 (Blocker 1).
+	var forwarder preview.TCPForwarder
+	if tf, ok := p.(preview.TCPForwarder); ok {
+		forwarder = tf
+	} else if !isProduction {
+		forwarder = preview.NewDirectTCPForwarder(addressResolver)
+	} else {
+		forwarder = nil
+	}
+
+	var previewMgr *preview.SessionManager
+	if forwarder != nil {
+		previewMgr = preview.NewSessionManager(forwarder, nil)
+	}
+
+	// Runtime HELLO Capabilities 배선 (Blocker 4):
+	// usable한 forwarder가 준비되었을 때만 protocol.CapabilityPreviewV1을 광고합니다.
+	if controlConfig != nil && forwarder != nil {
+		hasCap := false
+		for _, cap := range controlConfig.Capabilities {
+			if cap == protocol.CapabilityPreviewV1 {
+				hasCap = true
+				break
+			}
+		}
+		if !hasCap {
+			controlConfig.Capabilities = append(controlConfig.Capabilities, protocol.CapabilityPreviewV1)
+		}
+	}
+
+	prevCfg := preview.DataWSSClientConfig{
+		EndpointURL:   previewGatewayURL,
+		Credential:    credential,
+		RuntimeID:     runtimeID,
+		DialTimeout:   10 * time.Second,
+		AllowInsecure: !isProduction,
+	}
+	if controlConfig != nil {
+		prevCfg.CredentialProvider = controlConfig.GetCredential
+	}
+
 	handler := wss.NewHandler(p, sender)
 	handler.SetTerminalManager(sessionMgr, ptyFactory, termCfg)
 	var accessManager *vmaccess.Manager
@@ -192,12 +262,16 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 			return terminal.NewManagedSSHPTY(ctx, accessManager, target, cols, rows)
 		})
 	}
+	if previewMgr != nil {
+		handler.SetPreviewManager(previewMgr, prevCfg)
+	}
 
 	return &ConnectorApp{
 		Handler:         handler,
 		TerminalManager: sessionMgr,
 		PTYFactory:      ptyFactory,
 		VMAccess:        accessManager,
+		PreviewManager:  previewMgr,
 	}, nil
 }
 
@@ -250,6 +324,9 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
 	}
 	shutdown := sync.OnceFunc(func() {
 		connectorApp.TerminalManager.Shutdown(protocol.TerminalReasonServiceRestart)
+		if connectorApp.PreviewManager != nil {
+			connectorApp.PreviewManager.CloseAll(protocol.PreviewReasonServiceRestart)
+		}
 		if connectorApp.VMAccess != nil {
 			_ = connectorApp.VMAccess.Close()
 		}
@@ -268,8 +345,24 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
 			"offline_timeout_seconds", ack.OfflineTimeoutSeconds,
 		)
 	})
-	supervisor.SetOnDisconnected(func(error) {
-		logger.Warn("Connector Control WSS 연결 종료; 재연결 대기", "connector_id", connectorID)
+	supervisor.SetOnDisconnected(func(err error) {
+		var closeErr *websocket.CloseError
+		if errors.As(err, &closeErr) && (closeErr.Code == protocol.CloseCredentialRevoked || closeErr.Code == protocol.CloseSessionReplaced) {
+			logger.Warn("Connector Control WSS 신뢰 종료(4001/4002); logical preview 세션 정리",
+				"connector_id", connectorID,
+				"code", closeErr.Code,
+				"reason", closeErr.Text,
+			)
+			if connectorApp.PreviewManager != nil {
+				reason := protocol.PreviewReasonCredentialRevoked
+				if closeErr.Code == protocol.CloseSessionReplaced {
+					reason = protocol.PreviewReasonControlReplaced
+				}
+				connectorApp.PreviewManager.CloseAll(reason)
+			}
+		} else {
+			logger.Warn("Connector Control WSS 연결 종료; 재연결 대기", "connector_id", connectorID)
+		}
 	})
 
 	err = supervisor.Run(ctx)

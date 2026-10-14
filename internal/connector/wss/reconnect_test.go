@@ -3,6 +3,7 @@ package wss_test
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/wss"
@@ -121,6 +123,20 @@ func (r *ReconnectableMockServer) ForceDisconnect() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.activeConn != nil {
+		_ = r.activeConn.Close()
+		r.activeConn = nil
+	}
+}
+
+func (r *ReconnectableMockServer) SendClose(code int, text string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.activeConn != nil {
+		_ = r.activeConn.WriteControl(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(code, text),
+			time.Now().Add(time.Second),
+		)
 		_ = r.activeConn.Close()
 		r.activeConn = nil
 	}
@@ -320,5 +336,185 @@ func TestSupervisor_BackoffResetAfterSuccessfulConnection(t *testing.T) {
 	}
 	if server.HelloCount() < 2 {
 		t.Fatalf("expected reconnected HELLO handshake, got %d", server.HelloCount())
+	}
+}
+
+// TestSupervisor_ControlTrustTermination_4001_CleansUpPreviewManager 는
+// Supervisor 가 실행 중인 상태에서 Control WSS 서버가 4001 close frame을 전송했을 때
+// OnControlDisconnected 가 호출되어 PreviewManager 의 세션이 즉시 정리되는지 검증합니다.
+func TestSupervisor_ControlTrustTermination_4001_CleansUpPreviewManager(t *testing.T) {
+	server := newReconnectableMockServer(t)
+	defer server.Close()
+
+	cfg := wss.Config{
+		BaseURL:          server.URL(),
+		Credential:       "test-secret-token",
+		ConnectorVersion: "0.1.0-test",
+		AllowInsecure:    true,
+	}
+
+	backoff := wss.BackoffPolicy{
+		InitialInterval:     10 * time.Millisecond,
+		MaxInterval:         50 * time.Millisecond,
+		Multiplier:          1.5,
+		RandomizationFactor: 0.1,
+	}
+
+	mockProv := &provider.MockProvider{}
+	handler := wss.NewHandler(mockProv, nil)
+	forwarder := preview.NewDirectTCPForwarder(nil)
+	mgr := preview.NewSessionManager(forwarder, nil)
+	handler.SetPreviewManager(mgr, preview.DataWSSClientConfig{
+		EndpointURL:   "ws://127.0.0.1:9999",
+		AllowInsecure: true,
+	})
+
+	tcpListener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen: %v", err)
+	}
+	defer tcpListener.Close()
+	port := tcpListener.Addr().(*net.TCPAddr).Port
+
+	// 세션 1개 생성 (Data WSS 1000 종료 후 logical session 만 남은 상태 모사)
+	_, _, err = mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
+		TargetVmKey: "vm-1", TargetPort: port,
+	}, protocol.BaseEnvelope{
+		PreviewSessionID: "sess-supervisor-4001", LabInstanceID: "lab-1", Generation: 1,
+	})
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+	if mgr.Count() != 1 {
+		t.Fatalf("expected 1 session initially, got %d", mgr.Count())
+	}
+
+	supervisor := wss.NewSupervisor(cfg, handler, backoff)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	go func() {
+		_ = supervisor.Run(ctx)
+	}()
+
+	// 1. 초기 HELLO 연결 대기
+	deadline := time.Now().Add(1 * time.Second)
+	for time.Now().Before(deadline) {
+		if server.HelloCount() >= 1 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if server.HelloCount() < 1 {
+		t.Fatalf("expected initial connection")
+	}
+
+	// 2. Control WSS 로 4001 Close frame 전송 (Credential Revoke)
+	server.SendClose(4001, "credential revoked")
+
+	// 3. Supervisor 가 4001 감지 후 PreviewManager 세션을 정리하는지 검증
+	deadline = time.Now().Add(1 * time.Second)
+	for time.Now().Before(deadline) {
+		if mgr.Count() == 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	if mgr.Count() != 0 {
+		t.Fatalf("expected manager count 0 after Control 4001, got %d", mgr.Count())
+	}
+}
+
+// TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager 는
+// Control WSS 가 일반 네트워크 단절(EOF / TCP close)을 겪을 때
+// PreviewManager 의 logical session 이 폐기되지 않고 유지되는지 검증합니다.
+func TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager(t *testing.T) {
+	server := newReconnectableMockServer(t)
+	defer server.Close()
+
+	cfg := wss.Config{
+		BaseURL:          server.URL(),
+		Credential:       "test-secret-token",
+		ConnectorVersion: "0.1.0-test",
+		AllowInsecure:    true,
+	}
+
+	backoff := wss.BackoffPolicy{
+		InitialInterval:     10 * time.Millisecond,
+		MaxInterval:         50 * time.Millisecond,
+		Multiplier:          1.5,
+		RandomizationFactor: 0.1,
+	}
+
+	mockProv := &provider.MockProvider{}
+	handler := wss.NewHandler(mockProv, nil)
+	forwarder := preview.NewDirectTCPForwarder(nil)
+	mgr := preview.NewSessionManager(forwarder, nil)
+	handler.SetPreviewManager(mgr, preview.DataWSSClientConfig{
+		EndpointURL:   "ws://127.0.0.1:9999",
+		AllowInsecure: true,
+	})
+
+	tcpListener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen: %v", err)
+	}
+	defer tcpListener.Close()
+	port := tcpListener.Addr().(*net.TCPAddr).Port
+
+	// 세션 1개 생성
+	_, _, err = mgr.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{
+		TargetVmKey: "vm-1", TargetPort: port,
+	}, protocol.BaseEnvelope{
+		PreviewSessionID: "sess-supervisor-normal", LabInstanceID: "lab-1", Generation: 1,
+	})
+	if err != nil {
+		t.Fatalf("GetOrCreateSession failed: %v", err)
+	}
+	if mgr.Count() != 1 {
+		t.Fatalf("expected 1 session initially, got %d", mgr.Count())
+	}
+
+	supervisor := wss.NewSupervisor(cfg, handler, backoff)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	go func() {
+		_ = supervisor.Run(ctx)
+	}()
+
+	// 1. 초기 HELLO 연결 대기
+	deadline := time.Now().Add(1 * time.Second)
+	for time.Now().Before(deadline) {
+		if server.HelloCount() >= 1 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if server.HelloCount() < 1 {
+		t.Fatalf("expected initial connection")
+	}
+
+	// 2. Control WSS 일반 TCP 강제 단절 (Close frame 없음)
+	server.ForceDisconnect()
+
+	// 3. 재연결 대기
+	deadline = time.Now().Add(1 * time.Second)
+	for time.Now().Before(deadline) {
+		if server.HelloCount() >= 2 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if server.HelloCount() < 2 {
+		t.Fatalf("expected reconnected HELLO handshake, got %d", server.HelloCount())
+	}
+
+	// 4. 일반 단절/재연결 후에도 PreviewManager 의 세션은 유지되어야 함
+	if mgr.Count() != 1 {
+		t.Fatalf("expected manager count 1 preserved after normal disconnect, got %d", mgr.Count())
 	}
 }

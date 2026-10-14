@@ -1090,7 +1090,7 @@ describe('Auth·Class·LabSpec routing', () => {
     fireEvent.change(screen.getByLabelText('이름'), {
       target: { value: '아직 저장하지 않은 이름' },
     })
-    fireEvent.change(screen.getByLabelText('Startup Script'), {
+    fireEvent.change(screen.getByLabelText(/Startup Script/), {
       target: { value: '#!/bin/bash\necho draft' },
     })
 
@@ -1103,7 +1103,7 @@ describe('Auth·Class·LabSpec routing', () => {
         /기존 Image\/Size 참조가 현재 선택 가능한 후보와 일치하지 않습니다/,
       )).toBeInTheDocument()
       expect(screen.getByLabelText('이름')).toHaveValue('아직 저장하지 않은 이름')
-      expect(screen.getByLabelText('Startup Script')).toHaveValue('#!/bin/bash\necho draft')
+      expect(screen.getByLabelText(/Startup Script/)).toHaveValue('#!/bin/bash\necho draft')
 
       fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
       expect(await screen.findByText(

@@ -75,26 +75,26 @@ export function LabSpecListPage() {
       ) : (
         <section className="class-grid" aria-label="조회 가능한 LabSpec">
           {ownedLabSpecs.map((labSpec) => (
-              <article className="class-card labspec-card" key={labSpec.id}>
-                <div className="class-card-topline">
-                  <span className="role-badge">내 실습 정의</span>
-                  <span className="status-pill status-pill-neutral">정의만 저장됨</span>
-                </div>
-                <div className="class-card-body">
-                  <h2>{labSpec.name}</h2>
-                  <p className="class-card-description">{labSpec.description || '설명이 없습니다.'}</p>
-                </div>
-                <div className="class-card-footer">
-                  <span className="class-card-id">LabSpec · {labSpec.id}</span>
-                  <Link
+            <article className="class-card labspec-card" key={labSpec.id}>
+              <div className="class-card-topline">
+                <span className="role-badge">내 실습 정의</span>
+                <span className="status-pill status-pill-neutral">정의만 저장됨</span>
+              </div>
+              <div className="class-card-body">
+                <h2>{labSpec.name}</h2>
+                <p className="class-card-description">{labSpec.description || '설명이 없습니다.'}</p>
+              </div>
+              <div className="class-card-footer">
+                <span className="class-card-id">LabSpec · {labSpec.id}</span>
+                <Link
                   className="primary-link"
                   to={`/lab-specs/${encodeURIComponent(labSpec.id)}`}
-                  >
-                    편집
-                  </Link>
-                </div>
-              </article>
-            ))}
+                >
+                  편집
+                </Link>
+              </div>
+            </article>
+          ))}
         </section>
       )}
     </main>

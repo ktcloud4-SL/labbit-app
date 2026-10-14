@@ -368,50 +368,57 @@ func TestSessionManager_GenerationMismatch_Rejects(t *testing.T) {
 }
 
 func TestSession_Close_SendsTerminalDataEnded(t *testing.T) {
-	relay := mock.NewTerminalRelay()
-	defer relay.Close()
+	for _, rawError := range []error{nil, errors.New("private SSH target/key path detail")} {
+		t.Run(fmt.Sprintf("error=%t", rawError != nil), func(t *testing.T) {
+			relay := mock.NewTerminalRelay()
+			defer relay.Close()
 
-	mgr := terminal.NewSessionManager(5*time.Second, nil)
-	pty := terminal.NewMockEchoPTY(80, 24)
+			mgr := terminal.NewSessionManager(5*time.Second, nil)
+			pty := terminal.NewMockEchoPTY(80, 24)
 
-	session, _, err := mgr.GetOrCreateSession(
-		protocol.TerminalOpenPayload{TargetVmKey: "vm-1", ProviderServerID: "srv-1", Cols: 80, Rows: 24},
-		protocol.BaseEnvelope{TerminalSessionID: "sess-ended-1", LabInstanceID: "inst-1", Generation: 1},
-		func() (terminal.PTYChannel, error) { return pty, nil },
-	)
-	if err != nil {
-		t.Fatalf("GetOrCreateSession failed: %v", err)
-	}
+			session, _, err := mgr.GetOrCreateSession(
+				protocol.TerminalOpenPayload{TargetVmKey: "vm-1", ProviderServerID: "srv-1", Cols: 80, Rows: 24},
+				protocol.BaseEnvelope{TerminalSessionID: "sess-ended-1", LabInstanceID: "inst-1", Generation: 1},
+				func() (terminal.PTYChannel, error) { return pty, nil },
+			)
+			if err != nil {
+				t.Fatalf("GetOrCreateSession failed: %v", err)
+			}
 
-	client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
-		EndpointURL:   relay.URL(),
-		RuntimeID:     "rt-ended",
-		AllowInsecure: true,
-	}, session)
-	defer client.Close()
+			client := terminal.NewDataWSSClient(terminal.DataWSSClientConfig{
+				EndpointURL:   relay.URL(),
+				RuntimeID:     "rt-ended",
+				AllowInsecure: true,
+			}, session)
+			defer client.Close()
 
-	if err := client.DialAndAttach(context.Background()); err != nil {
-		t.Fatalf("DialAndAttach failed: %v", err)
-	}
-	client.StartStreaming()
+			if err := client.DialAndAttach(context.Background()); err != nil {
+				t.Fatalf("DialAndAttach failed: %v", err)
+			}
+			client.StartStreaming()
 
-	// 세션 닫기 호출 -> TERMINAL_DATA_ENDED 프레임 전송 검증 (Reviewer 4번 지적 사항)
-	session.Close(protocol.TerminalReasonSessionClosed, nil, nil)
+			// 세션 닫기 호출 -> TERMINAL_DATA_ENDED 프레임 전송 검증 (Reviewer 4번 지적 사항)
+			session.Close(protocol.TerminalReasonSessionClosed, nil, rawError)
 
-	data, err := relay.ReadText(2 * time.Second)
-	if err != nil {
-		t.Fatalf("failed to receive TERMINAL_DATA_ENDED text frame: %v", err)
-	}
+			data, err := relay.ReadText(2 * time.Second)
+			if err != nil {
+				t.Fatalf("failed to receive TERMINAL_DATA_ENDED text frame: %v", err)
+			}
 
-	var endedMsg protocol.TerminalDataEndedMessage
-	if err := json.Unmarshal(data, &endedMsg); err != nil {
-		t.Fatalf("failed to unmarshal TERMINAL_DATA_ENDED: %v", err)
-	}
-	if endedMsg.Type != protocol.MessageTypeTerminalDataEnded {
-		t.Fatalf("expected type TERMINAL_DATA_ENDED, got %s", endedMsg.Type)
-	}
-	if endedMsg.Payload.Reason != protocol.TerminalReasonSessionClosed {
-		t.Fatalf("expected reason %s, got %s", protocol.TerminalReasonSessionClosed, endedMsg.Payload.Reason)
+			var endedMsg protocol.TerminalDataEndedMessage
+			if err := json.Unmarshal(data, &endedMsg); err != nil {
+				t.Fatalf("failed to unmarshal TERMINAL_DATA_ENDED: %v", err)
+			}
+			if endedMsg.Type != protocol.MessageTypeTerminalDataEnded {
+				t.Fatalf("expected type TERMINAL_DATA_ENDED, got %s", endedMsg.Type)
+			}
+			if endedMsg.Payload.Reason != protocol.TerminalReasonSessionClosed {
+				t.Fatalf("expected reason %s, got %s", protocol.TerminalReasonSessionClosed, endedMsg.Payload.Reason)
+			}
+			if rawError != nil && (endedMsg.Payload.Error == nil || strings.Contains(string(data), rawError.Error())) {
+				t.Fatal("raw SSH error was not redacted from Terminal Data wire")
+			}
+		})
 	}
 }
 

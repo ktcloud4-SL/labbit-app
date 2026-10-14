@@ -3,6 +3,7 @@ package tracing
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"net/http"
 	"os"
 	"strings"
@@ -641,10 +642,12 @@ func TestShutdownIsBoundedByTheGivenBudgetWhenCollectorHangs(t *testing.T) {
 	const budget = 300 * time.Millisecond
 	elapsed, err := shutdownWithin(t, rt, budget)
 	t.Logf("hanging Collector: budget=%v elapsed=%v err=%v", budget, elapsed, err)
-	if err == nil {
-		t.Fatal("응답하지 않는 Collector인데 Shutdown이 성공함")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("응답하지 않는 Collector의 Shutdown error = %v, want context deadline exceeded", err)
 	}
-	if elapsed < budget || elapsed > budget+700*time.Millisecond {
+	// Context timeout and the elapsed measurement start at different times.
+	// Check the deadline error and upper bound without a false early-return failure.
+	if elapsed > budget+700*time.Millisecond {
 		t.Fatalf("Shutdown elapsed = %v, want about the %v budget", elapsed, budget)
 	}
 	if !strings.Contains(logs.String(), `"error_code":"export_timeout"`) {

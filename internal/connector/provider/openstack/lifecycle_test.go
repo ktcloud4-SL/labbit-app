@@ -61,6 +61,45 @@ func TestCleanupDeletesExactIDsInDependencyOrderAndTreats404AsDeleted(t *testing
 	}
 }
 
+func TestCleanupPartialDeleteRejectionReportsDestructiveFailure(t *testing.T) {
+	var deletes []string
+	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		switch {
+		case request.Method == http.MethodDelete && strings.HasSuffix(request.URL.Path, "/server-1"):
+			deletes = append(deletes, "server-1")
+			response.WriteHeader(http.StatusNoContent)
+		case request.Method == http.MethodGet && strings.HasSuffix(request.URL.Path, "/server-1"):
+			http.NotFound(response, request)
+		case request.Method == http.MethodDelete && strings.HasSuffix(request.URL.Path, "/server-2"):
+			deletes = append(deletes, "server-2")
+			http.Error(response, "sensitive Provider rejection", http.StatusConflict)
+		default:
+			t.Errorf("unexpected request after rejected deletion: %s %s", request.Method, request.URL.Path)
+			response.WriteHeader(http.StatusInternalServerError)
+		}
+	}))
+	adapter.provision = testProvisionConfig(t)
+	result, err := adapter.Cleanup(context.Background(), coreprovider.CleanupRequest{
+		Correlation: coreprovider.Correlation{OperationID: "partial-cleanup", LabInstanceID: "lab-1", Generation: 1},
+		ProviderResources: []coreprovider.ResourceRef{
+			{ResourceType: coreprovider.ResourceTypeServer, ProviderID: "server-1", LogicalName: "worker", Generation: 1},
+			{ResourceType: coreprovider.ResourceTypeServer, ProviderID: "server-2", LogicalName: "workspace", Generation: 1},
+			{ResourceType: coreprovider.ResourceTypePort, ProviderID: "port-1", Generation: 1},
+		},
+	})
+	if err != nil || result.Outcome != coreprovider.OutcomeFailed || len(result.ProviderResources) != 3 {
+		t.Fatalf("partial Cleanup() = %+v, %v", result, err)
+	}
+	for index, want := range []string{stateDeleted, stateDeleteFailed, stateDeleteNotAttempted} {
+		if result.ProviderResources[index].ObservedState != want {
+			t.Fatalf("resource %d state = %s, want %s", index, result.ProviderResources[index].ObservedState, want)
+		}
+	}
+	if strings.Join(deletes, ",") != "server-1,server-2" || result.Error == nil || strings.Contains(result.Error.Message, "sensitive") {
+		t.Fatalf("incorrect mutation boundary or unsafe error: deletes=%v error=%+v", deletes, result.Error)
+	}
+}
+
 func TestCleanupDetachesRouterInterfaceBeforeDelete(t *testing.T) {
 	var requests []string
 	adapter := newTestAdapter(t, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {

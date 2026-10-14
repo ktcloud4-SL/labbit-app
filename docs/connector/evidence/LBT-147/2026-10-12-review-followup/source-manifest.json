@@ -1,0 +1,347 @@
+{
+  "recordedAt": "2026-10-12T05:19:24.174639+00:00",
+  "head": "ed7843e25be99f414bfb0087d2f07b8121fe08a0",
+  "originMain": "e850567066134edc87b2ba543d0eb42a21f406b8",
+  "mergeBase": "6d675c74bff11f481d247267faefd4ce960dcd38",
+  "executionSource": "HEAD plus listed local changes; byte SHA256 and Git blob identify tested bytes",
+  "files": [
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/README.md",
+      "sha256Bytes": "c79ef32fcf92b355779c693505019347209e458400ea09f25ac6b87d23b83e2c",
+      "gitBlob": "6a489d835d3deee9180ec21ef751fa2b9ed48089",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/artifact-checksums.json",
+      "sha256Bytes": "0292db04fae585ba8fd64ffc670e2c5ba12523e529772cd155c18db495d4f6c9",
+      "gitBlob": "ed329529a1c8450bb25b70762a0818d9175533dd",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/automated-logs.zip",
+      "sha256Bytes": "18e505bd81bfabdf951123abcd07ff1772b0be036637d6afd4c176c509ad0b8e",
+      "gitBlob": "31da28b5a1b553c86ee33e82280c7b7c917a1503",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/reproduce.ps1",
+      "sha256Bytes": "58db3aa8b96e54c6b5d4ea3116778656516db997f65a7f21e6937e4a499f6a65",
+      "gitBlob": "bf46279dff8791e79db4d7909c2369fa5134077f",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/secret-scan.json",
+      "sha256Bytes": "09edf5c00c479ef8a1f7d166d537e08edfcdd648dfbfcf884623a1e56dd544c6",
+      "gitBlob": "31a91e772dba41f24bab23798d46dd88d571c972",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/source-manifest.json",
+      "sha256Bytes": "429e0ed20d5cf28ed6b68c8552c3f147aaa5fffd64b8d3eb0245398f5e61046a",
+      "gitBlob": "82a7dfce9c2aba0457b794914571e9ca8627f7c3",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/validation-summary.json",
+      "sha256Bytes": "658be30e372fda1ffd777c7c6b5714aaf6c02b49b42713993b2496ff66d505a6",
+      "gitBlob": "e798f507359e6cf1db24da5f32115c9abc1b508c",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/.gitattributes",
+      "sha256Bytes": "4d5381d4fb9407dc5baafafa6e28f20ea5184d4d91619348190440a63e2c6b90",
+      "gitBlob": "25fea8f4e019a50bde6f664db383141e8958092b",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/AUDIT.md",
+      "sha256Bytes": "c1601571abfdaf439330fe568db96a038500eb34568ebd48c584d7e8275ec80f",
+      "gitBlob": "061dd4086ef6881f1ed414406c3abe3d999ba06c",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/README.md",
+      "sha256Bytes": "0aa2031a77d2794aa3153d59984b9c6a0c3f6e2d43546067b57609a57a61c238",
+      "gitBlob": "8c7cf05d9ab9ae3c4a8a6f8af901584ebfc23766",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/archive-manifest.json",
+      "sha256Bytes": "dab2e1ba8b4698492004f60dfb8767ec6d0357ac92a5b043751558a50d2ae409",
+      "gitBlob": "59fe46e5ebbeefcc5f88ff7b05973ed6ff3e2531",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/artifact-checksums.json",
+      "sha256Bytes": "4930bcfcef3c4638cd92cbddbc79e902251a6a14b03e314e94aec26796af1cf0",
+      "gitBlob": "731515bf3582ed1cd632d5e8ed2845eb3f753777",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/audit-logs.zip",
+      "sha256Bytes": "3b84da0a0ec86705b90368b7a869e1554ace7261e82d3166e8790c3301e98483",
+      "gitBlob": "5a1f7a46d4cdfbda4946e5c16a790290f9b93f79",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/automated-validation-summary.json",
+      "sha256Bytes": "04754076c0c1c5a173671274bfdac1a96b2156d1ac57b8d8ae573a5b47f5831a",
+      "gitBlob": "ea6b90c39d1a55b94fbd04b44b180a9af567a6f2",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/post-discovery-and-residual.jsonl",
+      "sha256Bytes": "784c87750528b45f4ed5b3bab5ef9425890a64056742520ab43392ffca409312",
+      "gitBlob": "f66b33503530543819a6dd9cb2d61c91c9d600ff",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/pre-discovery.jsonl",
+      "sha256Bytes": "59eae670b2c648d8a0761b635c58057d18b259d95b98f969ffb976a1ad8a90b6",
+      "gitBlob": "f46f4bb4ba174a0533df0e3180ffe900142590bf",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/publication-checks.json",
+      "sha256Bytes": "8c7b768b298ac0988eb88fc45ea274f41e363e2471a5d993905e3826757552dd",
+      "gitBlob": "54784ceea58cfe4917b9a854582e07f96b21e715",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/publication-review.md",
+      "sha256Bytes": "c57cfeaccbdbf8b21604311a6b9d9cc00c52f665b3eea2b4adad9a9ee5e4405e",
+      "gitBlob": "0a06772a47e3d6e8c493351a29e4ab295fcee017",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/real-app-boundaries.jsonl",
+      "sha256Bytes": "f47268e4dad633a9a01ddf86faab098a82f51075075ce41864b5bd4728a88b15",
+      "gitBlob": "e8c3d6ee8572c71c7fd6ae6ef74050ad818c1ffa",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/real-vm-access.jsonl",
+      "sha256Bytes": "869e8609d7448172aee0b5ebb7197d1fe90b34417e3daa96cab9efdf5a608507",
+      "gitBlob": "ad9cee5800bfd1cb7063d597ff9980e8ab969f2e",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/reproduce-guard-regression.json",
+      "sha256Bytes": "16ca16d4d5f37411944828480372bf7007d325b55a143b7cf8cf7b487ea49ede",
+      "gitBlob": "c0b66b7e54ab8c0ec778a56c69896ec9e9bca011",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/reproduce.ps1",
+      "sha256Bytes": "14bbe2fcf2be7ad955994f0a46af66ea1a5eada23ab78826304cbec5d46f45f9",
+      "gitBlob": "6a6e18ed012182ce5741ce18dc9b9777039f3d0e",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/secret-scan.json",
+      "sha256Bytes": "9343fa101f4adc698317a0c569380c7d004619d0e470a32464c20c644e5a406c",
+      "gitBlob": "e73f4d5f787624095d0558feef87da126a4deb11",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/source-manifest.json",
+      "sha256Bytes": "902f2d2ab8509c0c0fa5a63cbd0aaddc9748ec13789948d1ce831a2f5c07639e",
+      "gitBlob": "1ad2b29fd9c70bf3c4cf4712c801c952cc60b169",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/ssot-summary.json",
+      "sha256Bytes": "e5cf5bd21cea28f5edd1c96f710ea7d4688dec0b44557eafddc8661eccebebc3",
+      "gitBlob": "b43291bbcbebe4b5db031ab16a19380bf8c3d0c9",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/validation-summary.json",
+      "sha256Bytes": "64896de262203c059dbf2c19e811100f0eace5092fd8007058f150a6ac71deee",
+      "gitBlob": "95012d840729a3ae442516287627205d5d53ce98",
+      "localChange": false
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-12/verify-reproduce-guards.ps1",
+      "sha256Bytes": "9def9b05f121a1ab504be5d84dcb47c17b22f0660913ac3305bb901170754509",
+      "gitBlob": "d95c621b7593eb5c0dfa63aaa97dcd12418ed883",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/app/app.go",
+      "sha256Bytes": "4cbe97ec456b8dd3f3fb144c2c7d16315e78a72e7abf1f2d3fd4aa5b1949d9a3",
+      "gitBlob": "063a4de1a738be03ad93969ac7b071048b477459",
+      "localChange": true
+    },
+    {
+      "path": "internal/connector/app/app_test.go",
+      "sha256Bytes": "aa090fb5f2500944cdb7cfd4c5aeffdd316047988ff97de845063cd311c98878",
+      "gitBlob": "00892538554c58a44de70996b765144651691337",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/app/main_integration_test.go",
+      "sha256Bytes": "f1805eda90de80312a5b29dd12fcdbfa554d380fd3db10c9c468066db0100943",
+      "gitBlob": "a882134475178a3ea8f40593ddd82c75e2f9dce3",
+      "localChange": true
+    },
+    {
+      "path": "internal/connector/app/runtime_provider.go",
+      "sha256Bytes": "8483d8952eecd874668470e680fdbfb665735d997a785d31483b573c2b9b2815",
+      "gitBlob": "454be47b0d37bcd32b1a437ced1b6ffe7a86715a",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/app/runtime_provider_test.go",
+      "sha256Bytes": "f0fe0608a881bd182b99b12bbeca66fd58609922864c43f7ff829a1b885a94a7",
+      "gitBlob": "8afbee8d601df2e540cab6d8f070be263788dda5",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/app/vm_access.go",
+      "sha256Bytes": "b6081db85cb78150155d1745b0e068a80eee73479bb6ea22307bf07ff7df5cd7",
+      "gitBlob": "133b1460146530d402da1f326e162a867836927a",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/app/vm_access_lifecycle_test.go",
+      "sha256Bytes": "db34b3cff794848f5bb28a542dc5d68ce8a900f4062ebb9e3e0e7af4c8145f28",
+      "gitBlob": "a92cf382d2bbe7dc10e71b6ed99402b5ca5ea45a",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/app/vm_access_test.go",
+      "sha256Bytes": "8b1869e5415eaafc5f6a2478a9f4b1db7daa9178e1db6844339f76c457ea257d",
+      "gitBlob": "c9f9ef2126702b08632c869dfaaa54641ed92b63",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/provider/openstack/lifecycle_test.go",
+      "sha256Bytes": "96436e24db58c295345a64d8ec579d05035e3dc524207b7541043246ba5f77ca",
+      "gitBlob": "64ebf0cb9639a457a8e004ae1fb5b558e3dd4735",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_error_test.go",
+      "sha256Bytes": "0a396120f75a5410560ab5d7d1db5bd1470bc5489e8ef9ffb39b5093423a3993",
+      "gitBlob": "60e9acca01d378a63aa416ca4a655eb84a0f267f",
+      "localChange": true
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target.go",
+      "sha256Bytes": "fe0ea376dd1a4c5ee43fbd06c17bc4d4ff2c703387d9abed09a1377ed5553acd",
+      "gitBlob": "14ee6383675b5984adab2739bc81117c41606ae8",
+      "localChange": true
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target_test.go",
+      "sha256Bytes": "3addae2734c2ddfa16e0f76c73303ed576bf7fffd78568e0843f4c80b9a2ce71",
+      "gitBlob": "6277ef07b242db1d3cfa050655af1dd95fac7add",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/provider/openstack/vm_access_integration_test.go",
+      "sha256Bytes": "fbe2a1b431b42a7eaa2f05115739f089287d34d956e15cfce596065507709043",
+      "gitBlob": "284362b200a3af751a7614aa799e259c4818cf69",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/terminal/session.go",
+      "sha256Bytes": "83f1b27b7c379fdfb5d095d8f085f678f3eb9796452d845bb3217344a500dd91",
+      "gitBlob": "f19d9c52c237c08fbe132ea28173ac559ceae6e5",
+      "localChange": true
+    },
+    {
+      "path": "internal/connector/terminal/shutdown_test.go",
+      "sha256Bytes": "410641e72724f3eab7caddc94a5b1cdd8d1cd6f4b1b0286551259af605e2e6a4",
+      "gitBlob": "7104bed9418222afd61ae7b607d29d6711211dbc",
+      "localChange": true
+    },
+    {
+      "path": "internal/connector/terminal/ssh_pty.go",
+      "sha256Bytes": "6e8e72ef4bdddb5ddb7dad37e16f068c8670cc87cb99d704ec72a59b94a2e384",
+      "gitBlob": "24c6113f744525890b153e793ce9ab52fbde62e7",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/terminal/terminal_test.go",
+      "sha256Bytes": "c8caa981cc0af77f0802c33e0f57d36346462b2c8a527d905af615deb6e849db",
+      "gitBlob": "b18db1d9cd8abe27e42b8969346269109174a854",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/vmaccess/access.go",
+      "sha256Bytes": "666750c19b58a338bfa7138e2cd5e8a393d3d87c0bd118413d97151d54c78341",
+      "gitBlob": "f9a411023173481686ee5f4f423c93487cf897ea",
+      "localChange": true
+    },
+    {
+      "path": "internal/connector/vmaccess/access_test.go",
+      "sha256Bytes": "010240b7e0b899df3510bdd08601a9a1da1c7d9c1dc02bb2187987d37c08d01c",
+      "gitBlob": "9afbe43ded09066136bb13c7054c45cd7ba03e71",
+      "localChange": true
+    },
+    {
+      "path": "internal/connector/vmaccess/cancellation_test.go",
+      "sha256Bytes": "c072ecaa4164eff8e707f4c3ad5362b8c4963918b2a3257d8a0680e98e0b2155",
+      "gitBlob": "5d288430bbde26f2d7060dd501e90d18f227e511",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/vmaccess/channel_isolation_test.go",
+      "sha256Bytes": "e7cb6a663f2427bcbc7f2dc891a36107f1fdd66f246ab31afc2e9c1dcc935cac",
+      "gitBlob": "6d427ef6e83778a71f35f1848c57a4631b4faca4",
+      "localChange": true
+    },
+    {
+      "path": "internal/connector/wss/handler.go",
+      "sha256Bytes": "e3a1c396839a67bab1ad08abc08ec43a8f0599d48a98c7e9d6e6d171db6d6284",
+      "gitBlob": "5cef151e54471184008b1fb9a91b5eb45563c712",
+      "localChange": false
+    },
+    {
+      "path": "internal/connector/wss/reconnect.go",
+      "sha256Bytes": "17390dc7415b4a60d461e3b3157424935507116001ebeda3ee09d72236604265",
+      "gitBlob": "58004b0602f7e02d1e43345e5072bdf5780a2d2d",
+      "localChange": true
+    },
+    {
+      "path": "internal/connector/wss/reconnect_test.go",
+      "sha256Bytes": "2661180bb4ff5b5325eebc1c703e0eab1f329fc98368625cc9b29f8a43f145a1",
+      "gitBlob": "a3dea5693206319416fe58f830b8f16509118953",
+      "localChange": true
+    },
+    {
+      "path": "internal/connector/wss/vm_access_test.go",
+      "sha256Bytes": "676d2a7c664a47d978a1faf4ca0745c40ca262a5e52dce8839f9483f6de95344",
+      "gitBlob": "da99ef017fd23eed09e7d0ef5bad0369ba699754",
+      "localChange": false
+    },
+    {
+      "path": "runtime/README.md",
+      "sha256Bytes": "20f85e1fa1a1a61e11a32285a0ca6847cd62e887d903f298396030e10223b784",
+      "gitBlob": "63b757dcce44aa58226b34b305c2d5fe646c9ac2",
+      "localChange": false
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "sha256Bytes": "57929ebec4eff092d745c2086ce7044003997f6e699ce5594a4a38679612ee0e",
+      "gitBlob": "952da7064112ee0669628deb9e88068d94be40d0",
+      "localChange": false
+    }
+  ],
+  "localChangedFiles": [
+    "internal/connector/app/app.go",
+    "internal/connector/app/main_integration_test.go",
+    "internal/connector/provider/openstack/terminal_error_test.go",
+    "internal/connector/provider/openstack/terminal_target.go",
+    "internal/connector/terminal/session.go",
+    "internal/connector/terminal/shutdown_test.go",
+    "internal/connector/vmaccess/access.go",
+    "internal/connector/vmaccess/access_test.go",
+    "internal/connector/vmaccess/channel_isolation_test.go",
+    "internal/connector/wss/reconnect.go",
+    "internal/connector/wss/reconnect_test.go"
+  ],
+  "publicationCodeCommit": "b191ecdbe87f28c2c2e34d28877f5de84b18f082"
+}

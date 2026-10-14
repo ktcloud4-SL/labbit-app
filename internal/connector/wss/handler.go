@@ -13,6 +13,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -41,8 +42,16 @@ type Handler struct {
 	onError       func(err error)
 	terminalMgr   *terminal.SessionManager
 	ptyFactory    PTYFactoryFunc
+	vmPTYFactory  func(context.Context, vmaccess.Target, int, int) (terminal.PTYChannel, error)
 	terminalCfg   terminal.DataWSSClientConfig
 	endedSessions sync.Map
+}
+
+// SetVMPTYFactory preserves the authenticated envelope across the SSH boundary.
+func (h *Handler) SetVMPTYFactory(factory func(context.Context, vmaccess.Target, int, int) (terminal.PTYChannel, error)) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.vmPTYFactory = factory
 }
 
 // NewHandler 는 새 Control WSS 메시지 핸들러를 생성합니다.
@@ -878,10 +887,10 @@ func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Conte
 			return readCtx.Err()
 		default:
 			_, msg, err := conn.ReadMessage()
-			if err != nil {
-				return err
+			if ctxErr := readCtx.Err(); ctxErr != nil {
+				return ctxErr
 			}
-			if err := readCtx.Err(); err != nil {
+			if err != nil {
 				return err
 			}
 			// HandleMessage 에러를 무시하지 않고 등록된 onError 콜백으로 전달 (팀장님 리뷰 6번)
@@ -906,6 +915,7 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 	h.mu.RLock()
 	mgr := h.terminalMgr
 	factory := h.ptyFactory
+	vmFactory := h.vmPTYFactory
 	dataCfg := h.terminalCfg
 	h.mu.RUnlock()
 
@@ -963,7 +973,7 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 		return fmt.Errorf("invalid TERMINAL_OPEN: missing target or dimensions")
 	}
 
-	if mgr == nil || factory == nil {
+	if mgr == nil || (factory == nil && vmFactory == nil) {
 		if sender != nil {
 			failResult := protocol.TerminalOpenResultMessage{
 				BaseEnvelope: protocol.BaseEnvelope{
@@ -1016,11 +1026,14 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 
 	// 4. 세션 조회 또는 생성 (동일 Generation/Target 시맨틱 일치성 보장)
 	session, _, err := mgr.GetOrCreateSession(openMsg.Payload, openMsg.BaseEnvelope, func() (terminal.PTYChannel, error) {
+		if vmFactory != nil {
+			return vmFactory(ctx, vmaccess.Target{LabInstanceID: openMsg.LabInstanceID, Generation: openMsg.Generation, VMKey: openMsg.Payload.TargetVmKey, ServerID: openMsg.Payload.ProviderServerID}, openMsg.Payload.Cols, openMsg.Payload.Rows)
+		}
 		return factory(openMsg.Payload.TargetVmKey, openMsg.Payload.ProviderServerID, openMsg.Payload.Cols, openMsg.Payload.Rows)
 	})
 	if err != nil {
 		errCode := protocol.TerminalErrAttachFailed
-		if errors.Is(err, terminal.ErrStaleGeneration) || errors.Is(err, terminal.ErrSessionConflict) {
+		if errors.Is(err, terminal.ErrStaleGeneration) || errors.Is(err, terminal.ErrSessionConflict) || errors.Is(err, vmaccess.ErrInvalidTarget) {
 			errCode = protocol.TerminalErrInvalidSession
 		}
 		if sender != nil {
@@ -1038,7 +1051,7 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 					Outcome: protocol.OutcomeFailed,
 					Error: &protocol.SafeError{
 						Code:    errCode,
-						Message: err.Error(),
+						Message: "Terminal VM access could not be opened",
 					},
 				},
 			}
@@ -1180,7 +1193,7 @@ func (h *Handler) sendTerminalEndedRaw(replyToMsgID string, sessionID, labID str
 	if err != nil {
 		endedMsg.Payload.Error = &protocol.SafeError{
 			Code:    "SESSION_ERROR",
-			Message: err.Error(),
+			Message: "Terminal SSH channel ended",
 		}
 	}
 	_ = sender.SendMessage(context.Background(), endedMsg)

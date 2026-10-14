@@ -90,6 +90,7 @@ type Supervisor struct {
 	currentClient  *Client
 	onConnected    func(ack *protocol.HelloAckPayload)
 	onDisconnected func(err error)
+	onShutdown     func()
 }
 
 // NewSupervisor 는 새 WSS Supervisor 인스턴스를 생성합니다.
@@ -115,6 +116,15 @@ func (s *Supervisor) SetOnDisconnected(cb func(err error)) {
 	s.onDisconnected = cb
 }
 
+// SetOnShutdown runs before closing the current Control connection on process
+// cancellation, allowing lifecycle notifications to use its established sender.
+// Ordinary transport disconnect/reconnect does not invoke it.
+func (s *Supervisor) SetOnShutdown(cb func()) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.onShutdown = cb
+}
+
 // CurrentClient 는 현재 활성화된 WSS Client 인스턴스를 반환합니다.
 func (s *Supervisor) CurrentClient() *Client {
 	s.mu.RLock()
@@ -126,6 +136,15 @@ func (s *Supervisor) CurrentClient() *Client {
 // 재접속 시 "재접속은 Operation Retry가 아니다" 원칙에 따라 기존 상태를 재시도하지 않고 순수 연결 복구만 수행합니다.
 func (s *Supervisor) Run(ctx context.Context) error {
 	attempt := 0
+	shutdown := sync.OnceFunc(func() {
+		s.mu.RLock()
+		cb := s.onShutdown
+		s.mu.RUnlock()
+		if cb != nil {
+			cb()
+		}
+	})
+	defer shutdown()
 
 	for {
 		select {
@@ -141,6 +160,9 @@ func (s *Supervisor) Run(ctx context.Context) error {
 
 		// 단일 세션 실행 (Dial -> Hello -> Heartbeat & Listen)
 		connected, err := s.runSession(ctx, client)
+		if ctx.Err() != nil {
+			shutdown()
+		}
 		_ = client.Close()
 
 		s.mu.Lock()

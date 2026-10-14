@@ -1,0 +1,575 @@
+{
+  "recordedAt": "2026-10-12T05:56:23.819901+00:00",
+  "testedSource": "source-manifest.json: HEAD ed7843e plus 11 pinned local files",
+  "runs": {
+    "go-unit": {
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./..."
+      ],
+      "startedAt": "2026-10-12T05:19:30.325979+00:00",
+      "endedAt": "2026-10-12T05:19:55.864722+00:00",
+      "exitCode": 0,
+      "counts": {
+        "skip_packages": 9,
+        "pass_tests": 2856,
+        "pass_packages": 31,
+        "skip_tests": 7
+      },
+      "skips": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-server",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/db/migrations",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ControlWSSIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM1Integration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ProvisionIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM3LifecycleIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackInternetPolicyIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+          "test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackVMAccessIntegration"
+        }
+      ],
+      "testResults": []
+    },
+    "go-race": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-json",
+        "-count=1",
+        "./internal/connector/vmaccess",
+        "./internal/connector/provider/openstack",
+        "./internal/connector/app",
+        "./internal/connector/terminal",
+        "./internal/connector/wss"
+      ],
+      "startedAt": "2026-10-12T05:19:59.838768+00:00",
+      "endedAt": "2026-10-12T05:20:14.237184+00:00",
+      "exitCode": 0,
+      "counts": {
+        "pass_tests": 392,
+        "skip_tests": 6,
+        "pass_packages": 5
+      },
+      "skips": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ControlWSSIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM1Integration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ProvisionIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM3LifecycleIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackInternetPolicyIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackVMAccessIntegration"
+        }
+      ],
+      "testResults": []
+    },
+    "regression-repeat": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-json",
+        "-count=20",
+        "-run",
+        "TestCanceledChannelLeavesActivePTYUsable|TestCanceledOpenClosesLateChannelAndReusesTransport|TestStalledOpenDoesNotAccumulateCanceledSSHRequests|TestVMAccessProviderFailuresAndTargetMismatchControlCodes|TestLatestMainControlProviderAndTerminalShareRuntime|TestTerminalShutdownRejectsDelayedOpensAndEndsOnce|TestSupervisor_LifecycleAndReconnect",
+        "./internal/connector/vmaccess",
+        "./internal/connector/provider/openstack",
+        "./internal/connector/app",
+        "./internal/connector/terminal",
+        "./internal/connector/wss"
+      ],
+      "startedAt": "2026-10-12T05:20:14.238190+00:00",
+      "endedAt": "2026-10-12T05:20:41.323692+00:00",
+      "exitCode": 0,
+      "counts": {
+        "pass_tests": 600,
+        "pass_packages": 5
+      },
+      "skips": [],
+      "testResults": []
+    },
+    "pre-discovery": {
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-timeout=2m",
+        "-run",
+        "^TestOpenStackM1Integration$",
+        "./internal/connector/provider/openstack"
+      ],
+      "startedAt": "2026-10-12T05:19:24.943050+00:00",
+      "endedAt": "2026-10-12T05:19:30.728878+00:00",
+      "exitCode": 0,
+      "counts": {
+        "pass_tests": 1,
+        "pass_packages": 1
+      },
+      "skips": [],
+      "testResults": [
+        {
+          "Test": "TestOpenStackM1Integration",
+          "Action": "pass",
+          "Elapsed": 1.26
+        }
+      ]
+    },
+    "real-vm-access": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-json",
+        "-count=1",
+        "-timeout=18m",
+        "-run",
+        "^TestOpenStackVMAccessIntegration$",
+        "./internal/connector/provider/openstack"
+      ],
+      "startedAt": "2026-10-12T05:19:30.729872+00:00",
+      "endedAt": "2026-10-12T05:23:20.417402+00:00",
+      "exitCode": 0,
+      "counts": {
+        "pass_tests": 1,
+        "pass_packages": 1
+      },
+      "skips": [],
+      "testResults": [
+        {
+          "Test": "TestOpenStackVMAccessIntegration",
+          "Action": "pass",
+          "Elapsed": 217.25
+        }
+      ]
+    },
+    "real-app-boundaries": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-overlay",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-review-followup-20261012\\app-overlay.json",
+        "-json",
+        "-count=1",
+        "-timeout=20m",
+        "-run",
+        "^TestLBT147RealAppBoundaries$",
+        "./internal/connector/app"
+      ],
+      "startedAt": "2026-10-12T05:23:20.417899+00:00",
+      "endedAt": "2026-10-12T05:27:21.424936+00:00",
+      "exitCode": 0,
+      "counts": {
+        "pass_tests": 8,
+        "pass_packages": 1
+      },
+      "skips": [],
+      "testResults": [
+        {
+          "Test": "TestLBT147RealAppBoundaries/P2-real-Keystone-waiter-deadline-and-cancel",
+          "Action": "pass",
+          "Elapsed": 0.86
+        },
+        {
+          "Test": "TestLBT147RealAppBoundaries/P2-real-Keystone-owner-cancel-and-retry",
+          "Action": "pass",
+          "Elapsed": 1.27
+        },
+        {
+          "Test": "TestLBT147RealAppBoundaries/P1-real-Reset-preflight-preserves-active-SSH",
+          "Action": "pass",
+          "Elapsed": 2.68
+        },
+        {
+          "Test": "TestLBT147RealAppBoundaries/P1-real-Cleanup-first-delete-rejected",
+          "Action": "pass",
+          "Elapsed": 1.76
+        },
+        {
+          "Test": "TestLBT147RealAppBoundaries/P1-real-Reset-partial-cleanup-failure",
+          "Action": "pass",
+          "Elapsed": 10.8
+        },
+        {
+          "Test": "TestLBT147RealAppBoundaries/P1-real-Cleanup-partial-failure-already-absent-worker",
+          "Action": "pass",
+          "Elapsed": 0.52
+        },
+        {
+          "Test": "TestLBT147RealAppBoundaries/P1-real-Reset-replacement-creation-failure",
+          "Action": "pass",
+          "Elapsed": 14.89
+        },
+        {
+          "Test": "TestLBT147RealAppBoundaries",
+          "Action": "pass",
+          "Elapsed": 231.06
+        }
+      ]
+    },
+    "post-discovery-and-residual": {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-overlay",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-147-review-followup-20261012\\residual-overlay.json",
+        "-json",
+        "-count=1",
+        "-timeout=3m",
+        "-run",
+        "^(TestLBT147ReadOnlyResiduals|TestOpenStackM1Integration)$",
+        "./internal/connector/provider/openstack"
+      ],
+      "startedAt": "2026-10-12T05:27:21.425433+00:00",
+      "endedAt": "2026-10-12T05:27:34.256438+00:00",
+      "exitCode": 0,
+      "counts": {
+        "pass_tests": 2,
+        "pass_packages": 1
+      },
+      "skips": [],
+      "testResults": [
+        {
+          "Test": "TestOpenStackM1Integration",
+          "Action": "pass",
+          "Elapsed": 0.92
+        },
+        {
+          "Test": "TestLBT147ReadOnlyResiduals",
+          "Action": "pass",
+          "Elapsed": 1.68
+        }
+      ]
+    },
+    "go-vet": {
+      "command": [
+        "go",
+        "vet",
+        "./..."
+      ],
+      "startedAt": "2026-10-12T05:19:27.100820+00:00",
+      "endedAt": "2026-10-12T05:19:30.324911+00:00",
+      "exitCode": 0
+    },
+    "go-build": {
+      "command": [
+        "go",
+        "build",
+        "./..."
+      ],
+      "startedAt": "2026-10-12T05:19:55.865489+00:00",
+      "endedAt": "2026-10-12T05:19:59.838268+00:00",
+      "exitCode": 0
+    },
+    "gofmt": {
+      "exitCode": 0,
+      "filesChecked": 316,
+      "unformatted": []
+    },
+    "web-typecheck": {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+        "run",
+        "typecheck"
+      ],
+      "startedAt": "2026-10-12T05:19:24.905759+00:00",
+      "endedAt": "2026-10-12T05:19:39.207930+00:00",
+      "exitCode": 0
+    },
+    "web-lint": {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+        "run",
+        "lint"
+      ],
+      "startedAt": "2026-10-12T05:19:39.211406+00:00",
+      "endedAt": "2026-10-12T05:20:18.294770+00:00",
+      "exitCode": 0
+    },
+    "web-test": {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+        "run",
+        "test"
+      ],
+      "startedAt": "2026-10-12T05:20:18.295875+00:00",
+      "endedAt": "2026-10-12T05:20:57.712106+00:00",
+      "exitCode": 0
+    },
+    "web-build": {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+        "run",
+        "build"
+      ],
+      "startedAt": "2026-10-12T05:20:57.712974+00:00",
+      "endedAt": "2026-10-12T05:20:59.960230+00:00",
+      "exitCode": 0
+    },
+    "contracts": {
+      "exitCode": 0,
+      "scope": "OpenAPI + exact JSON Schema and Runtime/Migration Python from current workflow"
+    },
+    "reset-schema": {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-vm-access-147\\contracts\\connector\\tests\\test_reset_schema.py",
+        "-v"
+      ],
+      "startedAt": "2026-10-12T05:22:15.499978+00:00",
+      "endedAt": "2026-10-12T05:22:15.735795+00:00",
+      "exitCode": 0
+    }
+  },
+  "historicalFailures": [
+    "before-fix-regressions.log",
+    "initial-after-fix.log",
+    "independent-before-r1.jsonl",
+    "independent-before-r2.jsonl",
+    "independent-before-r3.jsonl",
+    "independent-after-unacked-setup.jsonl",
+    "validator-install.log"
+  ],
+  "limits": [
+    "Go JSON counts include subtests; repeat count includes all 20 runs",
+    "The 9 package skips mean no test files",
+    "Mock/local fixtures do not constitute deployed Browser/SaaS E2E",
+    "CI old-head PASS does not verify these local fixes"
+  ],
+  "webTestCounts": {
+    "files": 13,
+    "tests": 163
+  },
+  "cloudExitCodes": {
+    "pre": 0,
+    "vm": 0,
+    "app": 0,
+    "post": 0
+  },
+  "resetSchemaTests": 11,
+  "latestVerification": {
+    "reason": "User requested refresh, another final verification and branch upload",
+    "refresh": "latest-refresh.json: main/SSOT/review unchanged",
+    "runs": {
+      "contracts": {
+        "exitCode": 0,
+        "scope": "OpenAPI + exact JSON Schema and Runtime/Migration Python from current workflow"
+      },
+      "go-build": {
+        "command": [
+          "go",
+          "build",
+          "./..."
+        ],
+        "startedAt": "2026-10-12T05:43:56.372042+00:00",
+        "endedAt": "2026-10-12T05:44:00.666504+00:00",
+        "exitCode": 0
+      },
+      "go-race": {
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-json",
+          "-count=1",
+          "./internal/connector/vmaccess",
+          "./internal/connector/provider/openstack",
+          "./internal/connector/app",
+          "./internal/connector/terminal",
+          "./internal/connector/wss"
+        ],
+        "startedAt": "2026-10-12T05:44:00.667157+00:00",
+        "endedAt": "2026-10-12T05:44:13.599970+00:00",
+        "exitCode": 0,
+        "counts": {
+          "pass_tests": 392,
+          "skip_tests": 6,
+          "pass_packages": 5
+        }
+      },
+      "go-unit": {
+        "command": [
+          "go",
+          "test",
+          "-json",
+          "-count=1",
+          "./..."
+        ],
+        "startedAt": "2026-10-12T05:43:32.859201+00:00",
+        "endedAt": "2026-10-12T05:43:56.371035+00:00",
+        "exitCode": 0,
+        "counts": {
+          "skip_packages": 9,
+          "pass_tests": 2856,
+          "pass_packages": 31,
+          "skip_tests": 7
+        }
+      },
+      "go-vet": {
+        "command": [
+          "go",
+          "vet",
+          "./..."
+        ],
+        "startedAt": "2026-10-12T05:43:27.175626+00:00",
+        "endedAt": "2026-10-12T05:43:32.858665+00:00",
+        "exitCode": 0
+      },
+      "gofmt": {
+        "exitCode": 0,
+        "filesChecked": 318,
+        "unformatted": []
+      },
+      "regression-repeat": {
+        "command": [
+          "go",
+          "test",
+          "-race",
+          "-json",
+          "-count=20",
+          "-run",
+          "TestCanceledChannelLeavesActivePTYUsable|TestCanceledOpenClosesLateChannelAndReusesTransport|TestStalledOpenDoesNotAccumulateCanceledSSHRequests|TestVMAccessProviderFailuresAndTargetMismatchControlCodes|TestLatestMainControlProviderAndTerminalShareRuntime|TestTerminalShutdownRejectsDelayedOpensAndEndsOnce|TestSupervisor_LifecycleAndReconnect",
+          "./internal/connector/vmaccess",
+          "./internal/connector/provider/openstack",
+          "./internal/connector/app",
+          "./internal/connector/terminal",
+          "./internal/connector/wss"
+        ],
+        "startedAt": "2026-10-12T05:44:13.600972+00:00",
+        "endedAt": "2026-10-12T05:44:38.953347+00:00",
+        "exitCode": 0,
+        "counts": {
+          "pass_tests": 600,
+          "pass_packages": 5
+        }
+      },
+      "reset-schema": {
+        "command": [
+          "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-vm-access-147\\contracts\\connector\\tests\\test_reset_schema.py",
+          "-v"
+        ],
+        "startedAt": "2026-10-12T05:43:27.557263+00:00",
+        "endedAt": "2026-10-12T05:43:27.810071+00:00",
+        "exitCode": 0
+      },
+      "web-build": {
+        "command": [
+          "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+          "run",
+          "build"
+        ],
+        "startedAt": "2026-10-12T05:41:05.995539+00:00",
+        "endedAt": "2026-10-12T05:41:07.116405+00:00",
+        "exitCode": 0
+      },
+      "web-lint": {
+        "command": [
+          "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+          "run",
+          "lint"
+        ],
+        "startedAt": "2026-10-12T05:40:49.836946+00:00",
+        "endedAt": "2026-10-12T05:40:54.549366+00:00",
+        "exitCode": 0
+      },
+      "web-test": {
+        "command": [
+          "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+          "run",
+          "test"
+        ],
+        "startedAt": "2026-10-12T05:40:54.549945+00:00",
+        "endedAt": "2026-10-12T05:41:05.994700+00:00",
+        "exitCode": 0
+      },
+      "web-typecheck": {
+        "command": [
+          "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+          "run",
+          "typecheck"
+        ],
+        "startedAt": "2026-10-12T05:40:45.387439+00:00",
+        "endedAt": "2026-10-12T05:40:49.836188+00:00",
+        "exitCode": 0
+      }
+    },
+    "initialHelperFailuresPreserved": "latest-check/initial-*; mixed Go fixtures and missing external Python path repaired; no production edit",
+    "postRealCloudCodeChange": "none; identical 54 byte pins and committed Git blobs"
+  }
+}

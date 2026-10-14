@@ -1,0 +1,145 @@
+{
+  "archive": "audit-logs.zip",
+  "entries": [
+    {
+      "entry": "automated/AUDIT.md",
+      "sha256": "f373111a327e4bba32772acf21fc70bb3c74ce537d179003d6528714fb8b0580",
+      "bytes": 22603
+    },
+    {
+      "entry": "automated/reviewer.md",
+      "sha256": "342aac5ee48451f8933d5b71dcd850f9e6a2f56d6f3bf7942f8c9812a302e14f",
+      "bytes": 11745
+    },
+    {
+      "entry": "automated/reviewer-source.json",
+      "sha256": "c26969892f15a0f5b4e69895bf5e35c4acf8d30302f25c272051dd2cabddc539",
+      "bytes": 1201
+    },
+    {
+      "entry": "automated/source-manifest.json",
+      "sha256": "cce35094016ea44758178b35d5a4ab695546abc982b5f6a2bd52323f03be3531",
+      "bytes": 8675
+    },
+    {
+      "entry": "automated/before-fix-initial-fixture-panic.log",
+      "sha256": "3584084562285ac050d67f72ee01a6d1f35b9f0651e8a8685aef03b30ef8c710",
+      "bytes": 2395
+    },
+    {
+      "entry": "automated/before-fix-regression-final.log",
+      "sha256": "2c48af7fc8e0cdc3c39aa737d411253ad19b49ccc769bd1f70a0c841d755dcfd",
+      "bytes": 3809
+    },
+    {
+      "entry": "automated/go-unit.jsonl",
+      "sha256": "db6cccacb4a57a1bcd6e1a059d4bc1b2c0feb3e0a368a6b60dcd92a0a283f732",
+      "bytes": 3190221
+    },
+    {
+      "entry": "automated/go-unit.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "entry": "automated/go-race.jsonl",
+      "sha256": "74a6d4f885375d372cc8f44044159872cc0bd4f86ad5f9bce1fba42f016d77e8",
+      "bytes": 392498
+    },
+    {
+      "entry": "automated/go-race.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "entry": "automated/regression-repeat.log",
+      "sha256": "f5e693a08d1cbfe80c1e808ce96848df0061b7bd99878be1ea1c2b9ce6382e8e",
+      "bytes": 71
+    },
+    {
+      "entry": "automated/prior-finding-reproduction.log",
+      "sha256": "0caf0a607281df9baab5a333b5f4d396c59ac66231fc072b58d9ba4b3c2c768d",
+      "bytes": 70
+    },
+    {
+      "entry": "automated/web-validation.log",
+      "sha256": "aaf8cbd63b63fc2197e667baa98786e85486519eec9dca4e15b1779d8efa1de6",
+      "bytes": 1159
+    },
+    {
+      "entry": "automated/go-static.log",
+      "sha256": "8315c5d3fa8497516ef197c187b1c67820b323f7c9c74bc20461ef986458744d",
+      "bytes": 32
+    },
+    {
+      "entry": "automated/go-vet.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "entry": "automated/go-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "entry": "automated/contracts.log",
+      "sha256": "05647133453470a8d9ab7335b4cfa073e650409f56be918f8c86bef3f3cbcb0d",
+      "bytes": 665
+    },
+    {
+      "entry": "automated/reset-schema.log",
+      "sha256": "efb5884661f8cf8a9930c580e2584bdd80dee7e3cdbdb703163e0600094686a0",
+      "bytes": 115
+    },
+    {
+      "entry": "real/AUDIT.md",
+      "sha256": "940f888dd3bb615c74389dee12108cb9c9591d46a9c4e5b01a5d42f1d1e03e7c",
+      "bytes": 15123
+    },
+    {
+      "entry": "real/reviewer.md",
+      "sha256": "41eaa7258a087f0dca8a21ce2129d55f33a65a721bcfc20098b2fd3dd52c1150",
+      "bytes": 15911
+    },
+    {
+      "entry": "real/app_real_integration_test.go",
+      "sha256": "0a059260b755e6b9a133b0291cff6bb9e055e3a0463c21cbb627e091bbe77b43",
+      "bytes": 30054
+    },
+    {
+      "entry": "real/read_only_residual_test.go",
+      "sha256": "8c2e7deff265da0dbb18faf96d3a1f74415237c95fd7ad724f4a720a35945729",
+      "bytes": 4064
+    },
+    {
+      "entry": "real/app-overlay-compile.log",
+      "sha256": "3b099b23ca695377a2b18d2736b394e135720993760eeadc251a35eb306d0d5a",
+      "bytes": 88
+    },
+    {
+      "entry": "real/pre-discovery.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "entry": "real/real-vm-access.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "entry": "real/real-app-boundaries.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "entry": "real/post-discovery-and-residual.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "entry": "ARCHIVE-NOTE.txt",
+      "sha256": "e4c42a46801c0ee9f6b6e2b63a1c295ed482f12f7a1ff17e4d9ed71d04d5d0f6",
+      "bytes": 250
+    }
+  ]
+}

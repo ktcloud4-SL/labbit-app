@@ -1,0 +1,94 @@
+{
+  "backedUpFiles": 1066,
+  "unchangedBytes": 1046,
+  "lineEndingOnly": [
+    "docs/connector/evidence/LBT-145/2026-10-07/KT-support-request.txt",
+    "docs/connector/evidence/LBT-145/2026-10-07/portal-delete-observation.json",
+    "docs/connector/evidence/LBT-145/2026-10-07/residual-current.json",
+    "internal/connector/provider/openstack/ktcloud_d1_names.go",
+    "internal/connector/provider/openstack/ktcloud_d1_names_test.go",
+    "tools/ktcloud-d1-acceptance/reset_evidence_test.go",
+    "tools/ktcloud-d1-acceptance/scope_test.go"
+  ],
+  "contentChanges": [
+    {
+      "path": "docs/connector/evidence/LBT-145/2026-10-07/README.md",
+      "reason": "current Evidence index",
+      "beforeSHA256": "5f5d352e3634cf4885e6cf9b42483c11a8c00847b53fac678f1dbeb45eed7cf2",
+      "afterSHA256": "b11f79bae220aa871319337a1a72f3a1d192b1ddc8d4f869bdf0c8796272bb7b"
+    },
+    {
+      "path": "docs/frontend/deployment-handoff.md",
+      "reason": "latest-main integration",
+      "beforeSHA256": "5b96464be518981652513140c872bfa43695ecd938e4172779581835d53bb84f",
+      "afterSHA256": "7a46c5da461e243fe5c2ad85a767c6943b63d56839ec2273daa6f27300c3271c"
+    },
+    {
+      "path": "go.mod",
+      "reason": "latest-main integration",
+      "beforeSHA256": "7d17748d2dec232871311dca37bbd5ab64378322bbcb372c02ae41a28f7a1efe",
+      "afterSHA256": "1d5ead947d48b50453994040f0a929ae9d0f39eaa51cccaeb3b16528f82cbc88"
+    },
+    {
+      "path": "go.sum",
+      "reason": "latest-main integration",
+      "beforeSHA256": "63845d90b22e82a33cd1176d552d8ceec057becf965f92824fe8a3c4672f9409",
+      "afterSHA256": "6a55f811a0f9ba0d145fa5bc39d688ba90e489364af3aa7509278c2a60b99923"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_network_integration_test.go",
+      "reason": "authorized ownership/recovery fixes",
+      "beforeSHA256": "c61bb7a6d97bf461eef35e18e144516bd00f7bd6e5a920dd29f100bc05ca2880",
+      "afterSHA256": "a81d35066b21a8a7deef752bc2050e862bb8b01eb5491f36604f89aac2c74ea6"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_topology.go",
+      "reason": "authorized ownership/recovery fixes",
+      "beforeSHA256": "27366702474a66c10f4a26b9847f7bec2370426c55b0f108f8382e3be81f5250",
+      "afterSHA256": "77e5a32e61e2f72a393317bffc2ddde8c399aff1b037e959d564e43ecc374d10"
+    },
+    {
+      "path": "internal/observability/tracing/runtime.go",
+      "reason": "latest-main integration",
+      "beforeSHA256": "9db882976feac5fdf0b739b153d198acabf50811eadf99fafff2f85cceca3400",
+      "afterSHA256": "83e31ded300573f08a8888b2b0c8354a6c19702941d675e72b7209fac056bcf9"
+    },
+    {
+      "path": "internal/observability/tracing/runtime_test.go",
+      "reason": "latest-main integration",
+      "beforeSHA256": "a3e97dbc64f32a65923f16573b0485b0bcb0bdbc97c93ed78266269f5c0b7a0c",
+      "afterSHA256": "9038df6c6a09585e11c58e98d6a21f4b609d91ca11e4bc860d7ded3e61bcbbe8"
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/main.go",
+      "reason": "authorized ownership/recovery fixes",
+      "beforeSHA256": "682af0c310f30b98c64171214740062a91842974d7700794541557485ecb7dbe",
+      "afterSHA256": "7f1ee183eb1631e9e9b6d27682f889adab60e2e5249d335477dfec2c6b1d77a7"
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/scope.go",
+      "reason": "authorized ownership/recovery fixes",
+      "beforeSHA256": "5dfd3a9f849dbca47d63ecd69eee368547c400b20fa6a8fb62c7a034b25894bd",
+      "afterSHA256": "957258d977a7ad805c470bf16b2c45f3d070378110684eab2186c11a7ca84a9f"
+    },
+    {
+      "path": "web/package-lock.json",
+      "reason": "latest-main integration",
+      "beforeSHA256": "f5495c682531a3c03e3fa36af5f5388bf3d4d87762c1ca1a30a6ff325154b478",
+      "afterSHA256": "a045e6377751d55539eb0d4d2c684220a6b7bb5b0c6e444d697904671cc99a87"
+    },
+    {
+      "path": "web/package.json",
+      "reason": "latest-main integration",
+      "beforeSHA256": "1ed9f429c3407a1a649e53af5dfa3dad97551d76955c0dfd4a46bcfe80d7e436",
+      "afterSHA256": "793e6120c11d3b7f9dda4424a9e63f1000404ba6dea096a1864c6eedb2a5b601"
+    }
+  ],
+  "missing": [
+    {
+      "path": ".github/workflows/delivery.yml",
+      "reason": "latest-main deletion"
+    }
+  ],
+  "unexpectedChanges": []
+}

@@ -1,0 +1,248 @@
+{
+  "at": "2026-10-07T08:24:25Z",
+  "mode": "read-only preflight; no resource mutations",
+  "records": [
+    {
+      "check": "current-OP01-initializer",
+      "status": "FAIL",
+      "detail": "OpenStack authentication failed"
+    },
+    {
+      "check": "http",
+      "status": "OBSERVED",
+      "detail": {
+        "code": 500,
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/identity/",
+        "method": "GET"
+      }
+    },
+    {
+      "check": "sdk-default-authentication-trace",
+      "status": "FAIL",
+      "detail": "HTTP 500"
+    },
+    {
+      "check": "http",
+      "status": "OBSERVED",
+      "detail": {
+        "code": 201,
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/identity/auth/tokens",
+        "method": "POST"
+      }
+    },
+    {
+      "check": "explicit-gateway-identity",
+      "status": "PASS",
+      "detail": "HTTP 201; selected project scope confirmed"
+    },
+    {
+      "check": "http",
+      "status": "OBSERVED",
+      "detail": {
+        "code": 200,
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/identity/auth/tokens",
+        "method": "HEAD"
+      }
+    },
+    {
+      "check": "explicit-gateway-token-validation",
+      "status": "PASS"
+    },
+    {
+      "check": "catalog-compute",
+      "status": "OBSERVED",
+      "detail": "https://api.ucloudbiz.olleh.com/d1/nova/v2.1"
+    },
+    {
+      "check": "catalog-volumev3",
+      "status": "OBSERVED",
+      "detail": "https://api.ucloudbiz.olleh.com/d1/cinder/v3/[id]"
+    },
+    {
+      "check": "catalog-image",
+      "status": "OBSERVED",
+      "detail": "https://api.ucloudbiz.olleh.com/d1/glance"
+    },
+    {
+      "check": "catalog-sharev2",
+      "status": "OBSERVED",
+      "detail": "https://api.ucloudbiz.olleh.com/d1/manila/v3/[id]"
+    },
+    {
+      "check": "catalog-network",
+      "status": "OBSERVED",
+      "detail": "https://api.ucloudbiz.olleh.com/d1/neutron"
+    },
+    {
+      "check": "catalog-identity",
+      "status": "OBSERVED",
+      "detail": "https://api.ucloudbiz.olleh.com/d1/keystone"
+    },
+    {
+      "check": "http",
+      "status": "OBSERVED",
+      "detail": {
+        "code": 404,
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/nova/v2.1/servers/detail",
+        "method": "GET"
+      }
+    },
+    {
+      "check": "catalog-compute-servers",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "check": "http",
+      "status": "OBSERVED",
+      "detail": {
+        "code": 404,
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/glance/v2/images",
+        "method": "GET"
+      }
+    },
+    {
+      "check": "catalog-image-images",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "check": "http",
+      "status": "OBSERVED",
+      "detail": {
+        "code": 200,
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/server/servers/detail",
+        "method": "GET"
+      }
+    },
+    {
+      "check": "explicit-gateway-servers",
+      "status": "PASS",
+      "detail": {
+        "count": 0
+      }
+    },
+    {
+      "check": "http",
+      "status": "OBSERVED",
+      "detail": {
+        "code": 200,
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/server/flavors/detail",
+        "method": "GET"
+      }
+    },
+    {
+      "check": "explicit-gateway-flavors",
+      "status": "PASS",
+      "detail": {
+        "count": 235
+      }
+    },
+    {
+      "check": "http",
+      "status": "OBSERVED",
+      "detail": {
+        "code": 200,
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/image/images",
+        "method": "GET"
+      }
+    },
+    {
+      "check": "explicit-gateway-images",
+      "status": "PASS",
+      "detail": {
+        "count": 12
+      }
+    },
+    {
+      "check": "catalog-network-client",
+      "status": "OBSERVED",
+      "detail": "https://api.ucloudbiz.olleh.com/d1/neutron/v2.0/"
+    },
+    {
+      "check": "http",
+      "status": "OBSERVED",
+      "detail": {
+        "code": 404,
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/neutron/",
+        "method": "GET"
+      }
+    },
+    {
+      "check": "catalog-network-version-discovery",
+      "status": "FAIL",
+      "detail": {
+        "category": "HTTP 404",
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/neutron/"
+      }
+    },
+    {
+      "check": "http",
+      "status": "OBSERVED",
+      "detail": {
+        "code": 404,
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/neutron/v2.0/",
+        "method": "GET"
+      }
+    },
+    {
+      "check": "catalog-network-version-discovery",
+      "status": "FAIL",
+      "detail": {
+        "category": "HTTP 404",
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/neutron/v2.0/"
+      }
+    },
+    {
+      "check": "http",
+      "status": "OBSERVED",
+      "detail": {
+        "code": 404,
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/neutron/v2.0/networks",
+        "method": "GET"
+      }
+    },
+    {
+      "check": "catalog-neutron-networks",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "check": "http",
+      "status": "OBSERVED",
+      "detail": {
+        "code": 404,
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/neutron/v2.0/subnets",
+        "method": "GET"
+      }
+    },
+    {
+      "check": "catalog-neutron-subnets",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "check": "http",
+      "status": "OBSERVED",
+      "detail": {
+        "code": 200,
+        "endpoint": "https://api.ucloudbiz.olleh.com/d1/nsm/v1/network",
+        "method": "GET"
+      }
+    },
+    {
+      "check": "kt-tier-first-page",
+      "status": "PASS",
+      "detail": {
+        "count": 3,
+        "distinct-networkId-refId": 2,
+        "empty-refId": 1
+      }
+    },
+    {
+      "check": "lifecycle-acceptance",
+      "status": "NOT_RUN",
+      "detail": "Requires Connector VM and subsequent explicit lifecycle validation; residual count unknown"
+    }
+  ]
+}

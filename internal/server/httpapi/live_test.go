@@ -62,8 +62,8 @@ func newLiveHarness(t *testing.T, liveSvc LiveSessions) (*liveHarness, http.Hand
 		h.liveSessions = fakeSvc
 	}
 	handler, err := New(Options{
-		Auth:         fake,
-		Classes:      classes,
+		Auth:    fake,
+		Classes: classes, LabSpecs: &fakeLabSpecs{},
 		LiveSessions: liveSvc,
 		PublicOrigin: trustedOrigin,
 		Logger:       slog.New(slog.NewJSONHandler(logs, nil)),

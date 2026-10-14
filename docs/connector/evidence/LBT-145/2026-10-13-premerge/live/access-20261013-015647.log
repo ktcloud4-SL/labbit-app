@@ -1,0 +1,21 @@
+Observed API mutation: method=POST route=identity/auth/tokens status=201
+Bootstrap: LOCAL_SSH_SOURCE_CIDR_CONFIRMED
+Bootstrap: PUBLIC_IP_CREATE_ATTEMPTED
+Observed API mutation: method=POST route=nsm/v1/publicIp status=201
+Bootstrap: PUBLIC_IP_ID_RECORDED
+Bootstrap: SSH_FORWARD_CREATE_ATTEMPTED
+Observed API mutation: method=POST route=nsm/v1/portforwarding status=201
+Bootstrap: SSH_FORWARD_ID_RECORDED
+Bootstrap: POLICY_bootstrap-ssh_CREATE_ATTEMPTED
+Observed API mutation: method=POST route=nsm/v1/firewall/policy status=202
+Bootstrap: POLICY_bootstrap-ssh_JOB_RECORDED
+Bootstrap: POLICY_bootstrap-ssh_CONFIRMED
+Bootstrap: POLICY_bootstrap-https_CREATE_ATTEMPTED
+Observed API mutation: method=POST route=nsm/v1/firewall/policy status=202
+Bootstrap: POLICY_bootstrap-https_JOB_RECORDED
+Bootstrap: POLICY_bootstrap-https_CONFIRMED
+Bootstrap: POLICY_bootstrap-dns_CREATE_ATTEMPTED
+Observed API mutation: method=POST route=nsm/v1/firewall/policy status=202
+Bootstrap: POLICY_bootstrap-dns_JOB_RECORDED
+Bootstrap: POLICY_bootstrap-dns_CONFIRMED
+Bootstrap: BOOTSTRAP_ACCESS_POLICIES_CONFIRMED

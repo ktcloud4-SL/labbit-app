@@ -62,8 +62,8 @@ func newTracingHarness(t *testing.T, withTracer bool) *tracingHarness {
 		logs:     &bytes.Buffer{},
 	}
 	opts := Options{
-		Auth:         h.auth,
-		Classes:      &fakeClasses{},
+		Auth:    h.auth,
+		Classes: &fakeClasses{}, LabSpecs: &fakeLabSpecs{},
 		Files:        h.files,
 		PublicOrigin: trustedOrigin,
 		Logger:       observability.NewJSONLoggerTo(h.logs, "labbit-server", "httpapi", "development", "info"),

@@ -17,9 +17,12 @@ import (
 type fakeStore struct {
 	classes     map[uuid.UUID]repository.Class
 	memberships map[[2]uuid.UUID]repository.ClassMembership // key: class ID, user ID
+	usernames   map[uuid.UUID]string
 
 	// 설정하면 해당 query가 이 오류를 반환한다.
-	classErr, membershipErr, listErr error
+	classErr, membershipErr, listErr, membersErr error
+	// members가 nil이 아니면 ClassMembers가 memberships 대신 이 값을 그대로 반환한다. 실제 DB에서는 불가능한 조합을 만들기 위한 것이다.
+	members []repository.ClassMember
 
 	calls int // 모든 query 호출 수
 }
@@ -30,6 +33,7 @@ func newFakeStore() *fakeStore {
 	return &fakeStore{
 		classes:     map[uuid.UUID]repository.Class{},
 		memberships: map[[2]uuid.UUID]repository.ClassMembership{},
+		usernames:   map[uuid.UUID]string{},
 	}
 }
 
@@ -40,6 +44,7 @@ func (f *fakeStore) addClass(orgID uuid.UUID, name string) repository.Class {
 }
 
 func (f *fakeStore) addMembership(class repository.Class, user repository.User, role repository.ClassRole) {
+	f.usernames[user.ID] = user.Username
 	f.memberships[[2]uuid.UUID{class.ID, user.ID}] = repository.ClassMembership{
 		OrganizationID: class.OrganizationID, ClassID: class.ID, UserID: user.ID, Role: role,
 	}
@@ -83,6 +88,45 @@ func (f *fakeStore) ClassesByUser(_ context.Context, userID uuid.UUID) ([]reposi
 	}
 	sortByName(items)
 	return items, nil
+}
+
+// ClassMembers는 실제 query처럼 Class의 모든 Membership을 INSTRUCTOR, STUDENT 순서로 반환한다(같은 역할 안의 순서는 username).
+func (f *fakeStore) ClassMembers(_ context.Context, classID uuid.UUID) ([]repository.ClassMember, error) {
+	f.calls++
+	if f.membersErr != nil {
+		return nil, f.membersErr
+	}
+	if f.members != nil {
+		return f.members, nil
+	}
+	var out []repository.ClassMember
+	for _, role := range []repository.ClassRole{repository.ClassRoleInstructor, repository.ClassRoleStudent} {
+		var group []repository.ClassMember
+		for key, m := range f.memberships {
+			if key[0] == classID && m.Role == role {
+				group = append(group, repository.ClassMember{
+					OrganizationID: m.OrganizationID, UserID: m.UserID, Username: f.usernames[m.UserID], Role: m.Role,
+				})
+			}
+		}
+		for i := 1; i < len(group); i++ {
+			for j := i; j > 0 && group[j].Username < group[j-1].Username; j-- {
+				group[j], group[j-1] = group[j-1], group[j]
+			}
+		}
+		out = append(out, group...)
+	}
+	return out, nil
+}
+
+func (f *fakeStore) HasClassRole(_ context.Context, userID uuid.UUID, role repository.ClassRole) (bool, error) {
+	f.calls++
+	for key, m := range f.memberships {
+		if key[1] == userID && m.Role == role {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func sortByName(items []repository.ClassWithRole) {
@@ -201,6 +245,7 @@ func TestListFailsClosedOnInconsistentRepositoryData(t *testing.T) {
 // listOnlyStore는 ClassesByUser가 미리 정한 값을 그대로 반환한다. 실제 DB에서는 불가능한 조합을 만들기 위한 것이다.
 type listOnlyStore struct {
 	repository.ClassRepository
+	repository.ClassMemberRepository
 	items []repository.ClassWithRole
 }
 

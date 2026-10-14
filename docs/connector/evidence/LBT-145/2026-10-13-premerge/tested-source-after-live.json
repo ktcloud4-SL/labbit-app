@@ -1,0 +1,10 @@
+{
+  "verifiedAtUTC": "2026-10-12T17:15:04.264243+00:00",
+  "sourceHead": "6a6fb4f97e676a80cfce27f85269f0627970fc9c",
+  "mainBase": "4501f447d7a8c527b17ff2e08ee1d2d2fd88a8aa",
+  "verifiedFiles": 348,
+  "verifiedBinaries": 3,
+  "sourceHashFormat": "SHA256 CRLF normalized to LF",
+  "mismatches": [],
+  "binaryMismatches": []
+}

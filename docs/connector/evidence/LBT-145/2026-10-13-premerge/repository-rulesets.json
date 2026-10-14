@@ -1,0 +1,124 @@
+[
+  {
+    "id": 23650107,
+    "name": "main-review",
+    "target": "branch",
+    "source_type": "Repository",
+    "source": "ktcloud4-SL/labbit-app",
+    "enforcement": "active",
+    "conditions": {
+      "ref_name": {
+        "exclude": [],
+        "include": [
+          "~DEFAULT_BRANCH"
+        ]
+      }
+    },
+    "rules": [
+      {
+        "type": "pull_request",
+        "parameters": {
+          "required_approving_review_count": 1,
+          "dismiss_stale_reviews_on_push": true,
+          "required_reviewers": [],
+          "require_code_owner_review": true,
+          "dismissal_restriction": {
+            "enabled": false,
+            "allowed_actors": []
+          },
+          "require_last_push_approval": false,
+          "required_review_thread_resolution": false,
+          "require_extra_approval_for_unattributed_changes": false,
+          "allowed_merge_methods": [
+            "merge",
+            "squash",
+            "rebase"
+          ]
+        }
+      }
+    ],
+    "node_id": "RRS_lACqUmVwb3NpdG9yec5R4-cEzgFo3zs",
+    "created_at": "2026-09-18T09:34:02.412Z",
+    "updated_at": "2026-09-18T09:34:02.44Z",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/ktcloud4-SL/labbit-app/rulesets/23650107"
+      },
+      "html": {
+        "href": "https://github.com/ktcloud4-SL/labbit-app/rules/23650107"
+      }
+    }
+  },
+  {
+    "id": 23648680,
+    "name": "main-safety",
+    "target": "branch",
+    "source_type": "Repository",
+    "source": "ktcloud4-SL/labbit-app",
+    "enforcement": "active",
+    "conditions": {
+      "ref_name": {
+        "exclude": [],
+        "include": [
+          "~DEFAULT_BRANCH"
+        ]
+      }
+    },
+    "rules": [
+      {
+        "type": "deletion"
+      },
+      {
+        "type": "pull_request",
+        "parameters": {
+          "required_approving_review_count": 0,
+          "dismiss_stale_reviews_on_push": false,
+          "required_reviewers": [],
+          "require_code_owner_review": false,
+          "dismissal_restriction": {
+            "enabled": false,
+            "allowed_actors": []
+          },
+          "require_last_push_approval": false,
+          "required_review_thread_resolution": true,
+          "require_extra_approval_for_unattributed_changes": false,
+          "allowed_merge_methods": [
+            "squash"
+          ]
+        }
+      },
+      {
+        "type": "required_status_checks",
+        "parameters": {
+          "strict_required_status_checks_policy": false,
+          "do_not_enforce_on_create": false,
+          "required_status_checks": [
+            {
+              "context": "test"
+            },
+            {
+              "context": "quality"
+            },
+            {
+              "context": "validate"
+            }
+          ]
+        }
+      },
+      {
+        "type": "non_fast_forward"
+      }
+    ],
+    "node_id": "RRS_lACqUmVwb3NpdG9yec5R4-cEzgFo2ag",
+    "created_at": "2026-09-18T09:05:30.34Z",
+    "updated_at": "2026-09-28T08:04:22.819Z",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/ktcloud4-SL/labbit-app/rulesets/23648680"
+      },
+      "html": {
+        "href": "https://github.com/ktcloud4-SL/labbit-app/rules/23648680"
+      }
+    }
+  }
+]

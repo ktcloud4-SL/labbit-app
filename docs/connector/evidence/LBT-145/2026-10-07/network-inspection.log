@@ -1,0 +1,12 @@
+Tier probe: READ_ONLY_PREFLIGHT
+Tier role=other CIDR= status= hasRefID=false
+Tier role=DMZ CIDR=172.25.0.0/24 status=ACTIVE hasRefID=true
+Tier role=Private CIDR=172.25.1.0/24 status=ACTIVE hasRefID=true
+Firewall policy count: 0
+Nova quota instances: limit=100 inUse=0 reserved=0
+Nova quota cores: limit=-1 inUse=0 reserved=0
+Nova quota ram: limit=-1 inUse=0 reserved=0
+Nova limits: HTTP 500
+Nova security groups: HTTP 500
+Nova keypair count: 0
+Public IP count: 0

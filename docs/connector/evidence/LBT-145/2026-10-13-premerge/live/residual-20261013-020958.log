@@ -1,0 +1,21 @@
+Observed API mutation: method=POST route=identity/auth/tokens status=201
+{
+  "at": "2026-10-12T17:10:11Z",
+  "ownedResourceCounts": {
+    "BOOTSTRAP_KEYPAIR": 1,
+    "BOOTSTRAP_KT_FIREWALL_POLICY": 3,
+    "BOOTSTRAP_PORT_FORWARD": 1,
+    "BOOTSTRAP_PUBLIC_IP": 1,
+    "BOOTSTRAP_SERVER": 1,
+    "BOOTSTRAP_VOLUME": 1,
+    "LAB_KT_FIREWALL_POLICY": 0,
+    "LAB_KT_TIER": 0,
+    "LAB_SERVER": 0,
+    "LAB_VOLUME": 0
+  },
+  "ownedResidualTotal": 8,
+  "basicTierCount": 2,
+  "externalNetworkEntryCount": 1,
+  "projectNetworkEntryCount": 3,
+  "status": "INCOMPLETE_RESIDUAL_NONZERO"
+}

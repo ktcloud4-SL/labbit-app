@@ -1,0 +1,102 @@
+{
+  "baselineHead": "42a865041b3855dad185adf2034fbf39a36746c3",
+  "testedSource": "804f9239b3386c4d029ef7d52df842d2f3f3c17f",
+  "baselineTrackedAndNonIgnoredUntrackedFiles": 1215,
+  "unchangedFiles": 1203,
+  "modified": [
+    {
+      "path": "db/migrations/README.md",
+      "beforeSHA256": "022b1e1dc9f1016d156e57fc2ab0f94906ab20750445e22d10301f0e8e5b4c4a",
+      "afterSHA256": "c15aba8a1d84b1a51c12e158fd87e59afc08b08ae360d1d00e513ffb8a739bd9",
+      "reason": "latest main integration"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_fixture_ledger_test.go",
+      "beforeSHA256": "718c625b8e6598d25cf05ebc8cb810f722d627179361abcfa465c0cb584038e7",
+      "afterSHA256": "430c666eb7db70f824a7db49cdbc1498937d5065348962b9f8e1a21dcd2a4162",
+      "reason": "this request"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_network_integration_test.go",
+      "beforeSHA256": "a81d35066b21a8a7deef752bc2050e862bb8b01eb5491f36604f89aac2c74ea6",
+      "afterSHA256": "8c41d087cce2b58d16023392099d292b81db50ea4a5f6c4fd3cb96fa5b3df764",
+      "reason": "this request"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_root_ownership_test.go",
+      "beforeSHA256": "3f8175335e29fc9f51248377159c01c47603fbb5e4f89450ab30e7d083f836e9",
+      "afterSHA256": "ea8d2503d62f228486128b96197dbca41c64d7df374e085f395a6a2936ee1633",
+      "reason": "this request"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_tier_ownership_test.go",
+      "beforeSHA256": "3d2c5a7629415ea549bdd637db8fac127cb3c90993a347baa28ba126293a32bc",
+      "afterSHA256": "736e45c94403acd672e24bbb0fd1935a2b68c1d785ab5dd6455683e4aff7ece0",
+      "reason": "this request"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_topology.go",
+      "beforeSHA256": "89eacda68349d6cb66901f3016354365919f03d48d5334e181dd5f39f97e1c0e",
+      "afterSHA256": "6fd83080916b1d291e5424d8038849702bca7ee033d2d84540f99e4a6475a574",
+      "reason": "this request"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target.go",
+      "beforeSHA256": "ee4e64ea34046a01d087e73da745c4dbd414cff0a59e88dab6eb018ba5ecaf8b",
+      "afterSHA256": "e0df014dc68c8fbd3fd1771a60773f0036dfb8f11a698315deddc3db8e703c1f",
+      "reason": "this request"
+    },
+    {
+      "path": "internal/postgres/migrate_integration_test.go",
+      "beforeSHA256": "b2ebcb65210950806f91df71321a5c6d4f5781aa393c65c5328f8ac9f303a543",
+      "afterSHA256": "0f327eabee6f00b9d1cbed95098594a95f6900f34b3279a5ef3d91d2813c6427",
+      "reason": "latest main integration"
+    },
+    {
+      "path": "internal/postgres/migration_test.go",
+      "beforeSHA256": "502e9c667541d866cf118c6552cd67b0decda9d31347fa7039375277e1da24f4",
+      "afterSHA256": "df89d525743d887faacd34103976263b113456c9684eec9bb7682e48b2a1a18b",
+      "reason": "latest main integration"
+    },
+    {
+      "path": "internal/server/app/control_stack.go",
+      "beforeSHA256": "170e07378bfdd15ac3d9bf6767217a08f9d91a729e0436d209856f511751a3a7",
+      "afterSHA256": "31709e4ed1ce93f647f52245513045595959d8526b2e98248eb8ecd6fe2ce469",
+      "reason": "latest main integration"
+    },
+    {
+      "path": "internal/server/httpapi/api.go",
+      "beforeSHA256": "ea07565dcbb3da0811981f1c098196badcd8a0d29b72f8aaff9f855d6d0c3953",
+      "afterSHA256": "a3b84fe897c321216f58a8c5a9a82ac0f3ccd8121e0d771377e8087cda389137",
+      "reason": "latest main integration"
+    },
+    {
+      "path": "internal/server/repository/port.go",
+      "beforeSHA256": "c2124dbfa7d2e7ae7cfc826b656b95f51193ed4931fe7a5cce00931c903a3d19",
+      "afterSHA256": "329e6392fea63ce9d271fb02cb29b2b1a5e158451b0d334f808a3dd00852fc28",
+      "reason": "latest main integration"
+    }
+  ],
+  "missing": [],
+  "unexpectedChanges": [],
+  "historicalEvidencePreserved": true,
+  "oldUntrackedWorkPreserved": true,
+  "rawBeforeManifestLocal": ".local/pr87-shared-20261013/before-files.json",
+  "historical433NotCurrentFileCount": true,
+  "newMainPaths": [
+    "db/migrations/000007_operation_updated_at.sql",
+    "internal/postgres/operation.go",
+    "internal/postgres/operation_generation_integration_test.go",
+    "internal/postgres/operation_integration_test.go",
+    "internal/server/httpapi/operation.go",
+    "internal/server/httpapi/operation_integration_test.go",
+    "internal/server/httpapi/operation_test.go",
+    "internal/server/operation/register.go",
+    "internal/server/operation/register_test.go",
+    "internal/server/operation/service.go",
+    "internal/server/operation/service_test.go",
+    "internal/server/repository/operation.go"
+  ],
+  "newSourcePath": "internal/connector/provider/openstack/ktcloud_d1_management_shared_test.go",
+  "unchangedSetSHA256": "eb4444d5c598d506a364c3ae4fabfa18b5935f0ca4d846ef161daaa5db6b2787"
+}

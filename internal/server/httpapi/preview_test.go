@@ -73,8 +73,8 @@ func newPreviewHarness(t *testing.T) *previewHarness {
 		ExpiresAt:  h.expires,
 	}
 	handler, err := New(Options{
-		Auth:         fake,
-		Classes:      classes,
+		Auth:    fake,
+		Classes: classes, LabSpecs: &fakeLabSpecs{},
 		Previews:     h.previews,
 		PublicOrigin: trustedOrigin,
 		Logger:       slog.New(slog.NewJSONHandler(logs, nil)),

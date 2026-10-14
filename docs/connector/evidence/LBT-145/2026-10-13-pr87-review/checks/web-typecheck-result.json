@@ -1,0 +1,11 @@
+{
+  "name": "web-typecheck",
+  "exitCode": 0,
+  "startedAtUTC": "2026-10-13T01:10:43.636657+00:00",
+  "command": [
+    "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+    "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\node_modules\\pnpm\\bin\\pnpm.mjs",
+    "run",
+    "typecheck"
+  ]
+}

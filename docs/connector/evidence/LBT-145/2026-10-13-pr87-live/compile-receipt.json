@@ -1,0 +1,11 @@
+{
+  "mode": "compile",
+  "head": "905ed25d1f2e04022bb814b83b61fb8eaa490366",
+  "started": "2026-10-13T01:38:40.765691+00:00",
+  "finished": "2026-10-13T01:38:48.058139+00:00",
+  "exitCode": 0,
+  "overlaySourceSha256": "ff562f77cd05444b62cd715dadb27a17b5f765ceaef4ccee1bfa2153d90ac59a",
+  "realNetworkGate": false,
+  "vmMutations": false,
+  "sourceFilesUnmodified": true
+}

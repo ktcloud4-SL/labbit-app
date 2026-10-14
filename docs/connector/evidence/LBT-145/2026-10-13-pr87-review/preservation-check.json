@@ -1,0 +1,42 @@
+{
+  "baselineHead": "b01e901b783691e393fb79cc871a4f5835ce1a49",
+  "currentHead": "4209eb58d31c39f03a476c415ee591e096e35459",
+  "beforeFileCount": 1142,
+  "unchangedFileCount": 1137,
+  "modified": [
+    {
+      "path": "docs/frontend/deployment-handoff.md",
+      "beforeSHA256": "7a46c5da461e243fe5c2ad85a767c6943b63d56839ec2273daa6f27300c3271c",
+      "afterSHA256": "831dde34b1ea9fe6e639a82d4e457a513f328ba2583ed6f7bd36b3978c8dbab8"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_names_test.go",
+      "beforeSHA256": "5ade105409545ff2fad090ff314e0e6961cdd453b44b2a6b1529c15e56df7f2a",
+      "afterSHA256": "807320362d6ce3a5305d8eafa901d739728ff30e36a88aa5818f8c594c8a7bb7"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_network.go",
+      "beforeSHA256": "47a060f7684a2f263a551817c9f29a9f3c06442d4c00ee09ceb8724ec07b9290",
+      "afterSHA256": "d0aa1e1e49ec1c5c173b9c4afcdc21a9e6b646225b126834eee4a1f2f81b2081"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_policy_ownership_test.go",
+      "beforeSHA256": "f7e3c1800dea6b73ceaea20cc55bb04a7b1d7e597e9192374dff6596866a7449",
+      "afterSHA256": "984bf825283b0069296d8aace4cc034ae4a4deda020c01874efc84a7f9b355bb"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_topology.go",
+      "beforeSHA256": "77e5a32e61e2f72a393317bffc2ddde8c399aff1b037e959d564e43ecc374d10",
+      "afterSHA256": "89eacda68349d6cb66901f3016354365919f03d48d5334e181dd5f39f97e1c0e"
+    }
+  ],
+  "missing": [],
+  "newPaths": [
+    "internal/connector/provider/openstack/ktcloud_d1_delete_receipt_test.go",
+    "internal/connector/provider/openstack/ktcloud_d1_tier_ownership_test.go"
+  ],
+  "unchangedSetSHA256": "cecc6c8956af6b7c560e3883b6c4a9f03ee772668dba4ee6e6cfcaec5e536acf",
+  "beforeManifestStoredLocally": ".local/pr87-review-20261013/before-files.json",
+  "baseline433SourcesIsHistorical": true,
+  "oldEvidencePreserved": true
+}

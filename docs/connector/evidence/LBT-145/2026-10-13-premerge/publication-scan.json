@@ -1,0 +1,11 @@
+{
+  "verifiedAtUTC": "2026-10-12T17:30:14.073597+00:00",
+  "workingCandidateFiles": 118,
+  "commitSnapshots": 11,
+  "blobsScanned": 197,
+  "exactProtectedCredentialValuesCompared": true,
+  "privateKeyAndCommonSecretPatternsChecked": true,
+  "credentialValuesPrinted": false,
+  "findings": [],
+  "portalScreenshotManuallyInspected": true
+}

@@ -1,0 +1,256 @@
+{
+  "originalCheckedSource": "7a692097587d55896bd8b233bbd636d321436f2d",
+  "finalCheckedSource": "804f9239b3386c4d029ef7d52df842d2f3f3c17f",
+  "hashFormat": "SHA256 Git LF blobs",
+  "files": [
+    {
+      "path": ".github/workflows/web.yml",
+      "sha256": "e552b920b2100f5e9fb2236b032ca289867689abf994cbf66b94a6ef9ab12c0c"
+    },
+    {
+      "path": "web/.dockerignore",
+      "sha256": "c3d72479e41ea35ce9a757c587452a85aa9a43364d4b23ffce8e3b061fc9ddbd"
+    },
+    {
+      "path": "web/.env.example",
+      "sha256": "3d972465f062229cedde3c98474c05595e7203a91068796dbf2a535029b35808"
+    },
+    {
+      "path": "web/Dockerfile",
+      "sha256": "1d511d86483844109c4fb3a07b022a36a2dc07e93af558f20bece655473a6fe2"
+    },
+    {
+      "path": "web/eslint.config.js",
+      "sha256": "8a2e770ec4fdb158716f24193ea206bbda3194ebd53706223a16c0667757e8ab"
+    },
+    {
+      "path": "web/index.html",
+      "sha256": "a74cba403ea086d325d384dba2d58503478857e532e6b1e2f4e860e4ff0ef0a1"
+    },
+    {
+      "path": "web/nginx.conf",
+      "sha256": "155ddeb192c2037328602d689b18888588c5bb0883640fbb911eda2fd3fe07c7"
+    },
+    {
+      "path": "web/package-lock.json",
+      "sha256": "31dfbb94efb478e8c332db53420333eb93d026468f52b28c91b129d69d3960e2"
+    },
+    {
+      "path": "web/package.json",
+      "sha256": "c450fdb49ec63a0886f41cce823e253aee10531a6d4277ab469c9edd4ac879a3"
+    },
+    {
+      "path": "web/scripts/capture-ui.mjs",
+      "sha256": "40d9ebc70c0638b326b5fed47d50ebd720ba583b7b841dc5db90066a2238ea0d"
+    },
+    {
+      "path": "web/src/app/App.tsx",
+      "sha256": "0937ff0333082bf6f105ada50d5fd1cf5150d15afe80fe5780947fa564c1ccbe"
+    },
+    {
+      "path": "web/src/app/providers/AppProviders.tsx",
+      "sha256": "1fa637c1ad9fa4080980adf700e455cc60599bead89dc5160f5f06c853423310"
+    },
+    {
+      "path": "web/src/app/router.test.tsx",
+      "sha256": "95d5d08eb0ba5f0c64a54c0b76e87ebfd68ef24a70b513451fb112d27a8ffaca"
+    },
+    {
+      "path": "web/src/app/router.tsx",
+      "sha256": "bcbb0dd79e3ff158b7d8ae56562d781f64438b6a18159db6f5a04c73466a28bf"
+    },
+    {
+      "path": "web/src/main.tsx",
+      "sha256": "f461a5ffda1c05ba3143b23a65466a0cacd50d2b230750aa379abcee0c76b0ed"
+    },
+    {
+      "path": "web/src/pages/ClassDetailPage.tsx",
+      "sha256": "6fd4f5184e4f2eb2d739bbf1a3c099f4124cb0117ba4b651d981ac9adf238264"
+    },
+    {
+      "path": "web/src/pages/ClassListPage.tsx",
+      "sha256": "b144e9b82cd8d7c0b628488be7bf4079b60dd41676033e671fae8c81989f00e3"
+    },
+    {
+      "path": "web/src/pages/LabExecutionPage.tsx",
+      "sha256": "50f58e86d07d548b0d650ac1b2b3ed57fcf2f00f9efd1cfc08f9f8cf42904545"
+    },
+    {
+      "path": "web/src/pages/LabPage.tsx",
+      "sha256": "357d976d358e7104344ac5f11556180cb1eff8eb02b1837a6961b9c2029dd4d8"
+    },
+    {
+      "path": "web/src/pages/LabSpecEditorPage.tsx",
+      "sha256": "8d4273e0c822c6190572eec01d072e20ad2213f24f375fb1ecbeaf3249d8e320"
+    },
+    {
+      "path": "web/src/pages/LabSpecListPage.tsx",
+      "sha256": "6b93a5955ca68627840d6275b2e5f12db3e2cca06a8c9c8323cde0b5470a442d"
+    },
+    {
+      "path": "web/src/pages/LoginPage.test.tsx",
+      "sha256": "05bbc36a08227329704d21313f5174b48f4be5a3cd20041139ec279e32c188f1"
+    },
+    {
+      "path": "web/src/pages/LoginPage.tsx",
+      "sha256": "bd5fcab717268ac0ee400626bc8a2f57889b117100795cb29e66ae8f40cc68de"
+    },
+    {
+      "path": "web/src/pages/NotFoundPage.tsx",
+      "sha256": "11a62000d4fdc794fae8bdc7acac71ddbd60a29d9df988413d54ac13278a518a"
+    },
+    {
+      "path": "web/src/pages/OperationPage.tsx",
+      "sha256": "f35b01badc491fb18310edd0b8927bae01e97f4d1536317df6af5701b0afd6eb"
+    },
+    {
+      "path": "web/src/pages/ProvisionPage.tsx",
+      "sha256": "6c7e1abc6ae044135ddc91c3706dd6254be7aa41edceaf8420e97317445794ed"
+    },
+    {
+      "path": "web/src/shared/api/LabbitApiProvider.tsx",
+      "sha256": "f8c0df502427ed59172ced52e8e2a0fa37031dcc3b8fe7f7af587c320dc551af"
+    },
+    {
+      "path": "web/src/shared/api/apiMode.test.ts",
+      "sha256": "033a31600c1e9fc5a7f0e329b35429cc826c405a289fb240c04037a541cf874f"
+    },
+    {
+      "path": "web/src/shared/api/apiMode.ts",
+      "sha256": "4b1f9299374405d859a10a5e06903977b5cda3bb89383322cf1dbaa98efd3a2b"
+    },
+    {
+      "path": "web/src/shared/api/contracts.ts",
+      "sha256": "72a9e23a17ee43a9f8fd55c9d98b9841e04b8fa55cf22acf84c51bbc7c9daaab"
+    },
+    {
+      "path": "web/src/shared/api/httpClient.test.ts",
+      "sha256": "9ad4785e1ca362a761c798d4052f7290cdf23b74d48eae4c839629e151581603"
+    },
+    {
+      "path": "web/src/shared/api/httpClient.ts",
+      "sha256": "0537f1ba500a0381e71e58893cf63be9b2e36c13d22e34d0f6a4588594f620ed"
+    },
+    {
+      "path": "web/src/shared/api/labbitApi.class.test.ts",
+      "sha256": "ef8ec44652fd2ab700882ef732c10a4c16fa5b448eae9a88b14d9e00740d6a65"
+    },
+    {
+      "path": "web/src/shared/api/labbitApi.test.ts",
+      "sha256": "15a791c2b878ce2b8745cda2fda86f6e4837e704e28668a5b0764bfd10f4ec89"
+    },
+    {
+      "path": "web/src/shared/api/labbitApi.ts",
+      "sha256": "6a653a6309d46b38c9f93500885d2438be18358213166beda61a4fd3c9dfad48"
+    },
+    {
+      "path": "web/src/shared/api/mockLabbitApi.ts",
+      "sha256": "609316786546377223a22d7d41312dc4b6c0bd66c587b4c6cd7247cbfcb64a2a"
+    },
+    {
+      "path": "web/src/shared/routing/loginNavigation.test.ts",
+      "sha256": "189d58082f4278c6f1ef3e5b77fec0157342745c38d5d38d5428de57f3494d01"
+    },
+    {
+      "path": "web/src/shared/routing/loginNavigation.ts",
+      "sha256": "21a4291a5a28e4cc916a6a142152db60de61e263064d303adae968b63ee74111"
+    },
+    {
+      "path": "web/src/shared/terminal/TerminalPanel.tsx",
+      "sha256": "0d8acfd51468eb76ab44e6c4573f56d716434da362e0ae9774d5fe0282882280"
+    },
+    {
+      "path": "web/src/shared/terminal/browserTerminalClient.test.ts",
+      "sha256": "89b80deee8d9980f58a538410c2bccae354be102262fc58566f6bfdd5046e98b"
+    },
+    {
+      "path": "web/src/shared/terminal/browserTerminalClient.ts",
+      "sha256": "f04df8a191c26e36a97988990c824fa172fb237600c0afb90e742da346e4e67b"
+    },
+    {
+      "path": "web/src/shared/terminal/terminalInput.test.ts",
+      "sha256": "805885e0d200617eab0eda2695f9d3a34eb974016308678d672caccdcf23abef"
+    },
+    {
+      "path": "web/src/shared/terminal/terminalInput.ts",
+      "sha256": "909ace2be5122da3bf714ae5fcd038abcf1cc49453d0b1944a2fb92d2bcd3689"
+    },
+    {
+      "path": "web/src/shared/terminal/terminalReconnectPolicy.test.ts",
+      "sha256": "3172817804afe1c84308cdea7f354df930fc3a505c7e9d3521059cd6fb08a99a"
+    },
+    {
+      "path": "web/src/shared/terminal/terminalReconnectPolicy.ts",
+      "sha256": "6048d6c622fa496537de7b5d222aaae0fbe3f9119db7989f5866b162b8b76a63"
+    },
+    {
+      "path": "web/src/shared/terminal/terminalResumeStorage.test.ts",
+      "sha256": "453493ac9fb97aa4b5336a761052039971da14e7983c36c8b096c6f56760e449"
+    },
+    {
+      "path": "web/src/shared/terminal/terminalResumeStorage.ts",
+      "sha256": "c72d90c666de5860154a513aa331d7b98caa26b7619f3899e1605d04edd39bda"
+    },
+    {
+      "path": "web/src/shared/ui/AppShell.tsx",
+      "sha256": "2e4d3ddcfc81672c14d7eaecbb1923ff7230c209b5dcedee35235dfc4ed80793"
+    },
+    {
+      "path": "web/src/shared/ui/ConfirmationDialog.test.tsx",
+      "sha256": "0f1bc447d4d1d6ab54c3dd6d1c81d79f0766949019140dc048936be23c15f92e"
+    },
+    {
+      "path": "web/src/shared/ui/ConfirmationDialog.tsx",
+      "sha256": "79c14f5f3318ede0c99771c05deaf12826684e805ce7f3c2d11004a77c463205"
+    },
+    {
+      "path": "web/src/shared/ui/ErrorState.tsx",
+      "sha256": "4a0986e8b601e1965c74a5aa9d97995d2ae782be47b26f04f247c013d2413af2"
+    },
+    {
+      "path": "web/src/shared/ui/LoadingState.tsx",
+      "sha256": "f588760fe5679dda7afe05303f157de9ce96093eef9ad2ad1662a24431cfcbe2"
+    },
+    {
+      "path": "web/src/shared/ui/LoginRedirect.test.tsx",
+      "sha256": "ae4599417d97065474fea14a05b4d18887ccecf647fec0a0b7ead7f8ec3b4fc5"
+    },
+    {
+      "path": "web/src/shared/ui/LoginRedirect.tsx",
+      "sha256": "f0ee481cf6323416d6641a68c337ea244a6894a63f1ef72c904bbe6b58508681"
+    },
+    {
+      "path": "web/src/shared/workspace/WorkspaceFilePanels.tsx",
+      "sha256": "31bf00f1b71d213e5f501fccc587a7fe166306a490019351ffc554b31451f616"
+    },
+    {
+      "path": "web/src/shared/workspace/workspaceEditState.ts",
+      "sha256": "d2fcf2529cf5fff642d69c51f618beb6eaefe459db481191a47333deb80368f2"
+    },
+    {
+      "path": "web/src/styles.css",
+      "sha256": "9e024e8ec7fff1e349469e8f7d53ebee84b92492f6386872a721433857adfde2"
+    },
+    {
+      "path": "web/src/test/setup.ts",
+      "sha256": "4f64f1e107d3d51e0280ac9e49413199f9b39fe59395eaa049084710d2c88177"
+    },
+    {
+      "path": "web/src/vite-env.d.ts",
+      "sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5"
+    },
+    {
+      "path": "web/tsconfig.json",
+      "sha256": "c82b4853dcc15698721fe6487af8a54dac200ea41076554c0a1930b9708184f9"
+    },
+    {
+      "path": "web/vite.config.ts",
+      "sha256": "21909950fa0f913307ea0ee13558c0f810eeff9fd4e8d0acdef02d907f8cb233"
+    },
+    {
+      "path": "web/vitest.config.ts",
+      "sha256": "b98fec1acf52fbebed57e045e80d2a449659e5776497a895b62b45937a498663"
+    }
+  ],
+  "mismatches": []
+}

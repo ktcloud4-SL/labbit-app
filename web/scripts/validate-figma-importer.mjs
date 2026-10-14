@@ -29,6 +29,10 @@ async function main() {
   ])
 
   const manifest = JSON.parse(manifestRaw)
+  const [captureSource, bundleSource] = await Promise.all([
+    readFile(path.join('scripts', 'capture-ui.mjs'), 'utf8'),
+    readFile(path.join('scripts', 'prepare-figma-bundle.mjs'), 'utf8'),
+  ])
   if (manifest.name !== 'Labbit UX Importer') {
     throw new Error('manifest: plugin name 불일치')
   }
@@ -41,6 +45,13 @@ async function main() {
   if (!Array.isArray(manifest.editorType) || !manifest.editorType.includes('figma')) {
     throw new Error('manifest: editorType에 figma가 필요합니다.')
   }
+
+  requireText(captureSource, "LABBIT_CAPTURE_EDITABLE === '1'", 'capture-ui.mjs')
+  requireText(captureSource, 'if (captureEditable) await collectEditableSnapshot', 'capture-ui.mjs')
+  requireText(bundleSource, "LABBIT_CAPTURE_EDITABLE: '1'", 'prepare-figma-bundle.mjs')
+  requireText(bundleSource, '14-lab-spec-forbidden.png', 'prepare-figma-bundle.mjs')
+  forbidText(bundleSource, '14-lab-spec-readonly.png', 'prepare-figma-bundle.mjs')
+  requireText(bundleSource, 'Editable DOM 화면 목록이 Figma manifest와 일치하지 않습니다.', 'prepare-figma-bundle.mjs')
 
   requireText(code, 'figma.showUI(__html__', 'code.js')
   requireText(code, 'await figma.setCurrentPageAsync(page)', 'code.js')
@@ -76,6 +87,9 @@ async function main() {
   }
 
   new Function(code)
+  const uiScript = ui.match(/<script>([\s\S]*?)<\/script>/)?.[1]
+  if (!uiScript) throw new Error('ui.html: inline script가 없습니다.')
+  new Function(uiScript)
 
   console.log('✓ Labbit UX Importer 정적 검증 PASS')
   console.log('- manifest 형식')
@@ -84,6 +98,7 @@ async function main() {
   console.log('- editable DOM import 경계')
   console.log('- Prototype 연결 경계')
   console.log('- Component 후보 자동 분류')
+  console.log('- owner-only LabSpec과 opt-in Editable DOM 경계')
   console.log('- capture/bundle/plugin JavaScript 문법')
 }
 

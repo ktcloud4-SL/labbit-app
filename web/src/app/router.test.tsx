@@ -11,6 +11,7 @@ import type {
 } from '../shared/api/contracts'
 import { HttpError } from '../shared/api/httpClient'
 import type { LabbitApi } from '../shared/api/labbitApi'
+import { mockLabSpecMappingOptions } from '../shared/api/mockLabbitApi'
 import { AppProviders } from './providers/AppProviders'
 import { appRoutes } from './router'
 
@@ -84,8 +85,8 @@ const labSpecFixture: LabSpec = {  id: 'lab-spec-kubernetes-basic',
   vms: [
     {
       role: 'control',
-      imageRef: 'ubuntu-24.04',
-      sizeRef: 'medium',
+      imageRef: '00000000-0000-4000-8000-000000000102',
+      sizeRef: '00000000-0000-4000-8000-000000000103',
       count: 1,
     },
   ],
@@ -113,6 +114,7 @@ function createApi(overrides: Partial<LabbitApi> = {}): LabbitApi {
     }),
     getClass: async () => classDetailFixture,
     listClassMemberships: async () => ({ items: [] }),
+    listLabSpecMappingOptions: async () => mockLabSpecMappingOptions,
     listLabSpecs: async () => ({
       items: [
         {
@@ -807,6 +809,78 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(await screen.findByText('수업을 찾을 수 없습니다.')).toBeInTheDocument()
   })
 
+  it('Mapping 후보의 ID로 Image/Size를 선택해 저장 요청을 만든다', async () => {
+    const createLabSpec = vi.fn(async (input) => ({
+      id: 'created-with-mappings',
+      ownerUserId: meFixture.id,
+      ...input,
+    }))
+    renderRoute('/lab-specs/new', createApi({ createLabSpec }))
+    await screen.findByRole('combobox', { name: 'Provider 연결' })
+    fireEvent.change(screen.getByLabelText('이름'), { target: { value: 'Mapped Lab' } })
+    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'control' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Provider 연결' }), {
+      target: { value: mockLabSpecMappingOptions.items[0].providerConnectionId },
+    })
+    fireEvent.change(screen.getByLabelText('Image 참조'), {
+      target: { value: mockLabSpecMappingOptions.items[0].images[0].id },
+    })
+    expect(screen.getByRole('option', { name: /Medium.*2 vCPU/ })).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Size 참조'), {
+      target: { value: mockLabSpecMappingOptions.items[0].flavors[0].id },
+    })
+    fireEvent.change(screen.getByLabelText('Workspace VM'), {
+      target: { value: 'control:0' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
+    await waitFor(() => expect(createLabSpec).toHaveBeenCalledWith(
+      expect.objectContaining({
+        vms: [expect.objectContaining({
+          imageRef: mockLabSpecMappingOptions.items[0].images[0].id,
+          sizeRef: mockLabSpecMappingOptions.items[0].flavors[0].id,
+        })],
+      }),
+    ))
+  })
+
+  it('Provider 변경 시 모든 VM의 기존 Mapping을 초기화한다', async () => {
+    renderRoute('/lab-specs/lab-spec-kubernetes-basic')
+    await screen.findByRole('combobox', { name: 'Provider 연결' })
+    expect(screen.getByLabelText('Image 참조')).toHaveValue(mockLabSpecMappingOptions.items[0].images[0].id)
+    fireEvent.click(screen.getByRole('button', { name: 'VM 역할 추가' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'Provider 연결' }), {
+      target: { value: mockLabSpecMappingOptions.items[1].providerConnectionId },
+    })
+    expect(screen.getAllByLabelText('Image 참조').every((input) => (input as HTMLSelectElement).value === '')).toBe(true)
+    expect(screen.getAllByLabelText('Size 참조').every((input) => (input as HTMLSelectElement).value === '')).toBe(true)
+  })
+
+  it('Mapping 후보가 없으면 저장을 차단한다', async () => {
+    const createLabSpec = vi.fn(async (input) => ({
+      id: 'should-not-save',
+      ownerUserId: meFixture.id,
+      ...input,
+    }))
+    renderRoute('/lab-specs/new', createApi({
+      listLabSpecMappingOptions: async () => ({ items: [] }),
+      createLabSpec,
+    }))
+    expect(await screen.findByText(/현재 Organization에 활성 Image\/Flavor Mapping 후보가 없습니다/)).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('이름'), { target: { value: 'Empty' } })
+    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'control' } })
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
+    expect(await screen.findByText(/각 VM의 Role, Image 참조/)).toBeInTheDocument()
+    expect(createLabSpec).not.toHaveBeenCalled()
+  })
+
+  it('Mapping 조회 403은 강사 권한 오류로 처리한다', async () => {
+    renderRoute('/lab-specs/new', createApi({
+      listLabSpecMappingOptions: async () => { throw new HttpError(403) },
+    }))
+    expect(await screen.findByText('Mapping 후보를 조회할 강사 권한이 없습니다.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
+  })
+
   it('LabSpec 목록에서 소유 여부와 편집 진입을 표시한다', async () => {
     renderRoute('/lab-specs')
 
@@ -917,11 +991,14 @@ describe('Auth·Class·LabSpec routing', () => {
     fireEvent.change(screen.getByLabelText('Role'), {
       target: { value: 'control' },
     })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Provider 연결' }), {
+      target: { value: mockLabSpecMappingOptions.items[0].providerConnectionId },
+    })
     fireEvent.change(screen.getByLabelText('Image 참조'), {
-      target: { value: 'ubuntu-24.04' },
+      target: { value: mockLabSpecMappingOptions.items[0].images[0].id },
     })
     fireEvent.change(screen.getByLabelText('Size 참조'), {
-      target: { value: 'medium' },
+      target: { value: mockLabSpecMappingOptions.items[0].flavors[0].id },
     })
     fireEvent.change(screen.getByLabelText('Workspace VM'), {
       target: { value: 'control:0' },
@@ -954,10 +1031,13 @@ describe('Auth·Class·LabSpec routing', () => {
 
     fireEvent.change(roleInputs[0], { target: { value: 'control' } })
     fireEvent.change(roleInputs[1], { target: { value: ' control ' } })
-    fireEvent.change(imageInputs[0], { target: { value: 'ubuntu-24.04' } })
-    fireEvent.change(imageInputs[1], { target: { value: 'ubuntu-24.04' } })
-    fireEvent.change(sizeInputs[0], { target: { value: 'medium' } })
-    fireEvent.change(sizeInputs[1], { target: { value: 'medium' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Provider 연결' }), {
+      target: { value: mockLabSpecMappingOptions.items[0].providerConnectionId },
+    })
+    fireEvent.change(imageInputs[0], { target: { value: mockLabSpecMappingOptions.items[0].images[0].id } })
+    fireEvent.change(imageInputs[1], { target: { value: mockLabSpecMappingOptions.items[0].images[0].id } })
+    fireEvent.change(sizeInputs[0], { target: { value: mockLabSpecMappingOptions.items[0].flavors[0].id } })
+    fireEvent.change(sizeInputs[1], { target: { value: mockLabSpecMappingOptions.items[0].flavors[0].id } })
     fireEvent.change(screen.getByLabelText('Workspace VM'), {
       target: { value: 'control:0' },
     })

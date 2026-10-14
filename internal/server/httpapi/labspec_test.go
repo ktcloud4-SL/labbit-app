@@ -19,14 +19,20 @@ import (
 
 // fakeLabSpecs는 handler가 넘기는 값과 결과를 HTTP로 옮기는 방식만 검증한다. 권한·revision·의미 판정은 labspec.Service의 책임이다.
 type fakeLabSpecs struct {
-	list   []labspec.Summary
-	result labspec.Definition
-	err    error
+	options []labspec.MappingOptions
+	list    []labspec.Summary
+	result  labspec.Definition
+	err     error
 
 	calls   int
 	ids     []string
 	ifMatch []string
 	writes  []labspec.Write
+}
+
+func (f *fakeLabSpecs) MappingOptions(context.Context, repository.User) ([]labspec.MappingOptions, error) {
+	f.calls++
+	return f.options, f.err
 }
 
 func (f *fakeLabSpecs) List(context.Context, repository.User) ([]labspec.Summary, error) {
@@ -131,6 +137,7 @@ func TestLabSpecEndpointsRequireAuthentication(t *testing.T) {
 		mods         []func(*http.Request)
 	}{
 		{http.MethodGet, "/api/v1/lab-specs", nil},
+		{http.MethodGet, "/api/v1/lab-specs/mapping-options", nil},
 		{http.MethodPost, "/api/v1/lab-specs", unsafeJSON()},
 		{http.MethodGet, "/api/v1/lab-specs/" + id, nil},
 		{http.MethodPut, "/api/v1/lab-specs/" + id, unsafeJSON(withHeader("If-Match", `"1"`))},

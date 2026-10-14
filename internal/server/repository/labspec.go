@@ -21,6 +21,10 @@ type ClassMemberRepository interface {
 // 조회 권한, owner 여부, revision 일치 여부, 입력의 의미 검증은 판단하지 않는다.
 // LabSpec 저장은 정의만 저장하며 Operation, ProviderResource, Connector 호출과 무관하다.
 type LabSpecRepository interface {
+	// ActiveImageMappingOptions는 Organization의 활성 Image 후보를 ProviderConnection ID, 표시 이름, Mapping ID 순서로 잠금 없이 조회한다.
+	ActiveImageMappingOptions(ctx context.Context, organizationID uuid.UUID) ([]ImageMappingOption, error)
+	// ActiveFlavorMappingOptions는 같은 범위와 순서의 Flavor 후보다. ProviderConnection 상태는 필터링하지 않는다.
+	ActiveFlavorMappingOptions(ctx context.Context, organizationID uuid.UUID) ([]FlavorMappingOption, error)
 	// LabSpecSummariesByOwner는 Organization에서 ownerUserID가 owner인 LabSpec 요약을 이름, ID 순서로 반환한다. 없으면 빈 목록이다.
 	LabSpecSummariesByOwner(ctx context.Context, organizationID, ownerUserID uuid.UUID) ([]LabSpecSummary, error)
 	// LabSpecByID는 Organization과 무관하게 ID로 LabSpec과 VM Role을 잠그지 않고 반환한다. 없으면 ErrNotFound다.
@@ -95,6 +99,23 @@ type ProviderMapping struct {
 	OrganizationID       uuid.UUID
 	ProviderConnectionID uuid.UUID
 	Active               bool
+}
+
+// ImageMappingOption은 후보 선택에 필요한 저장값이며 실제 Provider 리소스 ID는 담지 않는다.
+type ImageMappingOption struct {
+	ID                   uuid.UUID
+	ProviderConnectionID uuid.UUID
+	DisplayName          string
+}
+
+// FlavorMappingOption은 Flavor 후보와 저장된 기본 사양이다.
+type FlavorMappingOption struct {
+	ID                   uuid.UUID
+	ProviderConnectionID uuid.UUID
+	DisplayName          string
+	VCPUs                int64
+	RAMMiB               int64
+	DiskGiB              int64
 }
 
 // LabSpecDefinition은 LabSpec에서 사용자가 편집할 수 있는 본문이다.

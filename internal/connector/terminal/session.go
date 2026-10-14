@@ -327,6 +327,20 @@ func (s *Session) closeDataConn(conn *websocket.Conn, owner *DataWSSClient, reas
 	s.Close(reason, exitCode, err)
 }
 
+// CloseIfDataClientOwner closes the session only for its current attach owner.
+// Ownership and the CLOSED transition share the claimDataClient lock so a
+// replacement cannot claim the session between the check and cleanup.
+func (s *Session) CloseIfDataClientOwner(owner *DataWSSClient, reason string) {
+	s.mu.Lock()
+	if owner == nil || s.dataClient != owner || s.Status == StatusClosed {
+		s.mu.Unlock()
+		return
+	}
+	s.Status = StatusClosed
+	s.mu.Unlock()
+	s.Close(reason, nil, nil)
+}
+
 // claimDataClient leaves exactly one reconnect owner for this TerminalSession.
 func (s *Session) claimDataClient(client *DataWSSClient) error {
 	s.mu.Lock()

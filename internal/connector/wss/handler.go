@@ -1119,8 +1119,9 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 	if !reused || session.GetDataConn() == nil {
 		dataClient := terminal.NewDataWSSClient(dataCfg, session)
 		if attachErr := dataClient.DialAndAttach(ctx); attachErr != nil {
-			// Attach 실패 시 세션 및 PTY 정리
-			_ = mgr.CloseSession(openMsg.TerminalSessionID, protocol.TerminalReasonSessionClosed)
+			// A failed old attach must not close a replacement owner's PTY.
+			session.CloseIfDataClientOwner(dataClient, protocol.TerminalReasonSessionClosed)
+			dataClient.Close()
 
 			if sender != nil {
 				failResult := protocol.TerminalOpenResultMessage{

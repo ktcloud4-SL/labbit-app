@@ -3,6 +3,8 @@ package wss_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"testing"
 	"time"
 
@@ -185,8 +187,10 @@ func TestHandler_TerminalOpen_AttachFailure_CleansUpSession(t *testing.T) {
 
 	h := wss.NewHandler(mockProv, sender)
 	mgr := terminal.NewSessionManager(5*time.Second, nil)
+	var allocatedPTY *terminal.MockPTY
 	h.SetTerminalManager(mgr, func(targetVmKey, serverId string, cols, rows int) (terminal.PTYChannel, error) {
-		return terminal.NewMockEchoPTY(cols, rows), nil
+		allocatedPTY = terminal.NewMockEchoPTY(cols, rows)
+		return allocatedPTY, nil
 	}, terminal.DataWSSClientConfig{
 		EndpointURL: "ws://127.0.0.1:59999/unreachable", // unreachable
 		DialTimeout: 200 * time.Millisecond,
@@ -229,6 +233,12 @@ func TestHandler_TerminalOpen_AttachFailure_CleansUpSession(t *testing.T) {
 	_, exists := mgr.GetSession("sess-fail-attach")
 	if exists {
 		t.Fatalf("expected session to be cleaned up from manager after attach failure")
+	}
+	if allocatedPTY == nil {
+		t.Fatal("attach failure did not exercise an allocated PTY")
+	}
+	if _, err := allocatedPTY.Write([]byte("closed")); !errors.Is(err, io.ErrClosedPipe) {
+		t.Fatalf("failed current owner left its PTY open: %v", err)
 	}
 }
 

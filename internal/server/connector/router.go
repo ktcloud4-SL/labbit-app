@@ -30,6 +30,9 @@ var (
 type OperationCommand struct {
 	// ConnectorID는 내부 routing identity다. wire로 받은 값이 아니며 message에 실리지 않는다.
 	ConnectorID uuid.UUID
+	// SessionID가 있으면 exact current Session에만 보낸다. zero는 기존 Connector routing이다.
+	// wire field가 아니며 WithReadyRoute의 교체/revoke fence 안에서 확인한다.
+	SessionID uuid.UUID
 	// RequestID는 원본 HTTP request와 연결할 수 있을 때만 채운다(선택).
 	RequestID   string
 	Correlation Correlation
@@ -41,6 +44,7 @@ type OperationCommand struct {
 // ReconcileRequest는 SendReconcileRequest의 입력이다. wire messageId는 Router가 만든다.
 type ReconcileRequest struct {
 	ConnectorID uuid.UUID
+	SessionID   uuid.UUID
 	RequestID   string
 	Correlation Correlation
 	Payload     protocol.ReconcileRequestPayload
@@ -197,7 +201,10 @@ func (r *Router) SendOperationCommand(ctx context.Context, cmd OperationCommand)
 		"generation", cmd.Correlation.Generation,
 		"message_type", protocol.MessageTypeOperationCommand,
 	)
-	err = r.registry.WithReadyRoute(cmd.ConnectorID, func(_ Session, route Route) error {
+	err = r.registry.WithReadyRoute(cmd.ConnectorID, func(session Session, route Route) error {
+		if cmd.SessionID != uuid.Nil && cmd.SessionID != session.ID {
+			return ErrNotReady
+		}
 		// pending을 write보다 먼저 등록한다. Connector는 command를 받자마자 ACK를 보낼 수 있다.
 		r.mu.Lock()
 		if _, exists := r.operations[key]; exists {
@@ -248,7 +255,10 @@ func (r *Router) SendReconcileRequest(ctx context.Context, req ReconcileRequest)
 		"generation", req.Correlation.Generation,
 		"message_type", protocol.MessageTypeReconcileRequest,
 	)
-	err = r.registry.WithReadyRoute(req.ConnectorID, func(_ Session, route Route) error {
+	err = r.registry.WithReadyRoute(req.ConnectorID, func(session Session, route Route) error {
+		if req.SessionID != uuid.Nil && req.SessionID != session.ID {
+			return ErrNotReady
+		}
 		r.mu.Lock()
 		r.reconciles[key] = pendingReconcile{correlation: req.Correlation, requestID: req.RequestID}
 		r.mu.Unlock()

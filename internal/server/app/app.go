@@ -204,6 +204,7 @@ func Run(ctx context.Context, cfg Config) error {
 		checks []func(context.Context) error
 		stack  *controlStack
 	)
+	harness := newRouterHarness()
 	if cfg.DatabaseDSN != "" {
 		pool, err := postgres.OpenPool(ctx, cfg.DatabaseDSN)
 		if err != nil {
@@ -225,9 +226,10 @@ func Run(ctx context.Context, cfg Config) error {
 		if slices.Contains(cfg.Roles, "api") {
 			// api role이 Auth/Class HTTP와 Connector Control WSS를 소유한다. realtime role이 같은 process에서 함께 enabled되면
 			// 같은 Connector Registry/Router 위에 Terminal Relay와 TerminalSession 생성/종료를 조립한다.
-			// 아직 Operation 결과를 받는 durable Worker(LBT-18)가 없으므로 Operation Sink는 두지 않는다.
+			// 기본 build에는 Operation Sink가 없다(LBT-18 이전). tagged 시험 build만 단발 Sink를 주입한다.
 			stack, err = newControlStack(postgres.NewStore(pool), stackOptions{
 				Logger:          logger,
+				OperationSink:   harness.sink(),
 				PublicOrigin:    cfg.PublicOrigin,
 				Realtime:        slices.Contains(cfg.Roles, "realtime"),
 				HTTPMetrics:     httpMetrics,
@@ -286,6 +288,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// 두 listener의 Serve goroutine을 시작한 뒤 startup 완료로 전환한다.
 	// DB가 필요한 role의 PostgreSQL/schema 조건은 /readyz 요청마다 별도로 확인한다.
 	ready.Store(true)
+	defer harness.start(ctx, stack, logger)()
 	logger.Info("Labbit 서버 스켈레톤 시작",
 		"roles", strings.Join(cfg.Roles, ","),
 		"http_addr", cfg.HTTPAddr,

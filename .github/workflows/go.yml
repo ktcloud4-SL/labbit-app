@@ -56,3 +56,11 @@ jobs:
         env:
           LABBIT_TEST_DATABASE_DSN: postgres://labbit:labbit-ci-dummy@localhost:5432/postgres?sslmode=disable
         run: make go-integration-test
+
+      - name: Test-only Backend Router harness (Mock Provider only)
+        env:
+          LABBIT_TEST_DATABASE_DSN: postgres://labbit:labbit-ci-dummy@localhost:5432/postgres?sslmode=disable
+        run: |
+          go vet -tags 'backend_router_harness integration' ./internal/server/app ./internal/server/connector
+          go build -tags backend_router_harness -o /tmp/labbit-c1-server ./cmd/labbit-server
+          go test -race -tags 'backend_router_harness integration' -run '^TestC1' -count=1 ./internal/server/app

@@ -1038,6 +1038,31 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(updateLabSpec).not.toHaveBeenCalled()
   })
 
+  it('기존 LabSpec Mapping 500 복구 시 저장된 Provider/Image/Size 선택을 복원한다', async () => {
+    const listLabSpecMappingOptions = vi.fn(async () => mockLabSpecMappingOptions)
+    listLabSpecMappingOptions.mockRejectedValueOnce(new HttpError(500))
+    renderRoute('/lab-specs/lab-spec-kubernetes-basic', createApi({
+      listLabSpecMappingOptions,
+    }))
+
+    expect(
+      await screen.findByText((text) => text.includes('Image/Size Mapping 후보를 불러오지 못했습니다.')),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('이름')).toBeDisabled()
+    expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mapping 후보 다시 시도' }))
+    await waitFor(() => {
+      expect(screen.getByRole('combobox', { name: 'Provider 연결' })).toHaveValue(
+        mockLabSpecMappingOptions.items[0].providerConnectionId,
+      )
+    })
+    expect(screen.getByLabelText('Image 참조')).toHaveValue(labSpecFixture.vms[0].imageRef)
+    expect(screen.getByLabelText('Size 참조')).toHaveValue(labSpecFixture.vms[0].sizeRef)
+    expect(screen.getByRole('button', { name: '실습 정의 저장' })).toBeEnabled()
+    expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(2)
+  })
+
   it('LabSpec stale update 412를 덮어쓰지 않고 안내한다', async () => {
     const updateLabSpec = vi.fn(async () => {
       throw new HttpError(412)

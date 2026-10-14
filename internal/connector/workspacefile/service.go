@@ -91,6 +91,10 @@ func New(access *vmaccess.Manager, validator WorkspaceValidator, config Config) 
 	}
 	return &Service{access: access, validator: validator, config: config, slots: make(chan struct{}, 16), locks: make(map[lockKey]*fileLock)}, nil
 }
+
+// ActiveOperations includes draining SSH bridges after a canceled caller has
+// returned. A request's Data worker ending alone does not prove SFTP drained.
+func (s *Service) ActiveOperations() int { return len(s.slots) }
 func validAbsolute(p string) bool {
 	return strings.HasPrefix(p, "/") && p != "/" && path.Clean(p) == p && !strings.ContainsAny(p, "\x00\r\n\\")
 }
@@ -160,8 +164,11 @@ func (s *Service) Read(ctx context.Context, target vmaccess.Target, p string, ma
 	if err := ValidatePath(p, false); err != nil {
 		return File{}, err
 	}
-	if maxBytes < 1 || maxBytes > s.config.MaxFileBytes {
+	if maxBytes < 1 {
 		return File{}, ErrTooLarge
+	}
+	if maxBytes > s.config.MaxFileBytes {
+		maxBytes = s.config.MaxFileBytes
 	}
 	v, err := s.run(ctx, target, p, func(c *sftp.Client) (any, error) {
 		if err := checkPath(c, p, false); err != nil {
@@ -346,7 +353,11 @@ func (s *Service) run(parent context.Context, target vmaccess.Target, p string, 
 		defer session.Close()
 		var stdin io.WriteCloser
 		var stdout io.Reader
-		if err = session.Setup(ctx, func(raw *ssh.Session) error {
+		// Retain ownership of a just-started exec until its ACK arrives. Caller
+		// cancellation still returns immediately, while Manager's finite setup
+		// budget bounds this worker. Closing during the ACK race would prevent
+		// the request-specific signal below from stopping the remote helper.
+		if err = session.Setup(context.WithoutCancel(ctx), func(raw *ssh.Session) error {
 			var err error
 			stdin, err = raw.StdinPipe()
 			if err != nil {
@@ -363,19 +374,38 @@ func (s *Service) run(parent context.Context, target vmaccess.Target, p string, 
 		}
 		recvR, recvW := io.Pipe()
 		sendR, sendW := io.Pipe()
+		var closeOnce sync.Once
 		closePipes := func() {
-			_ = recvR.Close()
-			_ = recvW.Close()
-			_ = sendR.Close()
-			_ = sendW.Close()
-			_ = session.Close()
+			closeOnce.Do(func() {
+				_ = recvR.Close()
+				_ = recvW.Close()
+				_ = sendR.Close()
+				_ = sendW.Close()
+				// OpenSSH can defer stdout EOF until the exec process exits,
+				// even after channel CLOSE. Stop this request's helper first;
+				// signaling its independent channel preserves sibling PTYs.
+				// A non-reading SSH peer still retains this bounded worker
+				// until transport retirement rather than spawning a retry.
+				if ctx.Err() != nil {
+					_ = session.Signal(ssh.SIGKILL)
+				}
+				_ = session.Close()
+			})
 		}
 		stop := context.AfterFunc(ctx, closePipes)
 		var bridges sync.WaitGroup
 		bridges.Go(func() { defer recvW.Close(); _, _ = io.Copy(recvW, stdout) })
 		bridges.Go(func() { defer sendR.Close(); _, _ = io.Copy(stdin, sendR) })
 		// Keep the bounded slot and file lock while any SSH bridge remains.
-		defer func() { stop(); closePipes(); bridges.Wait() }()
+		defer func() {
+			stop()
+			closePipes()
+			bridges.Wait()
+			// Join ssh.Session's stderr and exit-status workers as well as
+			// our bridges before releasing this request's slot/path lock.
+			// A killed helper's ExitError is not a File business error.
+			_ = session.Wait()
+		}()
 		client, err := sftp.NewClientPipe(recvR, sendW, sftp.UseConcurrentReads(false), sftp.UseConcurrentWrites(false))
 		if err != nil {
 			done <- result{err: ErrUnavailable}

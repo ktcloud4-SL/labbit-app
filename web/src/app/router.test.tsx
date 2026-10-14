@@ -1060,6 +1060,127 @@ describe('Auth·Class·LabSpec routing', () => {
     ).toBeInTheDocument()
   })
 
+  it('LabSpec 조회가 200·빈 목록이면 안내와 작성 링크를 표시하고 Provision 진입을 막는다', async () => {
+    const createLabExecution = vi.fn(async () => ({
+      operationId: 'must-not-be-created',
+      target: {
+        type: 'LAB_EXECUTION' as const,
+        id: 'must-not-be-created',
+      },
+    }))
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/provision',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          activeLabExecution: undefined,
+          myLabInstance: undefined,
+        }),
+        listLabSpecs: async () => ({ items: [] }),
+        listClassMemberships: async () => ({
+          items: [
+            {
+              userId: 'user-student-a',
+              username: 'student-a',
+              role: 'STUDENT',
+            },
+          ],
+        }),
+        createLabExecution,
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Kubernetes Basic · 새 환경 생성',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: '선택할 수 있는 LabSpec이 없습니다.' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('실습 정의를 먼저 작성하고 저장하면 여기에서 선택할 수 있습니다.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: '새 실습 정의 작성하기' }),
+    ).toHaveAttribute('href', '/lab-specs/new')
+    expect(screen.queryByLabelText('LabSpec')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '생성 내용 확인' })).toBeDisabled()
+    expect(screen.getByRole('checkbox')).toBeInTheDocument()
+    expect(createLabExecution).not.toHaveBeenCalled()
+  })
+
+  it('LabSpec 목록에 다른 강사 소유 항목만 잘못 포함돼도 Provision에 노출하지 않는다', async () => {
+    const createLabExecution = vi.fn(async () => ({
+      operationId: 'unexpected-operation',
+      target: { type: 'LAB_EXECUTION' as const, id: 'unexpected-execution' },
+    }))
+
+    renderRoute(
+      '/classes/class-kubernetes-basic/provision',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          activeLabExecution: undefined,
+          myLabInstance: undefined,
+        }),
+        listLabSpecs: async () => ({
+          items: [
+            {
+              id: 'other-instructor-private-spec',
+              name: '다른 강사의 비공개 LabSpec',
+              ownerUserId: 'user-other',
+            },
+          ],
+        }),
+        listClassMemberships: async () => ({ items: [] }),
+        createLabExecution,
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: '선택할 수 있는 LabSpec이 없습니다.' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('다른 강사의 비공개 LabSpec')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('LabSpec')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '생성 내용 확인' })).toBeDisabled()
+    expect(createLabExecution).not.toHaveBeenCalled()
+  })
+
+  it('LabSpec 목록에 타인 데이터가 섞여도 자기 LabSpec만 선택 후보로 노출한다', async () => {
+    renderRoute(
+      '/classes/class-kubernetes-basic/provision',
+      createApi({
+        getClass: async () => ({
+          ...classDetailFixture,
+          activeLabExecution: undefined,
+          myLabInstance: undefined,
+        }),
+        listLabSpecs: async () => ({
+          items: [
+            {
+              id: labSpecFixture.id,
+              name: labSpecFixture.name,
+              ownerUserId: meFixture.id,
+            },
+            {
+              id: 'other-instructor-private-spec',
+              name: '다른 강사의 비공개 LabSpec',
+              ownerUserId: 'user-other',
+            },
+          ],
+        }),
+        listClassMemberships: async () => ({ items: [] }),
+      }),
+    )
+
+    expect(await screen.findByRole('combobox', { name: 'LabSpec' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: labSpecFixture.name })).toBeInTheDocument()
+    expect(screen.queryByText('다른 강사의 비공개 LabSpec')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '생성 내용 확인' })).toBeEnabled()
+  })
+
   it('LabSpec과 학생을 확인한 뒤 Provision Operation을 시작한다', async () => {
     const createLabExecution = vi.fn(async () => ({
       operationId: 'operation-new',

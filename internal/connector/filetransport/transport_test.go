@@ -465,7 +465,11 @@ func TestMalformedFramesNeverReachSave(t *testing.T) {
 			}
 			start(t, p, m, "SAVE-malformed", plan)
 			closeCode := await(t, plan.closed)
-			if closeCode != 1008 && !(tc.name == "json_limit" && closeCode == 1009) {
+			wantClose := websocket.ClosePolicyViolation
+			if tc.name == "json_limit" {
+				wantClose = websocket.CloseMessageTooBig
+			}
+			if closeCode != wantClose {
 				t.Fatalf("wrong protocol close: %d", closeCode)
 			}
 			idle(t, m)

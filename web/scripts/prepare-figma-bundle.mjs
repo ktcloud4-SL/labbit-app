@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { writeFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 const outputDir = path.resolve(process.env.LABBIT_CAPTURE_DIR ?? 'ui-captures')
@@ -143,15 +143,20 @@ async function main() {
   await runCapture()
 
   console.log('2/2 Figma import manifest 생성')
-  // 기존 스크린샷과 Editable DOM이 함께 생성됐는지 확인 후 manifest를 작성한다.
-  const { readFile } = await import('node:fs/promises')
+  // PNG / Editable DOM의 정확한 화면 집합을 맞춘 후 manifest를 작성한다.
+  const manifest = captureManifest()
   const editable = JSON.parse(await readFile(path.join(outputDir, 'editable-dom.json'), 'utf8'))
-  const expected = captureManifest().groups.flatMap((group) => group.screens.map((screen) => screen.file))
-  const actual = new Set(editable.screens?.map((screen) => screen.file) ?? [])
-  const missing = expected.filter((name) => !actual.has(name))
-  if (missing.length) throw new Error('Editable DOM 캡처 누락: ' + missing.join(', '))
+  const expected = manifest.groups.flatMap((group) => group.screens.map((screen) => screen.file))
+  const actual = Array.isArray(editable.screens)
+    ? editable.screens.map((screen) => screen.file)
+    : []
+  if (actual.length !== expected.length ||
+      new Set(actual).size !== expected.length ||
+      expected.some((name) => !actual.includes(name))) {
+    throw new Error('Editable DOM 화면 목록이 Figma manifest와 일치하지 않습니다.')
+  }
   const manifestPath = path.join(outputDir, 'manifest.json')
-  await writeFile(manifestPath, JSON.stringify(captureManifest(), null, 2) + '\n')
+  await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
   console.log(`✓ ${manifestPath}`)
   console.log('\n완료: Figma plugin에서 ui-captures 폴더의 manifest.json, editable-dom.json, PNG 전체를 함께 선택하세요.')
 }

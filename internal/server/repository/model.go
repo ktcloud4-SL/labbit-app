@@ -121,6 +121,8 @@ type ClassMembership struct {
 type ClassWithRole struct {
 	Class Class
 	Role  ClassRole
+	// ActiveLabExecution은 Class의 active LabExecution이다. 없으면 nil이다.
+	ActiveLabExecution *LabExecutionSummary
 }
 
 // TerminalSessionStatus는 terminal_sessions.status 값이다.

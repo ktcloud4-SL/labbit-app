@@ -43,9 +43,10 @@ func (q queries) ClassesByUser(ctx context.Context, userID uuid.UUID) ([]reposit
 	const op = "ClassesByUser"
 
 	rows, err := q.db.Query(ctx,
-		`SELECT c.id, c.organization_id, c.name, c.created_at, m.role
+		`SELECT c.id, c.organization_id, c.name, c.created_at, m.role, e.id, e.status
 		 FROM class_memberships m
 		 JOIN classes c ON c.id = m.class_id
+		 LEFT JOIN lab_executions e ON e.class_id = c.id AND e.finished_at IS NULL
 		 WHERE m.user_id = $1
 		 ORDER BY c.name, c.id`,
 		userID,
@@ -55,7 +56,13 @@ func (q queries) ClassesByUser(ctx context.Context, userID uuid.UUID) ([]reposit
 	}
 	items, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (repository.ClassWithRole, error) {
 		var item repository.ClassWithRole
-		err := row.Scan(&item.Class.ID, &item.Class.OrganizationID, &item.Class.Name, &item.Class.CreatedAt, &item.Role)
+		var executionID *uuid.UUID
+		var executionStatus *string
+		err := row.Scan(&item.Class.ID, &item.Class.OrganizationID, &item.Class.Name, &item.Class.CreatedAt, &item.Role, &executionID, &executionStatus)
+		// active LabExecution은 partial unique index로 Class당 최대 하나이므로 LEFT JOIN이 Class row를 늘리지 않는다.
+		if err == nil && executionID != nil {
+			item.ActiveLabExecution = &repository.LabExecutionSummary{ID: *executionID, Status: *executionStatus}
+		}
 		return item, err
 	})
 	if err != nil {

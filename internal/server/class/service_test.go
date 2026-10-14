@@ -18,9 +18,11 @@ type fakeStore struct {
 	classes     map[uuid.UUID]repository.Class
 	memberships map[[2]uuid.UUID]repository.ClassMembership // key: class ID, user ID
 	usernames   map[uuid.UUID]string
+	executions  map[uuid.UUID]repository.LabExecutionSummary   // key: class ID (active LabExecution)
+	instances   map[[2]uuid.UUID]repository.LabInstanceSummary // key: LabExecution ID, user ID
 
 	// 설정하면 해당 query가 이 오류를 반환한다.
-	classErr, membershipErr, listErr, membersErr error
+	classErr, membershipErr, listErr, membersErr, executionErr, instanceErr error
 	// members가 nil이 아니면 ClassMembers가 memberships 대신 이 값을 그대로 반환한다. 실제 DB에서는 불가능한 조합을 만들기 위한 것이다.
 	members []repository.ClassMember
 
@@ -34,6 +36,8 @@ func newFakeStore() *fakeStore {
 		classes:     map[uuid.UUID]repository.Class{},
 		memberships: map[[2]uuid.UUID]repository.ClassMembership{},
 		usernames:   map[uuid.UUID]string{},
+		executions:  map[uuid.UUID]repository.LabExecutionSummary{},
+		instances:   map[[2]uuid.UUID]repository.LabInstanceSummary{},
 	}
 }
 
@@ -83,7 +87,11 @@ func (f *fakeStore) ClassesByUser(_ context.Context, userID uuid.UUID) ([]reposi
 	var items []repository.ClassWithRole
 	for key, membership := range f.memberships {
 		if key[1] == userID {
-			items = append(items, repository.ClassWithRole{Class: f.classes[membership.ClassID], Role: membership.Role})
+			item := repository.ClassWithRole{Class: f.classes[membership.ClassID], Role: membership.Role}
+			if e, ok := f.executions[membership.ClassID]; ok {
+				item.ActiveLabExecution = &e
+			}
+			items = append(items, item)
 		}
 	}
 	sortByName(items)
@@ -117,6 +125,34 @@ func (f *fakeStore) ClassMembers(_ context.Context, classID uuid.UUID) ([]reposi
 		out = append(out, group...)
 	}
 	return out, nil
+}
+
+func (f *fakeStore) ActiveLabExecutionByClass(_ context.Context, classID uuid.UUID) (repository.LabExecutionSummary, error) {
+	f.calls++
+	if f.executionErr != nil {
+		return repository.LabExecutionSummary{}, f.executionErr
+	}
+	e, ok := f.executions[classID]
+	if !ok {
+		return repository.LabExecutionSummary{}, repository.ErrNotFound
+	}
+	return e, nil
+}
+
+func (f *fakeStore) LabInstanceByExecutionUser(_ context.Context, executionID, userID uuid.UUID) (repository.LabInstanceSummary, error) {
+	f.calls++
+	if f.instanceErr != nil {
+		return repository.LabInstanceSummary{}, f.instanceErr
+	}
+	i, ok := f.instances[[2]uuid.UUID{executionID, userID}]
+	if !ok {
+		return repository.LabInstanceSummary{}, repository.ErrNotFound
+	}
+	return i, nil
+}
+
+func (f *fakeStore) LabExecutionByID(context.Context, uuid.UUID) (repository.LabExecution, error) {
+	return repository.LabExecution{}, errors.New("class는 LabExecution 상세를 조회하지 않습니다")
 }
 
 func (f *fakeStore) HasClassRole(_ context.Context, userID uuid.UUID, role repository.ClassRole) (bool, error) {
@@ -246,6 +282,7 @@ func TestListFailsClosedOnInconsistentRepositoryData(t *testing.T) {
 type listOnlyStore struct {
 	repository.ClassRepository
 	repository.ClassMemberRepository
+	repository.LabExecutionRepository
 	items []repository.ClassWithRole
 }
 

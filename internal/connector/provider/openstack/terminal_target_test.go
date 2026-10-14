@@ -45,6 +45,35 @@ func TestTerminalTargetRejectsInvalidInputsBeforeCloudLookup(t *testing.T) {
 	}
 }
 
+func TestWorkspaceDesignationFailsClosed(t *testing.T) {
+	for _, name := range []string{"workspace", "worker", "legacy-missing", "wrong-vm"} {
+		t.Run(name, func(t *testing.T) {
+			metadata := map[string]string{"labbit_vm_key": "workspace", "labbit_workspace_vm_key": "workspace"}
+			switch name {
+			case "worker":
+				metadata["labbit_workspace_vm_key"] = "other"
+			case "legacy-missing":
+				delete(metadata, "labbit_workspace_vm_key")
+			case "wrong-vm":
+				metadata["labbit_vm_key"] = "other"
+			}
+			a := newTestAdapter(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet || r.URL.Path != "/compute/v2/servers/server-1" {
+					t.Fatal("Workspace validation mutated resources or resolved a different server")
+				}
+				writeJSON(t, w, 200, map[string]any{"server": servers.Server{ID: "server-1", Metadata: metadata}})
+			}))
+			err := a.ValidateWorkspace(context.Background(), vmaccess.Target{LabInstanceID: "lab-1", Generation: 1, VMKey: "workspace", ServerID: "server-1"})
+			if name == "workspace" && err != nil {
+				t.Fatal("designated Workspace rejected")
+			}
+			if name != "workspace" && !errors.Is(err, vmaccess.ErrInvalidTarget) {
+				t.Fatal("undesignated Workspace accepted")
+			}
+		})
+	}
+}
+
 func TestVMAccessRejectsMismatchedEnvelopeBeforeManagementLookup(t *testing.T) {
 	for _, kind := range []string{"other-lab", "stale-generation", "future-generation"} {
 		t.Run(kind, func(t *testing.T) {

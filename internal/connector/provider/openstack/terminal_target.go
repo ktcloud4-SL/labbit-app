@@ -17,6 +17,23 @@ import (
 
 var _ coreprovider.ServerAddressResolver = (*Adapter)(nil)
 
+// ValidateWorkspace fails closed when the immutable creation designation is
+// absent (including VMs created before LBT-149), or selects a different VM.
+// Full LabInstance/generation/project/NIC/pin validation follows in OpenSession.
+func (a *Adapter) ValidateWorkspace(ctx context.Context, target vmaccess.Target) error {
+	if target.VMKey == "" || target.ServerID == "" || target.LabInstanceID == "" || target.Generation < 1 || !adapterAvailable(a) {
+		return vmaccess.ErrInvalidTarget
+	}
+	server, err := a.lookupServer(ctx, target.ServerID)
+	if err != nil {
+		return safeContextError(ctx, vmaccess.ErrUnavailable)
+	}
+	if server.Metadata["labbit_workspace_vm_key"] != target.VMKey || server.Metadata["labbit_vm_key"] != target.VMKey {
+		return vmaccess.ErrInvalidTarget
+	}
+	return nil
+}
+
 // ResolveServerAddress adapts the main Terminal boundary to Provider-owned
 // management NIC lookup. It never trusts Nova floating/lab addresses or an IP
 // supplied by Control. The caller owns envelope LabInstance/generation affinity;

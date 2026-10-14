@@ -99,6 +99,65 @@ type lazyAccessTestProvider struct {
 	resolveCalls atomic.Int32
 }
 
+type workspaceTestProvider struct {
+	*lazyAccessTestProvider
+	validate func(context.Context, vmaccess.Target) error
+}
+
+func (p *workspaceTestProvider) ValidateWorkspace(ctx context.Context, target vmaccess.Target) error {
+	return p.validate(ctx, target)
+}
+
+func TestLazyProvider_WorkspaceValidationDelegatesAndFailsClosed(t *testing.T) {
+	target := vmaccess.Target{LabInstanceID: "lab", Generation: 2, VMKey: "workspace", ServerID: "server"}
+	base := &lazyAccessTestProvider{MockProvider: &provider.MockProvider{ConnectionID: "provider-1"}}
+	var calls int
+	initialized := &workspaceTestProvider{lazyAccessTestProvider: base, validate: func(ctx context.Context, got vmaccess.Target) error {
+		calls++
+		if got != target || ctx.Err() != nil {
+			t.Fatal("Workspace target/context was changed")
+		}
+		return vmaccess.ErrInvalidTarget
+	}}
+	lazy := newLazyProvider("provider-1", func(context.Context) (runtimeProvider, error) { return initialized, nil })
+	if calls != 0 {
+		t.Fatal("eager Workspace validation")
+	}
+	if err := lazy.ValidateWorkspace(context.Background(), target); !errors.Is(err, vmaccess.ErrInvalidTarget) || calls != 1 {
+		t.Fatal("Workspace validation was bypassed")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := lazy.ValidateWorkspace(ctx, target); !errors.Is(err, context.Canceled) || calls != 1 {
+		t.Fatal("canceled Workspace request reached Provider")
+	}
+	unsupported := newLazyProvider("provider-1", func(context.Context) (runtimeProvider, error) { return base, nil })
+	if err := unsupported.ValidateWorkspace(context.Background(), target); !errors.Is(err, errProviderInitialization) {
+		t.Fatal("missing Workspace validation accepted")
+	}
+}
+
+func TestBuildConnector_WorkspaceFileLazyAssembly(t *testing.T) {
+	t.Setenv("LABBIT_ENVIRONMENT", "development")
+	t.Setenv("LABBIT_WORKSPACE_ROOT", "/var/lib/labbit-workspaces/workspace")
+	t.Setenv("LABBIT_WORKSPACE_SFTP_HELPER", "/usr/local/libexec/labbit-workspace-sftp")
+	var calls int
+	lazy := newLazyProvider("provider-1", func(context.Context) (runtimeProvider, error) { calls++; return nil, errors.New("fixture unavailable") })
+	a, err := BuildConnector(lazy, &recordSender{})
+	if err != nil || a == nil || a.WorkspaceFiles == nil || calls != 0 {
+		t.Fatalf("File lazy assembly failed: err=%v factory calls=%d", err, calls)
+	}
+	defer a.VMAccess.Close()
+	_, err = a.WorkspaceFiles.Read(context.Background(), vmaccess.Target{LabInstanceID: "lab", Generation: 1, VMKey: "workspace", ServerID: "server"}, "file", 1)
+	if err == nil || calls != 1 {
+		t.Fatal("File access bypassed lazy Workspace validation")
+	}
+	t.Setenv("LABBIT_WORKSPACE_SFTP_HELPER", "")
+	if _, err := BuildConnector(lazy, &recordSender{}); err == nil {
+		t.Fatal("partial File configuration accepted")
+	}
+}
+
 func (p *lazyAccessTestProvider) ResolveVMAccess(context.Context, vmaccess.Target) (vmaccess.Endpoint, error) {
 	p.resolveCalls.Add(1)
 	return vmaccess.Endpoint{}, vmaccess.ErrInvalidTarget

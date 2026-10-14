@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/pkg/sftp"
 )
@@ -59,13 +60,19 @@ func safe(err error) error {
 	if err == nil {
 		return nil
 	}
+	var pathErr *os.PathError
+	// Go 1.27's os.Root escape sentinel is not exported. Inspect only the
+	// underlying sentinel, never the PathError text (which contains VM paths).
+	escapes := errors.As(err, &pathErr) && pathErr.Err.Error() == "path escapes from parent"
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
 		return sftp.ErrSSHFxNoSuchFile
 	case errors.Is(err, fs.ErrPermission):
 		return sftp.ErrSSHFxPermissionDenied
-	default:
+	case escapes, errors.Is(err, fs.ErrInvalid), errors.Is(err, syscall.ELOOP):
 		return status(InvalidPath)
+	default:
+		return sftp.ErrSSHFxFailure
 	}
 }
 

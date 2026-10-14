@@ -25,6 +25,13 @@ func TestRootRejectsSymlinkAndPinsRenamedDirectory(t *testing.T) {
 	if _, err := f.Fileread(&sftp.Request{Filepath: "/link/file"}); err == nil {
 		t.Fatal("outside symlink accepted")
 	}
+	// Exercise os.Root's atomic escape rejection rather than only pre-checks.
+	if file, err := f.root.Open("link/file"); err == nil {
+		file.Close()
+		t.Fatal("root escaped")
+	} else {
+		expectStatus(t, safe(err), InvalidPath)
+	}
 	put(t, filepath.Join(dir, "file"), "inside")
 	moved := dir + "-moved"
 	if os.Rename(dir, moved) != nil {

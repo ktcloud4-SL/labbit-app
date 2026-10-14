@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/pkg/sftp"
@@ -22,6 +23,15 @@ func testFS(t *testing.T) (*filesystem, string) {
 	}
 	t.Cleanup(func() { root.Close() })
 	return &filesystem{root: root, writers: make(map[string]*writeHandle), maxBytes: 1 << 20}, directory
+}
+
+func TestStorageErrorsAreSafeFailures(t *testing.T) {
+	for _, errno := range []syscall.Errno{syscall.ENOSPC, syscall.EIO, syscall.EFBIG, syscall.EDQUOT, syscall.EBADF} {
+		raw := &os.PathError{Op: "write", Path: "sensitive-vm-path", Err: errno}
+		if err := safe(raw); !errors.Is(err, sftp.ErrSSHFxFailure) || strings.Contains(err.Error(), raw.Path) {
+			t.Fatal("storage failure was mislabeled as a path rejection or exposed a path")
+		}
+	}
 }
 func put(t *testing.T, name, body string) {
 	t.Helper()

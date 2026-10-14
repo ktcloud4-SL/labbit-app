@@ -117,6 +117,23 @@ func TestOpenStackWorkspaceFileIntegration(t *testing.T) {
 	if err != nil || len(empty.Content) != 0 {
 		t.Fatal("empty Read failed")
 	}
+	// A real Linux RLIMIT_FSIZE=0 raises EFBIG for a nonempty regular-file
+	// write without consuming disk space. Verify helper -> SFTP -> Service
+	// classification and re-read state after the failed mutation.
+	limitedHelper := "/usr/local/libexec/labbit-workspace-sftp-size-limit"
+	workspaceFixtureWrite(t, fixture, "/home/ubuntu/limit-upload", []byte("#!/bin/sh\nulimit -f 0\nexec /usr/local/libexec/labbit-workspace-sftp \"$@\"\n"))
+	workspaceFixtureExec(t, ctx, access, target, "sudo -n install -o root -g root -m 0755 /home/ubuntu/limit-upload /usr/local/libexec/labbit-workspace-sftp-size-limit")
+	limited, err := workspacefile.New(access, a, workspacefile.Config{Root: root, HelperPath: limitedHelper, Timeout: 3 * time.Second, MaxFileBytes: 64})
+	if err != nil {
+		t.Fatal("size-limited helper configuration failed")
+	}
+	_, err = limited.Save(ctx, target, "file", empty.Revision, []byte("x"))
+	workspaceAssertError(t, err, workspacefile.ErrInternal)
+	unchanged, err := s.Read(ctx, target, "file", 64)
+	if err != nil || unchanged.Revision != empty.Revision {
+		t.Fatal("failed kernel-limit write changed file")
+	}
+	t.Log("Real Linux EFBIG write -> safe INTERNAL_ERROR and unchanged file PASS")
 	for _, p := range []string{"../outside", "/home/ubuntu/outside", "dir/../file", "link", "escape/outside"} {
 		_, err = s.Read(ctx, target, p, 64)
 		workspaceAssertError(t, err, workspacefile.ErrInvalidPath)

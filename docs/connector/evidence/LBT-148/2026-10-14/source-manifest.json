@@ -1,0 +1,168 @@
+{
+  "recordedAt": "2026-10-14T01:26:52.041737+00:00",
+  "base": "45dfc486f2dab72ac705310e3f4f3acead1128f0",
+  "codeAndTestHead": "f510f9d9d24ebbde261614fdc9fabb3bc64146c6",
+  "cloudWebContractsHead": "efc22587667a53e11dd87d75c025db37512bc221",
+  "cloudToFinalDiff": [
+    "internal/connector/terminal/managed_setup_cancel_test.go"
+  ],
+  "productionAndVMHarnessWebContractsUnchanged": true,
+  "cloudSnapshotChanges": [
+    "internal/connector/terminal/managed_setup_cancel_test.go"
+  ],
+  "files": [
+    {
+      "path": "docs/connector/evidence/LBT-148/2026-10-10/README.md",
+      "gitBlob": "022b67be2398d9163b76aec4248465355a8c2e0a",
+      "sha256Bytes": "0beeaf9fcf32ead9848581c434b8fdbda32c9709c7ccc69118d4524284027f6f"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-148/2026-10-10/artifact-checksums.json",
+      "gitBlob": "dc690d91cb68700aa21e737e412d940db3d39a28",
+      "sha256Bytes": "f878ca93a3030be049ab840c6e7c220c4c2a87f54d7d0c3ac2b56d7ae32d3842"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-148/2026-10-10/automated-logs.zip",
+      "gitBlob": "4a84558921671eff6e37f1ef6f55c97571d6b096",
+      "sha256Bytes": "95def931fba5029f51bca66146959e4138eb797bcb44c0a430cf9c9f12772bc5"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-148/2026-10-10/reproduce.ps1",
+      "gitBlob": "049e735d59ae95a3d1b68ad89fe693d56d96dbcf",
+      "sha256Bytes": "102e006121cd90e587145a98f80df6eac88985aa813af7e61efef4669a8ce110"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-148/2026-10-10/secret-scan.json",
+      "gitBlob": "e7f874503debe7e21f622b6fb124ad0d237a768c",
+      "sha256Bytes": "e4b9363cb3a5ed8cde91c361ff84ab55f642132d4a24785879ee6f8d0f33f993"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-148/2026-10-10/source-manifest.json",
+      "gitBlob": "b452c4877823df2fb10d09648755a5b2807fead0",
+      "sha256Bytes": "bf40340843de95ad5bbc0c38746ddb137cf6fe94db7970b0399f2ff6ea6560b4"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-148/2026-10-10/validation-summary.json",
+      "gitBlob": "b5fd43ff8cd4463c020c8869d7899c2fac21dee8",
+      "sha256Bytes": "10c086973f4155e495543c618875d4f0bb488ae9626ac172374c9cd24aa3a6e5"
+    },
+    {
+      "path": "internal/connector/mock/preview_gateway.go",
+      "gitBlob": "5bce82210201d1f5292c75d0f3401e204ac2024f",
+      "sha256Bytes": "3ce94abd21dc5255fe8422e902095bcf6768a2087551704277f3f169a23a9eba"
+    },
+    {
+      "path": "internal/connector/mock/preview_gateway_test.go",
+      "gitBlob": "9f5a31b7fb8452be34129b2c43058367d297a216",
+      "sha256Bytes": "bf4a4dac39d70e4f9cf59ecea7cb6d4f7488496191b3a91c0a62e0c043bdf79a"
+    },
+    {
+      "path": "internal/connector/provider/openstack/pty_cc02_integration_test.go",
+      "gitBlob": "09cbddb4e4485aa36e3204c7ca659511ece762e3",
+      "sha256Bytes": "cddba7067310cc1a48f691bf0b94d5e4101de810c4ccbd757472c18397a351f6"
+    },
+    {
+      "path": "internal/connector/terminal/client.go",
+      "gitBlob": "a0d3e66091880c47812f516fcca37ac166f5a8f6",
+      "sha256Bytes": "f407026d7244c01ec23d43ef9b6267f0f3606f87bb39ecddb2e0ab28e7880849"
+    },
+    {
+      "path": "internal/connector/terminal/data_frame_owner_test.go",
+      "gitBlob": "a7b60072df5ede63495cd6d6e03a0e9a14387a2f",
+      "sha256Bytes": "71f45205f99a07873336abef828ea8417a814b4be99a398488d7dddfb2480b03"
+    },
+    {
+      "path": "internal/connector/terminal/data_owner_test.go",
+      "gitBlob": "d7b0b05c1fc71c33b3f41ba88f9ca742c55c66dd",
+      "sha256Bytes": "d75b45fea7ba5dd80c18430b9d476f2292417a4bd3b1473226ffaa25cd3905ac"
+    },
+    {
+      "path": "internal/connector/terminal/data_write_test.go",
+      "gitBlob": "ce8109451863d31e2e5eb9b738e8da5035b1f79f",
+      "sha256Bytes": "a2a68464c8e672fe3cb7dcd83e6945431098447f7a842b0efde4fae8b6973008"
+    },
+    {
+      "path": "internal/connector/terminal/lifecycle_test.go",
+      "gitBlob": "a780bc7e0813ab5501dc6b51cc0afdddb97118ef",
+      "sha256Bytes": "6c0fa420c4f8b43a8b638d11c7f6686173ec1546e01664dd229db903298065d7"
+    },
+    {
+      "path": "internal/connector/terminal/managed_setup_cancel_test.go",
+      "gitBlob": "b9f94242840912ae609cd947051e28d2a6703fae",
+      "sha256Bytes": "0e832059716eaea7e996ee9a8fa223bb3916d0312ae4c6ecbbc4da2364ec09d3"
+    },
+    {
+      "path": "internal/connector/terminal/pty.go",
+      "gitBlob": "9d544b3f35c41f35cf5765e3969b45554360c358",
+      "sha256Bytes": "61b9e43d01299cbd2b28bfc2360a51e7028a735931f07596d4449b0b85877802"
+    },
+    {
+      "path": "internal/connector/terminal/session.go",
+      "gitBlob": "2b60d69c97ac448e1804ff688098d4d15b8b35b7",
+      "sha256Bytes": "bd3bc298df895fef1d08a5c8b3b77e66f38e8e31686d386ad9b63aa92fa60d12"
+    },
+    {
+      "path": "internal/connector/terminal/ssh_pty.go",
+      "gitBlob": "ac9de11799a17fd535a14f768deb0a38e4661731",
+      "sha256Bytes": "e1df1df8b6b63280b56796cdaf96c0eb58bf142684338fb8516ec39612aabbd3"
+    },
+    {
+      "path": "internal/connector/wss/handler.go",
+      "gitBlob": "2c18d7ff7552895823c3e6806e49908aeb03d025",
+      "sha256Bytes": "fb2f2d571c65938edfb24d1acf984f63a95af15ce6a94309b61cd63739058bcc"
+    }
+  ],
+  "sourceStability": {
+    "logs/auto-source-stability.json": {
+      "unchanged": false,
+      "headBefore": "f3fa76f89e30ad1f357e915919d189c7832529b5",
+      "headAfter": "f3fa76f89e30ad1f357e915919d189c7832529b5"
+    },
+    "logs/contracts-source-stability.json": {
+      "unchanged": true,
+      "headBefore": "f3fa76f89e30ad1f357e915919d189c7832529b5",
+      "headAfter": "f3fa76f89e30ad1f357e915919d189c7832529b5"
+    },
+    "logs/web-source-stability.json": {
+      "unchanged": true,
+      "headBefore": "f3fa76f89e30ad1f357e915919d189c7832529b5",
+      "headAfter": "f3fa76f89e30ad1f357e915919d189c7832529b5"
+    },
+    "final-logs/auto-source-stability.json": {
+      "unchanged": true,
+      "headBefore": "efc22587667a53e11dd87d75c025db37512bc221",
+      "headAfter": "efc22587667a53e11dd87d75c025db37512bc221"
+    },
+    "final-logs/cloud-source-stability.json": {
+      "unchanged": false,
+      "headBefore": "efc22587667a53e11dd87d75c025db37512bc221",
+      "headAfter": "efc22587667a53e11dd87d75c025db37512bc221"
+    },
+    "final-logs/contracts-source-stability.json": {
+      "unchanged": false,
+      "headBefore": "efc22587667a53e11dd87d75c025db37512bc221",
+      "headAfter": "efc22587667a53e11dd87d75c025db37512bc221"
+    },
+    "final-logs/web-source-stability.json": {
+      "unchanged": true,
+      "headBefore": "efc22587667a53e11dd87d75c025db37512bc221",
+      "headAfter": "efc22587667a53e11dd87d75c025db37512bc221"
+    },
+    "verified-logs/auto-source-stability.json": {
+      "unchanged": true,
+      "headBefore": "f510f9d9d24ebbde261614fdc9fabb3bc64146c6",
+      "headAfter": "f510f9d9d24ebbde261614fdc9fabb3bc64146c6"
+    },
+    "verified-logs/residual-source-stability.json": {
+      "unchanged": true,
+      "headBefore": "f510f9d9d24ebbde261614fdc9fabb3bc64146c6",
+      "headAfter": "f510f9d9d24ebbde261614fdc9fabb3bc64146c6"
+    }
+  },
+  "notes": [
+    "final Go clean source is unchanged before/after all commands",
+    "first automation and premerge contracts stability=false include only the transient generated web/pnpm-lock.yaml; tracked runtime blobs unchanged",
+    "cloud stability=false is solely a loopback test fixture edit; that file is not compiled in the cloud package",
+    "evidence commit adds only this directory after code HEAD"
+  ]
+}

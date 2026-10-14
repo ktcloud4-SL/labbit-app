@@ -1,0 +1,156 @@
+{
+  "helperSha256": "bdb6fa929d5f90a8c3eedc4da17e2f3209f9a1ee136ae3bf058705b40fd8f8a6",
+  "goInvocations": 0,
+  "cloudMutations": 0,
+  "sourceCases": 14,
+  "artifactCases": 7,
+  "cases": [
+    {
+      "case": "complete pinned source",
+      "kind": "source",
+      "expectedRefusal": false,
+      "actualRefusal": false,
+      "message": "PASS"
+    },
+    {
+      "case": "non-executable npm dependency Go example",
+      "kind": "source",
+      "expectedRefusal": false,
+      "actualRefusal": false,
+      "message": "PASS"
+    },
+    {
+      "case": "executable visible npm Go package",
+      "kind": "source",
+      "expectedRefusal": true,
+      "actualRefusal": true,
+      "message": "Ignored Go source could change execution: web/node_modules/visible/audit.go"
+    },
+    {
+      "case": "changed audited local file",
+      "kind": "source",
+      "expectedRefusal": true,
+      "actualRefusal": true,
+      "message": "Audited Git blob mismatch: internal/connector/vmaccess/access.go"
+    },
+    {
+      "case": "changed unrelated tracked consumer",
+      "kind": "source",
+      "expectedRefusal": true,
+      "actualRefusal": true,
+      "message": "Unexpected source outside audited scope: internal/connector/terminal/client.go"
+    },
+    {
+      "case": "untracked executable source",
+      "kind": "source",
+      "expectedRefusal": true,
+      "actualRefusal": true,
+      "message": "Unexpected source outside audited scope: internal/connector/vmaccess/guard_untracked.go"
+    },
+    {
+      "case": "ignored executable source",
+      "kind": "source",
+      "expectedRefusal": true,
+      "actualRefusal": true,
+      "message": "Ignored Go source could change execution: internal/connector/vmaccess/guard_ignored.go"
+    },
+    {
+      "case": "missing pinned file",
+      "kind": "source",
+      "expectedRefusal": true,
+      "actualRefusal": true,
+      "message": "Audited Git blob mismatch: internal/connector/provider/openstack/terminal_error_test.go"
+    },
+    {
+      "case": "restored source",
+      "kind": "source",
+      "expectedRefusal": false,
+      "actualRefusal": false,
+      "message": "PASS"
+    },
+    {
+      "case": "Evidence executable audit.go rejected",
+      "kind": "source",
+      "expectedRefusal": true,
+      "actualRefusal": true,
+      "message": "Unaudited Evidence Go source could change execution: docs/connector/evidence/LBT-147/2026-10-12-review-followup/visible/audit.go"
+    },
+    {
+      "case": "Evidence executable go.mod rejected",
+      "kind": "source",
+      "expectedRefusal": true,
+      "actualRefusal": true,
+      "message": "Unaudited Evidence Go source could change execution: docs/connector/evidence/LBT-147/2026-10-12-review-followup/visible/go.mod"
+    },
+    {
+      "case": "Evidence executable go.sum rejected",
+      "kind": "source",
+      "expectedRefusal": true,
+      "actualRefusal": true,
+      "message": "Unaudited Evidence Go source could change execution: docs/connector/evidence/LBT-147/2026-10-12-review-followup/visible/go.sum"
+    },
+    {
+      "case": "existing hidden Evidence Go fixture allowed",
+      "kind": "source",
+      "expectedRefusal": false,
+      "actualRefusal": false,
+      "message": "PASS"
+    },
+    {
+      "case": "Evidence documentation allowed by source guard",
+      "kind": "source",
+      "expectedRefusal": false,
+      "actualRefusal": false,
+      "message": "PASS"
+    },
+    {
+      "case": "pinned artifact set including hidden fixture allowed",
+      "kind": "artifact",
+      "expectedRefusal": false,
+      "actualRefusal": false,
+      "message": "PASS"
+    },
+    {
+      "case": "extra artifact notes.md rejected",
+      "kind": "artifact",
+      "expectedRefusal": true,
+      "actualRefusal": true,
+      "message": "Evidence artifact set mismatch; extra: notes.md; missing: "
+    },
+    {
+      "case": "extra artifact _fixtures/unaudited.go rejected",
+      "kind": "artifact",
+      "expectedRefusal": true,
+      "actualRefusal": true,
+      "message": "Evidence artifact set mismatch; extra: _fixtures/unaudited.go; missing: "
+    },
+    {
+      "case": "missing artifact rejected",
+      "kind": "artifact",
+      "expectedRefusal": true,
+      "actualRefusal": true,
+      "message": "Evidence artifact set mismatch; extra: ; missing: README.md"
+    },
+    {
+      "case": "changed artifact rejected",
+      "kind": "artifact",
+      "expectedRefusal": true,
+      "actualRefusal": true,
+      "message": "Evidence artifact mismatch: README.md"
+    },
+    {
+      "case": "generated ignored Python cache allowed",
+      "kind": "artifact",
+      "expectedRefusal": false,
+      "actualRefusal": false,
+      "message": "PASS"
+    },
+    {
+      "case": "restored artifact set allowed",
+      "kind": "artifact",
+      "expectedRefusal": false,
+      "actualRefusal": false,
+      "message": "PASS"
+    }
+  ]
+}

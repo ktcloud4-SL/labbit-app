@@ -1,0 +1,114 @@
+{
+  "testedSource": "1af5c8e590c41c97fcbfca0a6b46384ec556035e",
+  "baseLBT147": "399681789572487bd44469ec018e52b53f97678e",
+  "fetchedMain": "6d675c74bff11f481d247267faefd4ce960dcd38",
+  "branch": "feat/LBT-148-pty-cc02",
+  "environment": "local OpenStack; Windows; Go1.27; CGO/GCC; bundled Node/pnpm/Python",
+  "go": {
+    "format": {
+      "result": "PASS",
+      "goFiles": 316,
+      "CRLFOnlyFiles": 307,
+      "formatDifferences": [],
+      "method": "Compare gofmt output after LF normalization; do not rewrite unrelated files."
+    },
+    "vet": "PASS",
+    "unit": {
+      "passedTestsIncludingSubtests": 2801,
+      "passedPackages": 31,
+      "skippedTestsIncludingSubtests": 8,
+      "failed": 0
+    },
+    "build": "PASS",
+    "changedPackageRace": {
+      "passedTestsIncludingSubtests": 337,
+      "passedPackages": 5,
+      "skippedTestsIncludingSubtests": 7,
+      "failed": 0
+    },
+    "changedPackageCount": 5
+  },
+  "lifecycleRegressions": {
+    "result": "PASS",
+    "repetitionsPerTopLevelTest": 20,
+    "race": true,
+    "topLevelTests": [
+      "TestFinalOutputAndRemoteTermination",
+      "TestCompletedTerminalCannotAllocateAnotherPTY",
+      "TestReplacementDataClientStopsPreviousReconnectOwner",
+      "TestDataClientCloseCancelsPendingAttach",
+      "TestSSHPTYDrainsBothStreamsBeforeExitStatus"
+    ],
+    "counts": {
+      "passedTestsIncludingSubtests": 160,
+      "passedPackages": 1,
+      "skippedTestsIncludingSubtests": 0,
+      "failed": 0
+    }
+  },
+  "blockedDataWriter": {
+    "result": "PASS",
+    "test": "TestDataWriteTimeoutReleasesBlockedConnection",
+    "productionWriteDeadlineSeconds": 10,
+    "race": true,
+    "transport": "Unbuffered socket; peer accepts WebSocket upgrade then stops reading."
+  },
+  "web": {
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "test": "PASS",
+    "build": "PASS",
+    "testFiles": 13,
+    "testCases": 163,
+    "testedSource": "513869c4eafd1af1c693648f7a13ece347bc12fc",
+    "subsequentWebOrDependencyChanges": false
+  },
+  "contracts": {
+    "openapi": "PASS",
+    "jsonSchemas": 8,
+    "runtimeMigrationMetadata": "PASS",
+    "resetSchemaTests": 11
+  },
+  "realPTYCC02": {
+    "result": "PASS",
+    "elapsedSeconds": 111.02,
+    "completedAt": "2026-10-10T01:12:31.4317176+09:00",
+    "controlAndData": "Mock SaaS Control WSS and two Mock Relay Data WSS; actual Connector handlers and VM PTYs.",
+    "provision": "Existing OP-01 provision before Control/Data tests.",
+    "harnessGraceSeconds": 3,
+    "productionGraceSeconds": 60,
+    "historyAvailable": false,
+    "requiredStages": [
+      "OP-01 Provision ACTIVE and pinned authenticated SSH ready",
+      "Control OPEN/Data ATTACH, real PTY INPUT/OUTPUT, initial size, RESIZE, two independent PTYs and duplicate OPEN PASS",
+      "Data CLOSE and Control/Data ENDED release one PTY; other PTY and SFTP remain usable PASS",
+      "Automatic Data reconnect within grace preserves shell state, TerminalSession and shared SSH transport PASS",
+      "Final output before remote shell exit, exitCode=7 and Control/Data ENDED PASS",
+      "Shortened 3-second harness grace expires, releases PTY and rejects delayed OPEN PASS",
+      "SSH disconnect produces safe Control/Data ENDED, all PTYs released and no automatic SSH retry PASS",
+      "Tracked resource absence verified after cleanup: distinctResources=7"
+    ],
+    "distinctTrackedResourcesAbsent": 7,
+    "trackedResidualResources": 0,
+    "temporaryKeypairAndManagementSGDelete": "PASS via fixture cleanup"
+  },
+  "postCleanupDiscovery": {
+    "result": "PASS",
+    "completedAt": "2026-10-10T01:12:35.0240978+09:00",
+    "images": 3,
+    "flavors": 4,
+    "servers": 0,
+    "networks": 4
+  },
+  "limitations": [
+    "No KT Cloud/LBT-145 claim",
+    "No PostgreSQL integration",
+    "No actual SaaS/Browser/Live full C2 acceptance claim",
+    "SFTP INIT/VERSION/REALPATH channel probe only; production Tree/Read/Save outside LBT-148"
+  ],
+  "remote": {
+    "push": false,
+    "pullRequestCreated": false,
+    "jiraMutated": false
+  }
+}

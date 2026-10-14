@@ -1,0 +1,228 @@
+{
+  "checkedAtKST": "2026-10-12T11:44:19.5664738+09:00",
+  "head": "399681789572487bd44469ec018e52b53f97678e",
+  "originMain": "e850567066134edc87b2ba543d0eb42a21f406b8",
+  "mergeBase": "6d675c74bff11f481d247267faefd4ce960dcd38",
+  "branch": "feat/LBT-147-vm-access",
+  "executionSource": "Original HEAD plus six audited local changes; all 29 execution byte hashes match the working files committed in publicationCodeCommit. External test-only Go overlays add virtual _test.go files. The following evidence commit adds documents only.",
+  "status": " M internal/connector/app/runtime_provider.go\n M internal/connector/app/runtime_provider_test.go\n M internal/connector/app/vm_access.go\n M internal/connector/app/vm_access_test.go\n M internal/connector/provider/openstack/lifecycle_test.go\n?? internal/connector/app/vm_access_lifecycle_test.go",
+  "changedFiles": [
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/README.md",
+      "sha256Bytes": "c79ef32fcf92b355779c693505019347209e458400ea09f25ac6b87d23b83e2c",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "6a489d835d3deee9180ec21ef751fa2b9ed48089"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/artifact-checksums.json",
+      "sha256Bytes": "0292db04fae585ba8fd64ffc670e2c5ba12523e529772cd155c18db495d4f6c9",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "ed329529a1c8450bb25b70762a0818d9175533dd"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/automated-logs.zip",
+      "sha256Bytes": "18e505bd81bfabdf951123abcd07ff1772b0be036637d6afd4c176c509ad0b8e",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "31da28b5a1b553c86ee33e82280c7b7c917a1503"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/reproduce.ps1",
+      "sha256Bytes": "58db3aa8b96e54c6b5d4ea3116778656516db997f65a7f21e6937e4a499f6a65",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "bf46279dff8791e79db4d7909c2369fa5134077f"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/secret-scan.json",
+      "sha256Bytes": "09edf5c00c479ef8a1f7d166d537e08edfcdd648dfbfcf884623a1e56dd544c6",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "31a91e772dba41f24bab23798d46dd88d571c972"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/source-manifest.json",
+      "sha256Bytes": "429e0ed20d5cf28ed6b68c8552c3f147aaa5fffd64b8d3eb0245398f5e61046a",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "82a7dfce9c2aba0457b794914571e9ca8627f7c3"
+    },
+    {
+      "path": "docs/connector/evidence/LBT-147/2026-10-10/validation-summary.json",
+      "sha256Bytes": "658be30e372fda1ffd777c7c6b5714aaf6c02b49b42713993b2496ff66d505a6",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "e798f507359e6cf1db24da5f32115c9abc1b508c"
+    },
+    {
+      "path": "internal/connector/app/app.go",
+      "sha256Bytes": "7cc9465e3d7193d73a10604d859e6032738cc8d77f9268739d3e0da3f09f4b8f",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "20f4e74288ec1401fc0b59588a6083bfd501bf55"
+    },
+    {
+      "path": "internal/connector/app/app_test.go",
+      "sha256Bytes": "aa090fb5f2500944cdb7cfd4c5aeffdd316047988ff97de845063cd311c98878",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "00892538554c58a44de70996b765144651691337"
+    },
+    {
+      "path": "internal/connector/app/main_integration_test.go",
+      "sha256Bytes": "9a639d11da903c21639685e5ac803ce52e712331cf9618d3578b7a2b1bc344a7",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "20819df4bf9d619ade4b58d25c68b071efce55a5"
+    },
+    {
+      "path": "internal/connector/app/runtime_provider.go",
+      "sha256Bytes": "8483d8952eecd874668470e680fdbfb665735d997a785d31483b573c2b9b2815",
+      "matchesPriorAudit": true,
+      "localChange": true,
+      "committedGitBlob": "454be47b0d37bcd32b1a437ced1b6ffe7a86715a"
+    },
+    {
+      "path": "internal/connector/app/runtime_provider_test.go",
+      "sha256Bytes": "f0fe0608a881bd182b99b12bbeca66fd58609922864c43f7ff829a1b885a94a7",
+      "matchesPriorAudit": true,
+      "localChange": true,
+      "committedGitBlob": "8afbee8d601df2e540cab6d8f070be263788dda5"
+    },
+    {
+      "path": "internal/connector/app/vm_access.go",
+      "sha256Bytes": "b6081db85cb78150155d1745b0e068a80eee73479bb6ea22307bf07ff7df5cd7",
+      "matchesPriorAudit": true,
+      "localChange": true,
+      "committedGitBlob": "133b1460146530d402da1f326e162a867836927a"
+    },
+    {
+      "path": "internal/connector/app/vm_access_lifecycle_test.go",
+      "sha256Bytes": "db34b3cff794848f5bb28a542dc5d68ce8a900f4062ebb9e3e0e7af4c8145f28",
+      "matchesPriorAudit": true,
+      "localChange": true,
+      "committedGitBlob": "a92cf382d2bbe7dc10e71b6ed99402b5ca5ea45a"
+    },
+    {
+      "path": "internal/connector/app/vm_access_test.go",
+      "sha256Bytes": "8b1869e5415eaafc5f6a2478a9f4b1db7daa9178e1db6844339f76c457ea257d",
+      "matchesPriorAudit": true,
+      "localChange": true,
+      "committedGitBlob": "c9f9ef2126702b08632c869dfaaa54641ed92b63"
+    },
+    {
+      "path": "internal/connector/provider/openstack/lifecycle_test.go",
+      "sha256Bytes": "96436e24db58c295345a64d8ec579d05035e3dc524207b7541043246ba5f77ca",
+      "matchesPriorAudit": true,
+      "localChange": true,
+      "committedGitBlob": "64ebf0cb9639a457a8e004ae1fb5b558e3dd4735"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target.go",
+      "sha256Bytes": "3695f93ba1dd819a4de196a55a739f9f15183f212ce1e27d0f20f2dd9cffca15",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "abc3e2824d19b529e99d13fa49bf7a6eb9d61f47"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target_test.go",
+      "sha256Bytes": "3addae2734c2ddfa16e0f76c73303ed576bf7fffd78568e0843f4c80b9a2ce71",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "6277ef07b242db1d3cfa050655af1dd95fac7add"
+    },
+    {
+      "path": "internal/connector/provider/openstack/vm_access_integration_test.go",
+      "sha256Bytes": "fbe2a1b431b42a7eaa2f05115739f089287d34d956e15cfce596065507709043",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "284362b200a3af751a7614aa799e259c4818cf69"
+    },
+    {
+      "path": "internal/connector/terminal/session.go",
+      "sha256Bytes": "7f01f4c41f37df754ac8f8e234ed4e4c215cfd47dd0daa3299df9fcf2d2b4dea",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "1495544c11fe9126f28a5e62822d41484cb15d05"
+    },
+    {
+      "path": "internal/connector/terminal/ssh_pty.go",
+      "sha256Bytes": "6e8e72ef4bdddb5ddb7dad37e16f068c8670cc87cb99d704ec72a59b94a2e384",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "24c6113f744525890b153e793ce9ab52fbde62e7"
+    },
+    {
+      "path": "internal/connector/terminal/terminal_test.go",
+      "sha256Bytes": "c8caa981cc0af77f0802c33e0f57d36346462b2c8a527d905af615deb6e849db",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "b18db1d9cd8abe27e42b8969346269109174a854"
+    },
+    {
+      "path": "internal/connector/vmaccess/access.go",
+      "sha256Bytes": "34fba775844b2ff97dc67f3b028cbf637c3d4db061a2dfa4e992fed80d854f5d",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "afeb73873e4bc40bf8e39705090b1d93738f9380"
+    },
+    {
+      "path": "internal/connector/vmaccess/access_test.go",
+      "sha256Bytes": "1befe3107adb14ee497fc9998c006e1030f148efa31deda727d48b50c1e04c45",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "364466601b4a54d17c34fd4afd916c7c65b09fa2"
+    },
+    {
+      "path": "internal/connector/vmaccess/cancellation_test.go",
+      "sha256Bytes": "c072ecaa4164eff8e707f4c3ad5362b8c4963918b2a3257d8a0680e98e0b2155",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "5d288430bbde26f2d7060dd501e90d18f227e511"
+    },
+    {
+      "path": "internal/connector/wss/handler.go",
+      "sha256Bytes": "e3a1c396839a67bab1ad08abc08ec43a8f0599d48a98c7e9d6e6d171db6d6284",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "5cef151e54471184008b1fb9a91b5eb45563c712"
+    },
+    {
+      "path": "internal/connector/wss/vm_access_test.go",
+      "sha256Bytes": "676d2a7c664a47d978a1faf4ca0745c40ca262a5e52dce8839f9483f6de95344",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "da99ef017fd23eed09e7d0ef5bad0369ba699754"
+    },
+    {
+      "path": "runtime/README.md",
+      "sha256Bytes": "20f85e1fa1a1a61e11a32285a0ca6847cd62e887d903f298396030e10223b784",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "63b757dcce44aa58226b34b305c2d5fe646c9ac2"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "sha256Bytes": "57929ebec4eff092d745c2086ce7044003997f6e699ce5594a4a38679612ee0e",
+      "matchesPriorAudit": true,
+      "localChange": false,
+      "committedGitBlob": "952da7064112ee0669628deb9e88068d94be40d0"
+    }
+  ],
+  "all29MatchPriorAudit": true,
+  "harnesses": [
+    {
+      "path": "app_real_integration_test.go",
+      "sha256Bytes": "0a059260b755e6b9a133b0291cff6bb9e055e3a0463c21cbb627e091bbe77b43"
+    },
+    {
+      "path": "read_only_residual_test.go",
+      "sha256Bytes": "8c2e7deff265da0dbb18faf96d3a1f74415237c95fd7ad724f4a720a35945729"
+    }
+  ],
+  "publicationCodeCommit": "74c052f25e3778cafa6ae4fa75bd8775af46827a",
+  "reproductionIdentity": "Require the complete publicationCodeCommit tree (tracked/staged/untracked and ignored Go source guards), allowing only the 2026-10-12 evidence directory to differ; then compare git hash-object --path for all changedFiles against committedGitBlob. This permits checkout line-ending conversion and evidence-only commits. sha256Bytes preserves actual execution bytes.",
+  "harnessArchive": "audit-logs.zip"
+}

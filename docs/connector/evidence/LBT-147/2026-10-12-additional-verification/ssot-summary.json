@@ -1,0 +1,55 @@
+{
+  "readAtKST": "2026-10-12",
+  "jira": {
+    "key": "LBT-147",
+    "url": "https://samsunglions.atlassian.net/browse/LBT-147",
+    "updated": "2026-10-12T11:00:05.007+0900",
+    "statusId": "10100",
+    "commentCount": 0,
+    "descriptionSHA256": "94cbec2ad019712387a093aafc19400fb69a90585d3417303c758bb9dbe4dc2a"
+  },
+  "confluence": [
+    {
+      "pageId": "7241730",
+      "title": "D-18 · 실습망·VM 관리 접속 구조",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/7241730/D-18+VM",
+      "version": 5,
+      "bodySHA256": "1746a98ecfd50462dc7772feb61e686b306541585324dbae47cde0280873c4e9"
+    },
+    {
+      "pageId": "6881283",
+      "title": "D-20 · Lab 작업 충돌·재시도·부분 실패 정책",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/6881283/D-20+Lab",
+      "version": 7,
+      "bodySHA256": "f3460235641d10ed5371121d21d39c948e356f679b5eb59d0a9d9f43777fef1d"
+    },
+    {
+      "pageId": "6848516",
+      "title": "D-21 · Terminal·Live 세션·재접속 정책",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/6848516/D-21+Terminal+Live",
+      "version": 10,
+      "bodySHA256": "3f7a714917f1d9180746ba66c6bf4e4ad0d48da1a421a31fe840f359333c5d3b"
+    },
+    {
+      "pageId": "9666637",
+      "title": "검증 설계 — 테스트 전략·추적성",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/9666637",
+      "version": 3,
+      "bodySHA256": "012ef9ba10c7d564c0a8bb90e0a4dfae786620243c61d4bd2944f510d3eee39e"
+    },
+    {
+      "pageId": "12845071",
+      "title": "Connector MVP 개발 실행 계획 — 백서빈 · 이주희",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/12845071/Connector+MVP",
+      "version": 19,
+      "bodySHA256": "1d095a524e4b590f93b810bcc414b64cc4fe8659f2039e77bd1e64c3d0dd725c"
+    }
+  ],
+  "gitSSOT": {
+    "openapi": "contracts/http/openapi.yaml",
+    "connectorRealtimeJSONSchemas": 8,
+    "runtime": "runtime/contract.yaml version 0.1.7",
+    "db": "db/migrations; no PR DB diff"
+  },
+  "rawSnapshots": "audit-logs.zip root/latest-ssot.json and independent reviewer snapshots"
+}

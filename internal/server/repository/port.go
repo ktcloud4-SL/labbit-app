@@ -40,6 +40,7 @@ type ClassRepository interface {
 	// ClassMembership은 (class, user) 참여 관계를 반환한다. 없으면 ErrNotFound다.
 	ClassMembership(ctx context.Context, classID, userID uuid.UUID) (ClassMembership, error)
 	// ClassesByUser는 사용자가 ClassMembership으로 참여 중인 Class를 이름, ID 순서로 반환한다.
+	// 각 Class의 active LabExecution 요약을 같은 statement로 함께 읽는다(없으면 nil).
 	// 참여 중인 Class가 없으면 빈 목록이며 오류가 아니다.
 	ClassesByUser(ctx context.Context, userID uuid.UUID) ([]ClassWithRole, error)
 }
@@ -140,6 +141,9 @@ type Repositories interface {
 	ClassRepository
 	ClassMemberRepository
 	LabSpecRepository
+	ProvisionRepository
+	LabExecutionRepository
+	MutationRepository
 	BootstrapRepository
 	TerminalRepository
 	LiveSessionRepository

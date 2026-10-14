@@ -1,0 +1,114 @@
+{
+  "artifacts": [
+    {
+      "file": ".gitattributes",
+      "bytes": 31,
+      "sha256": "5d2c66adb84298fd3a0322767edd663cc96af4554d31257ad64fd2d4ddbd70c6"
+    },
+    {
+      "file": ".gitignore",
+      "bytes": 21,
+      "sha256": "01d8d0360f02a0c00e236a4eb2a1d8bdf83377acf442eaafad7a136bf14d6bb0"
+    },
+    {
+      "file": "_fixtures/dependency-fixture-manifest.json",
+      "bytes": 807,
+      "sha256": "525138eef955ae9115fbbd3cbf0c17c9c84b245cc21e6a335aa2d203b15866de"
+    },
+    {
+      "file": "_fixtures/independent_unacked_setup_test.go",
+      "bytes": 1894,
+      "sha256": "5fbf7081571f556c8f8df2579d2a85d9f4205b194ac08b374247d1ec565084ef"
+    },
+    {
+      "file": "_fixtures/LICENSE-x-crypto.txt",
+      "bytes": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "file": "_fixtures/reproduce-independent-unacked.ps1",
+      "bytes": 5266,
+      "sha256": "ad2c912406278869f0b84837549b7c44225509776c5270dc021ed4714ba628dc"
+    },
+    {
+      "file": "_fixtures/reviewer-executed-source-manifest.json",
+      "bytes": 15359,
+      "sha256": "3ca5c74407e5016a56ab29b93c0d4385beba6bfbaae4c56c2dc9d7d017c58ddf"
+    },
+    {
+      "file": "_fixtures/ssh-channel-no-b-close-ack.go",
+      "bytes": 20532,
+      "sha256": "80020ae09ebd2bfa52c464380865de4625e591c2601c25aa830b40ab2f5a38f1"
+    },
+    {
+      "file": "archive-manifest.json",
+      "bytes": 37402,
+      "sha256": "3cfcb53ffebbc9d69eba42736de46ea2afbe83a19f73ca7cc9e19f330b1dcda5"
+    },
+    {
+      "file": "audit-logs.zip",
+      "bytes": 682297,
+      "sha256": "a8b168163438464d58ff9d87f87634fc7a15922ad7485978d5f3b66c51f4e3ae"
+    },
+    {
+      "file": "AUDIT.md",
+      "bytes": 18582,
+      "sha256": "6a90d0022b2d94b4f342ca832dfa5435c1b697f917baf31aeb4e58732f17d06b"
+    },
+    {
+      "file": "file-review.md",
+      "bytes": 17358,
+      "sha256": "e9091cd82272f654c2667c2f969067d84b9919d6ebc679467f3066da02e91479"
+    },
+    {
+      "file": "independent-review.md",
+      "bytes": 35436,
+      "sha256": "dea1027bd9f10ba0d113180b6afeda8d32350eb62be198e1b69b591135994317"
+    },
+    {
+      "file": "publication-checks.json",
+      "bytes": 663,
+      "sha256": "92b4adb4a96c8c56763c266c34642de6ddc1da506bfff80754fbf698efe25c62"
+    },
+    {
+      "file": "publication-review.md",
+      "bytes": 14329,
+      "sha256": "d0c4c229db379cb35942bd3868f8c42a23e9c683dc462e1399ef9d58079d5844"
+    },
+    {
+      "file": "README.md",
+      "bytes": 7746,
+      "sha256": "6573d229ea0435aed1c680a0500e62b9e2be2947bbd7c2bd17a0cc29b74b41c4"
+    },
+    {
+      "file": "reproduce-guard-regression.json",
+      "bytes": 5014,
+      "sha256": "4ca50c6bb34945ac3cfc4f754d88b33b2765b3efb1d198bae25227862f179edb"
+    },
+    {
+      "file": "reproduce.py",
+      "bytes": 6285,
+      "sha256": "bdb6fa929d5f90a8c3eedc4da17e2f3209f9a1ee136ae3bf058705b40fd8f8a6"
+    },
+    {
+      "file": "secret-scan.json",
+      "bytes": 391,
+      "sha256": "662702e180bc74da704a5a1c19947b853fdbeb03bbc074b6faaa368b6b434b8e"
+    },
+    {
+      "file": "source-manifest.json",
+      "bytes": 15431,
+      "sha256": "d0b3182ce80095b97574afe161cc4157cfe2c247aa83a610cbf4652383bbc14c"
+    },
+    {
+      "file": "ssot-summary.json",
+      "bytes": 8160,
+      "sha256": "b0697ccba1b872c4c7cff328c178e3005a387638720dd6f97fe29f98a11f1d87"
+    },
+    {
+      "file": "validation-summary.json",
+      "bytes": 18668,
+      "sha256": "378643c7c4e3785d5bc70409b4b9efff6c57dee87e95430242030dede1094763"
+    }
+  ]
+}

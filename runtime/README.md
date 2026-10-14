@@ -18,6 +18,8 @@ Runtime Contract는 HTTP/OpenAPI나 WSS 메시지 계약을 다시 정의하지 
 
 ## v0.1에서 확정하는 경계
 
+v0.1.7은 LBT-147의 VM별 공유 SSH 연결 종료 설정 `LABBIT_OPENSTACK_SSH_IDLE_TIMEOUT`을 추가합니다. 기본값은 `1m`이며 열린 채널이 없는 연결에 적용합니다. 채널 생성 시 LabInstance/generation과 실제 Provider Server/Management NIC를 대조하고, 서버별로 이미 등록된 host key만 검증합니다.
+
 ### SaaS 실행 역할
 
 중앙 SaaS는 다음 네 **논리 역할**을 가집니다.
@@ -225,6 +227,7 @@ Connector는 고객망 내부에서 실행하며 **SaaS가 Connector로 inbound 
 - `LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE` (Terminal 활성화 및 프로덕션 시 필수)
 - `LABBIT_OPENSTACK_SSH_USERNAME` (기본값: ubuntu)
 - `LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE` (Private Key 인증 시 필수, Secret)
+- `LABBIT_OPENSTACK_SSH_IDLE_TIMEOUT` (기본 `1m`, 양수 Go duration): VM별 공유 SSH 연결에 열린 채널이 없을 때 종료까지의 시간. TerminalSession의 PTY grace와 독립입니다.
 
 Connector Credential과 Provider/OpenStack Credential 원문은 고객 환경 Secret 경계에 남습니다. Connector는 SaaS 공개 443으로 outbound WSS를 생성합니다. Control path/subprotocol과 Terminal Data framing은 `contracts/connector`의 Git 계약이 원본입니다.
 

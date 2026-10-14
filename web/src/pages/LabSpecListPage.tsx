@@ -45,6 +45,10 @@ export function LabSpecListPage() {
     )
   }
 
+  const ownedLabSpecs = labSpecsQuery.data.items.filter(
+    (labSpec) => labSpec.ownerUserId === meQuery.data.id,
+  )
+
   return (
     <main className="app-page">
       <header className="page-header page-header-spacious">
@@ -63,38 +67,34 @@ export function LabSpecListPage() {
         </Link>
       </header>
 
-      {labSpecsQuery.data.items.length === 0 ? (
+      {ownedLabSpecs.length === 0 ? (
         <section className="empty-state">
           <h2>저장된 LabSpec이 없습니다.</h2>
           <p>새 LabSpec을 만들고 이후 Class Provision에서 사용할 수 있습니다.</p>
         </section>
       ) : (
         <section className="class-grid" aria-label="조회 가능한 LabSpec">
-          {labSpecsQuery.data.items.map((labSpec) => {
-            const isOwner = labSpec.ownerUserId === meQuery.data.id
-
-            return (
-              <article className="class-card labspec-card" key={labSpec.id}>
-                <div className="class-card-topline">
-                  <span className="role-badge">{isOwner ? '내 실습 정의' : '읽기 전용'}</span>
-                  <span className="status-pill status-pill-neutral">정의만 저장됨</span>
-                </div>
-                <div className="class-card-body">
-                  <h2>{labSpec.name}</h2>
-                  <p className="class-card-description">{labSpec.description || '설명이 없습니다.'}</p>
-                </div>
-                <div className="class-card-footer">
-                  <span className="class-card-id">LabSpec · {labSpec.id}</span>
-                  <Link
-                  className={isOwner ? 'primary-link' : 'secondary-link card-link'}
+          {ownedLabSpecs.map((labSpec) => (
+            <article className="class-card labspec-card" key={labSpec.id}>
+              <div className="class-card-topline">
+                <span className="role-badge">내 실습 정의</span>
+                <span className="status-pill status-pill-neutral">정의만 저장됨</span>
+              </div>
+              <div className="class-card-body">
+                <h2>{labSpec.name}</h2>
+                <p className="class-card-description">{labSpec.description || '설명이 없습니다.'}</p>
+              </div>
+              <div className="class-card-footer">
+                <span className="class-card-id">LabSpec · {labSpec.id}</span>
+                <Link
+                  className="primary-link"
                   to={`/lab-specs/${encodeURIComponent(labSpec.id)}`}
-                  >
-                    {isOwner ? '편집' : '상세'}
-                  </Link>
-                </div>
-              </article>
-            )
-          })}
+                >
+                  편집
+                </Link>
+              </div>
+            </article>
+          ))}
         </section>
       )}
     </main>

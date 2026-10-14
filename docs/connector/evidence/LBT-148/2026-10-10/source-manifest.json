@@ -1,0 +1,43 @@
+{
+  "testedSource": "1af5c8e590c41c97fcbfca0a6b46384ec556035e",
+  "baseLBT147": "399681789572487bd44469ec018e52b53f97678e",
+  "fetchedMain": "6d675c74bff11f481d247267faefd4ce960dcd38",
+  "files": [
+    {
+      "path": "internal/connector/provider/openstack/pty_cc02_integration_test.go",
+      "blobOID": "09cbddb4e4485aa36e3204c7ca659511ece762e3"
+    },
+    {
+      "path": "internal/connector/terminal/client.go",
+      "blobOID": "cb15a2ba63d53ec6a23495dfbbf9f8c624026811"
+    },
+    {
+      "path": "internal/connector/terminal/data_owner_test.go",
+      "blobOID": "d7b0b05c1fc71c33b3f41ba88f9ca742c55c66dd"
+    },
+    {
+      "path": "internal/connector/terminal/data_write_test.go",
+      "blobOID": "ce8109451863d31e2e5eb9b738e8da5035b1f79f"
+    },
+    {
+      "path": "internal/connector/terminal/lifecycle_test.go",
+      "blobOID": "a780bc7e0813ab5501dc6b51cc0afdddb97118ef"
+    },
+    {
+      "path": "internal/connector/terminal/pty.go",
+      "blobOID": "9d544b3f35c41f35cf5765e3969b45554360c358"
+    },
+    {
+      "path": "internal/connector/terminal/session.go",
+      "blobOID": "fc552882eff64cf40c05f5bd0a7286aff1d38441"
+    },
+    {
+      "path": "internal/connector/terminal/ssh_pty.go",
+      "blobOID": "2c9b7cc5c6c51d61a5a33a98be0acca5f2890956"
+    },
+    {
+      "path": "internal/connector/wss/handler.go",
+      "blobOID": "0c4c52a4b16c238912f18ff9712bd1c6ea789718"
+    }
+  ]
+}

@@ -2,12 +2,15 @@ package openstackprovider
 
 import (
 	"context"
+	"errors"
 	"net"
 	"strconv"
 	"strings"
 
+	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
@@ -19,6 +22,37 @@ var _ coreprovider.ServerAddressResolver = (*Adapter)(nil)
 // supplied by Control. The caller owns envelope LabInstance/generation affinity;
 // this inherited interface supplies only the VM key and resolved Server ID.
 func (a *Adapter) ResolveServerAddress(ctx context.Context, targetVmKey, serverID string) (string, error) {
+	return a.resolveServerAddress(ctx, targetVmKey, serverID, nil)
+}
+
+// ResolveVMAccess includes the Control envelope's LabInstance/generation affinity
+// in the existing Provider-owned Server and management NIC validation.
+func (a *Adapter) ResolveVMAccess(ctx context.Context, target vmaccess.Target) (vmaccess.Endpoint, error) {
+	if strings.TrimSpace(target.LabInstanceID) == "" || target.Generation < 1 || strings.TrimSpace(target.VMKey) == "" || strings.TrimSpace(target.ServerID) == "" {
+		return vmaccess.Endpoint{}, vmaccess.ErrInvalidTarget
+	}
+	address, err := a.resolveServerAddress(ctx, target.VMKey, target.ServerID, &target)
+	if err != nil {
+		kind := vmaccess.ErrUnavailable
+		if errors.Is(err, vmaccess.ErrInvalidTarget) || errors.Is(err, ErrResourceOwnership) {
+			kind = vmaccess.ErrInvalidTarget
+		}
+		return vmaccess.Endpoint{}, safeContextError(ctx, kind)
+	}
+	callback, err := a.SSHHostKeyCallback(ctx, target.ServerID)
+	if err != nil {
+		return vmaccess.Endpoint{}, safeContextError(ctx, vmaccess.ErrUnavailable)
+	}
+	return vmaccess.Endpoint{
+		ProviderConnectionID: a.provision.ProviderConnectionID,
+		Address:              net.JoinHostPort(address, "22"),
+		Username:             a.provision.SSHUsername,
+		PrivateKeyFile:       a.provision.SSHPrivateKeyFile,
+		HostKeyCallback:      callback,
+	}, nil
+}
+
+func (a *Adapter) resolveServerAddress(ctx context.Context, targetVmKey, serverID string, expected *vmaccess.Target) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
@@ -28,14 +62,23 @@ func (a *Adapter) ResolveServerAddress(ctx context.Context, targetVmKey, serverI
 	}
 	server, err := a.lookupServer(ctx, serverID)
 	if err != nil {
+		if gophercloud.ResponseCodeIs(err, 404) && expected != nil {
+			return "", vmaccess.ErrInvalidTarget
+		}
 		return "", safeContextError(ctx, ErrServerGet)
 	}
 	generation, err := strconv.ParseInt(server.Metadata["labbit_generation"], 10, 64)
 	labID := strings.TrimSpace(server.Metadata["labbit_lab_instance_id"])
+	if expected != nil && (labID != expected.LabInstanceID || generation != expected.Generation) {
+		return "", vmaccess.ErrInvalidTarget
+	}
 	if err != nil || generation < 1 || labID == "" || strings.TrimSpace(server.Metadata["labbit_operation_id"]) == "" ||
 		server.ID != serverID || server.TenantID != a.provision.ProjectID || server.Metadata["labbit_vm_key"] != targetVmKey ||
-		server.Name != provisionBaseName(labID, generation)+"-"+safeName(targetVmKey, 28) || normalizeStatus(server.Status) != "ACTIVE" {
+		server.Name != provisionBaseName(labID, generation)+"-"+safeName(targetVmKey, 28) {
 		return "", ErrResourceOwnership
+	}
+	if normalizeStatus(server.Status) != "ACTIVE" {
+		return "", ErrSSHNotReady
 	}
 	if a.ktNetwork != nil {
 		items, err := a.ktNetwork.tiers(ctx)

@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -33,7 +35,7 @@ func (f SendMessageFunc) SendMessage(ctx context.Context, msg interface{}) error
 type PTYFactoryFunc func(targetVmKey string, serverId string, cols, rows int) (terminal.PTYChannel, error)
 
 // Handler 는 SaaS 로부터 수신한 Control WSS 메시지를 검증하고
-// 내부 Provider(DispatchOperation / DispatchReconcile) 및 터미널 세션 관리자로 연결한 후 결과를 회신합니다.
+// 내부 Provider(DispatchOperation / DispatchReconcile) 및 터미널/프리뷰 세션 관리자로 연결한 후 결과를 회신합니다.
 type Handler struct {
 	mu            sync.RWMutex
 	provider      provider.Provider
@@ -41,8 +43,18 @@ type Handler struct {
 	onError       func(err error)
 	terminalMgr   *terminal.SessionManager
 	ptyFactory    PTYFactoryFunc
+	vmPTYFactory  func(context.Context, vmaccess.Target, int, int) (terminal.PTYChannel, error)
 	terminalCfg   terminal.DataWSSClientConfig
 	endedSessions sync.Map
+	previewMgr    *preview.SessionManager
+	previewCfg    preview.DataWSSClientConfig
+}
+
+// SetVMPTYFactory preserves the authenticated envelope across the SSH boundary.
+func (h *Handler) SetVMPTYFactory(factory func(context.Context, vmaccess.Target, int, int) (terminal.PTYChannel, error)) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.vmPTYFactory = factory
 }
 
 // NewHandler 는 새 Control WSS 메시지 핸들러를 생성합니다.
@@ -74,6 +86,31 @@ func (h *Handler) SetTerminalManager(mgr *terminal.SessionManager, ptyFactory PT
 			h.sendTerminalEnded(session, reason, exitCode, err)
 		})
 	}
+}
+
+// SetPreviewManager 는 프리뷰 세션 관리자와 데이터 WSS 설정을 등록합니다.
+func (h *Handler) SetPreviewManager(mgr *preview.SessionManager, cfg preview.DataWSSClientConfig) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.previewMgr = mgr
+	h.previewCfg = cfg
+}
+
+// ActiveDialCredential 은 현재 활성 Control Session 의 실제 다이얼 인증 토큰을 반환합니다.
+// sender 가 DialCredential() 을 제공하면 해당 토큰을 우선 반환하고, 그렇지 않으면 previewCfg 에 설정된 값을 반환합니다.
+func (h *Handler) ActiveDialCredential() string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	if provider, ok := h.sender.(interface{ DialCredential() string }); ok {
+		if cred := provider.DialCredential(); cred != "" {
+			return cred
+		}
+	}
+	if h.previewCfg.Credential != "" {
+		return h.previewCfg.Credential
+	}
+	return ""
 }
 
 // Sender 는 현재 설정된 MessageSender 를 반환합니다.
@@ -120,6 +157,10 @@ func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
 		return h.handleTerminalOpen(ctx, env, raw)
 	case protocol.MessageTypeTerminalClose:
 		return h.handleTerminalClose(ctx, env, raw)
+	case protocol.MessageTypePreviewOpen:
+		return h.handlePreviewOpen(ctx, env, raw)
+	case protocol.MessageTypePreviewClose:
+		return h.handlePreviewClose(ctx, env, raw)
 	default:
 		// 지원되지 않는 메시지 타입은 Protocol Error 회신 후 무시
 		if sender := h.Sender(); sender != nil && env.MessageID != "" {
@@ -878,10 +919,11 @@ func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Conte
 			return readCtx.Err()
 		default:
 			_, msg, err := conn.ReadMessage()
-			if err != nil {
-				return err
+			if ctxErr := readCtx.Err(); ctxErr != nil {
+				return ctxErr
 			}
-			if err := readCtx.Err(); err != nil {
+			if err != nil {
+				h.OnControlDisconnected(err)
 				return err
 			}
 			// HandleMessage 에러를 무시하지 않고 등록된 onError 콜백으로 전달 (팀장님 리뷰 6번)
@@ -897,6 +939,26 @@ func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Conte
 	}
 }
 
+// OnControlDisconnected 는 Control WSS 연결 종료 시 호출되어,
+// Credential Revoke(4001) 또는 Control Session 교체(4002) 같은 명시적 trust retirement 에 대해
+// PreviewManager 의 기존 logical PreviewSession 들을 즉시 정리합니다.
+// 단순 네트워크 단절(EOF, 1006 등)에서는 세션을 폐기하지 않고 보존합니다.
+func (h *Handler) OnControlDisconnected(err error) {
+	var closeErr *websocket.CloseError
+	if errors.As(err, &closeErr) && (closeErr.Code == protocol.CloseCredentialRevoked || closeErr.Code == protocol.CloseSessionReplaced) {
+		h.mu.RLock()
+		mgr := h.previewMgr
+		h.mu.RUnlock()
+		if mgr != nil {
+			reason := protocol.PreviewReasonCredentialRevoked
+			if closeErr.Code == protocol.CloseSessionReplaced {
+				reason = protocol.PreviewReasonControlReplaced
+			}
+			mgr.CloseAll(reason)
+		}
+	}
+}
+
 func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvelope, raw []byte) error {
 	var openMsg protocol.TerminalOpenMessage
 	if err := json.Unmarshal(raw, &openMsg); err != nil {
@@ -906,6 +968,7 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 	h.mu.RLock()
 	mgr := h.terminalMgr
 	factory := h.ptyFactory
+	vmFactory := h.vmPTYFactory
 	dataCfg := h.terminalCfg
 	h.mu.RUnlock()
 
@@ -963,7 +1026,7 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 		return fmt.Errorf("invalid TERMINAL_OPEN: missing target or dimensions")
 	}
 
-	if mgr == nil || factory == nil {
+	if mgr == nil || (factory == nil && vmFactory == nil) {
 		if sender != nil {
 			failResult := protocol.TerminalOpenResultMessage{
 				BaseEnvelope: protocol.BaseEnvelope{
@@ -1015,12 +1078,15 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 	}
 
 	// 4. 세션 조회 또는 생성 (동일 Generation/Target 시맨틱 일치성 보장)
-	session, _, err := mgr.GetOrCreateSession(openMsg.Payload, openMsg.BaseEnvelope, func() (terminal.PTYChannel, error) {
+	session, reused, err := mgr.GetOrCreateSession(openMsg.Payload, openMsg.BaseEnvelope, func() (terminal.PTYChannel, error) {
+		if vmFactory != nil {
+			return vmFactory(ctx, vmaccess.Target{LabInstanceID: openMsg.LabInstanceID, Generation: openMsg.Generation, VMKey: openMsg.Payload.TargetVmKey, ServerID: openMsg.Payload.ProviderServerID}, openMsg.Payload.Cols, openMsg.Payload.Rows)
+		}
 		return factory(openMsg.Payload.TargetVmKey, openMsg.Payload.ProviderServerID, openMsg.Payload.Cols, openMsg.Payload.Rows)
 	})
 	if err != nil {
 		errCode := protocol.TerminalErrAttachFailed
-		if errors.Is(err, terminal.ErrStaleGeneration) || errors.Is(err, terminal.ErrSessionConflict) {
+		if errors.Is(err, terminal.ErrStaleGeneration) || errors.Is(err, terminal.ErrSessionConflict) || errors.Is(err, terminal.ErrSessionClosed) || errors.Is(err, vmaccess.ErrInvalidTarget) {
 			errCode = protocol.TerminalErrInvalidSession
 		}
 		if sender != nil {
@@ -1038,7 +1104,7 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 					Outcome: protocol.OutcomeFailed,
 					Error: &protocol.SafeError{
 						Code:    errCode,
-						Message: err.Error(),
+						Message: "Terminal VM access could not be opened",
 					},
 				},
 			}
@@ -1048,37 +1114,42 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 	}
 
 	// 5. Terminal Data WSS 동기식 Dial 및 Attach (Reviewer 3번 지적 사항: attach 완료 전에는 SUCCEEDED 금지)
-	dataClient := terminal.NewDataWSSClient(dataCfg, session)
-	if attachErr := dataClient.DialAndAttach(ctx); attachErr != nil {
-		// Attach 실패 시 세션 및 PTY 정리
-		_ = mgr.CloseSession(openMsg.TerminalSessionID, protocol.TerminalReasonSessionClosed)
+	// Repeated OPEN of an attached session must not replace its Data transport
+	// or start competing reconnect owners for the same PTY.
+	if !reused || session.GetDataConn() == nil {
+		dataClient := terminal.NewDataWSSClient(dataCfg, session)
+		if attachErr := dataClient.DialAndAttach(ctx); attachErr != nil {
+			// A failed old attach must not close a replacement owner's PTY.
+			session.CloseIfDataClientOwner(dataClient, protocol.TerminalReasonSessionClosed)
+			dataClient.Close()
 
-		if sender != nil {
-			failResult := protocol.TerminalOpenResultMessage{
-				BaseEnvelope: protocol.BaseEnvelope{
-					Type:              protocol.MessageTypeTerminalOpenResult,
-					MessageID:         generateUUID(),
-					ReplyToMessageID:  openMsg.MessageID,
-					SentAt:            time.Now().UTC(),
-					TerminalSessionID: openMsg.TerminalSessionID,
-					LabInstanceID:     openMsg.LabInstanceID,
-					Generation:        openMsg.Generation,
-				},
-				Payload: protocol.TerminalOpenResultPayload{
-					Outcome: protocol.OutcomeFailed,
-					Error: &protocol.SafeError{
-						Code:    protocol.TerminalErrAttachFailed,
-						Message: attachErr.Error(),
+			if sender != nil {
+				failResult := protocol.TerminalOpenResultMessage{
+					BaseEnvelope: protocol.BaseEnvelope{
+						Type:              protocol.MessageTypeTerminalOpenResult,
+						MessageID:         generateUUID(),
+						ReplyToMessageID:  openMsg.MessageID,
+						SentAt:            time.Now().UTC(),
+						TerminalSessionID: openMsg.TerminalSessionID,
+						LabInstanceID:     openMsg.LabInstanceID,
+						Generation:        openMsg.Generation,
 					},
-				},
+					Payload: protocol.TerminalOpenResultPayload{
+						Outcome: protocol.OutcomeFailed,
+						Error: &protocol.SafeError{
+							Code:    protocol.TerminalErrAttachFailed,
+							Message: "Terminal Data connection could not be attached",
+						},
+					},
+				}
+				_ = sender.SendMessage(ctx, failResult)
 			}
-			_ = sender.SendMessage(ctx, failResult)
+			return fmt.Errorf("failed to attach terminal data WSS: %w", attachErr)
 		}
-		return fmt.Errorf("failed to attach terminal data WSS: %w", attachErr)
-	}
 
-	// 6. Attach 성공 후에만 백그라운드 스트리밍 시작 및 TERMINAL_OPEN_RESULT (SUCCEEDED) 회신
-	dataClient.StartStreaming()
+		// 6. Attach 성공 후에만 백그라운드 스트리밍 시작 및 TERMINAL_OPEN_RESULT (SUCCEEDED) 회신
+		dataClient.StartStreaming()
+	}
 
 	if sender != nil {
 		succResult := protocol.TerminalOpenResultMessage{
@@ -1180,8 +1251,301 @@ func (h *Handler) sendTerminalEndedRaw(replyToMsgID string, sessionID, labID str
 	if err != nil {
 		endedMsg.Payload.Error = &protocol.SafeError{
 			Code:    "SESSION_ERROR",
-			Message: err.Error(),
+			Message: "Terminal SSH channel ended",
 		}
 	}
 	_ = sender.SendMessage(context.Background(), endedMsg)
+}
+
+func (h *Handler) handlePreviewOpen(ctx context.Context, env protocol.BaseEnvelope, raw []byte) error {
+	var openMsg protocol.PreviewOpenMessage
+	if err := json.Unmarshal(raw, &openMsg); err != nil {
+		return fmt.Errorf("failed to unmarshal PREVIEW_OPEN: %w", err)
+	}
+
+	sessionID := openMsg.PreviewSessionID
+	if sessionID == "" {
+		sessionID = openMsg.RequestID
+	}
+	openMsg.PreviewSessionID = sessionID
+
+	h.mu.RLock()
+	mgr := h.previewMgr
+	dataCfg := h.previewCfg
+	h.mu.RUnlock()
+
+	if activeCred := h.ActiveDialCredential(); activeCred != "" {
+		dataCfg.Credential = activeCred
+		dataCfg.CredentialFile = ""
+		dataCfg.CredentialProvider = nil
+	}
+
+	sender := h.Sender()
+
+	// 1. Envelope 필수 필드 검증
+	if openMsg.MessageID == "" || openMsg.PreviewSessionID == "" || openMsg.LabInstanceID == "" || openMsg.Generation < 1 {
+		if sender != nil {
+			failResult := protocol.PreviewOpenResultMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:             protocol.MessageTypePreviewOpenResult,
+					MessageID:        generateUUID(),
+					ReplyToMessageID: openMsg.MessageID,
+					SentAt:           time.Now().UTC(),
+					PreviewSessionID: openMsg.PreviewSessionID,
+					LabInstanceID:    openMsg.LabInstanceID,
+					Generation:       openMsg.Generation,
+				},
+				Payload: protocol.PreviewOpenResultPayload{
+					Outcome: protocol.OutcomeFailed,
+					Error: &protocol.SafeError{
+						Code:    protocol.PreviewErrorCodeUnavailable,
+						Message: "missing required envelope fields: messageId, previewSessionId, labInstanceId, or generation < 1",
+					},
+				},
+			}
+			_ = sender.SendMessage(ctx, failResult)
+		}
+		return fmt.Errorf("invalid PREVIEW_OPEN envelope: missing required correlation fields")
+	}
+
+	// 2. SSH 22번 포트 거절 (D-18 심층 방어)
+	if openMsg.Payload.TargetPort == 22 {
+		if sender != nil {
+			failResult := protocol.PreviewOpenResultMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:             protocol.MessageTypePreviewOpenResult,
+					MessageID:        generateUUID(),
+					ReplyToMessageID: openMsg.MessageID,
+					SentAt:           time.Now().UTC(),
+					PreviewSessionID: openMsg.PreviewSessionID,
+					LabInstanceID:    openMsg.LabInstanceID,
+					Generation:       openMsg.Generation,
+				},
+				Payload: protocol.PreviewOpenResultPayload{
+					Outcome: protocol.OutcomeFailed,
+					Error: &protocol.SafeError{
+						Code:    protocol.PreviewErrorCodePortRejected,
+						Message: "target port 22 is not allowed for preview",
+					},
+				},
+			}
+			_ = sender.SendMessage(ctx, failResult)
+		}
+		return fmt.Errorf("port 22 is rejected for preview")
+	}
+
+	// 3. Payload 필수 필드 검증 (targetVmKey, providerServerId, targetPort 1-65535)
+	if openMsg.Payload.TargetVmKey == "" || openMsg.Payload.ProviderServerID == "" || openMsg.Payload.TargetPort <= 0 || openMsg.Payload.TargetPort > 65535 {
+		if sender != nil {
+			failResult := protocol.PreviewOpenResultMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:             protocol.MessageTypePreviewOpenResult,
+					MessageID:        generateUUID(),
+					ReplyToMessageID: openMsg.MessageID,
+					SentAt:           time.Now().UTC(),
+					PreviewSessionID: openMsg.PreviewSessionID,
+					LabInstanceID:    openMsg.LabInstanceID,
+					Generation:       openMsg.Generation,
+				},
+				Payload: protocol.PreviewOpenResultPayload{
+					Outcome: protocol.OutcomeFailed,
+					Error: &protocol.SafeError{
+						Code:    protocol.PreviewErrorCodePortRejected,
+						Message: "missing required target or invalid targetPort (1-65535)",
+					},
+				},
+			}
+			_ = sender.SendMessage(ctx, failResult)
+		}
+		return fmt.Errorf("invalid PREVIEW_OPEN: missing target or invalid targetPort %d", openMsg.Payload.TargetPort)
+	}
+
+	if mgr == nil {
+		if sender != nil {
+			failResult := protocol.PreviewOpenResultMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:             protocol.MessageTypePreviewOpenResult,
+					MessageID:        generateUUID(),
+					ReplyToMessageID: openMsg.MessageID,
+					SentAt:           time.Now().UTC(),
+					PreviewSessionID: openMsg.PreviewSessionID,
+					LabInstanceID:    openMsg.LabInstanceID,
+					Generation:       openMsg.Generation,
+				},
+				Payload: protocol.PreviewOpenResultPayload{
+					Outcome: protocol.OutcomeFailed,
+					Error: &protocol.SafeError{
+						Code:    protocol.PreviewErrorCodeUnavailable,
+						Message: "preview transport unavailable",
+					},
+				},
+			}
+			_ = sender.SendMessage(ctx, failResult)
+		}
+		return fmt.Errorf("preview manager not configured")
+	}
+
+	if dataCfg.EndpointURL == "" {
+		if sender != nil {
+			failResult := protocol.PreviewOpenResultMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:             protocol.MessageTypePreviewOpenResult,
+					MessageID:        generateUUID(),
+					ReplyToMessageID: openMsg.MessageID,
+					SentAt:           time.Now().UTC(),
+					PreviewSessionID: openMsg.PreviewSessionID,
+					LabInstanceID:    openMsg.LabInstanceID,
+					Generation:       openMsg.Generation,
+				},
+				Payload: protocol.PreviewOpenResultPayload{
+					Outcome: protocol.OutcomeFailed,
+					Error: &protocol.SafeError{
+						Code:    protocol.PreviewErrorCodeUnavailable,
+						Message: "preview data wss endpoint not configured",
+					},
+				},
+			}
+			_ = sender.SendMessage(ctx, failResult)
+		}
+		return fmt.Errorf("preview data wss endpoint not configured")
+	}
+
+	// 4. 세션 조회 또는 생성 (TCP forwarding channel 사전 연결)
+	session, resumed, err := mgr.GetOrCreateSession(ctx, openMsg.Payload, openMsg.BaseEnvelope)
+	if err != nil {
+		safeCode := protocol.PreviewErrorCodeUnavailable
+		safeMsg := "cannot open preview tunnel"
+		if errors.Is(err, preview.ErrPortRejected) {
+			safeCode = protocol.PreviewErrorCodePortRejected
+			safeMsg = "port is not allowed"
+		} else if errors.Is(err, preview.ErrAppNotRunning) {
+			safeCode = protocol.PreviewErrorCodeAppNotRunning
+			safeMsg = "application is not running on target port"
+		} else if errors.Is(err, preview.ErrVMUnreachable) {
+			safeCode = protocol.PreviewErrorCodeVMUnreachable
+			safeMsg = "workspace VM is unreachable"
+		} else if errors.Is(err, preview.ErrSessionConflict) {
+			safeCode = protocol.PreviewErrorCodeUnavailable
+			safeMsg = "stale generation or target mismatch"
+		}
+
+		if sender != nil {
+			failResult := protocol.PreviewOpenResultMessage{
+				BaseEnvelope: protocol.BaseEnvelope{
+					Type:             protocol.MessageTypePreviewOpenResult,
+					MessageID:        generateUUID(),
+					ReplyToMessageID: openMsg.MessageID,
+					SentAt:           time.Now().UTC(),
+					PreviewSessionID: openMsg.PreviewSessionID,
+					LabInstanceID:    openMsg.LabInstanceID,
+					Generation:       openMsg.Generation,
+				},
+				Payload: protocol.PreviewOpenResultPayload{
+					Outcome: protocol.OutcomeFailed,
+					Error: &protocol.SafeError{
+						Code:    safeCode,
+						Message: safeMsg,
+					},
+				},
+			}
+			_ = sender.SendMessage(ctx, failResult)
+		}
+		return fmt.Errorf("failed to get/create preview session: %w", err)
+	}
+
+	// 5. 중복 요청 멱등성 보장 (resumed == true 인 경우 이미 터널/Data WSS가 처리 중이므로 두 번째 Data WSS를 만들지 않음)
+	if !resumed {
+		// Preview Data WSS 동기식 Dial 및 Attach (openMsg.MessageID 전달)
+		dataClient := preview.NewDataWSSClient(dataCfg)
+		if attachErr := dataClient.DialAndAttach(ctx, session, openMsg.MessageID); attachErr != nil {
+			session.CloseCurrentTunnel("open failed")
+			if !session.EverAttached() {
+				_ = mgr.CloseSession(openMsg.PreviewSessionID, "initial attach failed")
+			}
+
+			safeCode := protocol.PreviewErrorCodeUnavailable
+			safeMsg := "failed to attach preview data channel"
+			if errors.Is(attachErr, preview.ErrAttachTimeout) {
+				safeCode = protocol.PreviewErrorCodeUnavailable
+				safeMsg = "preview gateway attach timed out"
+			}
+
+			if sender != nil {
+				failResult := protocol.PreviewOpenResultMessage{
+					BaseEnvelope: protocol.BaseEnvelope{
+						Type:             protocol.MessageTypePreviewOpenResult,
+						MessageID:        generateUUID(),
+						ReplyToMessageID: openMsg.MessageID,
+						SentAt:           time.Now().UTC(),
+						PreviewSessionID: openMsg.PreviewSessionID,
+						LabInstanceID:    openMsg.LabInstanceID,
+						Generation:       openMsg.Generation,
+					},
+					Payload: protocol.PreviewOpenResultPayload{
+						Outcome: protocol.OutcomeFailed,
+						Error: &protocol.SafeError{
+							Code:    safeCode,
+							Message: safeMsg,
+						},
+					},
+				}
+				_ = sender.SendMessage(ctx, failResult)
+			}
+			return fmt.Errorf("failed to attach preview data WSS: %w", attachErr)
+		}
+	}
+
+	// 6. 회신 PREVIEW_OPEN_RESULT (SUCCEEDED)
+	if sender != nil {
+		succResult := protocol.PreviewOpenResultMessage{
+			BaseEnvelope: protocol.BaseEnvelope{
+				Type:             protocol.MessageTypePreviewOpenResult,
+				MessageID:        generateUUID(),
+				ReplyToMessageID: openMsg.MessageID,
+				SentAt:           time.Now().UTC(),
+				PreviewSessionID: openMsg.PreviewSessionID,
+				LabInstanceID:    openMsg.LabInstanceID,
+				Generation:       openMsg.Generation,
+			},
+			Payload: protocol.PreviewOpenResultPayload{
+				Outcome: protocol.OutcomeSucceeded,
+			},
+		}
+		_ = sender.SendMessage(ctx, succResult)
+	}
+
+	return nil
+}
+
+func (h *Handler) handlePreviewClose(ctx context.Context, env protocol.BaseEnvelope, raw []byte) error {
+	var closeMsg protocol.PreviewCloseMessage
+	if err := json.Unmarshal(raw, &closeMsg); err != nil {
+		return fmt.Errorf("failed to unmarshal PREVIEW_CLOSE: %w", err)
+	}
+
+	sessionID := closeMsg.PreviewSessionID
+	if sessionID == "" {
+		sessionID = closeMsg.RequestID
+	}
+
+	if closeMsg.MessageID == "" || sessionID == "" || closeMsg.LabInstanceID == "" || closeMsg.Generation < 1 || closeMsg.Payload.Reason == "" {
+		return fmt.Errorf("invalid PREVIEW_CLOSE: missing required fields")
+	}
+
+	h.mu.RLock()
+	mgr := h.previewMgr
+	h.mu.RUnlock()
+
+	if mgr != nil && sessionID != "" {
+		session, exists := mgr.GetSession(sessionID)
+		if exists {
+			if session.LabInstanceID != closeMsg.LabInstanceID || session.Generation != closeMsg.Generation {
+				return fmt.Errorf("stale or mismatched PREVIEW_CLOSE: session has lab=%s gen=%d, got lab=%s gen=%d",
+					session.LabInstanceID, session.Generation, closeMsg.LabInstanceID, closeMsg.Generation)
+			}
+			_ = mgr.CloseSession(sessionID, closeMsg.Payload.Reason)
+		}
+	}
+
+	return nil
 }

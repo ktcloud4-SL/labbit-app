@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
@@ -29,12 +31,14 @@ type SSHConfig struct {
 
 // SSHPTY는 실제 SSH 세션과 PTY 채널을 래핑하여 PTYChannel 인터페이스를 구현합니다.
 type SSHPTY struct {
-	client  *ssh.Client
-	session *ssh.Session
-	stdin   io.WriteCloser
-	stdout  io.Reader
+	client       *ssh.Client
+	closeChannel func() error
+	session      *ssh.Session
+	stdin        io.WriteCloser
+	stdout       io.ReadCloser
 
 	mu       sync.Mutex
+	resizeMu sync.Mutex
 	cols     int
 	rows     int
 	closed   bool
@@ -53,6 +57,10 @@ func NewSSHPTY(client *ssh.Client, cols, rows int) (*SSHPTY, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ssh session: %w", err)
 	}
+	return newSSHSessionPTY(session, client, nil, cols, rows)
+}
+
+func newSSHSessionPTY(session *ssh.Session, client *ssh.Client, closeChannel func() error, cols, rows int) (*SSHPTY, error) {
 
 	modes := ssh.TerminalModes{
 		ssh.ECHO:          1,
@@ -78,30 +86,37 @@ func NewSSHPTY(client *ssh.Client, cols, rows int) (*SSHPTY, error) {
 		return nil, fmt.Errorf("failed to open stdin pipe: %w", err)
 	}
 
-	stdout, err := session.StdoutPipe()
-	if err != nil {
-		_ = session.Close()
-		return nil, fmt.Errorf("failed to open stdout pipe: %w", err)
-	}
+	// Both SSH output streams belong to the terminal. Pipe backpressure keeps
+	// memory bounded, and Wait drains both streams before reporting termination.
+	stdout, output := io.Pipe()
+	session.Stdout, session.Stderr = output, output
 
 	if err := session.Shell(); err != nil {
+		_ = stdout.Close()
+		_ = output.Close()
 		_ = session.Close()
 		return nil, fmt.Errorf("failed to start shell: %w", err)
 	}
 
 	pty := &SSHPTY{
-		client:   client,
-		session:  session,
-		stdin:    stdin,
-		stdout:   stdout,
-		cols:     cols,
-		rows:     rows,
-		waitDone: make(chan struct{}),
+		client:       client,
+		closeChannel: closeChannel,
+		session:      session,
+		stdin:        stdin,
+		stdout:       stdout,
+		cols:         cols,
+		rows:         rows,
+		waitDone:     make(chan struct{}),
 	}
 
 	go func() {
 		defer close(pty.waitDone)
 		waitErr := session.Wait()
+		_ = output.Close()
+		// A remote shell exit also releases the managed channel reservation.
+		if closeChannel != nil {
+			_ = closeChannel()
+		}
 		pty.mu.Lock()
 		defer pty.mu.Unlock()
 		pty.waitErr = waitErr
@@ -118,6 +133,13 @@ func NewSSHPTY(client *ssh.Client, cols, rows int) (*SSHPTY, error) {
 	}()
 
 	return pty, nil
+}
+
+func (p *SSHPTY) WaitTermination() (*int, error) {
+	<-p.waitDone
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.exitCode, p.waitErr
 }
 
 // ExitStatus 는 관측된 원격 프로세스의 종료 코드를 반환합니다.
@@ -150,45 +172,89 @@ func (p *SSHPTY) Write(buf []byte) (int, error) {
 
 // Resize는 터미널 창 크기(cols, rows)를 변경하는 RFC 4254 window-change 요청을 보냅니다.
 func (p *SSHPTY) Resize(cols, rows int) error {
+	p.resizeMu.Lock()
+	defer p.resizeMu.Unlock()
 	p.mu.Lock()
-	defer p.mu.Unlock()
 	if p.closed {
+		p.mu.Unlock()
 		return io.ErrClosedPipe
 	}
-	p.cols = cols
-	p.rows = rows
+	p.mu.Unlock()
 	if err := p.session.WindowChange(rows, cols); err != nil {
 		return fmt.Errorf("window-change failed: %w", err)
 	}
+	p.mu.Lock()
+	p.cols, p.rows = cols, rows
+	p.mu.Unlock()
 	return nil
 }
 
 // Close는 SSH 세션 및 연결을 닫습니다.
 func (p *SSHPTY) Close() error {
 	p.mu.Lock()
-	defer p.mu.Unlock()
 	if p.closed {
+		p.mu.Unlock()
 		return nil
 	}
 	p.closed = true
+	p.mu.Unlock()
 
-	var errs []error
-	if p.stdin != nil {
-		if err := p.stdin.Close(); err != nil && !errors.Is(err, io.EOF) {
-			errs = append(errs, err)
-		}
+	if p.stdout != nil {
+		_ = p.stdout.Close()
 	}
-	if p.session != nil {
-		if err := p.session.Close(); err != nil && !errors.Is(err, io.EOF) {
-			errs = append(errs, err)
-		}
+	// The manager owns shared channel cleanup and must be able to close the
+	// transport even when a channel packet write is blocked.
+	if p.closeChannel != nil {
+		return p.closeChannel()
 	}
+	// A standalone PTY owns its client. Close the socket before any SSH packet
+	// writes; closing stdin would also race with an in-flight channel Write.
+	var err error
 	if p.client != nil {
-		if err := p.client.Close(); err != nil && !errors.Is(err, io.EOF) {
-			errs = append(errs, err)
-		}
+		err = p.client.Close()
+	} else if p.session != nil {
+		err = p.session.Close()
 	}
-	return errors.Join(errs...)
+	if errors.Is(err, io.EOF) {
+		return nil
+	}
+	return err
+}
+
+// NewManagedSSHPTY opens an independent PTY on a validated shared VM transport.
+func NewManagedSSHPTY(ctx context.Context, manager *vmaccess.Manager, target vmaccess.Target, cols, rows int) (PTYChannel, error) {
+	channel, err := manager.OpenSession(ctx, target)
+	if err != nil {
+		return nil, err
+	}
+	var pty *SSHPTY
+	var setupMu sync.Mutex
+	abandoned := false
+	err = channel.Setup(ctx, func(session *ssh.Session) error {
+		created, setupErr := newSSHSessionPTY(session, nil, channel.Close, cols, rows)
+		setupMu.Lock()
+		orphaned := abandoned
+		if !orphaned {
+			pty = created
+		}
+		setupMu.Unlock()
+		if orphaned && created != nil {
+			_ = created.Close()
+		}
+		return setupErr
+	})
+	setupMu.Lock()
+	abandoned = err != nil
+	result := pty
+	pty = nil
+	setupMu.Unlock()
+	if err != nil {
+		if result != nil {
+			_ = result.Close()
+		}
+		return nil, err
+	}
+	return result, nil
 }
 
 // DialSSHPTY는 지정된 주소로 SSH를 연결하고 새 SSHPTY를 반환합니다.

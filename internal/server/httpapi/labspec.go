@@ -25,6 +25,7 @@ const (
 
 // LabSpecs는 handler가 사용하는 LabSpec use case다. *labspec.Service가 구현한다.
 type LabSpecs interface {
+	MappingOptions(ctx context.Context, user repository.User) ([]labspec.MappingOptions, error)
 	List(ctx context.Context, user repository.User) ([]labspec.Summary, error)
 	Get(ctx context.Context, user repository.User, labSpecID string) (labspec.Definition, error)
 	Create(ctx context.Context, user repository.User, in labspec.Write) (labspec.Definition, error)

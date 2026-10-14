@@ -23,3 +23,6 @@
 # 임시 파일
 *.tmp
 *.swp
+
+# 개인 Figma 개발 플러그인 ID (로컬 설정)
+/tools/figma/labbit-ux-importer/manifest.json

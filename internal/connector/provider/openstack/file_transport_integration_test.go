@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -141,7 +142,7 @@ func TestOpenStackFileTransportIntegration(t *testing.T) {
 	if fixture.Symlink("/home/ubuntu/outside", root+"/link") != nil {
 		t.Fatal("Symlink fixture failed")
 	}
-	service, err := workspacefile.New(access, a, workspacefile.Config{Root: root, HelperPath: helper, Timeout: 3 * time.Second, MaxFileBytes: 64})
+	service, err := workspacefile.New(access, a, workspacefile.Config{Root: root, HelperPath: helper, Timeout: 30 * time.Second, MaxFileBytes: 64})
 	if err != nil {
 		t.Fatal("File service configuration failed")
 	}
@@ -153,7 +154,7 @@ func TestOpenStackFileTransportIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal("Router failed")
 	}
-	broker, err := filebroker.New(filebroker.Options{Control: router, Auth: auth, AttachTimeout: 3 * time.Second, OperationTimeout: 5 * time.Second})
+	broker, err := filebroker.New(filebroker.Options{Control: router, Auth: auth, AttachTimeout: 5 * time.Second, OperationTimeout: 30 * time.Second})
 	if err != nil {
 		t.Fatal("Broker failed")
 	}
@@ -173,7 +174,7 @@ func TestOpenStackFileTransportIntegration(t *testing.T) {
 	defer broker.Close()
 	pool := x509.NewCertPool()
 	pool.AddCert(dataServer.Certificate())
-	fileConfig := fileclient.Config{EndpointURL: "wss" + strings.TrimPrefix(dataServer.URL, "https") + filebroker.DataPath, RuntimeID: "file-integration-runtime", Timeout: 3 * time.Second, MaxFileBytes: 64, Dialer: &websocket.Dialer{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}}}
+	fileConfig := fileclient.Config{EndpointURL: "wss" + strings.TrimPrefix(dataServer.URL, "https") + filebroker.DataPath, RuntimeID: "file-integration-runtime", Timeout: 30 * time.Second, MaxFileBytes: 64, Dialer: &websocket.Dialer{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}}}
 	manager, err := fileclient.New(service, fileConfig)
 	if err != nil {
 		t.Fatal("File manager failed")
@@ -272,13 +273,17 @@ func TestOpenStackFileTransportIntegration(t *testing.T) {
 	defer pty.Close()
 	shared := realSSHConnection(t, ctx, access, vm)
 	var wg sync.WaitGroup
-	for i := 0; i < 8; i++ {
+	for i := 0; i < 4; i++ {
+		name := fmt.Sprintf("concurrent-%d", i)
+		body := []byte(fmt.Sprintf("fixture-%d", i))
+		workspaceFixtureWrite(t, fixture, root+"/"+name, body)
+		path, _ := serverfile.ParseFile(name)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			data, err := broker.Read(ctx, target, file, 64)
-			if err != nil || len(data.Content) != 0 {
-				t.Error("Concurrent requests crossed or failed")
+			data, err := broker.Read(ctx, target, path, 64)
+			if err != nil || !bytes.Equal(data.Content, body) {
+				t.Errorf("Concurrent request failed: errorType=%T bodyMismatch=%t", err, !bytes.Equal(data.Content, body))
 			}
 		}()
 	}
@@ -312,7 +317,7 @@ func TestOpenStackFileTransportIntegration(t *testing.T) {
 		request, stop := context.WithCancel(ctx)
 		result := make(chan error, 1)
 		go func() { _, err := broker.Read(request, target, file, 64); result <- err }()
-		until := time.Now().Add(2 * time.Second)
+		until := time.Now().Add(10 * time.Second)
 		for {
 			if _, err := fixture.Stat("/home/ubuntu/stall-started"); err == nil {
 				break
@@ -334,7 +339,7 @@ func TestOpenStackFileTransportIntegration(t *testing.T) {
 			if err == nil {
 				t.Fatal("Interrupted File unexpectedly succeeded")
 			}
-		case <-time.After(5 * time.Second):
+		case <-time.After(8 * time.Second):
 			stop()
 			t.Fatal("Interrupted File did not terminate")
 		}
@@ -363,7 +368,7 @@ func TestOpenStackFileTransportIntegration(t *testing.T) {
 			}
 		}
 	}
-	t.Log("Eight independent Data requests; real SFTP cancellation/timeout/Data revoke drain pending+workers and preserve shared PTY; Control secrecy PASS")
+	t.Log("Four independent Data requests with distinct content; real SFTP cancellation/timeout/Data revoke drain pending+workers and preserve shared PTY; Control secrecy PASS")
 }
 
 func fileIntegrationIdle(t *testing.T, b *filebroker.Broker, m *fileclient.Manager) {

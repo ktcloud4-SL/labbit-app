@@ -486,6 +486,14 @@ paths:
 
         일부 Provider 리소스 삭제에 실패하면 완료로 표시하지 않고,
         잔여 리소스를 추적하여 Cleanup을 다시 시도할 수 있어야 합니다.
+
+        요청 사용자는 LabExecution이 속한 Class의 현재 INSTRUCTOR Membership이 있어야 하며 organizationRole=ADMIN은 이를 대신하지 않습니다.
+        Cleanup 대상은 현재 ClassMembership이 아니라 이 LabExecution에 저장된 LabInstance 전부(강사용 1개와 접수 때 고정한 학생별 LabInstance)입니다.
+        접수(202)는 CLEANUP Operation과 LabInstance별 작업 단위를 하나의 transaction으로 등록할 뿐이며 Provider 리소스 삭제,
+        Terminal/Live 종료, LabExecution 종료는 비동기 실행에서 일어납니다. 접수만으로 LabExecution의 상태나 활성 여부는 바뀌지 않으므로
+        Cleanup이 완료되기 전에는 같은 Class에서 새 LabExecution을 시작할 수 없습니다.
+        LabExecution의 어느 LabInstance에든 진행 중인 Provision/Reset/Cleanup이 있으면 기다리지 않고 409(code `operation_in_progress`)이며
+        일부 LabInstance만 등록하지 않습니다. 이미 종료된 LabExecution은 409(code `lab_execution_finished`)입니다.
       parameters:
         - $ref: '#/components/parameters/LabExecutionId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -505,6 +513,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OperationAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -552,6 +562,14 @@ paths:
         파괴적인 기존 리소스 삭제 전에 D-19의 재현 가능성 Preflight를 수행합니다.
         원본 Image/Flavor 등 재현 조건을 만족하지 못하면 기존 환경을 먼저 삭제하지 않고
         Reset 요청을 실패시킵니다.
+
+        요청 사용자는 LabInstance가 속한 Class의 현재 INSTRUCTOR Membership이 있어야 하며 organizationRole=ADMIN은 이를 대신하지 않습니다.
+        대상은 그 LabExecution의 학생 LabInstance입니다. 학생 본인의 Reset은 403, 강사용 LabInstance의 Reset은 422(code `invalid_reset_target`)입니다.
+        접수(202)는 RESET Operation과 현재 generation + 1의 작업 단위를 등록할 뿐이며 Preflight, 기존 리소스 삭제, 재생성은 비동기 실행에서 일어납니다.
+        따라서 202는 재현 가능성을 확인했다는 뜻이 아니고, 재현 불가는 Operation 결과로 확인합니다. 접수만으로 LabInstance의 `generation`과
+        상태는 바뀌지 않으며 새 generation은 재생성이 끝난 뒤에 반영됩니다.
+        같은 LabInstance에 진행 중인 Provision/Reset/Cleanup이 있으면 기다리지 않고 409(code `operation_in_progress`)이며,
+        이미 종료된 LabExecution의 LabInstance는 409(code `lab_execution_finished`)입니다.
       parameters:
         - $ref: '#/components/parameters/LabInstanceId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -571,6 +589,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OperationAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1449,6 +1469,8 @@ components:
 
         LabExecution 시작에서는 code `invalid_request`(`Idempotency-Key` 누락·중복·길이 위반, `CreateLabExecutionRequest` 형식 위반:
         필수 field 누락, 타입, 알 수 없는 field, `null`, 빈 문자열, 빈 `targetStudentIds`, 중복 ID)입니다.
+
+        LabInstance Reset과 LabExecution Cleanup에서는 code `invalid_request`(`Idempotency-Key` 누락·중복·길이 위반)입니다.
       content:
         application/problem+json:
           schema:
@@ -1499,8 +1521,9 @@ components:
 
         예:
         - Class에 이미 활성 LabExecution이 존재함(LabExecution 시작에서는 code `active_lab_execution_exists`)
-        - 같은 LabInstance에 다른 변경 Operation이 진행 중임
-        - 같은 Idempotency-Key를 다른 의미의 요청에 재사용함(LabExecution 시작에서는 code `idempotency_key_reused`)
+        - 같은 LabInstance에 다른 변경 Operation이 진행 중임(Reset/Cleanup에서는 code `operation_in_progress`)
+        - 같은 Idempotency-Key를 다른 의미의 요청에 재사용함(LabExecution 시작, Reset, Cleanup에서는 code `idempotency_key_reused`)
+        - 이미 종료된 LabExecution 또는 그 LabInstance에 Reset/Cleanup을 요청함(code `lab_execution_finished`)
         - LabInstance가 아직 `READY`가 아니라 Terminal target 조회나 TerminalSession 생성을 할 수 없음(code `lab_instance_not_ready`)
         - 대상 VM이 현재 generation에서 사용할 수 없는 상태임(code `terminal_target_unavailable`)
         - LabInstance가 아직 `READY`가 아니라 Workspace file Tree/Read/Save를 할 수 없음(code `lab_instance_not_ready`)
@@ -1545,6 +1568,8 @@ components:
         LabExecution 시작에서는 code `invalid_target_students`(대상 Class의 현재 STUDENT Membership이 아닌 사용자, 존재하지 않거나
         서버가 발급하지 않은 형식의 ID), `lab_spec_not_provisionable`(LabSpec의 Image/Size mapping이 지금 비활성이거나 서로 다른
         Provider 연결에 속해 생성 기준을 확정할 수 없음, 또는 VM 수가 배포 구성의 한도를 넘음)입니다. mapping을 임의로 대체하지 않습니다.
+
+        LabInstance Reset에서는 code `invalid_reset_target`(대상이 학생 LabInstance가 아니라 강사용 LabInstance)입니다.
       content:
         application/problem+json:
           schema:

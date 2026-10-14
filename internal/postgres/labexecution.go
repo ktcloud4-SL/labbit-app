@@ -173,6 +173,47 @@ func (q queries) LabExecutionByID(ctx context.Context, id uuid.UUID) (repository
 	return execution, nil
 }
 
+// LabExecutionForShare는 본문 row를 먼저 잠근 뒤 LabInstance를 id 순서로 잠근다. Reset/Cleanup 접수가 모두 같은 순서로 잠그므로
+// 서로의 잠금을 반대 순서로 기다리지 않는다. FOR SHARE끼리는 충돌하지 않고 Worker의 UPDATE만 commit까지 기다린다.
+func (q queries) LabExecutionForShare(ctx context.Context, id uuid.UUID) (repository.LockedLabExecution, error) {
+	const op = "LabExecutionForShare"
+
+	var e repository.LockedLabExecution
+	err := q.db.QueryRow(ctx,
+		`SELECT e.id, e.organization_id, e.class_id, e.lab_spec_id, e.instructor_user_id, e.status, e.started_at, e.finished_at,
+			EXISTS (SELECT 1 FROM creation_snapshots cs WHERE cs.lab_execution_id = e.id AND cs.organization_id = e.organization_id)
+		 FROM lab_executions e
+		 WHERE e.id = $1
+		 FOR SHARE OF e`,
+		id,
+	).Scan(&e.ID, &e.OrganizationID, &e.ClassID, &e.LabSpecID, &e.InstructorUserID, &e.Status, &e.StartedAt, &e.FinishedAt, &e.HasCreationSnapshot)
+	if err != nil {
+		return repository.LockedLabExecution{}, normalize(op, err)
+	}
+	rows, err := q.db.Query(ctx,
+		`SELECT id, organization_id, lab_execution_id, user_id, participant_role, status, generation
+		 FROM lab_instances
+		 WHERE lab_execution_id = $1
+		 ORDER BY id
+		 FOR SHARE`,
+		id,
+	)
+	if err != nil {
+		return repository.LockedLabExecution{}, normalize(op, err)
+	}
+	e.LabInstances, err = pgx.CollectRows(rows, func(row pgx.CollectableRow) (repository.LabInstanceSummary, error) {
+		var i repository.LabInstanceSummary
+		var role string
+		err := row.Scan(&i.ID, &i.OrganizationID, &i.LabExecutionID, &i.UserID, &role, &i.Status, &i.Generation)
+		i.ParticipantRole = repository.ClassRole(role)
+		return i, err
+	})
+	if err != nil {
+		return repository.LockedLabExecution{}, normalize(op, err)
+	}
+	return e, nil
+}
+
 func (q queries) ActiveLabExecutionByClass(ctx context.Context, classID uuid.UUID) (repository.LabExecutionSummary, error) {
 	var s repository.LabExecutionSummary
 	err := q.db.QueryRow(ctx,

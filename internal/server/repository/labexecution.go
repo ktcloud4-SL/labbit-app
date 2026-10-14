@@ -43,6 +43,24 @@ type LabExecutionRepository interface {
 	LabInstanceByExecutionUser(ctx context.Context, labExecutionID, userID uuid.UUID) (LabInstanceSummary, error)
 }
 
+// MutationRepository는 Reset/Cleanup 접수 transaction이 사용하는 잠금 query다. Transactor 안에서 사용한다.
+// 권한, 대상 판정, 상태 정책은 판단하지 않고 저장된 값을 그대로 전달한다.
+type MutationRepository interface {
+	// LabExecutionForShare는 lab_executions row를 FOR SHARE로 잠근 뒤 그 LabExecution의 lab_instances를 모두 id 순서로 FOR SHARE로
+	// 잠그고 반환한다. 없으면 ErrNotFound다. finished_at이나 LabInstance generation을 바꾸는 UPDATE는 이 transaction이 끝날 때까지
+	// 기다리므로 읽은 대상 집합과 generation은 commit까지 같다. LabInstances는 id 순서다(잠금 순서와 같음).
+	// CreationSnapshot은 본문을 읽지 않고 존재 여부만 반환한다.
+	LabExecutionForShare(ctx context.Context, id uuid.UUID) (LockedLabExecution, error)
+}
+
+// LockedLabExecution은 LabExecutionForShare가 잠근 LabExecution과 그 LabInstance다.
+type LockedLabExecution struct {
+	LabExecution
+	// HasCreationSnapshot은 이 LabExecution의 immutable CreationSnapshot row가 있는지다. snapshot 본문(실제 Provider 값, Startup Script)은
+	// Repository 밖으로 나오지 않는다.
+	HasCreationSnapshot bool
+}
+
 // ResolvedImageMapping은 생성 시점에 CreationSnapshot으로 고정할 Image mapping이다. ProviderImageID는 실제 Provider 값이므로
 // Browser 응답이나 log에 옮기지 않는다.
 type ResolvedImageMapping struct {

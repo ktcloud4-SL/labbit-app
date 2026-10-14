@@ -52,7 +52,7 @@ type Options struct {
 	Auth       Authenticator
 	Classes    Classes
 	Operations Operations
-	// LabExecutions는 Provision 접수와 LabExecution/LabInstance 조회 use case다. nil이면 해당 요청은 인증 뒤 500이다.
+	// LabExecutions는 Provision/Reset/Cleanup 접수와 LabExecution/LabInstance 조회 use case다. nil이면 해당 요청은 인증 뒤 500이다.
 	LabExecutions LabExecutions
 	// LabSpecs는 LabSpec 목록·상세·생성·수정 use case다. 필수다.
 	LabSpecs LabSpecs
@@ -148,7 +148,9 @@ func New(opts Options) (http.Handler, error) {
 	handle("PUT /api/v1/lab-specs/{labSpecId}", a.authenticated(http.HandlerFunc(a.updateLabSpec)))
 	handle("POST /api/v1/classes/{classId}/lab-executions", a.authenticated(http.HandlerFunc(a.createLabExecution)))
 	handle("GET /api/v1/lab-executions/{labExecutionId}", a.authenticated(http.HandlerFunc(a.getLabExecution)))
+	handle("POST /api/v1/lab-executions/{labExecutionId}/cleanup", a.authenticated(http.HandlerFunc(a.cleanupLabExecution)))
 	handle("GET /api/v1/lab-instances/{labInstanceId}", a.authenticated(http.HandlerFunc(a.getLabInstance)))
+	handle("POST /api/v1/lab-instances/{labInstanceId}/reset", a.authenticated(http.HandlerFunc(a.resetLabInstance)))
 	handle("GET /api/v1/lab-instances/{labInstanceId}/terminal-targets", a.authenticated(http.HandlerFunc(a.listTerminalTargets)))
 	handle("POST /api/v1/lab-instances/{labInstanceId}/terminal-sessions", a.authenticated(http.HandlerFunc(a.createTerminalSession)))
 	handle("DELETE /api/v1/terminal-sessions/{terminalSessionId}", a.authenticated(http.HandlerFunc(a.closeTerminalSession)))

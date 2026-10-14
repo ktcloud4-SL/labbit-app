@@ -25,6 +25,11 @@ type state struct {
 	instances  []repository.NewLabInstance
 	operations []repository.Operation
 	items      []repository.NewOperationItem
+
+	// locked는 LabExecutionForShare의 결과다(이미 존재하는 LabExecution). transaction이 바꾸지 않는다.
+	locked map[uuid.UUID]repository.LockedLabExecution
+	// settled는 끝난(SUCCEEDED/FAILED) OperationItem ID다. 나머지 item은 active(PENDING/RUNNING/RECONCILING)로 본다.
+	settled map[uuid.UUID]bool
 }
 
 func (s *state) clone() *state {
@@ -51,13 +56,15 @@ type fakeStore struct {
 	readInstances map[uuid.UUID]repository.LabInstance
 	// readExecutions는 LabExecutionByID의 결과다.
 	readExecutions map[uuid.UUID]repository.LabExecution
+	// failItem이 있으면 그 LabInstance의 CreateOperationItem이 이 오류를 반환한다.
+	failItem map[uuid.UUID]error
 }
 
 func newFakeStore() *fakeStore {
 	return &fakeStore{committed: &state{
 		classes: map[uuid.UUID]repository.Class{}, memberships: map[[2]uuid.UUID]repository.ClassMembership{},
 		specs: map[uuid.UUID]repository.LabSpec{}, images: map[uuid.UUID]repository.ResolvedImageMapping{},
-		flavors: map[uuid.UUID]repository.ResolvedFlavorMapping{},
+		flavors: map[uuid.UUID]repository.ResolvedFlavorMapping{}, locked: map[uuid.UUID]repository.LockedLabExecution{}, settled: map[uuid.UUID]bool{},
 	}, readInstances: map[uuid.UUID]repository.LabInstance{}, readExecutions: map[uuid.UUID]repository.LabExecution{}}
 }
 
@@ -233,9 +240,45 @@ func (t *fakeTx) OperationByID(_ context.Context, id uuid.UUID) (repository.Oper
 	return repository.Operation{}, repository.ErrNotFound
 }
 
+// CreateOperationItem은 PostgreSQL 구현처럼 LabInstance당 active item partial unique index(ErrConflict)와 target·generation
+// 검증(RESET은 현재+1, 그 밖에는 현재; 어긋나면 ErrConstraintViolation)을 흉내 낸다. Provision이 만든 LabInstance(locked에 없음)는
+// generation 1로 본다.
 func (t *fakeTx) CreateOperationItem(_ context.Context, i repository.NewOperationItem) error {
+	if err := t.store.failItem[i.LabInstanceID]; err != nil {
+		return err
+	}
+	current := int64(1)
+	for _, e := range t.s.locked {
+		for _, li := range e.LabInstances {
+			if li.ID == i.LabInstanceID {
+				current = li.Generation
+			}
+		}
+	}
+	want := current
+	for _, o := range t.s.operations {
+		if o.ID == i.OperationID && o.Type == "RESET" {
+			want = current + 1
+		}
+	}
+	if i.Generation != want {
+		return &repository.Error{Kind: repository.KindConstraintViolation, Op: "CreateOperationItem"}
+	}
+	for _, existing := range t.s.items {
+		if existing.LabInstanceID == i.LabInstanceID && !t.s.settled[existing.ID] {
+			return &repository.Error{Kind: repository.KindConflict, Op: "CreateOperationItem"}
+		}
+	}
 	t.s.items = append(t.s.items, i)
 	return nil
+}
+
+func (t *fakeTx) LabExecutionForShare(_ context.Context, id uuid.UUID) (repository.LockedLabExecution, error) {
+	e, ok := t.s.locked[id]
+	if !ok {
+		return repository.LockedLabExecution{}, repository.ErrNotFound
+	}
+	return e, nil
 }
 
 func (s *state) rowCounts() [5]int {

@@ -18,13 +18,28 @@ import (
 // fakeLabExecutions는 handler가 넘기는 값과 결과를 HTTP로 옮기는 방식만 검증한다. 권한·대상·Idempotency 판정은 labexecution.Service의 책임이다.
 type fakeLabExecutions struct {
 	accepted  labexecution.Accepted
+	mutation  labexecution.MutationAccepted
 	execution labexecution.ExecutionView
 	instance  labexecution.InstanceView
 	err       error
 
-	calls  int
-	inputs []labexecution.ProvisionInput
-	ids    []string
+	calls    int
+	inputs   []labexecution.ProvisionInput
+	resets   []labexecution.ResetInput
+	cleanups []labexecution.CleanupInput
+	ids      []string
+}
+
+func (f *fakeLabExecutions) Reset(_ context.Context, _ repository.User, in labexecution.ResetInput) (labexecution.MutationAccepted, error) {
+	f.calls++
+	f.resets = append(f.resets, in)
+	return f.mutation, f.err
+}
+
+func (f *fakeLabExecutions) Cleanup(_ context.Context, _ repository.User, in labexecution.CleanupInput) (labexecution.MutationAccepted, error) {
+	f.calls++
+	f.cleanups = append(f.cleanups, in)
+	return f.mutation, f.err
 }
 
 func (f *fakeLabExecutions) Provision(_ context.Context, _ repository.User, in labexecution.ProvisionInput) (labexecution.Accepted, error) {

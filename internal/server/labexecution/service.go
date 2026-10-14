@@ -1,4 +1,4 @@
-// Package labexecution은 Provision 접수(LabExecution 시작)와 LabExecution/LabInstance 조회 use case다.
+// Package labexecution은 Provision 접수(LabExecution 시작), Reset/Cleanup 접수(mutation.go)와 LabExecution/LabInstance 조회 use case다.
 //
 // Provision 접수는 실제 Provider 작업을 실행하지 않는다. LabExecution, immutable resolved CreationSnapshot, 강사·선택 학생의
 // LabInstance, PROVISION Operation과 LabInstance별 OperationItem을 하나의 PostgreSQL transaction으로 등록할 뿐이며(D-10, D-19, D-20,
@@ -144,7 +144,7 @@ func (s *Service) Provision(ctx context.Context, user repository.User, in Provis
 	err = s.store.WithinTransaction(ctx, func(ctx context.Context, repos repository.Repositories) error {
 		// transaction 밖의 Class 권한 확인과 commit 사이에 Membership이 삭제되거나 역할이 바뀔 수 있다. 등록 전에 요청 강사의
 		// 현재 Membership을 FOR SHARE로 다시 확인하고 잠가, commit까지 그 Membership의 삭제·역할 변경이 기다리게 한다.
-		if err := requireInstructorForShare(ctx, repos, class, user); err != nil {
+		if err := requireInstructorForShare(ctx, repos, class.ID, class.OrganizationID, user); err != nil {
 			return err
 		}
 		// D-10: 이미 active LabExecution이 있으면 LabSpec·대상 검증보다 먼저 Cleanup이 필요하다고 알린다. 경쟁의 최종 판정은
@@ -308,8 +308,8 @@ func parseStudents(raw []string) ([]uuid.UUID, error) {
 // requireInstructorForShare는 user가 지금 이 Class의 INSTRUCTOR Membership을 가졌는지 Membership row를 FOR SHARE로 잠근 채
 // 확인한다. 진행 중인 삭제·역할 변경이 있으면 그 commit/rollback을 기다린 뒤의 상태로 판정한다. Membership이 없거나 INSTRUCTOR가
 // 아니면 ErrForbidden이며 row를 만들지 않는다. organizationRole은 쓰지 않는다.
-func requireInstructorForShare(ctx context.Context, repos repository.Repositories, class repository.Class, user repository.User) error {
-	memberships, err := repos.ClassMembershipsForShare(ctx, class.ID, []uuid.UUID{user.ID})
+func requireInstructorForShare(ctx context.Context, repos repository.Repositories, classID, organizationID uuid.UUID, user repository.User) error {
+	memberships, err := repos.ClassMembershipsForShare(ctx, classID, []uuid.UUID{user.ID})
 	if err != nil {
 		return fmt.Errorf("labexecution: 강사 Membership 조회: %w", err)
 	}
@@ -321,7 +321,7 @@ func requireInstructorForShare(ctx context.Context, repos repository.Repositorie
 		return ErrInconsistentData
 	}
 	m := memberships[0]
-	if m.ClassID != class.ID || m.UserID != user.ID || m.OrganizationID != class.OrganizationID || m.OrganizationID != user.OrganizationID || !m.Role.Valid() {
+	if m.ClassID != classID || m.UserID != user.ID || m.OrganizationID != organizationID || m.OrganizationID != user.OrganizationID || !m.Role.Valid() {
 		return ErrInconsistentData
 	}
 	if m.Role != repository.ClassRoleInstructor {

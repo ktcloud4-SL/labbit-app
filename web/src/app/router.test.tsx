@@ -969,6 +969,31 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(createLabSpec).not.toHaveBeenCalled()
   })
 
+  it('다른 owner의 LabSpec 데이터가 실수로 반환되어도 상세를 노출하지 않는다', async () => {
+    renderRoute(
+      '/lab-specs/lab-spec-other',
+      createApi({
+        getLabSpec: async () => ({
+          labSpec: {
+            ...labSpecFixture,
+            id: 'lab-spec-other',
+            name: 'Other Instructor Private Lab',
+            ownerUserId: 'user-other',
+          },
+          etag: '"other-v1"',
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByText('이 LabSpec을 볼 권한이 없습니다.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Other Instructor Private Lab')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('이름')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '실습 정의 목록으로 돌아가기' })).toBeInTheDocument()
+  })
+
   it('다른 owner의 LabSpec 상세 403은 내용을 노출하지 않고 권한 오류를 표시한다', async () => {
     renderRoute(
       '/lab-specs/lab-spec-other',

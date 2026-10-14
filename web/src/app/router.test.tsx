@@ -881,6 +881,48 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
   })
 
+  it('기존 LabSpec의 서로 다른 Provider Mapping을 자동 교정하지 않고 저장을 차단한다', async () => {
+    const updateLabSpec = vi.fn(async () => ({
+      labSpec: labSpecFixture,
+      etag: '"new-revision"',
+    }))
+    renderRoute('/lab-specs/lab-spec-kubernetes-basic', createApi({
+      getLabSpec: async () => ({
+        labSpec: {
+          ...labSpecFixture,
+          vms: [
+            { ...labSpecFixture.vms[0] },
+            {
+              role: 'worker',
+              imageRef: mockLabSpecMappingOptions.items[1].images[0].id,
+              sizeRef: mockLabSpecMappingOptions.items[1].flavors[0].id,
+              count: 1,
+            },
+          ],
+        },
+        etag: '"revision"',
+      }),
+      updateLabSpec,
+    }))
+    const provider = await screen.findByRole('combobox', { name: 'Provider 연결' })
+    expect(provider).toHaveValue('')
+    expect(screen.getByText(/기존 LabSpec의 Mapping이 현재 조회된 후보와 일치하지 않습니다/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
+    expect(await screen.findByText('Provider 연결을 먼저 선택해 주세요.')).toBeInTheDocument()
+    expect(updateLabSpec).not.toHaveBeenCalled()
+    expect(screen.getAllByLabelText('Image 참조')[1]).toHaveValue(
+      mockLabSpecMappingOptions.items[1].images[0].id,
+    )
+  })
+
+  it('Mapping 후보 조회 401은 저장 화면 대신 세션 만료 로그인을 안내한다', async () => {
+    renderRoute('/lab-specs/new', createApi({
+      listLabSpecMappingOptions: async () => { throw new HttpError(401) },
+    }))
+    expect(await screen.findByRole('heading', { name: 'Labbit에 로그인' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
+  })
+
   it('LabSpec 목록에서 소유 여부와 편집 진입을 표시한다', async () => {
     renderRoute('/lab-specs')
 

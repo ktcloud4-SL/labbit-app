@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
-import type { LabSpecWrite, VmRoleSpec } from '../shared/api/contracts'
+import type { LabSpecMappingOptionsList, LabSpecWrite, VmRoleSpec } from '../shared/api/contracts'
+import { LabSpecMappingFields, type MappingCandidate } from './LabSpecMappingFields'
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
@@ -30,7 +31,27 @@ const emptyLabSpec: LabSpecWrite = {
   startupScript: '',
 }
 
+function providerForInitial(
+  initial: LabSpecWrite,
+  candidates: LabSpecMappingOptionsList,
+) {
+  const refs = initial.vms.flatMap((vm) => [vm.imageRef, vm.sizeRef]).filter(Boolean)
+  const providers = new Set(
+    refs.map((ref) =>
+      candidates.items.find(
+        (group) =>
+          group.images.some((image) => image.id === ref) ||
+          group.flavors.some((flavor) => flavor.id === ref),
+      )?.providerConnectionId,
+    ),
+  )
+  return providers.size === 1 && !providers.has(undefined)
+    ? ([...providers][0] ?? '')
+    : ''
+}
+
 interface LabSpecFormProps {
+  mappingOptions: LabSpecMappingOptionsList
   initial: LabSpecWrite
   readOnly: boolean
   saving: boolean
@@ -43,6 +64,7 @@ interface LabSpecFormProps {
 
 function LabSpecForm({
   initial,
+  mappingOptions,
   readOnly,
   saving,
   saveError,
@@ -53,6 +75,26 @@ function LabSpecForm({
 }: LabSpecFormProps) {
   const [form, setForm] = useState<LabSpecWrite>(initial)
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [providerConnectionId, setProviderConnectionId] = useState(
+    () => providerForInitial(initial, mappingOptions),
+  )
+  const selectedGroup = mappingOptions.items.find(
+    (group) => group.providerConnectionId === providerConnectionId,
+  )
+  const images: MappingCandidate[] = mappingOptions.items.flatMap((group) =>
+    group.images.map((image) => ({
+      id: image.id,
+      displayName: image.displayName,
+      providerConnectionId: group.providerConnectionId,
+    })),
+  )
+  const sizes: MappingCandidate[] = mappingOptions.items.flatMap((group) =>
+    group.flavors.map((flavor) => ({
+      id: flavor.id,
+      displayName: `${flavor.displayName} · ${flavor.vcpus} vCPU / ${flavor.ramMiB} MiB / ${flavor.diskGiB} GiB`,
+      providerConnectionId: group.providerConnectionId,
+    })),
+  )
 
   function updateVm(index: number, patch: Partial<VmRoleSpec>) {
     setForm((current) => ({
@@ -126,6 +168,19 @@ function LabSpecForm({
       )
     ) {
       setValidationError('각 VM의 Role, Image 참조, Size 참조와 Count를 확인해 주세요.')
+      return
+    }
+
+    if (!selectedGroup) {
+      setValidationError('Provider 연결을 먼저 선택해 주세요.')
+      return
+    }
+
+    if (normalized.vms.some((vm) =>
+      !selectedGroup.images.some((image) => image.id === vm.imageRef) ||
+      !selectedGroup.flavors.some((flavor) => flavor.id === vm.sizeRef)
+    )) {
+      setValidationError('모든 VM의 Image/Size를 같은 Provider 연결의 활성 Mapping에서 선택해 주세요.')
       return
     }
 
@@ -221,6 +276,45 @@ function LabSpecForm({
           )}
         </div>
 
+        <label className="field">
+          <span>Provider 연결</span>
+          <select
+            value={providerConnectionId}
+            disabled={readOnly}
+            onChange={(event) => {
+              const nextProvider = event.target.value
+              if (nextProvider === providerConnectionId) return
+              setProviderConnectionId(nextProvider)
+              setValidationError(null)
+              setForm((current) => ({
+                ...current,
+                vms: current.vms.map((vm) => ({ ...vm, imageRef: '', sizeRef: '' })),
+              }))
+            }}
+          >
+            <option value="">선택해 주세요</option>
+            {mappingOptions.items.map((group, index) => (
+              <option key={group.providerConnectionId} value={group.providerConnectionId}>
+                Provider {index + 1} · {group.providerConnectionId}
+              </option>
+            ))}
+          </select>
+          <small className="muted">
+            Provider 연결을 변경하면 모든 VM의 Image/Size 선택이 초기화됩니다.
+          </small>
+        </label>
+        {mappingOptions.items.length === 0 && (
+          <div className="notice-card notice-warning" role="status">
+            현재 Organization에 활성 Image/Flavor Mapping 후보가 없습니다.
+            기관의 Mapping 설정을 확인해 주세요.
+          </div>
+        )}
+        {!providerConnectionId && form.vms.some((vm) => vm.imageRef || vm.sizeRef) && (
+          <div className="notice-card notice-warning">
+            기존 LabSpec의 Mapping이 현재 조회된 후보와 일치하지 않습니다.
+            Provider 연결을 다시 선택해 주세요.
+          </div>
+        )}
         <div className="vm-list">
           {form.vms.map((vm, index) => (
             <article className="vm-row" key={index}>
@@ -256,28 +350,14 @@ function LabSpecForm({
                     onChange={(event) => updateVm(index, { name: event.target.value })}
                   />
                 </label>
-                <label className="field">
-                  <span>Image 참조</span>
-                  <input
-                    value={vm.imageRef}
-                    disabled={readOnly}
-                    placeholder="논리 imageRef"
-                    onChange={(event) =>
-                      updateVm(index, { imageRef: event.target.value })
-                    }
-                  />
-                </label>
-                <label className="field">
-                  <span>Size 참조</span>
-                  <input
-                    value={vm.sizeRef}
-                    disabled={readOnly}
-                    placeholder="논리 sizeRef"
-                    onChange={(event) =>
-                      updateVm(index, { sizeRef: event.target.value })
-                    }
-                  />
-                </label>
+                <LabSpecMappingFields
+                  value={{ imageRef: vm.imageRef, sizeRef: vm.sizeRef }}
+                  images={images}
+                  sizes={sizes}
+                  providerConnectionId={providerConnectionId}
+                  disabled={readOnly || !selectedGroup}
+                  onChange={(next) => updateVm(index, next)}
+                />
                 <label className="field">
                   <span>Count</span>
                   <input
@@ -424,6 +504,16 @@ export function LabSpecEditorPage() {
     retry: false,
   })
 
+  const mappingOptionsQuery = useQuery({
+    queryKey: labbitQueryKeys.labSpecMappingOptions,
+    queryFn: () => api.listLabSpecMappingOptions(),
+    enabled: Boolean(
+      meQuery.data &&
+      (isNew || labSpecQuery.data?.labSpec.ownerUserId === meQuery.data.id),
+    ),
+    retry: false,
+  })
+
   const saveMutation = useMutation({
     mutationFn: async (input: LabSpecWrite) => {
       if (isNew) {
@@ -476,6 +566,7 @@ export function LabSpecEditorPage() {
   const authError =
     (meQuery.error instanceof HttpError && meQuery.error.status === 401) ||
     (labSpecQuery.error instanceof HttpError && labSpecQuery.error.status === 401) ||
+    (mappingOptionsQuery.error instanceof HttpError && mappingOptionsQuery.error.status === 401) ||
     (saveMutation.error instanceof HttpError && saveMutation.error.status === 401)
 
   if (authError) {
@@ -520,6 +611,35 @@ export function LabSpecEditorPage() {
     )
   }
 
+  if (mappingOptionsQuery.isPending) {
+    return (
+      <main className="app-page">
+        <LoadingState label="Image/Size Mapping 후보를 불러오는 중..." />
+      </main>
+    )
+  }
+
+  if (mappingOptionsQuery.error || !mappingOptionsQuery.data) {
+    const forbidden = mappingOptionsQuery.error instanceof HttpError &&
+      mappingOptionsQuery.error.status === 403
+    return (
+      <main className="app-page">
+        <ErrorState message={forbidden
+          ? 'Mapping 후보를 조회할 강사 권한이 없습니다.'
+          : 'Image/Size Mapping 후보를 불러오지 못했습니다.'}
+        />
+        {!forbidden && (
+          <button className="secondary-button" type="button" onClick={() => void mappingOptionsQuery.refetch()}>
+            다시 시도
+          </button>
+        )}
+        <Link className="secondary-link" to="/lab-specs">
+          실습 정의 목록으로 돌아가기
+        </Link>
+      </main>
+    )
+  }
+
   const versionedLabSpec = isNew ? undefined : labSpecQuery.data
   const labSpec = versionedLabSpec?.labSpec
   const isOwner = isNew || labSpec?.ownerUserId === meQuery.data.id
@@ -551,6 +671,7 @@ export function LabSpecEditorPage() {
       </header>
 
       <LabSpecForm
+        mappingOptions={mappingOptionsQuery.data}
         key={
           isNew
             ? 'new-lab-spec'

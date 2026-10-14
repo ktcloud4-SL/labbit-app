@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import type { LabSpecMappingOptionsList, LabSpecWrite, VmRoleSpec } from '../shared/api/contracts'
@@ -80,6 +80,15 @@ function LabSpecForm({
   const [providerConnectionId, setProviderConnectionId] = useState(
     () => providerForInitial(initial, mappingOptions),
   )
+
+  // 초기 Mapping 조회 실패 후 재시도에 성공한 경우 Provider 선택만 복구한다.
+  // 후보 재조회는 작성 중인 LabSpec draft를 초기화하거나 선택을 강제로 바꾸지 않는다.
+  useEffect(() => {
+    if (providerConnectionId || mappingError) return
+    const restoredProvider = providerForInitial(form, mappingOptions)
+    if (restoredProvider) setProviderConnectionId(restoredProvider)
+  }, [form, mappingError, mappingOptions, providerConnectionId])
+
   const selectedGroup = mappingOptions.items.find(
     (group) => group.providerConnectionId === providerConnectionId,
   )
@@ -709,7 +718,7 @@ export function LabSpecEditorPage() {
         key={
           isNew
             ? 'new-lab-spec'
-            : `${resolvedLabSpecId}:${versionedLabSpec?.etag ?? 'missing-etag'}:${providerForInitial(initial, mappingOptionsQuery.data ?? { items: [] })}`
+            : `${resolvedLabSpecId}:${versionedLabSpec?.etag ?? 'missing-etag'}`
         }
         initial={initial}
         readOnly={!isOwner || Boolean(mappingError)}

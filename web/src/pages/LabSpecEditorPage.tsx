@@ -482,7 +482,15 @@ export function LabSpecEditorPage() {
     return <LoginRedirect reason="sessionExpired" />
   }
 
-  if (!isNew && labSpecQuery.error instanceof HttpError && labSpecQuery.error.status === 403) {
+  // Backend는 owner 외 상세를 403으로 거절합니다. 잘못된 consumer 응답에도 상세는 노출하지 않습니다.
+  const forbiddenLabSpec =
+    !isNew &&
+    ((labSpecQuery.error instanceof HttpError && labSpecQuery.error.status === 403) ||
+      (labSpecQuery.data &&
+        meQuery.data &&
+        labSpecQuery.data.labSpec.ownerUserId !== meQuery.data.id))
+
+  if (forbiddenLabSpec) {
     return (
       <main className="app-page">
         <ErrorState message="이 LabSpec을 볼 권한이 없습니다." />

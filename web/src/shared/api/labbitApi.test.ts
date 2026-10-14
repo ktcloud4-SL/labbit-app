@@ -651,6 +651,34 @@ describe('mockLabbitApi', () => {
     await expect(mockLabbitApi.getMe()).resolves.toEqual(mockMe)
   })
 
+  it('Mock LabSpec 목록은 본인 소유만 반환하고 자신의 상세는 조회할 수 있다', async () => {
+    await mockLabbitApi.login(mockCredentials)
+
+    const list = await mockLabbitApi.listLabSpecs()
+    expect(list.items).toHaveLength(1)
+    expect(list.items[0]).toMatchObject({
+      id: 'lab-spec-kubernetes-basic',
+      ownerUserId: mockMe.id,
+    })
+    await expect(mockLabbitApi.getLabSpec('lab-spec-kubernetes-basic')).resolves.toMatchObject({
+      labSpec: { ownerUserId: mockMe.id },
+    })
+  })
+
+  it('Mock LabSpec의 다른 소유자 상세·수정은 403, 미존재 상세는 404로 차단한다', async () => {
+    await mockLabbitApi.login(mockCredentials)
+
+    await expect(mockLabbitApi.getLabSpec('lab-spec-linux-networking')).rejects.toMatchObject({
+      status: 403,
+    })
+    await expect(mockLabbitApi.updateLabSpec('lab-spec-linux-networking', labSpecWrite, '"stale"')).rejects.toMatchObject({
+      status: 403,
+    })
+    await expect(mockLabbitApi.getLabSpec('missing-lab-spec')).rejects.toMatchObject({
+      status: 404,
+    })
+  })
+
   it('존재하지 않는 Class는 404로 처리한다', async () => {
     await mockLabbitApi.login(mockCredentials)
 

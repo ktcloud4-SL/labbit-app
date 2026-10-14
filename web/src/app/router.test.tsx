@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { focusManager } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -1061,6 +1062,57 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByLabelText('Size 참조')).toHaveValue(labSpecFixture.vms[0].sizeRef)
     expect(screen.getByRole('button', { name: '실습 정의 저장' })).toBeEnabled()
     expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(2)
+  })
+
+  it('Mapping 후보 갱신으로 기존 Image가 제외되어도 미저장 이름·스크립트는 유지하고 저장은 차단한다', async () => {
+    const refreshedOptions = {
+      items: mockLabSpecMappingOptions.items.map((item, index) =>
+        index === 0 ? { ...item, images: [] } : item,
+      ),
+    }
+    const listLabSpecMappingOptions = vi.fn()
+      .mockResolvedValueOnce(mockLabSpecMappingOptions)
+      .mockResolvedValue(refreshedOptions)
+    const updateLabSpec = vi.fn(async () => ({
+      labSpec: labSpecFixture,
+      etag: '"lab-spec-v2"',
+    }))
+    renderRoute('/lab-specs/lab-spec-kubernetes-basic', createApi({
+      listLabSpecMappingOptions,
+      updateLabSpec,
+    }))
+
+    await screen.findByRole('heading', { name: 'Kubernetes Basic Lab' })
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Provider 연결' })).toHaveValue(
+      mockLabSpecMappingOptions.items[0].providerConnectionId,
+    ))
+
+    fireEvent.change(screen.getByLabelText('이름'), {
+      target: { value: '아직 저장하지 않은 이름' },
+    })
+    fireEvent.change(screen.getByLabelText('Startup Script'), {
+      target: { value: '#!/bin/bash\necho draft' },
+    })
+
+    try {
+      // TanStack Query의 window focus 재조회 경로를 통해 활성 후보가 변경되는 상황.
+      act(() => focusManager.setFocused(false))
+      act(() => focusManager.setFocused(true))
+      await waitFor(() => expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(2))
+      expect(await screen.findByText(
+        /기존 Image\/Size 참조가 현재 선택 가능한 후보와 일치하지 않습니다/,
+      )).toBeInTheDocument()
+      expect(screen.getByLabelText('이름')).toHaveValue('아직 저장하지 않은 이름')
+      expect(screen.getByLabelText('Startup Script')).toHaveValue('#!/bin/bash\necho draft')
+
+      fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
+      expect(await screen.findByText(
+        '모든 VM의 Image/Size를 같은 Provider 연결의 활성 Mapping에서 선택해 주세요.',
+      )).toBeInTheDocument()
+      expect(updateLabSpec).not.toHaveBeenCalled()
+    } finally {
+      act(() => focusManager.setFocused(undefined))
+    }
   })
 
   it('LabSpec stale update 412를 덮어쓰지 않고 안내한다', async () => {

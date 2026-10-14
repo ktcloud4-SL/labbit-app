@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/filetransport"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
@@ -37,17 +38,22 @@ type PTYFactoryFunc func(targetVmKey string, serverId string, cols, rows int) (t
 // Handler 는 SaaS 로부터 수신한 Control WSS 메시지를 검증하고
 // 내부 Provider(DispatchOperation / DispatchReconcile) 및 터미널/프리뷰 세션 관리자로 연결한 후 결과를 회신합니다.
 type Handler struct {
-	mu            sync.RWMutex
-	provider      provider.Provider
-	sender        MessageSender
-	onError       func(err error)
-	terminalMgr   *terminal.SessionManager
-	ptyFactory    PTYFactoryFunc
-	vmPTYFactory  func(context.Context, vmaccess.Target, int, int) (terminal.PTYChannel, error)
-	terminalCfg   terminal.DataWSSClientConfig
-	endedSessions sync.Map
-	previewMgr    *preview.SessionManager
-	previewCfg    preview.DataWSSClientConfig
+	mu              sync.RWMutex
+	provider        provider.Provider
+	sender          MessageSender
+	onError         func(err error)
+	terminalMgr     *terminal.SessionManager
+	ptyFactory      PTYFactoryFunc
+	vmPTYFactory    func(context.Context, vmaccess.Target, int, int) (terminal.PTYChannel, error)
+	terminalCfg     terminal.DataWSSClientConfig
+	endedSessions   sync.Map
+	previewMgr      *preview.SessionManager
+	previewCfg      preview.DataWSSClientConfig
+	fileMgr         *filetransport.Manager
+	fileCredential  string
+	fileOwner       context.Context
+	fileOwnerCancel context.CancelFunc
+	fileOwnerEpoch  uint64
 }
 
 // SetVMPTYFactory preserves the authenticated envelope across the SSH boundary.
@@ -59,16 +65,25 @@ func (h *Handler) SetVMPTYFactory(factory func(context.Context, vmaccess.Target,
 
 // NewHandler 는 새 Control WSS 메시지 핸들러를 생성합니다.
 func NewHandler(p provider.Provider, sender MessageSender) *Handler {
-	return &Handler{
+	h := &Handler{
 		provider: p,
-		sender:   sender,
 	}
+	h.SetSender(sender)
+	return h
 }
 
 // SetSender 는 WSS 메시지 발송 인터페이스를 갱신합니다.
 func (h *Handler) SetSender(sender MessageSender) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	if h.fileOwnerCancel != nil {
+		h.fileOwnerCancel()
+	}
+	h.fileOwner, h.fileOwnerCancel = context.WithCancel(context.Background())
+	h.fileOwnerEpoch++
+	if sender == nil {
+		h.fileOwnerCancel()
+	}
 	h.sender = sender
 }
 
@@ -136,11 +151,32 @@ func (h *Handler) OnError() func(err error) {
 
 // HandleMessage 는 수신된 raw JSON 메시지를 Envelope 기준으로 판별하여 적절한 처리기로 분기합니다.
 func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
+	h.mu.RLock()
+	epoch := h.fileOwnerEpoch
+	h.mu.RUnlock()
+	return h.handleMessageWithFileOwner(ctx, raw, epoch)
+}
+
+func (h *Handler) handleMessageWithFileOwner(ctx context.Context, raw []byte, epoch uint64) error {
+	if int64(len(raw)) > protocol.MaxJSONMessageSize {
+		return ErrMessageTooLarge
+	}
 	normalized, err := normalizeOptionalTraceMetadata(raw)
 	if err != nil {
 		return fmt.Errorf("failed to normalize optional trace metadata: %w", err)
 	}
 	raw = normalized
+	var kind struct {
+		Type string `json:"type"`
+	}
+	if json.Unmarshal(raw, &kind) == nil {
+		switch kind.Type {
+		case protocol.MessageTypeFileOpen:
+			return h.handleFileOpen(ctx, raw, epoch)
+		case protocol.MessageTypeFileClose:
+			return h.handleFileClose(raw, epoch)
+		}
+	}
 	var env protocol.BaseEnvelope
 	if err := json.Unmarshal(raw, &env); err != nil {
 		return fmt.Errorf("failed to unmarshal base envelope: %w", err)
@@ -909,9 +945,15 @@ func (h *Handler) Listen(ctx context.Context, conn *websocket.Conn) error {
 // listenWithOperationContext separates transport reads from accepted operation
 // execution. Reconnect cancels the old reader, not the already accepted work;
 // application shutdown still cancels both. No mutation or response is replayed.
-func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Context, conn *websocket.Conn) error {
+func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Context, conn *websocket.Conn, ownerEpoch ...uint64) error {
 	if conn == nil {
 		return fmt.Errorf("connector wss: cannot listen on nil websocket connection")
+	}
+	h.mu.RLock()
+	fileEpoch := h.fileOwnerEpoch
+	h.mu.RUnlock()
+	if len(ownerEpoch) > 0 {
+		fileEpoch = ownerEpoch[0]
 	}
 	for {
 		select {
@@ -923,11 +965,11 @@ func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Conte
 				return ctxErr
 			}
 			if err != nil {
-				h.OnControlDisconnected(err)
+				h.onControlDisconnected(fileEpoch, err)
 				return err
 			}
 			// HandleMessage 에러를 무시하지 않고 등록된 onError 콜백으로 전달 (팀장님 리뷰 6번)
-			if handleErr := h.HandleMessage(operationCtx, msg); handleErr != nil {
+			if handleErr := h.handleMessageWithFileOwner(operationCtx, msg, fileEpoch); handleErr != nil {
 				h.mu.RLock()
 				onErr := h.onError
 				h.mu.RUnlock()
@@ -944,6 +986,31 @@ func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Conte
 // PreviewManager 의 기존 logical PreviewSession 들을 즉시 정리합니다.
 // 단순 네트워크 단절(EOF, 1006 등)에서는 세션을 폐기하지 않고 보존합니다.
 func (h *Handler) OnControlDisconnected(err error) {
+	h.mu.RLock()
+	epoch := h.fileOwnerEpoch
+	h.mu.RUnlock()
+	h.onControlDisconnected(epoch, err)
+}
+
+func (h *Handler) onControlDisconnected(epoch uint64, err error) {
+	h.mu.Lock()
+	if epoch != h.fileOwnerEpoch {
+		h.mu.Unlock()
+		return
+	}
+	files := h.fileMgr
+	if files != nil {
+		code := websocket.CloseNormalClosure
+		var closed *websocket.CloseError
+		if errors.As(err, &closed) && closed.Code == protocol.CloseCredentialRevoked {
+			code = protocol.CloseCredentialRevoked
+		}
+		files.RetireControl(code)
+	}
+	if h.fileOwnerCancel != nil {
+		h.fileOwnerCancel()
+	}
+	h.mu.Unlock()
 	var closeErr *websocket.CloseError
 	if errors.As(err, &closeErr) && (closeErr.Code == protocol.CloseCredentialRevoked || closeErr.Code == protocol.CloseSessionReplaced) {
 		h.mu.RLock()

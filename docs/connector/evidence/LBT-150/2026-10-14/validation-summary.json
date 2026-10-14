@@ -1,0 +1,2378 @@
+{
+  "sourceHEAD": "f41d20a129005d344b8f68bdd2b1de2822ac088e",
+  "runs": {
+    "auto-boundary-final": {
+      "file-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss",
+          "./internal/connector/app",
+          "./internal/jsonnum",
+          "./internal/server/jsonnum"
+        ],
+        "startedAt": "2026-10-14T07:03:34.030717+00:00",
+        "endedAt": "2026-10-14T07:03:46.906389+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 249,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 5
+        }
+      },
+      "file-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=3m",
+          "-run",
+          "^(TestConcurrentRequestsAndCorrelatedClose|TestTimeoutPeerDisconnectAndCredentialRevokeCancelSFTP|TestCompletedAndCanceledIDsNeverRedialAcrossControlReconnect|TestFileOpenCapturesControlSenderAndActualDialCredential|TestReviewNoAdmissionAfterOldControlRetirement|TestReviewLateOldFrameNeverBindsNewControlOwner|TestFileOldOwnerCleanupPreservesNewOwnerAndRevocationUses4001|TestUnknownSaveOutcomeNeverReplaysAndRequiresFreshRead|TestReadCeilingAndOversizeSaveWithRequiredBinary)$",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss"
+        ],
+        "startedAt": "2026-10-14T07:03:56.994387+00:00",
+        "endedAt": "2026-10-14T07:04:18.807977+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 320,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "go-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T07:02:30.830266+00:00",
+        "endedAt": "2026-10-14T07:02:38.721516+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "go-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=5m",
+          "./internal/connector/vmaccess",
+          "./internal/connector/provider/openstack",
+          "./internal/connector/app",
+          "./internal/connector/terminal",
+          "./internal/connector/wss",
+          "./internal/connector/mock",
+          "./internal/connector/preview"
+        ],
+        "startedAt": "2026-10-14T07:02:38.722018+00:00",
+        "endedAt": "2026-10-14T07:03:08.042821+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 708,
+          "skip": 13,
+          "fail": 0,
+          "packagesPass": 7
+        }
+      },
+      "go-unit-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=5m",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T07:02:03.881737+00:00",
+        "endedAt": "2026-10-14T07:02:30.736750+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 3559,
+          "skip": 15,
+          "fail": 0,
+          "packagesPass": 40
+        }
+      },
+      "go-vet-run.json": {
+        "command": [
+          "go",
+          "vet",
+          "-mod=readonly",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T07:01:59.040427+00:00",
+        "endedAt": "2026-10-14T07:02:03.880733+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "gofmt-run.json": {
+        "checked": 438,
+        "lineEndings": "LF-normalized comparison",
+        "unformatted": [],
+        "exitCode": 0
+      },
+      "regression-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=5m",
+          "-run",
+          "^(TestManagedPTYCanceledSetupReleasesOutputWorkers|TestReplacedDataReaderCannotDispatchBufferedFrames|TestOldInputFailureCannotEndReplacement|TestDataInputAndResizeFailuresCloseOnlyTheirSession|TestReplacementDataClientStopsPreviousReconnectOwner|TestPreviewGatewayConcurrentFrames|TestPreview_SequentialTunnels_SameSession|TestCanceledChannelLeavesActivePTYUsable|TestCanceledOpenClosesLateChannelAndReusesTransport|TestStalledOpenDoesNotAccumulateCanceledSSHRequests|TestTerminalShutdownRejectsDelayedOpensAndEndsOnce)$",
+          "./internal/connector/terminal",
+          "./internal/connector/vmaccess",
+          "./internal/connector/mock",
+          "./internal/connector/preview"
+        ],
+        "startedAt": "2026-10-14T07:03:08.066744+00:00",
+        "endedAt": "2026-10-14T07:03:34.007877+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 420,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 4
+        }
+      },
+      "workspace-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "./internal/connector/workspacefile",
+          "./internal/connector/workspacefs"
+        ],
+        "startedAt": "2026-10-14T07:03:46.929607+00:00",
+        "endedAt": "2026-10-14T07:03:56.982974+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 16,
+          "skip": 1,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "auto-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "929ec1ac353395e23d3ba75a3586b03dbe26635f",
+        "headAfter": "929ec1ac353395e23d3ba75a3586b03dbe26635f"
+      }
+    },
+    "auto-drain-final": {
+      "file-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss",
+          "./internal/connector/app",
+          "./internal/jsonnum",
+          "./internal/server/jsonnum"
+        ],
+        "startedAt": "2026-10-14T06:47:41.924535+00:00",
+        "endedAt": "2026-10-14T06:47:55.553276+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 249,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 5
+        }
+      },
+      "file-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=3m",
+          "-run",
+          "^(TestConcurrentRequestsAndCorrelatedClose|TestTimeoutPeerDisconnectAndCredentialRevokeCancelSFTP|TestCompletedAndCanceledIDsNeverRedialAcrossControlReconnect|TestFileOpenCapturesControlSenderAndActualDialCredential|TestReviewNoAdmissionAfterOldControlRetirement|TestReviewLateOldFrameNeverBindsNewControlOwner|TestFileOldOwnerCleanupPreservesNewOwnerAndRevocationUses4001|TestUnknownSaveOutcomeNeverReplaysAndRequiresFreshRead|TestReadCeilingAndOversizeSaveWithRequiredBinary)$",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss"
+        ],
+        "startedAt": "2026-10-14T06:48:06.094817+00:00",
+        "endedAt": "2026-10-14T06:48:29.029713+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 320,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "go-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:46:26.744319+00:00",
+        "endedAt": "2026-10-14T06:46:43.744273+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "go-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=5m",
+          "./internal/connector/vmaccess",
+          "./internal/connector/provider/openstack",
+          "./internal/connector/app",
+          "./internal/connector/terminal",
+          "./internal/connector/wss",
+          "./internal/connector/mock",
+          "./internal/connector/preview"
+        ],
+        "startedAt": "2026-10-14T06:46:43.745293+00:00",
+        "endedAt": "2026-10-14T06:47:15.069553+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 708,
+          "skip": 13,
+          "fail": 0,
+          "packagesPass": 7
+        }
+      },
+      "go-unit-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=5m",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:45:59.239568+00:00",
+        "endedAt": "2026-10-14T06:46:26.660374+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 3559,
+          "skip": 15,
+          "fail": 0,
+          "packagesPass": 40
+        }
+      },
+      "go-vet-run.json": {
+        "command": [
+          "go",
+          "vet",
+          "-mod=readonly",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:45:57.204443+00:00",
+        "endedAt": "2026-10-14T06:45:59.238260+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "gofmt-run.json": {
+        "checked": 438,
+        "lineEndings": "LF-normalized comparison",
+        "unformatted": [],
+        "exitCode": 0
+      },
+      "regression-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=5m",
+          "-run",
+          "^(TestManagedPTYCanceledSetupReleasesOutputWorkers|TestReplacedDataReaderCannotDispatchBufferedFrames|TestOldInputFailureCannotEndReplacement|TestDataInputAndResizeFailuresCloseOnlyTheirSession|TestReplacementDataClientStopsPreviousReconnectOwner|TestPreviewGatewayConcurrentFrames|TestPreview_SequentialTunnels_SameSession|TestCanceledChannelLeavesActivePTYUsable|TestCanceledOpenClosesLateChannelAndReusesTransport|TestStalledOpenDoesNotAccumulateCanceledSSHRequests|TestTerminalShutdownRejectsDelayedOpensAndEndsOnce)$",
+          "./internal/connector/terminal",
+          "./internal/connector/vmaccess",
+          "./internal/connector/mock",
+          "./internal/connector/preview"
+        ],
+        "startedAt": "2026-10-14T06:47:15.102252+00:00",
+        "endedAt": "2026-10-14T06:47:41.901417+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 420,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 4
+        }
+      },
+      "workspace-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "./internal/connector/workspacefile",
+          "./internal/connector/workspacefs"
+        ],
+        "startedAt": "2026-10-14T06:47:55.574480+00:00",
+        "endedAt": "2026-10-14T06:48:06.075928+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 16,
+          "skip": 1,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "auto-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "f0f9c108c8653158bd4e8af230febd86a76ddb74",
+        "headAfter": "f0f9c108c8653158bd4e8af230febd86a76ddb74"
+      }
+    },
+    "auto-final": {
+      "file-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss",
+          "./internal/connector/app",
+          "./internal/jsonnum",
+          "./internal/server/jsonnum"
+        ],
+        "startedAt": "2026-10-14T06:23:24.941656+00:00",
+        "endedAt": "2026-10-14T06:23:37.609514+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 248,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 5
+        }
+      },
+      "file-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=3m",
+          "-run",
+          "^(TestConcurrentRequestsAndCorrelatedClose|TestTimeoutPeerDisconnectAndCredentialRevokeCancelSFTP|TestCompletedAndCanceledIDsNeverRedialAcrossControlReconnect|TestFileOpenCapturesControlSenderAndActualDialCredential)$",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss"
+        ],
+        "startedAt": "2026-10-14T06:23:52.000322+00:00",
+        "endedAt": "2026-10-14T06:24:05.696561+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 220,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "go-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:22:15.349763+00:00",
+        "endedAt": "2026-10-14T06:22:25.806181+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "go-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=5m",
+          "./internal/connector/vmaccess",
+          "./internal/connector/provider/openstack",
+          "./internal/connector/app",
+          "./internal/connector/terminal",
+          "./internal/connector/wss",
+          "./internal/connector/mock",
+          "./internal/connector/preview"
+        ],
+        "startedAt": "2026-10-14T06:22:25.807279+00:00",
+        "endedAt": "2026-10-14T06:22:58.736520+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 707,
+          "skip": 13,
+          "fail": 0,
+          "packagesPass": 7
+        }
+      },
+      "go-unit-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=5m",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:21:45.565899+00:00",
+        "endedAt": "2026-10-14T06:22:15.255535+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 3555,
+          "skip": 15,
+          "fail": 0,
+          "packagesPass": 40
+        }
+      },
+      "go-vet-run.json": {
+        "command": [
+          "go",
+          "vet",
+          "-mod=readonly",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:21:36.813175+00:00",
+        "endedAt": "2026-10-14T06:21:45.564752+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "gofmt-run.json": {
+        "checked": 437,
+        "lineEndings": "LF-normalized comparison",
+        "unformatted": [],
+        "exitCode": 0
+      },
+      "regression-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=5m",
+          "-run",
+          "^(TestManagedPTYCanceledSetupReleasesOutputWorkers|TestReplacedDataReaderCannotDispatchBufferedFrames|TestOldInputFailureCannotEndReplacement|TestDataInputAndResizeFailuresCloseOnlyTheirSession|TestReplacementDataClientStopsPreviousReconnectOwner|TestPreviewGatewayConcurrentFrames|TestPreview_SequentialTunnels_SameSession|TestCanceledChannelLeavesActivePTYUsable|TestCanceledOpenClosesLateChannelAndReusesTransport|TestStalledOpenDoesNotAccumulateCanceledSSHRequests|TestTerminalShutdownRejectsDelayedOpensAndEndsOnce)$",
+          "./internal/connector/terminal",
+          "./internal/connector/vmaccess",
+          "./internal/connector/mock",
+          "./internal/connector/preview"
+        ],
+        "startedAt": "2026-10-14T06:22:58.762817+00:00",
+        "endedAt": "2026-10-14T06:23:24.919461+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 420,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 4
+        }
+      },
+      "workspace-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "./internal/connector/workspacefile",
+          "./internal/connector/workspacefs"
+        ],
+        "startedAt": "2026-10-14T06:23:37.633535+00:00",
+        "endedAt": "2026-10-14T06:23:51.981870+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 13,
+          "skip": 1,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "auto-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "c7825493f01a1d72783d77b8ebf7c8140b3d4fdc",
+        "headAfter": "c7825493f01a1d72783d77b8ebf7c8140b3d4fdc"
+      }
+    },
+    "auto-final-owner": {
+      "file-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss",
+          "./internal/connector/app",
+          "./internal/jsonnum",
+          "./internal/server/jsonnum"
+        ],
+        "startedAt": "2026-10-14T06:30:20.834883+00:00",
+        "endedAt": "2026-10-14T06:30:34.022335+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 249,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 5
+        }
+      },
+      "file-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=3m",
+          "-run",
+          "^(TestConcurrentRequestsAndCorrelatedClose|TestTimeoutPeerDisconnectAndCredentialRevokeCancelSFTP|TestCompletedAndCanceledIDsNeverRedialAcrossControlReconnect|TestFileOpenCapturesControlSenderAndActualDialCredential|TestReviewNoAdmissionAfterOldControlRetirement|TestReviewLateOldFrameNeverBindsNewControlOwner|TestFileOldOwnerCleanupPreservesNewOwnerAndRevocationUses4001|TestUnknownSaveOutcomeNeverReplaysAndRequiresFreshRead|TestReadCeilingAndOversizeSaveWithRequiredBinary)$",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss"
+        ],
+        "startedAt": "2026-10-14T06:30:48.202377+00:00",
+        "endedAt": "2026-10-14T06:31:11.753267+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 320,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "go-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:29:20.979307+00:00",
+        "endedAt": "2026-10-14T06:29:25.556263+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "go-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=5m",
+          "./internal/connector/vmaccess",
+          "./internal/connector/provider/openstack",
+          "./internal/connector/app",
+          "./internal/connector/terminal",
+          "./internal/connector/wss",
+          "./internal/connector/mock",
+          "./internal/connector/preview"
+        ],
+        "startedAt": "2026-10-14T06:29:25.557486+00:00",
+        "endedAt": "2026-10-14T06:29:54.443726+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 708,
+          "skip": 13,
+          "fail": 0,
+          "packagesPass": 7
+        }
+      },
+      "go-unit-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=5m",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:28:54.531681+00:00",
+        "endedAt": "2026-10-14T06:29:20.887331+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 3556,
+          "skip": 15,
+          "fail": 0,
+          "packagesPass": 40
+        }
+      },
+      "go-vet-run.json": {
+        "command": [
+          "go",
+          "vet",
+          "-mod=readonly",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:28:50.350325+00:00",
+        "endedAt": "2026-10-14T06:28:54.530436+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "gofmt-run.json": {
+        "checked": 438,
+        "lineEndings": "LF-normalized comparison",
+        "unformatted": [],
+        "exitCode": 0
+      },
+      "regression-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=5m",
+          "-run",
+          "^(TestManagedPTYCanceledSetupReleasesOutputWorkers|TestReplacedDataReaderCannotDispatchBufferedFrames|TestOldInputFailureCannotEndReplacement|TestDataInputAndResizeFailuresCloseOnlyTheirSession|TestReplacementDataClientStopsPreviousReconnectOwner|TestPreviewGatewayConcurrentFrames|TestPreview_SequentialTunnels_SameSession|TestCanceledChannelLeavesActivePTYUsable|TestCanceledOpenClosesLateChannelAndReusesTransport|TestStalledOpenDoesNotAccumulateCanceledSSHRequests|TestTerminalShutdownRejectsDelayedOpensAndEndsOnce)$",
+          "./internal/connector/terminal",
+          "./internal/connector/vmaccess",
+          "./internal/connector/mock",
+          "./internal/connector/preview"
+        ],
+        "startedAt": "2026-10-14T06:29:54.475013+00:00",
+        "endedAt": "2026-10-14T06:30:20.812422+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 420,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 4
+        }
+      },
+      "workspace-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "./internal/connector/workspacefile",
+          "./internal/connector/workspacefs"
+        ],
+        "startedAt": "2026-10-14T06:30:34.047011+00:00",
+        "endedAt": "2026-10-14T06:30:48.184785+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 13,
+          "skip": 1,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "auto-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "28e597bc66bf9f5f97fa856357f33f21a803ed92",
+        "headAfter": "28e597bc66bf9f5f97fa856357f33f21a803ed92"
+      }
+    },
+    "auto-json-final": {
+      "file-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss",
+          "./internal/connector/app",
+          "./internal/jsonnum",
+          "./internal/server/jsonnum"
+        ],
+        "startedAt": "2026-10-14T07:00:44.888994+00:00",
+        "endedAt": "2026-10-14T07:00:58.477563+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 249,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 5
+        }
+      },
+      "file-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=3m",
+          "-run",
+          "^(TestConcurrentRequestsAndCorrelatedClose|TestTimeoutPeerDisconnectAndCredentialRevokeCancelSFTP|TestCompletedAndCanceledIDsNeverRedialAcrossControlReconnect|TestFileOpenCapturesControlSenderAndActualDialCredential|TestReviewNoAdmissionAfterOldControlRetirement|TestReviewLateOldFrameNeverBindsNewControlOwner|TestFileOldOwnerCleanupPreservesNewOwnerAndRevocationUses4001|TestUnknownSaveOutcomeNeverReplaysAndRequiresFreshRead|TestReadCeilingAndOversizeSaveWithRequiredBinary)$",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss"
+        ],
+        "startedAt": "2026-10-14T07:01:09.191178+00:00",
+        "endedAt": "2026-10-14T07:01:31.803842+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 320,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "go-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:59:41.389994+00:00",
+        "endedAt": "2026-10-14T06:59:45.677547+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "go-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=5m",
+          "./internal/connector/vmaccess",
+          "./internal/connector/provider/openstack",
+          "./internal/connector/app",
+          "./internal/connector/terminal",
+          "./internal/connector/wss",
+          "./internal/connector/mock",
+          "./internal/connector/preview"
+        ],
+        "startedAt": "2026-10-14T06:59:45.678728+00:00",
+        "endedAt": "2026-10-14T07:00:18.320181+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 708,
+          "skip": 13,
+          "fail": 0,
+          "packagesPass": 7
+        }
+      },
+      "go-unit-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=5m",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:59:16.190815+00:00",
+        "endedAt": "2026-10-14T06:59:41.297751+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 3559,
+          "skip": 15,
+          "fail": 0,
+          "packagesPass": 40
+        }
+      },
+      "go-vet-run.json": {
+        "command": [
+          "go",
+          "vet",
+          "-mod=readonly",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:59:14.776841+00:00",
+        "endedAt": "2026-10-14T06:59:16.189752+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "gofmt-run.json": {
+        "checked": 438,
+        "lineEndings": "LF-normalized comparison",
+        "unformatted": [],
+        "exitCode": 0
+      },
+      "regression-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=5m",
+          "-run",
+          "^(TestManagedPTYCanceledSetupReleasesOutputWorkers|TestReplacedDataReaderCannotDispatchBufferedFrames|TestOldInputFailureCannotEndReplacement|TestDataInputAndResizeFailuresCloseOnlyTheirSession|TestReplacementDataClientStopsPreviousReconnectOwner|TestPreviewGatewayConcurrentFrames|TestPreview_SequentialTunnels_SameSession|TestCanceledChannelLeavesActivePTYUsable|TestCanceledOpenClosesLateChannelAndReusesTransport|TestStalledOpenDoesNotAccumulateCanceledSSHRequests|TestTerminalShutdownRejectsDelayedOpensAndEndsOnce)$",
+          "./internal/connector/terminal",
+          "./internal/connector/vmaccess",
+          "./internal/connector/mock",
+          "./internal/connector/preview"
+        ],
+        "startedAt": "2026-10-14T07:00:18.344460+00:00",
+        "endedAt": "2026-10-14T07:00:44.865007+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 420,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 4
+        }
+      },
+      "workspace-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "./internal/connector/workspacefile",
+          "./internal/connector/workspacefs"
+        ],
+        "startedAt": "2026-10-14T07:00:58.498922+00:00",
+        "endedAt": "2026-10-14T07:01:09.172438+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 16,
+          "skip": 1,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "auto-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "cfdad210cb52f75e0525225b5de6f147ea0e7f5c",
+        "headAfter": "cfdad210cb52f75e0525225b5de6f147ea0e7f5c"
+      }
+    },
+    "auto-strict-final": {
+      "file-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss",
+          "./internal/connector/app",
+          "./internal/jsonnum",
+          "./internal/server/jsonnum"
+        ],
+        "startedAt": "2026-10-14T07:07:19.139993+00:00",
+        "endedAt": "2026-10-14T07:07:31.398103+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 249,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 5
+        }
+      },
+      "file-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=3m",
+          "-run",
+          "^(TestConcurrentRequestsAndCorrelatedClose|TestTimeoutPeerDisconnectAndCredentialRevokeCancelSFTP|TestCompletedAndCanceledIDsNeverRedialAcrossControlReconnect|TestFileOpenCapturesControlSenderAndActualDialCredential|TestReviewNoAdmissionAfterOldControlRetirement|TestReviewLateOldFrameNeverBindsNewControlOwner|TestFileOldOwnerCleanupPreservesNewOwnerAndRevocationUses4001|TestUnknownSaveOutcomeNeverReplaysAndRequiresFreshRead|TestReadCeilingAndOversizeSaveWithRequiredBinary)$",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss"
+        ],
+        "startedAt": "2026-10-14T07:07:41.671414+00:00",
+        "endedAt": "2026-10-14T07:08:03.694492+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 320,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "go-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T07:06:01.934245+00:00",
+        "endedAt": "2026-10-14T07:06:21.721381+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "go-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=5m",
+          "./internal/connector/vmaccess",
+          "./internal/connector/provider/openstack",
+          "./internal/connector/app",
+          "./internal/connector/terminal",
+          "./internal/connector/wss",
+          "./internal/connector/mock",
+          "./internal/connector/preview"
+        ],
+        "startedAt": "2026-10-14T07:06:21.722375+00:00",
+        "endedAt": "2026-10-14T07:06:53.405246+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 708,
+          "skip": 13,
+          "fail": 0,
+          "packagesPass": 7
+        }
+      },
+      "go-unit-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=5m",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T07:05:35.902177+00:00",
+        "endedAt": "2026-10-14T07:06:01.850000+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 3559,
+          "skip": 15,
+          "fail": 0,
+          "packagesPass": 40
+        }
+      },
+      "go-vet-run.json": {
+        "command": [
+          "go",
+          "vet",
+          "-mod=readonly",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T07:05:33.290940+00:00",
+        "endedAt": "2026-10-14T07:05:35.900618+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "gofmt-run.json": {
+        "checked": 438,
+        "lineEndings": "LF-normalized comparison",
+        "unformatted": [],
+        "exitCode": 0
+      },
+      "regression-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=5m",
+          "-run",
+          "^(TestManagedPTYCanceledSetupReleasesOutputWorkers|TestReplacedDataReaderCannotDispatchBufferedFrames|TestOldInputFailureCannotEndReplacement|TestDataInputAndResizeFailuresCloseOnlyTheirSession|TestReplacementDataClientStopsPreviousReconnectOwner|TestPreviewGatewayConcurrentFrames|TestPreview_SequentialTunnels_SameSession|TestCanceledChannelLeavesActivePTYUsable|TestCanceledOpenClosesLateChannelAndReusesTransport|TestStalledOpenDoesNotAccumulateCanceledSSHRequests|TestTerminalShutdownRejectsDelayedOpensAndEndsOnce)$",
+          "./internal/connector/terminal",
+          "./internal/connector/vmaccess",
+          "./internal/connector/mock",
+          "./internal/connector/preview"
+        ],
+        "startedAt": "2026-10-14T07:06:53.423603+00:00",
+        "endedAt": "2026-10-14T07:07:19.121758+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 420,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 4
+        }
+      },
+      "workspace-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "./internal/connector/workspacefile",
+          "./internal/connector/workspacefs"
+        ],
+        "startedAt": "2026-10-14T07:07:31.409423+00:00",
+        "endedAt": "2026-10-14T07:07:41.654409+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 16,
+          "skip": 1,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "auto-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "f41d20a129005d344b8f68bdd2b1de2822ac088e",
+        "headAfter": "f41d20a129005d344b8f68bdd2b1de2822ac088e"
+      }
+    },
+    "auto-wait-final": {
+      "go-unit-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=5m",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:53:42.212956+00:00",
+        "endedAt": "2026-10-14T06:54:08.398227+00:00",
+        "exitCode": 1,
+        "goEvents": {
+          "pass": 3557,
+          "skip": 15,
+          "fail": 2,
+          "packagesPass": 39
+        }
+      },
+      "go-vet-run.json": {
+        "command": [
+          "go",
+          "vet",
+          "-mod=readonly",
+          "./..."
+        ],
+        "startedAt": "2026-10-14T06:53:39.448137+00:00",
+        "endedAt": "2026-10-14T06:53:42.211963+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "gofmt-run.json": {
+        "checked": 438,
+        "lineEndings": "LF-normalized comparison",
+        "unformatted": [],
+        "exitCode": 0
+      },
+      "auto-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "7ee9716291f54534789f32c204b6e795411dbe68",
+        "headAfter": "7ee9716291f54534789f32c204b6e795411dbe68"
+      }
+    },
+    "contracts-final": {
+      "contracts-run.json": {
+        "exitCode": 0,
+        "versions": {
+          "PyYAML": "6.0.3",
+          "jsonschema": "4.26.0",
+          "openapi-spec-validator": "0.9.0"
+        },
+        "scope": "OpenAPI and exact current workflow JSON Schema/runtime/migration scripts"
+      },
+      "reset-schema-run.json": {
+        "command": [
+          "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-file-150\\contracts\\connector\\tests\\test_reset_schema.py",
+          "-v"
+        ],
+        "startedAt": "2026-10-14T06:21:26.769704+00:00",
+        "endedAt": "2026-10-14T06:21:27.094712+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "contracts-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "c7825493f01a1d72783d77b8ebf7c8140b3d4fdc",
+        "headAfter": "c7825493f01a1d72783d77b8ebf7c8140b3d4fdc"
+      }
+    },
+    "green-bridge": {},
+    "green-bridge-ack": {},
+    "helper-boundary-final": {
+      "helper-json-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=2m",
+          "-run",
+          "^(TestInterruptedHelperDrainsSFTPAndPreservesPTY|TestMalformedFramesNeverReachSave)$",
+          "./internal/connector/workspacefile",
+          "./internal/connector/filetransport"
+        ],
+        "startedAt": "2026-10-14T07:01:45.556247+00:00",
+        "endedAt": "2026-10-14T07:01:57.905345+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 420,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "helper-json-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "929ec1ac353395e23d3ba75a3586b03dbe26635f",
+        "headAfter": "929ec1ac353395e23d3ba75a3586b03dbe26635f"
+      }
+    },
+    "helper-json-final": {
+      "helper-json-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=2m",
+          "-run",
+          "^(TestInterruptedHelperDrainsSFTPAndPreservesPTY|TestMalformedFramesNeverReachSave)$",
+          "./internal/connector/workspacefile",
+          "./internal/connector/filetransport"
+        ],
+        "startedAt": "2026-10-14T06:59:46.128081+00:00",
+        "endedAt": "2026-10-14T07:00:02.475833+00:00",
+        "exitCode": 1,
+        "goEvents": {
+          "pass": 418,
+          "skip": 0,
+          "fail": 2,
+          "packagesPass": 1
+        }
+      },
+      "helper-json-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "cfdad210cb52f75e0525225b5de6f147ea0e7f5c",
+        "headAfter": "cfdad210cb52f75e0525225b5de6f147ea0e7f5c"
+      }
+    },
+    "helper-strict-final": {
+      "helper-json-repeat-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=20",
+          "-timeout=2m",
+          "-run",
+          "^(TestInterruptedHelperDrainsSFTPAndPreservesPTY|TestMalformedFramesNeverReachSave)$",
+          "./internal/connector/workspacefile",
+          "./internal/connector/filetransport"
+        ],
+        "startedAt": "2026-10-14T07:05:25.676549+00:00",
+        "endedAt": "2026-10-14T07:05:36.801496+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 420,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 2
+        }
+      },
+      "helper-json-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "f41d20a129005d344b8f68bdd2b1de2822ac088e",
+        "headAfter": "f41d20a129005d344b8f68bdd2b1de2822ac088e"
+      }
+    },
+    "live-ack-final": {
+      "file-transport-live-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=15m",
+          "-run",
+          "^TestOpenStackFileTransportIntegration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:47:00.995179+00:00",
+        "endedAt": "2026-10-14T06:50:10.078245+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "helper-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "-buildvcs=false",
+          "-o",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-150-verification-20261014\\live-ack-final\\labbit-workspace-sftp",
+          "./cmd/labbit-workspace-sftp"
+        ],
+        "startedAt": "2026-10-14T06:46:52.769552+00:00",
+        "endedAt": "2026-10-14T06:46:55.145632+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "post-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:50:10.099602+00:00",
+        "endedAt": "2026-10-14T06:50:15.458202+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "pre-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:46:55.226870+00:00",
+        "endedAt": "2026-10-14T06:47:00.979260+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "live-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "f0f9c108c8653158bd4e8af230febd86a76ddb74",
+        "headAfter": "f0f9c108c8653158bd4e8af230febd86a76ddb74"
+      }
+    },
+    "live-after-review": {
+      "file-transport-live-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=15m",
+          "-run",
+          "^TestOpenStackFileTransportIntegration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:19:26.817488+00:00",
+        "endedAt": "2026-10-14T06:21:37.254248+00:00",
+        "exitCode": 1,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 1,
+          "packagesPass": 0
+        }
+      },
+      "helper-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "-buildvcs=false",
+          "-o",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-150-verification-20261014\\live-after-review\\labbit-workspace-sftp",
+          "./cmd/labbit-workspace-sftp"
+        ],
+        "startedAt": "2026-10-14T06:19:18.693250+00:00",
+        "endedAt": "2026-10-14T06:19:19.617770+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "post-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:21:37.269250+00:00",
+        "endedAt": "2026-10-14T06:21:46.476662+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "pre-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:19:19.679564+00:00",
+        "endedAt": "2026-10-14T06:19:26.802193+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "live-source-stability.json": {
+        "unchanged": false,
+        "headBefore": "ebe3f42f8b716c53e5e6f75857bf070759cccb82",
+        "headAfter": "c7825493f01a1d72783d77b8ebf7c8140b3d4fdc"
+      }
+    },
+    "live-drain-final": {
+      "file-transport-live-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=15m",
+          "-run",
+          "^TestOpenStackFileTransportIntegration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:34:22.904500+00:00",
+        "endedAt": "2026-10-14T06:37:02.048265+00:00",
+        "exitCode": 1,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 1,
+          "packagesPass": 0
+        }
+      },
+      "helper-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "-buildvcs=false",
+          "-o",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-150-verification-20261014\\live-drain-final\\labbit-workspace-sftp",
+          "./cmd/labbit-workspace-sftp"
+        ],
+        "startedAt": "2026-10-14T06:34:14.780470+00:00",
+        "endedAt": "2026-10-14T06:34:15.655173+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "post-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:37:02.068558+00:00",
+        "endedAt": "2026-10-14T06:37:07.800793+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "pre-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:34:15.722810+00:00",
+        "endedAt": "2026-10-14T06:34:22.887288+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "live-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "435148d926eaac955a47be288db1b8a3d9a84d82",
+        "headAfter": "435148d926eaac955a47be288db1b8a3d9a84d82"
+      }
+    },
+    "live-final": {
+      "file-transport-live-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=15m",
+          "-run",
+          "^TestOpenStackFileTransportIntegration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:24:55.511960+00:00",
+        "endedAt": "2026-10-14T06:27:02.910327+00:00",
+        "exitCode": 1,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 1,
+          "packagesPass": 0
+        }
+      },
+      "helper-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "-buildvcs=false",
+          "-o",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-150-verification-20261014\\live-final\\labbit-workspace-sftp",
+          "./cmd/labbit-workspace-sftp"
+        ],
+        "startedAt": "2026-10-14T06:24:46.618053+00:00",
+        "endedAt": "2026-10-14T06:24:50.368618+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "post-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:27:02.929079+00:00",
+        "endedAt": "2026-10-14T06:27:09.794153+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "pre-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:24:50.428946+00:00",
+        "endedAt": "2026-10-14T06:24:55.496051+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "live-source-stability.json": {
+        "unchanged": false,
+        "headBefore": "50a8f62b17bba9851d2fc96bfb04de884f514af6",
+        "headAfter": "50a8f62b17bba9851d2fc96bfb04de884f514af6"
+      }
+    },
+    "live-final-owner": {
+      "file-transport-live-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=15m",
+          "-run",
+          "^TestOpenStackFileTransportIntegration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:28:46.028956+00:00",
+        "endedAt": "2026-10-14T06:31:44.582832+00:00",
+        "exitCode": 1,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 1,
+          "packagesPass": 0
+        }
+      },
+      "helper-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "-buildvcs=false",
+          "-o",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-150-verification-20261014\\live-final-owner\\labbit-workspace-sftp",
+          "./cmd/labbit-workspace-sftp"
+        ],
+        "startedAt": "2026-10-14T06:28:39.055086+00:00",
+        "endedAt": "2026-10-14T06:28:39.884381+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "post-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:31:44.601653+00:00",
+        "endedAt": "2026-10-14T06:31:50.514028+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "pre-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:28:39.955995+00:00",
+        "endedAt": "2026-10-14T06:28:46.013572+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "live-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "28e597bc66bf9f5f97fa856357f33f21a803ed92",
+        "headAfter": "28e597bc66bf9f5f97fa856357f33f21a803ed92"
+      }
+    },
+    "live-initial": {
+      "file-transport-live-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=15m",
+          "-run",
+          "^TestOpenStackFileTransportIntegration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:09:10.183159+00:00",
+        "endedAt": "2026-10-14T06:11:17.405383+00:00",
+        "exitCode": 1,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 1,
+          "packagesPass": 0
+        }
+      },
+      "helper-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "-buildvcs=false",
+          "-o",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-150-verification-20261014\\live-initial\\labbit-workspace-sftp",
+          "./cmd/labbit-workspace-sftp"
+        ],
+        "startedAt": "2026-10-14T06:08:59.285605+00:00",
+        "endedAt": "2026-10-14T06:09:03.672770+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "post-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:11:17.422464+00:00",
+        "endedAt": "2026-10-14T06:11:23.925959+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "pre-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:09:03.728053+00:00",
+        "endedAt": "2026-10-14T06:09:10.172491+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "live-source-stability.json": {
+        "unchanged": false,
+        "headBefore": "ebe3f42f8b716c53e5e6f75857bf070759cccb82",
+        "headAfter": "ebe3f42f8b716c53e5e6f75857bf070759cccb82"
+      }
+    },
+    "live-signal-final": {
+      "file-transport-live-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=15m",
+          "-run",
+          "^TestOpenStackFileTransportIntegration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:43:52.598602+00:00",
+        "endedAt": "2026-10-14T06:46:30.031826+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "helper-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "-buildvcs=false",
+          "-o",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-150-verification-20261014\\live-signal-final\\labbit-workspace-sftp",
+          "./cmd/labbit-workspace-sftp"
+        ],
+        "startedAt": "2026-10-14T06:43:44.690684+00:00",
+        "endedAt": "2026-10-14T06:43:45.457667+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "post-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:46:30.048525+00:00",
+        "endedAt": "2026-10-14T06:46:44.989350+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "pre-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:43:45.529990+00:00",
+        "endedAt": "2026-10-14T06:43:52.582339+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "live-source-stability.json": {
+        "unchanged": false,
+        "headBefore": "4daa4c01608a7d29d7b956687834ce4f89426f1b",
+        "headAfter": "f0f9c108c8653158bd4e8af230febd86a76ddb74"
+      }
+    },
+    "live-wait-final": {
+      "file-transport-live-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=15m",
+          "-run",
+          "^TestOpenStackFileTransportIntegration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:53:38.387884+00:00",
+        "endedAt": "2026-10-14T06:56:48.657424+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "helper-build-run.json": {
+        "command": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "-buildvcs=false",
+          "-o",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-150-verification-20261014\\live-wait-final\\labbit-workspace-sftp",
+          "./cmd/labbit-workspace-sftp"
+        ],
+        "startedAt": "2026-10-14T06:53:31.263606+00:00",
+        "endedAt": "2026-10-14T06:53:32.061640+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "post-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:56:48.672824+00:00",
+        "endedAt": "2026-10-14T06:56:54.058688+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "pre-discovery-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-run",
+          "^TestOpenStackM1Integration$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:53:32.132795+00:00",
+        "endedAt": "2026-10-14T06:53:38.373150+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "live-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "7ee9716291f54534789f32c204b6e795411dbe68",
+        "headAfter": "7ee9716291f54534789f32c204b6e795411dbe68"
+      }
+    },
+    "red-bridge": {},
+    "red-path": {},
+    "residual-boundary-final": {
+      "fixture-residual-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-overlay",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-150-verification-20261014\\residual-boundary-final\\overlay.json",
+          "-run",
+          "^TestLBT150ReadOnlyFixtureResiduals$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T07:02:30.267494+00:00",
+        "endedAt": "2026-10-14T07:02:40.755514+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "residual-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "929ec1ac353395e23d3ba75a3586b03dbe26635f",
+        "headAfter": "929ec1ac353395e23d3ba75a3586b03dbe26635f"
+      }
+    },
+    "residual-wait-final": {
+      "fixture-residual-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-timeout=2m",
+          "-overlay",
+          "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\LBT-150-verification-20261014\\residual-wait-final\\overlay.json",
+          "-run",
+          "^TestLBT150ReadOnlyFixtureResiduals$",
+          "./internal/connector/provider/openstack"
+        ],
+        "startedAt": "2026-10-14T06:59:19.453826+00:00",
+        "endedAt": "2026-10-14T06:59:30.164799+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 1,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 1
+        }
+      },
+      "residual-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "cfdad210cb52f75e0525225b5de6f147ea0e7f5c",
+        "headAfter": "cfdad210cb52f75e0525225b5de6f147ea0e7f5c"
+      }
+    },
+    "targeted-initial": {
+      "file-race-run.json": {
+        "command": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=3m",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss",
+          "./internal/connector/app",
+          "./internal/jsonnum",
+          "./internal/server/jsonnum"
+        ],
+        "startedAt": "2026-10-14T06:11:01.043356+00:00",
+        "endedAt": "2026-10-14T06:11:14.382502+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 244,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 5
+        }
+      },
+      "targeted-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "ebe3f42f8b716c53e5e6f75857bf070759cccb82",
+        "headAfter": "ebe3f42f8b716c53e5e6f75857bf070759cccb82"
+      }
+    },
+    "web-final": {
+      "web-build-run.json": {
+        "command": [
+          "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+          "run",
+          "build"
+        ],
+        "startedAt": "2026-10-14T06:23:10.450013+00:00",
+        "endedAt": "2026-10-14T06:23:12.446697+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "web-install-run.json": {
+        "command": [
+          "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+          "install",
+          "--frozen-lockfile"
+        ],
+        "startedAt": "2026-10-14T06:21:27.933466+00:00",
+        "endedAt": "2026-10-14T06:21:33.400179+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "web-lint-run.json": {
+        "command": [
+          "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+          "run",
+          "lint"
+        ],
+        "startedAt": "2026-10-14T06:21:46.216221+00:00",
+        "endedAt": "2026-10-14T06:22:33.825761+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "web-lock-import-run.json": {
+        "command": [
+          "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+          "import"
+        ],
+        "startedAt": "2026-10-14T06:21:23.892782+00:00",
+        "endedAt": "2026-10-14T06:21:27.921949+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "web-test-run.json": {
+        "command": [
+          "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+          "run",
+          "test"
+        ],
+        "startedAt": "2026-10-14T06:22:33.826314+00:00",
+        "endedAt": "2026-10-14T06:23:10.439659+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "web-typecheck-run.json": {
+        "command": [
+          "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+          "run",
+          "typecheck"
+        ],
+        "startedAt": "2026-10-14T06:21:33.413689+00:00",
+        "endedAt": "2026-10-14T06:21:46.212743+00:00",
+        "exitCode": 0,
+        "goEvents": {
+          "pass": 0,
+          "skip": 0,
+          "fail": 0,
+          "packagesPass": 0
+        }
+      },
+      "web-source-stability.json": {
+        "unchanged": true,
+        "headBefore": "c7825493f01a1d72783d77b8ebf7c8140b3d4fdc",
+        "headAfter": "c7825493f01a1d72783d77b8ebf7c8140b3d4fdc"
+      }
+    }
+  },
+  "web": {
+    "files": 13,
+    "tests": 167,
+    "head": "c7825493f01a1d72783d77b8ebf7c8140b3d4fdc"
+  },
+  "automaticSkippedTests": [
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM2ControlWSSIntegration",
+      "reason": "control_wss_integration_test.go:22: set LABBIT_OPENSTACK_M2_WSS_TEST=1 for Provision or LABBIT_OPENSTACK_M3_WSS_TEST=1 for the full WSS lifecycle"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackFileTransportIntegration",
+      "reason": "file_transport_integration_test.go:85: set LABBIT_OPENSTACK_FILE_TRANSPORT_TEST=1 for disposable local OpenStack File acceptance"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM1Integration",
+      "reason": "integration_test.go:36: set LABBIT_OPENSTACK_INTEGRATION=1 to run against a local OpenStack cloud"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM2ProvisionIntegration",
+      "reason": "integration_test.go:75: set LABBIT_OPENSTACK_M2_TEST=1 to create and clean one real Provision topology"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM3LifecycleIntegration",
+      "reason": "integration_test.go:164: set LABBIT_OPENSTACK_M3_TEST=1 to run Provision, Reset, Reconcile, and Cleanup against a local OpenStack cloud"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackInternetPolicyIntegration",
+      "reason": "integration_test.go:302: set LABBIT_OPENSTACK_INTERNET_POLICY_TEST=1 to verify real Internet ON/OFF reachability"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+      "test": "TestSymlinkRejectedAndExcludedFromTree",
+      "reason": "service_test.go:469: host cannot create symlink; real Linux fixture covers this"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+      "reason": "ktcloud_d1_fixture_ledger_test.go:297: symlink creation unavailable on this host"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+      "reason": "ktcloud_d1_fixture_ledger_test.go:319: open-file rename unavailable on this host"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTCloudD1ReadOnlyIntegration",
+      "reason": "ktcloud_d1_integration_test.go:15: set LABBIT_KTCLOUD_D1_INTEGRATION=1 explicitly for real KT D1 read-only checks"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTCloudD1DisposableNetworkIntegration",
+      "reason": "ktcloud_d1_network_integration_test.go:21: set LABBIT_KTCLOUD_D1_NETWORK_MUTATION_TEST=1 explicitly for disposable NSM mutations"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackPTYCC02Integration",
+      "reason": "pty_cc02_integration_test.go:27: set LABBIT_OPENSTACK_PTY_CC02_TEST=1 for real local OpenStack PTY/CC-02 acceptance"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+      "test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600",
+      "reason": "main_test.go:155: Windows uses ACLs; POSIX mode and Windows ACL confidentiality are not verified by this assertion"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackVMAccessIntegration",
+      "reason": "vm_access_integration_test.go:23: set LABBIT_OPENSTACK_VM_ACCESS_TEST=1 for real local OpenStack VM access acceptance"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackWorkspaceFileIntegration",
+      "reason": "workspace_file_integration_test.go:26: set LABBIT_OPENSTACK_WORKSPACE_FILE_TEST=1 for disposable local OpenStack acceptance"
+    }
+  ],
+  "automaticNoTestPackages": [
+    "github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector",
+    "github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate",
+    "github.com/ktcloud4-SL/labbit-app/cmd/labbit-server",
+    "github.com/ktcloud4-SL/labbit-app/cmd/labbit-workspace-sftp",
+    "github.com/ktcloud4-SL/labbit-app/db/migrations",
+    "github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr",
+    "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest",
+    "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution/labexecutiontest",
+    "github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest",
+    "github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest",
+    "github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest"
+  ],
+  "actualAndResidualSourceEquivalence": "Live7ee/residual929 differ from final only in unrelated TLS contract-peer test; production/helper/actualfixture/residualoverlay unchanged",
+  "realBoundary": "local OpenStack VM+sshd+SFTP helper and production Broker/Router/Connector; trusted TLS Data, fixture auth, plain loopback Control",
+  "fullBrowserSaaSE2E": false,
+  "initialConsoleOnlyHistory": "initial duplicate constants/fake sender compile and peer budget adjustments; no invented archive",
+  "historicalRunStability": "Only final marked unchanged source snapshots support final source; prior unstable candidates are development evidence"
+}

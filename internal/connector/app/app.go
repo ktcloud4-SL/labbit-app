@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/filetransport"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
@@ -32,6 +33,7 @@ type ConnectorApp struct {
 	PTYFactory      wss.PTYFactoryFunc
 	VMAccess        *vmaccess.Manager
 	WorkspaceFiles  *workspacefile.Service
+	FileTransport   *filetransport.Manager
 	PreviewManager  *preview.SessionManager
 }
 
@@ -268,6 +270,17 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 		handler.SetPreviewManager(previewMgr, prevCfg)
 	}
 	var files *workspacefile.Service
+	var fileTransport *filetransport.Manager
+	// User-configured HELLO cannot advertise an unavailable File implementation.
+	if controlConfig != nil {
+		caps := make([]string, 0, len(controlConfig.Capabilities))
+		for _, capability := range controlConfig.Capabilities {
+			if capability != protocol.CapabilityFileV1 {
+				caps = append(caps, capability)
+			}
+		}
+		controlConfig.Capabilities = caps
+	}
 	root, helper := os.Getenv("LABBIT_WORKSPACE_ROOT"), os.Getenv("LABBIT_WORKSPACE_SFTP_HELPER")
 	if root != "" || helper != "" {
 		validator, ok := p.(workspacefile.WorkspaceValidator)
@@ -279,6 +292,25 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 		if err != nil {
 			return nil, fmt.Errorf("invalid Workspace File configuration")
 		}
+		u, err := url.Parse(saasBaseURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid File endpoint configuration")
+		}
+		switch u.Scheme {
+		case "https":
+			u.Scheme = "wss"
+		case "http":
+			u.Scheme = "ws"
+		}
+		u.Path, u.RawPath = "/connector/v1/file-data", ""
+		fileTransport, err = filetransport.New(files, filetransport.Config{EndpointURL: u.String(), RuntimeID: runtimeID, AllowInsecure: !isProduction})
+		if err != nil {
+			return nil, fmt.Errorf("invalid File endpoint configuration")
+		}
+		handler.SetFileManager(fileTransport, credential)
+		if controlConfig != nil {
+			controlConfig.Capabilities = append(controlConfig.Capabilities, protocol.CapabilityFileV1)
+		}
 	}
 
 	return &ConnectorApp{
@@ -287,6 +319,7 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 		PTYFactory:      ptyFactory,
 		VMAccess:        accessManager,
 		WorkspaceFiles:  files,
+		FileTransport:   fileTransport,
 		PreviewManager:  previewMgr,
 	}, nil
 }
@@ -339,6 +372,11 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
 		return err
 	}
 	shutdown := sync.OnceFunc(func() {
+		if connectorApp.FileTransport != nil {
+			fileCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			_ = connectorApp.FileTransport.Shutdown(fileCtx)
+			cancel()
+		}
 		connectorApp.TerminalManager.Shutdown(protocol.TerminalReasonServiceRestart)
 		if connectorApp.PreviewManager != nil {
 			connectorApp.PreviewManager.CloseAll(protocol.PreviewReasonServiceRestart)

@@ -24,16 +24,18 @@ import (
 )
 
 type peer struct {
-	root        string
-	listener    net.Listener
-	keyFile     string
-	signer      ssh.Signer
-	connections atomic.Int64
-	active      atomic.Int64
-	hang        atomic.Bool
-	started     chan struct{}
-	mu          sync.Mutex
-	clients     []net.Conn
+	root            string
+	listener        net.Listener
+	keyFile         string
+	signer          ssh.Signer
+	connections     atomic.Int64
+	active          atomic.Int64
+	hang            atomic.Bool
+	hangUntilSignal atomic.Bool
+	helperStops     atomic.Int64
+	started         chan struct{}
+	mu              sync.Mutex
+	clients         []net.Conn
 }
 
 func newPeer(t *testing.T) *peer {
@@ -110,12 +112,27 @@ func (p *peer) serve(conn net.Conn) {
 					return
 				}
 				req.Reply(true, nil)
-				go ssh.DiscardRequests(requests)
 				if payload.Command == "echo-fixture" {
+					go ssh.DiscardRequests(requests)
 					_, _ = io.Copy(ch, ch)
 					return
 				}
 				p.started <- struct{}{}
+				if p.hangUntilSignal.Load() {
+					// A remote exec process can delay EOF after channel CLOSE.
+					// Model an sshd helper that exits only when its process is killed.
+					for req := range requests {
+						if req.Type == "signal" {
+							var payload struct{ Signal string }
+							if ssh.Unmarshal(req.Payload, &payload) == nil && payload.Signal == "KILL" {
+								p.helperStops.Add(1)
+								return
+							}
+						}
+					}
+					return
+				}
+				go ssh.DiscardRequests(requests)
 				if p.hang.Load() {
 					_, _ = io.Copy(io.Discard, ch)
 					return
@@ -266,6 +283,9 @@ func TestConcurrentSaveRejectsOneStaleWriter(t *testing.T) {
 func TestBoundaryAndSharedPTY(t *testing.T) {
 	s, p, m := serviceFixture(t)
 	fixtureFile(t, p, "file", []byte("body"))
+	if data, err := s.Read(context.Background(), fixtureTarget(), "file", 65); err != nil || string(data.Content) != "body" {
+		t.Fatal("Small file rejected by larger requested ceiling")
+	}
 	ctx := context.Background()
 	target := fixtureTarget()
 	pty, err := m.OpenSession(ctx, target)
@@ -363,6 +383,80 @@ func TestTimeoutDisconnectAndSafeErrors(t *testing.T) {
 	}
 	if p.active.Load() != 0 {
 		t.Fatal("SFTP channels leaked")
+	}
+}
+
+func TestInterruptedHelperDrainsSFTPAndPreservesPTY(t *testing.T) {
+	for _, mode := range []string{"cancel", "timeout"} {
+		t.Run(mode, func(t *testing.T) {
+			s, p, m := serviceFixture(t)
+			if mode == "timeout" {
+				s.config.Timeout = 200 * time.Millisecond
+			}
+			pty, err := m.OpenSession(context.Background(), fixtureTarget())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer pty.Close()
+			var stdin io.WriteCloser
+			var stdout io.Reader
+			if err = pty.Setup(context.Background(), func(raw *ssh.Session) error {
+				stdin, _ = raw.StdinPipe()
+				stdout, _ = raw.StdoutPipe()
+				return raw.Start("echo-fixture")
+			}); err != nil {
+				t.Fatal(err)
+			}
+			p.hangUntilSignal.Store(true)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			done := make(chan error, 1)
+			go func() { _, err := s.Read(ctx, fixtureTarget(), "file", 64); done <- err }()
+			select {
+			case <-p.started:
+			case <-time.After(time.Second):
+				t.Fatal("Helper never started")
+			}
+			want := context.DeadlineExceeded
+			if mode == "cancel" {
+				cancel()
+				want = context.Canceled
+			}
+			select {
+			case err := <-done:
+				assertError(t, err, want)
+			case <-time.After(time.Second):
+				t.Fatal("Caller never returned")
+			}
+			until := time.Now().Add(time.Second)
+			for s.ActiveOperations() != 0 && time.Now().Before(until) {
+				time.Sleep(time.Millisecond)
+			}
+			if s.ActiveOperations() != 0 {
+				t.Fatal("Canceled helper retained a SFTP bridge and slot")
+			}
+			if p.helperStops.Load() != 1 {
+				t.Fatal("Interrupted remote helper was not stopped")
+			}
+			echo := make(chan bool, 1)
+			go func() {
+				_, err := stdin.Write([]byte("ok"))
+				body := make([]byte, 2)
+				_, readErr := io.ReadFull(stdout, body)
+				echo <- err == nil && readErr == nil && string(body) == "ok"
+			}()
+			select {
+			case ok := <-echo:
+				if !ok {
+					t.Fatal("File cleanup damaged PTY")
+				}
+			case <-time.After(time.Second):
+				t.Fatal("PTY stalled")
+			}
+			if p.connections.Load() != 1 {
+				t.Fatal("File cleanup replaced shared SSH")
+			}
+		})
 	}
 }
 func TestSymlinkRejectedAndExcludedFromTree(t *testing.T) {

@@ -1,0 +1,28 @@
+package openstackprovider
+
+import (
+ "context"
+ "os"
+ "strings"
+ "testing"
+ "time"
+ "github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
+ "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
+)
+
+// Read-only audit of integration fixture namespaces. The seven Provision
+// resources are separately checked by exact tracked IDs in the live test.
+func TestLBT150ReadOnlyFixtureResiduals(t *testing.T) {
+ if os.Getenv("LABBIT_OPENSTACK_RESIDUAL_AUDIT")!="1" { t.Skip("explicit read-only audit required") }
+ ctx,cancel:=context.WithTimeout(context.Background(),time.Minute);defer cancel()
+ a,err:=New(ctx,ConfigFromEnvironment());if err!=nil{t.Fatal("Provider unavailable")}
+ gp,err:=groups.List(a.network,groups.ListOpts{}).AllPages(ctx);if err!=nil{t.Fatal("SG inventory failed")}
+ gs,err:=groups.ExtractGroups(gp);if err!=nil{t.Fatal("SG decode failed")}
+ kp,err:=keypairs.List(a.compute,nil).AllPages(ctx);if err!=nil{t.Fatal("Keypair inventory failed")}
+ ks,err:=keypairs.ExtractKeyPairs(kp);if err!=nil{t.Fatal("Keypair decode failed")}
+ sgCount,keyCount:=0,0
+ for _,g:=range gs{if strings.HasPrefix(g.Name,"labbit-integration-management-"){sgCount++}}
+ for _,k:=range ks{if strings.HasPrefix(k.Name,"labbit-integration-key-"){keyCount++}}
+ t.Logf("Read-only temporary fixture residuals: managementSecurityGroups=%d keypairs=%d",sgCount,keyCount)
+ if sgCount!=0 || keyCount!=0{t.Fatal("Temporary integration fixture remains")}
+}

@@ -7,6 +7,7 @@ import type {
   LabExecution,
   LabSpec,
   LabSpecList,
+  LabSpecMappingOptionsList,
   LabSpecWrite,
   LoginRequest,
   Me,
@@ -27,6 +28,7 @@ export const labbitQueryKeys = {
   classDetail: (classId: string) => ['classes', classId] as const,
   classMemberships: (classId: string) => ['classes', classId, 'memberships'] as const,
   labSpecs: ['lab-specs'] as const,
+  labSpecMappingOptions: ['lab-specs', 'mapping-options'] as const,
   labSpec: (labSpecId: string) => ['lab-specs', labSpecId] as const,
   labExecution: (labExecutionId: string) =>
     ['lab-executions', labExecutionId] as const,
@@ -53,6 +55,7 @@ export interface LabbitApi {
   getClass(classId: string): Promise<ClassDetail>
   listClassMemberships(classId: string): Promise<ClassMembershipList>
   listLabSpecs(): Promise<LabSpecList>
+  listLabSpecMappingOptions(): Promise<LabSpecMappingOptionsList>
   getLabSpec(labSpecId: string): Promise<VersionedLabSpec>
   createLabSpec(input: LabSpecWrite): Promise<LabSpec>
   updateLabSpec(
@@ -147,6 +150,10 @@ export const httpLabbitApi: LabbitApi = {
 
   listLabSpecs() {
     return request<LabSpecList>('/lab-specs')
+  },
+
+  listLabSpecMappingOptions() {
+    return request<LabSpecMappingOptionsList>('/lab-specs/mapping-options')
   },
 
   async getLabSpec(labSpecId) {

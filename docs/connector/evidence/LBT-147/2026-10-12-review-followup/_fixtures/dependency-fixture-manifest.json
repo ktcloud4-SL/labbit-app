@@ -1,0 +1,20 @@
+{
+  "repoGoModSHA256": "7d17748d2dec232871311dca37bbd5ab64378322bbcb372c02ae41a28f7a1efe",
+  "repoGoSumSHA256": "63845d90b22e82a33cd1176d552d8ceec057becf965f92824fe8a3c4672f9409",
+  "cryptoModule": "golang.org/x/crypto@v0.57.0",
+  "originalChannelSHA256": "b753096dc6bdec0533c808bef0905663b72745d2739ed78bd3e0e6653518326a",
+  "fixtures": [
+    {
+      "path": "independent_unacked_setup_test.go",
+      "sha256": "5fbf7081571f556c8f8df2579d2a85d9f4205b194ac08b374247d1ec565084ef"
+    },
+    {
+      "path": "ssh-channel-no-b-close-ack.go",
+      "sha256": "80020ae09ebd2bfa52c464380865de4625e591c2601c25aa830b40ab2f5a38f1"
+    },
+    {
+      "path": "reviewer-executed-source-manifest.json",
+      "sha256": "3ca5c74407e5016a56ab29b93c0d4385beba6bfbaae4c56c2dc9d7d017c58ddf"
+    }
+  ]
+}

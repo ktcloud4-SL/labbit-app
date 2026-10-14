@@ -3,6 +3,7 @@ package openstackprovider
 import (
 	"context"
 	"errors"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"net"
 	"net/http"
 	"os"
@@ -41,6 +42,91 @@ func TestTerminalTargetRejectsInvalidInputsBeforeCloudLookup(t *testing.T) {
 	}
 	if _, err := a.SSHHostKeyCallback(context.Background(), ""); err == nil {
 		t.Fatal("empty server ID accepted for host-key verification")
+	}
+}
+
+func TestVMAccessRejectsMismatchedEnvelopeBeforeManagementLookup(t *testing.T) {
+	for _, kind := range []string{"other-lab", "stale-generation", "future-generation"} {
+		t.Run(kind, func(t *testing.T) {
+			a := newTestAdapter(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/compute/v2/servers/server-1" {
+					t.Errorf("mismatched envelope reached NIC lookup: %s", r.URL.Path)
+					w.WriteHeader(500)
+					return
+				}
+				writeJSON(t, w, 200, map[string]any{"server": servers.Server{ID: "server-1", TenantID: "project-1", Status: "ACTIVE", Name: provisionBaseName("lab-1", 2) + "-workspace", Metadata: map[string]string{"labbit_lab_instance_id": "lab-1", "labbit_generation": "2", "labbit_operation_id": "op-1", "labbit_vm_key": "workspace"}}})
+			}))
+			a.provision.ProjectID, a.provision.ManagementNetworkID = "project-1", "management"
+			target := vmaccess.Target{LabInstanceID: "lab-1", Generation: 2, VMKey: "workspace", ServerID: "server-1"}
+			switch kind {
+			case "other-lab":
+				target.LabInstanceID = "lab-2"
+			case "stale-generation":
+				target.Generation = 1
+			case "future-generation":
+				target.Generation = 3
+			}
+			if endpoint, err := a.ResolveVMAccess(context.Background(), target); !errors.Is(err, vmaccess.ErrInvalidTarget) || endpoint.Address != "" {
+				t.Fatalf("mismatched envelope accepted: %v", err)
+			}
+		})
+	}
+}
+
+func TestKTCloudVMAccessPreservesTargetAffinityAndManagementTier(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		generation int64
+		wantErr    error
+		wantReads  int
+	}{
+		{name: "valid", generation: 2, wantReads: 1},
+		{name: "stale-generation", generation: 1, wantErr: vmaccess.ErrInvalidTarget},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			const labID, vmKey = "lab-1", "workspace"
+			tierName := ktCloudManagementTierName(labID, 2, vmKey)
+			tierReads := 0
+			a := ktTopologyAdapter(t, func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					t.Fatalf("VM access mutated resources: %s %s", r.Method, r.URL.Path)
+				}
+				switch r.URL.Path {
+				case "/compute/v2/servers/server-1":
+					writeJSON(t, w, http.StatusOK, map[string]any{"server": map[string]any{
+						"id": "server-1", "tenant_id": "fixture-project", "status": "ACTIVE",
+						"name":      provisionBaseName(labID, 2) + "-" + vmKey,
+						"metadata":  map[string]string{"labbit_lab_instance_id": labID, "labbit_generation": "2", "labbit_operation_id": "op-1", "labbit_vm_key": vmKey},
+						"addresses": map[string]any{tierName: []any{map[string]any{"addr": "172.25.241.10", "OS-EXT-IPS:type": "fixed"}}},
+					}})
+				case "/compute/v2/nsm/network":
+					tierReads++
+					writeJSON(t, w, http.StatusOK, map[string]any{"httpStatus": 200, "pagination": map[string]any{"total": 1, "offset": 0}, "data": []any{map[string]any{
+						"networkId": "management-id", "refId": "management-ref", "networkName": tierName,
+						"cidr": "172.25.241.0/24", "status": "ACTIVE", "shared": false,
+					}}})
+				default:
+					t.Fatalf("unexpected VM access lookup: %s", r.URL.Path)
+				}
+			})
+			pins := filepath.Join(t.TempDir(), "known_hosts")
+			if err := os.WriteFile(pins, nil, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			a.provision.SSHKnownHostsFile = pins
+			target := vmaccess.Target{LabInstanceID: labID, Generation: tc.generation, VMKey: vmKey, ServerID: "server-1"}
+			endpoint, err := a.ResolveVMAccess(context.Background(), target)
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) || endpoint.Address != "" {
+					t.Fatalf("unsafe target result: endpoint=%+v err=%v", endpoint, err)
+				}
+			} else if err != nil || endpoint.Address != "172.25.241.10:22" || endpoint.ProviderConnectionID != "local-provider" || endpoint.HostKeyCallback == nil {
+				t.Fatalf("valid KT VM access endpoint=%+v err=%v", endpoint, err)
+			}
+			if tierReads != tc.wantReads {
+				t.Fatalf("management Tier reads=%d want=%d", tierReads, tc.wantReads)
+			}
+		})
 	}
 }
 

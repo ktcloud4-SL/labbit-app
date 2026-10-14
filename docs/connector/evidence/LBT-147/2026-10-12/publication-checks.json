@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-12T03:21:13.939954+00:00",
+  "codeCommit": "74c052f25e3778cafa6ae4fa75bd8775af46827a",
+  "sourceFiles": 29,
+  "sourceByteHashesMatch": true,
+  "committedGitBlobsMatch": true,
+  "archiveEntries": 28,
+  "archiveCRCAndEntrySHA256": "PASS",
+  "realJSONLSummary": "PASS; 12 test/subtest passes, 0 fail/skip",
+  "automatedJSONLSummary": "PASS; unit2828/skip7, race364/skip6",
+  "cloudRerunDuringPublication": false,
+  "reproducerGuards": "PASS; PowerShell7 and Windows PowerShell5.1, six cases repeated with Go wrapper absent/present; restore/remove PASS; Go stubbed, cloud calls0; BOMless overlay JSON verified",
+  "powershellAST": "PASS",
+  "externalHarnessRaceCompile": "PASS; -run ^$; no cloud mutation"
+}

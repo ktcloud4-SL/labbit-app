@@ -18,11 +18,12 @@ var ErrMessageTooLarge = errors.New("Control JSON message exceeds the 1 MiB limi
 
 // Client 는 SaaS 와의 Control WSS 통신을 담당하는 클라이언트입니다.
 type Client struct {
-	cfg       Config
-	mu        sync.RWMutex
-	writeGate chan struct{} // Gorilla WebSocket 단일 writer 보장 및 context 취소 가능한 쓰기 대기열
-	conn      *websocket.Conn
-	startedAt time.Time
+	cfg            Config
+	mu             sync.RWMutex
+	writeGate      chan struct{} // Gorilla WebSocket 단일 writer 보장 및 context 취소 가능한 쓰기 대기열
+	conn           *websocket.Conn
+	startedAt      time.Time
+	dialCredential string
 }
 
 // NewClient 는 새 WSS Client 인스턴스를 생성합니다.
@@ -82,9 +83,17 @@ func (c *Client) Dial(ctx context.Context) error {
 
 	c.mu.Lock()
 	c.conn = conn
+	c.dialCredential = cred
 	c.mu.Unlock()
 
 	return nil
+}
+
+// DialCredential 은 현재 연결에 실제로 사용된 인증 토큰을 반환합니다.
+func (c *Client) DialCredential() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.dialCredential
 }
 
 // SendHello 는 연결 직후 HELLO 메시지를 전송하고 SaaS 의 HELLO_ACK 를 수신·검증합니다.

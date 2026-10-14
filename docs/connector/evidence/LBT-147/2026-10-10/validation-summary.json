@@ -1,0 +1,66 @@
+{
+  "testedSource": "b0b5686d010f5c247ac007b76d373fbec109ea0f",
+  "baseMain": "6d675c74bff11f481d247267faefd4ce960dcd38",
+  "branch": "feat/LBT-147-vm-access",
+  "environment": "local OpenStack; Windows; Go1.27; CGO/GCC; bundled Node/pnpm/Python",
+  "go": {
+    "format": "PASS",
+    "vet": "PASS",
+    "unit": "PASS",
+    "build": "PASS",
+    "changedPackageRace": "PASS",
+    "changedPackageCount": 5
+  },
+  "timeoutRegression": {
+    "result": "PASS",
+    "repetitions": 20,
+    "race": true
+  },
+  "web": {
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "test": "PASS",
+    "build": "PASS",
+    "testFiles": 13,
+    "testCases": 163,
+    "testedSource": "845cecefae8a89ea4277cb1ca7de86522d56804d",
+    "subsequentWebOrDependencyChanges": false,
+    "note": "Earlier complete Web validation; source changes since then are Go only."
+  },
+  "contracts": {
+    "openapi": "PASS",
+    "jsonSchemas": 8,
+    "runtimeMigrationMetadata": "PASS",
+    "resetSchemaTests": 11
+  },
+  "realVMAccess": {
+    "result": "PASS",
+    "generations": [
+      1,
+      2
+    ],
+    "elapsedSeconds": 209.52,
+    "completedAt": "2026-10-10T00:41:24.8832422+09:00",
+    "distinctTrackedResourcesAbsent": 14,
+    "trackedResidualResources": 0,
+    "temporaryKeypairAndManagementSGDelete": "PASS via fixture cleanup"
+  },
+  "postCleanupDiscovery": {
+    "result": "PASS",
+    "completedAt": "2026-10-10T00:41:29.5586293+09:00",
+    "images": 3,
+    "flavors": 4,
+    "servers": 0,
+    "networks": 4
+  },
+  "limitations": [
+    "No KT Cloud/LBT-145 claim",
+    "No PostgreSQL integration",
+    "Production SFTP operations and SaaS/Browser end-to-end outside LBT-147"
+  ],
+  "remote": {
+    "push": false,
+    "pullRequestCreated": false,
+    "jiraMutated": false
+  }
+}

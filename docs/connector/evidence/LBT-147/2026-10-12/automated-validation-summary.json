@@ -1,0 +1,166 @@
+{
+  "sourceManifest": "source-manifest.json",
+  "unit": {
+    "testActions": {
+      "run": 2835,
+      "output": 6065,
+      "pass": 2828,
+      "skip": 7,
+      "pause": 193,
+      "cont": 193
+    },
+    "packagePass": 31,
+    "failures": [],
+    "skips": [
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM2ControlWSSIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM1Integration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM2ProvisionIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM3LifecycleIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackInternetPolicyIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+        "test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackVMAccessIntegration"
+      }
+    ]
+  },
+  "race": {
+    "testActions": {
+      "run": 370,
+      "output": 746,
+      "pass": 364,
+      "skip": 6
+    },
+    "packagePass": 5,
+    "failures": [],
+    "skips": [
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM2ControlWSSIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM1Integration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM2ProvisionIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM3LifecycleIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackInternetPolicyIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackVMAccessIntegration"
+      }
+    ]
+  },
+  "web": {
+    "files": 13,
+    "testsPassed": 163,
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "test": "PASS",
+    "build": "PASS"
+  },
+  "gofmt": "PASS",
+  "vet": "PASS",
+  "build": "PASS",
+  "contracts": "PASS",
+  "resetSchemaTests": 11,
+  "regressionRaceRepetitions": 20,
+  "priorAuditOverlay": "PASS",
+  "historicalEvidence": {
+    "testedSource": "b0b5686d010f5c247ac007b76d373fbec109ea0f",
+    "cloudRerunThisAudit": false,
+    "artifactChecksums": {
+      "automated-logs.zip": true,
+      "README.md": true,
+      "reproduce.ps1": true,
+      "secret-scan.json": true,
+      "source-manifest.json": true,
+      "validation-summary.json": true
+    },
+    "headSourceMatches": {
+      "internal/connector/app/app.go": true,
+      "internal/connector/app/app_test.go": true,
+      "internal/connector/app/main_integration_test.go": true,
+      "internal/connector/app/runtime_provider.go": true,
+      "internal/connector/app/vm_access.go": true,
+      "internal/connector/app/vm_access_test.go": true,
+      "internal/connector/provider/openstack/terminal_target.go": true,
+      "internal/connector/provider/openstack/terminal_target_test.go": true,
+      "internal/connector/provider/openstack/vm_access_integration_test.go": true,
+      "internal/connector/terminal/session.go": true,
+      "internal/connector/terminal/ssh_pty.go": true,
+      "internal/connector/terminal/terminal_test.go": true,
+      "internal/connector/vmaccess/access.go": true,
+      "internal/connector/vmaccess/access_test.go": true,
+      "internal/connector/vmaccess/cancellation_test.go": true,
+      "internal/connector/wss/handler.go": true,
+      "internal/connector/wss/vm_access_test.go": true,
+      "runtime/README.md": true,
+      "runtime/contract.yaml": true
+    },
+    "currentSourceMatches": {
+      "internal/connector/app/app.go": true,
+      "internal/connector/app/app_test.go": true,
+      "internal/connector/app/main_integration_test.go": true,
+      "internal/connector/app/runtime_provider.go": false,
+      "internal/connector/app/vm_access.go": false,
+      "internal/connector/app/vm_access_test.go": false,
+      "internal/connector/provider/openstack/terminal_target.go": true,
+      "internal/connector/provider/openstack/terminal_target_test.go": true,
+      "internal/connector/provider/openstack/vm_access_integration_test.go": true,
+      "internal/connector/terminal/session.go": true,
+      "internal/connector/terminal/ssh_pty.go": true,
+      "internal/connector/terminal/terminal_test.go": true,
+      "internal/connector/vmaccess/access.go": true,
+      "internal/connector/vmaccess/access_test.go": true,
+      "internal/connector/vmaccess/cancellation_test.go": true,
+      "internal/connector/wss/handler.go": true,
+      "internal/connector/wss/vm_access_test.go": true,
+      "runtime/README.md": true,
+      "runtime/contract.yaml": true
+    },
+    "zipCRCFailure": null,
+    "entryCount": 9
+  },
+  "realCloud": "NOT_RUN",
+  "postgresIntegration": "NOT_RUN; no database change",
+  "browserSaaSRealVM": "NOT_RUN; later integration scope",
+  "push": false,
+  "pullRequestCreated": false,
+  "auditVerdict": "PR_READY_FOR_LOCAL_IMPLEMENTATION_SCOPE; real-cloud rerun and KT/consumer integration limitations recorded",
+  "findings": {
+    "F-001/P1": "RESOLVED",
+    "F-002/P2": "RESOLVED",
+    "additionalConfirmedFindings": 0
+  },
+  "independentReviewerSHA256Matches": true,
+  "historicalSourceContext": "Snapshot of pre-real-run automated audit. realCloud=NOT_RUN/push=false/PR=false describe that earlier execution, not this later publication. Current actual cloud results are validation-summary.json.",
+  "publicationCodeCommit": "74c052f25e3778cafa6ae4fa75bd8775af46827a"
+}

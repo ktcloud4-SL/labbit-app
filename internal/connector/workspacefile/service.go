@@ -370,12 +370,23 @@ func (s *Service) run(parent context.Context, target vmaccess.Target, p string, 
 		}
 		recvR, recvW := io.Pipe()
 		sendR, sendW := io.Pipe()
+		var closeOnce sync.Once
 		closePipes := func() {
-			_ = recvR.Close()
-			_ = recvW.Close()
-			_ = sendR.Close()
-			_ = sendW.Close()
-			_ = session.Close()
+			closeOnce.Do(func() {
+				_ = recvR.Close()
+				_ = recvW.Close()
+				_ = sendR.Close()
+				_ = sendW.Close()
+				// OpenSSH can defer stdout EOF until the exec process exits,
+				// even after channel CLOSE. Stop this request's helper first;
+				// signaling its independent channel preserves sibling PTYs.
+				// A non-reading SSH peer still retains this bounded worker
+				// until transport retirement rather than spawning a retry.
+				if ctx.Err() != nil {
+					_ = session.Signal(ssh.SIGKILL)
+				}
+				_ = session.Close()
+			})
 		}
 		stop := context.AfterFunc(ctx, closePipes)
 		var bridges sync.WaitGroup

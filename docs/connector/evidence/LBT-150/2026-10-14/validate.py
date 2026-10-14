@@ -38,7 +38,7 @@ try:
         v.auto()
         targeted()
         v.run('workspace-race',['go','test','-mod=readonly','-race','-json','-count=1','-timeout=3m','./internal/connector/workspacefile','./internal/connector/workspacefs'],env=v.clean_env())
-        v.run('file-repeat',['go','test','-mod=readonly','-race','-json','-count=20','-timeout=3m','-run','^(TestConcurrentRequestsAndCorrelatedClose|TestTimeoutPeerDisconnectAndCredentialRevokeCancelSFTP|TestCompletedAndCanceledIDsNeverRedialAcrossControlReconnect|TestFileOpenCapturesControlSenderAndActualDialCredential)$','./internal/connector/filetransport','./internal/connector/wss'],env=v.clean_env())
+        v.run('file-repeat',['go','test','-mod=readonly','-race','-json','-count=20','-timeout=3m','-run','^(TestConcurrentRequestsAndCorrelatedClose|TestTimeoutPeerDisconnectAndCredentialRevokeCancelSFTP|TestCompletedAndCanceledIDsNeverRedialAcrossControlReconnect|TestFileOpenCapturesControlSenderAndActualDialCredential|TestReviewNoAdmissionAfterOldControlRetirement|TestReviewLateOldFrameNeverBindsNewControlOwner|TestFileOldOwnerCleanupPreservesNewOwnerAndRevocationUses4001|TestUnknownSaveOutcomeNeverReplaysAndRequiresFreshRead|TestReadCeilingAndOversizeSaveWithRequiredBinary)$','./internal/connector/filetransport','./internal/connector/wss'],env=v.clean_env())
     elif mode in ('web','contracts'): getattr(v,mode)()
     elif mode in ('live','targeted'): globals()[mode]()
     else: raise SystemExit('Expected auto, web, contracts, targeted or live')

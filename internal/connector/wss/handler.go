@@ -1078,7 +1078,7 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 	}
 
 	// 4. 세션 조회 또는 생성 (동일 Generation/Target 시맨틱 일치성 보장)
-	session, _, err := mgr.GetOrCreateSession(openMsg.Payload, openMsg.BaseEnvelope, func() (terminal.PTYChannel, error) {
+	session, reused, err := mgr.GetOrCreateSession(openMsg.Payload, openMsg.BaseEnvelope, func() (terminal.PTYChannel, error) {
 		if vmFactory != nil {
 			return vmFactory(ctx, vmaccess.Target{LabInstanceID: openMsg.LabInstanceID, Generation: openMsg.Generation, VMKey: openMsg.Payload.TargetVmKey, ServerID: openMsg.Payload.ProviderServerID}, openMsg.Payload.Cols, openMsg.Payload.Rows)
 		}
@@ -1086,7 +1086,7 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 	})
 	if err != nil {
 		errCode := protocol.TerminalErrAttachFailed
-		if errors.Is(err, terminal.ErrStaleGeneration) || errors.Is(err, terminal.ErrSessionConflict) || errors.Is(err, vmaccess.ErrInvalidTarget) {
+		if errors.Is(err, terminal.ErrStaleGeneration) || errors.Is(err, terminal.ErrSessionConflict) || errors.Is(err, terminal.ErrSessionClosed) || errors.Is(err, vmaccess.ErrInvalidTarget) {
 			errCode = protocol.TerminalErrInvalidSession
 		}
 		if sender != nil {
@@ -1114,37 +1114,42 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 	}
 
 	// 5. Terminal Data WSS 동기식 Dial 및 Attach (Reviewer 3번 지적 사항: attach 완료 전에는 SUCCEEDED 금지)
-	dataClient := terminal.NewDataWSSClient(dataCfg, session)
-	if attachErr := dataClient.DialAndAttach(ctx); attachErr != nil {
-		// Attach 실패 시 세션 및 PTY 정리
-		_ = mgr.CloseSession(openMsg.TerminalSessionID, protocol.TerminalReasonSessionClosed)
+	// Repeated OPEN of an attached session must not replace its Data transport
+	// or start competing reconnect owners for the same PTY.
+	if !reused || session.GetDataConn() == nil {
+		dataClient := terminal.NewDataWSSClient(dataCfg, session)
+		if attachErr := dataClient.DialAndAttach(ctx); attachErr != nil {
+			// A failed old attach must not close a replacement owner's PTY.
+			session.CloseIfDataClientOwner(dataClient, protocol.TerminalReasonSessionClosed)
+			dataClient.Close()
 
-		if sender != nil {
-			failResult := protocol.TerminalOpenResultMessage{
-				BaseEnvelope: protocol.BaseEnvelope{
-					Type:              protocol.MessageTypeTerminalOpenResult,
-					MessageID:         generateUUID(),
-					ReplyToMessageID:  openMsg.MessageID,
-					SentAt:            time.Now().UTC(),
-					TerminalSessionID: openMsg.TerminalSessionID,
-					LabInstanceID:     openMsg.LabInstanceID,
-					Generation:        openMsg.Generation,
-				},
-				Payload: protocol.TerminalOpenResultPayload{
-					Outcome: protocol.OutcomeFailed,
-					Error: &protocol.SafeError{
-						Code:    protocol.TerminalErrAttachFailed,
-						Message: attachErr.Error(),
+			if sender != nil {
+				failResult := protocol.TerminalOpenResultMessage{
+					BaseEnvelope: protocol.BaseEnvelope{
+						Type:              protocol.MessageTypeTerminalOpenResult,
+						MessageID:         generateUUID(),
+						ReplyToMessageID:  openMsg.MessageID,
+						SentAt:            time.Now().UTC(),
+						TerminalSessionID: openMsg.TerminalSessionID,
+						LabInstanceID:     openMsg.LabInstanceID,
+						Generation:        openMsg.Generation,
 					},
-				},
+					Payload: protocol.TerminalOpenResultPayload{
+						Outcome: protocol.OutcomeFailed,
+						Error: &protocol.SafeError{
+							Code:    protocol.TerminalErrAttachFailed,
+							Message: "Terminal Data connection could not be attached",
+						},
+					},
+				}
+				_ = sender.SendMessage(ctx, failResult)
 			}
-			_ = sender.SendMessage(ctx, failResult)
+			return fmt.Errorf("failed to attach terminal data WSS: %w", attachErr)
 		}
-		return fmt.Errorf("failed to attach terminal data WSS: %w", attachErr)
-	}
 
-	// 6. Attach 성공 후에만 백그라운드 스트리밍 시작 및 TERMINAL_OPEN_RESULT (SUCCEEDED) 회신
-	dataClient.StartStreaming()
+		// 6. Attach 성공 후에만 백그라운드 스트리밍 시작 및 TERMINAL_OPEN_RESULT (SUCCEEDED) 회신
+		dataClient.StartStreaming()
+	}
 
 	if sender != nil {
 		succResult := protocol.TerminalOpenResultMessage{

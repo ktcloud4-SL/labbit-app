@@ -31,6 +31,7 @@ var (
 )
 
 const finalDataWriteLockWait = 50 * time.Millisecond
+const dataWriteTimeout = 10 * time.Second
 
 // SessionEndedCallback 은 세션이 완전 종료되었을 때 호출되는 콜백입니다.
 type SessionEndedCallback func(session *Session, reason string, exitCode *int, err error)
@@ -48,10 +49,11 @@ type Session struct {
 	Cols             int
 	Rows             int
 
-	Status   SessionStatus
-	PTY      PTYChannel
-	DataConn *websocket.Conn
-	writeMu  sync.Mutex
+	Status     SessionStatus
+	PTY        PTYChannel
+	DataConn   *websocket.Conn
+	dataClient *DataWSSClient
+	writeMu    sync.Mutex
 
 	detachChan chan struct{}
 
@@ -67,6 +69,7 @@ type Session struct {
 type SessionManager struct {
 	mu            sync.RWMutex
 	sessions      map[string]*Session
+	ended         map[string]struct{}
 	graceDuration time.Duration
 	onEnded       SessionEndedCallback
 	closed        bool
@@ -79,6 +82,7 @@ func NewSessionManager(graceDuration time.Duration, onEnded SessionEndedCallback
 	}
 	return &SessionManager{
 		sessions:      make(map[string]*Session),
+		ended:         make(map[string]struct{}),
 		graceDuration: graceDuration,
 		onEnded:       onEnded,
 	}
@@ -111,6 +115,9 @@ func (sm *SessionManager) GetOrCreateSession(
 	if sessionID == "" {
 		return nil, false, fmt.Errorf("missing terminalSessionId in request")
 	}
+	if _, ended := sm.ended[sessionID]; ended {
+		return nil, false, ErrSessionClosed
+	}
 
 	// 1. 기존 세션 존재 여부 확인 (멱등성 및 충돌 검증)
 	if existing, exists := sm.sessions[sessionID]; exists {
@@ -134,8 +141,10 @@ func (sm *SessionManager) GetOrCreateSession(
 			// 이미 유효한 세션이 존재하므로 재사용 (reused = true)
 			return existing, true, nil
 		}
-		// 이미 CLOSED 된 세션이면 맵에서 정리 후 새로 생성
+		// A completed TerminalSession ID must never allocate another shell.
+		sm.ended[sessionID] = struct{}{}
 		delete(sm.sessions, sessionID)
+		return nil, false, ErrSessionClosed
 	}
 
 	// 2. 신규 PTY 생성
@@ -207,8 +216,9 @@ func (sm *SessionManager) closeAll(reason string, shutdown bool) {
 		sm.closed = true
 	}
 	sessionsToClose := make([]*Session, 0, len(sm.sessions))
-	for _, s := range sm.sessions {
+	for id, s := range sm.sessions {
 		sessionsToClose = append(sessionsToClose, s)
+		sm.ended[id] = struct{}{}
 	}
 	sm.sessions = make(map[string]*Session)
 	sm.mu.Unlock()
@@ -229,14 +239,19 @@ func (sm *SessionManager) removeSession(sessionID string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	delete(sm.sessions, sessionID)
+	sm.ended[sessionID] = struct{}{}
 }
 
 // AttachDataConn 은 WebSocket 데이터 연결을 세션에 바인딩합니다.
 // 이전에 Detached 상태(Grace period 중)였다면 재연결(resumed = true)로 처리하고 타이머를 취소합니다.
 // 세션이 이미 Closed 상태이면 conn을 즉시 닫고 ErrSessionClosed 에러를 반환합니다.
 func (s *Session) AttachDataConn(conn *websocket.Conn) (resumed bool, err error) {
+	return s.attachDataConn(conn, nil)
+}
+
+func (s *Session) attachDataConn(conn *websocket.Conn, owner *DataWSSClient) (resumed bool, err error) {
 	s.mu.Lock()
-	if s.Status == StatusClosed {
+	if s.Status == StatusClosed || (owner != nil && s.dataClient != owner) {
 		s.mu.Unlock()
 		if conn != nil {
 			_ = conn.Close()
@@ -294,6 +309,66 @@ func (s *Session) GetDataConn() *websocket.Conn {
 	return s.DataConn
 }
 
+func (s *Session) isCurrentDataConn(conn *websocket.Conn, owner *DataWSSClient) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.Status == StatusActive && s.DataConn == conn && s.dataClient == owner
+}
+
+// A frame admitted by an old reader must not end a replacement attachment.
+func (s *Session) closeDataConn(conn *websocket.Conn, owner *DataWSSClient, reason string, exitCode *int, err error) {
+	s.mu.Lock()
+	if s.Status != StatusActive || s.DataConn != conn || s.dataClient != owner {
+		s.mu.Unlock()
+		return
+	}
+	s.Status = StatusClosed
+	s.mu.Unlock()
+	s.Close(reason, exitCode, err)
+}
+
+// CloseIfDataClientOwner closes the session only for its current attach owner.
+// Ownership and the CLOSED transition share the claimDataClient lock so a
+// replacement cannot claim the session between the check and cleanup.
+func (s *Session) CloseIfDataClientOwner(owner *DataWSSClient, reason string) {
+	s.mu.Lock()
+	if owner == nil || s.dataClient != owner || s.Status == StatusClosed {
+		s.mu.Unlock()
+		return
+	}
+	s.Status = StatusClosed
+	s.mu.Unlock()
+	s.Close(reason, nil, nil)
+}
+
+// claimDataClient leaves exactly one reconnect owner for this TerminalSession.
+func (s *Session) claimDataClient(client *DataWSSClient) error {
+	s.mu.Lock()
+	if s.Status == StatusClosed {
+		s.mu.Unlock()
+		return ErrSessionClosed
+	}
+	old := s.dataClient
+	s.dataClient = client
+	s.mu.Unlock()
+	if old != nil && old != client {
+		old.Close()
+	}
+	return nil
+}
+
+func (s *Session) WriteInput(input []byte) error {
+	s.mu.Lock()
+	pty := s.PTY
+	closed := s.Status == StatusClosed
+	s.mu.Unlock()
+	if closed || pty == nil {
+		return ErrSessionClosed
+	}
+	_, err := pty.Write(input)
+	return err
+}
+
 // DetachDataConn 은 WebSocket 데이터 연결이 비정상 종료되거나 닫혔을 때 호출됩니다.
 // conn 파라미터가 제공된 경우 현재 활성 연결과 일치할 때만 분리를 수행합니다.
 func (s *Session) DetachDataConn(conn *websocket.Conn) {
@@ -320,16 +395,20 @@ func (s *Session) DetachDataConn(conn *websocket.Conn) {
 	}
 
 	// Grace Period 타이머 시작
-	s.graceTimer = time.AfterFunc(s.graceDuration, func() {
+	var timer *time.Timer
+	timer = time.AfterFunc(s.graceDuration, func() {
 		s.mu.Lock()
-		if s.Status == StatusDetached {
-			s.mu.Unlock()
-			// 60초 경과: PTY 및 세션 완전 정리
-			s.Close(protocol.TerminalReasonGraceTimeout, nil, nil)
-			return
+		expired := s.Status == StatusDetached && s.graceTimer == timer
+		if expired {
+			// Fence a late attach before releasing the lock to close the session.
+			s.Status = StatusClosed
 		}
 		s.mu.Unlock()
+		if expired {
+			s.Close(protocol.TerminalReasonGraceTimeout, nil, nil)
+		}
 	})
+	s.graceTimer = timer
 	s.mu.Unlock()
 
 	if oldConn != nil {
@@ -357,6 +436,8 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 
 		conn := s.DataConn
 		s.DataConn = nil
+		dataClient := s.dataClient
+		s.dataClient = nil
 
 		pty := s.PTY
 		s.PTY = nil
@@ -402,6 +483,9 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 		if pty != nil {
 			_ = pty.Close()
 		}
+		if dataClient != nil {
+			dataClient.Close()
+		}
 
 		if callback != nil {
 			callback(s, reason, exitCode, err)
@@ -442,7 +526,12 @@ func (s *Session) WriteMessage(messageType int, data []byte) error {
 	s.writeMu.Lock()
 	defer s.writeMu.Unlock()
 
-	return conn.WriteMessage(messageType, data)
+	_ = conn.SetWriteDeadline(time.Now().Add(dataWriteTimeout))
+	err := conn.WriteMessage(messageType, data)
+	if err != nil {
+		_ = conn.Close() // Wake the input reader so it enters detach/grace.
+	}
+	return err
 }
 
 // WriteJSON 은 활성 WebSocket 연결로 JSON 메시지를 단일 뮤텍스 직렬화하여 전송합니다.
@@ -460,7 +549,12 @@ func (s *Session) WriteJSON(v interface{}) error {
 	s.writeMu.Lock()
 	defer s.writeMu.Unlock()
 
-	return conn.WriteJSON(v)
+	_ = conn.SetWriteDeadline(time.Now().Add(dataWriteTimeout))
+	err := conn.WriteJSON(v)
+	if err != nil {
+		_ = conn.Close()
+	}
+	return err
 }
 
 // Resize 는 터미널 크기를 변경합니다.
@@ -509,17 +603,22 @@ func (s *Session) startPtyPump() {
 			}
 
 			n, err := pty.Read(buf)
+			// Reader may return final bytes together with EOF or a transport error.
+			if n > 0 {
+				_ = s.WriteMessage(websocket.BinaryMessage, buf[:n])
+			}
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					var exitCode *int
-					if esp, ok := pty.(ExitStatusProvider); ok {
-						for i := 0; i < 5; i++ {
-							if code, exited := esp.ExitStatus(); exited {
-								exitCode = code
-								break
-							}
-							time.Sleep(10 * time.Millisecond)
+					if termination, ok := pty.(TerminationProvider); ok {
+						var waitErr error
+						exitCode, waitErr = termination.WaitTermination()
+						if waitErr != nil && exitCode == nil {
+							s.Close(protocol.TerminalReasonSSHDisconnected, nil, waitErr)
+							return
 						}
+					} else if esp, ok := pty.(ExitStatusProvider); ok {
+						exitCode, _ = esp.ExitStatus()
 					}
 					s.Close(protocol.TerminalReasonPtyExited, exitCode, nil)
 				} else {
@@ -528,10 +627,6 @@ func (s *Session) startPtyPump() {
 					s.Close(reason, nil, err)
 				}
 				return
-			}
-
-			if n > 0 {
-				_ = s.WriteMessage(websocket.BinaryMessage, buf[:n])
 			}
 		}
 	}()

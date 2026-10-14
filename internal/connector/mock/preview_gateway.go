@@ -19,6 +19,7 @@ type PreviewGateway struct {
 	upgrader websocket.Upgrader
 
 	mu                          sync.Mutex
+	writeMu                     sync.Mutex
 	conn                        *websocket.Conn
 	activeSess                  string
 	activeLabID                 string
@@ -120,7 +121,7 @@ func (g *PreviewGateway) SendBinary(data []byte) error {
 	if conn == nil {
 		return errors.New("no active connection")
 	}
-	return conn.WriteMessage(websocket.BinaryMessage, data)
+	return g.writeMessage(conn, websocket.BinaryMessage, data)
 }
 
 // WaitForBinary 는 클라이언트로부터 바이너리 수신을 대기합니다.
@@ -141,7 +142,13 @@ func (g *PreviewGateway) SendText(data []byte) error {
 	if conn == nil {
 		return errors.New("no active connection")
 	}
-	return conn.WriteMessage(websocket.TextMessage, data)
+	return g.writeMessage(conn, websocket.TextMessage, data)
+}
+
+func (g *PreviewGateway) writeMessage(conn *websocket.Conn, kind int, data []byte) error {
+	g.writeMu.Lock()
+	defer g.writeMu.Unlock()
+	return conn.WriteMessage(kind, data)
 }
 
 // WaitForClose 는 클라이언트 측에서 연결이 닫힐 때까지 대기합니다.
@@ -275,7 +282,7 @@ func (g *PreviewGateway) handleWebSocket(w http.ResponseWriter, r *http.Request)
 		Payload: protocol.PreviewAttachedPayload{},
 	}
 	attachedBytes, _ := json.Marshal(attachedMsg)
-	if err := conn.WriteMessage(websocket.TextMessage, attachedBytes); err != nil {
+	if err := g.writeMessage(conn, websocket.TextMessage, attachedBytes); err != nil {
 		return
 	}
 

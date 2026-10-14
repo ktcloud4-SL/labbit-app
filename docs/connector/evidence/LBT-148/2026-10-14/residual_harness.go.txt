@@ -1,0 +1,42 @@
+package openstackprovider
+
+import (
+	"context"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
+)
+
+// Read-only supplementary check for the temporary integration fixtures, which
+// are not among the seven Provision resources asserted absent by CC-02.
+func TestLBT148ReadOnlyFixtureResiduals(t *testing.T) {
+	if os.Getenv("LABBIT_OPENSTACK_RESIDUAL_AUDIT") != "1" {
+		t.Skip("explicit read-only cloud audit required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	a, err := New(ctx, ConfigFromEnvironment())
+	if err != nil { t.Fatal("read-only provider initialization failed") }
+	pages, err := keypairs.List(a.compute, nil).AllPages(ctx)
+	if err != nil { t.Fatal("read-only keypair discovery failed") }
+	keys, err := keypairs.ExtractKeyPairs(pages)
+	if err != nil { t.Fatal("read-only keypair decode failed") }
+	keyCount := 0
+	for _, key := range keys {
+		if strings.HasPrefix(key.Name, "labbit-integration-key-") { keyCount++ }
+	}
+	groupPages, err := groups.List(a.network, groups.ListOpts{}).AllPages(ctx)
+	if err != nil { t.Fatal("read-only security group discovery failed") }
+	securityGroups, err := groups.ExtractGroups(groupPages)
+	if err != nil { t.Fatal("read-only security group decode failed") }
+	groupCount := 0
+	for _, group := range securityGroups {
+		if strings.HasPrefix(group.Name, "labbit-integration-management-") { groupCount++ }
+	}
+	t.Logf("Read-only integration fixture residuals: keypairs=%d managementSecurityGroups=%d", keyCount, groupCount)
+	if keyCount != 0 || groupCount != 0 { t.Fatal("temporary integration fixture resources remain; no resources were modified by this audit") }
+}

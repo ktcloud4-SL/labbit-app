@@ -28,7 +28,8 @@ export const labbitQueryKeys = {
   classDetail: (classId: string) => ['classes', classId] as const,
   classMemberships: (classId: string) => ['classes', classId, 'memberships'] as const,
   labSpecs: ['lab-specs'] as const,
-  labSpecMappingOptions: ['lab-specs', 'mapping-options'] as const,
+  labSpecMappingOptions: (organizationId: string, userId: string) =>
+    ['lab-specs', 'mapping-options', organizationId, userId] as const,
   labSpec: (labSpecId: string) => ['lab-specs', labSpecId] as const,
   labExecution: (labExecutionId: string) =>
     ['lab-executions', labExecutionId] as const,

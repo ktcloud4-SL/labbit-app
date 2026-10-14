@@ -873,6 +873,37 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(createLabSpec).not.toHaveBeenCalled()
   })
 
+  it('Image만 있고 Flavor가 없는 Provider는 Size를 비활성화하고 저장을 차단한다', async () => {
+    const createLabSpec = vi.fn(async (input) => ({
+      id: 'should-not-create-from-image-only',
+      ownerUserId: meFixture.id,
+      ...input,
+    }))
+    renderRoute('/lab-specs/new', createApi({
+      listLabSpecMappingOptions: async () => ({
+        items: [{
+          ...mockLabSpecMappingOptions.items[0],
+          flavors: [],
+        }],
+      }),
+      createLabSpec,
+    }))
+    const provider = await screen.findByRole('combobox', { name: 'Provider 연결' })
+    fireEvent.change(provider, {
+      target: { value: mockLabSpecMappingOptions.items[0].providerConnectionId },
+    })
+    fireEvent.change(screen.getByLabelText('이름'), { target: { value: 'Image only' } })
+    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'control' } })
+    fireEvent.change(screen.getByLabelText('Image 참조'), {
+      target: { value: mockLabSpecMappingOptions.items[0].images[0].id },
+    })
+    expect(screen.getByLabelText('Size 참조')).toBeDisabled()
+    expect(screen.getByText(/같은 Provider 연결의 Size Mapping이 없습니다/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
+    expect(await screen.findByText(/각 VM의 Role, Image 참조, Size 참조/)).toBeInTheDocument()
+    expect(createLabSpec).not.toHaveBeenCalled()
+  })
+
   it('Mapping 조회 403은 강사 권한 오류로 처리한다', async () => {
     renderRoute('/lab-specs/new', createApi({
       listLabSpecMappingOptions: async () => { throw new HttpError(403) },

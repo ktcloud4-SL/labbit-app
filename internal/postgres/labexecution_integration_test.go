@@ -13,7 +13,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/labexecution"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/labexecution/labexecutiontest"
@@ -23,15 +25,33 @@ import (
 type provisionDB struct {
 	*testDB
 	conn *pgx.Conn
-	f    *labexecutiontest.Fixture
-	svc  *labexecution.Service
+	// holder는 경쟁 test가 LabSpec row를 잡아 두는 전용 연결이다. Store pool과 conn(대기 수 확인)과 분리해
+	// 경쟁 요청이 pool을 모두 써도 잠금 해제와 대기 확인이 막히지 않는다.
+	holder *pgx.Conn
+	f      *labexecutiontest.Fixture
+	svc    *labexecution.Service
 }
+
+// provisionPoolConns는 경쟁 test의 동시 요청 수보다 넉넉한 pool 크기다. pgxpool 기본값(max(4, CPU 수))은 runner마다 달라
+// 동시 요청 6개가 모두 lock 대기에 도달하기 전에 pool이 바닥날 수 있다.
+const provisionPoolConns = 16
 
 func newProvisionDB(t *testing.T) *provisionDB {
 	t.Helper()
 	db := newTestDB(t)
+	config, err := pgxpool.ParseConfig(db.dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config.MaxConns = provisionPoolConns
+	pool, err := pgxpool.NewWithConfig(t.Context(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(pool.Close)
+	db = &testDB{dsn: db.dsn, pool: pool, store: postgres.NewStore(pool)}
 	conn := postgrestest.Connect(t, db.dsn)
-	return &provisionDB{testDB: db, conn: conn, f: labexecutiontest.New(t, conn), svc: labexecution.NewService(db.store)}
+	return &provisionDB{testDB: db, conn: conn, holder: postgrestest.Connect(t, db.dsn), f: labexecutiontest.New(t, conn), svc: labexecution.NewService(db.store)}
 }
 
 func (p *provisionDB) user(t *testing.T, id uuid.UUID) repository.User {
@@ -68,7 +88,7 @@ func (p *provisionDB) waitForLockWaiters(t *testing.T, n int) {
 	deadline := time.Now().Add(10 * time.Second)
 	for {
 		var waiting int
-		if err := p.pool.QueryRow(t.Context(), `SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'`).Scan(&waiting); err != nil {
+		if err := p.conn.QueryRow(t.Context(), `SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'`).Scan(&waiting); err != nil {
 			t.Fatal(err)
 		}
 		if waiting >= n {
@@ -85,7 +105,7 @@ func (p *provisionDB) waitForLockWaiters(t *testing.T, n int) {
 // 이미 replay 사전 확인을 통과한 Provision 요청을 모두 같은 지점(LabSpecForShare)에 세운 뒤 한꺼번에 경쟁시키는 데 쓴다.
 func (p *provisionDB) holdLabSpec(t *testing.T) (release func()) {
 	t.Helper()
-	tx, err := p.pool.Begin(t.Context())
+	tx, err := p.holder.Begin(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -421,7 +441,7 @@ func TestProvisionWaitsForConcurrentLabSpecUpdateAndUsesOneRevision(t *testing.T
 	deadline := time.Now().Add(10 * time.Second)
 	for {
 		var locked bool
-		if err := p.pool.QueryRow(t.Context(), `SELECT EXISTS (SELECT 1 FROM pg_locks l JOIN pg_class c ON c.oid = l.relation WHERE c.relname = 'lab_specs' AND l.mode = 'RowShareLock' AND l.granted)`).Scan(&locked); err != nil {
+		if err := p.conn.QueryRow(t.Context(), `SELECT EXISTS (SELECT 1 FROM pg_locks l JOIN pg_class c ON c.oid = l.relation WHERE c.relname = 'lab_specs' AND l.mode = 'RowShareLock' AND l.granted)`).Scan(&locked); err != nil {
 			t.Fatal(err)
 		}
 		if locked {
@@ -471,7 +491,7 @@ func TestProvisionWaitsForConcurrentLabSpecUpdateAndUsesOneRevision(t *testing.T
 func TestProvisionWaitsForConcurrentMappingChange(t *testing.T) {
 	p := newProvisionDB(t)
 	instructor := p.user(t, p.f.InstructorID)
-	tx, err := p.pool.Begin(t.Context())
+	tx, err := p.holder.Begin(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}

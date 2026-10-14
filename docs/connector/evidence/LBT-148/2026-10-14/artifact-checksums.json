@@ -2,14 +2,14 @@
   ".gitattributes": "e58a0d15c993423c38b5b52267db9acebbdf39cbb0aae246852b6fb18612e421",
   "check_pre_fix.py": "94398c93a7cacf5d194972de45947083b0ddf0b47109f7bde8981a695f0a5ac5",
   "independent-review.md": "be6766f25f5f1ef6422c5dc1093c054baf657f4261cfe46844e1867fc0daf9e4",
-  "pre-merge-audit.md": "c52faaa54a0a82f602132272afe197f6ebbf036983da640c4798963d88e6594a",
+  "pre-merge-audit.md": "af4e8553711d317e2ec7a977c9d86386c539f71a3980fc6b488713066c6cefbe",
   "README.md": "5d212668fbd43e404819c68bfe63bbc53791281628a43b0184b7fa7c02502ff1",
   "reproduce.ps1": "5fd84a237e4c0200ce28e761f935dd493d6caeecb22a249503b97c2f9b40fa12",
   "residual_harness.go.txt": "20a1c156296443e9de7a91712b2e421ed43763a1bc639a11c3560440fc0ebc86",
-  "secret-scan.json": "d55886c660d76ea8dfd27e2ba7b3e0ea2c04184c3bd09817d57fdfb239481172",
-  "source-manifest.json": "8915eadacc06686c3ce4506f90242f8467b63b682f20e763abc447920c4a6090",
+  "secret-scan.json": "cd7dda9b2477668c30aaa859ba35756a0defb2d9d01fe018b77adc5a2b34964e",
+  "source-manifest.json": "72473ab7dffb2e4ab691996e35bf606497cb7e6b4acfdc380a6a2506f9688ce9",
   "validate.py": "ef8696db4588b68089fc7c2534e998097c92d1f0df9ae94f8897516eb64915bb",
-  "validation-logs.zip": "87f029dc9adde0109f672853cfbd14c161635690693494373ca7bcf1a9ce0662",
+  "validation-logs.zip": "b17c09c303b2464616e860480f6706387290a104145eb1b88ba10643253fd58b",
   "validation-summary.json": "f0ccee106ba2903fd2c18524b51f9d8d090a146954467902416ecac22e9cffc4",
   "verify_runner_env.py": "ba8d1331fa8a27f1d3843af065570349d55ed53af8ccefeda6172f22e70d1c97"
 }

@@ -10,6 +10,8 @@ Attach reply와 모든 frame의 request/Lab/generation/operation을 검증한 �
 
 Control 연결별 취소 context를 사용한다. 단절·교체·revoke·shutdown 시 해당 연결의 File 요청을 정리하며, 늦은 이전 reader가 새 Control의 File 요청을 취소하지 않는다. File close/timeout/peer 종료는 SFTP channel과 해당 Data WSS만 끝낸다. 공유 SSH의 다른 PTY는 유지한다. Control EOF에서 Terminal grace 동작은 기존 계약을 따른다.
 
+취소된 SFTP exec는 채널 CLOSE 전에 해당 helper에 KILL을 보내 지연된 stdout reader도 정리한다. exec ACK 경합에서는 기존 Manager의 유한한 setup timeout까지 해당 worker가 소유권을 유지하며 호출자는 요청 취소 즉시 반환한다. 원격 SSH가 패킷을 읽지 않는 blackhole에서는 worker/slot/path lock이 transport retirement까지 남을 수 있다. 이를 서비스당 16개로 제한하며 공유 PTY 보존을 위해 전체 SSH 연결을 임의로 끊지 않는다.
+
 중복 `fileRequestId`는 새 Data WSS를 만들지 않는다. 활성 요청은 상관관계를 확인하고, 완료·실패·취소된 ID는 프로세스 수명 동안 hash로 기억한다. 기본 16,384개의 서로 다른 ID가 기억되면 이후 새 요청은 `UNAVAILABLE`로 거절한다. 기억한 ID를 제거해 Save를 재실행하는 동작은 없다. 운영 시 이 유한한 수명 제한을 고려해야 한다. 프로세스 재시작 후에는 이 ephemeral 기억을 복구하지 않으며 SaaS는 결과 불명 Save를 같은 ID로 재전송하지 않는다. 결과 불명 Save는 새 Read로 파일 상태를 확인한다.
 
 계약은 [Connector SSOT](../../contracts/connector/README.md#7a-workspace-file-요청tree-read-save), 실행·Mock·실환경 범위와 재현은 [LBT-150 Evidence](evidence/LBT-150/2026-10-14/AUDIT.md)에 기록한다. 이 검증은 Browser/실제 SaaS DB 전체 E2E 또는 KT Cloud 유료 환경 검증을 포함하지 않는다.

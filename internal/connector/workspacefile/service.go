@@ -353,7 +353,11 @@ func (s *Service) run(parent context.Context, target vmaccess.Target, p string, 
 		defer session.Close()
 		var stdin io.WriteCloser
 		var stdout io.Reader
-		if err = session.Setup(ctx, func(raw *ssh.Session) error {
+		// Retain ownership of a just-started exec until its ACK arrives. Caller
+		// cancellation still returns immediately, while Manager's finite setup
+		// budget bounds this worker. Closing during the ACK race would prevent
+		// the request-specific signal below from stopping the remote helper.
+		if err = session.Setup(context.WithoutCancel(ctx), func(raw *ssh.Session) error {
 			var err error
 			stdin, err = raw.StdinPipe()
 			if err != nil {

@@ -30,6 +30,12 @@ export function ProvisionPage() {
   const [validationError, setValidationError] = useState<string | null>(null)
   const [confirmation, setConfirmation] = useState<ProvisionConfirmation | null>(null)
 
+  const meQuery = useQuery({
+    queryKey: labbitQueryKeys.me,
+    queryFn: () => api.getMe(),
+    retry: false,
+  })
+
   const classQuery = useQuery({
     queryKey: labbitQueryKeys.classDetail(resolvedClassId),
     queryFn: () => api.getClass(resolvedClassId),
@@ -88,7 +94,7 @@ export function ProvisionPage() {
     )
   }
 
-  if (classQuery.isPending) {
+  if (classQuery.isPending || meQuery.isPending) {
     return (
       <main className="app-page">
         <LoadingState label="Class 권한을 확인하는 중..." />
@@ -97,6 +103,7 @@ export function ProvisionPage() {
   }
 
   if (
+    (meQuery.error instanceof HttpError && meQuery.error.status === 401) ||
     (classQuery.error instanceof HttpError && classQuery.error.status === 401) ||
     (provisionMutation.error instanceof HttpError &&
       provisionMutation.error.status === 401)
@@ -126,7 +133,7 @@ export function ProvisionPage() {
     )
   }
 
-  if (classQuery.error || !classQuery.data) {
+  if (classQuery.error || !classQuery.data || meQuery.error || !meQuery.data) {
     return (
       <main className="app-page">
         <ErrorState message="Class 정보를 불러오지 못했습니다." />
@@ -202,7 +209,11 @@ export function ProvisionPage() {
   const students = membershipsQuery.data.items.filter(
     (membership) => membership.role === 'STUDENT',
   )
-  const selectedLabSpec = labSpecsQuery.data.items.find(
+  // Backend lists owner-only LabSpecs. Also guard against an unexpected 200 mixed-owner response.
+  const ownedLabSpecs = labSpecsQuery.data.items.filter(
+    (labSpec) => labSpec.ownerUserId === meQuery.data.id,
+  )
+  const selectedLabSpec = ownedLabSpecs.find(
     (labSpec) => labSpec.id === labSpecId,
   )
   const selectedStudents = students.filter((student) =>
@@ -214,7 +225,7 @@ export function ProvisionPage() {
     setValidationError(null)
     provisionMutation.reset()
 
-    if (!labSpecId) {
+    if (!labSpecId || !ownedLabSpecs.some((labSpec) => labSpec.id === labSpecId)) {
       setValidationError('Provision에 사용할 LabSpec을 선택해 주세요.')
       return
     }
@@ -276,20 +287,30 @@ export function ProvisionPage() {
                 실습 정의 관리
               </Link>
             </div>
-            <label className="field">
-              <span>LabSpec</span>
-              <select
-                value={labSpecId}
-                onChange={(event) => setLabSpecId(event.target.value)}
-              >
-                <option value="">선택해 주세요</option>
-                {labSpecsQuery.data.items.map((labSpec) => (
-                  <option key={labSpec.id} value={labSpec.id}>
-                    {labSpec.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {ownedLabSpecs.length === 0 ? (
+              <div className="empty-state compact-empty">
+                <h3>선택할 수 있는 LabSpec이 없습니다.</h3>
+                <p>실습 정의를 먼저 작성하고 저장하면 여기에서 선택할 수 있습니다.</p>
+                <Link className="secondary-link" to="/lab-specs/new">
+                  새 실습 정의 작성하기
+                </Link>
+              </div>
+            ) : (
+              <label className="field">
+                <span>LabSpec</span>
+                <select
+                  value={labSpecId}
+                  onChange={(event) => setLabSpecId(event.target.value)}
+                >
+                  <option value="">선택해 주세요</option>
+                  {ownedLabSpecs.map((labSpec) => (
+                    <option key={labSpec.id} value={labSpec.id}>
+                      {labSpec.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </section>
 
           <section className="form-section">
@@ -342,7 +363,11 @@ export function ProvisionPage() {
             <Link className="secondary-link" to={`/classes/${encodeURIComponent(resolvedClassId)}`}>
               취소
             </Link>
-            <button className="primary-button" type="submit">
+            <button
+              className="primary-button"
+              type="submit"
+              disabled={ownedLabSpecs.length === 0}
+            >
               생성 내용 확인
             </button>
           </div>

@@ -604,10 +604,10 @@ async function main() {
       },
       {
         path: '/lab-specs/lab-spec-linux-networking',
-        selector: 'form.labspec-form',
-        text: '다른 강사가 소유한 실습 정의입니다.',
-        label: '실습 정의 읽기 전용',
-        file: '14-lab-spec-readonly.png',
+        selector: '.state-card-error',
+        text: '이 LabSpec을 볼 권한이 없습니다.',
+        label: '실습 정의 접근 거부',
+        file: '14-lab-spec-forbidden.png',
       },
       {
         path: '/not-found',

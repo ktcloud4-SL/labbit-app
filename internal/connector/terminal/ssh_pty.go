@@ -228,18 +228,33 @@ func NewManagedSSHPTY(ctx context.Context, manager *vmaccess.Manager, target vma
 		return nil, err
 	}
 	var pty *SSHPTY
+	var setupMu sync.Mutex
+	abandoned := false
 	err = channel.Setup(ctx, func(session *ssh.Session) error {
-		var setupErr error
-		pty, setupErr = newSSHSessionPTY(session, nil, channel.Close, cols, rows)
+		created, setupErr := newSSHSessionPTY(session, nil, channel.Close, cols, rows)
+		setupMu.Lock()
+		orphaned := abandoned
+		if !orphaned {
+			pty = created
+		}
+		setupMu.Unlock()
+		if orphaned && created != nil {
+			_ = created.Close()
+		}
 		return setupErr
 	})
+	setupMu.Lock()
+	abandoned = err != nil
+	result := pty
+	pty = nil
+	setupMu.Unlock()
 	if err != nil {
-		if pty != nil {
-			_ = pty.Close()
+		if result != nil {
+			_ = result.Close()
 		}
 		return nil, err
 	}
-	return pty, nil
+	return result, nil
 }
 
 // DialSSHPTY는 지정된 주소로 SSH를 연결하고 새 SSHPTY를 반환합니다.

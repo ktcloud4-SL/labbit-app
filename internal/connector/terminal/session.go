@@ -309,6 +309,24 @@ func (s *Session) GetDataConn() *websocket.Conn {
 	return s.DataConn
 }
 
+func (s *Session) isCurrentDataConn(conn *websocket.Conn, owner *DataWSSClient) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.Status == StatusActive && s.DataConn == conn && s.dataClient == owner
+}
+
+// A frame admitted by an old reader must not end a replacement attachment.
+func (s *Session) closeDataConn(conn *websocket.Conn, owner *DataWSSClient, reason string, exitCode *int, err error) {
+	s.mu.Lock()
+	if s.Status != StatusActive || s.DataConn != conn || s.dataClient != owner {
+		s.mu.Unlock()
+		return
+	}
+	s.Status = StatusClosed
+	s.mu.Unlock()
+	s.Close(reason, exitCode, err)
+}
+
 // claimDataClient leaves exactly one reconnect owner for this TerminalSession.
 func (s *Session) claimDataClient(client *DataWSSClient) error {
 	s.mu.Lock()

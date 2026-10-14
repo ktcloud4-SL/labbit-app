@@ -491,82 +491,92 @@ func (c *DataWSSClient) pumpFromWebSocketToPTY() {
 			return
 		}
 
-		switch msgType {
-		case websocket.BinaryMessage:
-			// 실제 터미널 stdin 데이터 -> PTY 로 쓰기
-			if writeErr := c.session.WriteInput(payload); writeErr != nil {
-				c.session.Close(protocol.TerminalReasonSSHDisconnected, nil, writeErr)
-				return
+		if !c.handleDataFrame(conn, msgType, payload) {
+			return
+		}
+	}
+}
+
+func (c *DataWSSClient) handleDataFrame(conn *websocket.Conn, msgType int, payload []byte) bool {
+	if c.ctx.Err() != nil || !c.session.isCurrentDataConn(conn, c) {
+		return false
+	}
+	switch msgType {
+	case websocket.BinaryMessage:
+		// 실제 터미널 stdin 데이터 -> PTY 로 쓰기
+		if writeErr := c.session.WriteInput(payload); writeErr != nil {
+			c.session.closeDataConn(conn, c, protocol.TerminalReasonSSHDisconnected, nil, writeErr)
+			return false
+		}
+
+	case websocket.TextMessage:
+		// JSON 제어 프레임 (RESIZE, CLOSE, ERROR 등)
+		var baseEnv protocol.BaseEnvelope
+		if jsonErr := json.Unmarshal(payload, &baseEnv); jsonErr != nil {
+			c.sendError(protocol.TerminalErrProtocolError, "malformed JSON frame", false)
+			return true
+		}
+
+		// BaseEnvelope 필수 필드 검증 (Reviewer 5번 지적 사항)
+		if err := validateBaseEnvelope(baseEnv); err != nil {
+			c.sendError(protocol.TerminalErrProtocolError, fmt.Sprintf("invalid base envelope: %v", err), false)
+			return true
+		}
+
+		// Correlation 검증 (Reviewer 6번 지적 사항)
+		if baseEnv.TerminalSessionID != c.session.SessionID ||
+			baseEnv.LabInstanceID != c.session.LabInstanceID ||
+			baseEnv.Generation != c.session.Generation {
+			c.sendError(protocol.TerminalErrProtocolError, "mismatched session or generation correlation in control frame", false)
+			return true
+		}
+
+		switch baseEnv.Type {
+		case protocol.MessageTypeTerminalDataResize:
+			var resizeMsg protocol.TerminalDataResizeMessage
+			if err := json.Unmarshal(payload, &resizeMsg); err != nil {
+				c.sendError(protocol.TerminalErrProtocolError, "malformed RESIZE frame payload", false)
+				return true
+			}
+			if resizeMsg.Payload.Cols <= 0 || resizeMsg.Payload.Rows <= 0 {
+				c.sendError(protocol.TerminalErrProtocolError, "invalid resize dimensions: cols and rows must be > 0", false)
+				return true
+			}
+			if err := c.session.Resize(resizeMsg.Payload.Cols, resizeMsg.Payload.Rows); err != nil {
+				c.session.closeDataConn(conn, c, protocol.TerminalReasonSSHDisconnected, nil, err)
+				return false
 			}
 
-		case websocket.TextMessage:
-			// JSON 제어 프레임 (RESIZE, CLOSE, ERROR 등)
-			var baseEnv protocol.BaseEnvelope
-			if jsonErr := json.Unmarshal(payload, &baseEnv); jsonErr != nil {
-				c.sendError(protocol.TerminalErrProtocolError, "malformed JSON frame", false)
-				continue
+		case protocol.MessageTypeTerminalDataClose:
+			var closeMsg protocol.TerminalDataCloseMessage
+			if err := json.Unmarshal(payload, &closeMsg); err != nil {
+				c.sendError(protocol.TerminalErrProtocolError, "malformed CLOSE frame payload", false)
+				return true
 			}
-
-			// BaseEnvelope 필수 필드 검증 (Reviewer 5번 지적 사항)
-			if err := validateBaseEnvelope(baseEnv); err != nil {
-				c.sendError(protocol.TerminalErrProtocolError, fmt.Sprintf("invalid base envelope: %v", err), false)
-				continue
+			if strings.TrimSpace(closeMsg.Payload.Reason) == "" {
+				c.sendError(protocol.TerminalErrProtocolError, "close reason cannot be empty", false)
+				return true
 			}
+			c.session.closeDataConn(conn, c, closeMsg.Payload.Reason, nil, nil)
+			return false
 
-			// Correlation 검증 (Reviewer 6번 지적 사항)
-			if baseEnv.TerminalSessionID != c.session.SessionID ||
-				baseEnv.LabInstanceID != c.session.LabInstanceID ||
-				baseEnv.Generation != c.session.Generation {
-				c.sendError(protocol.TerminalErrProtocolError, "mismatched session or generation correlation in control frame", false)
-				continue
+		case protocol.MessageTypeError:
+			var errMsg protocol.TerminalDataErrorMessage
+			if err := json.Unmarshal(payload, &errMsg); err != nil {
+				c.sendError(protocol.TerminalErrProtocolError, "malformed ERROR frame payload", false)
+				return true
 			}
-
-			switch baseEnv.Type {
-			case protocol.MessageTypeTerminalDataResize:
-				var resizeMsg protocol.TerminalDataResizeMessage
-				if err := json.Unmarshal(payload, &resizeMsg); err != nil {
-					c.sendError(protocol.TerminalErrProtocolError, "malformed RESIZE frame payload", false)
-					continue
-				}
-				if resizeMsg.Payload.Cols <= 0 || resizeMsg.Payload.Rows <= 0 {
-					c.sendError(protocol.TerminalErrProtocolError, "invalid resize dimensions: cols and rows must be > 0", false)
-					continue
-				}
-				if err := c.session.Resize(resizeMsg.Payload.Cols, resizeMsg.Payload.Rows); err != nil {
-					c.session.Close(protocol.TerminalReasonSSHDisconnected, nil, err)
-					return
-				}
-
-			case protocol.MessageTypeTerminalDataClose:
-				var closeMsg protocol.TerminalDataCloseMessage
-				if err := json.Unmarshal(payload, &closeMsg); err != nil {
-					c.sendError(protocol.TerminalErrProtocolError, "malformed CLOSE frame payload", false)
-					continue
-				}
-				if strings.TrimSpace(closeMsg.Payload.Reason) == "" {
-					c.sendError(protocol.TerminalErrProtocolError, "close reason cannot be empty", false)
-					continue
-				}
-				c.session.Close(closeMsg.Payload.Reason, nil, nil)
-				return
-
-			case protocol.MessageTypeError:
-				var errMsg protocol.TerminalDataErrorMessage
-				if err := json.Unmarshal(payload, &errMsg); err != nil {
-					c.sendError(protocol.TerminalErrProtocolError, "malformed ERROR frame payload", false)
-					continue
-				}
-				if strings.TrimSpace(errMsg.Payload.Code) == "" {
-					c.sendError(protocol.TerminalErrProtocolError, "error code cannot be empty", false)
-					continue
-				}
-				if errMsg.Payload.Fatal {
-					c.session.Close(errMsg.Payload.Code, nil, errors.New(errMsg.Payload.Message))
-					return
-				}
+			if strings.TrimSpace(errMsg.Payload.Code) == "" {
+				c.sendError(protocol.TerminalErrProtocolError, "error code cannot be empty", false)
+				return true
+			}
+			if errMsg.Payload.Fatal {
+				c.session.closeDataConn(conn, c, errMsg.Payload.Code, nil, errors.New(errMsg.Payload.Message))
+				return false
 			}
 		}
 	}
+	return true
 }
 
 func (c *DataWSSClient) sendError(code, message string, fatal bool) {

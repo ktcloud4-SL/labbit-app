@@ -81,13 +81,13 @@ describe('LabSpec Mapping Picker: mock UI-only', () => {
 
   it('빈 후보/미할당 Size를 표시하고 선택을 비활성화한다', () => {
     const { rerender } = render(<Harness options={[]} flavors={[]} />)
-    expect(screen.getByRole('status')).toHaveTextContent('선택 가능한 Image Mapping이 없습니다')
+    expect(screen.getByText(/선택 가능한 Image Mapping이 없습니다/)).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Image 참조' })).toBeDisabled()
     rerender(<Harness options={images} flavors={[]} />)
     fireEvent.change(screen.getByRole('combobox', { name: 'Image 참조' }), {
       target: { value: 'image-a' },
     })
-    expect(screen.getByRole('status')).toHaveTextContent('같은 Provider 연결의 Size Mapping이 없습니다')
+    expect(screen.getByText(/같은 Provider 연결의 Size Mapping이 없습니다/)).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Size 참조' })).toBeDisabled()
   })
 

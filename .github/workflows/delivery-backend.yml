@@ -86,26 +86,45 @@ jobs:
           SHORT_TAG="sha-$(echo ${{ github.sha }} | cut -c1-7)"
           git clone https://x-access-token:${{ secrets.GITOPS_PAT }}@github.com/ktcloud4-SL/labbit-gitops.git /tmp/labbit-gitops
           cd /tmp/labbit-gitops
-          TARGET_FILE="environments/local/apps/backend-values.yaml"
+          TARGET_FILES=(
+            "environments/local/apps/backend-values.yaml"
+            "environments/aws-seoul/apps/backend-values.yaml"
+          )
 
-          if command -v yq >/dev/null 2>&1; then
-            yq -i ".image.tag = \"${SHORT_TAG}\"" "$TARGET_FILE"
-          else
-            sed -i -E "s|([[:space:]]*tag:[[:space:]]*).*|\1\"${SHORT_TAG}\"|g" "$TARGET_FILE"
-          fi
+          for file in "${TARGET_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              if command -v yq >/dev/null 2>&1; then
+                yq -i ".image.tag = \"${SHORT_TAG}\"" "$file"
+              else
+                sed -i -E "s|([[:space:]]*tag:[[:space:]]*).*|\1\"${SHORT_TAG}\"|g" "$file"
+              fi
 
-          if ! grep -q "tag: \"${SHORT_TAG}\"" "$TARGET_FILE"; then
-            echo "::error::Failed to update image tag in $TARGET_FILE to $SHORT_TAG"
-            exit 1
+              if ! grep -q "tag: \"${SHORT_TAG}\"" "$file"; then
+                echo "::error::Failed to update image tag in $file to $SHORT_TAG"
+                exit 1
+              fi
+              git add "$file"
+              echo "Updated backend tag in $file to $SHORT_TAG"
+            else
+              echo "File $file not found, skipping"
+            fi
+          done
+
+          MIGRATE_JOB="environments/aws-seoul/apps/migration-job.yaml"
+          if [ -f "$MIGRATE_JOB" ]; then
+            sed -i -E "s|(image:[[:space:]]*ghcr\.io/ktcloud4-sl/backend:).*|\1${SHORT_TAG}|g" "$MIGRATE_JOB"
+            if grep -q "${SHORT_TAG}" "$MIGRATE_JOB"; then
+              git add "$MIGRATE_JOB"
+              echo "Updated migration-job image tag to $SHORT_TAG"
+            fi
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          if git diff --quiet; then
+          if git diff --cached --quiet; then
             echo "No changes to commit (tag already up-to-date)"
           else
-            git add "$TARGET_FILE"
             git commit -m "chore(backend): [LBT-32] backend 이미지 태그 자동 업데이트 (${SHORT_TAG})"
 
             max_retries=5

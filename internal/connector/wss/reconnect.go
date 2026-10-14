@@ -251,10 +251,13 @@ func (s *Supervisor) runSession(ctx context.Context, client *Client) (bool, erro
 		if conn == nil {
 			return true, fmt.Errorf("connector wss: client connection is nil after handshake")
 		}
+		s.handler.mu.RLock()
+		fileEpoch := s.handler.fileOwnerEpoch
+		s.handler.mu.RUnlock()
 		go func() {
 			// 이미 수락한 작업은 transport session 취소와 분리하되
 			// Supervisor 종료에는 종속시킨다. 수신은 이전 session에서 즉시 중단한다.
-			readErrCh <- s.handler.listenWithOperationContext(sessionCtx, ctx, conn)
+			readErrCh <- s.handler.listenWithOperationContext(sessionCtx, ctx, conn, fileEpoch)
 		}()
 	}
 

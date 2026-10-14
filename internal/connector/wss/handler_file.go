@@ -14,12 +14,16 @@ func (h *Handler) SetFileManager(manager *filetransport.Manager, credential stri
 	defer h.mu.Unlock()
 	h.fileMgr, h.fileCredential = manager, credential
 }
-func (h *Handler) handleFileOpen(ctx context.Context, raw []byte) error {
+func (h *Handler) handleFileOpen(ctx context.Context, raw []byte, epoch uint64) error {
 	open, valid := filetransport.ParseOpen(raw)
 	if !valid {
 		return errors.New("invalid File control message")
 	}
 	h.mu.RLock()
+	if epoch != h.fileOwnerEpoch {
+		h.mu.RUnlock()
+		return nil
+	}
 	manager, sender, credential := h.fileMgr, h.sender, h.fileCredential
 	owner := h.fileOwner
 	if owner == nil {
@@ -66,12 +70,16 @@ func (h *Handler) handleFileOpen(ctx context.Context, raw []byte) error {
 	}
 	return nil
 }
-func (h *Handler) handleFileClose(raw []byte) error {
+func (h *Handler) handleFileClose(raw []byte, epoch uint64) error {
 	close, valid := filetransport.ParseClose(raw)
 	if !valid {
 		return errors.New("invalid File control message")
 	}
 	h.mu.RLock()
+	if epoch != h.fileOwnerEpoch {
+		h.mu.RUnlock()
+		return nil
+	}
 	manager := h.fileMgr
 	h.mu.RUnlock()
 	if manager != nil {

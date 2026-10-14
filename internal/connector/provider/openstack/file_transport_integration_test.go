@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -389,7 +390,26 @@ func fileIntegrationInstall(t *testing.T, ctx context.Context, m *vmaccess.Manag
 		"sudo -n install -d -o ubuntu -g ubuntu -m 0750 /var/lib/labbit-workspaces/workspace && mkdir -p /var/lib/labbit-workspaces/workspace/dir",
 	} {
 		s := realOpenSession(t, ctx, m, vm)
-		err := s.Setup(ctx, func(raw *ssh.Session) error { return raw.Run(command) })
+		var raw *ssh.Session
+		err := s.Setup(ctx, func(session *ssh.Session) error {
+			raw = session
+			raw.Stdout = io.Discard
+			raw.Stderr = io.Discard
+			return raw.Start(command)
+		})
+		// VM fixture installation can take longer than the 10-second SSH
+		// channel setup budget. Wait after setup, with its own finite deadline.
+		if err == nil {
+			installCtx, stop := context.WithTimeout(ctx, time.Minute)
+			finished := make(chan error, 1)
+			go func() { finished <- raw.Wait() }()
+			select {
+			case err = <-finished:
+			case <-installCtx.Done():
+				err = installCtx.Err()
+			}
+			stop()
+		}
 		s.Close()
 		if err != nil {
 			var exit *ssh.ExitError

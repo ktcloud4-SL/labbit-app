@@ -151,6 +151,13 @@ func (h *Handler) OnError() func(err error) {
 
 // HandleMessage 는 수신된 raw JSON 메시지를 Envelope 기준으로 판별하여 적절한 처리기로 분기합니다.
 func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
+	h.mu.RLock()
+	epoch := h.fileOwnerEpoch
+	h.mu.RUnlock()
+	return h.handleMessageWithFileOwner(ctx, raw, epoch)
+}
+
+func (h *Handler) handleMessageWithFileOwner(ctx context.Context, raw []byte, epoch uint64) error {
 	if int64(len(raw)) > protocol.MaxJSONMessageSize {
 		return ErrMessageTooLarge
 	}
@@ -165,9 +172,9 @@ func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
 	if json.Unmarshal(raw, &kind) == nil {
 		switch kind.Type {
 		case protocol.MessageTypeFileOpen:
-			return h.handleFileOpen(ctx, raw)
+			return h.handleFileOpen(ctx, raw, epoch)
 		case protocol.MessageTypeFileClose:
-			return h.handleFileClose(raw)
+			return h.handleFileClose(raw, epoch)
 		}
 	}
 	var env protocol.BaseEnvelope
@@ -938,13 +945,16 @@ func (h *Handler) Listen(ctx context.Context, conn *websocket.Conn) error {
 // listenWithOperationContext separates transport reads from accepted operation
 // execution. Reconnect cancels the old reader, not the already accepted work;
 // application shutdown still cancels both. No mutation or response is replayed.
-func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Context, conn *websocket.Conn) error {
+func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Context, conn *websocket.Conn, ownerEpoch ...uint64) error {
 	if conn == nil {
 		return fmt.Errorf("connector wss: cannot listen on nil websocket connection")
 	}
 	h.mu.RLock()
 	fileEpoch := h.fileOwnerEpoch
 	h.mu.RUnlock()
+	if len(ownerEpoch) > 0 {
+		fileEpoch = ownerEpoch[0]
+	}
 	for {
 		select {
 		case <-readCtx.Done():
@@ -959,7 +969,7 @@ func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Conte
 				return err
 			}
 			// HandleMessage 에러를 무시하지 않고 등록된 onError 콜백으로 전달 (팀장님 리뷰 6번)
-			if handleErr := h.HandleMessage(operationCtx, msg); handleErr != nil {
+			if handleErr := h.handleMessageWithFileOwner(operationCtx, msg, fileEpoch); handleErr != nil {
 				h.mu.RLock()
 				onErr := h.onError
 				h.mu.RUnlock()

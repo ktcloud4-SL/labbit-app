@@ -143,6 +143,7 @@ type Repositories interface {
 	LabSpecRepository
 	ProvisionRepository
 	LabExecutionRepository
+	MutationRepository
 	BootstrapRepository
 	TerminalRepository
 	LiveSessionRepository

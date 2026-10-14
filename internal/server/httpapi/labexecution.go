@@ -7,6 +7,8 @@ import (
 	"mime"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/ktcloud4-SL/labbit-app/internal/server/labexecution"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 )
@@ -16,14 +18,20 @@ const (
 	codeIdempotencyKeyReused     = "idempotency_key_reused"
 	codeInvalidTargetStudents    = "invalid_target_students"
 	codeLabSpecNotProvisionable  = "lab_spec_not_provisionable"
+	codeOperationInProgress      = "operation_in_progress"
+	codeLabExecutionFinished     = "lab_execution_finished"
+	codeInvalidResetTarget       = "invalid_reset_target"
 	operationTargetLabExecution  = "LAB_EXECUTION"
+	operationTargetLabInstance   = "LAB_INSTANCE"
 	maxCreateLabExecutionBytes   = 256 << 10 // 계약 수치가 아니라 과도한 입력을 막는 구현 값이다.
 	maxIdempotencyKeyHeaderBytes = 4 * 255   // UTF-8 255 code point의 byte 상한이다. 길이 판정 자체는 Application이 한다.
 )
 
-// LabExecutions는 handler가 사용하는 Provision 접수와 LabExecution/LabInstance 조회 use case다. *labexecution.Service가 구현한다.
+// LabExecutions는 handler가 사용하는 Provision/Reset/Cleanup 접수와 LabExecution/LabInstance 조회 use case다. *labexecution.Service가 구현한다.
 type LabExecutions interface {
 	Provision(ctx context.Context, user repository.User, in labexecution.ProvisionInput) (labexecution.Accepted, error)
+	Reset(ctx context.Context, user repository.User, in labexecution.ResetInput) (labexecution.MutationAccepted, error)
+	Cleanup(ctx context.Context, user repository.User, in labexecution.CleanupInput) (labexecution.MutationAccepted, error)
 	Execution(ctx context.Context, user repository.User, labExecutionID string) (labexecution.ExecutionView, error)
 	Instance(ctx context.Context, user repository.User, labInstanceID string) (labexecution.InstanceView, error)
 }
@@ -72,9 +80,8 @@ func (a *api) createLabExecution(w http.ResponseWriter, r *http.Request) {
 		a.internalError(w, r, "create_lab_execution", errors.New("인증 context 또는 LabExecution use case가 없습니다"))
 		return
 	}
-	keys := r.Header.Values("Idempotency-Key")
-	if len(keys) != 1 || keys[0] == "" || len(keys[0]) > maxIdempotencyKeyHeaderBytes {
-		writeProblem(w, r, http.StatusBadRequest, codeInvalidRequest, "Idempotency-Key가 필요하거나 올바르지 않습니다.")
+	key, ok := idempotencyKey(w, r)
+	if !ok {
 		return
 	}
 	req, ok := decodeCreateLabExecution(w, r)
@@ -84,17 +91,77 @@ func (a *api) createLabExecution(w http.ResponseWriter, r *http.Request) {
 	}
 	accepted, err := a.labExecutions.Provision(r.Context(), principal.User, labexecution.ProvisionInput{
 		ClassID: r.PathValue("classId"), LabSpecID: *req.LabSpecID, TargetStudentIDs: req.TargetStudentIDs,
-		IdempotencyKey: keys[0], RequestID: requestIDFrom(r.Context()),
+		IdempotencyKey: key, RequestID: requestIDFrom(r.Context()),
 	})
 	if err != nil {
 		a.labExecutionError(w, r, "create_lab_execution", err)
 		return
 	}
-	body := operationAcceptedResponse{
-		OperationID: accepted.OperationID.String(),
-		Target:      operationTargetResponse{Type: operationTargetLabExecution, ID: accepted.LabExecutionID.String()},
+	writeOperationAccepted(w, accepted.OperationID, operationTargetLabExecution, accepted.LabExecutionID, accepted.Replayed)
+}
+
+// resetLabInstance는 학생 LabInstance Reset을 durable하게 접수한다. 계약에 request body가 없으므로 body는 읽지 않는다.
+// 새 접수는 202 + Location, 같은 의미의 replay는 200이며 Provider 작업을 기다리지 않는다.
+func (a *api) resetLabInstance(w http.ResponseWriter, r *http.Request) {
+	principal, ok := PrincipalFrom(r.Context())
+	if !ok || a.labExecutions == nil {
+		a.internalError(w, r, "reset_lab_instance", errors.New("인증 context 또는 LabExecution use case가 없습니다"))
+		return
 	}
-	if accepted.Replayed {
+	key, ok := idempotencyKey(w, r)
+	if !ok {
+		return
+	}
+	accepted, err := a.labExecutions.Reset(r.Context(), principal.User, labexecution.ResetInput{
+		LabInstanceID: r.PathValue("labInstanceId"), IdempotencyKey: key, RequestID: requestIDFrom(r.Context()),
+	})
+	if err != nil {
+		a.labExecutionError(w, r, "reset_lab_instance", err)
+		return
+	}
+	writeOperationAccepted(w, accepted.OperationID, operationTargetLabInstance, accepted.TargetID, accepted.Replayed)
+}
+
+// cleanupLabExecution은 LabExecution Cleanup을 durable하게 접수한다. 계약에 request body가 없으므로 body는 읽지 않는다.
+// 새 접수는 202 + Location, 같은 의미의 replay는 200이며 Provider 작업을 기다리지 않는다.
+func (a *api) cleanupLabExecution(w http.ResponseWriter, r *http.Request) {
+	principal, ok := PrincipalFrom(r.Context())
+	if !ok || a.labExecutions == nil {
+		a.internalError(w, r, "cleanup_lab_execution", errors.New("인증 context 또는 LabExecution use case가 없습니다"))
+		return
+	}
+	key, ok := idempotencyKey(w, r)
+	if !ok {
+		return
+	}
+	accepted, err := a.labExecutions.Cleanup(r.Context(), principal.User, labexecution.CleanupInput{
+		LabExecutionID: r.PathValue("labExecutionId"), IdempotencyKey: key, RequestID: requestIDFrom(r.Context()),
+	})
+	if err != nil {
+		a.labExecutionError(w, r, "cleanup_lab_execution", err)
+		return
+	}
+	writeOperationAccepted(w, accepted.OperationID, operationTargetLabExecution, accepted.TargetID, accepted.Replayed)
+}
+
+// idempotencyKey는 Idempotency-Key header가 정확히 하나이고 비어 있지 않은지 확인한다. 아니면 400을 쓰고 false다.
+// 길이(UTF-8 code point 1~255) 판정은 Application이 한다.
+func idempotencyKey(w http.ResponseWriter, r *http.Request) (string, bool) {
+	keys := r.Header.Values("Idempotency-Key")
+	if len(keys) != 1 || keys[0] == "" || len(keys[0]) > maxIdempotencyKeyHeaderBytes {
+		writeProblem(w, r, http.StatusBadRequest, codeInvalidRequest, "Idempotency-Key가 필요하거나 올바르지 않습니다.")
+		return "", false
+	}
+	return keys[0], true
+}
+
+// writeOperationAccepted는 OpenAPI OperationAccepted를 쓴다. 새 접수는 202 + Location, replay는 Location 없이 200이다.
+func writeOperationAccepted(w http.ResponseWriter, operationID uuid.UUID, targetType string, targetID uuid.UUID, replayed bool) {
+	body := operationAcceptedResponse{
+		OperationID: operationID.String(),
+		Target:      operationTargetResponse{Type: targetType, ID: targetID.String()},
+	}
+	if replayed {
 		writeJSON(w, http.StatusOK, body)
 		return
 	}
@@ -160,6 +227,12 @@ func (a *api) labExecutionError(w http.ResponseWriter, r *http.Request, op strin
 		writeProblem(w, r, http.StatusConflict, codeIdempotencyKeyReused, "같은 Idempotency-Key가 다른 요청에 이미 사용되었습니다.")
 	case errors.Is(err, labexecution.ErrInvalidTargets):
 		writeProblem(w, r, http.StatusUnprocessableEntity, codeInvalidTargetStudents, "대상 학생은 이 Class의 STUDENT 참여자여야 합니다.")
+	case errors.Is(err, labexecution.ErrMutationInProgress):
+		writeProblem(w, r, http.StatusConflict, codeOperationInProgress, "대상 실습 환경에 진행 중인 변경 작업이 있습니다. 작업이 끝난 뒤 다시 요청해 주세요.")
+	case errors.Is(err, labexecution.ErrExecutionFinished):
+		writeProblem(w, r, http.StatusConflict, codeLabExecutionFinished, "이미 종료된 실습 실행입니다.")
+	case errors.Is(err, labexecution.ErrInvalidResetTarget):
+		writeProblem(w, r, http.StatusUnprocessableEntity, codeInvalidResetTarget, "Reset은 학생 실습 환경에만 요청할 수 있습니다.")
 	case errors.Is(err, labexecution.ErrLabSpecNotProvisionable):
 		writeProblem(w, r, http.StatusUnprocessableEntity, codeLabSpecNotProvisionable, "LabSpec의 Image/Size를 현재 사용할 수 있는 Provider 값으로 확정할 수 없습니다.")
 	default:

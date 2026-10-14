@@ -1003,6 +1003,41 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByRole('button', { name: '실습 정의 저장' })).toBeInTheDocument()
   })
 
+  it.each([
+    { status: 403, reason: 'Mapping 후보를 조회할 강사 권한이 없습니다.' },
+    { status: 500, reason: 'Image/Size Mapping 후보를 불러오지 못했습니다.' },
+  ])('소유한 기존 LabSpec GET 200 + Mapping GET $status여도 읽기는 유지하고 저장을 차단한다', async ({ status, reason }) => {
+    const getLabSpec = vi.fn(async () => ({
+      labSpec: labSpecFixture,
+      etag: '"lab-spec-v1"',
+    }))
+    const updateLabSpec = vi.fn(async () => ({
+      labSpec: labSpecFixture,
+      etag: '"lab-spec-v2"',
+    }))
+    renderRoute('/lab-specs/lab-spec-kubernetes-basic', createApi({
+      getLabSpec,
+      listLabSpecMappingOptions: async () => { throw new HttpError(status) },
+      updateLabSpec,
+    }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Kubernetes Basic Lab' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText((text) => text.includes(reason))).toBeInTheDocument()
+    expect(screen.getByLabelText('이름')).toHaveValue(labSpecFixture.name)
+    expect(screen.getByLabelText('이름')).toBeDisabled()
+    expect(screen.getByLabelText('Role')).toHaveValue('control')
+    expect(screen.getByLabelText('Role')).toBeDisabled()
+    expect(screen.getByLabelText('Image 참조')).toHaveValue(labSpecFixture.vms[0].imageRef)
+    expect(screen.getByLabelText('Image 참조')).toBeDisabled()
+    expect(screen.getByLabelText('Size 참조')).toHaveValue(labSpecFixture.vms[0].sizeRef)
+    expect(screen.getByLabelText('Size 참조')).toBeDisabled()
+    expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
+    expect(getLabSpec).toHaveBeenCalledTimes(1)
+    expect(updateLabSpec).not.toHaveBeenCalled()
+  })
+
   it('LabSpec stale update 412를 덮어쓰지 않고 안내한다', async () => {
     const updateLabSpec = vi.fn(async () => {
       throw new HttpError(412)

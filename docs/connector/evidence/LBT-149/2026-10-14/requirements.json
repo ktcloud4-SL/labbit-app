@@ -1,0 +1,33 @@
+{
+  "recordedAt": {
+    "current_time": "2026-10-14 04:09:04 UTC"
+  },
+  "jira": {
+    "key": "LBT-149",
+    "url": "https://samsunglions.atlassian.net/browse/LBT-149",
+    "updated": "2026-10-14T12:20:40.288+0900",
+    "summary": "[OP-02] SFTP 및 Workspace 파일 접근 구현",
+    "status": "진행 중",
+    "comments": 0,
+    "description": "목표\n\nWorkspace VM의 파일시스템을 원본으로 사용하는 SFTP 기반 Tree/Read/Save 기능과 Workspace 접근 경계를 구현한다.\n\n진행 위치\n\n* OP-02 하위 태스크 4/6.\n* 2번의 VM 접속 대상 검증 및 SSH 연결 관리가 준비되면 진행할 수 있다.\n* SFTP는 CC-02 Terminal transport와 별개인 File 기능이다. 공유하는 SSH 연결 관리가 변경되면 PTY 회귀를 확인한다.\n* File Control/Data WSS 연결은 후속 5번에서 수행한다.\n\n작업\n\n* 검증한 현재 generation의 Workspace VM에 공용 SSH Connection의 독립 SFTP Channel로 접근한다.\n* VM 안의 Workspace root를 설정하고 Tree/Read/Save를 Git File 계약에 맞게 구현한다.\n* canonical workspace-relative path를 그대로 검증하고 절대 경로, traversal, root 밖 경로 및 symlink를 통한 경계 이탈을 거절한다.\n* Tree는 계약에서 허용한 직계 파일/디렉터리 항목만 반환한다.\n* Read 결과의 본문과 revision 정합성 및 요청 크기 한도를 검증한다.\n* Save는 기존 파일의 revision을 쓰기 직전에 비교하고 충돌, 파일 없음, 권한 오류를 계약에 맞게 처리한다.\n* 요청 취소·timeout·SSH/SFTP 단절 시 해당 작업과 Channel을 정리한다. 공용 SSH 연결의 다른 Channel은 보존한다.\n* 실제 Workspace VM에서 정상 read/write와 경로·크기·revision·권한 실패 케이스를 검증한다.\n\n완료 조건\n\n* 실제 VM에서 Tree/Read/Save가 동작한다.\n* 다른 VM 또는 Workspace root 밖 파일에 접근할 수 없다.\n* Read/revision 및 Save 충돌 처리, 크기 제한, 오류와 취소 정리를 검증한 결과가 있다.\n* 후속 File transport에서 사용할 SFTP 기능 경계가 준비돼 있다.\n\n참조\n\n* 상위 작업: [LBT-21 · OP-02 SSH / SFTP / PTY](https://samsunglions.atlassian.net/browse/LBT-21)\n* [Git Connector 계약](https://github.com/ktcloud4-SL/labbit-app/blob/main/contracts/connector/README.md) 및 관련 JSON Schema\n* [D-18 · 실습망·VM 관리 접속 구조](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/7241730/D-18+VM)\n* [Connector MVP 실행 계획 · M4](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/12845071/Connector+MVP)\n\n기존 Git 계약을 구현 기준으로 사용한다. 계약 재합의를 별도 선행 작업으로 두지 않는다."
+  },
+  "decisions": [
+    {
+      "title": "D-18 · 실습망·VM 관리 접속 구조",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/7241730/D-18+VM",
+      "version": 5,
+      "status": "current"
+    },
+    {
+      "title": "Connector MVP 개발 실행 계획 — 백서빈 · 이주희",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/12845071/Connector+MVP",
+      "version": 19,
+      "status": "current"
+    }
+  ],
+  "gitBase": "0599947407e9edd4539690e2f56eecf0622909ce",
+  "scope": {
+    "parent": "LBT-21 stage4/6",
+    "followup": "LBT-150 File Control/Data WSS, LBT-151 final OP02 audit, LBT-22 Browser/SaaS C2"
+  }
+}

@@ -707,4 +707,3 @@ non_guarantees:
   - >-
     shutdown duration, replica count, HPA threshold, load-balancer timeout처럼 platform/integration
     validation에 맡긴 값은 API compatibility guarantee가 아닙니다.
-

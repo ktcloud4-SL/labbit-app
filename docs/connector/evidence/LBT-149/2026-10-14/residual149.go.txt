@@ -1,0 +1,115 @@
+package openstackprovider
+
+import (
+	"context"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
+)
+
+// Read-only inventory. It never deletes or logs IDs, names or raw responses.
+func TestLBT149ReadOnlyResiduals(t *testing.T) {
+	if os.Getenv("LABBIT_OPENSTACK_RESIDUAL_AUDIT") != "1" {
+		t.Skip("explicit read-only audit required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	a, err := New(ctx, ConfigFromEnvironment())
+	if err != nil {
+		t.Fatal("Provider unavailable")
+	}
+	counts := map[string]int{"servers": 0, "networks": 0, "subnets": 0, "ports": 0, "securityGroups": 0, "keypairs": 0}
+	isLab := func(name string) bool { return strings.HasPrefix(name, "labbit-lbt149-") }
+	sp, e := servers.List(a.compute, servers.ListOpts{}).AllPages(ctx)
+	if e != nil {
+		t.Fatal("Server discovery failed")
+	}
+	ss, e := servers.ExtractServers(sp)
+	if e != nil {
+		t.Fatal("Server decode failed")
+	}
+	for _, x := range ss {
+		if isLab(x.Name) {
+			counts["servers"]++
+		}
+	}
+	np, e := networks.List(a.network, networks.ListOpts{}).AllPages(ctx)
+	if e != nil {
+		t.Fatal("Network discovery failed")
+	}
+	ns, e := networks.ExtractNetworks(np)
+	if e != nil {
+		t.Fatal("Network decode failed")
+	}
+	for _, x := range ns {
+		if isLab(x.Name) {
+			counts["networks"]++
+		}
+	}
+	bp, e := subnets.List(a.network, subnets.ListOpts{}).AllPages(ctx)
+	if e != nil {
+		t.Fatal("Subnet discovery failed")
+	}
+	bs, e := subnets.ExtractSubnets(bp)
+	if e != nil {
+		t.Fatal("Subnet decode failed")
+	}
+	for _, x := range bs {
+		if isLab(x.Name) {
+			counts["subnets"]++
+		}
+	}
+	pp, e := ports.List(a.network, ports.ListOpts{}).AllPages(ctx)
+	if e != nil {
+		t.Fatal("Port discovery failed")
+	}
+	ps, e := ports.ExtractPorts(pp)
+	if e != nil {
+		t.Fatal("Port decode failed")
+	}
+	for _, x := range ps {
+		if isLab(x.Name) {
+			counts["ports"]++
+		}
+	}
+	gp, e := groups.List(a.network, groups.ListOpts{}).AllPages(ctx)
+	if e != nil {
+		t.Fatal("SG discovery failed")
+	}
+	gs, e := groups.ExtractGroups(gp)
+	if e != nil {
+		t.Fatal("SG decode failed")
+	}
+	for _, x := range gs {
+		if isLab(x.Name) || strings.HasPrefix(x.Name, "labbit-integration-management-") {
+			counts["securityGroups"]++
+		}
+	}
+	kp, e := keypairs.List(a.compute, nil).AllPages(ctx)
+	if e != nil {
+		t.Fatal("Keypair discovery failed")
+	}
+	ks, e := keypairs.ExtractKeyPairs(kp)
+	if e != nil {
+		t.Fatal("Keypair decode failed")
+	}
+	for _, x := range ks {
+		if strings.HasPrefix(x.Name, "labbit-integration-key-") {
+			counts["keypairs"]++
+		}
+	}
+	t.Logf("Read-only fixture residual counts: %v", counts)
+	for _, count := range counts {
+		if count != 0 {
+			t.Fatal("Fixture residual present; inventory changed no resources")
+		}
+	}
+}

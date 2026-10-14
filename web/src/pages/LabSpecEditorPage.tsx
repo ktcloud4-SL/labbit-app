@@ -52,6 +52,7 @@ function providerForInitial(
 
 interface LabSpecFormProps {
   mappingOptions: LabSpecMappingOptionsList
+  mappingError?: 'forbidden' | 'unavailable'
   initial: LabSpecWrite
   readOnly: boolean
   saving: boolean
@@ -65,6 +66,7 @@ interface LabSpecFormProps {
 function LabSpecForm({
   initial,
   mappingOptions,
+  mappingError,
   readOnly,
   saving,
   saveError,
@@ -214,8 +216,12 @@ function LabSpecForm({
   return (
     <form className="labspec-form" onSubmit={handleSubmit}>
       {readOnly && (
-        <div className="notice-card">
-          다른 강사가 소유한 실습 정의입니다. 현재 계정에서는 내용을 확인만 할 수 있습니다.
+        <div className="notice-card notice-warning">
+          {mappingError === 'forbidden'
+            ? 'Mapping 후보를 조회할 강사 권한이 없습니다. 기존 실습 정의는 읽기 전용으로 확인할 수 있지만 수정·저장할 수 없습니다.'
+            : mappingError === 'unavailable'
+              ? 'Image/Size Mapping 후보를 불러오지 못했습니다. 기존 실습 정의는 읽기 전용으로 확인할 수 있지만 수정·저장할 수 없습니다.'
+              : '다른 강사가 소유한 실습 정의입니다. 현재 계정에서는 내용을 확인만 할 수 있습니다.'}
         </div>
       )}
 
@@ -303,13 +309,13 @@ function LabSpecForm({
         <small className="muted">
           Provider 연결을 변경하면 모든 VM의 Image/Size 선택이 초기화됩니다.
         </small>
-        {mappingOptions.items.length === 0 && (
+        {!mappingError && mappingOptions.items.length === 0 && (
           <div className="notice-card notice-warning" role="status">
             현재 Organization에 활성 Image/Flavor Mapping 후보가 없습니다.
             기관의 Mapping 설정을 확인해 주세요.
           </div>
         )}
-        {!providerConnectionId && form.vms.some((vm) => vm.imageRef || vm.sizeRef) && (
+        {!mappingError && !providerConnectionId && form.vms.some((vm) => vm.imageRef || vm.sizeRef) && (
           <div className="notice-card notice-warning">
             기존 LabSpec의 Mapping이 현재 조회된 후보와 일치하지 않습니다.
             Provider 연결을 다시 선택해 주세요.
@@ -350,14 +356,27 @@ function LabSpecForm({
                     onChange={(event) => updateVm(index, { name: event.target.value })}
                   />
                 </label>
-                <LabSpecMappingFields
-                  value={{ imageRef: vm.imageRef, sizeRef: vm.sizeRef }}
-                  images={images}
-                  sizes={sizes}
-                  providerConnectionId={providerConnectionId}
-                  disabled={readOnly || !selectedGroup}
-                  onChange={(next) => updateVm(index, next)}
-                />
+                {mappingError ? (
+                  <>
+                    <label className="field">
+                      <span>Image 참조</span>
+                      <input value={vm.imageRef} disabled />
+                    </label>
+                    <label className="field">
+                      <span>Size 참조</span>
+                      <input value={vm.sizeRef} disabled />
+                    </label>
+                  </>
+                ) : (
+                  <LabSpecMappingFields
+                    value={{ imageRef: vm.imageRef, sizeRef: vm.sizeRef }}
+                    images={images}
+                    sizes={sizes}
+                    providerConnectionId={providerConnectionId}
+                    disabled={readOnly || !selectedGroup}
+                    onChange={(next) => updateVm(index, next)}
+                  />
+                )}
                 <label className="field">
                   <span>Count</span>
                   <input
@@ -622,7 +641,7 @@ export function LabSpecEditorPage() {
     )
   }
 
-  if (mappingOptionsQuery.error || !mappingOptionsQuery.data) {
+  if (isNew && (mappingOptionsQuery.error || !mappingOptionsQuery.data)) {
     const forbidden = mappingOptionsQuery.error instanceof HttpError &&
       mappingOptionsQuery.error.status === 403
     return (
@@ -642,6 +661,12 @@ export function LabSpecEditorPage() {
       </main>
     )
   }
+
+  const mappingError = mappingOptionsQuery.error || !mappingOptionsQuery.data
+    ? mappingOptionsQuery.error instanceof HttpError && mappingOptionsQuery.error.status === 403
+      ? 'forbidden'
+      : 'unavailable'
+    : undefined
 
   const versionedLabSpec = isNew ? undefined : labSpecQuery.data
   const labSpec = versionedLabSpec?.labSpec
@@ -673,15 +698,21 @@ export function LabSpecEditorPage() {
         </div>
       </header>
 
+      {mappingError === 'unavailable' && (
+        <button className="secondary-button" type="button" onClick={() => void mappingOptionsQuery.refetch()}>
+          Mapping 후보 다시 시도
+        </button>
+      )}
       <LabSpecForm
-        mappingOptions={mappingOptionsQuery.data}
+        mappingOptions={mappingOptionsQuery.data ?? { items: [] }}
+        mappingError={mappingError}
         key={
           isNew
             ? 'new-lab-spec'
             : `${resolvedLabSpecId}:${versionedLabSpec?.etag ?? 'missing-etag'}`
         }
         initial={initial}
-        readOnly={!isOwner}
+        readOnly={!isOwner || Boolean(mappingError)}
         saving={saveMutation.isPending}
         saveError={saveMutation.error}
         requireEtag={requireEtag}

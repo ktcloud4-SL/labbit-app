@@ -482,6 +482,14 @@ a {
   padding: 20px;
 }
 
+.compact-empty h3 {
+  margin: 0;
+}
+
+.compact-empty .secondary-link {
+  margin-top: 14px;
+}
+
 .confirmation-card {
   display: grid;
   gap: 18px;

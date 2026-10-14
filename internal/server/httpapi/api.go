@@ -143,6 +143,7 @@ func New(opts Options) (http.Handler, error) {
 	handle("GET /api/v1/classes/{classId}", a.authenticated(http.HandlerFunc(a.getClass)))
 	handle("GET /api/v1/classes/{classId}/memberships", a.authenticated(http.HandlerFunc(a.listClassMemberships)))
 	handle("GET /api/v1/lab-specs", a.authenticated(http.HandlerFunc(a.listLabSpecs)))
+	handle("GET /api/v1/lab-specs/mapping-options", a.authenticated(http.HandlerFunc(a.listLabSpecMappingOptions)))
 	handle("POST /api/v1/lab-specs", a.authenticated(http.HandlerFunc(a.createLabSpec)))
 	handle("GET /api/v1/lab-specs/{labSpecId}", a.authenticated(http.HandlerFunc(a.getLabSpec)))
 	handle("PUT /api/v1/lab-specs/{labSpecId}", a.authenticated(http.HandlerFunc(a.updateLabSpec)))

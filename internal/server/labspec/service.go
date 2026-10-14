@@ -217,7 +217,7 @@ func (s *Service) Update(ctx context.Context, user repository.User, labSpecID, i
 	return toDefinition(updated)
 }
 
-func requireInstructor(ctx context.Context, repos repository.Repositories, user repository.User) error {
+func requireInstructor(ctx context.Context, repos repository.ClassMemberRepository, user repository.User) error {
 	instructor, err := repos.HasClassRole(ctx, user.ID, repository.ClassRoleInstructor)
 	if err != nil {
 		return fmt.Errorf("labspec: 강사 여부 조회: %w", err)

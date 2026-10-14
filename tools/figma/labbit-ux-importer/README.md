@@ -12,7 +12,7 @@ Labbit의 현재 React 화면을 자동 캡처한 뒤 Figma에 리뷰 보드 형
 npm run capture:figma
 ```
 
-기존 `capture:ui`가 Mock 전용 Vite를 자동 실행하고 Chrome/Edge를 headless로 열어 로그인부터 주요 화면까지 캡처합니다. 실제 Backend나 운영 데이터에 mutation을 보내지 않습니다.
+`capture:figma`는 기존 `capture:ui`의 Mock 전용 Vite·Chrome/Edge 캡처를 재사용하고, **Figma용 실행에 한해** Editable DOM 데이터도 수집합니다. 실제 Backend나 운영 데이터에 mutation을 보내지 않습니다.
 
 결과:
 
@@ -21,6 +21,7 @@ web/ui-captures/
 ├─ 01-login.png
 ├─ ...
 ├─ 17-reset-confirm.png
+├─ editable-dom.json
 └─ manifest.json
 ```
 
@@ -67,7 +68,7 @@ Figma에서:
 1. **Plugins > Development > Import new plugin from manifest...**
 2. 이 폴더의 `manifest.json` 선택
 3. **Labbit UX Importer** 실행
-4. `web/ui-captures` 폴더의 **manifest.json과 PNG 전체** 선택
+4. `web/ui-captures` 폴더의 **manifest.json, editable-dom.json, PNG 전체** 선택
 5. **새 UX Review 페이지 만들기** 클릭
 
 Plugin은 새 Figma Page를 만들고 다음을 자동 처리합니다.
@@ -75,7 +76,7 @@ Plugin은 새 Figma Page를 만들고 다음을 자동 처리합니다.
 - 로그인/수업, Workspace, 환경 생성/운영, LabSpec, 공통 상태로 화면 분류
 - 화면 제목, Route, Jira 번호, 현재 상태 표시
 - PNG를 원본 비율로 배치
-- LBT-26/LBT-27에서 앞으로 필요한 Terminal 연결/재연결/종료 상태를 별도 계획 카드로 생성
+- Terminal 연결·재연결·종료 상태를 **실제 VM E2E 검증 전 참고 카드**로 생성 (Frontend 구현 완료와 E2E 검증 완료를 구분)
 - 기존 Figma Page는 건드리지 않음
 
 ## 안전 경계
@@ -83,11 +84,11 @@ Plugin은 새 Figma Page를 만들고 다음을 자동 처리합니다.
 - `capture:figma`는 기존 Mock 캡처만 사용합니다.
 - 실제 계정 Password, Cookie, Session token은 Plugin/manifest/PNG 파일에 저장하지 않습니다.
 - 실제 HTTPS Browser Acceptance(LBT-74)는 이 도구와 분리합니다.
-- Terminal의 실제 UI 상태는 LBT-26 계약/transport가 준비되기 전에는 계획 카드일 뿐 구현 완료 Evidence로 보지 않습니다.
+- Terminal/File의 Frontend 코드는 구현되어 있지만, 이 도구의 참고 카드는 **Mock UX 설명용**입니다. 실제 VM 연결·WSS·SFTP·재연결 E2E 성공 Evidence로 보지 않습니다.
 
 ## 로컬 파일
 
-Figma가 발급한 ID가 들어간 `manifest.json`은 개인 개발 환경 파일이므로 **Git에 commit하지 않습니다.** Git에는 `manifest.template.json`만 유지합니다. `git status`에 보이면 그대로 untracked 상태로 두면 됩니다.
+Figma가 발급한 ID가 들어간 `manifest.json`은 개인 개발 환경 파일이므로 **Git에 commit하지 않습니다.** Git에는 `manifest.template.json`만 유지하며, 실제 `manifest.json`은 `.gitignore`로 제외합니다.
 
 
 ## 2026-10-14 보존·부분 최신화 안내

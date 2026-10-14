@@ -299,10 +299,10 @@ function LabSpecForm({
               </option>
             ))}
           </select>
-          <small className="muted">
-            Provider 연결을 변경하면 모든 VM의 Image/Size 선택이 초기화됩니다.
-          </small>
         </label>
+        <small className="muted">
+          Provider 연결을 변경하면 모든 VM의 Image/Size 선택이 초기화됩니다.
+        </small>
         {mappingOptions.items.length === 0 && (
           <div className="notice-card notice-warning" role="status">
             현재 Organization에 활성 Image/Flavor Mapping 후보가 없습니다.

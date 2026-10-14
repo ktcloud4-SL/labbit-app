@@ -1,0 +1,59 @@
+{
+  "files": [
+    {
+      "name": "AUDIT.md",
+      "size": 30541,
+      "sha256": "5bd4f6079cc53089f220116290d991247a9945fed28ad89aef1f04c1207344a5"
+    },
+    {
+      "name": "independent-review.md",
+      "size": 22557,
+      "sha256": "8454273423a080f27649dc7068eb43196dfc07b309b3ca5597471a48a4892734"
+    },
+    {
+      "name": "raw-log-manifest.json",
+      "size": 71860,
+      "sha256": "821a3bad20f6342b91451a4e537003b4b6cdf3d655d09148a1e9ac2771db3792"
+    },
+    {
+      "name": "README.md",
+      "size": 6087,
+      "sha256": "b5c0847631f6ec07ff2f41a9c29999c4ab0c83f9b85d004c6b9f3093202b8b95"
+    },
+    {
+      "name": "requirements-snapshot.json",
+      "size": 56816,
+      "sha256": "65eed3530a80e4d677c19e8bb6b50b9c00925649db21e76ab6a53480dd8cf234"
+    },
+    {
+      "name": "residual150.go.txt",
+      "size": 1484,
+      "sha256": "537a3d3a5ef9bb1032dec5e8449d2b4d3060c58d87fe1802ed3de3189ac112ed"
+    },
+    {
+      "name": "secret-scan.json",
+      "size": 403,
+      "sha256": "ebc956ff54a64e3ead7c1672d463389f05d9c249f6f7f065d5cb8a1fd9a97840"
+    },
+    {
+      "name": "source-manifest.json",
+      "size": 11309,
+      "sha256": "7be29bd5214877f05bb6e74f6f78bfdc0730fae3e9b5de6a8c5ba0085dfe6105"
+    },
+    {
+      "name": "validate.py",
+      "size": 4362,
+      "sha256": "c337fdf8d15f1307e5a2ce369743774518c2a7a41052db95f89cde6a8a402af3"
+    },
+    {
+      "name": "validation-logs.zip",
+      "size": 2199493,
+      "sha256": "c5e218e13a36e43f7711ee1dfb6dd0143a011748cefb73bc2126d044254d6f53"
+    },
+    {
+      "name": "validation-summary.json",
+      "size": 76165,
+      "sha256": "1c116520fd149669fc7b3d82eff8ad59a2470066f4e53748f1b5882a38f286fd"
+    }
+  ]
+}

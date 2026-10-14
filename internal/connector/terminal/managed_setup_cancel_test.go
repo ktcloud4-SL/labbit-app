@@ -94,15 +94,17 @@ func TestManagedPTYCanceledSetupReleasesOutputWorkers(t *testing.T) {
 		var workers sync.WaitGroup
 		defer workers.Wait()
 		for incoming := range channels {
-			ch, reqs, err := incoming.Accept()
-			if err != nil {
-				continue
-			}
 			var current *gate
 			select {
 			case g := <-gates:
 				current = &g
 			default:
+			}
+			// Bind this channel's gate before ACK permits the caller to enqueue
+			// a gate for the next channel. A probe has no PTY requests to signal.
+			ch, reqs, err := incoming.Accept()
+			if err != nil {
+				continue
 			}
 			workers.Add(1)
 			go func() {

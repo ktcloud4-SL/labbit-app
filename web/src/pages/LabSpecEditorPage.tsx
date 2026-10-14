@@ -505,7 +505,10 @@ export function LabSpecEditorPage() {
   })
 
   const mappingOptionsQuery = useQuery({
-    queryKey: labbitQueryKeys.labSpecMappingOptions,
+    queryKey: labbitQueryKeys.labSpecMappingOptions(
+      meQuery.data?.organization.id ?? '',
+      meQuery.data?.id ?? '',
+    ),
     queryFn: () => api.listLabSpecMappingOptions(),
     enabled: Boolean(
       meQuery.data &&

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import type { LabSpecMappingOptionsList, LabSpecWrite, VmRoleSpec } from '../shared/api/contracts'
@@ -77,17 +77,13 @@ function LabSpecForm({
 }: LabSpecFormProps) {
   const [form, setForm] = useState<LabSpecWrite>(initial)
   const [validationError, setValidationError] = useState<string | null>(null)
-  const [providerConnectionId, setProviderConnectionId] = useState(
+  const [chosenProviderConnectionId, setProviderConnectionId] = useState(
     () => providerForInitial(initial, mappingOptions),
   )
-
-  // 초기 Mapping 조회 실패 후 재시도에 성공한 경우 Provider 선택만 복구한다.
-  // 후보 재조회는 작성 중인 LabSpec draft를 초기화하거나 선택을 강제로 바꾸지 않는다.
-  useEffect(() => {
-    if (providerConnectionId || mappingError) return
-    const restoredProvider = providerForInitial(form, mappingOptions)
-    if (restoredProvider) setProviderConnectionId(restoredProvider)
-  }, [form, mappingError, mappingOptions, providerConnectionId])
+  // 초기 500 → 후보 재조회 성공 시 Provider만 계산해 복원한다.
+  // 사용자가 선택한 Provider는 고정하고, 폼의 미저장 draft는 재마운트하지 않는다.
+  const providerConnectionId =
+    chosenProviderConnectionId || providerForInitial(form, mappingOptions)
 
   const selectedGroup = mappingOptions.items.find(
     (group) => group.providerConnectionId === providerConnectionId,

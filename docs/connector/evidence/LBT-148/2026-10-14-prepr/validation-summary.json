@@ -1,0 +1,382 @@
+{
+  "executionDateKST": "2026-10-14",
+  "base": "949c1a6dcc0e9fac2b1b72f9afca19c3ab998ed6",
+  "testedHead": "283da48f98441395249a6ad897f62c3db18f52eb",
+  "metadata": {
+    "contracts-run.json": {
+      "exitCode": 0,
+      "versions": {
+        "PyYAML": "6.0.3",
+        "jsonschema": "4.26.0",
+        "openapi-spec-validator": "0.9.0"
+      },
+      "scope": "OpenAPI and exact current workflow JSON Schema/runtime/migration scripts"
+    },
+    "go-build-run.json": {
+      "command": [
+        "go",
+        "build",
+        "-mod=readonly",
+        "./..."
+      ],
+      "startedAt": "2026-10-14T01:36:25.502736+00:00",
+      "endedAt": "2026-10-14T01:36:30.410412+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    },
+    "go-race-run.json": {
+      "command": [
+        "go",
+        "test",
+        "-mod=readonly",
+        "-race",
+        "-json",
+        "-count=1",
+        "-timeout=5m",
+        "./internal/connector/vmaccess",
+        "./internal/connector/provider/openstack",
+        "./internal/connector/app",
+        "./internal/connector/terminal",
+        "./internal/connector/wss",
+        "./internal/connector/mock",
+        "./internal/connector/preview"
+      ],
+      "startedAt": "2026-10-14T01:36:30.411791+00:00",
+      "endedAt": "2026-10-14T01:37:01.475801+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 692,
+        "skip": 11,
+        "fail": 0,
+        "packagesPass": 7
+      }
+    },
+    "go-unit-run.json": {
+      "command": [
+        "go",
+        "test",
+        "-mod=readonly",
+        "-json",
+        "-count=1",
+        "-timeout=5m",
+        "./..."
+      ],
+      "startedAt": "2026-10-14T01:35:48.381444+00:00",
+      "endedAt": "2026-10-14T01:36:25.408418+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 3429,
+        "skip": 12,
+        "fail": 0,
+        "packagesPass": 36
+      }
+    },
+    "go-vet-run.json": {
+      "command": [
+        "go",
+        "vet",
+        "-mod=readonly",
+        "./..."
+      ],
+      "startedAt": "2026-10-14T01:35:41.955615+00:00",
+      "endedAt": "2026-10-14T01:35:48.379942+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    },
+    "gofmt-run.json": {
+      "checked": 408,
+      "lineEndings": "LF-normalized comparison",
+      "unformatted": [],
+      "exitCode": 0
+    },
+    "regression-repeat-run.json": {
+      "command": [
+        "go",
+        "test",
+        "-mod=readonly",
+        "-race",
+        "-json",
+        "-count=20",
+        "-timeout=5m",
+        "-run",
+        "^(TestManagedPTYCanceledSetupReleasesOutputWorkers|TestReplacedDataReaderCannotDispatchBufferedFrames|TestOldInputFailureCannotEndReplacement|TestDataInputAndResizeFailuresCloseOnlyTheirSession|TestReplacementDataClientStopsPreviousReconnectOwner|TestPreviewGatewayConcurrentFrames|TestPreview_SequentialTunnels_SameSession|TestCanceledChannelLeavesActivePTYUsable|TestCanceledOpenClosesLateChannelAndReusesTransport|TestStalledOpenDoesNotAccumulateCanceledSSHRequests|TestTerminalShutdownRejectsDelayedOpensAndEndsOnce)$",
+        "./internal/connector/terminal",
+        "./internal/connector/vmaccess",
+        "./internal/connector/mock",
+        "./internal/connector/preview"
+      ],
+      "startedAt": "2026-10-14T01:37:01.499732+00:00",
+      "endedAt": "2026-10-14T01:37:28.358082+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 420,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 4
+      }
+    },
+    "reset-schema-run.json": {
+      "command": [
+        "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-pty-148\\contracts\\connector\\tests\\test_reset_schema.py",
+        "-v"
+      ],
+      "startedAt": "2026-10-14T01:39:04.379783+00:00",
+      "endedAt": "2026-10-14T01:39:04.657939+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    },
+    "web-build-run.json": {
+      "command": [
+        "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+        "run",
+        "build"
+      ],
+      "startedAt": "2026-10-14T01:38:54.770295+00:00",
+      "endedAt": "2026-10-14T01:38:57.338082+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    },
+    "web-install-run.json": {
+      "command": [
+        "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+        "install",
+        "--frozen-lockfile"
+      ],
+      "startedAt": "2026-10-14T01:37:36.254236+00:00",
+      "endedAt": "2026-10-14T01:37:36.854895+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    },
+    "web-lint-run.json": {
+      "command": [
+        "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+        "run",
+        "lint"
+      ],
+      "startedAt": "2026-10-14T01:37:46.120902+00:00",
+      "endedAt": "2026-10-14T01:38:24.357149+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    },
+    "web-lock-import-run.json": {
+      "command": [
+        "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+        "import"
+      ],
+      "startedAt": "2026-10-14T01:37:33.591797+00:00",
+      "endedAt": "2026-10-14T01:37:36.242173+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    },
+    "web-test-run.json": {
+      "command": [
+        "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+        "run",
+        "test"
+      ],
+      "startedAt": "2026-10-14T01:38:24.359428+00:00",
+      "endedAt": "2026-10-14T01:38:54.758747+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    },
+    "web-typecheck-run.json": {
+      "command": [
+        "C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
+        "run",
+        "typecheck"
+      ],
+      "startedAt": "2026-10-14T01:37:36.865534+00:00",
+      "endedAt": "2026-10-14T01:37:46.119712+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    }
+  },
+  "goUnitSkips": [
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM2ControlWSSIntegration",
+      "reason": [
+        "control_wss_integration_test.go:22: set LABBIT_OPENSTACK_M2_WSS_TEST=1 for Provision or LABBIT_OPENSTACK_M3_WSS_TEST=1 for the full WSS lifecycle",
+        "--- SKIP: TestOpenStackM2ControlWSSIntegration (0.00s)"
+      ]
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM1Integration",
+      "reason": [
+        "integration_test.go:36: set LABBIT_OPENSTACK_INTEGRATION=1 to run against a local OpenStack cloud",
+        "--- SKIP: TestOpenStackM1Integration (0.00s)"
+      ]
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM2ProvisionIntegration",
+      "reason": [
+        "integration_test.go:75: set LABBIT_OPENSTACK_M2_TEST=1 to create and clean one real Provision topology",
+        "--- SKIP: TestOpenStackM2ProvisionIntegration (0.00s)"
+      ]
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM3LifecycleIntegration",
+      "reason": [
+        "integration_test.go:164: set LABBIT_OPENSTACK_M3_TEST=1 to run Provision, Reset, Reconcile, and Cleanup against a local OpenStack cloud",
+        "--- SKIP: TestOpenStackM3LifecycleIntegration (0.00s)"
+      ]
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackInternetPolicyIntegration",
+      "reason": [
+        "integration_test.go:302: set LABBIT_OPENSTACK_INTERNET_POLICY_TEST=1 to verify real Internet ON/OFF reachability",
+        "--- SKIP: TestOpenStackInternetPolicyIntegration (0.00s)"
+      ]
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+      "reason": [
+        "--- SKIP: TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink (0.01s)"
+      ]
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+      "reason": [
+        "--- SKIP: TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement (0.02s)"
+      ]
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTCloudD1ReadOnlyIntegration",
+      "reason": [
+        "ktcloud_d1_integration_test.go:15: set LABBIT_KTCLOUD_D1_INTEGRATION=1 explicitly for real KT D1 read-only checks",
+        "--- SKIP: TestKTCloudD1ReadOnlyIntegration (0.00s)"
+      ]
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTCloudD1DisposableNetworkIntegration",
+      "reason": [
+        "ktcloud_d1_network_integration_test.go:21: set LABBIT_KTCLOUD_D1_NETWORK_MUTATION_TEST=1 explicitly for disposable NSM mutations",
+        "--- SKIP: TestKTCloudD1DisposableNetworkIntegration (0.00s)"
+      ]
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackPTYCC02Integration",
+      "reason": [
+        "pty_cc02_integration_test.go:27: set LABBIT_OPENSTACK_PTY_CC02_TEST=1 for real local OpenStack PTY/CC-02 acceptance",
+        "--- SKIP: TestOpenStackPTYCC02Integration (0.00s)"
+      ]
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+      "test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600",
+      "reason": [
+        "--- SKIP: TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600 (0.00s)"
+      ]
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackVMAccessIntegration",
+      "reason": [
+        "vm_access_integration_test.go:23: set LABBIT_OPENSTACK_VM_ACCESS_TEST=1 for real local OpenStack VM access acceptance",
+        "--- SKIP: TestOpenStackVMAccessIntegration (0.00s)"
+      ]
+    }
+  ],
+  "web": {
+    "filesPass": 13,
+    "testsPass": 167,
+    "typecheckLintBuild": "PASS"
+  },
+  "contracts": {
+    "jsonSchemasPass": 8,
+    "resetTestsPass": 11,
+    "openAPIRuntimeMigration": "PASS"
+  },
+  "sourceStability": {
+    "auto": {
+      "unchanged": true,
+      "headBefore": "283da48f98441395249a6ad897f62c3db18f52eb",
+      "headAfter": "283da48f98441395249a6ad897f62c3db18f52eb"
+    },
+    "web": {
+      "unchanged": true,
+      "headBefore": "283da48f98441395249a6ad897f62c3db18f52eb",
+      "headAfter": "283da48f98441395249a6ad897f62c3db18f52eb"
+    },
+    "contracts": {
+      "unchanged": true,
+      "headBefore": "283da48f98441395249a6ad897f62c3db18f52eb",
+      "headAfter": "283da48f98441395249a6ad897f62c3db18f52eb"
+    }
+  },
+  "cloudThisRun": {
+    "executed": false,
+    "VMAccessLive": "not rerun: code unchanged and user instruction",
+    "historicalPTYCC02": {
+      "elapsedSeconds": 133.81,
+      "testedHead": "efc22587667a53e11dd87d75c025db37512bc221",
+      "productionAndHarnessEquivalent": true,
+      "trackedResourcesAbsent": 7,
+      "temporaryKeypairs": 0,
+      "temporaryManagementSecurityGroups": 0
+    }
+  },
+  "notRun": [
+    "actual VMAccess Reset generation/idle acceptance",
+    "other OpenStack/KT live mutation acceptance",
+    "actual Browser/SaaS C2 and production SFTP File operations",
+    "tagged PostgreSQL integration: current PR does not modify DB or HTTP",
+    "forced restart/rolling deployment/long duration tombstone load"
+  ],
+  "goCountMeaning": "pass/skip/fail events include subtests; package pass separately counted"
+}

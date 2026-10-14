@@ -30,12 +30,15 @@ var (
 	ErrSessionConflict      = errors.New("terminal session conflict")
 )
 
+const finalDataWriteLockWait = 50 * time.Millisecond
+
 // SessionEndedCallback 은 세션이 완전 종료되었을 때 호출되는 콜백입니다.
 type SessionEndedCallback func(session *Session, reason string, exitCode *int, err error)
 
 // Session 은 단일 터미널 세션(PTY + WebSocket 스트림)의 상태 및 라이프사이클을 관리합니다.
 type Session struct {
-	mu sync.Mutex
+	mu       sync.Mutex
+	resizeMu sync.Mutex
 
 	SessionID        string
 	LabInstanceID    string
@@ -66,6 +69,7 @@ type SessionManager struct {
 	sessions      map[string]*Session
 	graceDuration time.Duration
 	onEnded       SessionEndedCallback
+	closed        bool
 }
 
 // NewSessionManager 는 지정된 Grace Period(기본 60초)를 갖는 세션 관리자를 생성합니다.
@@ -96,6 +100,9 @@ func (sm *SessionManager) GetOrCreateSession(
 ) (*Session, bool, error) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
+	if sm.closed {
+		return nil, false, ErrSessionClosed
+	}
 
 	sessionID := envelope.TerminalSessionID
 	if sessionID == "" {
@@ -185,7 +192,20 @@ func (sm *SessionManager) CloseSession(sessionID string, reason string) error {
 
 // CloseAll 은 관리 중인 모든 세션을 종료합니다.
 func (sm *SessionManager) CloseAll(reason string) {
+	sm.closeAll(reason, false)
+}
+
+// Shutdown closes admission as well as existing sessions. Delayed Control opens
+// cannot allocate a new PTY after the process has begun terminating.
+func (sm *SessionManager) Shutdown(reason string) {
+	sm.closeAll(reason, true)
+}
+
+func (sm *SessionManager) closeAll(reason string, shutdown bool) {
 	sm.mu.Lock()
+	if shutdown {
+		sm.closed = true
+	}
 	sessionsToClose := make([]*Session, 0, len(sm.sessions))
 	for _, s := range sm.sessions {
 		sessionsToClose = append(sessionsToClose, s)
@@ -245,9 +265,9 @@ func (s *Session) AttachDataConn(conn *websocket.Conn) (resumed bool, err error)
 
 	// 이전 활성 연결이 남아있다면 s.mu 밖에서 안전하게 닫기
 	if oldConn != nil && oldConn != conn {
-		s.writeMu.Lock()
+		// Close can interrupt an active write. Waiting for writeMu would
+		// strand the old socket after the current connection has changed.
 		_ = oldConn.Close()
-		s.writeMu.Unlock()
 	}
 
 	return resumed, nil
@@ -313,9 +333,8 @@ func (s *Session) DetachDataConn(conn *websocket.Conn) {
 	s.mu.Unlock()
 
 	if oldConn != nil {
-		s.writeMu.Lock()
+		// Closing concurrently releases a writer blocked by an unread peer.
 		_ = oldConn.Close()
-		s.writeMu.Unlock()
 	}
 }
 
@@ -363,13 +382,21 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 			if err != nil {
 				endedMsg.Payload.Error = &protocol.SafeError{
 					Code:    "SESSION_ERROR",
-					Message: err.Error(),
+					Message: "Terminal SSH channel ended",
 				}
 			}
-			s.writeMu.Lock()
-			_ = conn.WriteJSON(endedMsg)
-			_ = conn.Close()
-			s.writeMu.Unlock()
+			// Data ENDED is best effort; PTY cleanup and Control ENDED must
+			// not wait behind a blocked data write. Gorilla permits Close
+			// concurrently with writes, but SetWriteDeadline needs writeMu.
+			if s.tryFinalDataWriteLock() {
+				// Bound only this final frame, independently of detach grace.
+				_ = conn.SetWriteDeadline(time.Now().Add(time.Second))
+				_ = conn.WriteJSON(endedMsg)
+				_ = conn.Close()
+				s.writeMu.Unlock()
+			} else {
+				_ = conn.Close()
+			}
 		}
 
 		if pty != nil {
@@ -380,6 +407,24 @@ func (s *Session) Close(reason string, exitCode *int, err error) {
 			callback(s, reason, exitCode, err)
 		}
 	})
+}
+
+func (s *Session) tryFinalDataWriteLock() bool {
+	deadline := time.Now().Add(finalDataWriteLockWait)
+	for {
+		if s.writeMu.TryLock() {
+			return true
+		}
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return false
+		}
+		pause := time.Millisecond
+		if remaining < pause {
+			pause = remaining
+		}
+		time.Sleep(pause)
+	}
 }
 
 // WriteMessage 는 활성 WebSocket 연결로 메시지를 단일 뮤텍스 직렬화하여 전송합니다.
@@ -420,17 +465,21 @@ func (s *Session) WriteJSON(v interface{}) error {
 
 // Resize 는 터미널 크기를 변경합니다.
 func (s *Session) Resize(cols, rows int) error {
+	s.resizeMu.Lock()
+	defer s.resizeMu.Unlock()
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	if s.Status == StatusClosed {
+		s.mu.Unlock()
 		return ErrSessionAlreadyClosed
 	}
 
 	s.Cols = cols
 	s.Rows = rows
-	if s.PTY != nil {
-		return s.PTY.Resize(cols, rows)
+	pty := s.PTY
+	s.mu.Unlock()
+	if pty != nil {
+		return pty.Resize(cols, rows)
 	}
 	return nil
 }

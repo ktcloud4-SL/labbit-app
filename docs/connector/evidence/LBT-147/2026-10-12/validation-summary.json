@@ -1,0 +1,183 @@
+{
+  "recordedAtKST": "2026-10-12T11:51:35.763533+09:00",
+  "testedSource": {
+    "head": "399681789572487bd44469ec018e52b53f97678e",
+    "base": "6d675c74bff11f481d247267faefd4ce960dcd38",
+    "latestOriginMain": "e850567066134edc87b2ba543d0eb42a21f406b8",
+    "localFiles": 6,
+    "all29FilesMatchPriorAudit": true,
+    "productionSourceChangedDuringRealValidation": false,
+    "publicationCodeCommit": "74c052f25e3778cafa6ae4fa75bd8775af46827a"
+  },
+  "runs": [
+    {
+      "log": "pre-discovery.jsonl",
+      "startedAt": "2026-10-12T11:21:34.3903335+09:00",
+      "endedAt": "2026-10-12T11:21:39.8074896+09:00",
+      "tests": [
+        {
+          "name": "TestOpenStackM1Integration",
+          "elapsedSeconds": 3.75
+        }
+      ],
+      "testPassesIncludingSubtests": 1,
+      "failures": 0,
+      "skips": 0,
+      "race": false,
+      "packageElapsedSeconds": 5.417
+    },
+    {
+      "log": "real-vm-access.jsonl",
+      "startedAt": "2026-10-12T11:22:33.393804+09:00",
+      "endedAt": "2026-10-12T11:26:26.5901775+09:00",
+      "tests": [
+        {
+          "name": "TestOpenStackVMAccessIntegration",
+          "elapsedSeconds": 229.83
+        }
+      ],
+      "testPassesIncludingSubtests": 1,
+      "failures": 0,
+      "skips": 0,
+      "race": true,
+      "packageElapsedSeconds": 233.202
+    },
+    {
+      "log": "real-app-boundaries.jsonl",
+      "startedAt": "2026-10-12T11:37:46.0076863+09:00",
+      "endedAt": "2026-10-12T11:41:37.2972159+09:00",
+      "tests": [
+        {
+          "name": "TestLBT147RealAppBoundaries/P2-real-Keystone-waiter-deadline-and-cancel",
+          "elapsedSeconds": 1.05
+        },
+        {
+          "name": "TestLBT147RealAppBoundaries/P2-real-Keystone-owner-cancel-and-retry",
+          "elapsedSeconds": 1.07
+        },
+        {
+          "name": "TestLBT147RealAppBoundaries/P1-real-Reset-preflight-preserves-active-SSH",
+          "elapsedSeconds": 2.54
+        },
+        {
+          "name": "TestLBT147RealAppBoundaries/P1-real-Cleanup-first-delete-rejected",
+          "elapsedSeconds": 1.63
+        },
+        {
+          "name": "TestLBT147RealAppBoundaries/P1-real-Reset-partial-cleanup-failure",
+          "elapsedSeconds": 11.37
+        },
+        {
+          "name": "TestLBT147RealAppBoundaries/P1-real-Cleanup-partial-failure-already-absent-worker",
+          "elapsedSeconds": 0.64
+        },
+        {
+          "name": "TestLBT147RealAppBoundaries/P1-real-Reset-replacement-creation-failure",
+          "elapsedSeconds": 15.17
+        },
+        {
+          "name": "TestLBT147RealAppBoundaries",
+          "elapsedSeconds": 227.71
+        }
+      ],
+      "testPassesIncludingSubtests": 8,
+      "failures": 0,
+      "skips": 0,
+      "race": true,
+      "packageElapsedSeconds": 231.293
+    },
+    {
+      "log": "post-discovery-and-residual.jsonl",
+      "startedAt": "2026-10-12T11:42:23.6565915+09:00",
+      "endedAt": "2026-10-12T11:42:29.4928017+09:00",
+      "tests": [
+        {
+          "name": "TestOpenStackM1Integration",
+          "elapsedSeconds": 0.91
+        },
+        {
+          "name": "TestLBT147ReadOnlyResiduals",
+          "elapsedSeconds": 1.64
+        }
+      ],
+      "testPassesIncludingSubtests": 2,
+      "failures": 0,
+      "skips": 0,
+      "race": true,
+      "packageElapsedSeconds": 5.837
+    }
+  ],
+  "testPassesIncludingSubtests": 12,
+  "actualNormalVMAccess": [
+    "Provision gen1 ACTIVE and authenticated Management SSH",
+    "wrong lab/generation/VM key denied before SSH",
+    "server-pinned host keys",
+    "shared SSH transport",
+    "PTY input/output/resize",
+    "independent SFTP INIT/VERSION/REALPATH after PTY close",
+    "idle transport retirement",
+    "Reset gen2 new target and stale gen1 denial",
+    "14 exact tracked resources absent"
+  ],
+  "actualAppBoundariesWithInjectedFaults": {
+    "P1": [
+      "actual missing flavor Reset preflight preserves active SSH",
+      "injected first owned DELETE409 retires active SSH",
+      "actual worker deletion and independent GET404; workspace DELETE409 injected; surviving workspace channel retired and old generation fenced before Provider resolution",
+      "Cleanup actual previously absent worker DELETE404 plus workspace DELETE409; same fence",
+      "actual old generation deletion of 10 resources; actual gen2 Neutron creation of 6 tracked resources; Nova owned lab/gen2 POST409 injected; old generation fenced"
+    ],
+    "P2": [
+      "actual successful Keystone response delayed by local proxy",
+      "80ms query waiter deadline and 40ms VM manager setup deadline honored",
+      "blocked waiter cancellation preserves owner and live waiter",
+      "one real initialization and cached queries",
+      "owner cancellation releases live waiter with safe shared failure; next request reauthenticates and cache reused"
+    ],
+    "injectionCounts": {
+      "DELETE409": 3,
+      "POST409": 1
+    },
+    "appTrackedResourcesAbsent": 16,
+    "temporaryManagementSGandKeypairIndependentlyAbsent": true
+  },
+  "finalReadOnlyInventory": {
+    "flavorsTotal": 4,
+    "imagesTotal": 3,
+    "keypairsTotal": 1,
+    "matchingKeypairs": 0,
+    "matchingNetworks": 0,
+    "matchingPorts": 0,
+    "matchingRouters": 0,
+    "matchingSecurityGroups": 0,
+    "matchingServers": 0,
+    "matchingSubnets": 0,
+    "matchingTestResidualTotal": 0,
+    "networksTotal": 4,
+    "portsTotal": 11,
+    "routersTotal": 1,
+    "securityGroupsTotal": 4,
+    "serversTotal": 0,
+    "subnetsTotal": 4
+  },
+  "priorAutomatedValidation": "automated-validation-summary.json; all 29 execution byte hashes match; original runs retained, not represented as re-executed during packaging",
+  "notExecutedHere": [
+    "KT Cloud",
+    "real Browser/SaaS and deployed CC-02 WSS end-to-end",
+    "production SFTP read/write operations (LBT-149/150)",
+    "real SSH authentication refusal, host-key attack/change, packet loss/handshake stall",
+    "actual backend-originated API409 (409 is injected before forwarding selected mutation)",
+    "connector process restart/long-duration soak",
+    "other opt-in provider integration suites",
+    "all concurrent waiter arrival schedules (deterministic fixture regressions retained)",
+    "existing Session.Setup cancellation can retire same-VM shared transport; surviving other channels on setup cancellation not claimed"
+  ],
+  "authorizationAtOriginalRealExecution": {
+    "push": false,
+    "pullRequestCreated": false,
+    "commit": false,
+    "jiraWrites": false,
+    "cloud": "local labbit-test only"
+  },
+  "publicationAuthorization": "Subsequent explicit user request: commit, push feat/LBT-147-vm-access, and create PR to main; no merge/deploy/Jira write authorized."
+}

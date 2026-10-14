@@ -1,0 +1,94 @@
+{
+  "readAt": "2026-10-12, this audit turn; direct Jira/Confluence connector reads",
+  "sources": [
+    {
+      "key": "6848516",
+      "title": "D-21 · Terminal·Live 세션·재접속 정책",
+      "version": 10,
+      "updated": "2026-10-02T06:09:16.254Z",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/6848516/D-21+Terminal+Live",
+      "bodySha256": "bffd4931f5151be58575ce3ea9c627fa3f23403ead862629dbce30be60358560",
+      "comments": null
+    },
+    {
+      "key": "6881283",
+      "title": "D-20 · Lab 작업 충돌·재시도·부분 실패 정책",
+      "version": 7,
+      "updated": "2026-09-17T09:03:18.111Z",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/6881283/D-20+Lab",
+      "bodySha256": "1898c728de6edba33f9e0cb05e3aec30effe3da2150adfc3a009905e7dd52847",
+      "comments": null
+    },
+    {
+      "key": "7241730",
+      "title": "D-18 · 실습망·VM 관리 접속 구조",
+      "version": 5,
+      "updated": "2026-09-15T08:38:08.772Z",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/7241730/D-18+VM",
+      "bodySha256": "dcc18fe2e7c1b64b8e243d5a14af4a8ee21b65bf0bc6f7a131c3e7a3bdc6ec6a",
+      "comments": null
+    },
+    {
+      "key": "9666637",
+      "title": "검증 설계 — 테스트 전략·추적성",
+      "version": 3,
+      "updated": "2026-09-18T03:46:00.988Z",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/9666637",
+      "bodySha256": "06b414ddc18c18771d2002d0c659c6a438439299f7913f8b2029b1776fa62827",
+      "comments": null
+    },
+    {
+      "key": "12845071",
+      "title": "Connector MVP 개발 실행 계획 — 백서빈 · 이주희",
+      "version": 19,
+      "updated": "2026-09-28T08:09:40.880Z",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/12845071/Connector+MVP",
+      "bodySha256": "dbbf75eee62ffce79ed92ba1da5b71e3baccdcf164457a1b9a482eb9db6ff499",
+      "comments": null
+    },
+    {
+      "key": "LBT-147",
+      "title": "[OP-02] VM 접속 대상 검증 및 SSH 연결 관리",
+      "version": null,
+      "updated": "2026-10-12T11:00:05.007+0900",
+      "url": "https://samsunglions.atlassian.net/browse/LBT-147",
+      "bodySha256": "94cbec2ad019712387a093aafc19400fb69a90585d3417303c758bb9dbe4dc2a",
+      "comments": []
+    },
+    {
+      "key": "LBT-21",
+      "title": "[OP-02] SSH / SFTP / PTY",
+      "version": null,
+      "updated": "2026-10-12T10:59:49.378+0900",
+      "url": "https://samsunglions.atlassian.net/browse/LBT-21",
+      "bodySha256": "73a5f639528af275d2e009fee904be2fff9b20e987437a124e0ecd7dbff21ac1",
+      "comments": []
+    },
+    {
+      "key": "LBT-145",
+      "title": "[OP-02] 사전 검증: KT Cloud ↔ OP-01 Provider 연동 및 VM SSH 접근 확인",
+      "version": null,
+      "updated": "2026-10-07T21:04:00.690+0900",
+      "url": "https://samsunglions.atlassian.net/browse/LBT-145",
+      "bodySha256": "19798342c52553d115e536ccca4288715e6880d9c389a83c0c97f24c4bcef9f1",
+      "comments": [
+        {
+          "id": "10395",
+          "body": "현재 완료 기준을 충족하지 못해 **진행 중**을 유지합니다. 구현·검증 내역은 [Draft PR #79](https://github.com/ktcloud4-SL/labbit-app/pull/79)와 [실측 증거](https://github.com/ktcloud4-SL/labbit-app/blob/fix/LBT-158-ktcloud-d1-compatibility/docs/connector/evidence/LBT-145/2026-10-07/README.md)에 기록했습니다.\n\n* 전용 KT D1/DX-M1 Connector VM에서 production Connector를 실제 실행했습니다. TLS Mock SaaS WSS HELLO/ACK/Heartbeat, CC-01 dispatch/result, OP-01 인증·Image/Flavor 조회가 통과했습니다.\n* 첫 WSS Provision gen1은 SUCCEEDED: 실제 Tier 2개·SSH Firewall·Server·Root Volume ID를 기록했고 ACTIVE, Management IP, 키 인증 SSH, cloud-init 준비 상태를 확인했습니다. 알려진 5개 ID의 WSS Reconcile도 통과했습니다.\n* Reset gen2는 KT Nova 응답에 flavor.id가 없는 확장 flavor 형식 때문에 quota preflight에서 실패했습니다. 관측된 original_name/vcpus/ram 기반 최소 수정과 회귀 테스트는 통과했으나 수정 후 전체 Reset은 아직 성공 재실행하지 못했습니다.\n* 삭제 시 Nova soft-delete와 연결된 Root Volume을 관측해 정확한 소유 ID를 다시 대조한 뒤 SDK forceDelete를 한 번 수행했습니다. Lab Server/Root Volume은 실제 GET 404, Lab Firewall은 전체 목록 부재를 확인했습니다.\n* 임시 Connector 설치 자원도 정리 완료했습니다: VM·Root Volume·imported keypair·Firewall 3개·public IP·port-forward 모두 0입니다.\n* **현재 잔여 = 테스트 소유 Tier 2개뿐입니다.** 전체 및 ID 필터 NSM 목록에는 ACTIVE로 남지만 문서화된 DELETE(networkId)는 404를 반환합니다. 모든 테스트 VM/Volume/Firewall 제거 후에도 동일했습니다. 내부 원인은 미확정이며 DELETE 404를 삭제 완료로 처리하지 않습니다.\n\n    * Lab: d1c45e11-f00b-4ec1-9f92-2716c2afa215 / 172.25.240.0/24\n    * Management: 1dba8bfa-0cf0-494a-813b-35770b1e5c6c / 172.25.241.0/24\n    * 기존 공유 Tier 3개는 유지됐으며 프로젝트 Tier 총수는 5입니다.\n    \n* 최신 production Connector를 배포해 바이너리 SHA256을 확인한 read-only WSS Reconcile에서는 알려진 5개 중 Tier 2개 present, Server/Volume/Firewall 3개 ABSENT를 확인했습니다. 이 실행은 Provision/Reset 재실행이 아닙니다.\n\n작업 중 main이 전진해 최신 main 6d675c74bff11f481d247267faefd4ce960dcd38로 충돌 없이 rebase했습니다. 구현과 로컬 검증 리비전은 55512d06cb6873c92ea99907611a570311a76023이며 이후 포털 관측 evidence commit cad79b0를 추가했습니다. 최신 main 기준 Go formatting(319파일), vet/test/build, Linux Connector·harness build, Web typecheck/lint/test(13파일/163테스트)/build, OpenAPI·8개 schema·Runtime YAML·migration prefix 검증은 모두 통과했습니다. 실제 클라우드 실행 리비전과 최신 main 로컬 검증은 증거에서 구분했습니다.\n\n사용자 재로그인과 두 테스트 Tier 삭제 승인을 받은 뒤 DX-M1 포털에서 각 Tier를 따로 선택하고 삭제 확인을 한 번씩 제출했습니다. **두 포털 삭제 모두** `Tier 삭제 실패 / 해당 Tier를 조회할 수 없습니다.`로 실패했습니다. 재로그인으로 해소되지 않았습니다. 2026-10-07 20:55:10 KST의 전체 NSM 조회와 ID 필터 조회에서 정확한 소유 Tier 2개가 여전히 존재하며 다른 테스트 자원은 모두 0입니다. API·인증된 포털 모두에서 조회/삭제 불일치가 관측됐고 내부 원인은 미확정입니다. KT 측 상태 확인을 위한 credential-free 문의 초안을 작성했으며 아직 제출하지 않았습니다. 최신 PR evidence commit은 cad79b0입니다. [오류 화면·실측·문의 초안](https://github.com/ktcloud4-SL/labbit-app/tree/fix/LBT-158-ktcloud-d1-compatibility/docs/connector/evidence/LBT-145/2026-10-07)에 기록했습니다. 실제 Tier 부재와 두 세대 전체 lifecycle 재검증 전까지 진행 중을 유지합니다. C1은 LBT-16 범위로 미평가입니다.\n\n현재 PR HEAD cad79b0acf5b165c8031f5b3594190e85b2d0151의 GitHub Actions도 모두 success입니다: [Go](https://github.com/ktcloud4-SL/labbit-app/actions/runs/37617893236), [Web](https://github.com/ktcloud4-SL/labbit-app/actions/runs/37617893424), [Contracts](https://github.com/ktcloud4-SL/labbit-app/actions/runs/37617893355). 실제 KT Tier 잔여 0 및 두 세대 lifecycle 완료와는 구분합니다.",
+          "created": "2026-10-07T17:50:29.616+0900",
+          "updated": "2026-10-07T21:04:00.659+0900",
+          "author": {
+            "accountId": "712020:3fb17f75-e32a-458c-8828-93888f428e6d",
+            "displayName": "백서빈"
+          }
+        }
+      ]
+    }
+  ],
+  "contracts": {
+    "runtime": "0.1.7",
+    "openapi": "0.1.5",
+    "wireSchemas": "8; unchanged by this follow-up"
+  },
+  "rawSnapshot": "audit-logs.zip/ssot-snapshot.json"
+}

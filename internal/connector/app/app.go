@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +18,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/wss"
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"golang.org/x/crypto/ssh"
@@ -27,6 +29,7 @@ type ConnectorApp struct {
 	Handler         *wss.Handler
 	TerminalManager *terminal.SessionManager
 	PTYFactory      wss.PTYFactoryFunc
+	VMAccess        *vmaccess.Manager
 	PreviewManager  *preview.SessionManager
 }
 
@@ -238,6 +241,27 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 
 	handler := wss.NewHandler(p, sender)
 	handler.SetTerminalManager(sessionMgr, ptyFactory, termCfg)
+	var accessManager *vmaccess.Manager
+	if _, ok := p.(vmaccess.Resolver); isProduction && !ok {
+		return nil, fmt.Errorf("Provider VM access resolver is required in production")
+	}
+	if resolver, ok := p.(vmaccess.Resolver); ok {
+		idleTimeout, err := sshIdleTimeoutFromEnvironment()
+		if err != nil {
+			return nil, err
+		}
+		accessManager = vmaccess.NewManager(resolver, vmaccess.Config{IdleTimeout: idleTimeout})
+		// The inherited factory has no LabInstance/generation parameters. Once
+		// VM access is enabled, fail closed for callers of that legacy boundary.
+		ptyFactory = func(string, string, int, int) (terminal.PTYChannel, error) {
+			return nil, vmaccess.ErrInvalidTarget
+		}
+		handler = wss.NewHandler(&accessLifecycleProvider{Provider: p, manager: accessManager}, sender)
+		handler.SetTerminalManager(sessionMgr, ptyFactory, termCfg)
+		handler.SetVMPTYFactory(func(ctx context.Context, target vmaccess.Target, cols, rows int) (terminal.PTYChannel, error) {
+			return terminal.NewManagedSSHPTY(ctx, accessManager, target, cols, rows)
+		})
+	}
 	if previewMgr != nil {
 		handler.SetPreviewManager(previewMgr, prevCfg)
 	}
@@ -246,6 +270,7 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 		Handler:         handler,
 		TerminalManager: sessionMgr,
 		PTYFactory:      ptyFactory,
+		VMAccess:        accessManager,
 		PreviewManager:  previewMgr,
 	}, nil
 }
@@ -297,15 +322,22 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
 	if err != nil {
 		return err
 	}
-	defer connectorApp.TerminalManager.CloseAll("SERVICE_RESTARTING")
-	if connectorApp.PreviewManager != nil {
-		defer connectorApp.PreviewManager.CloseAll("SERVICE_RESTARTING")
-	}
+	shutdown := sync.OnceFunc(func() {
+		connectorApp.TerminalManager.Shutdown(protocol.TerminalReasonServiceRestart)
+		if connectorApp.PreviewManager != nil {
+			connectorApp.PreviewManager.CloseAll(protocol.PreviewReasonServiceRestart)
+		}
+		if connectorApp.VMAccess != nil {
+			_ = connectorApp.VMAccess.Close()
+		}
+	})
+	defer shutdown()
 	handler := connectorApp.Handler
 	handler.SetOnError(func(error) {
 		logger.Warn("Connector Control 메시지 처리 실패", "connector_id", connectorID)
 	})
 	supervisor := wss.NewSupervisor(config, handler, wss.NewDefaultBackoffPolicy())
+	supervisor.SetOnShutdown(shutdown)
 	supervisor.SetOnConnected(func(ack *protocol.HelloAckPayload) {
 		logger.Info("Connector Control WSS 연결 완료",
 			"connector_id", connectorID,

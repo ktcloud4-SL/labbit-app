@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-12T06:13:12.503167+00:00",
+  "sourceFiles": 54,
+  "byteAndGitBlobMismatches": 0,
+  "archiveEntries": 220,
+  "archiveCRC": "PASS",
+  "archiveEntrySetHashSize": "PASS",
+  "pythonSyntax": "PASS",
+  "sourceGuardCases": 14,
+  "artifactGuardCases": 7,
+  "goAndCloudInvocationsInGuard": 0,
+  "secretFindings": 0,
+  "latestAutomaticRerun": "validation-summary.json latestVerification",
+  "postCloudSourceIdentity": "unchanged; new bytes actually tested, historical original preserved",
+  "powershellHelperSyntax": "PASS (Parser.ParseFile)",
+  "appAndResidualHarnessRaceCompile": "PASS (no selected tests, no cloud mutations)"
+}

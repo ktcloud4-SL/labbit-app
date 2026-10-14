@@ -17,6 +17,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/wss"
 )
 
@@ -302,13 +303,19 @@ func TestBuildConnector_ProductionContract_Validation(t *testing.T) {
 
 	// 6. Complete valid production configuration
 	mockProv := &provider.MockProvider{}
-	app, err := BuildConnector(mockProv, sender)
+	app, err := BuildConnector(&validVMAccessTestProvider{mockProv}, sender)
 	if err != nil {
 		t.Fatalf("expected BuildConnector to succeed with valid production config, got: %v", err)
 	}
 	if app == nil {
 		t.Fatal("expected non-nil app")
 	}
+}
+
+type validVMAccessTestProvider struct{ *provider.MockProvider }
+
+func (p *validVMAccessTestProvider) ResolveVMAccess(context.Context, vmaccess.Target) (vmaccess.Endpoint, error) {
+	return vmaccess.Endpoint{}, vmaccess.ErrInvalidTarget
 }
 
 func TestBuildConnector_AddressResolver_Wiring(t *testing.T) {
@@ -337,8 +344,16 @@ func TestBuildConnector_AddressResolver_Wiring(t *testing.T) {
 	}
 }
 
-type mockProviderWithTCPForwarder struct {
+type mockProviderWithVMAccessResolver struct {
 	provider.MockProvider
+}
+
+func (*mockProviderWithVMAccessResolver) ResolveVMAccess(context.Context, vmaccess.Target) (vmaccess.Endpoint, error) {
+	return vmaccess.Endpoint{}, vmaccess.ErrInvalidTarget
+}
+
+type mockProviderWithTCPForwarder struct {
+	mockProviderWithVMAccessResolver
 }
 
 func (m *mockProviderWithTCPForwarder) DialTCP(ctx context.Context, targetVmKey, serverID string, port int) (net.Conn, error) {
@@ -368,7 +383,7 @@ func TestBuildConnector_Production_Preview_FailClosed_And_Capabilities(t *testin
 		CredentialFile: credFile,
 		Capabilities:   []string{"terminal.v1"},
 	}
-	app1, err := buildConnector(&provider.MockProvider{}, sender, ctrlCfg1)
+	app1, err := buildConnector(&mockProviderWithVMAccessResolver{}, sender, ctrlCfg1)
 	if err != nil {
 		t.Fatalf("buildConnector failed: %v", err)
 	}

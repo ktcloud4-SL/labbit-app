@@ -1,0 +1,186 @@
+{
+  "runs": [
+    {
+      "runtime": "PowerShell 7",
+      "existingWrapper": false,
+      "wrapperRestoration": "PASS",
+      "cases": [
+        {
+          "case": "matching-code-and-evidence-only",
+          "result": "PASS",
+          "goStubCalls": 2,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "unmanifested-tracked-producer-change",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "staged-producer-change-with-original-worktree",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "untracked-go-source",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "ignored-go-source",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "restored-code-and-evidence-only",
+          "result": "PASS",
+          "goStubCalls": 2,
+          "actualCloudCalls": 0
+        }
+      ],
+      "cloudMutations": 0,
+      "checkedAt": "2026-10-12T12:17:40.8427327+09:00"
+    },
+    {
+      "runtime": "PowerShell 7",
+      "existingWrapper": true,
+      "wrapperRestoration": "PASS",
+      "cases": [
+        {
+          "case": "matching-code-and-evidence-only",
+          "result": "PASS",
+          "goStubCalls": 2,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "unmanifested-tracked-producer-change",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "staged-producer-change-with-original-worktree",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "untracked-go-source",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "ignored-go-source",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "restored-code-and-evidence-only",
+          "result": "PASS",
+          "goStubCalls": 2,
+          "actualCloudCalls": 0
+        }
+      ],
+      "cloudMutations": 0,
+      "checkedAt": "2026-10-12T12:17:45.4988638+09:00"
+    },
+    {
+      "cases": [
+        {
+          "case": "matching-code-and-evidence-only",
+          "result": "PASS",
+          "goStubCalls": 2,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "unmanifested-tracked-producer-change",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "staged-producer-change-with-original-worktree",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "untracked-go-source",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "ignored-go-source",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "restored-code-and-evidence-only",
+          "result": "PASS",
+          "goStubCalls": 2,
+          "actualCloudCalls": 0
+        }
+      ],
+      "wrapperRestoration": "PASS",
+      "existingWrapper": false,
+      "cloudMutations": 0,
+      "runtime": "Windows PowerShell 5.1",
+      "checkedAt": "2026-10-12T12:17:41.7139455+09:00"
+    },
+    {
+      "cases": [
+        {
+          "case": "matching-code-and-evidence-only",
+          "result": "PASS",
+          "goStubCalls": 2,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "unmanifested-tracked-producer-change",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "staged-producer-change-with-original-worktree",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "untracked-go-source",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "ignored-go-source",
+          "result": "PASS",
+          "goStubCalls": 0,
+          "actualCloudCalls": 0
+        },
+        {
+          "case": "restored-code-and-evidence-only",
+          "result": "PASS",
+          "goStubCalls": 2,
+          "actualCloudCalls": 0
+        }
+      ],
+      "wrapperRestoration": "PASS",
+      "existingWrapper": true,
+      "cloudMutations": 0,
+      "runtime": "Windows PowerShell 5.1",
+      "checkedAt": "2026-10-12T12:17:46.4977935+09:00"
+    }
+  ],
+  "codeCommit": "74c052f25e3778cafa6ae4fa75bd8775af46827a",
+  "note": "Isolated local clones; Actual Go throwing stub; source guard six cases per runtime repeated with existing Go wrapper absent/present. Original wrapper restored and temporary wrapper removed. BOMless overlay parsed. Cloud calls0."
+}

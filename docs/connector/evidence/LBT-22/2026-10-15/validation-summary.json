@@ -3,19 +3,27 @@
   "summary": "[C2] VM Access / Terminal 공동 통합",
   "dri": "이주희",
   "date": "2026-10-15",
-  "commit": "e91f83eb47989ec5d1028cc64364c5f6be7ec39e",
   "baseCommit": "a1de269e7333b658a5ee94854e53e661400db410",
   "pr": "https://github.com/ktcloud4-SL/labbit-app/pull/103",
   "branch": "feat/LBT-22-c2-terminal-integration",
   "status": "PASS",
+  "review_revisions": {
+    "gofmt": "RESOLVED (0 diff)",
+    "security_pty_redaction": "RESOLVED (raw bytes replaced with metadata len)",
+    "resize_race_and_sleep": "RESOLVED (c2ResizeAwarePTY channel synchronization, race=0)",
+    "reconnect_detached_check": "RESOLVED (auth.isDetached verified before reconnect)",
+    "env_flag_separation": "RESOLVED (LABBIT_OPENSTACK_TERMINAL_C2_TEST isolated from CC-02)"
+  },
   "results": {
+    "gofmt_check": "PASS",
     "go_vet": "PASS",
     "go_build": "PASS",
     "loopback_test": {
       "name": "TestTerminalC2_FullStackLoopback",
       "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
       "status": "PASS",
-      "duration_seconds": 0.06,
+      "race_detector": "PASS",
+      "duration_seconds": 0.02,
       "scenarios": [
         {
           "id": "1A",
@@ -24,12 +32,12 @@
         },
         {
           "id": "1B",
-          "name": "Terminal RESIZE Control Frame (80x24 -> 120x40)",
+          "name": "Terminal RESIZE Control Frame (80x24 -> 120x40, channel sync)",
           "status": "PASS"
         },
         {
           "id": "2",
-          "name": "Browser Unclean Disconnect & Graceful Reconnect (resumed=true)",
+          "name": "Browser Unclean Disconnect & DETACHED Grace Check & Reconnect (resumed=true)",
           "status": "PASS"
         },
         {

@@ -160,6 +160,15 @@ func (a *c2Auth) RecordDetached(_ context.Context, terminalSessionID string, _, 
 	return nil
 }
 
+func (a *c2Auth) isDetached(terminalSessionID string) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if s, ok := a.sessions[terminalSessionID]; ok {
+		return s.detached
+	}
+	return false
+}
+
 func (a *c2Auth) CloseSession(ctx context.Context, terminalSessionID, reason string) error {
 	a.mu.Lock()
 	s, ok := a.sessions[terminalSessionID]
@@ -369,12 +378,36 @@ func (p *c2BrowserPeer) readBinaryUntil(marker string, timeout time.Duration) st
 			}
 		}
 	}
-	p.t.Fatalf("timed out waiting for binary marker %q (accumulated: %s)", marker, string(accumulated))
+	p.t.Fatalf("timed out waiting for binary marker %q (accumulated_len=%d)", marker, len(accumulated))
 	return ""
 }
 
 func (p *c2BrowserPeer) close() {
 	_ = p.conn.Close()
+}
+
+// c2ResizeAwarePTY wraps MockPTY with a channel to notify resize events deterministically without sleep or data race.
+type c2ResizeAwarePTY struct {
+	*terminal.MockPTY
+	resizeCh chan [2]int
+}
+
+func newC2ResizeAwarePTY(cols, rows int) *c2ResizeAwarePTY {
+	return &c2ResizeAwarePTY{
+		MockPTY:  terminal.NewMockEchoPTY(cols, rows),
+		resizeCh: make(chan [2]int, 10),
+	}
+}
+
+func (p *c2ResizeAwarePTY) Resize(cols, rows int) error {
+	if err := p.MockPTY.Resize(cols, rows); err != nil {
+		return err
+	}
+	select {
+	case p.resizeCh <- [2]int{cols, rows}:
+	default:
+	}
+	return nil
 }
 
 // TestTerminalC2_FullStackLoopback verifies the complete C2 full-stack round trip
@@ -464,7 +497,7 @@ func TestTerminalC2_FullStackLoopback(t *testing.T) {
 	}
 
 	connectorHandler := wss.NewHandler(mockProvider, controlClient)
-	echoPTY := terminal.NewMockEchoPTY(80, 24)
+	echoPTY := newC2ResizeAwarePTY(80, 24)
 	connectorHandler.SetTerminalManager(sessions, func(targetVmKey, serverID string, cols, rows int) (terminal.PTYChannel, error) {
 		return echoPTY, nil
 	}, terminal.DataWSSClientConfig{
@@ -570,7 +603,7 @@ func TestTerminalC2_FullStackLoopback(t *testing.T) {
 	browser.writeBinary([]byte("LBT22_C2_ROUNDTRIP_TEST\n"))
 	out := browser.readBinaryUntil("LBT22_C2_ROUNDTRIP_TEST", 5*time.Second)
 	if !strings.Contains(out, "LBT22_C2_ROUNDTRIP_TEST") {
-		t.Fatalf("expected echo output, got: %s", out)
+		t.Fatalf("expected echo output marker not received (received_len=%d)", len(out))
 	}
 	t.Log("Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS")
 
@@ -584,13 +617,41 @@ func TestTerminalC2_FullStackLoopback(t *testing.T) {
 			"rows": 40,
 		},
 	})
-	time.Sleep(50 * time.Millisecond)
-	if echoPTY.Cols != 120 || echoPTY.Rows != 40 {
-		t.Fatalf("expected resized PTY 120x40, got %dx%d", echoPTY.Cols, echoPTY.Rows)
+	deadline := time.Now().Add(5 * time.Second)
+	resized := false
+	for time.Now().Before(deadline) {
+		select {
+		case size := <-echoPTY.resizeCh:
+			if size[0] == 120 && size[1] == 40 {
+				resized = true
+				break
+			}
+		case <-time.After(50 * time.Millisecond):
+		}
+		if resized {
+			break
+		}
+	}
+	if !resized {
+		t.Fatal("timed out waiting for PTY Resize event to 120x40")
 	}
 	t.Log("Scenario 1B: Terminal RESIZE PASS")
 
 	browser.close()
+
+	// Verify that SaaS/Relay recorded the session transition to DETACHED and armed Grace period.
+	deadline = time.Now().Add(3 * time.Second)
+	detached := false
+	for time.Now().Before(deadline) {
+		if auth.isDetached(c2SessionID) {
+			detached = true
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if !detached {
+		t.Fatalf("expected session %s to transition to DETACHED state in control", c2SessionID)
+	}
 
 	if active := sessions.ActiveCount(); active != 1 {
 		t.Fatalf("expected 1 active session during grace, got %d", active)
@@ -623,7 +684,7 @@ func TestTerminalC2_FullStackLoopback(t *testing.T) {
 	browser2.writeBinary([]byte("RECONNECT_VERIFY\n"))
 	reconOut := browser2.readBinaryUntil("RECONNECT_VERIFY", 5*time.Second)
 	if !strings.Contains(reconOut, "RECONNECT_VERIFY") {
-		t.Fatalf("expected echo after reconnect: %s", reconOut)
+		t.Fatalf("expected echo after reconnect marker not received (received_len=%d)", len(reconOut))
 	}
 	t.Log("Scenario 2: Browser Reconnect within Grace Period PASS")
 
@@ -634,7 +695,7 @@ func TestTerminalC2_FullStackLoopback(t *testing.T) {
 		t.Fatalf("expected ended event for session %s, got %s", c2SessionID, endedEvent.Correlation.TerminalSessionID)
 	}
 
-	deadline := time.Now().Add(3 * time.Second)
+	deadline = time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) && sessions.ActiveCount() > 0 {
 		time.Sleep(50 * time.Millisecond)
 	}
@@ -644,8 +705,6 @@ func TestTerminalC2_FullStackLoopback(t *testing.T) {
 	t.Log("Scenario 3: PTY Close & Safe Resource Release PASS")
 }
 
-
-
 // TestOpenStackTerminalC2Integration verifies the complete End-to-End round trip:
 // Browser WebSocket ↔ SaaS Terminal Relay ↔ Connector Transport ↔ Real OpenStack VM PTY.
 // It exercises:
@@ -654,7 +713,7 @@ func TestTerminalC2_FullStackLoopback(t *testing.T) {
 // 3. Unclean disconnect, session preservation within grace period, and successful reconnect (resumed=true).
 // 4. Session termination, remote shell exit, clean PTY release, and absent residual state.
 func TestOpenStackTerminalC2Integration(t *testing.T) {
-	if os.Getenv("LABBIT_OPENSTACK_TERMINAL_C2_TEST") != "1" && os.Getenv("LABBIT_OPENSTACK_PTY_CC02_TEST") != "1" {
+	if os.Getenv("LABBIT_OPENSTACK_TERMINAL_C2_TEST") != "1" {
 		t.Skip("set LABBIT_OPENSTACK_TERMINAL_C2_TEST=1 for real local OpenStack Terminal C2 full-stack acceptance")
 	}
 
@@ -953,7 +1012,7 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 	browser.writeBinary([]byte("printf 'LBT22-SIZE:%s\\n' \"$(stty size)\"\n"))
 	sizeOut := browser.readBinaryUntil("LBT22-SIZE:40 120", 10*time.Second)
 	if !strings.Contains(sizeOut, "40 120") {
-		t.Fatalf("expected resized stty size '40 120', got: %s", sizeOut)
+		t.Fatalf("expected resized stty size '40 120' marker not received (received_len=%d)", len(sizeOut))
 	}
 	t.Log("Scenario 1B: Terminal RESIZE (120x40 -> stty 40 120) PASS")
 
@@ -967,6 +1026,20 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 
 	// Simulate sudden browser network disconnection.
 	browser.close()
+
+	// Verify that SaaS/Relay recorded the session transition to DETACHED and armed Grace period.
+	deadline := time.Now().Add(5 * time.Second)
+	detached := false
+	for time.Now().Before(deadline) {
+		if auth.isDetached(c2SessionID) {
+			detached = true
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if !detached {
+		t.Fatalf("expected session %s to transition to DETACHED state in control", c2SessionID)
+	}
 
 	// Connector and VM PTY must still be running in grace period.
 	if active := sessions.ActiveCount(); active != 1 {
@@ -1002,7 +1075,7 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 	browser2.writeBinary([]byte("printf 'LBT22-STATE-ECHO:%s\\n' \"$LBT22_PRESERVED_STATE\"\n"))
 	reconnectOut := browser2.readBinaryUntil("LBT22-STATE-ECHO:C2_RECONNECT_OK", 10*time.Second)
 	if !strings.Contains(reconnectOut, "C2_RECONNECT_OK") {
-		t.Fatalf("preserved state not found after reconnect: %s", reconnectOut)
+		t.Fatalf("preserved state not found after reconnect (received_len=%d)", len(reconnectOut))
 	}
 	t.Log("Scenario 2: Browser Reconnect within Grace Period & State Preservation PASS")
 
@@ -1018,7 +1091,7 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 	}
 
 	// Wait briefly for sessions manager to reflect termination.
-	deadline := time.Now().Add(5 * time.Second)
+	deadline = time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) && sessions.ActiveCount() > 0 {
 		time.Sleep(50 * time.Millisecond)
 	}

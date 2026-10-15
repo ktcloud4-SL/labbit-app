@@ -33,6 +33,8 @@ import (
 // 0이 아닌 값은 60초 grace나 heartbeat 같은 긴 시간을 test에서 기다리지 않도록 주입하는 용도다.
 type stackOptions struct {
 	Logger *slog.Logger
+	// OperationSink는 optional application event port다. 기본 Run은 nil을 전달한다.
+	OperationSink connector.EventSink
 	// PublicOrigin은 httpapi.ParseOrigin으로 정규화한 trusted origin이다. HTTP unsafe method와 Browser WSS Upgrade의 Origin 검증에 쓴다.
 	PublicOrigin string
 	// Realtime이 true이면 Terminal Relay와 TerminalSession 생성/종료를 함께 조립한다(api와 realtime role이 같은 process).
@@ -108,14 +110,13 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	fileSink := &fileSinkForwarder{}
 	// Preview도 같은 관계다. Router가 PREVIEW_OPEN_RESULT를 PreviewSession use case에 넘기고 use case가 Router로 PREVIEW_OPEN을 보낸다.
 	previewSink := &previewSinkForwarder{}
-	routerOpts := connector.RouterOptions{Registry: registry, Logger: logger, FileSink: fileSink}
+	routerOpts := connector.RouterOptions{Registry: registry, Logger: logger, FileSink: fileSink, Sink: opts.OperationSink}
 	if opts.Preview {
 		routerOpts.PreviewSink = previewSink
 	}
 	if opts.Realtime {
 		routerOpts.TerminalSink = sink
 	}
-	// Sink(Operation 결과)는 durable Operation Worker(LBT-18)가 생기기 전이라 두지 않는다.
 	router, err := connector.NewRouter(routerOpts)
 	if err != nil {
 		return nil, err

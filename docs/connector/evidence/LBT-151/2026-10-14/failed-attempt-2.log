@@ -1,0 +1,16 @@
+Control evidence: CONTROL_FIXTURE_REGISTERED
+Control evidence: HELLO_HELLO_ACK_HEARTBEAT_PASS
+Production Provider query VALIDATE_CONNECTION PASS; items=0
+Control evidence: QUERY_VALIDATE_CONNECTION_PASS
+Production Provider query LIST_IMAGES PASS; items=12
+Control evidence: QUERY_LIST_IMAGES_PASS
+Production Provider query LIST_FLAVORS PASS; items=235
+Control evidence: QUERY_LIST_FLAVORS_PASS
+Control evidence: provision_FAILED
+Actual WSS PROVISION(g1): outcome=FAILED resources=5
+Safe Provider error: ERR_VM_BOOT_TIMEOUT VM SSH did not become ready
+Control evidence: teardown_SUCCEEDED
+Actual WSS CLEANUP(g2): outcome=SUCCEEDED resources=5
+Control evidence: OP02_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS
+Production Connector shutdown: exited successfully within 5s; forcedKill=false
+Control acceptance failed: operation did not succeed; confirmed resources retained for cleanup

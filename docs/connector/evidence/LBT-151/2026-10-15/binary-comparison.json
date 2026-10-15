@@ -1,0 +1,158 @@
+{
+  "head": "62722d259a004e2a04d5f26a1af83e177ebc0e35",
+  "comparison": {
+    "labbit-connector-ktcloud": {
+      "actualOct14": "46f8fc426cc7acd628cb27a6a58ca9f4d81aa04075f01a71633a8bc44218b303",
+      "freshOct15": "46f8fc426cc7acd628cb27a6a58ca9f4d81aa04075f01a71633a8bc44218b303",
+      "rawEqual": true
+    },
+    "lbt145-control-linux": {
+      "actualOct14": "99a098bbdeaf81e4f0cadfcf0325954588a75669f8a69d976162443d8669b07c",
+      "freshOct15": "df2372430638317a5c1456229b4cc0eea7ccfd245c5deee9d9916ea2d8d34f84",
+      "rawEqual": false,
+      "lfOverlayOct15": "99a098bbdeaf81e4f0cadfcf0325954588a75669f8a69d976162443d8669b07c",
+      "overlayEqual": true
+    },
+    "labbit-workspace-sftp": {
+      "actualOct14": "2ad7fce4f34425f300e597ff4093d655e649a15b43b519b55b4a9cb939b42804",
+      "freshOct15": "2ad7fce4f34425f300e597ff4093d655e649a15b43b519b55b4a9cb939b42804",
+      "rawEqual": true
+    },
+    "bootstrap.exe": {
+      "actualOct14": "464d08c9fe4b99cc89554ec71f4eeca5fbdae522bf207b4cdba4ae7ae1e501bd",
+      "freshOct15": "1ebbdd8c6b16500a442184b6010a7b5916f9218714341c83c1ae1ef05c057386",
+      "rawEqual": false,
+      "lfOverlayOct15": "464d08c9fe4b99cc89554ec71f4eeca5fbdae522bf207b4cdba4ae7ae1e501bd",
+      "overlayEqual": true
+    }
+  },
+  "overlaySourceFiles": [
+    {
+      "path": "tools/ktcloud-d1-acceptance/inbox_test.go",
+      "rawSHA256": "042146f9562bb45cf04d865654cf72d047f829c076460965cb58218606d820c1",
+      "lfSHA256": "fc97e598e89a5cde3a3138ed93c394e569749195e5deb860b1b89da128721a46",
+      "crlfPairs": 30
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/main.go",
+      "rawSHA256": "a34febf725866fed9543578dcd669fc1b1ba990932ba18c28900ca41e9fd7053",
+      "lfSHA256": "3abad90e850ad9bef7ce78575c3df15ee841d9f6cfac9f90bce1f172859ffd9f",
+      "crlfPairs": 581
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/op02.go",
+      "rawSHA256": "963d701c414fac084212669245b297163435c6f67fccd0ffb345271c32cf992d",
+      "lfSHA256": "1bdf833da3ba87f8a96520280cfd74f3eb81ae5ed6026b18f1165081489b01c0",
+      "crlfPairs": 493
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/op02_binding_test.go",
+      "rawSHA256": "900b360908001b2878c1614808a36edbc101a17a3df4ceec6d6d3d7dde968e72",
+      "lfSHA256": "ac4e74e9e8c20e428b7fac5c1b6f867c7910168032569758c4f787193081ad74",
+      "crlfPairs": 36
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/op02_failures.go",
+      "rawSHA256": "4ff0cc2687f0fc4e74f65f94e369fb1a3d679b44ff5df96153aa9600a8d3f072",
+      "lfSHA256": "ebfbe484f8051b8a644801a892be0a0012d9fdcdc622523e0dbfe3a70f587d0e",
+      "crlfPairs": 290
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/op02_identity_test.go",
+      "rawSHA256": "ae6e5ecc82bae0fb464cdfa97e80dfedb358655a3f8206d2d3915b717e5a1c14",
+      "lfSHA256": "04ac39e2638fec6c1601834a1f72fba8c6b250dee006bab55398df1c0d9128c0",
+      "crlfPairs": 117
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/op02_peer.go",
+      "rawSHA256": "4d51321142cd047e2a106a533e74b151308360981b675faac291e7e0483186d2",
+      "lfSHA256": "d8f23530e8718550a2a8cf05a01492795a036198df30db4c418d8ff974f7550d",
+      "crlfPairs": 291
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/op02_peer_test.go",
+      "rawSHA256": "6505c0288b23b94c95b6d9087acfff934271c69dd919e0f6641580dca8aeb9cd",
+      "lfSHA256": "643b0090f6d76e896b0a1ef50a6b9b273ed3c0aafb368bb5f2a4f6165befda74",
+      "crlfPairs": 156
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/op02_ssh.go",
+      "rawSHA256": "756191a271f635a6120c5992578dcf3a25e044d276e205f5af9ad468c738a6a2",
+      "lfSHA256": "15bcdaa5aefb002c33514976313e3c0dd15a2bcff8e5911f19dc6ef89dc55e6a",
+      "crlfPairs": 184
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/op02_unknown_save_test.go",
+      "rawSHA256": "045477037d06055e77bd2aa4d9b9344245f6bce547ac4bf034cae8a2d961543c",
+      "lfSHA256": "11b4ce31b664a28e5c17d401ba588e10cb7211d35acf6d504e62fe6672894d5c",
+      "crlfPairs": 124
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/access.go",
+      "rawSHA256": "eb4ebebfa37853f3756dbb84e186fcfdfd1b0f4817d6b6321ebff203d755e283",
+      "lfSHA256": "10d3a02668f03b0cfe3623de775c3910da99b9c40206a16d6449064ea7f60c02",
+      "crlfPairs": 440
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/access_test.go",
+      "rawSHA256": "a6372e20ccfb69bca9bff0355696e5af31ddc988ccadf514ccc5667a20dfa939",
+      "lfSHA256": "9ce27a6fafa85fbe650e29940eaf2b068ca89db0543c5ed6dbdb632018979aec",
+      "crlfPairs": 73
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/access_unknown_test.go",
+      "rawSHA256": "df4eb9abbfdcc735980b40666b01c9f3e04d6a896d88489bb926a8ee271afb89",
+      "lfSHA256": "9cb40b4a5ba709873e9409f7a74b1366e52ff304472d023d16a1f65a4f3566a4",
+      "crlfPairs": 69
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/baseline.go",
+      "rawSHA256": "b7f9bfe94957c4756daa1c14abb12118c0d1ae6d552d559de01c05d2ff35cf56",
+      "lfSHA256": "4d2c0f600c8249c1588b29c6ae24948866963fd3c7fdfd45920f59e267994a21",
+      "crlfPairs": 135
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/cancellation.go",
+      "rawSHA256": "046acca053f25fcf229a80a9122c40d8f5488b55992f440f35b193424df8c90e",
+      "lfSHA256": "d47ac760cdd85376638bae90e5001d1f23d40105b6d2c790084d9e80c6624bab",
+      "crlfPairs": 11
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/cancellation_test.go",
+      "rawSHA256": "621b7826df8901aa6dc24361ec715362c077d491b0ea7064fecdd31f70bf40b3",
+      "lfSHA256": "0093c6a1feb537941028ae1a3f128f3d180404c546f1eeda59251e060aac8ad5",
+      "crlfPairs": 38
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/deploy.go",
+      "rawSHA256": "43db96d8391462b2f91c5cfca1333c405cc00169e8e478940cadcf659c3c6b02",
+      "lfSHA256": "52ef29197a36e7102b1b4fb512ed43edc3d51412e110346997e4b94e1585e6be",
+      "crlfPairs": 864
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/main.go",
+      "rawSHA256": "c8711d9729f56b60ef2291797d43f291d4b4b792d1841d2bb9a498ef52e2bf5b",
+      "lfSHA256": "d326c2b1017a459cf31143ea974be0a721bb1a5c7d0bedb1d1bd23a366495f61",
+      "crlfPairs": 626
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/ownership_test.go",
+      "rawSHA256": "78c4d31da63a23884516b585eb1cc172e12b3ef7bc899823b7943271dfc8505e",
+      "lfSHA256": "717826173a7cdba0de8ed7a48144c9c174e6d953fa5110b549d3d0e64b4448c9",
+      "crlfPairs": 79
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/ssh_observe.go",
+      "rawSHA256": "d49db4254e0703bb01230ddab822919759fe0471daec527f7425792bdf983175",
+      "lfSHA256": "da996d47e0986b22888d5723120350beb719755b1e4fb951a78a808fd3f98e42",
+      "crlfPairs": 158
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/ssh_observe_test.go",
+      "rawSHA256": "c1e93a1207d772f17de740f2f6a88b153e51f97012bf40cc8dac94dbbb9fdb66",
+      "lfSHA256": "acd86b3af9ca7f5429fac14388c301770c5922fab678ba8f46ac751619f7762e",
+      "crlfPairs": 67
+    }
+  ],
+  "note": "Overlay changes only CRLF to LF in the 21 LBT151 changed tool Go files. Tracked source is untouched. Binary byte identity is required before attributing original fixture binaries to current source; production binaries use fresh ordinary build."
+}

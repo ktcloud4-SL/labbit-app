@@ -1,0 +1,6 @@
+{
+  "entries": 98,
+  "ipv4Redactions": 2,
+  "restrictedPatternFindings": [],
+  "limit": "Restricted pattern scan and manual metadata review, not comprehensive DLP. Only local unit/Mock/static build logs from this run are eligible."
+}

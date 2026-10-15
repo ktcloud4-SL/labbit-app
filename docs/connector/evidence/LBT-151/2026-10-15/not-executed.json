@@ -1,0 +1,6 @@
+{
+  "linuxTaggedHarnessExecution": "NOT RUN: local host is Windows, no WSL distro/Docker/PostgreSQL test server. Linux vet/build/test compilation only; no substitution for POSIX gates or PostgreSQL behavior.",
+  "postgresIntegrationSuite": "NOT RUN; no test DSN/server. No DB/runtime/HTTP/wire change in the proposed LBT151 diff.",
+  "actualCloudOct15": "NOT RUN; no cloud resources created. Reuse Oct14 actual proof only for unchanged and binary-equivalent Connector/VM fixture scope.",
+  "c2FullBrowserBackendVM": "NOT RUN; remains LBT22."
+}

@@ -1,0 +1,80 @@
+{
+  "plannedGenerations": 2,
+  "labInstanceId": "lbt145-control-80feaf8c5b41650d",
+  "stage": "OP02_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS",
+  "hello": true,
+  "heartbeat": true,
+  "passed": true,
+  "resources": [
+    {
+      "resourceType": "KT_TIER",
+      "providerId": "1653521d-cff6-4db2-b114-a895fc0893a3",
+      "generation": 1,
+      "logicalName": "lab-tier",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_TIER",
+      "providerId": "85552843-8624-495c-b933-efcd2b6d6a5b",
+      "generation": 1,
+      "logicalName": "workspace:management-tier",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_FIREWALL_POLICY",
+      "providerId": "1e6294b3-3f74-4c93-a378-e5e472be968c",
+      "generation": 1,
+      "logicalName": "workspace:management-ssh",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "SERVER",
+      "providerId": "48c65cff-cbc5-4a97-bd92-95073bb03c90",
+      "generation": 1,
+      "logicalName": "workspace",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "VOLUME",
+      "providerId": "d0efad81-6223-45a1-87a9-cff2f2bd6694",
+      "generation": 1,
+      "logicalName": "workspace:root-volume",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_TIER",
+      "providerId": "a19ffc03-4688-4546-ad8a-d8f4a147db1d",
+      "generation": 2,
+      "logicalName": "lab-tier",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_TIER",
+      "providerId": "bc7b039a-08ad-4267-8e46-694658a43d0a",
+      "generation": 2,
+      "logicalName": "workspace:management-tier",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_FIREWALL_POLICY",
+      "providerId": "03911e01-a56c-4428-9bf9-9670ef0ca0b5",
+      "generation": 2,
+      "logicalName": "workspace:management-ssh",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "SERVER",
+      "providerId": "6fb9a3a8-00f3-42d1-bdcb-7f1a3c937e44",
+      "generation": 2,
+      "logicalName": "workspace",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "VOLUME",
+      "providerId": "84444c2a-56b3-4550-ac9f-cdb6815ad8b5",
+      "generation": 2,
+      "logicalName": "workspace:root-volume",
+      "observedState": "DELETED"
+    }
+  ]
+}

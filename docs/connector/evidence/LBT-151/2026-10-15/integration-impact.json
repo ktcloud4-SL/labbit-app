@@ -1,0 +1,54 @@
+{
+  "recordedAt": "2026-10-15T06:17:48.681986+00:00",
+  "testedHead": "62722d259a004e2a04d5f26a1af83e177ebc0e35",
+  "originMain": "c628031e9fb2b511f941504a29c91e1c59dbd734",
+  "previousLocalHead": "8971ad595902391d85c8b2fb0c50145e32455557",
+  "oldBase": "7917531fe630357eeb1f055ea2ad08dbee93a00e",
+  "method": "git rebase origin/main; git range-diff confirms unchanged original LBT151 patch",
+  "mainChangedPaths": [
+    ".github/workflows/go.yml",
+    "docs/connector/backend-router-harness.md",
+    "docs/connector/evidence/LBT-167/2026-10-14-harness.md",
+    "internal/server/app/app.go",
+    "internal/server/app/control_stack.go",
+    "internal/server/app/router_harness.go",
+    "internal/server/app/router_harness_disabled.go",
+    "internal/server/app/router_harness_disabled_test.go",
+    "internal/server/app/router_harness_integration_test.go",
+    "internal/server/app/router_harness_plan.go",
+    "internal/server/app/router_harness_test.go",
+    "internal/server/connector/router.go",
+    "internal/server/connector/router_session_test.go",
+    "web/src/app/router.test.tsx",
+    "web/src/pages/LabSpecEditorPage.tsx",
+    "web/src/pages/LabSpecMappingFields.test.tsx",
+    "web/src/pages/LabSpecMappingFields.tsx",
+    "web/src/shared/api/contracts.ts",
+    "web/src/shared/api/labbitApi.test.ts",
+    "web/src/shared/api/labbitApi.ts",
+    "web/src/shared/api/mockLabbitApi.ts"
+  ],
+  "compiledSourceCounts": {
+    "oct14": 467,
+    "oct15": 474
+  },
+  "compiledSourceModified": [
+    "internal/server/app/app.go",
+    "internal/server/app/control_stack.go",
+    "internal/server/connector/router.go"
+  ],
+  "compiledSourceAdded": [
+    "internal/server/app/router_harness.go",
+    "internal/server/app/router_harness_disabled.go",
+    "internal/server/app/router_harness_disabled_test.go",
+    "internal/server/app/router_harness_integration_test.go",
+    "internal/server/app/router_harness_plan.go",
+    "internal/server/app/router_harness_test.go",
+    "internal/server/connector/router_session_test.go"
+  ],
+  "compiledSourceRemoved": [],
+  "originalToolsAndOct14EvidenceGitDiffEmpty": true,
+  "lbt151GoLFIdenticalToActualOct14": true,
+  "noCloudExecutionOct15": true,
+  "sourceIdentityScope": "Go/go.mod/go.sum LF list; web/contracts are identified by tested Git HEAD, unchanged tracked code and exact upstream main tree."
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "source": ".local\\lbt151-live-20261014\\ktcloud-control-ledger.json",
+    "originalSha256": "f4b2674ccf1e07592796a7fcb3dc3e4b5eef0b965267451f176086c4b3688df5",
+    "export": "allowlisted journal metadata/resources only",
+    "originalPreserved": true
+  },
+  {
+    "source": ".local\\lbt151-live-20261014\\attempt-1-failed\\ktcloud-control-ledger.json",
+    "originalSha256": "700d7f7ba4ab2f83cad645eb0782ca41afef3443bfa1395bf09266166df629b9",
+    "export": "allowlisted journal metadata/resources only",
+    "originalPreserved": true
+  },
+  {
+    "source": ".local\\lbt151-retry-20261014\\ktcloud-control-ledger.json",
+    "originalSha256": "19127da7df633e9bf2777babfc7b9df293014c06e042130d89720222d52a296d",
+    "export": "allowlisted journal metadata/resources only",
+    "originalPreserved": true
+  },
+  {
+    "source": ".local\\lbt151-retry-20261014\\attempt-2-failed\\ktcloud-control-ledger.json",
+    "originalSha256": "19127da7df633e9bf2777babfc7b9df293014c06e042130d89720222d52a296d",
+    "export": "allowlisted journal metadata/resources only",
+    "originalPreserved": true
+  },
+  {
+    "source": ".local\\lbt151-run3-20261014\\ktcloud-control-ledger.json",
+    "originalSha256": "ec902babe5df8c8cf6cd35da3dddae8b19231ead38ecbb7b1dad583e3bc36114",
+    "export": "allowlisted journal metadata/resources only",
+    "originalPreserved": true
+  },
+  {
+    "source": ".local\\lbt151-run3-20261014\\attempt-3-failed\\ktcloud-control-ledger.json",
+    "originalSha256": "ec902babe5df8c8cf6cd35da3dddae8b19231ead38ecbb7b1dad583e3bc36114",
+    "export": "allowlisted journal metadata/resources only",
+    "originalPreserved": true
+  },
+  {
+    "source": ".local\\lbt151-run4-20261014\\ktcloud-control-ledger.json",
+    "originalSha256": "c8c65d5114b6120e413949e609e9fb1842f1fe6d12d2efbccd242e240bb5d79a",
+    "export": "allowlisted journal metadata/resources only",
+    "originalPreserved": true
+  },
+  {
+    "source": ".local\\lbt151-run4-20261014\\attempt-4-failed\\ktcloud-control-ledger.json",
+    "originalSha256": "c8c65d5114b6120e413949e609e9fb1842f1fe6d12d2efbccd242e240bb5d79a",
+    "export": "allowlisted journal metadata/resources only",
+    "originalPreserved": true
+  },
+  {
+    "source": ".local\\lbt151-run5-20261014\\ktcloud-control-ledger.json",
+    "originalSha256": "fd04c8fce6c52278bbed58e324287da9135018cd22e4ac423e43091405a0a429",
+    "export": "allowlisted journal metadata/resources only",
+    "originalPreserved": true
+  },
+  {
+    "source": ".local\\lbt151-run5-20261014\\attempt-5-failed\\ktcloud-control-ledger.json",
+    "originalSha256": "fd04c8fce6c52278bbed58e324287da9135018cd22e4ac423e43091405a0a429",
+    "export": "allowlisted journal metadata/resources only",
+    "originalPreserved": true
+  },
+  {
+    "source": ".local\\lbt151-run6-20261014\\ktcloud-control-ledger.json",
+    "originalSha256": "0e81936bdf7fc9997f563407d87c223c728db4613d2e4b181a6f0366886581cc",
+    "export": "allowlisted journal metadata/resources only",
+    "originalPreserved": true
+  },
+  {
+    "source": ".local\\lbt151-run6-20261014\\ktcloud-control-ledger.json",
+    "originalSha256": "0e81936bdf7fc9997f563407d87c223c728db4613d2e4b181a6f0366886581cc",
+    "export": "allowlisted journal metadata/resources only",
+    "originalPreserved": true
+  }
+]

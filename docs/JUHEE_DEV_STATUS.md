@@ -162,13 +162,18 @@ labbit-app/
 
 ## 6. 다음 개발 진행 계획 (LBT-20 실제 VM Acceptance / C2 / M4 Preview)
 
-* **LBT-20 Connector-side 실제 Workspace VM 검증**:
-  * 최신 `main`의 Connector Terminal Transport와 OpenStack Provider의 management address 경계를 이용해 실제 Workspace VM SSH/PTY를 연결합니다.
-  * 실제 VM에서 PTY INPUT/OUTPUT, resize, close를 실측하고 LBT-20 Evidence로 남깁니다.
-  * 이 Acceptance가 완료되면 LBT-20을 Done 처리할 수 있습니다.
-* **LBT-22(C2) 공동 통합**:
-  * LBT-20 및 BE-06/OP-02 선행조건 완료 후 Browser/SaaS TerminalSession → Connector Transport → 실제 VM SSH/PTY 전체 왕복을 검증합니다.
-  * reconnect/close 대표 흐름의 공동 Evidence를 LBT-22에 남깁니다.
+* **LBT-20 Connector-side 실제 Workspace VM 검증 (서빈 님 완료)**:
+  * 최신 `main`의 Connector Terminal Transport와 OpenStack Provider의 management address 경계를 이용해 실제 Workspace VM SSH/PTY를 연결 완료.
+  * 실제 VM에서 PTY INPUT/OUTPUT, resize, close를 실측 완료 (LBT-148/LBT-20 Acceptance 충족).
+* **LBT-22(C2) 공동 통합 (구현 완료 및 자동 회귀 검증)**:
+  * LBT-20 선행조건 완료에 따라 Browser/SaaS TerminalSession ↔ Connector Transport ↔ 실제 VM SSH/PTY 전체 왕복 E2E 통합 테스트 구축 완료 (`internal/connector/provider/openstack/terminal_c2_integration_test.go`).
+  * `TestTerminalC2_FullStackLoopback` 자동 검증 하네스 구현 및 실행 완료:
+    - **Scenario 1A**: Browser WSS ↔ SaaS Relay ↔ Connector Transport ↔ PTY 양방향 바이트 스트리밍 Echo PASS
+    - **Scenario 1B**: 터미널 창 Resize 제어 프레임 (80x24 ➔ 120x40) PASS
+    - **Scenario 2**: Browser 네트워크 강제 단절 ➔ Grace Period(유예 시간) 내 세션 유지 ➔ 재연결 및 세션 복구(`resumed=true`) PASS
+    - **Scenario 3**: 셸 종료 ➔ Safe `TERMINAL_ENDED` 이벤트 통지 및 활성 세션 자원 100% 해제 PASS
+  * 실제 OpenStack 환경 플래그(`LABBIT_OPENSTACK_TERMINAL_C2_TEST=1`)를 통한 C2 실측 및 최종 Evidence 패키징 지원.
 * **Milestone M4 착수 (웹 애플리케이션 미리보기 Preview)**:
   * 준비 5에서 합의한 `PREVIEW_OPEN`/`PREVIEW_CLOSE` 및 `labbit.connector-preview.v1` WSS 파이프라인 구축
+
 

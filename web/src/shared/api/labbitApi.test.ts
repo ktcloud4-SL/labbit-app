@@ -131,6 +131,32 @@ describe('httpLabbitApi', () => {
     )
   })
 
+  it('LabSpec Mapping 후보를 OpenAPI GET 경로와 Cookie로 조회한다', async () => {
+    const options = {
+      items: [{
+        providerConnectionId: '00000000-0000-4000-8000-000000000101',
+        images: [{ id: '00000000-0000-4000-8000-000000000102', displayName: 'Ubuntu' }],
+        flavors: [{
+          id: '00000000-0000-4000-8000-000000000103',
+          displayName: 'Medium',
+          vcpus: 2,
+          ramMiB: 4096,
+          diskGiB: 20,
+        }],
+      }],
+    }
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(options), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(httpLabbitApi.listLabSpecMappingOptions()).resolves.toEqual(options)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/lab-specs/mapping-options',
+      expect.objectContaining({ credentials: 'include' }),
+    )
+  })
+
   it('Class 목록 요청을 세션 Cookie와 함께 전송하고 목록을 반환한다', async () => {
     const classes = {
       items: [

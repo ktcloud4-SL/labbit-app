@@ -5,6 +5,7 @@ import type {
   CreateTerminalSessionRequest,
   LabSpec,
   LabSpecList,
+  LabSpecMappingOptionsList,
   LabExecution,
   LabSpecWrite,
   LoginRequest,
@@ -127,6 +128,30 @@ const mockMemberships: Record<string, ClassMembershipList> = {
 
 let mockClassDetails: Record<string, ClassDetail> = {}
 
+// Development-only Mapping IDs. Production choices come solely from the Org-scoped API.
+export const mockLabSpecMappingOptions: LabSpecMappingOptionsList = {
+  items: [
+    {
+      providerConnectionId: '00000000-0000-4000-8000-000000000101',
+      images: [
+        { id: '00000000-0000-4000-8000-000000000102', displayName: 'Ubuntu 24.04' },
+      ],
+      flavors: [
+        { id: '00000000-0000-4000-8000-000000000103', displayName: 'Medium', vcpus: 2, ramMiB: 4096, diskGiB: 20 },
+      ],
+    },
+    {
+      providerConnectionId: '00000000-0000-4000-8000-000000000201',
+      images: [
+        { id: '00000000-0000-4000-8000-000000000202', displayName: 'Rocky 9' },
+      ],
+      flavors: [
+        { id: '00000000-0000-4000-8000-000000000203', displayName: 'Small', vcpus: 1, ramMiB: 2048, diskGiB: 10 },
+      ],
+    },
+  ],
+}
+
 const initialLabSpecs: LabSpec[] = [
   {
     id: 'lab-spec-kubernetes-basic',
@@ -137,15 +162,15 @@ const initialLabSpecs: LabSpec[] = [
       {
         role: 'control',
         name: 'Control Plane',
-        imageRef: 'ubuntu-24.04',
-        sizeRef: 'medium',
+        imageRef: '00000000-0000-4000-8000-000000000102',
+        sizeRef: '00000000-0000-4000-8000-000000000103',
         count: 1,
       },
       {
         role: 'worker',
         name: 'Worker',
-        imageRef: 'ubuntu-24.04',
-        sizeRef: 'medium',
+        imageRef: '00000000-0000-4000-8000-000000000102',
+        sizeRef: '00000000-0000-4000-8000-000000000103',
         count: 2,
       },
     ],
@@ -164,8 +189,8 @@ const initialLabSpecs: LabSpec[] = [
     vms: [
       {
         role: 'node',
-        imageRef: 'rocky-9',
-        sizeRef: 'small',
+        imageRef: '00000000-0000-4000-8000-000000000202',
+        sizeRef: '00000000-0000-4000-8000-000000000203',
         count: 2,
       },
     ],
@@ -472,6 +497,15 @@ export const mockLabbitApi: LabbitApi = {
     }
 
     return result
+  },
+
+  async listLabSpecMappingOptions() {
+    requireSession()
+    return { items: mockLabSpecMappingOptions.items.map((group) => ({
+      providerConnectionId: group.providerConnectionId,
+      images: group.images.map((image) => ({ ...image })),
+      flavors: group.flavors.map((flavor) => ({ ...flavor })),
+    })) }
   },
 
   async getLabSpec(labSpecId) {

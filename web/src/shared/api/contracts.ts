@@ -156,6 +156,29 @@ export interface LabSpecWrite {
   startupScript?: string
 }
 
+export interface ImageMappingOption {
+  id: ResourceId
+  displayName: string
+}
+
+export interface FlavorMappingOption {
+  id: ResourceId
+  displayName: string
+  vcpus: number
+  ramMiB: number
+  diskGiB: number
+}
+
+export interface LabSpecMappingOptions {
+  providerConnectionId: ResourceId
+  images: ImageMappingOption[]
+  flavors: FlavorMappingOption[]
+}
+
+export interface LabSpecMappingOptionsList {
+  items: LabSpecMappingOptions[]
+}
+
 export interface LabSpecList {
   items: LabSpecSummary[]
   nextCursor?: string

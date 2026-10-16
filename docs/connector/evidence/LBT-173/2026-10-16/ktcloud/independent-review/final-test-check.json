@@ -1,0 +1,18 @@
+{
+  "checked_utc": "2026-10-16T02:25:43.0581055Z",
+  "raw_events": 15766,
+  "counts": {
+    "packages": {
+      "skip": 12,
+      "fail": 0,
+      "pass": 41
+    },
+    "tests": {
+      "skip": 16,
+      "fail": 0,
+      "pass": 3671
+    }
+  },
+  "summary_differences": [],
+  "note": "Test pass count includes subtests. Skips are not live external execution; live evidence is evaluated separately."
+}

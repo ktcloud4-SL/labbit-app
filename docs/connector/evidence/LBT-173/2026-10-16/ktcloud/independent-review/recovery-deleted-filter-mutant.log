@@ -1,0 +1,11 @@
+=== RUN   TestRecoveryAfterReadOnlyDeletedLedgerRechecksAllIDs
+=== RUN   TestRecoveryAfterReadOnlyDeletedLedgerRechecksAllIDs/allAbsent
+    recovery_test.go:36: prior DELETED entries disappeared from current exact-ID query
+=== RUN   TestRecoveryAfterReadOnlyDeletedLedgerRechecksAllIDs/reappeared
+    recovery_test.go:36: prior DELETED entries disappeared from current exact-ID query
+--- FAIL: TestRecoveryAfterReadOnlyDeletedLedgerRechecksAllIDs (0.00s)
+    --- FAIL: TestRecoveryAfterReadOnlyDeletedLedgerRechecksAllIDs/allAbsent (0.00s)
+    --- FAIL: TestRecoveryAfterReadOnlyDeletedLedgerRechecksAllIDs/reappeared (0.00s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance	2.977s
+FAIL

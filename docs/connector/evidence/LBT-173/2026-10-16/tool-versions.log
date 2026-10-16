@@ -1,0 +1,8 @@
+Windows amd64; execution 2026-10-16 Asia/Seoul
+go1.27.1
+Node v24.19.0
+pnpm 11.25.0 (npm 10.9.2 via pnpm dlx)
+Git 2.54.0.windows.1
+Python 3.12.14
+PyYAML 6.0.3
+mingw-w64 gcc for race; make unavailable

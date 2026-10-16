@@ -1,0 +1,62 @@
+{
+  "checked_utc": "2026-10-16T00:59:30.1284816Z",
+  "branch": "codex/feat/LBT-173-ssh-tcp-forwarding",
+  "base": "88097be5d9bb6996b718fd185515ca324629fda6",
+  "head": "88097be5d9bb6996b718fd185515ca324629fda6",
+  "source_manifest_files": 539,
+  "source_mismatches": [],
+  "independent_source_files": 12,
+  "independent_source_mismatches": [],
+  "raw_go_event_recount": {
+    "package_pass": 41,
+    "test_pass_including_subtests": 3652,
+    "skip": 16,
+    "failure": 0,
+    "matches_summary": true
+  },
+  "secret_scan": {
+    "scope": "all evidence text including decompressed gzip",
+    "patterns": "private-key PEM headers and common GitHub/OpenAI token formats",
+    "matching_files": 0,
+    "universal_secret_detection_claimed": false
+  },
+  "local_live": {
+    "implemented_by": "main task, not independently re-executed",
+    "duration_seconds": 211.62,
+    "tracked_result_entries": 21,
+    "entry_count_is_unique_ID_count": false,
+    "helper_keypair_security_group_delete_ACK_only": true,
+    "final_discovery": {
+      "images": 3,
+      "flavors": 4,
+      "servers": 0,
+      "networks": 4
+    }
+  },
+  "evidence_hashes": [
+    {
+      "file": "source-manifest.json",
+      "sha256": "E48CB7A7D0AB51A5947C72BAAB187F07B5B41CBCC3A3A0528A738D779113523F"
+    },
+    {
+      "file": "source-diff.patch",
+      "sha256": "379E0E488C02FC40B0ECA1184C9FB030C08D504E6B6B258D3EEF2E1A7F1615DC"
+    },
+    {
+      "file": "final-go-test.jsonl.gz",
+      "sha256": "D1D4CB415FE99B2F54C11D243C6DBE192D61AAEA94064CC5309FE27CBBD19F19"
+    },
+    {
+      "file": "final-go-test-summary.json",
+      "sha256": "25BAB77233FE4985D5B2ABD8FB886B90E8EE78CAE036C58EFA355D32062D2E20"
+    },
+    {
+      "file": "local-openstack.log",
+      "sha256": "9EA28BCDB00B87E62F76EC98CDF981D405896D969758D04FA634CEEAB36E1E29"
+    },
+    {
+      "file": "local-openstack-final-inventory.log",
+      "sha256": "88880BE5695547C8D302E647BE904C2632F4DB3A79C6517933B14CD8D5FC76E0"
+    }
+  ]
+}

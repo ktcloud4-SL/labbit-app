@@ -1,0 +1,6 @@
+Final source SHA256 verified: 539 files, mismatch=0
+Go final summary agrees: 41 packages / 3652 tests and subtests / 16 skip / 0 fail
+Final actual local OpenStack PASS: 211.62s, tracked 21 resource result entries verified absent
+Final read-only inventory: servers=0 networks=4
+High-confidence private key/token patterns: 0
+Raw CRLF formatting limitation and unexecuted scopes: AUDIT.md

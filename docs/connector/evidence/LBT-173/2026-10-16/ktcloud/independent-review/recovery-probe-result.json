@@ -1,0 +1,6 @@
+{
+  "control_exit": 0,
+  "deleted_filter_mutant_exit": 1,
+  "mutation": "Semantic mutant: reintroduce DELETED filtering in recoveryResourceRefs; not a historical production source snapshot",
+  "current_helper_sha256": "65d4fb723876712443bc0bcbd2d7250c7d05973561be0859627e8eeb44d5a00a"
+}

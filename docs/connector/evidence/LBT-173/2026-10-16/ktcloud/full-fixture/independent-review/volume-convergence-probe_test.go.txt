@@ -1,0 +1,73 @@
+package openstackprovider
+
+import (
+	"context"
+	"fmt"
+	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"net/http"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+)
+
+func TestReviewKTVolumeDeletionConvergence(t *testing.T) {
+	for _, mode := range []string{"alreadyAbsent", "available", "deletingThenAbsent", "deletingUntilDeadline", "availableThenAutoDeletedBeforeDelete"} {
+		t.Run(mode, func(t *testing.T) {
+			var gets, deletes atomic.Int32
+			var accepted atomic.Bool
+			a := ktTopologyAdapter(t, func(w http.ResponseWriter, r *http.Request) {
+				if !strings.HasSuffix(r.URL.Path, "/volumes/owned-root") {
+					t.Error("lookup escaped exact tracked volume")
+					w.WriteHeader(500)
+					return
+				}
+				switch r.Method {
+				case http.MethodGet:
+					n := gets.Add(1)
+					if mode == "alreadyAbsent" || accepted.Load() || ((mode == "deletingThenAbsent" || mode == "availableThenAutoDeletedBeforeDelete") && n > 1) {
+						w.WriteHeader(404)
+						return
+					}
+					status := "available"
+					if mode == "deletingThenAbsent" || mode == "deletingUntilDeadline" {
+						status = "deleting"
+					}
+					writeJSON(t, w, 200, map[string]any{"volume": map[string]any{"id": "owned-root", "status": status, "attachments": []any{}}})
+				case http.MethodDelete:
+					deletes.Add(1)
+					if mode == "available" {
+						accepted.Store(true)
+						w.WriteHeader(204)
+						return
+					}
+					// Ordinary DELETE rejects an already deleting volume; no force flag/action.
+					w.WriteHeader(400)
+					fmt.Fprint(w, `{"badRequest":{"code":400,"message":"synthetic invalid volume status; provider body must remain private"}}`)
+				default:
+					t.Error("unexpected mutation")
+					w.WriteHeader(500)
+				}
+			})
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+			defer cancel()
+			ref := coreprovider.ResourceRef{ResourceType: coreprovider.ResourceTypeVolume, ProviderID: "owned-root", Generation: 2, LogicalName: "workspace:root-volume"}
+			result, err := a.Cleanup(ctx, coreprovider.CleanupRequest{Correlation: coreprovider.Correlation{OperationID: "review-cleanup", LabInstanceID: "review-lab", Generation: 2}, ProviderResources: []coreprovider.ResourceRef{ref}})
+			want := coreprovider.OutcomeSucceeded
+			if mode == "deletingUntilDeadline" {
+				want = coreprovider.OutcomeUnknown
+			}
+			wantDeletes := int32(0)
+			if mode == "available" || mode == "availableThenAutoDeletedBeforeDelete" {
+				wantDeletes = 1
+			}
+			t.Logf("mode=%s outcome=%s GET=%d DELETE=%d", mode, result.Outcome, gets.Load(), deletes.Load())
+			if err != nil || result.Outcome != want || deletes.Load() != wantDeletes {
+				t.Fatalf("volume convergence: want outcome=%s DELETE=%d; actual outcome=%s GET=%d DELETE=%d err=%v", want, wantDeletes, result.Outcome, gets.Load(), deletes.Load(), err)
+			}
+			if result.Error != nil && strings.Contains(result.Error.Message, "synthetic invalid") {
+				t.Fatal("raw error exposed")
+			}
+		})
+	}
+}

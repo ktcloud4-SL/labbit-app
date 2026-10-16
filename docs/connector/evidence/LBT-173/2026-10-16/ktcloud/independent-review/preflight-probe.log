@@ -1,0 +1,16 @@
+=== RUN   TestReviewPreviewInvalidModeStopsBeforeJournalOrHTTP
+=== RUN   TestReviewPreviewInvalidModeStopsBeforeJournalOrHTTP/mixed
+=== RUN   TestReviewPreviewInvalidModeStopsBeforeJournalOrHTTP/oneGeneration
+=== RUN   TestReviewPreviewInvalidModeStopsBeforeJournalOrHTTP/recovery
+--- PASS: TestReviewPreviewInvalidModeStopsBeforeJournalOrHTTP (0.00s)
+    --- PASS: TestReviewPreviewInvalidModeStopsBeforeJournalOrHTTP/mixed (0.00s)
+    --- PASS: TestReviewPreviewInvalidModeStopsBeforeJournalOrHTTP/oneGeneration (0.00s)
+    --- PASS: TestReviewPreviewInvalidModeStopsBeforeJournalOrHTTP/recovery (0.00s)
+=== RUN   TestReviewPreviewHTTPStallReturnsAtConnectionDeadline
+=== RUN   TestReviewPreviewHTTPStallReturnsAtConnectionDeadline/headers
+=== RUN   TestReviewPreviewHTTPStallReturnsAtConnectionDeadline/body
+--- PASS: TestReviewPreviewHTTPStallReturnsAtConnectionDeadline (0.08s)
+    --- PASS: TestReviewPreviewHTTPStallReturnsAtConnectionDeadline/headers (0.04s)
+    --- PASS: TestReviewPreviewHTTPStallReturnsAtConnectionDeadline/body (0.04s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance	3.069s

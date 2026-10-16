@@ -1,0 +1,54 @@
+package vmaccess
+
+import (
+    "context"
+    "testing"
+    "time"
+)
+
+// This independent review probe is overlaid from outside the repository.
+// The optional peer overlay ignores inbound direct-tcpip CLOSE only; PTY and
+// the SSH transport continue normally.
+func TestReviewTCPReadUnblocksAfterCloseWithResponsiveSibling(t *testing.T) {
+    p := newSSHPeer(t)
+    m := testManager(t, p, Config{IdleTimeout: 30 * time.Millisecond})
+    sibling := openSession(t, m, testTarget())
+    in, out := echoChannel(t, sibling, false)
+    tcp, err := m.DialTCP(context.Background(), testTarget(), 8080)
+    if err != nil { t.Fatal(err) }
+    assertEcho(t, tcp, tcp)
+    readDone := make(chan error, 1)
+    readStarted := make(chan struct{})
+    go func() {
+        close(readStarted)
+        _, err := tcp.Read(make([]byte, 1))
+        readDone <- err
+    }()
+    <-readStarted
+    if err := tcp.Close(); err != nil { t.Fatal(err) }
+    readUnblocked := false
+    select {
+    case err := <-readDone:
+        readUnblocked = true
+        if err == nil { t.Error("closed Read returned no error") }
+        t.Logf("pending TCP Read unblocked after Close: %v", err)
+    case <-time.After(250 * time.Millisecond):
+        t.Error("pending TCP Read stayed blocked after Close for >250ms while sibling kept SSH alive")
+    }
+    assertEcho(t, in, out)
+    m.mu.Lock()
+    c := m.entries[testTarget()]
+    if c == nil { m.mu.Unlock(); t.Fatal("closing TCP retired sibling transport") }
+    users, retired, hasIdle := c.users, c.retired, c.idle != nil
+    m.mu.Unlock()
+    t.Logf("sibling echo PASS; SSH accepted=%d active=%d users=%d retired=%v idleTimer=%v", p.accepted.Load(), p.active.Load(), users, retired, hasIdle)
+    _ = m.Close()
+    if !readUnblocked {
+        select {
+        case err := <-readDone:
+            t.Logf("Manager shutdown unblocked pending TCP Read: %v", err)
+        case <-time.After(time.Second):
+            t.Error("Manager shutdown failed to unblock TCP Read")
+        }
+    }
+}

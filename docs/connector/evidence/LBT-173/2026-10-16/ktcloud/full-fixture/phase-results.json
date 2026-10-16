@@ -1,0 +1,79 @@
+[
+  {
+    "phase": "inventory",
+    "started": "20261016T113743384",
+    "finished": "2026-10-16T11:37:47.6146030+09:00",
+    "exitCode": 0,
+    "log": "inventory-20261016T113743384.log"
+  },
+  {
+    "phase": "create",
+    "started": "20261016T113759965",
+    "finished": "2026-10-16T11:38:23.1645099+09:00",
+    "exitCode": 0,
+    "log": "create-20261016T113759965.log"
+  },
+  {
+    "phase": "access",
+    "started": "20261016T113839511",
+    "finished": "2026-10-16T11:38:55.7594133+09:00",
+    "exitCode": 0,
+    "log": "access-20261016T113839511.log"
+  },
+  {
+    "phase": "ssh",
+    "started": "20261016T113920575",
+    "finished": "2026-10-16T11:39:23.0919350+09:00",
+    "exitCode": 0,
+    "log": "ssh-20261016T113920575.log"
+  },
+  {
+    "phase": "deploy",
+    "started": "20261016T113942153",
+    "finished": "2026-10-16T11:39:47.7726445+09:00",
+    "exitCode": 0,
+    "log": "deploy-20261016T113942153.log"
+  },
+  {
+    "phase": "control",
+    "started": "20261016T114013880",
+    "finished": "2026-10-16T11:50:44.5007286+09:00",
+    "exitCode": 0,
+    "log": "control-20261016T114013880.log"
+  },
+  {
+    "phase": "collect",
+    "started": "20261016T115051710",
+    "finished": "2026-10-16T11:50:52.9569032+09:00",
+    "exitCode": 0,
+    "log": "collect-20261016T115051710.log"
+  },
+  {
+    "phase": "residual",
+    "started": "20261016T115102717",
+    "finished": "2026-10-16T11:51:05.2177400+09:00",
+    "exitCode": 0,
+    "log": "residual-20261016T115102717.log"
+  },
+  {
+    "phase": "cleanup",
+    "started": "20261016T115109475",
+    "finished": "2026-10-16T11:51:29.1747731+09:00",
+    "exitCode": 0,
+    "log": "cleanup-20261016T115109475.log"
+  },
+  {
+    "phase": "residual",
+    "started": "20261016T115154611",
+    "finished": "2026-10-16T11:51:56.6037444+09:00",
+    "exitCode": 0,
+    "log": "residual-20261016T115154611.log"
+  },
+  {
+    "phase": "final",
+    "started": "20261016T115202822",
+    "finished": "2026-10-16T11:52:04.6015804+09:00",
+    "exitCode": 0,
+    "log": "final-20261016T115202822.log"
+  }
+]

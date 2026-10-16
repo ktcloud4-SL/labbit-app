@@ -1,0 +1,8 @@
+=== RUN   TestRecoveryAfterReadOnlyDeletedLedgerRechecksAllIDs
+=== RUN   TestRecoveryAfterReadOnlyDeletedLedgerRechecksAllIDs/allAbsent
+=== RUN   TestRecoveryAfterReadOnlyDeletedLedgerRechecksAllIDs/reappeared
+--- PASS: TestRecoveryAfterReadOnlyDeletedLedgerRechecksAllIDs (0.00s)
+    --- PASS: TestRecoveryAfterReadOnlyDeletedLedgerRechecksAllIDs/allAbsent (0.00s)
+    --- PASS: TestRecoveryAfterReadOnlyDeletedLedgerRechecksAllIDs/reappeared (0.00s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance	3.035s

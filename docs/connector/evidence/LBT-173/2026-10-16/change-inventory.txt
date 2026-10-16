@@ -1,0 +1,58 @@
+ M internal/connector/app/app.go
+ M internal/connector/app/app_test.go
+ M internal/connector/preview/forwarder.go
+ M internal/connector/preview/manager.go
+ M internal/connector/vmaccess/access.go
+ M internal/connector/vmaccess/access_test.go
+ M runtime/contract.yaml
+?? docs/connector/evidence/LBT-173/2026-10-16/AUDIT.md
+?? docs/connector/evidence/LBT-173/2026-10-16/README.md
+?? docs/connector/evidence/LBT-173/2026-10-16/change-inventory.txt
+?? docs/connector/evidence/LBT-173/2026-10-16/collect_evidence.py
+?? docs/connector/evidence/LBT-173/2026-10-16/connector-race.log
+?? docs/connector/evidence/LBT-173/2026-10-16/final-boundary-race.log
+?? docs/connector/evidence/LBT-173/2026-10-16/final-connector-race.log
+?? docs/connector/evidence/LBT-173/2026-10-16/final-go-test-summary.json
+?? docs/connector/evidence/LBT-173/2026-10-16/final-go-test.jsonl.gz
+?? docs/connector/evidence/LBT-173/2026-10-16/final-verification.log
+?? docs/connector/evidence/LBT-173/2026-10-16/format-validation.log
+?? docs/connector/evidence/LBT-173/2026-10-16/go-build.log
+?? docs/connector/evidence/LBT-173/2026-10-16/go-test-summary.json
+?? docs/connector/evidence/LBT-173/2026-10-16/go-test.jsonl.gz
+?? docs/connector/evidence/LBT-173/2026-10-16/go-vet.log
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/README.md
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/close-probe_test.go.txt
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/combined-probe-v2_test.go.txt
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/combined-probe_test.go.txt
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/control.log
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/eof-budget-mutant-failure.log
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/eof-fault-after.log
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/fault-after.log
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/fault.log
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/final-control.log
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/final-evidence-check.json
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/final-fault.log
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/final-reproducer-fault.log
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/final-unit-race.log
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/late-fault.log
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/reproduce.ps1
+?? docs/connector/evidence/LBT-173/2026-10-16/independent-review/review-source-hashes.json
+?? docs/connector/evidence/LBT-173/2026-10-16/local-openstack-before-channel-ack-fix.log
+?? docs/connector/evidence/LBT-173/2026-10-16/local-openstack-before-close-fix.log
+?? docs/connector/evidence/LBT-173/2026-10-16/local-openstack-final-inventory.log
+?? docs/connector/evidence/LBT-173/2026-10-16/local-openstack-initial-failure.log
+?? docs/connector/evidence/LBT-173/2026-10-16/local-openstack.log
+?? docs/connector/evidence/LBT-173/2026-10-16/reproduce.ps1
+?? docs/connector/evidence/LBT-173/2026-10-16/runtime-validation.log
+?? docs/connector/evidence/LBT-173/2026-10-16/source-diff.patch
+?? docs/connector/evidence/LBT-173/2026-10-16/source-manifest.json
+?? docs/connector/evidence/LBT-173/2026-10-16/tool-versions.log
+?? docs/connector/evidence/LBT-173/2026-10-16/web-build.log
+?? docs/connector/evidence/LBT-173/2026-10-16/web-install.log
+?? docs/connector/evidence/LBT-173/2026-10-16/web-lint.log
+?? docs/connector/evidence/LBT-173/2026-10-16/web-test.log
+?? docs/connector/evidence/LBT-173/2026-10-16/web-typecheck.log
+?? internal/connector/preview/forwarder_test.go
+?? internal/connector/provider/openstack/preview_forwarding_integration_test.go
+?? internal/connector/vmaccess/tcp.go
+?? internal/connector/vmaccess/tcp_test.go

@@ -1,0 +1,6 @@
+{
+  "original_source_lf_sha256": "882e34e46e1a11a4523664e88b998ea12baa7b86acbc47a74b7bd4b18a71860f",
+  "matches_original_live_manifest": true,
+  "original_overlay_exit": 1,
+  "note": "Historical base file LF SHA matches original KT live manifest. Overlay only replaces that file and adds external reviewer test; rest of feature is current. Not a reproduction of actual cloud failure cause."
+}

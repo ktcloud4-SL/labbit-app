@@ -1,0 +1,27 @@
+{
+  "checkedAtUTC": "2026-10-16T02:42:35.53766Z",
+  "base": "88097be5d9bb6996b718fd185515ca324629fda6",
+  "head": "88097be5d9bb6996b718fd185515ca324629fda6",
+  "branch": "codex/feat/LBT-173-ssh-tcp-forwarding",
+  "manifestFiles": 543,
+  "compiledBeforeFiles": 482,
+  "compiledAfterFiles": 482,
+  "sourceMismatch": [],
+  "rawMismatch": [],
+  "compiledMismatch": [],
+  "buildFreezeMismatch": [],
+  "changedSincePreviousFinalKT": [
+    "internal/connector/provider/openstack/ktcloud_d1_delete.go",
+    "internal/connector/provider/openstack/ktcloud_d1_volume_deleting_test.go"
+  ],
+  "reviewerCloudCalls": 0,
+  "sourceEdited": false,
+  "compiledManifestAdditionalEvidenceFixtures": [
+    "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/actual_runtime_shutdown_test.go",
+    "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/integration_metadata_test.go",
+    "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/read_only_residual_test.go",
+    "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/real_failure_test.go",
+    "docs/connector/evidence/LBT-147/2026-10-12-review-followup/_fixtures/independent_unacked_setup_test.go",
+    "docs/connector/evidence/LBT-147/2026-10-12-review-followup/_fixtures/ssh-channel-no-b-close-ack.go"
+  ]
+}

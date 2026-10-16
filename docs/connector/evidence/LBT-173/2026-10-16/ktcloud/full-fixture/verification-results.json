@@ -1,0 +1,62 @@
+{
+  "recordedAt": "2026-10-16T11:48:02.7156901+09:00",
+  "evidenceBasis": "Exit statuses observed directly from exec sessions in this chat; source-manifest.json identifies tested working tree",
+  "commands": [
+    {
+      "exitCode": 0,
+      "log": "go-test.jsonl.gz",
+      "command": "go test -mod=readonly -json -count=1 -timeout=8m ./..."
+    },
+    {
+      "exitCode": 0,
+      "log": "vet.log",
+      "command": "go vet ./..."
+    },
+    {
+      "exitCode": 0,
+      "log": "build.log",
+      "command": "go build ./..."
+    },
+    {
+      "exitCode": 0,
+      "log": "race.log",
+      "command": "go test -mod=readonly -race -count=1 -timeout=6m [9 Provider/Connector/tools packages]"
+    },
+    {
+      "exitCode": 0,
+      "log": "provider-tools-test.log",
+      "command": "go test ./internal/connector/provider/openstack ./tools/ktcloud-d1-acceptance ./tools/ktcloud-op02-bootstrap -count=1 -timeout=2m"
+    },
+    {
+      "exitCode": 0,
+      "log": "format-and-local-alignment.json",
+      "command": "capture.py format"
+    },
+    {
+      "exitCode": 0,
+      "log": "source-alignment.json",
+      "command": "capture.py check"
+    },
+    {
+      "exitCode": 0,
+      "log": "identity-verification.json",
+      "command": "verify_identity.py"
+    },
+    {
+      "exitCode": 0,
+      "log": "latest-main-check.json",
+      "command": "check-latest-main.ps1"
+    }
+  ],
+  "reusedValidation": [
+    {
+      "scope": "Web typecheck/lint/188tests/build and Runtime YAML",
+      "rerunThisAttempt": false,
+      "source": "Previous local audit; source and lockfile unchanged in source-manifest"
+    }
+  ],
+  "unexecuted": [
+    "PostgreSQL build-tag integration: no DB changes, no Docker/DB runtime",
+    "Actual SaaS/Browser C3 and full Preview Control/Data WSS: Jira follow-up scope"
+  ]
+}

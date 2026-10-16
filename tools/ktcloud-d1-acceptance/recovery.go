@@ -13,6 +13,16 @@ type recoveryActions struct {
 	save    func(string) error
 }
 
+// DELETED is a prior observation, not permission to omit an owned ID from a
+// fresh recovery query. Only current exact-ID observations select deletions.
+func recoveryResourceRefs(items []protocol.ProviderResourceResult) []protocol.ProviderResourceRef {
+	known := make([]protocol.ProviderResourceRef, 0, len(items))
+	for _, item := range items {
+		known = append(known, item.ProviderResourceRef)
+	}
+	return known
+}
+
 // Recovery must validate the whole typed inventory before changing the ledger
 // or requesting Cleanup. A count match is not proof of resource ownership.
 func recoverKnownResources(ctx context.Context, known []protocol.ProviderResourceRef, readOnly bool, actions recoveryActions) error {

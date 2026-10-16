@@ -1,0 +1,8 @@
+=== RUN   TestReviewCanceledLateTCPRespectsTransportBudget
+    zz_review_close_test.go:103: late channels still peer-active=20; configured max=16; accounted TCP slots=0; users=1; sibling echo PASS
+    zz_review_close_test.go:105: late successful canceled TCP channels bypassed the transport channel budget
+    zz_review_close_test.go:109: Manager shutdown reaped every late channel
+--- FAIL: TestReviewCanceledLateTCPRespectsTransportBudget (0.54s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess	2.217s
+FAIL

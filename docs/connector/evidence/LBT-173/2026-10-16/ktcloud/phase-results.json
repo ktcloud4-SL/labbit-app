@@ -1,0 +1,121 @@
+[
+  {
+    "phase": "create",
+    "started": "20261016T101043933",
+    "finished": "2026-10-16T10:11:08.8119621+09:00",
+    "exitCode": 0,
+    "log": "create-20261016T101043933.log"
+  },
+  {
+    "phase": "access",
+    "started": "20261016T101154026",
+    "finished": "2026-10-16T10:12:14.4929610+09:00",
+    "exitCode": 0,
+    "log": "access-20261016T101154026.log"
+  },
+  {
+    "phase": "ssh",
+    "started": "20261016T101214524",
+    "finished": "2026-10-16T10:12:15.3742744+09:00",
+    "exitCode": 1,
+    "log": "ssh-20261016T101214524.log"
+  },
+  {
+    "phase": "ssh",
+    "started": "20261016T101302842",
+    "finished": "2026-10-16T10:13:07.5598838+09:00",
+    "exitCode": 0,
+    "log": "ssh-20261016T101302842.log"
+  },
+  {
+    "phase": "deploy",
+    "started": "20261016T101307595",
+    "finished": "2026-10-16T10:13:12.3916825+09:00",
+    "exitCode": 0,
+    "log": "deploy-20261016T101307595.log"
+  },
+  {
+    "phase": "control",
+    "started": "20261016T101319403",
+    "finished": "2026-10-16T10:32:02.4128369+09:00",
+    "exitCode": 1,
+    "log": "control-20261016T101319403.log"
+  },
+  {
+    "phase": "collect",
+    "started": "20261016T111539426",
+    "finished": "2026-10-16T11:15:43.0726762+09:00",
+    "exitCode": 0,
+    "log": "collect-20261016T111539426.log"
+  },
+  {
+    "phase": "residual",
+    "started": "20261016T111543132",
+    "finished": "2026-10-16T11:15:45.5718408+09:00",
+    "exitCode": 0,
+    "log": "residual-20261016T111543132.log"
+  },
+  {
+    "phase": "recover-observe",
+    "started": "20261016T111545591",
+    "finished": "2026-10-16T11:16:05.7778218+09:00",
+    "exitCode": 0,
+    "log": "recover-observe-20261016T111545591.log"
+  },
+  {
+    "phase": "recover-cleanup",
+    "started": "20261016T111628161",
+    "finished": "2026-10-16T11:16:47.0087540+09:00",
+    "exitCode": 1,
+    "log": "recover-cleanup-20261016T111628161.log"
+  },
+  {
+    "phase": "deploy",
+    "started": "20261016T111848832",
+    "finished": "2026-10-16T11:19:00.7349083+09:00",
+    "exitCode": 0,
+    "log": "deploy-20261016T111848832.log"
+  },
+  {
+    "phase": "recover-cleanup",
+    "started": "20261016T111900759",
+    "finished": "2026-10-16T11:19:24.0818491+09:00",
+    "exitCode": 0,
+    "log": "recover-cleanup-20261016T111900759.log"
+  },
+  {
+    "phase": "collect",
+    "started": "20261016T111956680",
+    "finished": "2026-10-16T11:19:58.0953496+09:00",
+    "exitCode": 0,
+    "log": "collect-20261016T111956680.log"
+  },
+  {
+    "phase": "residual",
+    "started": "20261016T111958124",
+    "finished": "2026-10-16T11:20:00.1148926+09:00",
+    "exitCode": 0,
+    "log": "residual-20261016T111958124.log"
+  },
+  {
+    "phase": "cleanup",
+    "started": "20261016T112000137",
+    "finished": "2026-10-16T11:21:29.9298123+09:00",
+    "exitCode": 0,
+    "log": "cleanup-20261016T112000137.log"
+  },
+  {
+    "phase": "residual",
+    "started": "20261016T112129939",
+    "finished": "2026-10-16T11:21:32.8365643+09:00",
+    "exitCode": 0,
+    "log": "residual-20261016T112129939.log"
+  },
+  {
+    "phase": "final",
+    "started": "20261016T112132846",
+    "finished": "2026-10-16T11:21:34.5576337+09:00",
+    "exitCode": 0,
+    "log": "final-20261016T112132846.log"
+  }
+]

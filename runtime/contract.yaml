@@ -652,7 +652,7 @@ connector:
       required: false
       secret: false
       default: "1m"
-      note: "VM별 공유 SSH Connection에 열린 PTY/SFTP Channel이 없을 때 종료까지의 시간입니다. 양수 Go duration만 허용하며 TerminalSession의 PTY grace와 독립입니다."
+      note: "VM별 공유 SSH Connection에 열린 PTY/SFTP/Preview TCP forwarding Channel이 없을 때 종료까지의 시간입니다. 양수 Go duration만 허용하며 TerminalSession의 PTY grace와 독립입니다."
   heartbeat:
     interval: "15s"
     saas_offline_after: "45s"

@@ -1,0 +1,101 @@
+{
+  "reviewed_at_utc": "2026-10-16T01:12:53.2254111Z",
+  "branch": "codex/feat/LBT-173-ssh-tcp-forwarding",
+  "base": "88097be5d9bb6996b718fd185515ca324629fda6",
+  "head": "88097be5d9bb6996b718fd185515ca324629fda6",
+  "uncommitted": true,
+  "production_source_comparison_to_local_review": {
+    "files": 12,
+    "mismatches": []
+  },
+  "changed_source_files": [
+    {
+      "file": "internal/connector/app/app_test.go",
+      "sha256": "92DB0D97245C5C703B3FDB58398703F4159C213020EC32C80AB07EA557692C2F"
+    },
+    {
+      "file": "internal/connector/app/app.go",
+      "sha256": "4DCED42274D095EAEEB5F138E552290826000DA86B9055590D4FF7FE1A249340"
+    },
+    {
+      "file": "internal/connector/preview/forwarder_test.go",
+      "sha256": "ABD6A2493AF746FF15AC6A26FEE03579BD9E00E7DA2AA16A05B2182EC7B7FEC1"
+    },
+    {
+      "file": "internal/connector/preview/forwarder.go",
+      "sha256": "21C96DF774FBB7FEDE92893138B397C1D34D5F6E37B8BB2457268E1529E0087B"
+    },
+    {
+      "file": "internal/connector/preview/manager.go",
+      "sha256": "75F9D1DFCA398E7A99C5A359A3FCCDECA6106F0DA4947B9C793295F2B9D14226"
+    },
+    {
+      "file": "internal/connector/provider/openstack/preview_forwarding_integration_test.go",
+      "sha256": "3D2B1C382014BDE1BE27396B7C6011755F7001CACCC8A0E8B597BE3261E02C62"
+    },
+    {
+      "file": "internal/connector/vmaccess/access_test.go",
+      "sha256": "4083974FB40962409DF02F66231D910491F3A7211237F6DA2C8418BA1DB10C5D"
+    },
+    {
+      "file": "internal/connector/vmaccess/access.go",
+      "sha256": "FA75EA2D1FFAE33AF1CDC64F24CC946E45E10B834B1CCB6A7F676EA31B559755"
+    },
+    {
+      "file": "internal/connector/vmaccess/tcp_test.go",
+      "sha256": "44A1404BF891E5BEF0F78D416A2DEEF53F7A1C52B3E3156A2EB049B95E2CCA65"
+    },
+    {
+      "file": "internal/connector/vmaccess/tcp.go",
+      "sha256": "B3BFC633954B8D432D985FD5EB635EC91A7B4CECE8F3A78344F052B7E63753B6"
+    },
+    {
+      "file": "runtime/contract.yaml",
+      "sha256": "D3E6AFB1618C9A8D842F26C9E342982E1DE2054EBC5C2A92B1B77832D1551B37"
+    },
+    {
+      "file": "tools/ktcloud-d1-acceptance/main.go",
+      "sha256": "5C099BB434DE71C5689BB516EA4003ED11455E1650422F552BE0020AD15AA24E"
+    },
+    {
+      "file": "tools/ktcloud-d1-acceptance/preview_test.go",
+      "sha256": "19E4373E9543996368EC29F917CD9D8974A24A46E9C2A2625E83CD2378A0E2D0"
+    },
+    {
+      "file": "tools/ktcloud-d1-acceptance/preview.go",
+      "sha256": "EEA2313C61692BE363A2EB3632FDB16CC0C6A9BB9F07A00DEADCF29549DBEE83"
+    },
+    {
+      "file": "tools/ktcloud-op02-bootstrap/deploy.go",
+      "sha256": "5DBBD0BDF6060BFAC5058D50D821423721369AC4A5A72C04B882476C9EA30B99"
+    },
+    {
+      "file": "tools/ktcloud-op02-bootstrap/preview_mode_test.go",
+      "sha256": "3521D777C1017F500F8A7FA45783EB1CAB06149DBB890C1601072DE98C49F4E5"
+    },
+    {
+      "file": "tools/ktcloud-op02-bootstrap/README.md",
+      "sha256": "A78CA7400CCF818ADEF26EB4FF672FC4F681E623890BE7BF42E5CE0176B728B2"
+    }
+  ],
+  "executed_checks": [
+    {
+      "command": "go test ./tools/ktcloud-d1-acceptance ./tools/ktcloud-op02-bootstrap -count=1 -timeout=2m",
+      "exit_code": 0,
+      "package_seconds": [
+        9.744,
+        3.562
+      ],
+      "raw_output": "tool transcript; stdout not separately redirected"
+    },
+    {
+      "command": "go test -overlay <external overlay> ./tools/ktcloud-d1-acceptance -run ^TestReviewPreview -count=1 -timeout=15s -v",
+      "exit_code": 0,
+      "package_seconds": 3.069,
+      "raw_output": "preflight-probe.log"
+    }
+  ],
+  "confirmed_findings": [],
+  "disposition": "No code blocker to starting explicitly authorized KT standalone smoke with this reviewed source; live, exact absence and final audit pending.",
+  "cloud_calls_by_reviewer": false
+}

@@ -1,10 +1,11 @@
 // Package vmaccess owns the customer-local SSH transport shared by a VM's
-// independent PTY and SFTP sessions. It has no Control or file protocol policy.
+// independent PTY, SFTP and TCP forwarding channels. It has no Control policy.
 package vmaccess
 
 import (
 	"context"
 	"errors"
+	"io"
 	"net"
 	"os"
 	"sync"
@@ -56,19 +57,20 @@ type Manager struct {
 }
 
 type connection struct {
-	target    Target
-	endpoint  Endpoint
-	ready     chan struct{}
-	cancel    context.CancelFunc
-	client    *ssh.Client
-	err       error
-	retired   bool
-	users     int
-	idle      *time.Timer
-	done      chan struct{}
-	opening   chan struct{}
-	closing   []*ssh.Session
-	closeWake chan struct{}
+	target      Target
+	endpoint    Endpoint
+	ready       chan struct{}
+	cancel      context.CancelFunc
+	client      *ssh.Client
+	err         error
+	retired     bool
+	users       int
+	tcpChannels int // Includes channels awaiting peer CLOSE after EOF/caller Close.
+	idle        *time.Timer
+	done        chan struct{}
+	opening     chan struct{}
+	closing     []io.Closer
+	closeWake   chan struct{}
 }
 
 func NewManager(resolver Resolver, config Config) *Manager {
@@ -81,11 +83,9 @@ func NewManager(resolver Resolver, config Config) *Manager {
 	return &Manager{resolver: resolver, config: config, entries: make(map[Target]*connection), generation: make(map[string]int64)}
 }
 
-// OpenSession revalidates Provider ownership even when a connection is cached.
-// Simultaneous opens share one handshake; canceling a waiter leaves it alone.
-func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, error) {
-	ctx, cancel := context.WithTimeout(ctx, m.config.SetupTimeout)
-	defer cancel()
+// acquire revalidates Provider ownership even when a connection is cached.
+// The caller owns one reservation, including channel setup, until release.
+func (m *Manager) acquire(ctx context.Context, target Target) (*connection, error) {
 	if target.LabInstanceID == "" || target.Generation < 1 || target.VMKey == "" || target.ServerID == "" || m.resolver == nil {
 		return nil, ErrInvalidTarget
 	}
@@ -164,6 +164,17 @@ func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, err
 	}
 	c.users++ // Includes channel setup so idle expiry cannot race an open.
 	m.mu.Unlock()
+	return c, nil
+}
+
+// OpenSession opens an independent PTY/SFTP channel on the shared transport.
+func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, error) {
+	ctx, cancel := context.WithTimeout(ctx, m.config.SetupTimeout)
+	defer cancel()
+	c, err := m.acquire(ctx, target)
+	if err != nil {
+		return nil, err
+	}
 
 	result, err := m.channelOperation(ctx, c, func() channelResult {
 		s, err := c.client.NewSession()
@@ -171,7 +182,7 @@ func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, err
 	})
 	sshSession := result.session
 	if ctx.Err() != nil || err != nil || result.err != nil {
-		m.closeChannel(c, sshSession)
+		m.closeChannel(c, result.closer())
 		m.release(c)
 		return nil, m.connectionError(ctx, c)
 	}
@@ -182,7 +193,7 @@ func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, err
 	}
 	m.mu.Unlock()
 	if err != nil {
-		m.closeChannel(c, sshSession)
+		m.closeChannel(c, result.closer())
 		m.release(c)
 		return nil, err
 	}
@@ -323,7 +334,18 @@ func (s *Session) Setup(ctx context.Context, setup func(*ssh.Session) error) err
 
 type channelResult struct {
 	session *ssh.Session
+	conn    net.Conn
 	err     error
+}
+
+func (r channelResult) closer() io.Closer {
+	if r.session != nil {
+		return r.session
+	}
+	if r.conn != nil {
+		return r.conn
+	}
+	return nil
 }
 
 // The SSH API cannot cancel an open/request. Keep at most one such operation
@@ -354,9 +376,9 @@ func (m *Manager) channelOperation(ctx context.Context, c *connection, operation
 		select {
 		case result <- r: // Unbuffered delivery transfers ownership to the caller.
 		case <-ctx.Done():
-			m.closeChannel(c, r.session)
+			m.discardResult(c, r)
 		case <-c.done:
-			m.closeChannel(c, r.session)
+			m.discardResult(c, r)
 		}
 	}()
 	select {
@@ -369,6 +391,16 @@ func (m *Manager) channelOperation(ctx context.Context, c *connection, operation
 	}
 }
 
+func (m *Manager) discardResult(c *connection, result channelResult) {
+	if result.conn != nil {
+		// TCP results are managed pipes: close locally even if the transport's
+		// raw SSH close writer is stalled on an earlier channel.
+		_ = result.conn.Close()
+		return
+	}
+	m.closeChannel(c, result.closer())
+}
+
 func (m *Manager) connectionError(ctx context.Context, c *connection) error {
 	m.mu.Lock()
 	err := m.targetErrorLocked(c.target)
@@ -379,13 +411,13 @@ func (m *Manager) connectionError(ctx context.Context, c *connection) error {
 	return safeError(ctx, err)
 }
 
-func (m *Manager) closeChannel(c *connection, session *ssh.Session) {
+func (m *Manager) closeChannel(c *connection, session io.Closer) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.closeChannelLocked(c, session)
 }
 
-func (m *Manager) closeChannelLocked(c *connection, session *ssh.Session) {
+func (m *Manager) closeChannelLocked(c *connection, session io.Closer) {
 	if session == nil || c.retired {
 		return
 	}
@@ -405,7 +437,7 @@ func (m *Manager) closeChannels(c *connection) {
 			m.mu.Unlock()
 			return
 		}
-		var session *ssh.Session
+		var session io.Closer
 		if len(c.closing) > 0 {
 			session = c.closing[0]
 			c.closing[0] = nil

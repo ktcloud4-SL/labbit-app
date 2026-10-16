@@ -41,6 +41,32 @@ describe('classReadinessPollingInterval', () => {
     ).toBe(CLASS_READINESS_POLL_MS)
   })
 
+  it('활성화된 실습에서 대상자로 선택되지 않은 학생은 계속 조회하지 않는다', () => {
+    expect(
+      classReadinessPollingInterval(
+        {
+          ...pendingClass,
+          activeLabExecution: { id: 'execution-a', status: 'ACTIVE' },
+          myLabInstance: undefined,
+        },
+        null,
+      ),
+    ).toBe(false)
+  })
+
+  it('실습 생성 이후 정리 단계의 미할당 학생도 계속 조회하지 않는다', () => {
+    expect(
+      classReadinessPollingInterval(
+        {
+          ...pendingClass,
+          activeLabExecution: { id: 'execution-a', status: 'CLEANING_UP' },
+          myLabInstance: undefined,
+        },
+        null,
+      ),
+    ).toBe(false)
+  })
+
   it.each(['READY', 'ERROR', 'COMPLETED', 'UNKNOWN'])(
     '%s 상태에서는 주기 조회를 멈춘다',
     (status) => {

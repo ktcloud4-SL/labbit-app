@@ -1,0 +1,19 @@
+package openstackprovider
+
+import (
+	"encoding/base64"
+	"testing"
+)
+
+func TestReviewOffGeneratedPython(t *testing.T) {
+	const lab = "02:00:00:00:00:01"
+	const management = "02:00:00:00:00:02"
+	commands := map[string]string{
+		"reachability": localReachabilityCommand(lab, management),
+		"renew-lab-first": localRenewCommand(lab, management, "lab-first"),
+		"renew-management-first": localRenewCommand(lab, management, "management-first"),
+	}
+	for name, command := range commands {
+		t.Log("REVIEW_COMMAND", name, base64.StdEncoding.EncodeToString([]byte(command)))
+	}
+}

@@ -1,0 +1,47 @@
+package openstackprovider
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+)
+
+// Fault responses are local loopback only. The first post-Nova GET is invalid,
+// then a separate policy verification GET returns the normal valid port.
+func TestIndependentManagementReturnedObservationIsValidated(t *testing.T) {
+	fake := &m2OpenStackFake{t: t}
+	postNovaGets := 0
+	a := newTestAdapter(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if fake.serverCreates > 0 && r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/ports/port-management") {
+			postNovaGets++
+			if postNovaGets == 1 {
+				rr := httptest.NewRecorder()
+				fake.ServeHTTP(rr, r)
+				var body map[string]any
+				if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil { t.Fatal(err) }
+				body["port"].(map[string]any)["fixed_ips"] = []map[string]string{{"subnet_id": "management-subnet", "ip_address": "172.16.9.200"}}
+				writeJSON(t, w, rr.Code, body)
+				return
+			}
+		}
+		fake.ServeHTTP(w, r)
+	}))
+	a.provision = testProvisionConfig(t)
+	probed := ""
+	a.sshProbe = func(_ context.Context, address string) error { probed = address; return nil }
+	a.startupProbe = func(context.Context, string, string) error { return nil }
+	result, err := a.Provision(context.Background(), coreprovider.ProvisionRequest{
+		Correlation: coreprovider.Correlation{OperationID: "observation-split", LabInstanceID: "observation-split", Generation: 1},
+		CreationSnapshot: validSnapshot(),
+	})
+	if postNovaGets < 1 { t.Fatal("post-Nova fault was not exercised") }
+	if err != nil { t.Fatalf("unexpected transport error: %v", err) }
+	if result.Outcome == coreprovider.OutcomeSucceeded || probed != "" {
+		t.Fatalf("unvalidated first observation accepted: postNovaGets=%d outcome=%s SSH address=%q", postNovaGets, result.Outcome, probed)
+	}
+}

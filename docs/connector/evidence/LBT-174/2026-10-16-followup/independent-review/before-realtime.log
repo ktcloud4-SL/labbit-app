@@ -1,0 +1,12 @@
+=== RUN   TestConnectorControlEventsPropagateTraceContext
+    trace_propagation_test.go:268: control log is not JSON
+--- FAIL: TestConnectorControlEventsPropagateTraceContext (0.08s)
+=== RUN   TestConnectorControlEventsPropagateTraceContext
+    trace_propagation_test.go:268: control log is not JSON
+--- FAIL: TestConnectorControlEventsPropagateTraceContext (0.08s)
+=== RUN   TestConnectorControlEventsPropagateTraceContext
+    trace_propagation_test.go:268: control log is not JSON
+--- FAIL: TestConnectorControlEventsPropagateTraceContext (0.08s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/server/realtime	3.469s
+FAIL

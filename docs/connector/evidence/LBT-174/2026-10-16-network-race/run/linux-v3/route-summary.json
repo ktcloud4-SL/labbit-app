@@ -1,0 +1,125 @@
+{
+  "cases": [
+    {
+      "case": "baseline",
+      "routeBefore": [
+        {
+          "role": "lab",
+          "hasGateway": true
+        }
+      ],
+      "routeAfter": [
+        {
+          "role": "lab",
+          "hasGateway": true
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "role": "lab",
+          "hasGateway": true
+        }
+      ],
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "defaultRoutes": [
+        {
+          "role": "lab",
+          "metric": 100,
+          "hasGateway": true
+        },
+        {
+          "role": "management",
+          "metric": 100,
+          "hasGateway": true
+        }
+      ],
+      "connectCode": 0,
+      "elapsed_ms": 10
+    },
+    {
+      "case": "forced-management",
+      "routeBefore": [
+        {
+          "role": "management",
+          "hasGateway": true
+        }
+      ],
+      "routeAfter": [
+        {
+          "role": "management",
+          "hasGateway": true
+        }
+      ],
+      "socketSourceRole": "management",
+      "socketTupleRoute": [
+        {
+          "role": "management",
+          "hasGateway": true
+        }
+      ],
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "defaultRoutes": [
+        {
+          "role": "lab",
+          "metric": 100,
+          "hasGateway": true
+        },
+        {
+          "role": "management",
+          "metric": 100,
+          "hasGateway": true
+        }
+      ],
+      "connectCode": 11,
+      "elapsed_ms": 5006
+    },
+    {
+      "case": "forced-lab",
+      "routeBefore": [
+        {
+          "role": "lab",
+          "hasGateway": true
+        }
+      ],
+      "routeAfter": [
+        {
+          "role": "lab",
+          "hasGateway": true
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "role": "lab",
+          "hasGateway": true
+        }
+      ],
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "defaultRoutes": [
+        {
+          "role": "lab",
+          "metric": 100,
+          "hasGateway": true
+        },
+        {
+          "role": "management",
+          "metric": 100,
+          "hasGateway": true
+        }
+      ],
+      "connectCode": 0,
+      "elapsed_ms": 13
+    }
+  ],
+  "rawSHA256": "6f0af2633d57b8106457f891c52a7ad90fa75f64dbf15476902870f8fad1da03"
+}

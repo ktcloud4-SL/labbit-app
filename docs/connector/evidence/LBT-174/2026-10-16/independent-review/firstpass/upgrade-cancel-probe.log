@@ -1,0 +1,12 @@
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:38: cancel does not close socket while HTTP Upgrade response is pending
+--- FAIL: TestIndependentCancelClosesPendingHTTPUpgrade (0.26s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:38: cancel does not close socket while HTTP Upgrade response is pending
+--- FAIL: TestIndependentCancelClosesPendingHTTPUpgrade (0.25s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:38: cancel does not close socket while HTTP Upgrade response is pending
+--- FAIL: TestIndependentCancelClosesPendingHTTPUpgrade (0.25s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/preview	3.254s
+FAIL

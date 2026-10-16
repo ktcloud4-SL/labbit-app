@@ -1,0 +1,82 @@
+{
+  "scope": "Only exact tracked resources and owned helper SG/keypair from these three runs. Not all user/cloud resources. Disposable swap/packages/routes removed with owned VM.",
+  "runs": [
+    {
+      "stage": "v1",
+      "hostGoExit": 1,
+      "elapsedSeconds": 282.578,
+      "trackedResources": 8,
+      "markers": [
+        "local_network_race_probe_test.go:61: Linux race fixture exact tracked absence checked: resources=8",
+        "integration_test.go:486: Temporary Management security group GET absence confirmed",
+        "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+      ],
+      "cleanupErrors": [],
+      "sourceBefore": {
+        "files": 502,
+        "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+        "mismatches": 0
+      },
+      "sourceAfter": {
+        "files": 502,
+        "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+        "mismatches": 0
+      },
+      "postgresResidualDBCount": "0",
+      "postgresQueryExit": 0,
+      "postgresStopExit": 0
+    },
+    {
+      "stage": "v2",
+      "hostGoExit": 0,
+      "elapsedSeconds": 134.062,
+      "trackedResources": 8,
+      "markers": [
+        "local_network_race_probe_test.go:61: Linux race fixture exact tracked absence checked: resources=8",
+        "integration_test.go:486: Temporary Management security group GET absence confirmed",
+        "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+      ],
+      "cleanupErrors": [],
+      "sourceBefore": {
+        "files": 502,
+        "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+        "mismatches": 0
+      },
+      "sourceAfter": {
+        "files": 502,
+        "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+        "mismatches": 0
+      },
+      "postgresResidualDBCount": null,
+      "postgresQueryExit": null,
+      "postgresStopExit": null
+    },
+    {
+      "stage": "v3",
+      "hostGoExit": 1,
+      "elapsedSeconds": 945.985,
+      "trackedResources": 8,
+      "markers": [
+        "local_network_race_probe_test.go:61: Linux race fixture exact tracked absence checked: resources=8",
+        "integration_test.go:486: Temporary Management security group GET absence confirmed",
+        "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+      ],
+      "cleanupErrors": [],
+      "sourceBefore": {
+        "files": 502,
+        "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+        "mismatches": 0
+      },
+      "sourceAfter": {
+        "files": 502,
+        "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+        "mismatches": 0
+      },
+      "postgresResidualDBCount": "0",
+      "postgresQueryExit": 0,
+      "postgresStopExit": 0
+    }
+  ],
+  "finalPGStatusExit": 3,
+  "finalPGStatus": "pg_ctl: no server running"
+}

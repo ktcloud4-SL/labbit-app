@@ -1,0 +1,68 @@
+{
+  "observedAtUTC": "2026-10-16T10:15:35.306668+00:00",
+  "mode": "upstream pinned source AST extraction; dependency stubs; no Neutron/dnsmasq daemon execution",
+  "neutronCommit": "4538334273e79b520e193dfece7261e13183b751",
+  "provenance": [
+    {
+      "path": "neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/ovn_client.py",
+      "url": "https://raw.githubusercontent.com/openstack/neutron/4538334273e79b520e193dfece7261e13183b751/neutron/plugins/ml2/drivers/ovn/mech_driver/ovsdb/ovn_client.py",
+      "artifact": "ovn_client.py.txt",
+      "sha256": "95bd8df55d867246eae7f8d291ba655c74f7b5f5010859ec236084d7307eb97a",
+      "bytes": 163076
+    },
+    {
+      "path": "neutron/common/ovn/utils.py",
+      "url": "https://raw.githubusercontent.com/openstack/neutron/4538334273e79b520e193dfece7261e13183b751/neutron/common/ovn/utils.py",
+      "artifact": "ovn_utils.py.txt",
+      "sha256": "86b7d447f138fc96a42f419292b790ffb5771c95404e16eac95882c1f9ed477a",
+      "bytes": 66308
+    },
+    {
+      "path": "neutron/common/ovn/constants.py",
+      "url": "https://raw.githubusercontent.com/openstack/neutron/4538334273e79b520e193dfece7261e13183b751/neutron/common/ovn/constants.py",
+      "artifact": "ovn_constants.py.txt",
+      "sha256": "c960442d369e99008eca3285106d824339acc965e96c76db4ff047b1a3721be7",
+      "bytes": 20819
+    },
+    {
+      "path": "neutron/agent/linux/dhcp.py",
+      "url": "https://raw.githubusercontent.com/openstack/neutron/4538334273e79b520e193dfece7261e13183b751/neutron/agent/linux/dhcp.py",
+      "artifact": "dnsmasq.py.txt",
+      "sha256": "0023096ebde682387590b041aee1435f9ae04f689e607827028c8b2d89f67044",
+      "bytes": 83291
+    }
+  ],
+  "functions": {
+    "get_lsp_dhcp_opts": {
+      "start": 425,
+      "end": 468
+    },
+    "_merge_map_dhcp_option": {
+      "start": 227,
+      "end": 237
+    },
+    "_format_option": {
+      "start": 1399,
+      "end": 1422
+    }
+  },
+  "ovn": {
+    "convertedEmpty": {
+      "router": "",
+      "classless_static_route": "{}"
+    },
+    "mergedEmpty": "{169.254.169.254/32,192.0.2.2, 0.0.0.0/0,192.0.2.1, }",
+    "mergedOnlink": "{169.254.169.254/32,192.0.2.2, 0.0.0.0/0,192.0.2.1, 192.0.2.0/24,0.0.0.0}",
+    "observation": "This upstream OVN path retains the subnet's default map entry with empty or onlink-only port map; deployed backend/version not established by this test."
+  },
+  "dnsmasq": {
+    "emptyPortLines": [
+      "tag:port-synthetic,option:router,",
+      "tag:port-synthetic,option:classless-static-route,"
+    ],
+    "onlinkPortLine": "tag:port-synthetic,option:classless-static-route,192.0.2.0/24,0.0.0.0",
+    "observation": "Upstream DHCP agent emits host-tagged explicit empty options. This does not establish installed agent output/tag matching/ACK contents or guest application."
+  },
+  "syntheticAddresses": "RFC5737 documentation-only; no request issued to them",
+  "status": "PASS"
+}

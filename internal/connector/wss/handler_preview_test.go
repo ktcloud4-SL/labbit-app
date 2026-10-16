@@ -677,6 +677,19 @@ func TestHandler_PreviewOpen_SequentialTunnel_NewOpenMessageID(t *testing.T) {
 		t.Fatalf("expected replyTo open-msg-1, got %s", attach1.ReplyToMessageID)
 	}
 
+	// A sequential tunnel starts only after the first TCP/Data WSS is closed.
+	// Opening a second active tunnel must not replace the first.
+	if err := gateway.SendClose(websocket.CloseNormalClosure, ""); err != nil {
+		t.Fatal(err)
+	}
+	session, _ := mgr.GetSession(sessID)
+	deadline := time.Now().Add(2 * time.Second)
+	for session.HasActiveTunnel() && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if session.HasActiveTunnel() {
+		t.Fatal("first tunnel did not close")
+	}
 	// 2. 두 번째 터널 오픈 (새 openMessageId -> 새 sequential 터널)
 	openReq2 := openReq1
 	openReq2.MessageID = "open-msg-2"

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -79,8 +80,8 @@ func readBoundedMessage(ws *websocket.Conn, maxText int64) (kind int, data []byt
 		return 0, nil, err
 	}
 	if kind != websocket.TextMessage {
-		data, err = io.ReadAll(r)
-		return kind, data, err
+		// Binary is invalid during attach. Do not buffer an unbounded frame.
+		return kind, nil, nil
 	}
 	data, err = io.ReadAll(io.LimitReader(r, maxText+1))
 	if err != nil {
@@ -110,9 +111,28 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
 	if openMessageID == "" {
 		openMessageID = session.CurrentAttemptID()
 	}
+	tunnel, err := session.attempt(openMessageID)
+	if err != nil {
+		return err
+	}
 	if openMessageID == "" {
 		openMessageID = uuid.NewString()
 	}
+	// Cancellation belongs to the exact tunnel, including an in-flight WSS
+	// handshake. It must never close whatever tunnel happens to be current.
+	stopCancel := context.AfterFunc(ctx, func() { tunnel.Close(protocol.PreviewReasonSessionClosed) })
+	stopRelease := context.AfterFunc(tunnel.ctx, func() { stopCancel() })
+	attached := false
+	defer func() {
+		if !attached {
+			stopCancel()
+			stopRelease()
+		}
+	}()
+	dialCtx, cancel := context.WithCancel(ctx)
+	stopDial := context.AfterFunc(tunnel.ctx, cancel)
+	defer stopDial()
+	defer cancel()
 
 	u, err := url.Parse(c.config.EndpointURL)
 	if err != nil {
@@ -132,9 +152,25 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
 		return fmt.Errorf("unsupported URL scheme %q: only wss is allowed", u.Scheme)
 	}
 
+	// Gorilla's context deadline bounds Upgrade, but cancellation alone does
+	// not interrupt its HTTP response read. Own the raw socket until handoff.
+	var stopRawClose func() bool
+	defer func() {
+		if stopRawClose != nil {
+			stopRawClose()
+		}
+	}()
 	dialer := websocket.Dialer{
 		HandshakeTimeout: c.config.DialTimeout,
 		Subprotocols:     []string{protocol.SubprotocolPreviewData},
+		NetDialContext: func(netCtx context.Context, network, address string) (net.Conn, error) {
+			raw, err := (&net.Dialer{}).DialContext(netCtx, network, address)
+			if err != nil {
+				return nil, err
+			}
+			stopRawClose = context.AfterFunc(dialCtx, func() { _ = raw.Close() })
+			return raw, nil
+		},
 	}
 
 	cred, err := c.config.GetCredential()
@@ -147,7 +183,7 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
 		header.Set("Authorization", "Bearer "+cred)
 	}
 
-	conn, resp, err := dialer.DialContext(ctx, c.config.EndpointURL, header)
+	conn, resp, err := dialer.DialContext(dialCtx, c.config.EndpointURL, header)
 	if err != nil {
 		if resp != nil {
 			if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
@@ -157,6 +193,14 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
 		}
 		return fmt.Errorf("dial failed: %w", err)
 	}
+	if err := session.trackDataConn(tunnel, conn); err != nil {
+		_ = conn.Close()
+		return err
+	}
+	if stopRawClose != nil {
+		stopRawClose()
+	}
+	_ = conn.SetWriteDeadline(time.Now().Add(c.config.AttachTimeout))
 
 	// 1. Subprotocol 검증
 	negotiated := conn.Subprotocol()
@@ -195,6 +239,7 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
 		_ = conn.Close()
 		return fmt.Errorf("failed to send attach message: %w", err)
 	}
+	_ = conn.SetWriteDeadline(time.Time{})
 
 	// 3. PREVIEW_ATTACHED 응답 대기 (명시적 AttachTimeout 및 1 MiB bounded)
 	attachTimeout := c.config.AttachTimeout
@@ -249,10 +294,11 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
 	}
 
 	// 5. 세션에 활성 WebSocket 연결 바인딩
-	if err := session.AttachDataConn(conn); err != nil {
+	if err := session.AttachDataConn(conn, tunnel.openMessageID); err != nil {
 		_ = conn.Close()
 		return fmt.Errorf("failed to attach connection to session: %w", err)
 	}
+	attached = true
 
 	return nil
 }

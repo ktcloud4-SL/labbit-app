@@ -1,0 +1,12 @@
+{
+  "purpose": "external validation only: OFF strict zero defaults, failed outbound TCP, authenticated pinned SSH, both DHCP renewal orders before/after actual reboot and immutable Reset g2",
+  "sourceSource": "final-verified",
+  "files": {
+    "linux-source-archive.json": "15bb31972b68d26a3e358138a97b7bb81baaccd663f3868c81cb56f29ade1e7d",
+    "linux_ci.sh": "a14d3e326f845d6a9cdd045716941c7e40fee44f3590bb444b12de718802bfbb",
+    "local_probe_test.go": "675998589f8f60af27d88bf180ebaf800c59930e12ab3baddd7a89dfef4a878d",
+    "overlay.json": "6d84321addb1844960355ba3e47bccb8198f698a15755ab7620b969952772bbd",
+    "run_validation.py": "2ade4e9692d077bee4bc579003a9f0ef47caf706fbbeba67dba164419ec5f8a9",
+    "source-manifest.json": "a5f4d6cdfd01a8a0f7324ea4cf42ede3f5144b62dbcb34e9e239cb7ff03585c4"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "source": "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\lbt174-followup-independent-0051d8d\\after-source\\internal\\connector\\vmaccess\\tcp.go",
+  "source_lf_sha256": "b3bfc633954b8d432d985fd5eb635ec91a7b4cece8f3a78344f052b7e63753b6",
+  "mutation": "Ignore the caller deadline/cancel, retain production configured 10s setup timeout",
+  "mutant_lf_sha256": "cef267ef6aac44d814ab616e5be5511ce72a2ca14f676d6d6708f095d89951f7"
+}

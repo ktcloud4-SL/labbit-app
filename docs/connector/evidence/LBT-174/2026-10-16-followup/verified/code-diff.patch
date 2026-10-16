@@ -1,0 +1,1933 @@
+diff --git a/internal/connector/app/app.go b/internal/connector/app/app.go
+index e8335b4..d37b1cb 100644
+--- a/internal/connector/app/app.go
++++ b/internal/connector/app/app.go
+@@ -214,6 +214,7 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
+ 	handler := wss.NewHandler(p, sender)
+ 	handler.SetTerminalManager(sessionMgr, ptyFactory, termCfg)
+ 	var accessManager *vmaccess.Manager
++	var lifecycleProvider *accessLifecycleProvider
+ 	if _, ok := p.(vmaccess.Resolver); isProduction && !ok {
+ 		return nil, fmt.Errorf("Provider VM access resolver is required in production")
+ 	}
+@@ -228,7 +229,8 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
+ 		ptyFactory = func(string, string, int, int) (terminal.PTYChannel, error) {
+ 			return nil, vmaccess.ErrInvalidTarget
+ 		}
+-		handler = wss.NewHandler(&accessLifecycleProvider{Provider: p, manager: accessManager}, sender)
++		lifecycleProvider = &accessLifecycleProvider{Provider: p, manager: accessManager}
++		handler = wss.NewHandler(lifecycleProvider, sender)
+ 		handler.SetTerminalManager(sessionMgr, ptyFactory, termCfg)
+ 		handler.SetVMPTYFactory(func(ctx context.Context, target vmaccess.Target, cols, rows int) (terminal.PTYChannel, error) {
+ 			return terminal.NewManagedSSHPTY(ctx, accessManager, target, cols, rows)
+@@ -246,6 +248,9 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
+ 	if forwarder != nil {
+ 		previewMgr = preview.NewSessionManager(forwarder, nil)
+ 		handler.SetPreviewManager(previewMgr, prevCfg)
++		if lifecycleProvider != nil {
++			lifecycleProvider.preview = previewMgr
++		}
+ 	}
+ 	if controlConfig != nil {
+ 		caps := make([]string, 0, len(controlConfig.Capabilities)+1)
+@@ -369,7 +374,7 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
+ 		}
+ 		connectorApp.TerminalManager.Shutdown(protocol.TerminalReasonServiceRestart)
+ 		if connectorApp.PreviewManager != nil {
+-			connectorApp.PreviewManager.CloseAll(protocol.PreviewReasonServiceRestart)
++			connectorApp.PreviewManager.Shutdown(protocol.PreviewReasonServiceRestart)
+ 		}
+ 		if connectorApp.VMAccess != nil {
+ 			_ = connectorApp.VMAccess.Close()
+diff --git a/internal/connector/app/vm_access.go b/internal/connector/app/vm_access.go
+index 133b146..f9d7251 100644
+--- a/internal/connector/app/vm_access.go
++++ b/internal/connector/app/vm_access.go
+@@ -7,6 +7,7 @@ import (
+ 	"strings"
+ 	"time"
+ 
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
+ 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+ 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+ )
+@@ -27,6 +28,7 @@ func sshIdleTimeoutFromEnvironment() (time.Duration, error) {
+ type accessLifecycleProvider struct {
+ 	provider.Provider
+ 	manager *vmaccess.Manager
++	preview *preview.SessionManager
+ }
+ 
+ func (p *accessLifecycleProvider) ProviderConnectionID() string {
+@@ -60,6 +62,9 @@ func (p *accessLifecycleProvider) Reset(ctx context.Context, req provider.ResetR
+ 	result, err := p.Provider.Reset(ctx, req)
+ 	if lifecycleInvalidatesAccess(result, err) {
+ 		p.manager.InvalidateBefore(req.LabInstanceID, req.Generation)
++		if p.preview != nil {
++			p.preview.InvalidateBefore(req.LabInstanceID, req.Generation)
++		}
+ 	}
+ 	return result, err
+ }
+@@ -73,6 +78,9 @@ func (p *accessLifecycleProvider) Cleanup(ctx context.Context, req provider.Clea
+ 			}
+ 		}
+ 		p.manager.InvalidateBefore(req.LabInstanceID, generation+1)
++		if p.preview != nil {
++			p.preview.InvalidateBefore(req.LabInstanceID, generation+1)
++		}
+ 	}
+ 	return result, err
+ }
+diff --git a/internal/connector/app/vm_access_test.go b/internal/connector/app/vm_access_test.go
+index c9f9ef2..2ada37d 100644
+--- a/internal/connector/app/vm_access_test.go
++++ b/internal/connector/app/vm_access_test.go
+@@ -6,6 +6,8 @@ import (
+ 	"testing"
+ 	"time"
+ 
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+ 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+ 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+ )
+@@ -24,6 +26,12 @@ func TestOperationResultInvalidatesObsoleteAccess(t *testing.T) {
+ 				resolver := &rejectedAccessResolver{}
+ 				manager := vmaccess.NewManager(resolver, vmaccess.Config{})
+ 				defer manager.Close()
++				previews := preview.NewSessionManager(nil, nil)
++				defer previews.Shutdown("cleanup")
++				_, reserveErr := previews.PrepareOpen(context.Background(), protocol.PreviewOpenPayload{TargetVmKey: "workspace", ProviderServerID: "server-1", TargetPort: 3000}, protocol.BaseEnvelope{MessageID: "open", PreviewSessionID: "preview", LabInstanceID: "lab-1", Generation: 1})
++				if reserveErr != nil {
++					t.Fatal(reserveErr)
++				}
+ 				result := provider.OperationResult{Outcome: provider.OutcomeSucceeded}
+ 				var mutationErr error
+ 				switch outcome {
+@@ -50,7 +58,7 @@ func TestOperationResultInvalidatesObsoleteAccess(t *testing.T) {
+ 					CleanupFunc: func(context.Context, provider.CleanupRequest) (provider.OperationResult, error) {
+ 						return result, mutationErr
+ 					},
+-				}, manager: manager}
++				}, manager: manager, preview: previews}
+ 				target := vmaccess.Target{LabInstanceID: "lab-1", Generation: 1, VMKey: "workspace", ServerID: "server-1"}
+ 				if mutation == "reset" {
+ 					_, _ = p.Reset(context.Background(), provider.ResetRequest{Correlation: provider.Correlation{LabInstanceID: "lab-1", Generation: 2}})
+@@ -65,6 +73,9 @@ func TestOperationResultInvalidatesObsoleteAccess(t *testing.T) {
+ 				if resolver.calls != want {
+ 					t.Fatalf("obsolete target reached resolver %d times, want %d", resolver.calls, want)
+ 				}
++				if previews.Count() != want {
++					t.Fatalf("Preview lifetime disagrees with mutation outcome: count=%d want=%d", previews.Count(), want)
++				}
+ 			})
+ 		}
+ 	}
+diff --git a/internal/connector/preview/client.go b/internal/connector/preview/client.go
+index 7f464f8..3e47e39 100644
+--- a/internal/connector/preview/client.go
++++ b/internal/connector/preview/client.go
+@@ -6,6 +6,7 @@ import (
+ 	"errors"
+ 	"fmt"
+ 	"io"
++	"net"
+ 	"net/http"
+ 	"net/url"
+ 	"os"
+@@ -79,8 +80,8 @@ func readBoundedMessage(ws *websocket.Conn, maxText int64) (kind int, data []byt
+ 		return 0, nil, err
+ 	}
+ 	if kind != websocket.TextMessage {
+-		data, err = io.ReadAll(r)
+-		return kind, data, err
++		// Binary is invalid during attach. Do not buffer an unbounded frame.
++		return kind, nil, nil
+ 	}
+ 	data, err = io.ReadAll(io.LimitReader(r, maxText+1))
+ 	if err != nil {
+@@ -110,9 +111,28 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
+ 	if openMessageID == "" {
+ 		openMessageID = session.CurrentAttemptID()
+ 	}
++	tunnel, err := session.attempt(openMessageID)
++	if err != nil {
++		return err
++	}
+ 	if openMessageID == "" {
+ 		openMessageID = uuid.NewString()
+ 	}
++	// Cancellation belongs to the exact tunnel, including an in-flight WSS
++	// handshake. It must never close whatever tunnel happens to be current.
++	stopCancel := context.AfterFunc(ctx, func() { tunnel.Close(protocol.PreviewReasonSessionClosed) })
++	stopRelease := context.AfterFunc(tunnel.ctx, func() { stopCancel() })
++	attached := false
++	defer func() {
++		if !attached {
++			stopCancel()
++			stopRelease()
++		}
++	}()
++	dialCtx, cancel := context.WithCancel(ctx)
++	stopDial := context.AfterFunc(tunnel.ctx, cancel)
++	defer stopDial()
++	defer cancel()
+ 
+ 	u, err := url.Parse(c.config.EndpointURL)
+ 	if err != nil {
+@@ -132,9 +152,25 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
+ 		return fmt.Errorf("unsupported URL scheme %q: only wss is allowed", u.Scheme)
+ 	}
+ 
++	// Gorilla's context deadline bounds Upgrade, but cancellation alone does
++	// not interrupt its HTTP response read. Own the raw socket until handoff.
++	var stopRawClose func() bool
++	defer func() {
++		if stopRawClose != nil {
++			stopRawClose()
++		}
++	}()
+ 	dialer := websocket.Dialer{
+ 		HandshakeTimeout: c.config.DialTimeout,
+ 		Subprotocols:     []string{protocol.SubprotocolPreviewData},
++		NetDialContext: func(netCtx context.Context, network, address string) (net.Conn, error) {
++			raw, err := (&net.Dialer{}).DialContext(netCtx, network, address)
++			if err != nil {
++				return nil, err
++			}
++			stopRawClose = context.AfterFunc(dialCtx, func() { _ = raw.Close() })
++			return raw, nil
++		},
+ 	}
+ 
+ 	cred, err := c.config.GetCredential()
+@@ -147,7 +183,7 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
+ 		header.Set("Authorization", "Bearer "+cred)
+ 	}
+ 
+-	conn, resp, err := dialer.DialContext(ctx, c.config.EndpointURL, header)
++	conn, resp, err := dialer.DialContext(dialCtx, c.config.EndpointURL, header)
+ 	if err != nil {
+ 		if resp != nil {
+ 			if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+@@ -157,6 +193,14 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
+ 		}
+ 		return fmt.Errorf("dial failed: %w", err)
+ 	}
++	if err := session.trackDataConn(tunnel, conn); err != nil {
++		_ = conn.Close()
++		return err
++	}
++	if stopRawClose != nil {
++		stopRawClose()
++	}
++	_ = conn.SetWriteDeadline(time.Now().Add(c.config.AttachTimeout))
+ 
+ 	// 1. Subprotocol 검증
+ 	negotiated := conn.Subprotocol()
+@@ -195,6 +239,7 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
+ 		_ = conn.Close()
+ 		return fmt.Errorf("failed to send attach message: %w", err)
+ 	}
++	_ = conn.SetWriteDeadline(time.Time{})
+ 
+ 	// 3. PREVIEW_ATTACHED 응답 대기 (명시적 AttachTimeout 및 1 MiB bounded)
+ 	attachTimeout := c.config.AttachTimeout
+@@ -249,10 +294,11 @@ func (c *DataWSSClient) DialAndAttach(ctx context.Context, session *PreviewSessi
+ 	}
+ 
+ 	// 5. 세션에 활성 WebSocket 연결 바인딩
+-	if err := session.AttachDataConn(conn); err != nil {
++	if err := session.AttachDataConn(conn, tunnel.openMessageID); err != nil {
+ 		_ = conn.Close()
+ 		return fmt.Errorf("failed to attach connection to session: %w", err)
+ 	}
++	attached = true
+ 
+ 	return nil
+ }
+diff --git a/internal/connector/preview/manager.go b/internal/connector/preview/manager.go
+index 972dbb0..6acf3f0 100644
+--- a/internal/connector/preview/manager.go
++++ b/internal/connector/preview/manager.go
+@@ -3,175 +3,149 @@ package preview
+ import (
+ 	"context"
+ 	"errors"
+-	"fmt"
+ 	"sync"
+ 
+-	"github.com/gorilla/websocket"
+ 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+ 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+ )
+ 
+-// ErrSessionConflict 는 동일 세션 ID로 기존과 다른 generation/target 요청이 들어왔을 때 반환됩니다.
+-var ErrSessionConflict = errors.New("preview: session conflict (stale generation or target mismatch)")
++var ErrSessionConflict = errors.New("preview: session conflict (stale generation, target or active attempt)")
+ 
+-// SessionManager 는 모든 활성 프리뷰 세션을 관리하는 Thread-safe 레지스트리입니다.
++// SessionManager owns pending opens as well as attached tunnels. Network IO
++// runs outside its lock, so Close can cancel a dial without waiting for its peer.
+ type SessionManager struct {
+-	mu        sync.RWMutex
+-	sessions  map[string]*PreviewSession
+-	forwarder TCPForwarder
+-	onEnded   PreviewEndedCallback
++	mu                sync.RWMutex
++	sessions          map[string]*PreviewSession
++	minimumGeneration map[string]int64
++	forwarder         TCPForwarder
++	onEnded           PreviewEndedCallback
++	stopped           bool
+ }
+ 
+-// NewSessionManager 는 포워더와 종료 콜백을 주입받아 SessionManager 를 초기화합니다.
+ func NewSessionManager(forwarder TCPForwarder, onEnded PreviewEndedCallback) *SessionManager {
+-	return &SessionManager{
+-		sessions:  make(map[string]*PreviewSession),
+-		forwarder: forwarder,
+-		onEnded:   onEnded,
+-	}
++	return &SessionManager{sessions: make(map[string]*PreviewSession), minimumGeneration: make(map[string]int64), forwarder: forwarder, onEnded: onEnded}
+ }
+-
+-// SetOnEnded 는 세션 종료 콜백을 등록하거나 변경합니다.
+ func (sm *SessionManager) SetOnEnded(cb PreviewEndedCallback) {
+ 	sm.mu.Lock()
+-	defer sm.mu.Unlock()
+ 	sm.onEnded = cb
++	sm.mu.Unlock()
+ }
+ 
+-// GetOrCreateSession 은 동일한 previewSessionId 가 존재하면 기존 세션을 반환하고,
+-// 없으면 TCPForwarder 를 통해 VM 대상 포트에 연결하여 새 PreviewSession 을 등록합니다.
+-// attempt 멱등성 및 순차 터널 규칙:
+-// 1) 동일 openMessageId (envelope.MessageID)로 활성 터널이 존재하면 isRetry=true 반환 (재다이얼 없음).
+-// 2) 다른 openMessageId 인 경우 새 sequential 터널을 위해 새로 TCP 다이얼 후 바인딩 (isRetry=false).
+-// 3) Generation/Target 불일치 시 fail-closed (ErrSessionConflict) 반환.
+-func (sm *SessionManager) GetOrCreateSession(
+-	ctx context.Context,
+-	payload protocol.PreviewOpenPayload,
+-	envelope protocol.BaseEnvelope,
+-) (*PreviewSession, bool, error) {
+-	sessionID := envelope.PreviewSessionID
+-	if sessionID == "" {
+-		return nil, false, errors.New("previewSessionId is required")
+-	}
++type OpenAttempt struct {
++	manager *SessionManager
++	session *PreviewSession
++	tunnel  *PreviewTunnel
++	retry   bool
++	env     protocol.BaseEnvelope
++	payload protocol.PreviewOpenPayload
++}
+ 
++// PrepareOpen reserves synchronously in Control receive order. Open may do
++// network IO in a worker while the reader continues to process CLOSE.
++func (sm *SessionManager) PrepareOpen(ctx context.Context, payload protocol.PreviewOpenPayload, env protocol.BaseEnvelope) (*OpenAttempt, error) {
++	if env.PreviewSessionID == "" {
++		return nil, errors.New("previewSessionId is required")
++	}
++	if err := ctx.Err(); err != nil {
++		return nil, err
++	}
+ 	sm.mu.Lock()
+-	if existing, ok := sm.sessions[sessionID]; ok {
+-		if existing.IsDestroyed() {
+-			sm.mu.Unlock()
+-			return nil, false, ErrSessionClosed
+-		}
+-
+-		if existing.LabInstanceID != envelope.LabInstanceID ||
+-			existing.Generation != envelope.Generation ||
+-			existing.TargetVmKey != payload.TargetVmKey ||
+-			existing.ProviderServerID != payload.ProviderServerID ||
+-			existing.TargetPort != payload.TargetPort {
+-			sm.mu.Unlock()
+-			return nil, false, fmt.Errorf("%w: mismatch in existing session correlation/target", ErrSessionConflict)
+-		}
+-
+-		// 동일 openMessageId (또는 envelope.MessageID가 비어있는 경우 활성 터널 존재) 재시도인 경우 멱등 성공 처리
+-		isSameAttempt := (envelope.MessageID == "" && existing.HasActiveTunnel()) || (envelope.MessageID != "" && existing.CurrentAttemptID() == envelope.MessageID && existing.HasActiveTunnel())
+-		if isSameAttempt {
++	if sm.stopped || env.Generation < sm.minimumGeneration[env.LabInstanceID] {
++		sm.mu.Unlock()
++		return nil, ErrSessionClosed
++	}
++	s, exists := sm.sessions[env.PreviewSessionID]
++	if exists && (s.LabInstanceID != env.LabInstanceID || s.Generation != env.Generation || s.TargetVmKey != payload.TargetVmKey || s.ProviderServerID != payload.ProviderServerID || s.TargetPort != payload.TargetPort) {
++		sm.mu.Unlock()
++		return nil, ErrSessionConflict
++	}
++	if !exists {
++		s = NewPreviewSession(env.PreviewSessionID, env.LabInstanceID, env.Generation, payload.TargetVmKey, payload.ProviderServerID, payload.TargetPort, nil, func(s *PreviewSession, reason string, err error) {
++			sm.mu.Lock()
++			if s.IsDestroyed() && sm.sessions[s.SessionID] == s {
++				delete(sm.sessions, s.SessionID)
++			}
++			cb := sm.onEnded
+ 			sm.mu.Unlock()
+-			return existing, true, nil
+-		}
++			if cb != nil {
++				cb(s, reason, err)
++			}
++		})
++		sm.sessions[s.SessionID] = s
+ 	}
++	tunnel, retry, err := s.reserveTunnel(env.MessageID)
+ 	sm.mu.Unlock()
+-
+-	if sm.forwarder == nil {
+-		return nil, false, errors.New("tcp forwarder is not configured")
++	if err != nil {
++		return nil, err
+ 	}
+-
+-	// Lock 외부에서 TCP 다이얼 수행
+-	conn, err := sm.forwarder.DialTCP(ctx, vmaccess.Target{
+-		LabInstanceID: envelope.LabInstanceID, Generation: envelope.Generation,
+-		VMKey: payload.TargetVmKey, ServerID: payload.ProviderServerID,
+-	}, payload.TargetPort)
++	return &OpenAttempt{manager: sm, session: s, tunnel: tunnel, retry: retry, env: env, payload: payload}, nil
++}
++func (sm *SessionManager) GetOrCreateSession(ctx context.Context, payload protocol.PreviewOpenPayload, env protocol.BaseEnvelope) (*PreviewSession, bool, error) {
++	a, err := sm.PrepareOpen(ctx, payload, env)
+ 	if err != nil {
+ 		return nil, false, err
+ 	}
+-
+-	sm.mu.Lock()
+-	defer sm.mu.Unlock()
+-
+-	// Double check
+-	if existing, ok := sm.sessions[sessionID]; ok {
+-		if existing.IsDestroyed() {
+-			_ = conn.Close()
+-			return nil, false, ErrSessionClosed
+-		}
+-
+-		if existing.LabInstanceID != envelope.LabInstanceID ||
+-			existing.Generation != envelope.Generation ||
+-			existing.TargetVmKey != payload.TargetVmKey ||
+-			existing.ProviderServerID != payload.ProviderServerID ||
+-			existing.TargetPort != payload.TargetPort {
+-			_ = conn.Close()
+-			return nil, false, fmt.Errorf("%w: mismatch in existing session correlation/target", ErrSessionConflict)
+-		}
+-
+-		isSameAttempt := (envelope.MessageID == "" && existing.HasActiveTunnel()) || (envelope.MessageID != "" && existing.CurrentAttemptID() == envelope.MessageID && existing.HasActiveTunnel())
+-		if isSameAttempt {
+-			_ = conn.Close()
+-			return existing, true, nil
+-		}
+-
+-		if _, err := existing.BindTunnel(envelope.MessageID, conn); err != nil {
+-			_ = conn.Close()
+-			return nil, false, err
++	return a.Open(ctx)
++}
++func (a *OpenAttempt) Open(ctx context.Context) (*PreviewSession, bool, error) {
++	sm, s, tunnel, retry, env, payload := a.manager, a.session, a.tunnel, a.retry, a.env, a.payload
++	var err error
++	if retry {
++		select {
++		case <-ctx.Done():
++			return nil, true, ctx.Err()
++		case <-tunnel.ready:
++			if err := tunnel.dialResult(); err != nil {
++				return nil, true, err
++			}
++			return s, true, nil
++		case <-tunnel.done:
++			return nil, true, ErrSessionClosed
+ 		}
+-		return existing, false, nil
+ 	}
+-
+-	session := NewPreviewSession(
+-		sessionID,
+-		envelope.LabInstanceID,
+-		envelope.Generation,
+-		payload.TargetVmKey,
+-		payload.ProviderServerID,
+-		payload.TargetPort,
+-		nil,
+-		func(s *PreviewSession, reason string, err error) {
+-			var closeErr *websocket.CloseError
+-			if (errors.As(err, &closeErr) && (closeErr.Code == 4001 || closeErr.Code == 4002)) || s.IsDestroyed() {
+-				sm.removeSession(s.SessionID)
+-			}
+-			sm.mu.RLock()
+-			cb := sm.onEnded
+-			sm.mu.RUnlock()
+-			if cb != nil {
+-				cb(s, reason, err)
+-			}
+-		},
+-	)
+-
+-	if _, err := session.BindTunnel(envelope.MessageID, conn); err != nil {
+-		_ = conn.Close()
++	dialCtx, cancel := context.WithCancel(ctx)
++	stop := context.AfterFunc(tunnel.ctx, cancel)
++	defer stop()
++	defer cancel()
++	if sm.forwarder == nil {
++		err = errors.New("tcp forwarder is not configured")
++	} else {
++		conn, dialErr := sm.forwarder.DialTCP(dialCtx, vmaccess.Target{LabInstanceID: env.LabInstanceID, Generation: env.Generation, VMKey: payload.TargetVmKey, ServerID: payload.ProviderServerID}, payload.TargetPort)
++		err = tunnel.completeDial(conn, dialErr)
++	}
++	if err == nil {
++		err = dialCtx.Err()
++	}
++	if err != nil {
++		tunnel.closeWithReason(protocol.PreviewErrorCodeUnavailable, err)
++		sm.discardUnattached(s, env.MessageID)
+ 		return nil, false, err
+ 	}
+-
+-	sm.sessions[sessionID] = session
+-	return session, false, nil
++	return s, false, nil
+ }
+ 
+-// GetSession 은 식별자로 세션을 조회합니다.
+-func (sm *SessionManager) GetSession(sessionID string) (*PreviewSession, bool) {
++// A delayed failure cannot discard a newer attempt or an established session.
++func (sm *SessionManager) discardUnattached(s *PreviewSession, attempt string) {
++	sm.mu.Lock()
++	s.mu.Lock()
++	if sm.sessions[s.SessionID] == s && !s.everAttached && s.currentAttemptID == attempt && s.activeTunnel == nil {
++		s.destroyed = true
++		delete(sm.sessions, s.SessionID)
++	}
++	s.mu.Unlock()
++	sm.mu.Unlock()
++}
++func (sm *SessionManager) GetSession(id string) (*PreviewSession, bool) {
+ 	sm.mu.RLock()
+ 	defer sm.mu.RUnlock()
+-	s, ok := sm.sessions[sessionID]
++	s, ok := sm.sessions[id]
+ 	return s, ok
+ }
+-
+-// CloseSession 은 특정 세션을 닫고 레지스트리에서 제거합니다.
+-func (sm *SessionManager) CloseSession(sessionID string, reason string) error {
++func (sm *SessionManager) CloseSession(id, reason string) error {
+ 	sm.mu.Lock()
+-	s, ok := sm.sessions[sessionID]
+-	if ok {
+-		delete(sm.sessions, sessionID)
+-	}
++	s, ok := sm.sessions[id]
++	delete(sm.sessions, id)
+ 	sm.mu.Unlock()
+-
+ 	if !ok {
+ 		return ErrSessionNotFound
+ 	}
+@@ -179,30 +153,70 @@ func (sm *SessionManager) CloseSession(sessionID string, reason string) error {
+ 	return nil
+ }
+ 
+-// CloseAll 은 런타임 종료 시 모든 활성 세션을 닫고 정리합니다.
+-func (sm *SessionManager) CloseAll(reason string) {
++// CloseMatchingSession validates and removes under the same registry lock.
++func (sm *SessionManager) CloseMatchingSession(id, lab string, generation int64, reason string) error {
++	closeSession, err := sm.RetireMatchingSession(id, lab, generation, reason)
++	closeSession()
++	return err
++}
++
++// RetireMatchingSession detaches under the registry lock; the returned closure
++// does network IO and callbacks outside an enclosing Control authority lock.
++func (sm *SessionManager) RetireMatchingSession(id, lab string, generation int64, reason string) (func(), error) {
+ 	sm.mu.Lock()
+-	list := make([]*PreviewSession, 0, len(sm.sessions))
+-	for _, s := range sm.sessions {
+-		list = append(list, s)
++	s, ok := sm.sessions[id]
++	if ok && (s.LabInstanceID != lab || s.Generation != generation) {
++		sm.mu.Unlock()
++		return func() {}, ErrSessionConflict
+ 	}
+-	sm.sessions = make(map[string]*PreviewSession)
+-	sm.mu.Unlock()
+-
+-	for _, s := range list {
+-		s.Close(reason)
++	if ok {
++		delete(sm.sessions, id)
+ 	}
++	sm.mu.Unlock()
++	return func() {
++		if ok {
++			s.Close(reason)
++		}
++	}, nil
+ }
+-
+-// Count 는 현재 관리 중인 세션 개수를 반환합니다.
+-func (sm *SessionManager) Count() int {
+-	sm.mu.RLock()
+-	defer sm.mu.RUnlock()
+-	return len(sm.sessions)
++func (sm *SessionManager) CloseAttempt(s *PreviewSession, attempt, reason string) {
++	s.CloseAttempt(attempt, reason)
++	sm.discardUnattached(s, attempt)
+ }
++func (sm *SessionManager) CloseAll(reason string) { sm.closeWhere(reason, false, "", 0) }
+ 
+-func (sm *SessionManager) removeSession(sessionID string) {
++// RetireAll atomically detaches the current registry without blocking on peers.
++// Call the returned closure after releasing the Control authority lock.
++func (sm *SessionManager) RetireAll(reason string) func() {
++	return sm.retireWhere(reason, false, "", 0)
++}
++func (sm *SessionManager) Shutdown(reason string) { sm.closeWhere(reason, true, "", 0) }
++func (sm *SessionManager) InvalidateBefore(lab string, generation int64) {
++	sm.closeWhere(protocol.PreviewReasonSessionClosed, false, lab, generation)
++}
++func (sm *SessionManager) closeWhere(reason string, shutdown bool, lab string, generation int64) {
++	sm.retireWhere(reason, shutdown, lab, generation)()
++}
++func (sm *SessionManager) retireWhere(reason string, shutdown bool, lab string, generation int64) func() {
+ 	sm.mu.Lock()
+-	defer sm.mu.Unlock()
+-	delete(sm.sessions, sessionID)
++	if shutdown {
++		sm.stopped = true
++	}
++	if lab != "" && generation > sm.minimumGeneration[lab] {
++		sm.minimumGeneration[lab] = generation
++	}
++	var sessions []*PreviewSession
++	for id, s := range sm.sessions {
++		if lab == "" || (s.LabInstanceID == lab && s.Generation < generation) {
++			delete(sm.sessions, id)
++			sessions = append(sessions, s)
++		}
++	}
++	sm.mu.Unlock()
++	return func() {
++		for _, s := range sessions {
++			s.Close(reason)
++		}
++	}
+ }
++func (sm *SessionManager) Count() int { sm.mu.RLock(); defer sm.mu.RUnlock(); return len(sm.sessions) }
+diff --git a/internal/connector/preview/session.go b/internal/connector/preview/session.go
+index f4c8f3e..e1f149c 100644
+--- a/internal/connector/preview/session.go
++++ b/internal/connector/preview/session.go
+@@ -1,6 +1,7 @@
+ package preview
+ 
+ import (
++	"context"
+ 	"errors"
+ 	"io"
+ 	"net"
+@@ -11,7 +12,6 @@ import (
+ 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+ )
+ 
+-// SessionStatus 는 프리뷰 세션의 라이프사이클 상태입니다.
+ type SessionStatus string
+ 
+ const (
+@@ -28,254 +28,226 @@ var (
+ 	ErrNoActiveTunnel         = errors.New("preview session has no active tunnel")
+ )
+ 
+-// PreviewEndedCallback 은 프리뷰 세션 또는 터널이 종료되었을 때 호출되는 콜백입니다.
+ type PreviewEndedCallback func(session *PreviewSession, reason string, err error)
+ 
+-// PreviewTunnel 은 단일 TCP 연결(VM application port)과 SaaS Preview Data WSS 간의 양방향 바이트 스트리밍 터널입니다.
+-// 1 PreviewSession 은 0..N 개의 sequential PreviewTunnel 을 가질 수 있습니다 (LBT-101 / §7b).
++// A tunnel is reserved before TCP dial and remains bound to one OPEN attempt.
+ type PreviewTunnel struct {
++	mu            sync.Mutex
+ 	openMessageID string
+ 	tcpConn       net.Conn
+ 	dataConn      *websocket.Conn
+-	writeMu       sync.Mutex
++	attached      bool
++	ctx           context.Context
++	cancel        context.CancelFunc
++	ready         chan struct{}
++	readyOnce     sync.Once
++	openErr       error
+ 	done          chan struct{}
+ 	closeOnce     sync.Once
+ 	onClosed      func(reason string, err error)
+ }
+ 
+-// Close 는 터널(TCP 연결 및 Data WSS 연결)을 닫고 정리합니다.
+-func (t *PreviewTunnel) Close(reason string) {
+-	t.closeWithReason(reason, nil)
++func (t *PreviewTunnel) completeDial(conn net.Conn, err error) error {
++	t.mu.Lock()
++	select {
++	case <-t.done:
++		err = ErrSessionClosed
++	default:
++	}
++	if err == nil {
++		t.tcpConn = conn
++	} else if conn != nil {
++		_ = conn.Close()
++	}
++	t.openErr = err
++	t.readyOnce.Do(func() { close(t.ready) })
++	t.mu.Unlock()
++	return err
+ }
+-
+-func (t *PreviewTunnel) closeWithReason(reason string, closeErr error) {
++func (t *PreviewTunnel) dialResult() error {
++	t.mu.Lock()
++	defer t.mu.Unlock()
++	select {
++	case <-t.done:
++		return ErrSessionClosed
++	default:
++		return t.openErr
++	}
++}
++func (t *PreviewTunnel) Close(reason string) { t.closeWithReason(reason, nil) }
++func (t *PreviewTunnel) closeWithReason(reason string, err error) {
++	t.closeWithCode(reason, err, websocket.CloseNormalClosure)
++}
++func (t *PreviewTunnel) closeWithCode(reason string, err error, code int) {
++	closed := false
+ 	t.closeOnce.Do(func() {
++		closed = true
+ 		close(t.done)
+-
+-		if t.tcpConn != nil {
+-			_ = t.tcpConn.Close()
++		t.cancel()
++		t.mu.Lock()
++		tcp, ws := t.tcpConn, t.dataConn
++		t.mu.Unlock()
++		if tcp != nil {
++			_ = tcp.Close()
+ 		}
+-
+-		if t.dataConn != nil {
+-			t.writeMu.Lock()
+-			_ = t.dataConn.WriteControl(
+-				websocket.CloseMessage,
+-				websocket.FormatCloseMessage(websocket.CloseNormalClosure, reason),
+-				time.Now().Add(time.Second),
+-			)
+-			_ = t.dataConn.Close()
+-			t.writeMu.Unlock()
+-		}
+-
+-		if t.onClosed != nil {
+-			t.onClosed(reason, closeErr)
++		if ws != nil {
++			// WriteControl is safe alongside a blocked data writer and has its own
++			// deadline. Closing the socket then interrupts either relay direction.
++			_ = ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(code, reason), time.Now().Add(50*time.Millisecond))
++			_ = ws.Close()
+ 		}
+ 	})
++	if closed && t.onClosed != nil {
++		t.onClosed(reason, err)
++	}
+ }
+-
+-// pipeTCPToWSS 는 VM TCP 포트에서 읽은 바이트를 WebSocket Binary Frame으로 SaaS Gateway에 전달합니다.
+-func (t *PreviewTunnel) pipeTCPToWSS() {
++func (t *PreviewTunnel) pipeTCPToWSS(tcp net.Conn, ws *websocket.Conn) {
+ 	buf := make([]byte, 32*1024)
+ 	for {
+-		select {
+-		case <-t.done:
+-			return
+-		default:
+-		}
+-
+-		n, err := t.tcpConn.Read(buf)
++		n, err := tcp.Read(buf)
+ 		if n > 0 {
+-			t.writeMu.Lock()
+-			writeErr := t.dataConn.WriteMessage(websocket.BinaryMessage, buf[:n])
+-			t.writeMu.Unlock()
+-			if writeErr != nil {
++			if writeErr := ws.WriteMessage(websocket.BinaryMessage, buf[:n]); writeErr != nil {
+ 				t.Close(protocol.PreviewReasonSessionClosed)
+ 				return
+ 			}
+ 		}
+-
+ 		if err != nil {
+-			if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
+-				t.Close(protocol.PreviewReasonTargetClosed)
+-			} else {
+-				t.Close(protocol.PreviewErrorCodeVMUnreachable)
++			reason := protocol.PreviewReasonTargetClosed
++			if !errors.Is(err, io.EOF) && !errors.Is(err, net.ErrClosed) {
++				reason = protocol.PreviewErrorCodeVMUnreachable
+ 			}
++			t.Close(reason)
+ 			return
+ 		}
+ 	}
+ }
+-
+-// pipeWSSToTCP 는 SaaS Gateway에서 수신한 바이너리 데이터를 VM TCP 포트로 기록합니다.
+-// PREVIEW_ATTACHED 이후에는 순수 Binary Frame만 허용되며, Text Frame 수신은 1008 프로토콜 위반으로 종료합니다.
+-func (t *PreviewTunnel) pipeWSSToTCP() {
++func (t *PreviewTunnel) pipeWSSToTCP(tcp net.Conn, ws *websocket.Conn) {
+ 	for {
+-		select {
+-		case <-t.done:
+-			return
+-		default:
+-		}
+-
+-		msgType, r, err := t.dataConn.NextReader()
++		kind, reader, err := ws.NextReader()
+ 		if err != nil {
+-			var closeErr *websocket.CloseError
+-			if errors.As(err, &closeErr) {
+-				reason := closeErr.Text
+-				if reason == "" {
+-					reason = protocol.PreviewReasonSessionClosed
++			// Peer close text is untrusted and may contain request data or secrets.
++			reason := protocol.PreviewReasonSessionClosed
++			var closed *websocket.CloseError
++			if errors.As(err, &closed) {
++				switch closed.Text {
++				case protocol.PreviewReasonSessionExpired, protocol.PreviewReasonLabReset, protocol.PreviewReasonLabCleanup,
++					protocol.PreviewReasonCredentialRevoked, protocol.PreviewReasonControlReplaced, protocol.PreviewReasonServiceRestart:
++					reason = closed.Text
+ 				}
+-				t.closeWithReason(reason, closeErr)
+-			} else {
+-				t.closeWithReason(protocol.PreviewReasonSessionClosed, err)
+ 			}
++			t.closeWithReason(reason, err)
+ 			return
+ 		}
+-
+-		switch msgType {
+-		case websocket.BinaryMessage:
+-			if _, err := io.Copy(t.tcpConn, r); err != nil {
+-				t.Close(protocol.PreviewErrorCodeVMUnreachable)
+-				return
+-			}
+-		case websocket.TextMessage:
+-			// LBT-101 계약: PREVIEW_ATTACHED 이후 JSON Text frame은 프로토콜 위반 (Close 1008)
+-			t.writeMu.Lock()
+-			_ = t.dataConn.WriteControl(
+-				websocket.CloseMessage,
+-				websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "text frame is not allowed after attach"),
+-				time.Now().Add(time.Second),
+-			)
+-			t.writeMu.Unlock()
+-			t.Close(protocol.PreviewErrProtocolError)
++		if kind != websocket.BinaryMessage {
++			t.closeWithCode(protocol.PreviewErrProtocolError, nil, websocket.ClosePolicyViolation)
+ 			return
+-		case websocket.CloseMessage:
+-			t.Close(protocol.PreviewReasonSessionClosed)
++		}
++		if _, err := io.Copy(tcp, reader); err != nil {
++			t.Close(protocol.PreviewErrorCodeVMUnreachable)
+ 			return
+ 		}
+ 	}
+ }
+ 
+-// PreviewSession 은 logical PreviewSession 을 관리합니다.
+ type PreviewSession struct {
+-	mu sync.Mutex
+-
++	mu               sync.Mutex
+ 	SessionID        string
+ 	LabInstanceID    string
+ 	Generation       int64
+ 	TargetVmKey      string
+ 	ProviderServerID string
+ 	TargetPort       int
+-
+ 	Status           SessionStatus
+ 	currentAttemptID string
+ 	activeTunnel     *PreviewTunnel
+ 	everAttached     bool
+ 	destroyed        bool
+-
+-	// 하위 호환성 필드: 현재 활성 터널의 커넥션 참조
+-	TCPConn  net.Conn
+-	DataConn *websocket.Conn
+-
++	// Compatibility references; access them only while holding the session lock.
++	TCPConn   net.Conn
++	DataConn  *websocket.Conn
+ 	closeOnce sync.Once
+ 	onEnded   PreviewEndedCallback
+ }
+ 
+-// NewPreviewSession 은 logical PreviewSession 을 생성합니다.
+-// tcpConn 이 전달되면 초기 터널로 자동 바인딩합니다.
+-func NewPreviewSession(
+-	sessionID, labInstanceID string,
+-	generation int64,
+-	targetVmKey, serverID string,
+-	targetPort int,
+-	tcpConn net.Conn,
+-	onEnded PreviewEndedCallback,
+-) *PreviewSession {
+-	s := &PreviewSession{
+-		SessionID:        sessionID,
+-		LabInstanceID:    labInstanceID,
+-		Generation:       generation,
+-		TargetVmKey:      targetVmKey,
+-		ProviderServerID: serverID,
+-		TargetPort:       targetPort,
+-		Status:           StatusActive,
+-		onEnded:          onEnded,
+-	}
+-	if tcpConn != nil {
+-		_, _ = s.BindTunnel("", tcpConn)
++func NewPreviewSession(id, lab string, generation int64, vm, server string, port int, tcp net.Conn, ended PreviewEndedCallback) *PreviewSession {
++	s := &PreviewSession{SessionID: id, LabInstanceID: lab, Generation: generation, TargetVmKey: vm, ProviderServerID: server, TargetPort: port, Status: StatusActive, onEnded: ended}
++	if tcp != nil {
++		_, _ = s.BindTunnel("", tcp)
+ 	}
+ 	return s
+ }
+-
+-// GetStatus 는 현재 세션의 상태를 안전하게 반환합니다.
+-func (s *PreviewSession) GetStatus() SessionStatus {
+-	s.mu.Lock()
+-	defer s.mu.Unlock()
+-	return s.Status
+-}
+-
+-// EverAttached 는 이 세션에 최소 1회 이상 Data WSS 연결이 성공적으로 attach 되었는지 여부를 반환합니다.
+-func (s *PreviewSession) EverAttached() bool {
+-	s.mu.Lock()
+-	defer s.mu.Unlock()
+-	return s.everAttached
+-}
+-
+-// IsDestroyed 는 세션이 완전히 파기(종료)되었는지 여부를 반환합니다.
+-func (s *PreviewSession) IsDestroyed() bool {
+-	s.mu.Lock()
+-	defer s.mu.Unlock()
+-	return s.destroyed
+-}
+-
+-// CurrentAttemptID 는 현재 바인딩된 터널의 openMessageID를 반환합니다.
++func (s *PreviewSession) GetStatus() SessionStatus { s.mu.Lock(); defer s.mu.Unlock(); return s.Status }
++func (s *PreviewSession) EverAttached() bool       { s.mu.Lock(); defer s.mu.Unlock(); return s.everAttached }
++func (s *PreviewSession) IsDestroyed() bool        { s.mu.Lock(); defer s.mu.Unlock(); return s.destroyed }
+ func (s *PreviewSession) CurrentAttemptID() string {
+ 	s.mu.Lock()
+ 	defer s.mu.Unlock()
+ 	return s.currentAttemptID
+ }
+-
+-// HasActiveTunnel 은 현재 활성(열려있는) 터널이 존재하는지 여부를 반환합니다.
+ func (s *PreviewSession) HasActiveTunnel() bool {
+ 	s.mu.Lock()
+ 	defer s.mu.Unlock()
+ 	return s.activeTunnel != nil
+ }
+-
+-// BindTunnel 은 새로운 TCP 커넥션을 터널로 세션에 바인딩합니다.
+-// 이전 활성 터널이 존재하면 새 터널을 위해 정상 종료합니다.
+-func (s *PreviewSession) BindTunnel(openMessageID string, tcpConn net.Conn) (*PreviewTunnel, error) {
++func (s *PreviewSession) reserveTunnel(attempt string) (*PreviewTunnel, bool, error) {
+ 	s.mu.Lock()
+ 	defer s.mu.Unlock()
+-
+ 	if s.destroyed {
+-		if tcpConn != nil {
+-			_ = tcpConn.Close()
+-		}
+-		return nil, ErrSessionClosed
++		return nil, false, ErrSessionClosed
+ 	}
+-
+ 	if s.activeTunnel != nil {
+-		old := s.activeTunnel
+-		go old.Close(protocol.PreviewReasonTargetClosed)
+-	}
+-
+-	t := &PreviewTunnel{
+-		openMessageID: openMessageID,
+-		tcpConn:       tcpConn,
+-		done:          make(chan struct{}),
++		if s.activeTunnel.openMessageID == attempt {
++			return s.activeTunnel, true, nil
++		}
++		return nil, false, ErrSessionConflict
+ 	}
+-	t.onClosed = func(reason string, err error) {
+-		s.onTunnelFinished(t, reason, err)
++	if attempt != "" && s.currentAttemptID == attempt {
++		return nil, false, ErrNoActiveTunnel
+ 	}
+-
++	ctx, cancel := context.WithCancel(context.Background())
++	t := &PreviewTunnel{openMessageID: attempt, ctx: ctx, cancel: cancel, ready: make(chan struct{}), done: make(chan struct{})}
++	t.onClosed = func(reason string, err error) { s.onTunnelFinished(t, reason, err) }
+ 	s.activeTunnel = t
+-	s.currentAttemptID = openMessageID
+-	s.TCPConn = tcpConn
+-	s.DataConn = nil
+-	s.Status = StatusActive
+-
++	s.currentAttemptID = attempt
++	s.Status = StatusConnecting
++	return t, false, nil
++}
++func (s *PreviewSession) BindTunnel(attempt string, tcp net.Conn) (*PreviewTunnel, error) {
++	t, retry, err := s.reserveTunnel(attempt)
++	if err != nil || retry {
++		if tcp != nil {
++			_ = tcp.Close()
++		}
++		if err == nil {
++			err = ErrSessionConflict
++		}
++		return nil, err
++	}
++	if err := t.completeDial(tcp, nil); err != nil {
++		return nil, err
++	}
++	s.mu.Lock()
++	if s.activeTunnel == t {
++		s.TCPConn = tcp
++		s.Status = StatusActive
++	}
++	s.mu.Unlock()
+ 	return t, nil
+ }
+-
++func (s *PreviewSession) attempt(attempt string) (*PreviewTunnel, error) {
++	s.mu.Lock()
++	defer s.mu.Unlock()
++	if s.destroyed {
++		return nil, ErrSessionClosed
++	}
++	if s.activeTunnel == nil {
++		return nil, ErrNoActiveTunnel
++	}
++	if s.activeTunnel.openMessageID != attempt {
++		return nil, ErrCorrelationMismatch
++	}
++	return s.activeTunnel, nil
++}
+ func (s *PreviewSession) onTunnelFinished(t *PreviewTunnel, reason string, err error) {
+ 	s.mu.Lock()
+ 	if s.activeTunnel != t {
+@@ -286,77 +258,113 @@ func (s *PreviewSession) onTunnelFinished(t *PreviewTunnel, reason string, err e
+ 	s.TCPConn = nil
+ 	s.DataConn = nil
+ 	s.Status = StatusClosed
+-
+-	var closeErr *websocket.CloseError
+-	isTrustTermination := errors.As(err, &closeErr) && (closeErr.Code == 4001 || closeErr.Code == 4002)
+-	if isTrustTermination {
++	var closed *websocket.CloseError
++	if errors.As(err, &closed) && (closed.Code == 4001 || closed.Code == 4002) {
+ 		s.destroyed = true
+ 	}
+-	wasExplicitlyDestroyed := s.destroyed && !isTrustTermination
+ 	cb := s.onEnded
+ 	s.mu.Unlock()
+-
+-	if wasExplicitlyDestroyed {
+-		return
+-	}
+-
+ 	if cb != nil {
+ 		cb(s, reason, err)
+ 	}
+ }
+ 
+-// AttachDataConn 은 SaaS Preview Data WSS 연결을 현재 활성 터널에 바인딩하고 프록시 스트리밍을 시작합니다.
+-func (s *PreviewSession) AttachDataConn(conn *websocket.Conn) error {
++// Track the handshake socket before waiting for ATTACHED, so Close also
++// interrupts pending attach reads and writes.
++func (s *PreviewSession) trackDataConn(t *PreviewTunnel, ws *websocket.Conn) error {
+ 	s.mu.Lock()
+-	if s.destroyed {
+-		s.mu.Unlock()
+-		if conn != nil {
+-			_ = conn.Close()
+-		}
++	defer s.mu.Unlock()
++	if s.destroyed || s.activeTunnel != t {
+ 		return ErrSessionClosed
+ 	}
+-
++	t.mu.Lock()
++	defer t.mu.Unlock()
++	select {
++	case <-t.done:
++		return ErrSessionClosed
++	default:
++	}
++	if t.dataConn != nil {
++		return ErrSessionAlreadyAttached
++	}
++	t.dataConn = ws
++	return nil
++}
++func (s *PreviewSession) AttachDataConn(ws *websocket.Conn, attempts ...string) error {
++	s.mu.Lock()
+ 	t := s.activeTunnel
+-	if t == nil {
++	if s.destroyed || t == nil {
+ 		s.mu.Unlock()
+-		if conn != nil {
+-			_ = conn.Close()
++		if ws != nil {
++			_ = ws.Close()
+ 		}
+-		return ErrNoActiveTunnel
++		return ErrSessionClosed
+ 	}
+-
+-	if t.dataConn != nil {
++	if len(attempts) > 0 && t.openMessageID != attempts[0] {
+ 		s.mu.Unlock()
+-		if conn != nil {
+-			_ = conn.Close()
+-		}
++		_ = ws.Close()
++		return ErrCorrelationMismatch
++	}
++	t.mu.Lock()
++	select {
++	case <-t.done:
++		t.mu.Unlock()
++		s.mu.Unlock()
++		_ = ws.Close()
++		return ErrSessionClosed
++	default:
++	}
++	if t.attached || (t.dataConn != nil && t.dataConn != ws) {
++		t.mu.Unlock()
++		s.mu.Unlock()
++		_ = ws.Close()
+ 		return ErrSessionAlreadyAttached
+ 	}
+-
+-	t.dataConn = conn
+-	s.DataConn = conn
++	if t.tcpConn == nil || ws == nil {
++		t.mu.Unlock()
++		s.mu.Unlock()
++		if ws != nil {
++			_ = ws.Close()
++		}
++		return ErrNoActiveTunnel
++	}
++	t.dataConn = ws
++	t.attached = true
++	tcp := t.tcpConn
++	t.mu.Unlock()
++	s.DataConn = ws
++	s.TCPConn = tcp
+ 	s.everAttached = true
+ 	s.Status = StatusActive
+ 	s.mu.Unlock()
+-
+-	go t.pipeTCPToWSS()
+-	go t.pipeWSSToTCP()
+-
++	go t.pipeTCPToWSS(tcp, ws)
++	go t.pipeWSSToTCP(tcp, ws)
+ 	return nil
+ }
++func (s *PreviewSession) CloseAttempt(attempt, reason string) {
++	t, err := s.attempt(attempt)
++	if err == nil {
++		t.Close(reason)
++	}
++}
+ 
+-// CloseCurrentTunnel 은 현재 활성 터널만 종료하고 세션 자체는 유지합니다 (순차 터널 지원).
++// OnAttemptClosed releases caller-owned cancellation hooks with the tunnel.
++func (s *PreviewSession) OnAttemptClosed(attempt string, fn func()) {
++	t, err := s.attempt(attempt)
++	if err != nil {
++		fn()
++		return
++	}
++	context.AfterFunc(t.ctx, fn)
++}
+ func (s *PreviewSession) CloseCurrentTunnel(reason string) {
+ 	s.mu.Lock()
+ 	t := s.activeTunnel
+ 	s.mu.Unlock()
+-
+ 	if t != nil {
+ 		t.Close(reason)
+ 	}
+ }
+-
+-// Close 는 logical PreviewSession 과 활성 터널을 완전히 닫고 리소스를 정리합니다 (멱등성 보장).
+ func (s *PreviewSession) Close(reason string) {
+ 	s.closeOnce.Do(func() {
+ 		s.mu.Lock()
+@@ -368,11 +376,9 @@ func (s *PreviewSession) Close(reason string) {
+ 		s.DataConn = nil
+ 		cb := s.onEnded
+ 		s.mu.Unlock()
+-
+ 		if t != nil {
+ 			t.Close(reason)
+ 		}
+-
+ 		if cb != nil {
+ 			cb(s, reason, nil)
+ 		}
+diff --git a/internal/connector/provider/openstack/integration_test.go b/internal/connector/provider/openstack/integration_test.go
+index 8e9ba03..90d5328 100644
+--- a/internal/connector/provider/openstack/integration_test.go
++++ b/internal/connector/provider/openstack/integration_test.go
+@@ -474,7 +474,16 @@ func integrationManagementSecurityGroup(t *testing.T, ctx context.Context, adapt
+ 		defer cancel()
+ 		if err := groups.Delete(cleanupCtx, adapter.network, group.ID).ExtractErr(); err != nil && !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
+ 			t.Errorf("temporary Management security group cleanup failed")
++			return
++		}
++		if err := waitIntegrationResourceAbsent(cleanupCtx, func(ctx context.Context) error {
++			_, err := groups.Get(ctx, adapter.network, group.ID).Extract()
++			return err
++		}); err != nil {
++			t.Error("temporary Management security group absence confirmation failed")
++			return
+ 		}
++		t.Log("Temporary Management security group GET absence confirmed")
+ 	})
+ 	for _, rule := range group.Rules {
+ 		if err := rules.Delete(ctx, adapter.network, rule.ID).ExtractErr(); err != nil {
+@@ -566,11 +575,41 @@ func integrationKeyPairName(t *testing.T, ctx context.Context, adapter *Adapter,
+ 		defer cancel()
+ 		if err := keypairs.Delete(cleanupCtx, adapter.compute, name, nil).ExtractErr(); err != nil && !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
+ 			t.Errorf("temporary integration keypair cleanup failed")
++			return
++		}
++		if err := waitIntegrationResourceAbsent(cleanupCtx, func(ctx context.Context) error {
++			_, err := keypairs.Get(ctx, adapter.compute, name, nil).Extract()
++			return err
++		}); err != nil {
++			t.Error("temporary integration keypair absence confirmation failed")
++			return
+ 		}
++		t.Log("Temporary integration keypair GET absence confirmed")
+ 	})
+ 	return name
+ }
+ 
++// A successful DELETE is not proof that an eventually consistent resource is
++// absent. Only a GET 404 confirms this; auth, network and server errors fail.
++func waitIntegrationResourceAbsent(ctx context.Context, get func(context.Context) error) error {
++	ticker := time.NewTicker(100 * time.Millisecond)
++	defer ticker.Stop()
++	for {
++		err := get(ctx)
++		if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
++			return nil
++		}
++		if err != nil {
++			return err
++		}
++		select {
++		case <-ctx.Done():
++			return ctx.Err()
++		case <-ticker.C:
++		}
++	}
++}
++
+ func testM1NetworkFoundation(t *testing.T, adapter *Adapter) {
+ 	t.Helper()
+ 	random := make([]byte, 6)
+diff --git a/internal/connector/provider/openstack/workspace_file_integration_test.go b/internal/connector/provider/openstack/workspace_file_integration_test.go
+index 889e0a0..7ac4fc9 100644
+--- a/internal/connector/provider/openstack/workspace_file_integration_test.go
++++ b/internal/connector/provider/openstack/workspace_file_integration_test.go
+@@ -6,6 +6,7 @@ import (
+ 	"errors"
+ 	"io"
+ 	"os"
++	"path/filepath"
+ 	"strings"
+ 	"testing"
+ 	"time"
+@@ -189,6 +190,42 @@ func TestOpenStackWorkspaceFileIntegration(t *testing.T) {
+ 	}
+ 	probe.Close()
+ 	t.Log(string(testOutput))
++	// Optional cross-compiled regression binaries cover filesystem semantics
++	// which the Windows host cannot assert. They run on this disposable VM only.
++	if directory := os.Getenv("LABBIT_LOCAL_LINUX_REGRESSION_DIR"); directory != "" {
++		for _, check := range []struct {
++			binary, filter string
++			required       []string
++		}{
++			{"provider-tests", "^TestKTFixtureLedgerRejectsSymlinkAndReplacement$", []string{
++				"TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink", "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement"}},
++			{"workspacefile-tests", "^TestSymlinkRejectedAndExcludedFromTree$", []string{"TestSymlinkRejectedAndExcludedFromTree"}},
++			{"credential-tests", "^TestInstallCredentialFile$", []string{
++				"TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"}},
++		} {
++			data, err := os.ReadFile(filepath.Join(directory, check.binary))
++			if err != nil || len(data) < 4 || string(data[:4]) != "\x7fELF" {
++				t.Fatal("Linux filesystem regression binary is required")
++			}
++			remote := "/home/ubuntu/" + check.binary
++			workspaceFixtureWrite(t, fixture, remote, data)
++			if err := fixture.Chmod(remote, 0700); err != nil {
++				t.Fatal("Linux filesystem regression installation failed")
++			}
++			probe := realOpenSession(t, ctx, access, target)
++			var output []byte
++			err = probe.Setup(ctx, func(raw *ssh.Session) error {
++				var err error
++				output, err = raw.CombinedOutput(remote + " -test.v -test.run '" + check.filter + "'")
++				return err
++			})
++			probe.Close()
++			if err != nil || !linuxRegressionPassed(output, check.required) {
++				t.Fatal("Linux filesystem regression failed or skipped")
++			}
++			t.Logf("Linux filesystem regression %s:\n%s", check.binary, output)
++		}
++	}
+ 	pty, err := terminal.NewManagedSSHPTY(ctx, access, target, 80, 24)
+ 	if err != nil {
+ 		t.Fatal("PTY failed")
+@@ -240,6 +277,26 @@ func TestOpenStackWorkspaceFileIntegration(t *testing.T) {
+ 	workspaceAssertError(t, err, workspacefile.ErrUnavailable)
+ 	t.Log("Shared real SSH: SFTP timeout preserves PTY; PTY close preserves File; stale generation rejects; outside fixture unchanged PASS")
+ }
++
++func linuxRegressionPassed(output []byte, required []string) bool {
++	text := string(output)
++	if len(required) == 0 || strings.Contains(text, "--- SKIP:") || strings.Contains(text, "warning: no tests to run") || !strings.HasSuffix(strings.TrimSpace(text), "PASS") {
++		return false
++	}
++	for _, name := range required {
++		found := false
++		for _, line := range strings.Split(text, "\n") {
++			if strings.HasPrefix(strings.TrimSpace(line), "--- PASS: "+name+" (") {
++				found = true
++				break
++			}
++		}
++		if !found {
++			return false
++		}
++	}
++	return true
++}
+ func workspaceFixtureSFTP(t *testing.T, ctx context.Context, m *vmaccess.Manager, target vmaccess.Target) (*sftp.Client, *vmaccess.Session) {
+ 	t.Helper()
+ 	session := realOpenSession(t, ctx, m, target)
+diff --git a/internal/connector/vmaccess/tcp_test.go b/internal/connector/vmaccess/tcp_test.go
+index 69cd80e..b6154a6 100644
+--- a/internal/connector/vmaccess/tcp_test.go
++++ b/internal/connector/vmaccess/tcp_test.go
+@@ -226,15 +226,44 @@ func TestTCPValidationAndSafeErrors(t *testing.T) {
+ 
+ func TestTCPOpenTimeoutLateChannelAndSiblingIsolation(t *testing.T) {
+ 	p := newSSHPeer(t)
+-	m := testManager(t, p, Config{SetupTimeout: 40 * time.Millisecond, IdleTimeout: 50 * time.Millisecond})
++	// Healthy SSH/PTY setup uses the normal budget. Only the deliberately held
++	// direct-tcpip request below receives the short deadline under test.
++	m := testManager(t, p, Config{IdleTimeout: 50 * time.Millisecond})
+ 	pty := openSession(t, m, testTarget())
+ 	in, out := echoChannel(t, pty, false)
+ 	p.stallOpen.Store(true)
+-	_, err := m.DialTCP(context.Background(), testTarget(), 8080)
++	dialBeforeSetupTimeout := func(ctx context.Context) error {
++		t.Helper()
++		result := make(chan error, 1)
++		go func() {
++			conn, err := m.DialTCP(ctx, testTarget(), 8080)
++			if conn != nil {
++				_ = conn.Close()
++			}
++			result <- err
++		}()
++		timer := time.NewTimer(2 * time.Second)
++		defer timer.Stop()
++		select {
++		case err := <-result:
++			return err
++		case <-timer.C:
++			t.Fatal("caller deadline fell back to the normal SSH setup timeout")
++			return nil
++		}
++	}
++	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
++	defer cancel()
++	err := dialBeforeSetupTimeout(ctx)
+ 	if !errors.Is(err, context.DeadlineExceeded) {
+ 		t.Fatalf("timeout not classified: %v", err)
+ 	}
+-	late := <-p.heldOpen
++	var late ssh.NewChannel
++	select {
++	case late = <-p.heldOpen:
++	case <-time.After(time.Second):
++		t.Fatal("timeout occurred before the held TCP open reached the peer")
++	}
+ 	m.mu.Lock()
+ 	pending := m.entries[testTarget()].tcpChannels
+ 	m.mu.Unlock()
+@@ -243,7 +272,7 @@ func TestTCPOpenTimeoutLateChannelAndSiblingIsolation(t *testing.T) {
+ 	}
+ 	for range 4 {
+ 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+-		_, err := m.DialTCP(ctx, testTarget(), 8080)
++		err := dialBeforeSetupTimeout(ctx)
+ 		cancel()
+ 		if !errors.Is(err, context.DeadlineExceeded) {
+ 			t.Fatalf("waiter timeout: %v", err)
+diff --git a/internal/connector/wss/handler.go b/internal/connector/wss/handler.go
+index 179eabb..3ee33ba 100644
+--- a/internal/connector/wss/handler.go
++++ b/internal/connector/wss/handler.go
+@@ -38,22 +38,25 @@ type PTYFactoryFunc func(targetVmKey string, serverId string, cols, rows int) (t
+ // Handler 는 SaaS 로부터 수신한 Control WSS 메시지를 검증하고
+ // 내부 Provider(DispatchOperation / DispatchReconcile) 및 터미널/프리뷰 세션 관리자로 연결한 후 결과를 회신합니다.
+ type Handler struct {
+-	mu              sync.RWMutex
+-	provider        provider.Provider
+-	sender          MessageSender
+-	onError         func(err error)
+-	terminalMgr     *terminal.SessionManager
+-	ptyFactory      PTYFactoryFunc
+-	vmPTYFactory    func(context.Context, vmaccess.Target, int, int) (terminal.PTYChannel, error)
+-	terminalCfg     terminal.DataWSSClientConfig
+-	endedSessions   sync.Map
+-	previewMgr      *preview.SessionManager
+-	previewCfg      preview.DataWSSClientConfig
+-	fileMgr         *filetransport.Manager
+-	fileCredential  string
+-	fileOwner       context.Context
+-	fileOwnerCancel context.CancelFunc
+-	fileOwnerEpoch  uint64
++	previewOpenSlots   chan struct{}
++	mu                 sync.RWMutex
++	provider           provider.Provider
++	sender             MessageSender
++	onError            func(err error)
++	terminalMgr        *terminal.SessionManager
++	ptyFactory         PTYFactoryFunc
++	vmPTYFactory       func(context.Context, vmaccess.Target, int, int) (terminal.PTYChannel, error)
++	terminalCfg        terminal.DataWSSClientConfig
++	endedSessions      sync.Map
++	previewMgr         *preview.SessionManager
++	previewCfg         preview.DataWSSClientConfig
++	fileMgr            *filetransport.Manager
++	fileCredential     string
++	fileOwner          context.Context
++	fileOwnerCancel    context.CancelFunc
++	fileOwnerEpoch     uint64
++	previewOwner       context.Context
++	previewOwnerCancel context.CancelFunc
+ }
+ 
+ // SetVMPTYFactory preserves the authenticated envelope across the SSH boundary.
+@@ -66,7 +69,8 @@ func (h *Handler) SetVMPTYFactory(factory func(context.Context, vmaccess.Target,
+ // NewHandler 는 새 Control WSS 메시지 핸들러를 생성합니다.
+ func NewHandler(p provider.Provider, sender MessageSender) *Handler {
+ 	h := &Handler{
+-		provider: p,
++		provider:         p,
++		previewOpenSlots: make(chan struct{}, 64),
+ 	}
+ 	h.SetSender(sender)
+ 	return h
+@@ -75,16 +79,30 @@ func NewHandler(p provider.Provider, sender MessageSender) *Handler {
+ // SetSender 는 WSS 메시지 발송 인터페이스를 갱신합니다.
+ func (h *Handler) SetSender(sender MessageSender) {
+ 	h.mu.Lock()
+-	defer h.mu.Unlock()
++	var retirePreview func()
++	// A direct live-Control replacement retires idle logical sessions too.
++	// Plain EOF -> nil -> reconnect preserves them as required by §7b.
++	if h.sender != nil && sender != nil && h.previewMgr != nil {
++		retirePreview = h.previewMgr.RetireAll(protocol.PreviewReasonControlReplaced)
++	}
+ 	if h.fileOwnerCancel != nil {
+ 		h.fileOwnerCancel()
+ 	}
++	if h.previewOwnerCancel != nil {
++		h.previewOwnerCancel()
++	}
++	h.previewOwner, h.previewOwnerCancel = context.WithCancel(context.Background())
+ 	h.fileOwner, h.fileOwnerCancel = context.WithCancel(context.Background())
+ 	h.fileOwnerEpoch++
+ 	if sender == nil {
+ 		h.fileOwnerCancel()
++		h.previewOwnerCancel()
+ 	}
+ 	h.sender = sender
++	h.mu.Unlock()
++	if retirePreview != nil {
++		retirePreview()
++	}
+ }
+ 
+ // SetTerminalManager 는 터미널 세션 관리자와 PTY 팩토리 설정을 등록합니다.
+@@ -157,7 +175,7 @@ func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
+ 	return h.handleMessageWithFileOwner(ctx, raw, epoch)
+ }
+ 
+-func (h *Handler) handleMessageWithFileOwner(ctx context.Context, raw []byte, epoch uint64) error {
++func (h *Handler) handleMessageWithFileOwner(ctx context.Context, raw []byte, epoch uint64, asyncPreview ...bool) error {
+ 	if int64(len(raw)) > protocol.MaxJSONMessageSize {
+ 		return ErrMessageTooLarge
+ 	}
+@@ -194,9 +212,9 @@ func (h *Handler) handleMessageWithFileOwner(ctx context.Context, raw []byte, ep
+ 	case protocol.MessageTypeTerminalClose:
+ 		return h.handleTerminalClose(ctx, env, raw)
+ 	case protocol.MessageTypePreviewOpen:
+-		return h.handlePreviewOpen(ctx, env, raw)
++		return h.handlePreviewOpen(ctx, env, raw, epoch, len(asyncPreview) > 0 && asyncPreview[0])
+ 	case protocol.MessageTypePreviewClose:
+-		return h.handlePreviewClose(ctx, env, raw)
++		return h.handlePreviewClose(ctx, env, raw, epoch)
+ 	default:
+ 		// 지원되지 않는 메시지 타입은 Protocol Error 회신 후 무시
+ 		if sender := h.Sender(); sender != nil && env.MessageID != "" {
+@@ -969,7 +987,7 @@ func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Conte
+ 				return err
+ 			}
+ 			// HandleMessage 에러를 무시하지 않고 등록된 onError 콜백으로 전달 (팀장님 리뷰 6번)
+-			if handleErr := h.handleMessageWithFileOwner(operationCtx, msg, fileEpoch); handleErr != nil {
++			if handleErr := h.handleMessageWithFileOwner(operationCtx, msg, fileEpoch, true); handleErr != nil {
+ 				h.mu.RLock()
+ 				onErr := h.onError
+ 				h.mu.RUnlock()
+@@ -1010,20 +1028,25 @@ func (h *Handler) onControlDisconnected(epoch uint64, err error) {
+ 	if h.fileOwnerCancel != nil {
+ 		h.fileOwnerCancel()
+ 	}
+-	h.mu.Unlock()
++	var retirePreview func()
+ 	var closeErr *websocket.CloseError
+ 	if errors.As(err, &closeErr) && (closeErr.Code == protocol.CloseCredentialRevoked || closeErr.Code == protocol.CloseSessionReplaced) {
+-		h.mu.RLock()
+ 		mgr := h.previewMgr
+-		h.mu.RUnlock()
++		if h.previewOwnerCancel != nil {
++			h.previewOwnerCancel()
++		}
+ 		if mgr != nil {
+ 			reason := protocol.PreviewReasonCredentialRevoked
+ 			if closeErr.Code == protocol.CloseSessionReplaced {
+ 				reason = protocol.PreviewReasonControlReplaced
+ 			}
+-			mgr.CloseAll(reason)
++			retirePreview = mgr.RetireAll(reason)
+ 		}
+ 	}
++	h.mu.Unlock()
++	if retirePreview != nil {
++		retirePreview()
++	}
+ }
+ 
+ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvelope, raw []byte) error {
+@@ -1323,296 +1346,3 @@ func (h *Handler) sendTerminalEndedRaw(replyToMsgID string, sessionID, labID str
+ 	}
+ 	_ = sender.SendMessage(context.Background(), endedMsg)
+ }
+-
+-func (h *Handler) handlePreviewOpen(ctx context.Context, env protocol.BaseEnvelope, raw []byte) error {
+-	var openMsg protocol.PreviewOpenMessage
+-	if err := json.Unmarshal(raw, &openMsg); err != nil {
+-		return fmt.Errorf("failed to unmarshal PREVIEW_OPEN: %w", err)
+-	}
+-
+-	sessionID := openMsg.PreviewSessionID
+-	if sessionID == "" {
+-		sessionID = openMsg.RequestID
+-	}
+-	openMsg.PreviewSessionID = sessionID
+-
+-	h.mu.RLock()
+-	mgr := h.previewMgr
+-	dataCfg := h.previewCfg
+-	h.mu.RUnlock()
+-
+-	if activeCred := h.ActiveDialCredential(); activeCred != "" {
+-		dataCfg.Credential = activeCred
+-		dataCfg.CredentialFile = ""
+-		dataCfg.CredentialProvider = nil
+-	}
+-
+-	sender := h.Sender()
+-
+-	// 1. Envelope 필수 필드 검증
+-	if openMsg.MessageID == "" || openMsg.PreviewSessionID == "" || openMsg.LabInstanceID == "" || openMsg.Generation < 1 {
+-		if sender != nil {
+-			failResult := protocol.PreviewOpenResultMessage{
+-				BaseEnvelope: protocol.BaseEnvelope{
+-					Type:             protocol.MessageTypePreviewOpenResult,
+-					MessageID:        generateUUID(),
+-					ReplyToMessageID: openMsg.MessageID,
+-					SentAt:           time.Now().UTC(),
+-					PreviewSessionID: openMsg.PreviewSessionID,
+-					LabInstanceID:    openMsg.LabInstanceID,
+-					Generation:       openMsg.Generation,
+-				},
+-				Payload: protocol.PreviewOpenResultPayload{
+-					Outcome: protocol.OutcomeFailed,
+-					Error: &protocol.SafeError{
+-						Code:    protocol.PreviewErrorCodeUnavailable,
+-						Message: "missing required envelope fields: messageId, previewSessionId, labInstanceId, or generation < 1",
+-					},
+-				},
+-			}
+-			_ = sender.SendMessage(ctx, failResult)
+-		}
+-		return fmt.Errorf("invalid PREVIEW_OPEN envelope: missing required correlation fields")
+-	}
+-
+-	// 2. SSH 22번 포트 거절 (D-18 심층 방어)
+-	if openMsg.Payload.TargetPort == 22 {
+-		if sender != nil {
+-			failResult := protocol.PreviewOpenResultMessage{
+-				BaseEnvelope: protocol.BaseEnvelope{
+-					Type:             protocol.MessageTypePreviewOpenResult,
+-					MessageID:        generateUUID(),
+-					ReplyToMessageID: openMsg.MessageID,
+-					SentAt:           time.Now().UTC(),
+-					PreviewSessionID: openMsg.PreviewSessionID,
+-					LabInstanceID:    openMsg.LabInstanceID,
+-					Generation:       openMsg.Generation,
+-				},
+-				Payload: protocol.PreviewOpenResultPayload{
+-					Outcome: protocol.OutcomeFailed,
+-					Error: &protocol.SafeError{
+-						Code:    protocol.PreviewErrorCodePortRejected,
+-						Message: "target port 22 is not allowed for preview",
+-					},
+-				},
+-			}
+-			_ = sender.SendMessage(ctx, failResult)
+-		}
+-		return fmt.Errorf("port 22 is rejected for preview")
+-	}
+-
+-	// 3. Payload 필수 필드 검증 (targetVmKey, providerServerId, targetPort 1-65535)
+-	if openMsg.Payload.TargetVmKey == "" || openMsg.Payload.ProviderServerID == "" || openMsg.Payload.TargetPort <= 0 || openMsg.Payload.TargetPort > 65535 {
+-		if sender != nil {
+-			failResult := protocol.PreviewOpenResultMessage{
+-				BaseEnvelope: protocol.BaseEnvelope{
+-					Type:             protocol.MessageTypePreviewOpenResult,
+-					MessageID:        generateUUID(),
+-					ReplyToMessageID: openMsg.MessageID,
+-					SentAt:           time.Now().UTC(),
+-					PreviewSessionID: openMsg.PreviewSessionID,
+-					LabInstanceID:    openMsg.LabInstanceID,
+-					Generation:       openMsg.Generation,
+-				},
+-				Payload: protocol.PreviewOpenResultPayload{
+-					Outcome: protocol.OutcomeFailed,
+-					Error: &protocol.SafeError{
+-						Code:    protocol.PreviewErrorCodePortRejected,
+-						Message: "missing required target or invalid targetPort (1-65535)",
+-					},
+-				},
+-			}
+-			_ = sender.SendMessage(ctx, failResult)
+-		}
+-		return fmt.Errorf("invalid PREVIEW_OPEN: missing target or invalid targetPort %d", openMsg.Payload.TargetPort)
+-	}
+-
+-	if mgr == nil {
+-		if sender != nil {
+-			failResult := protocol.PreviewOpenResultMessage{
+-				BaseEnvelope: protocol.BaseEnvelope{
+-					Type:             protocol.MessageTypePreviewOpenResult,
+-					MessageID:        generateUUID(),
+-					ReplyToMessageID: openMsg.MessageID,
+-					SentAt:           time.Now().UTC(),
+-					PreviewSessionID: openMsg.PreviewSessionID,
+-					LabInstanceID:    openMsg.LabInstanceID,
+-					Generation:       openMsg.Generation,
+-				},
+-				Payload: protocol.PreviewOpenResultPayload{
+-					Outcome: protocol.OutcomeFailed,
+-					Error: &protocol.SafeError{
+-						Code:    protocol.PreviewErrorCodeUnavailable,
+-						Message: "preview transport unavailable",
+-					},
+-				},
+-			}
+-			_ = sender.SendMessage(ctx, failResult)
+-		}
+-		return fmt.Errorf("preview manager not configured")
+-	}
+-
+-	if dataCfg.EndpointURL == "" {
+-		if sender != nil {
+-			failResult := protocol.PreviewOpenResultMessage{
+-				BaseEnvelope: protocol.BaseEnvelope{
+-					Type:             protocol.MessageTypePreviewOpenResult,
+-					MessageID:        generateUUID(),
+-					ReplyToMessageID: openMsg.MessageID,
+-					SentAt:           time.Now().UTC(),
+-					PreviewSessionID: openMsg.PreviewSessionID,
+-					LabInstanceID:    openMsg.LabInstanceID,
+-					Generation:       openMsg.Generation,
+-				},
+-				Payload: protocol.PreviewOpenResultPayload{
+-					Outcome: protocol.OutcomeFailed,
+-					Error: &protocol.SafeError{
+-						Code:    protocol.PreviewErrorCodeUnavailable,
+-						Message: "preview data wss endpoint not configured",
+-					},
+-				},
+-			}
+-			_ = sender.SendMessage(ctx, failResult)
+-		}
+-		return fmt.Errorf("preview data wss endpoint not configured")
+-	}
+-
+-	// 4. 세션 조회 또는 생성 (TCP forwarding channel 사전 연결)
+-	session, resumed, err := mgr.GetOrCreateSession(ctx, openMsg.Payload, openMsg.BaseEnvelope)
+-	if err != nil {
+-		safeCode := protocol.PreviewErrorCodeUnavailable
+-		safeMsg := "cannot open preview tunnel"
+-		if errors.Is(err, preview.ErrPortRejected) {
+-			safeCode = protocol.PreviewErrorCodePortRejected
+-			safeMsg = "port is not allowed"
+-		} else if errors.Is(err, preview.ErrAppNotRunning) {
+-			safeCode = protocol.PreviewErrorCodeAppNotRunning
+-			safeMsg = "application is not running on target port"
+-		} else if errors.Is(err, preview.ErrVMUnreachable) {
+-			safeCode = protocol.PreviewErrorCodeVMUnreachable
+-			safeMsg = "workspace VM is unreachable"
+-		} else if errors.Is(err, preview.ErrSessionConflict) {
+-			safeCode = protocol.PreviewErrorCodeUnavailable
+-			safeMsg = "stale generation or target mismatch"
+-		}
+-
+-		if sender != nil {
+-			failResult := protocol.PreviewOpenResultMessage{
+-				BaseEnvelope: protocol.BaseEnvelope{
+-					Type:             protocol.MessageTypePreviewOpenResult,
+-					MessageID:        generateUUID(),
+-					ReplyToMessageID: openMsg.MessageID,
+-					SentAt:           time.Now().UTC(),
+-					PreviewSessionID: openMsg.PreviewSessionID,
+-					LabInstanceID:    openMsg.LabInstanceID,
+-					Generation:       openMsg.Generation,
+-				},
+-				Payload: protocol.PreviewOpenResultPayload{
+-					Outcome: protocol.OutcomeFailed,
+-					Error: &protocol.SafeError{
+-						Code:    safeCode,
+-						Message: safeMsg,
+-					},
+-				},
+-			}
+-			_ = sender.SendMessage(ctx, failResult)
+-		}
+-		return fmt.Errorf("failed to get/create preview session: %w", err)
+-	}
+-
+-	// 5. 중복 요청 멱등성 보장 (resumed == true 인 경우 이미 터널/Data WSS가 처리 중이므로 두 번째 Data WSS를 만들지 않음)
+-	if !resumed {
+-		// Preview Data WSS 동기식 Dial 및 Attach (openMsg.MessageID 전달)
+-		dataClient := preview.NewDataWSSClient(dataCfg)
+-		if attachErr := dataClient.DialAndAttach(ctx, session, openMsg.MessageID); attachErr != nil {
+-			session.CloseCurrentTunnel("open failed")
+-			if !session.EverAttached() {
+-				_ = mgr.CloseSession(openMsg.PreviewSessionID, "initial attach failed")
+-			}
+-
+-			safeCode := protocol.PreviewErrorCodeUnavailable
+-			safeMsg := "failed to attach preview data channel"
+-			if errors.Is(attachErr, preview.ErrAttachTimeout) {
+-				safeCode = protocol.PreviewErrorCodeUnavailable
+-				safeMsg = "preview gateway attach timed out"
+-			}
+-
+-			if sender != nil {
+-				failResult := protocol.PreviewOpenResultMessage{
+-					BaseEnvelope: protocol.BaseEnvelope{
+-						Type:             protocol.MessageTypePreviewOpenResult,
+-						MessageID:        generateUUID(),
+-						ReplyToMessageID: openMsg.MessageID,
+-						SentAt:           time.Now().UTC(),
+-						PreviewSessionID: openMsg.PreviewSessionID,
+-						LabInstanceID:    openMsg.LabInstanceID,
+-						Generation:       openMsg.Generation,
+-					},
+-					Payload: protocol.PreviewOpenResultPayload{
+-						Outcome: protocol.OutcomeFailed,
+-						Error: &protocol.SafeError{
+-							Code:    safeCode,
+-							Message: safeMsg,
+-						},
+-					},
+-				}
+-				_ = sender.SendMessage(ctx, failResult)
+-			}
+-			return fmt.Errorf("failed to attach preview data WSS: %w", attachErr)
+-		}
+-	}
+-
+-	// 6. 회신 PREVIEW_OPEN_RESULT (SUCCEEDED)
+-	if sender != nil {
+-		succResult := protocol.PreviewOpenResultMessage{
+-			BaseEnvelope: protocol.BaseEnvelope{
+-				Type:             protocol.MessageTypePreviewOpenResult,
+-				MessageID:        generateUUID(),
+-				ReplyToMessageID: openMsg.MessageID,
+-				SentAt:           time.Now().UTC(),
+-				PreviewSessionID: openMsg.PreviewSessionID,
+-				LabInstanceID:    openMsg.LabInstanceID,
+-				Generation:       openMsg.Generation,
+-			},
+-			Payload: protocol.PreviewOpenResultPayload{
+-				Outcome: protocol.OutcomeSucceeded,
+-			},
+-		}
+-		_ = sender.SendMessage(ctx, succResult)
+-	}
+-
+-	return nil
+-}
+-
+-func (h *Handler) handlePreviewClose(ctx context.Context, env protocol.BaseEnvelope, raw []byte) error {
+-	var closeMsg protocol.PreviewCloseMessage
+-	if err := json.Unmarshal(raw, &closeMsg); err != nil {
+-		return fmt.Errorf("failed to unmarshal PREVIEW_CLOSE: %w", err)
+-	}
+-
+-	sessionID := closeMsg.PreviewSessionID
+-	if sessionID == "" {
+-		sessionID = closeMsg.RequestID
+-	}
+-
+-	if closeMsg.MessageID == "" || sessionID == "" || closeMsg.LabInstanceID == "" || closeMsg.Generation < 1 || closeMsg.Payload.Reason == "" {
+-		return fmt.Errorf("invalid PREVIEW_CLOSE: missing required fields")
+-	}
+-
+-	h.mu.RLock()
+-	mgr := h.previewMgr
+-	h.mu.RUnlock()
+-
+-	if mgr != nil && sessionID != "" {
+-		session, exists := mgr.GetSession(sessionID)
+-		if exists {
+-			if session.LabInstanceID != closeMsg.LabInstanceID || session.Generation != closeMsg.Generation {
+-				return fmt.Errorf("stale or mismatched PREVIEW_CLOSE: session has lab=%s gen=%d, got lab=%s gen=%d",
+-					session.LabInstanceID, session.Generation, closeMsg.LabInstanceID, closeMsg.Generation)
+-			}
+-			_ = mgr.CloseSession(sessionID, closeMsg.Payload.Reason)
+-		}
+-	}
+-
+-	return nil
+-}
+diff --git a/internal/connector/wss/handler_preview_test.go b/internal/connector/wss/handler_preview_test.go
+index 6012165..899422c 100644
+--- a/internal/connector/wss/handler_preview_test.go
++++ b/internal/connector/wss/handler_preview_test.go
+@@ -677,6 +677,19 @@ func TestHandler_PreviewOpen_SequentialTunnel_NewOpenMessageID(t *testing.T) {
+ 		t.Fatalf("expected replyTo open-msg-1, got %s", attach1.ReplyToMessageID)
+ 	}
+ 
++	// A sequential tunnel starts only after the first TCP/Data WSS is closed.
++	// Opening a second active tunnel must not replace the first.
++	if err := gateway.SendClose(websocket.CloseNormalClosure, ""); err != nil {
++		t.Fatal(err)
++	}
++	session, _ := mgr.GetSession(sessID)
++	deadline := time.Now().Add(2 * time.Second)
++	for session.HasActiveTunnel() && time.Now().Before(deadline) {
++		time.Sleep(time.Millisecond)
++	}
++	if session.HasActiveTunnel() {
++		t.Fatal("first tunnel did not close")
++	}
+ 	// 2. 두 번째 터널 오픈 (새 openMessageId -> 새 sequential 터널)
+ 	openReq2 := openReq1
+ 	openReq2.MessageID = "open-msg-2"
+diff --git a/internal/server/realtime/trace_propagation_test.go b/internal/server/realtime/trace_propagation_test.go
+index 45bd282..19bc15f 100644
+--- a/internal/server/realtime/trace_propagation_test.go
++++ b/internal/server/realtime/trace_propagation_test.go
+@@ -259,26 +259,42 @@ func TestConnectorControlEventsPropagateTraceContext(t *testing.T) {
+ }
+ 
+ func requireControlLogTrace(t *testing.T, e *env, message, sessionID, traceID string) {
++	t.Helper()
++	requireControlLogTraceFrom(t, e.logs.String, message, sessionID, traceID)
++}
++
++func requireControlLogTraceFrom(t *testing.T, logs func() string, message, sessionID, traceID string) {
+ 	t.Helper()
+ 	var found map[string]any
+ 	eventually(t, "control log: "+message, func() bool {
+-		for _, line := range strings.Split(strings.TrimSpace(e.logs.String()), "\n") {
+-			var event map[string]any
+-			if err := json.Unmarshal([]byte(line), &event); err != nil {
+-				t.Fatal("control log is not JSON")
+-			}
+-			if event["message"] == message && event["terminal_session_id"] == sessionID {
+-				found = event
+-				return true
+-			}
++		var err error
++		found, err = findControlLogEvent(logs(), message, sessionID)
++		if err != nil {
++			t.Fatal("control log is not JSON")
+ 		}
+-		return false
++		return found != nil
+ 	})
+ 	if found["trace_id"] != traceID {
+ 		t.Fatal("control log lost its own normalized trace_id")
+ 	}
+ }
+ 
++func findControlLogEvent(logs, message, sessionID string) (map[string]any, error) {
++	for _, line := range strings.Split(logs, "\n") {
++		if strings.TrimSpace(line) == "" {
++			continue // The WebSocket ACK can arrive before the first log write.
++		}
++		var event map[string]any
++		if err := json.Unmarshal([]byte(line), &event); err != nil {
++			return nil, err
++		}
++		if event["message"] == message && event["terminal_session_id"] == sessionID {
++			return event, nil
++		}
++	}
++	return nil, nil
++}
++
+ // attach가 거절되어도 오류 응답은 요청의 Trace를 돌려준다. 그 Trace는 Control 호출 ctx에도 전달되었다.
+ func TestRejectedAttachEchoesTheRequestTraceContext(t *testing.T) {
+ 	e := newEnv(t)

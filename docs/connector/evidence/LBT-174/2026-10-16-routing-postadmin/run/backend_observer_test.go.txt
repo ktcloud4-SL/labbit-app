@@ -1,0 +1,9 @@
+package openstackprovider
+import("context";"testing";"time")
+func TestLocalReadOnlyDHCPBackend(t *testing.T){
+ ctx,cancel:=context.WithTimeout(context.Background(),30*time.Second);defer cancel()
+ a,err:=New(ctx,ConfigFromEnvironment());if err!=nil{t.Fatal("provider init failed")}
+ var body struct {Agents []struct {AgentType string `json:"agent_type"`;Binary string `json:"binary"`;Alive bool `json:"alive"`;AdminStateUp bool `json:"admin_state_up"`} `json:"agents"`}
+ if _,err:=a.network.Get(ctx,a.network.ServiceURL("agents"),&body,nil);err!=nil{t.Fatal("agent discovery failed")}
+ for _,a:=range body.Agents{t.Logf("networkAgent type=%q binary=%q alive=%t adminStateUp=%t",a.AgentType,a.Binary,a.Alive,a.AdminStateUp)}
+}

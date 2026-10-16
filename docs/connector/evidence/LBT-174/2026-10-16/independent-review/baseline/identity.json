@@ -1,0 +1,5 @@
+{
+  "base": "4691c0ae8a43955549ae2b9e8bc4f5a464c30001",
+  "archive_sha256": "df667d193cdf9272305b622f488b3ef18b0e8fead587c7d7f38e4343ce4e8735",
+  "mutation": "none; base archive outside production checkout"
+}

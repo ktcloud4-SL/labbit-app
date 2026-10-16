@@ -1,0 +1,35 @@
+{
+  "startedUTC": "2026-10-16T10:07:52.403757+00:00",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-overlay",
+    "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt174-routing-postadmin-20261016\\overlay.json",
+    "-json",
+    "-run",
+    "^TestLocalLinuxRaceAndInternetDiagnostics$",
+    "-count=1",
+    "-timeout=60m",
+    "./internal/connector/provider/openstack"
+  ],
+  "sourceBefore": {
+    "files": 520,
+    "sourceSHA256": "86ec2c865b611a512eab3baabed7d238a102765d5095fd0c92a36372aba5b791",
+    "mismatches": 0
+  },
+  "overlaySHA256": {
+    "overlay.json": "a692a19e385f6d54a4acd175fcff5b261a72495c1c427d3e176bf0293a6d4807",
+    "local_probe_test.go": "5bf1acfc1a815bd8e90f651dc78dff33a9226c3013b0dd307710e9364cf8c674",
+    "linux_ci.sh": "a14d3e326f845d6a9cdd045716941c7e40fee44f3590bb444b12de718802bfbb"
+  },
+  "postgresStartedHere": false,
+  "exitCode": 1,
+  "postgresCleanupSkipped": "not_started_here",
+  "finishedUTC": "2026-10-16T10:10:05.079222+00:00",
+  "elapsedSeconds": 132.641,
+  "sourceAfter": {
+    "files": 520,
+    "sourceSHA256": "86ec2c865b611a512eab3baabed7d238a102765d5095fd0c92a36372aba5b791",
+    "mismatches": 0
+  }
+}

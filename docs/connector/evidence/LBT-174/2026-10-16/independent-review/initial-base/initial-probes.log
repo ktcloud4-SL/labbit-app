@@ -1,0 +1,20 @@
+=== RUN   TestReviewPendingOpenRetiredByClose
+=== RUN   TestReviewPendingOpenRetiredByClose/CloseSession
+    zz_independent_test.go:51: closed pending attempt resurrected: error=<nil> count=1
+=== RUN   TestReviewPendingOpenRetiredByClose/CloseAll
+    zz_independent_test.go:51: closed pending attempt resurrected: error=<nil> count=1
+--- FAIL: TestReviewPendingOpenRetiredByClose (0.00s)
+    --- FAIL: TestReviewPendingOpenRetiredByClose/CloseSession (0.00s)
+    --- FAIL: TestReviewPendingOpenRetiredByClose/CloseAll (0.00s)
+=== RUN   TestReviewStaleAttachCannotBindNewAttempt
+    zz_independent_test.go:94: M1 delayed ATTACHED accepted onto current M2 tunnel: current=M2 attached=true
+--- FAIL: TestReviewStaleAttachCannotBindNewAttempt (0.00s)
+=== RUN   TestReviewAttachReadCancellation
+    zz_independent_test.go:131: canceled attach remains blocked reading ATTACHED
+--- FAIL: TestReviewAttachReadCancellation (0.10s)
+=== RUN   TestReviewCloseUnblocksBlockedWSSWriter
+    zz_independent_test.go:197: Close waits on data writeMu before closing underlying socket; blocked writer cannot be interrupted
+--- FAIL: TestReviewCloseUnblocksBlockedWSSWriter (0.10s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/preview	2.832s
+FAIL

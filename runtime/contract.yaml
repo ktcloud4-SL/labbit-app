@@ -616,6 +616,19 @@ connector:
     LABBIT_OPENSTACK_MANAGEMENT_NETWORK_ID:
       required_when: "standard Neutron OpenStack profile"
       secret: false
+      note: >-
+        표준 Neutron 관리망은 IPv4 DHCP subnet 한 개이며 Connector SSH CIDR 전체가
+        그 subnet에 직접 연결되어야 합니다. Lab CIDR과 겹치거나 명시적 host route가
+        있거나 routed Connector/IPv6 관리망인 구성은 Provision/Reset preflight에서 거절합니다.
+        관리망 DHCP는 Neutron만 제공해야 하며 VMware 등 외부 DHCP와 경쟁하는 배포는 지원하지 않습니다.
+        extra_dhcp_opt 확장이 필요하며 생성한 Management port에만 IPv4 DHCP 옵션
+        router(3)의 빈값과 classless-static-route(121)의 검증한 Management CIDR,0.0.0.0 직접 연결 경로를
+        설정·확인합니다. 유효한 121을 받은 Linux DHCP client가 option 3을 무시하여 default route 경쟁을 막습니다.
+        공유 subnet/SG와 CreationSnapshot StartupScript는 변경하지 않습니다.
+        249 옵션의 빈값은 Neutron이 지원하지 않으므로 요청하지 않습니다.
+        지원 배포·이미지는 유효한 121을 실제 적용하고 249에 의존하지 않는 검증된 dnsmasq/Linux 구성이며
+        Lab NIC의 metadata 경로, cloud-init 및 DHCP 갱신 후 ON/OFF·관리 SSH 검증이 필요합니다.
+        guest static route와 검증되지 않은 DHCP backend는 이 지원 범위에 포함하지 않습니다.
     LABBIT_OPENSTACK_MANAGEMENT_SECURITY_GROUP_ID:
       required_when: "standard Neutron OpenStack profile"
       secret: false

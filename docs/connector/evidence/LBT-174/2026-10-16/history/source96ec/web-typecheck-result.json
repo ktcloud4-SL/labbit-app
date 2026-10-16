@@ -1,0 +1,17 @@
+{
+  "name": "web-typecheck",
+  "command": [
+    "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+    "--package=npm@10.9.2",
+    "dlx",
+    "npm",
+    "run",
+    "typecheck"
+  ],
+  "started": "2026-10-16T06:08:53.979937+00:00",
+  "ended": "2026-10-16T06:09:19.576314+00:00",
+  "seconds": 25.594,
+  "exitCode": 0,
+  "sourceSHA256": "96ec0a79b149ac980d55dd8434a639f38ffa4d5d7f4dd8b480c5d3304db87e44",
+  "sourceUnchanged": true
+}

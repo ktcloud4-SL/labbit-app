@@ -1,0 +1,9 @@
+Executed 2026-10-16 KST on Windows amd64.
+Go: go1.27.1 windows/amd64
+PowerShell: 7.6.5
+Race C compiler: WinLibs MinGW-W64 x86_64-ucrt-posix-seh GCC 16.2.0
+CGO_ENABLED=1 for race runs; packages serialized with -p=1.
+pnpm: 11.25.0; npm@10.9.2 invoked via pnpm dlx for existing npm scripts.
+Make unavailable: equivalent Go format/vet/test/build and web typecheck/lint/test/build commands executed.
+Cloud: local OpenStack via labbit-test clouds.yaml entry; management network sharednet1; Ubuntu/m1.small.
+Provider config and disposable SSH private key were not copied into Evidence.

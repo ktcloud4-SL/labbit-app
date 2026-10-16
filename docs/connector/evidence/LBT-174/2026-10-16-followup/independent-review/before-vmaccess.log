@@ -1,0 +1,15 @@
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+    tcp_test.go:230: VM SSH access is unavailable
+        context deadline exceeded
+--- FAIL: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (0.05s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+    tcp_test.go:230: VM SSH access is unavailable
+        context deadline exceeded
+--- FAIL: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (0.04s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+    tcp_test.go:230: VM SSH access is unavailable
+        context deadline exceeded
+--- FAIL: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (0.04s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess	1.739s
+FAIL

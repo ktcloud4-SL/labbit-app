@@ -1,0 +1,29 @@
+{
+  "scope": "Independent read-only archive, source, vendor and overlay identity verification; no cloud calls or source changes",
+  "sourceFiles": 502,
+  "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+  "currentSourceMismatches": 0,
+  "sourceArchiveBytes": 28861921,
+  "sourceArchiveSHA256": "7a46757ab270cebe40cf66d5b1ec0a073dcb8c91a2e68fc3711297ea3c475dc3",
+  "sourceArchiveTrackedAndGoFiles": 1237,
+  "sourceArchiveSourceMismatches": 0,
+  "vendorFiles": 1923,
+  "vendorDiskMismatches": 0,
+  "migrationSQLFiles": 7,
+  "toolchainArchiveBytes": 70553950,
+  "toolchainArchiveSHA256": "63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445",
+  "toolchainOfficialMetadataURL": "https://go.dev/dl/?mode=json&include=all",
+  "toolchainMetadataBoundary": "Compared local archive bytes with the saved official metadata response; this script makes no network call",
+  "unsafeTarPathsOrLinks": 0,
+  "privateDirectoryOrCredentialBasenameEntries": 0,
+  "overlaySHA256MatchesRunState": {
+    "overlay.json": true,
+    "startup_observed.go": true,
+    "local_probe_test.go": true,
+    "linux_ci.sh": true
+  },
+  "frozenFollowupEvidenceFiles": 275,
+  "frozenFollowupEvidenceSealMismatches": [],
+  "frozenFollowupSealSHA256": "f28f8340d34c4f81c541780b86c6805922f365f924a92b9724ca6f62c179ec4d",
+  "secretCheckBoundary": "Path exclusions only; content secret screening is a separate check"
+}

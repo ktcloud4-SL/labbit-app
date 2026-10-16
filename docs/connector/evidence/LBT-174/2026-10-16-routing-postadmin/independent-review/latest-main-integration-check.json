@@ -1,0 +1,184 @@
+{
+  "recordedUTC": "2026-10-16T10:46:05.518791+00:00",
+  "worktreeHEAD": "ee05485bd9a1668f222e7a54fb5f880ea197e35a",
+  "primaryHEAD": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "primaryStagedFiles": [],
+  "sourceFiles": 531,
+  "sourceSHA256": "65a31a1f4488bf8b4bd027b72a1a4594f1629d22a41b0280970cd3a69bbac1a2",
+  "sourceMismatches": [],
+  "branchChangedGoFileCount": 36,
+  "branchChangedGoMismatches": [],
+  "completedChecks": [
+    {
+      "name": "go-build",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "3b11be5bd8a2e3985a0c855f35a8ebaf993c49a768a07bfc0b97cd8fd6ba79ab",
+      "resultSHA256": "335cb70d0f47f096cd0a7418b4bc5b19f7ce464071783d7cd91c68459690b818"
+    },
+    {
+      "name": "go-test",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "3b11be5bd8a2e3985a0c855f35a8ebaf993c49a768a07bfc0b97cd8fd6ba79ab",
+      "resultSHA256": "4c77ee20935e1547f558511d030ac37bd77ddf484ecf6ae677f25b2debc0e60e"
+    },
+    {
+      "name": "go-vet",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "3b11be5bd8a2e3985a0c855f35a8ebaf993c49a768a07bfc0b97cd8fd6ba79ab",
+      "resultSHA256": "45f30b5da5337d6689168c6fedd1ce663b884ba0967a902f8ddbba37d2545b88"
+    },
+    {
+      "name": "postgres-integration",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "3b11be5bd8a2e3985a0c855f35a8ebaf993c49a768a07bfc0b97cd8fd6ba79ab",
+      "resultSHA256": "647ca9fd9ba2a6a0c3cee017e73203fc14348a1391a38739a2ab3c2ebfefbfdf"
+    },
+    {
+      "name": "postgres-vet",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "3b11be5bd8a2e3985a0c855f35a8ebaf993c49a768a07bfc0b97cd8fd6ba79ab",
+      "resultSHA256": "6e8ee0f30f4a8ed987dde6cf5761fe52bac3780b738417df3a611124c1bfc5da"
+    },
+    {
+      "name": "web-build",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "3b11be5bd8a2e3985a0c855f35a8ebaf993c49a768a07bfc0b97cd8fd6ba79ab",
+      "resultSHA256": "2a9652b13cb9c388e1510707aecb6cffdc247f96dbd5cc70583b8388e286a7f4"
+    },
+    {
+      "name": "web-lint",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "3b11be5bd8a2e3985a0c855f35a8ebaf993c49a768a07bfc0b97cd8fd6ba79ab",
+      "resultSHA256": "5fa9cf6c14fa93966aa371eb63665503424b9b229ca871932ad6e97213359f4a"
+    },
+    {
+      "name": "web-test",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "3b11be5bd8a2e3985a0c855f35a8ebaf993c49a768a07bfc0b97cd8fd6ba79ab",
+      "resultSHA256": "22b5eb97fb7082800360b5170f49603637605135ef42bcdc43f612c3355ca15b"
+    },
+    {
+      "name": "web-typecheck",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "3b11be5bd8a2e3985a0c855f35a8ebaf993c49a768a07bfc0b97cd8fd6ba79ab",
+      "resultSHA256": "cd1ec95d265c73dbf9dddbdff473cfb336bb3d244b39efb0b9935839b4990d9d"
+    }
+  ],
+  "postgres": "real local PostgreSQL, 5 package command exit0, 1415 pass events, 1 explicitly optional skip; not a full Browser/SaaS E2E",
+  "scope": "local integration checkout only, no primary rebase/push/PR; no shared source edits by reviewer",
+  "rawResults": {
+    "go-test": {
+      "testPassEvents": 3865,
+      "testSkipEvents": 18,
+      "testFailEvents": 0,
+      "packagePassEvents": 43,
+      "packageFailEvents": 0,
+      "sha256": "2db9785b1aeb2b6aa6de547d9c259d61eebe0d6a83c5dbd9f7668e7638b1db01",
+      "skippedTests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+          "test": "TestSymlinkRejectedAndExcludedFromTree"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ControlWSSIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackFileTransportIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM1Integration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ProvisionIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM3LifecycleIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackInternetPolicyIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudD1ReadOnlyIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudD1DisposableNetworkIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+          "test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackPreviewForwardingIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackPTYCC02Integration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackTerminalC2Integration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackVMAccessIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackWorkspaceFileIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackPreviewTransportIntegration"
+        }
+      ]
+    },
+    "postgres-integration": {
+      "testPassEvents": 1415,
+      "testSkipEvents": 1,
+      "testFailEvents": 0,
+      "packagePassEvents": 5,
+      "packageFailEvents": 0,
+      "sha256": "d8249845bdec6b549d88e310d5a3831ab9034e7d8f0295420b443a5a60db2e5b",
+      "skippedTests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestDumpPreviewWireSamples"
+        }
+      ]
+    }
+  },
+  "web": {
+    "trackedFiles": 66,
+    "mismatches": [],
+    "headTree": "837822621e64ae548e537895979f9f49705deb55",
+    "testFiles": 16,
+    "testPass": 217,
+    "packageLockMatchesTrackedHEAD": true
+  }
+}

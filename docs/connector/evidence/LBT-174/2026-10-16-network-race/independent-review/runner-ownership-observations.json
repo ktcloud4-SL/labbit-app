@@ -1,0 +1,29 @@
+{
+  "scope": "Execute only original try/finally AST with subprocess.run entirely stubbed; no PostgreSQL, Go child or cloud call is made",
+  "source": "C:/Users/user/Documents/ChatGPT/3\ucc28 2/tmp/lbt174-network-race-20261016/run_validation.py",
+  "sourceSHA256": "0eb27f12cbbe825077846eb47086eed70d6243c317cc331b250dd967e5d52dc2",
+  "finding": "F174-METHOD003: failed PG start still invokes stop of the configured data directory",
+  "cases": [
+    {
+      "startRejected": true,
+      "startCalls": 1,
+      "stopCalls": 1,
+      "testCalls": 0,
+      "queryCalls": 1,
+      "exception": {
+        "type": "CalledProcessError",
+        "exitCode": 1
+      },
+      "resultSaved": true
+    },
+    {
+      "startRejected": false,
+      "startCalls": 1,
+      "stopCalls": 1,
+      "testCalls": 1,
+      "queryCalls": 1,
+      "exception": null,
+      "resultSaved": true
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "source": {
+    "sourceFiles": 521,
+    "sourceSHA256": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "mismatches": 0
+  },
+  "environment": {
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "CGO_ENABLED": 1,
+    "GOTOOLCHAIN": "local",
+    "Go": "1.27.1",
+    "gcc": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+  },
+  "commands": {
+    "vet": "go vet -tags 'backend_router_harness integration' ./internal/server/app ./internal/server/connector",
+    "build": "go build -tags backend_router_harness -o /tmp/labbit-c1-server ./cmd/labbit-server",
+    "race": "go test -race -tags 'backend_router_harness integration' -run '^TestC1' -count=1 -json ./internal/server/app"
+  },
+  "markers": [
+    "LBT174_LINUX_VET_PASS",
+    "LBT174_LINUX_BUILD_PASS",
+    "LBT174_LINUX_RACE_PASS"
+  ],
+  "testPassEvents": 67,
+  "parentPass": 12,
+  "parentNames": [
+    "TestC1ActualControlStackMockProvider",
+    "TestC1ApprovalRejectsSymlinkAndRawFields",
+    "TestC1CorrelationMismatchCannotSupplyCleanupIDs",
+    "TestC1GateFailClosed",
+    "TestC1LedgerExclusiveAndReplacement",
+    "TestC1NSMExternalInventoryGate",
+    "TestC1NoConnectionOrWrongSessionCannotMutate",
+    "TestC1OperatorSubmissionRequiredAtRuntime",
+    "TestC1PreviousOrUnprotectedLedgerNeverAdopted",
+    "TestC1SingleShotAndLedgerBlocksRestart",
+    "TestC1StoppedResultRetainsConfirmedIDs",
+    "TestC1StopsBeforeCleanupOnUncertainty"
+  ],
+  "testSkip": 0,
+  "testFail": 0,
+  "packagePass": 1,
+  "raceWarnings": 0,
+  "rawSHA256": "225146b81b6ff356e90c8868293c672b7f08270e477e76db2fbc09e5b715a011",
+  "rawBytes": 63086,
+  "scope": "native tagged C1 with real PostgreSQL and Mock Provider; not the 12 actual OpenStack parents or entire Browser/SaaS C3",
+  "outerLifecycle": "Subsequently verified separately in final-on-lifecycle-verification.json. Native markers alone do not prove reboot/Reset/cloud cleanup/child exit."
+}

@@ -1,0 +1,47 @@
+{
+  "mode": "local test-only overlay; generated Python AST only",
+  "cloudCalls": 0,
+  "exitCode": 0,
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-overlay",
+    "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\lbt174-routing-postadmin-independent-20261016\\off-method-overlay.json",
+    "-run",
+    "^TestReviewOffGeneratedPython$",
+    "-count=1",
+    "-v",
+    "./internal/connector/provider/openstack"
+  ],
+  "sourceFiles": 521,
+  "sourceMismatchesBeforeAfter": 0,
+  "helperSHA256": "675998589f8f60af27d88bf180ebaf800c59930e12ab3baddd7a89dfef4a878d",
+  "preparationSHA256": "1d80c6ac31e6ed3d90a987c087e755b4191f549e2483486776a01703b4526028",
+  "generatedCommands": {
+    "renew-lab-first": {
+      "pythonSHA256": "f738f4edbddf7caab89fa0c2bd39fe62f8b803cde461e4b9e22b40a0962906ac",
+      "AST": "PASS"
+    },
+    "renew-management-first": {
+      "pythonSHA256": "7b5dc2f6a92b33f0f555fbfcfd95b4109745332d9d2dd7f196579247de1dc8ff",
+      "AST": "PASS"
+    },
+    "reachability": {
+      "pythonSHA256": "81c54db73ceb9c76b89492dad3a43772e144c9556aad79cc151966623833360b",
+      "AST": "PASS"
+    }
+  },
+  "review": {
+    "snapshotInternetOutbound": false,
+    "first12EachGeneration": true,
+    "renewBothOrdersBeforeAfterRebootAndReset": true,
+    "bootIDChangeAndPinnedSSH": true,
+    "knownResourceCleanupRetained": true,
+    "onOnlyNativeAptAndDiagnosticsNotCalled": true
+  },
+  "limits": [
+    "This is syntax and method review, not actual OFF routing acceptance.",
+    "IPv4 defaults and chosen external TCP target are the supported scope.",
+    "Copied linux_ci.sh and native archive metadata are unused by the OFF test."
+  ]
+}

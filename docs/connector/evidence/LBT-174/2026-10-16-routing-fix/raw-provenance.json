@@ -1,0 +1,1992 @@
+[
+  {
+    "original": "lbt174-routing-fix-20261016/add_lifecycle.py",
+    "artifact": "run/add_lifecycle.py",
+    "rawBytes": 4288,
+    "rawSHA256": "c9a524aa1893c515013b010a618f3cd08a8f2e85e925acbeba37e72a634f514a",
+    "artifactUncompressedBytes": 4288,
+    "artifactUncompressedSHA256": "c9a524aa1893c515013b010a618f3cd08a8f2e85e925acbeba37e72a634f514a",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/after-timeout.log",
+    "artifact": "run/after-timeout.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/before-source.json",
+    "artifact": "run/before-source.json",
+    "rawBytes": 62847,
+    "rawSHA256": "96e99d4e6063c7b1f6bac8216666a5abdd452a2e6809c33ee9b5179c64d4d1ca",
+    "artifactUncompressedBytes": 62847,
+    "artifactUncompressedSHA256": "96e99d4e6063c7b1f6bac8216666a5abdd452a2e6809c33ee9b5179c64d4d1ca",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/before-status.txt",
+    "artifact": "run/before-status.txt",
+    "rawBytes": 1508,
+    "rawSHA256": "7ac5d3955424d43baac29b543c69036811897a129ad2286d5dcf32c65d199727",
+    "artifactUncompressedBytes": 1508,
+    "artifactUncompressedSHA256": "7ac5d3955424d43baac29b543c69036811897a129ad2286d5dcf32c65d199727",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/build_sources.py",
+    "artifact": "run/build_sources.py",
+    "rawBytes": 3117,
+    "rawSHA256": "a48c1d99ea89f53162b7ce8a6cf7510c62cc7d068f62e229bacd12b838a6f465",
+    "artifactUncompressedBytes": 3117,
+    "artifactUncompressedSHA256": "a48c1d99ea89f53162b7ce8a6cf7510c62cc7d068f62e229bacd12b838a6f465",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/capture_host_dhcp.ps1",
+    "artifact": "run/capture_host_dhcp.ps1",
+    "rawBytes": 2615,
+    "rawSHA256": "2765e281ef4e1f2e65baaac1c104dfb1c6c5b714e07d188ce98ed6f9b962e293",
+    "artifactUncompressedBytes": 2615,
+    "artifactUncompressedSHA256": "2765e281ef4e1f2e65baaac1c104dfb1c6c5b714e07d188ce98ed6f9b962e293",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/check_format.py",
+    "artifact": "run/check_format.py",
+    "rawBytes": 1017,
+    "rawSHA256": "1f72d958da55074a5d0081435d86691bf7883b04a79665d0891944ddcbe94527",
+    "artifactUncompressedBytes": 1017,
+    "artifactUncompressedSHA256": "1f72d958da55074a5d0081435d86691bf7883b04a79665d0891944ddcbe94527",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/contracts-result.json",
+    "artifact": "run/contracts-result.json",
+    "rawBytes": 185,
+    "rawSHA256": "4d3681c4a0476d035eccf0f3562a19eba24beb8dde7763f57e79b699621419c1",
+    "artifactUncompressedBytes": 185,
+    "artifactUncompressedSHA256": "4d3681c4a0476d035eccf0f3562a19eba24beb8dde7763f57e79b699621419c1",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/db-postgres-cleanup.log",
+    "artifact": "run/db-postgres-cleanup.log.gz",
+    "rawBytes": 3,
+    "rawSHA256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "artifactUncompressedBytes": 3,
+    "artifactUncompressedSHA256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/db-postgres-control.log",
+    "artifact": "run/db-postgres-control.log.gz",
+    "rawBytes": 112,
+    "rawSHA256": "6edf3a6f97d7a613ab8d90f0eabeeb0a57adb883d2508f8cb72312fb7f871518",
+    "artifactUncompressedBytes": 112,
+    "artifactUncompressedSHA256": "6edf3a6f97d7a613ab8d90f0eabeeb0a57adb883d2508f8cb72312fb7f871518",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/db-run-result.json",
+    "artifact": "run/db-run-result.json",
+    "rawBytes": 212,
+    "rawSHA256": "88af3207e5b975c1870cba3720853b665e2187d1550a281c594459d29873c8c9",
+    "artifactUncompressedBytes": 212,
+    "artifactUncompressedSHA256": "88af3207e5b975c1870cba3720853b665e2187d1550a281c594459d29873c8c9",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/dhcp-lease-origin.log",
+    "artifact": "run/dhcp-lease-origin.log.gz",
+    "rawBytes": 797,
+    "rawSHA256": "ae8b89aa2d9cd234abb57539180dbce884e773def52684cea4bf81fed505744a",
+    "artifactUncompressedBytes": 797,
+    "artifactUncompressedSHA256": "ae8b89aa2d9cd234abb57539180dbce884e773def52684cea4bf81fed505744a",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/diagnose_lease.py",
+    "artifact": "run/diagnose_lease.py",
+    "rawBytes": 2094,
+    "rawSHA256": "dc8c150780006651eca817ed284cab26ebc52dbb8893d0f0249461cc5ba8bd60",
+    "artifactUncompressedBytes": 2094,
+    "artifactUncompressedSHA256": "dc8c150780006651eca817ed284cab26ebc52dbb8893d0f0249461cc5ba8bd60",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/diagnostic-timeout-cleanup.log",
+    "artifact": "run/diagnostic-timeout-cleanup.log.gz",
+    "rawBytes": 88,
+    "rawSHA256": "c3b50f0770f6e63f010e4efab42ee85b331cd3b80a33bfc256020b3d5db43faa",
+    "artifactUncompressedBytes": 88,
+    "artifactUncompressedSHA256": "c3b50f0770f6e63f010e4efab42ee85b331cd3b80a33bfc256020b3d5db43faa",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/extend_diagnostic.py",
+    "artifact": "run/extend_diagnostic.py",
+    "rawBytes": 2235,
+    "rawSHA256": "3db22da48305568cfab8e05fc9e8c3d7bd8c767b22c26e4cfcd682559d322ee3",
+    "artifactUncompressedBytes": 2235,
+    "artifactUncompressedSHA256": "3db22da48305568cfab8e05fc9e8c3d7bd8c767b22c26e4cfcd682559d322ee3",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-api-v1/linux-source-archive.json",
+    "artifact": "run/failed-api-v1/linux-source-archive.json",
+    "rawBytes": 325,
+    "rawSHA256": "c09b1c8af1ad7c39ce3017c2f18e4fc75d2a8d99e94a4eb7745fb67a714d7fa7",
+    "artifactUncompressedBytes": 325,
+    "artifactUncompressedSHA256": "c09b1c8af1ad7c39ce3017c2f18e4fc75d2a8d99e94a4eb7745fb67a714d7fa7",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-api-v1/local_probe_test.go",
+    "artifact": "run/failed-api-v1/local_probe_test.go.txt",
+    "rawBytes": 18623,
+    "rawSHA256": "031e13911ca9bb2ddf0ef5c4e171c2b00e8a549ca84423ada175e38231a8e261",
+    "artifactUncompressedBytes": 18623,
+    "artifactUncompressedSHA256": "031e13911ca9bb2ddf0ef5c4e171c2b00e8a549ca84423ada175e38231a8e261",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-api-v1/probe-live.log",
+    "artifact": "run/failed-api-v1/probe-live.log.gz",
+    "rawBytes": 2949,
+    "rawSHA256": "a9fbd3c22a3870e88fcb14523346aad39523e820cfaf54c4402d7acb4abb70d6",
+    "artifactUncompressedBytes": 2949,
+    "artifactUncompressedSHA256": "a9fbd3c22a3870e88fcb14523346aad39523e820cfaf54c4402d7acb4abb70d6",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-api-v1/probe-run-result.json",
+    "artifact": "run/failed-api-v1/probe-run-result.json",
+    "rawBytes": 1245,
+    "rawSHA256": "0fe37fccc256fd6d8647acc7f85f56d319377d846fd42da3512d12bd3724cd49",
+    "artifactUncompressedBytes": 1245,
+    "artifactUncompressedSHA256": "0fe37fccc256fd6d8647acc7f85f56d319377d846fd42da3512d12bd3724cd49",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-api-v1/probe-run-state.json",
+    "artifact": "run/failed-api-v1/probe-run-state.json",
+    "rawBytes": 940,
+    "rawSHA256": "3b540f8d6b2d7357cf795bee24d63c3ac0af12ecebdf5161bb77f8b33a657c4e",
+    "artifactUncompressedBytes": 940,
+    "artifactUncompressedSHA256": "3b540f8d6b2d7357cf795bee24d63c3ac0af12ecebdf5161bb77f8b33a657c4e",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-api-v1/source-manifest.json",
+    "artifact": "run/failed-api-v1/source-manifest.json",
+    "rawBytes": 63418,
+    "rawSHA256": "128165e6918007d76c1b2a726dc3f64b8f4738a74e95b1f54ff859d844a0113f",
+    "artifactUncompressedBytes": 63418,
+    "artifactUncompressedSHA256": "128165e6918007d76c1b2a726dc3f64b8f4738a74e95b1f54ff859d844a0113f",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/after-timeout.log",
+    "artifact": "run/failed-empty-policy-v2/after-timeout.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/diagnostic-timeout-cleanup.log",
+    "artifact": "run/failed-empty-policy-v2/diagnostic-timeout-cleanup.log.gz",
+    "rawBytes": 88,
+    "rawSHA256": "c3b50f0770f6e63f010e4efab42ee85b331cd3b80a33bfc256020b3d5db43faa",
+    "artifactUncompressedBytes": 88,
+    "artifactUncompressedSHA256": "c3b50f0770f6e63f010e4efab42ee85b331cd3b80a33bfc256020b3d5db43faa",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/internet-first-01.log",
+    "artifact": "run/failed-empty-policy-v2/internet-first-01.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "73a376d0a55c45c77bd61255154049d7ea6b2da0bd042d57b12b306868c743bd",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "73a376d0a55c45c77bd61255154049d7ea6b2da0bd042d57b12b306868c743bd",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/internet-first-02.log",
+    "artifact": "run/failed-empty-policy-v2/internet-first-02.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "c9d9e77e4e2bae61d6b43533b81f7da0fd7b8e1ae4b70a5816a964d8cecff232",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "c9d9e77e4e2bae61d6b43533b81f7da0fd7b8e1ae4b70a5816a964d8cecff232",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/internet-first-03.log",
+    "artifact": "run/failed-empty-policy-v2/internet-first-03.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "5ecbe8e5d969569712da1b3f2fccfe3fe9848b1c65a080e2c23aba7a9faf003d",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "5ecbe8e5d969569712da1b3f2fccfe3fe9848b1c65a080e2c23aba7a9faf003d",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/internet-first-04.log",
+    "artifact": "run/failed-empty-policy-v2/internet-first-04.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/internet-first-05.log",
+    "artifact": "run/failed-empty-policy-v2/internet-first-05.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/internet-first-06.log",
+    "artifact": "run/failed-empty-policy-v2/internet-first-06.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "73a376d0a55c45c77bd61255154049d7ea6b2da0bd042d57b12b306868c743bd",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "73a376d0a55c45c77bd61255154049d7ea6b2da0bd042d57b12b306868c743bd",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/internet-first-07.log",
+    "artifact": "run/failed-empty-policy-v2/internet-first-07.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "1bda1d6ec4f6cb4411e32465f126f20395ec8243a71e0ae366b6aaea4c376516",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "1bda1d6ec4f6cb4411e32465f126f20395ec8243a71e0ae366b6aaea4c376516",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/internet-first-08.log",
+    "artifact": "run/failed-empty-policy-v2/internet-first-08.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/internet-first-09.log",
+    "artifact": "run/failed-empty-policy-v2/internet-first-09.log.gz",
+    "rawBytes": 409,
+    "rawSHA256": "1c2f38b5dca78990fd34ab6959bcff5bf542da946f7404dd7a5749b0ec6287db",
+    "artifactUncompressedBytes": 409,
+    "artifactUncompressedSHA256": "1c2f38b5dca78990fd34ab6959bcff5bf542da946f7404dd7a5749b0ec6287db",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/internet-first-10.log",
+    "artifact": "run/failed-empty-policy-v2/internet-first-10.log.gz",
+    "rawBytes": 409,
+    "rawSHA256": "1c2f38b5dca78990fd34ab6959bcff5bf542da946f7404dd7a5749b0ec6287db",
+    "artifactUncompressedBytes": 409,
+    "artifactUncompressedSHA256": "1c2f38b5dca78990fd34ab6959bcff5bf542da946f7404dd7a5749b0ec6287db",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/internet-first-11.log",
+    "artifact": "run/failed-empty-policy-v2/internet-first-11.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "73a376d0a55c45c77bd61255154049d7ea6b2da0bd042d57b12b306868c743bd",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "73a376d0a55c45c77bd61255154049d7ea6b2da0bd042d57b12b306868c743bd",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/internet-first-12.log",
+    "artifact": "run/failed-empty-policy-v2/internet-first-12.log.gz",
+    "rawBytes": 409,
+    "rawSHA256": "1c2f38b5dca78990fd34ab6959bcff5bf542da946f7404dd7a5749b0ec6287db",
+    "artifactUncompressedBytes": 409,
+    "artifactUncompressedSHA256": "1c2f38b5dca78990fd34ab6959bcff5bf542da946f7404dd7a5749b0ec6287db",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/local_probe_test.go",
+    "artifact": "run/failed-empty-policy-v2/local_probe_test.go.txt",
+    "rawBytes": 18622,
+    "rawSHA256": "afc25dad93bab43b408b6663dc555dac51fa9587bea85cb8598a9b9c329f37a4",
+    "artifactUncompressedBytes": 18622,
+    "artifactUncompressedSHA256": "afc25dad93bab43b408b6663dc555dac51fa9587bea85cb8598a9b9c329f37a4",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/probe-live.log",
+    "artifact": "run/failed-empty-policy-v2/probe-live.log.gz",
+    "rawBytes": 12007,
+    "rawSHA256": "301314b7614f9d461f221d4a64b44fcb37d1fca6e19beed57dd452ef3dd385f2",
+    "artifactUncompressedBytes": 12007,
+    "artifactUncompressedSHA256": "301314b7614f9d461f221d4a64b44fcb37d1fca6e19beed57dd452ef3dd385f2",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/probe-run-result.json",
+    "artifact": "run/failed-empty-policy-v2/probe-run-result.json",
+    "rawBytes": 1246,
+    "rawSHA256": "db5df1ce46c030f89f120b9a0f79bd69ce1a3171d26143893ccc8f1bee6beb39",
+    "artifactUncompressedBytes": 1246,
+    "artifactUncompressedSHA256": "db5df1ce46c030f89f120b9a0f79bd69ce1a3171d26143893ccc8f1bee6beb39",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/probe-run-state.json",
+    "artifact": "run/failed-empty-policy-v2/probe-run-state.json",
+    "rawBytes": 940,
+    "rawSHA256": "56fe892d9918e546d517767231278532ff490c52e2fd653d3711dff4b2ba3b7d",
+    "artifactUncompressedBytes": 940,
+    "artifactUncompressedSHA256": "56fe892d9918e546d517767231278532ff490c52e2fd653d3711dff4b2ba3b7d",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/renew-lab-first.log",
+    "artifact": "run/failed-empty-policy-v2/renew-lab-first.log.gz",
+    "rawBytes": 226,
+    "rawSHA256": "0bddc4690a268bac59d94c654af98476b402dea567e3bd80cebbdc8fb3229d38",
+    "artifactUncompressedBytes": 226,
+    "artifactUncompressedSHA256": "0bddc4690a268bac59d94c654af98476b402dea567e3bd80cebbdc8fb3229d38",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/failed-empty-policy-v2/route-counterfactual.log",
+    "artifact": "run/failed-empty-policy-v2/route-counterfactual.log.gz",
+    "rawBytes": 1643,
+    "rawSHA256": "cc830d59632f5a6369eb9460ccfb023db2d3d5d0c0deabbd543c26fd09b0160f",
+    "artifactUncompressedBytes": 1643,
+    "artifactUncompressedSHA256": "cc830d59632f5a6369eb9460ccfb023db2d3d5d0c0deabbd543c26fd09b0160f",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/final_checks.py",
+    "artifact": "run/final_checks.py",
+    "rawBytes": 2263,
+    "rawSHA256": "58165c40ebf5a50a43ca9202ad749d3904f9fdc6555489b4a1a404c02e60d9f7",
+    "artifactUncompressedBytes": 2263,
+    "artifactUncompressedSHA256": "58165c40ebf5a50a43ca9202ad749d3904f9fdc6555489b4a1a404c02e60d9f7",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/fix_api_and_helper.py",
+    "artifact": "run/fix_api_and_helper.py",
+    "rawBytes": 4200,
+    "rawSHA256": "5b6bfceb850843a0bd263d22f053515b61d3f59bf09401ad2b3ec9ab563a1241",
+    "artifactUncompressedBytes": 4200,
+    "artifactUncompressedSHA256": "5b6bfceb850843a0bd263d22f053515b61d3f59bf09401ad2b3ec9ab563a1241",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/go-build-result.json",
+    "artifact": "run/go-build-result.json",
+    "rawBytes": 407,
+    "rawSHA256": "050f3a3414d4b11ff4d0054d3743717e7c9e235de12abf37eb4909cd0914bc69",
+    "artifactUncompressedBytes": 407,
+    "artifactUncompressedSHA256": "050f3a3414d4b11ff4d0054d3743717e7c9e235de12abf37eb4909cd0914bc69",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/go-build.log",
+    "artifact": "run/go-build.log.gz",
+    "rawBytes": 0,
+    "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifactUncompressedBytes": 0,
+    "artifactUncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/go-packages-after-evidence.json",
+    "artifact": "run/go-packages-after-evidence.json",
+    "rawBytes": 58,
+    "rawSHA256": "68bbce45efef6a5268bacdd5d000cf88e22bc9e733fcc529bc8c59ba30ac142e",
+    "artifactUncompressedBytes": 58,
+    "artifactUncompressedSHA256": "68bbce45efef6a5268bacdd5d000cf88e22bc9e733fcc529bc8c59ba30ac142e",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/go-packages-after-evidence.log",
+    "artifact": "run/go-packages-after-evidence.log.gz",
+    "rawBytes": 3272,
+    "rawSHA256": "e3bcfa23fc5d6858a9b619b3e6614bad44e6ea4468c28152688de7953b2cc722",
+    "artifactUncompressedBytes": 3272,
+    "artifactUncompressedSHA256": "e3bcfa23fc5d6858a9b619b3e6614bad44e6ea4468c28152688de7953b2cc722",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/go-race-result.json",
+    "artifact": "run/go-race-result.json",
+    "rawBytes": 867,
+    "rawSHA256": "60944a04db2121bf9f33b0d521be3710b7e179bcbbf80921e0788d7225feedcd",
+    "artifactUncompressedBytes": 867,
+    "artifactUncompressedSHA256": "60944a04db2121bf9f33b0d521be3710b7e179bcbbf80921e0788d7225feedcd",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/go-race-summary.json",
+    "artifact": "run/go-race-summary.json",
+    "rawBytes": 4302,
+    "rawSHA256": "b8c6a58736342caa848c558fb6ce8c8fd26d7b66c3150a23392291140ce0faba",
+    "artifactUncompressedBytes": 4302,
+    "artifactUncompressedSHA256": "b8c6a58736342caa848c558fb6ce8c8fd26d7b66c3150a23392291140ce0faba",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/go-race.log",
+    "artifact": "run/go-race.log.gz",
+    "rawBytes": 1626763,
+    "rawSHA256": "9dabad141beb94b27f1cf983aeb88c9a6161c8c7d9aafec1f88fb74ac74e2eb7",
+    "artifactUncompressedBytes": 1626763,
+    "artifactUncompressedSHA256": "9dabad141beb94b27f1cf983aeb88c9a6161c8c7d9aafec1f88fb74ac74e2eb7",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/go-test-result.json",
+    "artifact": "run/go-test-result.json",
+    "rawBytes": 437,
+    "rawSHA256": "0e0609f6e0e5b131ce9766783af77f305758b5680b896031fe4f2dfc66cfde46",
+    "artifactUncompressedBytes": 437,
+    "artifactUncompressedSHA256": "0e0609f6e0e5b131ce9766783af77f305758b5680b896031fe4f2dfc66cfde46",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/go-test-summary.json",
+    "artifact": "run/go-test-summary.json",
+    "rawBytes": 4894,
+    "rawSHA256": "ea8ed7a0e0747e1e708c571b25ad695e1177884de3897c1a5bfd957434669e2c",
+    "artifactUncompressedBytes": 4894,
+    "artifactUncompressedSHA256": "ea8ed7a0e0747e1e708c571b25ad695e1177884de3897c1a5bfd957434669e2c",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/go-test.log",
+    "artifact": "run/go-test.log.gz",
+    "rawBytes": 4268581,
+    "rawSHA256": "bc51fb0b99add4604a4587f231bbb3255e2e8d5ab9039d07578c254f93f4acad",
+    "artifactUncompressedBytes": 4268581,
+    "artifactUncompressedSHA256": "bc51fb0b99add4604a4587f231bbb3255e2e8d5ab9039d07578c254f93f4acad",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/go-vet-result.json",
+    "artifact": "run/go-vet-result.json",
+    "rawBytes": 403,
+    "rawSHA256": "187b05ad471af2086977bc8087a14a64c297b14facfd6f787a2772484bcf5ba7",
+    "artifactUncompressedBytes": 403,
+    "artifactUncompressedSHA256": "187b05ad471af2086977bc8087a14a64c297b14facfd6f787a2772484bcf5ba7",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/go-vet.log",
+    "artifact": "run/go-vet.log.gz",
+    "rawBytes": 0,
+    "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifactUncompressedBytes": 0,
+    "artifactUncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/gofmt-crlf-observation.json",
+    "artifact": "run/gofmt-crlf-observation.json",
+    "rawBytes": 24329,
+    "rawSHA256": "1e9e0c3621003c133a27524d158286c77f42cc7f0c1261f0b447b7ce83095e51",
+    "artifactUncompressedBytes": 24329,
+    "artifactUncompressedSHA256": "1e9e0c3621003c133a27524d158286c77f42cc7f0c1261f0b447b7ce83095e51",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/gofmt-result.json",
+    "artifact": "run/gofmt-result.json",
+    "rawBytes": 253,
+    "rawSHA256": "519dfd2a11a958526b3583ce6db11c12661d83a741ad1e741322aca8c9f0b3a0",
+    "artifactUncompressedBytes": 253,
+    "artifactUncompressedSHA256": "519dfd2a11a958526b3583ce6db11c12661d83a741ad1e741322aca8c9f0b3a0",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/host-dhcp-observation.json",
+    "artifact": "run/host-dhcp-observation.json",
+    "rawBytes": 1377,
+    "rawSHA256": "20245a982eb7c182195f7ce40c0ae5eedc48991b9ae5f309fa6ecaf25191ae45",
+    "artifactUncompressedBytes": 1377,
+    "artifactUncompressedSHA256": "20245a982eb7c182195f7ce40c0ae5eedc48991b9ae5f309fa6ecaf25191ae45",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/initial-unit-fixed.log",
+    "artifact": "run/initial-unit-fixed.log.gz",
+    "rawBytes": 12643,
+    "rawSHA256": "b369fcf63159b1bfbe157a7b9cf3aff547d159696a328fd7cf210b7692ac726f",
+    "artifactUncompressedBytes": 12643,
+    "artifactUncompressedSHA256": "b369fcf63159b1bfbe157a7b9cf3aff547d159696a328fd7cf210b7692ac726f",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/initial-unit-fixed2.log",
+    "artifact": "run/initial-unit-fixed2.log.gz",
+    "rawBytes": 85,
+    "rawSHA256": "81bce139906affc49ed6b41fba014546d49810c73f956a67841a5e058aa4db08",
+    "artifactUncompressedBytes": 85,
+    "artifactUncompressedSHA256": "81bce139906affc49ed6b41fba014546d49810c73f956a67841a5e058aa4db08",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/initial-unit.log",
+    "artifact": "run/initial-unit.log.gz",
+    "rawBytes": 12264,
+    "rawSHA256": "c0bd1fa916340d12cecb765c7d39abec3033dde00f0309cad790a81ed7f4fbbd",
+    "artifactUncompressedBytes": 12264,
+    "artifactUncompressedSHA256": "c0bd1fa916340d12cecb765c7d39abec3033dde00f0309cad790a81ed7f4fbbd",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/internet-first-01.log",
+    "artifact": "run/internet-first-01.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "73a376d0a55c45c77bd61255154049d7ea6b2da0bd042d57b12b306868c743bd",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "73a376d0a55c45c77bd61255154049d7ea6b2da0bd042d57b12b306868c743bd",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/internet-first-02.log",
+    "artifact": "run/internet-first-02.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "c9d9e77e4e2bae61d6b43533b81f7da0fd7b8e1ae4b70a5816a964d8cecff232",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "c9d9e77e4e2bae61d6b43533b81f7da0fd7b8e1ae4b70a5816a964d8cecff232",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/internet-first-03.log",
+    "artifact": "run/internet-first-03.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "5ecbe8e5d969569712da1b3f2fccfe3fe9848b1c65a080e2c23aba7a9faf003d",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "5ecbe8e5d969569712da1b3f2fccfe3fe9848b1c65a080e2c23aba7a9faf003d",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/internet-first-04.log",
+    "artifact": "run/internet-first-04.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/internet-first-05.log",
+    "artifact": "run/internet-first-05.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/internet-first-06.log",
+    "artifact": "run/internet-first-06.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "73a376d0a55c45c77bd61255154049d7ea6b2da0bd042d57b12b306868c743bd",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "73a376d0a55c45c77bd61255154049d7ea6b2da0bd042d57b12b306868c743bd",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/internet-first-07.log",
+    "artifact": "run/internet-first-07.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "1bda1d6ec4f6cb4411e32465f126f20395ec8243a71e0ae366b6aaea4c376516",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "1bda1d6ec4f6cb4411e32465f126f20395ec8243a71e0ae366b6aaea4c376516",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/internet-first-08.log",
+    "artifact": "run/internet-first-08.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "3e5cb504b8c9fe75583e70d83af38dd7ff10bcf7253c3813fb4b5645d61771ba",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/internet-first-09.log",
+    "artifact": "run/internet-first-09.log.gz",
+    "rawBytes": 409,
+    "rawSHA256": "1c2f38b5dca78990fd34ab6959bcff5bf542da946f7404dd7a5749b0ec6287db",
+    "artifactUncompressedBytes": 409,
+    "artifactUncompressedSHA256": "1c2f38b5dca78990fd34ab6959bcff5bf542da946f7404dd7a5749b0ec6287db",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/internet-first-10.log",
+    "artifact": "run/internet-first-10.log.gz",
+    "rawBytes": 409,
+    "rawSHA256": "1c2f38b5dca78990fd34ab6959bcff5bf542da946f7404dd7a5749b0ec6287db",
+    "artifactUncompressedBytes": 409,
+    "artifactUncompressedSHA256": "1c2f38b5dca78990fd34ab6959bcff5bf542da946f7404dd7a5749b0ec6287db",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/internet-first-11.log",
+    "artifact": "run/internet-first-11.log.gz",
+    "rawBytes": 410,
+    "rawSHA256": "73a376d0a55c45c77bd61255154049d7ea6b2da0bd042d57b12b306868c743bd",
+    "artifactUncompressedBytes": 410,
+    "artifactUncompressedSHA256": "73a376d0a55c45c77bd61255154049d7ea6b2da0bd042d57b12b306868c743bd",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/internet-first-12.log",
+    "artifact": "run/internet-first-12.log.gz",
+    "rawBytes": 409,
+    "rawSHA256": "1c2f38b5dca78990fd34ab6959bcff5bf542da946f7404dd7a5749b0ec6287db",
+    "artifactUncompressedBytes": 409,
+    "artifactUncompressedSHA256": "1c2f38b5dca78990fd34ab6959bcff5bf542da946f7404dd7a5749b0ec6287db",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/lease-match-overlay.json",
+    "artifact": "run/lease-match-overlay.json",
+    "rawBytes": 287,
+    "rawSHA256": "f931ead31fd8be8970c42b7a80f4ea1486c42da42e7b3c25114c58ef95326f11",
+    "artifactUncompressedBytes": 287,
+    "artifactUncompressedSHA256": "f931ead31fd8be8970c42b7a80f4ea1486c42da42e7b3c25114c58ef95326f11",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/lease-match.log",
+    "artifact": "run/lease-match.log.gz",
+    "rawBytes": 2214,
+    "rawSHA256": "74be4a7a781b5c852c15cc4963d00a6dbe0d5c3d9700d18519bbf3414cabb0e9",
+    "artifactUncompressedBytes": 2214,
+    "artifactUncompressedSHA256": "74be4a7a781b5c852c15cc4963d00a6dbe0d5c3d9700d18519bbf3414cabb0e9",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/lease_match_test.go",
+    "artifact": "run/lease_match_test.go.txt",
+    "rawBytes": 1753,
+    "rawSHA256": "1c246561937cd81dec3a11a1fb9bb43467ff330742176f398ff8d1c07786975d",
+    "artifactUncompressedBytes": 1753,
+    "artifactUncompressedSHA256": "1c246561937cd81dec3a11a1fb9bb43467ff330742176f398ff8d1c07786975d",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/linux-go-download.json",
+    "artifact": "run/linux-go-download.json",
+    "rawBytes": 456,
+    "rawSHA256": "f04479396796c81c23c17c7e12759ed0bc13874cf634368067e7a59d18138c21",
+    "artifactUncompressedBytes": 456,
+    "artifactUncompressedSHA256": "f04479396796c81c23c17c7e12759ed0bc13874cf634368067e7a59d18138c21",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/linux-source-archive.json",
+    "artifact": "run/linux-source-archive.json",
+    "rawBytes": 325,
+    "rawSHA256": "8f9fb25b18a59ee619cea85e92f1ebe088a6760788f8e2f0da09db542ec1dce7",
+    "artifactUncompressedBytes": 325,
+    "artifactUncompressedSHA256": "8f9fb25b18a59ee619cea85e92f1ebe088a6760788f8e2f0da09db542ec1dce7",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/linux_ci.sh",
+    "artifact": "run/linux_ci.sh",
+    "rawBytes": 1092,
+    "rawSHA256": "a14d3e326f845d6a9cdd045716941c7e40fee44f3590bb444b12de718802bfbb",
+    "artifactUncompressedBytes": 1092,
+    "artifactUncompressedSHA256": "a14d3e326f845d6a9cdd045716941c7e40fee44f3590bb444b12de718802bfbb",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/local_probe_test.go",
+    "artifact": "run/local_probe_test.go.txt",
+    "rawBytes": 22071,
+    "rawSHA256": "5bf1acfc1a815bd8e90f651dc78dff33a9226c3013b0dd307710e9364cf8c674",
+    "artifactUncompressedBytes": 22071,
+    "artifactUncompressedSHA256": "5bf1acfc1a815bd8e90f651dc78dff33a9226c3013b0dd307710e9364cf8c674",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/linux-apt.log",
+    "artifact": "run/native-independent/linux-apt.log.gz",
+    "rawBytes": 17539,
+    "rawSHA256": "0e6ecd2b8f4d30f8e2ecb08c30738dc1e3fe2053c34f4a06c7343d2f3121c4a9",
+    "artifactUncompressedBytes": 17539,
+    "artifactUncompressedSHA256": "0e6ecd2b8f4d30f8e2ecb08c30738dc1e3fe2053c34f4a06c7343d2f3121c4a9",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/linux-ci.log",
+    "artifact": "run/native-independent/linux-ci.log.gz",
+    "rawBytes": 63104,
+    "rawSHA256": "804d0c4db17683caee88d5571a8ecba070b44edf728d5d9999aa03d75d429d58",
+    "artifactUncompressedBytes": 63104,
+    "artifactUncompressedSHA256": "804d0c4db17683caee88d5571a8ecba070b44edf728d5d9999aa03d75d429d58",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/linux-directory.log",
+    "artifact": "run/native-independent/linux-directory.log.gz",
+    "rawBytes": 0,
+    "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifactUncompressedBytes": 0,
+    "artifactUncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/linux-preflight.log",
+    "artifact": "run/native-independent/linux-preflight.log.gz",
+    "rawBytes": 320,
+    "rawSHA256": "cc5a0924a62e2d2b78b3881dbe51bd9e2bb782167256845abb65b9f2c9f5102c",
+    "artifactUncompressedBytes": 320,
+    "artifactUncompressedSHA256": "cc5a0924a62e2d2b78b3881dbe51bd9e2bb782167256845abb65b9f2c9f5102c",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/linux-source-archive.json",
+    "artifact": "run/native-independent/linux-source-archive.json",
+    "rawBytes": 325,
+    "rawSHA256": "8f9fb25b18a59ee619cea85e92f1ebe088a6760788f8e2f0da09db542ec1dce7",
+    "artifactUncompressedBytes": 325,
+    "artifactUncompressedSHA256": "8f9fb25b18a59ee619cea85e92f1ebe088a6760788f8e2f0da09db542ec1dce7",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/linux-unpack.log",
+    "artifact": "run/native-independent/linux-unpack.log.gz",
+    "rawBytes": 56,
+    "rawSHA256": "ff7d59c442b65b0e7d727e5dcd814372bc6ac2cd1f26ea55d76ecadd299164e3",
+    "artifactUncompressedBytes": 56,
+    "artifactUncompressedSHA256": "ff7d59c442b65b0e7d727e5dcd814372bc6ac2cd1f26ea55d76ecadd299164e3",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/linux_ci.sh",
+    "artifact": "run/native-independent/linux_ci.sh",
+    "rawBytes": 1092,
+    "rawSHA256": "a14d3e326f845d6a9cdd045716941c7e40fee44f3590bb444b12de718802bfbb",
+    "artifactUncompressedBytes": 1092,
+    "artifactUncompressedSHA256": "a14d3e326f845d6a9cdd045716941c7e40fee44f3590bb444b12de718802bfbb",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/local_probe_test.go",
+    "artifact": "run/native-independent/local_probe_test.go.txt",
+    "rawBytes": 17090,
+    "rawSHA256": "d5eba5c7096f02781ddb4bcf44fe10e7e2df158d9d8e3100779e71e3c85d8553",
+    "artifactUncompressedBytes": 17090,
+    "artifactUncompressedSHA256": "d5eba5c7096f02781ddb4bcf44fe10e7e2df158d9d8e3100779e71e3c85d8553",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/native-live.log",
+    "artifact": "run/native-independent/native-live.log.gz",
+    "rawBytes": 4967,
+    "rawSHA256": "0c3f347f00b78e6cf3f574e2c3a5c6107b3c5fcdeb79298e26f62f7f3f7fd136",
+    "artifactUncompressedBytes": 4967,
+    "artifactUncompressedSHA256": "0c3f347f00b78e6cf3f574e2c3a5c6107b3c5fcdeb79298e26f62f7f3f7fd136",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/native-run-result.json",
+    "artifact": "run/native-independent/native-run-result.json",
+    "rawBytes": 1269,
+    "rawSHA256": "d9b1ad109597802958a6d09e59bfc6b0b0005ec0a70c4a582a26b9387e17459b",
+    "artifactUncompressedBytes": 1269,
+    "artifactUncompressedSHA256": "d9b1ad109597802958a6d09e59bfc6b0b0005ec0a70c4a582a26b9387e17459b",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/native-run-state.json",
+    "artifact": "run/native-independent/native-run-state.json",
+    "rawBytes": 960,
+    "rawSHA256": "e8cc50e3723fb14af5cb7f1af0bcf175e21b4b8c7e6abf730557a6c8ad8416ca",
+    "artifactUncompressedBytes": 960,
+    "artifactUncompressedSHA256": "e8cc50e3723fb14af5cb7f1af0bcf175e21b4b8c7e6abf730557a6c8ad8416ca",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/overlay.json",
+    "artifact": "run/native-independent/overlay.json",
+    "rawBytes": 320,
+    "rawSHA256": "2d8f13ab31fa33f37496037694ce67424614deb117fb54458530c80064e833a6",
+    "artifactUncompressedBytes": 320,
+    "artifactUncompressedSHA256": "2d8f13ab31fa33f37496037694ce67424614deb117fb54458530c80064e833a6",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/postgres-cleanup.log",
+    "artifact": "run/native-independent/postgres-cleanup.log.gz",
+    "rawBytes": 3,
+    "rawSHA256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "artifactUncompressedBytes": 3,
+    "artifactUncompressedSHA256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/postgres-control.log",
+    "artifact": "run/native-independent/postgres-control.log.gz",
+    "rawBytes": 112,
+    "rawSHA256": "6edf3a6f97d7a613ab8d90f0eabeeb0a57adb883d2508f8cb72312fb7f871518",
+    "artifactUncompressedBytes": 112,
+    "artifactUncompressedSHA256": "6edf3a6f97d7a613ab8d90f0eabeeb0a57adb883d2508f8cb72312fb7f871518",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/run_validation.py",
+    "artifact": "run/native-independent/run_validation.py",
+    "rawBytes": 3572,
+    "rawSHA256": "2ade4e9692d077bee4bc579003a9f0ef47caf706fbbeba67dba164419ec5f8a9",
+    "artifactUncompressedBytes": 3572,
+    "artifactUncompressedSHA256": "2ade4e9692d077bee4bc579003a9f0ef47caf706fbbeba67dba164419ec5f8a9",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent/source-manifest.json",
+    "artifact": "run/native-independent/source-manifest.json",
+    "rawBytes": 63418,
+    "rawSHA256": "c144ad7a5ffea26ed398352c0fea817f8b8cea2adb2e9faa6e57b5ecf5f14c57",
+    "artifactUncompressedBytes": 63418,
+    "artifactUncompressedSHA256": "c144ad7a5ffea26ed398352c0fea817f8b8cea2adb2e9faa6e57b5ecf5f14c57",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/native-independent-summary.json",
+    "artifact": "run/native-independent-summary.json",
+    "rawBytes": 1525,
+    "rawSHA256": "115bbe1041b7e816c9cda8d773674855691203bb83162b495d5e1f1d7898c59c",
+    "artifactUncompressedBytes": 1525,
+    "artifactUncompressedSHA256": "115bbe1041b7e816c9cda8d773674855691203bb83162b495d5e1f1d7898c59c",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/overlay.json",
+    "artifact": "run/overlay.json",
+    "rawBytes": 300,
+    "rawSHA256": "1bedd2987d8105cbf5ff3aeb17e4b25076523b38f75170480f01820a0e949474",
+    "artifactUncompressedBytes": 300,
+    "artifactUncompressedSHA256": "1bedd2987d8105cbf5ff3aeb17e4b25076523b38f75170480f01820a0e949474",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/package_current.py",
+    "artifact": "run/package_current.py",
+    "rawBytes": 3667,
+    "rawSHA256": "123573b906b808cc69dec396bd9a24f3bf63e7215df05769a6207a12fd99ba17",
+    "artifactUncompressedBytes": 3667,
+    "artifactUncompressedSHA256": "123573b906b808cc69dec396bd9a24f3bf63e7215df05769a6207a12fd99ba17",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/postgres-integration-result.json",
+    "artifact": "run/postgres-integration-result.json",
+    "rawBytes": 659,
+    "rawSHA256": "2cbbb5b35c090391e3c3098cdde15f4a8a9e395f4f046fb6ab27b4007b759a18",
+    "artifactUncompressedBytes": 659,
+    "artifactUncompressedSHA256": "2cbbb5b35c090391e3c3098cdde15f4a8a9e395f4f046fb6ab27b4007b759a18",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/postgres-integration-summary.json",
+    "artifact": "run/postgres-integration-summary.json",
+    "rawBytes": 342,
+    "rawSHA256": "8bcda57087ad6caddad51308143868b62ef9ba196066688fd65a56e07b94fecf",
+    "artifactUncompressedBytes": 342,
+    "artifactUncompressedSHA256": "8bcda57087ad6caddad51308143868b62ef9ba196066688fd65a56e07b94fecf",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/postgres-integration.log",
+    "artifact": "run/postgres-integration.log.gz",
+    "rawBytes": 1367489,
+    "rawSHA256": "1073742a1f053afb50b751852bd2229ba0f357a66528fd87380f847c2ed74ece",
+    "artifactUncompressedBytes": 1367489,
+    "artifactUncompressedSHA256": "1073742a1f053afb50b751852bd2229ba0f357a66528fd87380f847c2ed74ece",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/postgres-vet-result.json",
+    "artifact": "run/postgres-vet-result.json",
+    "rawBytes": 585,
+    "rawSHA256": "ae2001ca51f50a3814cd364b6fc377a603025c049cfd37aacb730ea5c74529e5",
+    "artifactUncompressedBytes": 585,
+    "artifactUncompressedSHA256": "ae2001ca51f50a3814cd364b6fc377a603025c049cfd37aacb730ea5c74529e5",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/postgres-vet.log",
+    "artifact": "run/postgres-vet.log.gz",
+    "rawBytes": 0,
+    "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifactUncompressedBytes": 0,
+    "artifactUncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/prepare.py",
+    "artifact": "run/prepare.py",
+    "rawBytes": 1239,
+    "rawSHA256": "cfabce7925ae7262f0346bb301819e28fd94cfdd239c0a7953084dbc3e13851e",
+    "artifactUncompressedBytes": 1239,
+    "artifactUncompressedSHA256": "cfabce7925ae7262f0346bb301819e28fd94cfdd239c0a7953084dbc3e13851e",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/prepare_native_independent.py",
+    "artifact": "run/prepare_native_independent.py",
+    "rawBytes": 2516,
+    "rawSHA256": "4b3d3316e79485574e592ad5247a4666621d6e886342b705f7ec1c3fbdc3c4a6",
+    "artifactUncompressedBytes": 2516,
+    "artifactUncompressedSHA256": "4b3d3316e79485574e592ad5247a4666621d6e886342b705f7ec1c3fbdc3c4a6",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/probe-live.log",
+    "artifact": "run/probe-live.log.gz",
+    "rawBytes": 2952,
+    "rawSHA256": "7ef066309737f6c3085adc93f8f724a93929399cb00fa85052a98f65410afdb2",
+    "artifactUncompressedBytes": 2952,
+    "artifactUncompressedSHA256": "7ef066309737f6c3085adc93f8f724a93929399cb00fa85052a98f65410afdb2",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/probe-run-result.json",
+    "artifact": "run/probe-run-result.json",
+    "rawBytes": 1246,
+    "rawSHA256": "c746a89179700875568013d4e506262f2c32ec294dbb7c3cedd5f2886474b2c9",
+    "artifactUncompressedBytes": 1246,
+    "artifactUncompressedSHA256": "c746a89179700875568013d4e506262f2c32ec294dbb7c3cedd5f2886474b2c9",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/probe-run-state.json",
+    "artifact": "run/probe-run-state.json",
+    "rawBytes": 940,
+    "rawSHA256": "1647cf89ea77cdd4ebd570e08ff0340f249dfe4a06901ef2c5e878dceff93e32",
+    "artifactUncompressedBytes": 940,
+    "artifactUncompressedSHA256": "1647cf89ea77cdd4ebd570e08ff0340f249dfe4a06901ef2c5e878dceff93e32",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/refine_diagnostic.py",
+    "artifact": "run/refine_diagnostic.py",
+    "rawBytes": 3024,
+    "rawSHA256": "12c753f6561d8654a04faa98b77043141e52316d02c4a05f3bdf6e53cbe9ee38",
+    "artifactUncompressedBytes": 3024,
+    "artifactUncompressedSHA256": "12c753f6561d8654a04faa98b77043141e52316d02c4a05f3bdf6e53cbe9ee38",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/renew-lab-first.log",
+    "artifact": "run/renew-lab-first.log.gz",
+    "rawBytes": 226,
+    "rawSHA256": "0bddc4690a268bac59d94c654af98476b402dea567e3bd80cebbdc8fb3229d38",
+    "artifactUncompressedBytes": 226,
+    "artifactUncompressedSHA256": "0bddc4690a268bac59d94c654af98476b402dea567e3bd80cebbdc8fb3229d38",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/route-counterfactual.log",
+    "artifact": "run/route-counterfactual.log.gz",
+    "rawBytes": 1643,
+    "rawSHA256": "cc830d59632f5a6369eb9460ccfb023db2d3d5d0c0deabbd543c26fd09b0160f",
+    "artifactUncompressedBytes": 1643,
+    "artifactUncompressedSHA256": "cc830d59632f5a6369eb9460ccfb023db2d3d5d0c0deabbd543c26fd09b0160f",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/routing-diagnostic-final-unit.log",
+    "artifact": "run/routing-diagnostic-final-unit.log.gz",
+    "rawBytes": 85,
+    "rawSHA256": "aae7c430b8ea792ab12e99dc1cad2e8a525bf669d16c370e46fb41b31179dd9b",
+    "artifactUncompressedBytes": 85,
+    "artifactUncompressedSHA256": "aae7c430b8ea792ab12e99dc1cad2e8a525bf669d16c370e46fb41b31179dd9b",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/routing-diagnostic-unit.log",
+    "artifact": "run/routing-diagnostic-unit.log.gz",
+    "rawBytes": 85,
+    "rawSHA256": "29ef1f7e13f12857fd0a579ced4d572dc0596f5a49ec5978d80b2612d9e180aa",
+    "artifactUncompressedBytes": 85,
+    "artifactUncompressedSHA256": "29ef1f7e13f12857fd0a579ced4d572dc0596f5a49ec5978d80b2612d9e180aa",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/run_db.py",
+    "artifact": "run/run_db.py",
+    "rawBytes": 1414,
+    "rawSHA256": "f17b6ee0982131573ff530184c7685cdbc2120aa361cc6d7f9e4d3e90449e548",
+    "artifactUncompressedBytes": 1414,
+    "artifactUncompressedSHA256": "f17b6ee0982131573ff530184c7685cdbc2120aa361cc6d7f9e4d3e90449e548",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/run_validation.py",
+    "artifact": "run/run_validation.py",
+    "rawBytes": 3487,
+    "rawSHA256": "13ed1c5eb2e98b002880cc36f338e6ef0ad2c59564c0c8e5c2fb3112725ab9ae",
+    "artifactUncompressedBytes": 3487,
+    "artifactUncompressedSHA256": "13ed1c5eb2e98b002880cc36f338e6ef0ad2c59564c0c8e5c2fb3112725ab9ae",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/Set-LabbitVMnet8Dhcp.ps1",
+    "artifact": "run/Set-LabbitVMnet8Dhcp.ps1",
+    "rawBytes": 2462,
+    "rawSHA256": "38988fad706e748b3b642e41a779f674dc5a0750a9084fa8beb25195c00a89f4",
+    "artifactUncompressedBytes": 2462,
+    "artifactUncompressedSHA256": "38988fad706e748b3b642e41a779f674dc5a0750a9084fa8beb25195c00a89f4",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/source-manifest.json",
+    "artifact": "run/source-manifest.json",
+    "rawBytes": 63418,
+    "rawSHA256": "c144ad7a5ffea26ed398352c0fea817f8b8cea2adb2e9faa6e57b5ecf5f14c57",
+    "artifactUncompressedBytes": 63418,
+    "artifactUncompressedSHA256": "c144ad7a5ffea26ed398352c0fea817f8b8cea2adb2e9faa6e57b5ecf5f14c57",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/status-overlay.json",
+    "artifact": "run/status-overlay.json",
+    "rawBytes": 277,
+    "rawSHA256": "0d467f5dd7a8248342d524a84ff08abf97aaa0e34fd1589adfdf1da199cf8bd1",
+    "artifactUncompressedBytes": 277,
+    "artifactUncompressedSHA256": "0d467f5dd7a8248342d524a84ff08abf97aaa0e34fd1589adfdf1da199cf8bd1",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/status_test.go",
+    "artifact": "run/status_test.go.txt",
+    "rawBytes": 727,
+    "rawSHA256": "9265514325e6e56a4a69e8c8c463a280a38bce19a94a689a6e8717202e22b73b",
+    "artifactUncompressedBytes": 727,
+    "artifactUncompressedSHA256": "9265514325e6e56a4a69e8c8c463a280a38bce19a94a689a6e8717202e22b73b",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/update_diagnostic.py",
+    "artifact": "run/update_diagnostic.py",
+    "rawBytes": 6361,
+    "rawSHA256": "a2ecd22fae866b59f7ddfba34c156cef670af8ca2e323f51beeca708ca84b8f3",
+    "artifactUncompressedBytes": 6361,
+    "artifactUncompressedSHA256": "a2ecd22fae866b59f7ddfba34c156cef670af8ca2e323f51beeca708ca84b8f3",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/vendor.log",
+    "artifact": "run/vendor.log.gz",
+    "rawBytes": 0,
+    "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifactUncompressedBytes": 0,
+    "artifactUncompressedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/verify.py",
+    "artifact": "run/verify.py",
+    "rawBytes": 6991,
+    "rawSHA256": "cadd2e67460a762077e9ed337ce3cbb4590ba104e2e569d66ab6da2b57f47a9d",
+    "artifactUncompressedBytes": 6991,
+    "artifactUncompressedSHA256": "cadd2e67460a762077e9ed337ce3cbb4590ba104e2e569d66ab6da2b57f47a9d",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/verify_package.py",
+    "artifact": "run/verify_package.py",
+    "rawBytes": 6532,
+    "rawSHA256": "f29ce05a2a53ed9bd9fa37ec641cb6d6685813ea179451ab3af50e09d94762d2",
+    "artifactUncompressedBytes": 6532,
+    "artifactUncompressedSHA256": "f29ce05a2a53ed9bd9fa37ec641cb6d6685813ea179451ab3af50e09d94762d2",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/web-build-result.json",
+    "artifact": "run/web-build-result.json",
+    "rawBytes": 491,
+    "rawSHA256": "b0c9aef5a3282b82e5ff6db3aa8faa37b29da601fff04734a6223cc7f0843af0",
+    "artifactUncompressedBytes": 491,
+    "artifactUncompressedSHA256": "b0c9aef5a3282b82e5ff6db3aa8faa37b29da601fff04734a6223cc7f0843af0",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/web-build.log",
+    "artifact": "run/web-build.log.gz",
+    "rawBytes": 753,
+    "rawSHA256": "9f3844b970f2a60e6a75f38c34f10afd2fb82c9be788976b6445f2800947020b",
+    "artifactUncompressedBytes": 753,
+    "artifactUncompressedSHA256": "9f3844b970f2a60e6a75f38c34f10afd2fb82c9be788976b6445f2800947020b",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/web-lint-result.json",
+    "artifact": "run/web-lint-result.json",
+    "rawBytes": 489,
+    "rawSHA256": "b3635e5d0283a584a3a20b666e698ef3d499d77c0db493c9948603a0c16a4892",
+    "artifactUncompressedBytes": 489,
+    "artifactUncompressedSHA256": "b3635e5d0283a584a3a20b666e698ef3d499d77c0db493c9948603a0c16a4892",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/web-lint.log",
+    "artifact": "run/web-lint.log.gz",
+    "rawBytes": 55,
+    "rawSHA256": "c8a1e9616d9962e0a1d6ef8070f854d6a236e83979ab430fc73073fc6b17e1c9",
+    "artifactUncompressedBytes": 55,
+    "artifactUncompressedSHA256": "c8a1e9616d9962e0a1d6ef8070f854d6a236e83979ab430fc73073fc6b17e1c9",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/web-test-result.json",
+    "artifact": "run/web-test-result.json",
+    "rawBytes": 489,
+    "rawSHA256": "c934d39ce685e5fee265e0e7307d5968cdcd8bdff28767239f94f273ebcc7c2c",
+    "artifactUncompressedBytes": 489,
+    "artifactUncompressedSHA256": "c934d39ce685e5fee265e0e7307d5968cdcd8bdff28767239f94f273ebcc7c2c",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/web-test.log",
+    "artifact": "run/web-test.log.gz",
+    "rawBytes": 400,
+    "rawSHA256": "4c2439d46f99a55b061a8e994a798c08a822e3e58fce7964b57bbb6bf788062b",
+    "artifactUncompressedBytes": 400,
+    "artifactUncompressedSHA256": "4c2439d46f99a55b061a8e994a798c08a822e3e58fce7964b57bbb6bf788062b",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/web-typecheck-result.json",
+    "artifact": "run/web-typecheck-result.json",
+    "rawBytes": 500,
+    "rawSHA256": "113bff59b7f3abfac54110a352aea573f612fc4f0612de826b105eb3aa6156ad",
+    "artifactUncompressedBytes": 500,
+    "artifactUncompressedSHA256": "113bff59b7f3abfac54110a352aea573f612fc4f0612de826b105eb3aa6156ad",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/web-typecheck.log",
+    "artifact": "run/web-typecheck.log.gz",
+    "rawBytes": 47,
+    "rawSHA256": "b5d6cdb767c6d23f1ef33e3cacc44adeaaaadd17e7f070a5b3271660eab014f1",
+    "artifactUncompressedBytes": 47,
+    "artifactUncompressedSHA256": "b5d6cdb767c6d23f1ef33e3cacc44adeaaaadd17e7f070a5b3271660eab014f1",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-20261016/write_audit.py",
+    "artifact": "run/write_audit.py",
+    "rawBytes": 20757,
+    "rawSHA256": "2fac6ec3d8ff912d83c305cf8aa4b716320eadcea78c09d4bb3d4984b7563a36",
+    "artifactUncompressedBytes": 20757,
+    "artifactUncompressedSHA256": "2fac6ec3d8ff912d83c305cf8aa4b716320eadcea78c09d4bb3d4984b7563a36",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/admin-service-fixture-config.txt",
+    "artifact": "independent-review/admin-service-fixture-config.txt",
+    "rawBytes": 39,
+    "rawSHA256": "62af83f710b6ff11aca1aa3cd8249a01a9bd926f7064d4b7d97398e8bd705809",
+    "artifactUncompressedBytes": 39,
+    "artifactUncompressedSHA256": "62af83f710b6ff11aca1aa3cd8249a01a9bd926f7064d4b7d97398e8bd705809",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/admin-service-fixture-state.json",
+    "artifact": "independent-review/admin-service-fixture-state.json",
+    "rawBytes": 168,
+    "rawSHA256": "414f1c9a50f07f01e4688f808c9d1f2f3c97a5dd96b9ba7638006311ed44df79",
+    "artifactUncompressedBytes": 168,
+    "artifactUncompressedSHA256": "414f1c9a50f07f01e4688f808c9d1f2f3c97a5dd96b9ba7638006311ed44df79",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/admin-service-restore-after.json",
+    "artifact": "independent-review/admin-service-restore-after.json",
+    "rawBytes": 1201,
+    "rawSHA256": "bb6438eb2329315c625d420108dad09ed8fafda150a9d1e63cceb9175db66d7c",
+    "artifactUncompressedBytes": 1201,
+    "artifactUncompressedSHA256": "bb6438eb2329315c625d420108dad09ed8fafda150a9d1e63cceb9175db66d7c",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/admin-service-restore-before.json",
+    "artifact": "independent-review/admin-service-restore-before.json",
+    "rawBytes": 912,
+    "rawSHA256": "802b93027f6cb213071320d54f78d5a287ff67b4342f83b22457aafc36ff55f2",
+    "artifactUncompressedBytes": 912,
+    "artifactUncompressedSHA256": "802b93027f6cb213071320d54f78d5a287ff67b4342f83b22457aafc36ff55f2",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/admin_service_restore_probe.ps1",
+    "artifact": "independent-review/admin_service_restore_probe.ps1",
+    "rawBytes": 3262,
+    "rawSHA256": "ce23280feaf55377bbf49765650a9c495f2b9770b34cf8cc2c82de75d93a0350",
+    "artifactUncompressedBytes": 3262,
+    "artifactUncompressedSHA256": "ce23280feaf55377bbf49765650a9c495f2b9770b34cf8cc2c82de75d93a0350",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/AUDIT_DRAFT.md",
+    "artifact": "independent-review/AUDIT_DRAFT.md",
+    "rawBytes": 25619,
+    "rawSHA256": "616fc872200266ce33f093acd991d235c93dfa1392a85c029cee316cbdf948fb",
+    "artifactUncompressedBytes": 25619,
+    "artifactUncompressedSHA256": "616fc872200266ce33f093acd991d235c93dfa1392a85c029cee316cbdf948fb",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/canonical-script-overlay.json",
+    "artifact": "independent-review/canonical-script-overlay.json",
+    "rawBytes": 858,
+    "rawSHA256": "5236584d522d5ca29a653a49465f4f598306c792e465a277194c4e36f5823103",
+    "artifactUncompressedBytes": 858,
+    "artifactUncompressedSHA256": "5236584d522d5ca29a653a49465f4f598306c792e465a277194c4e36f5823103",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/canonical-script-regression.log",
+    "artifact": "independent-review/canonical-script-regression.log.gz",
+    "rawBytes": 6763,
+    "rawSHA256": "34e6589d46b0c674f38005f9f3775b8b9d270c94321db3689d1cd944baae972a",
+    "artifactUncompressedBytes": 6763,
+    "artifactUncompressedSHA256": "34e6589d46b0c674f38005f9f3775b8b9d270c94321db3689d1cd944baae972a",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/canonical_policy_test.go",
+    "artifact": "independent-review/canonical_policy_test.go.txt",
+    "rawBytes": 1509,
+    "rawSHA256": "81a86709c11ecb42f6f5b7ddb579541cb7b5236367074c57536c5f7b522ff81e",
+    "artifactUncompressedBytes": 1509,
+    "artifactUncompressedSHA256": "81a86709c11ecb42f6f5b7ddb579541cb7b5236367074c57536c5f7b522ff81e",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/check_current_db.py",
+    "artifact": "independent-review/check_current_db.py",
+    "rawBytes": 2276,
+    "rawSHA256": "ab5964ebf1791adb7d67a76e9724e7357917507b85849b3778177f33115a0884",
+    "artifactUncompressedBytes": 2276,
+    "artifactUncompressedSHA256": "ab5964ebf1791adb7d67a76e9724e7357917507b85849b3778177f33115a0884",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/check_current_results.py",
+    "artifact": "independent-review/check_current_results.py",
+    "rawBytes": 1899,
+    "rawSHA256": "0f42be8dd8601464900bba576f07108df78fb78487589e6b9eef1f4bb68a9a9e",
+    "artifactUncompressedBytes": 1899,
+    "artifactUncompressedSHA256": "0f42be8dd8601464900bba576f07108df78fb78487589e6b9eef1f4bb68a9a9e",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/check_current_source.py",
+    "artifact": "independent-review/check_current_source.py",
+    "rawBytes": 2371,
+    "rawSHA256": "3530e5876c912f1dfa82ff434d7a7b3d0708da5c0cc470350cd6ff32305c4b24",
+    "artifactUncompressedBytes": 2371,
+    "artifactUncompressedSHA256": "3530e5876c912f1dfa82ff434d7a7b3d0708da5c0cc470350cd6ff32305c4b24",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/check_latest_generators.py",
+    "artifact": "independent-review/check_latest_generators.py",
+    "rawBytes": 2464,
+    "rawSHA256": "e1fbdb4b8427b939a44881a1b75c5efd16c0671d34858f3b602f2fc23d34dd1c",
+    "artifactUncompressedBytes": 2464,
+    "artifactUncompressedSHA256": "e1fbdb4b8427b939a44881a1b75c5efd16c0671d34858f3b602f2fc23d34dd1c",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/check_native_result.py",
+    "artifact": "independent-review/check_native_result.py",
+    "rawBytes": 5870,
+    "rawSHA256": "f301e60d494165509bb24529effef57093ed73c039d2ebb2fbf238adbe29568a",
+    "artifactUncompressedBytes": 5870,
+    "artifactUncompressedSHA256": "f301e60d494165509bb24529effef57093ed73c039d2ebb2fbf238adbe29568a",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/check_package_snapshot.py",
+    "artifact": "independent-review/check_package_snapshot.py",
+    "rawBytes": 7348,
+    "rawSHA256": "bf51b5470bbe1910515dae5630b54dddbd3730773467b986e9225028a3152f69",
+    "artifactUncompressedBytes": 7348,
+    "artifactUncompressedSHA256": "bf51b5470bbe1910515dae5630b54dddbd3730773467b986e9225028a3152f69",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/current-db-check.json",
+    "artifact": "independent-review/current-db-check.json",
+    "rawBytes": 1007,
+    "rawSHA256": "bc1117382b0d2c3dadb620d62658fbb6d98589cf7c9ea87fb488c599bc2a9cfc",
+    "artifactUncompressedBytes": 1007,
+    "artifactUncompressedSHA256": "bc1117382b0d2c3dadb620d62658fbb6d98589cf7c9ea87fb488c599bc2a9cfc",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/current-raw-results.json",
+    "artifact": "independent-review/current-raw-results.json",
+    "rawBytes": 6683,
+    "rawSHA256": "62855fc665a1dbc1a36e6b0239a09ffabbc75be7daf4696aa83bfd9b9b69b084",
+    "artifactUncompressedBytes": 6683,
+    "artifactUncompressedSHA256": "62855fc665a1dbc1a36e6b0239a09ffabbc75be7daf4696aa83bfd9b9b69b084",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/diagnostic-overlay.json",
+    "artifact": "independent-review/diagnostic-overlay.json",
+    "rawBytes": 291,
+    "rawSHA256": "f5074f252c98f1b3d78a20e1dc5ecedb5f156eba90a2d732c29cb284b899d851",
+    "artifactUncompressedBytes": 291,
+    "artifactUncompressedSHA256": "f5074f252c98f1b3d78a20e1dc5ecedb5f156eba90a2d732c29cb284b899d851",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/diagnostic-protocol-race.log",
+    "artifact": "independent-review/diagnostic-protocol-race.log.gz",
+    "rawBytes": 15971,
+    "rawSHA256": "3c30f394d5e34fc4f14e50632c72fc465c2500fa9ca8186a649f4af309eb5298",
+    "artifactUncompressedBytes": 15971,
+    "artifactUncompressedSHA256": "3c30f394d5e34fc4f14e50632c72fc465c2500fa9ca8186a649f4af309eb5298",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/DIAGNOSTIC_BOUNDARY.md",
+    "artifact": "independent-review/DIAGNOSTIC_BOUNDARY.md",
+    "rawBytes": 1838,
+    "rawSHA256": "50e7d88a3540f0ddb30465ac5c5185592d7e4af6c4019fa5762845d4e66b4bc7",
+    "artifactUncompressedBytes": 1845,
+    "artifactUncompressedSHA256": "419000d91a02f52d30ebc52019763b08797129f7c1c5c590a7e0f438ea3fda6c",
+    "compression": null,
+    "transformation": "Markdown Go/log links use exported suffixes"
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/diagnostic_boundary_test.go",
+    "artifact": "independent-review/diagnostic_boundary_test.go.txt",
+    "rawBytes": 4528,
+    "rawSHA256": "7ab739b2417fd8b20c0fb376016820228bec753c6999278a7e09c81fac936c73",
+    "artifactUncompressedBytes": 4528,
+    "artifactUncompressedSHA256": "7ab739b2417fd8b20c0fb376016820228bec753c6999278a7e09c81fac936c73",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/F174-RMETHOD001.md",
+    "artifact": "independent-review/F174-RMETHOD001.md",
+    "rawBytes": 1136,
+    "rawSHA256": "6e2ca7bbb522134d28a26b9b6b9c0de306240a12ed88e56b00f52da783aa82c1",
+    "artifactUncompressedBytes": 1140,
+    "artifactUncompressedSHA256": "e8d2c93da9d05f3ee839d3dc57e084f09adb331ca7be3775fda2cc31b60f6f59",
+    "compression": null,
+    "transformation": "Markdown Go/log links use exported suffixes"
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/F174-RMETHOD002.md",
+    "artifact": "independent-review/F174-RMETHOD002.md",
+    "rawBytes": 2257,
+    "rawSHA256": "26c6934befeb3d2bc8a06ec75cf3cc52986d3bc81871ff3eebb7663246cc32a6",
+    "artifactUncompressedBytes": 2257,
+    "artifactUncompressedSHA256": "26c6934befeb3d2bc8a06ec75cf3cc52986d3bc81871ff3eebb7663246cc32a6",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/F174-RNET002.md",
+    "artifact": "independent-review/F174-RNET002.md",
+    "rawBytes": 2710,
+    "rawSHA256": "12afba50fd4ddcb961e2288753609d8c73bac109639848697bd5872678c45a8b",
+    "artifactUncompressedBytes": 2720,
+    "artifactUncompressedSHA256": "09ffedab80991a97cd146b042da65a600b17447f0504f5203b564948d83c4c74",
+    "compression": null,
+    "transformation": "Markdown Go/log links use exported suffixes"
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/F174-RNET003.md",
+    "artifact": "independent-review/F174-RNET003.md",
+    "rawBytes": 2626,
+    "rawSHA256": "d7f4fbc3f46fed7341e1898a8fdde613af590969fd8298514dc1532dc589554a",
+    "artifactUncompressedBytes": 2632,
+    "artifactUncompressedSHA256": "0d49f884afa8b3d93d499363ae8b3dd4c242b98946a18cd491c43cddc4b908fc",
+    "compression": null,
+    "transformation": "Markdown Go/log links use exported suffixes"
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/first-pass/management_network.go.txt",
+    "artifact": "independent-review/first-pass/management_network.go.txt",
+    "rawBytes": 3979,
+    "rawSHA256": "533083c80e33bc836286c6506450c3b9ac104b042b21da4047f2ab97ce64fd32",
+    "artifactUncompressedBytes": 3979,
+    "artifactUncompressedSHA256": "533083c80e33bc836286c6506450c3b9ac104b042b21da4047f2ab97ce64fd32",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/first-pass/port.go.txt",
+    "artifact": "independent-review/first-pass/port.go.txt",
+    "rawBytes": 5128,
+    "rawSHA256": "ed8878ef3b72502c269686ecd9aa84fd1b6bd99b7b95a8f48819fd3407c5525e",
+    "artifactUncompressedBytes": 5128,
+    "artifactUncompressedSHA256": "ed8878ef3b72502c269686ecd9aa84fd1b6bd99b7b95a8f48819fd3407c5525e",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/first-pass/provision.go.txt",
+    "artifact": "independent-review/first-pass/provision.go.txt",
+    "rawBytes": 15286,
+    "rawSHA256": "9955f195cb0784a68f7af312088bd7e18b5452499282eb3e5370e924ceb3b21e",
+    "artifactUncompressedBytes": 15286,
+    "artifactUncompressedSHA256": "9955f195cb0784a68f7af312088bd7e18b5452499282eb3e5370e924ceb3b21e",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/first-pass/source-hashes.json",
+    "artifact": "independent-review/first-pass/source-hashes.json",
+    "rawBytes": 916,
+    "rawSHA256": "5ae8d6e9c829637cabfd516b2d3fb908675773baf93f4129ba4d75a9dbf63f1c",
+    "artifactUncompressedBytes": 916,
+    "artifactUncompressedSHA256": "5ae8d6e9c829637cabfd516b2d3fb908675773baf93f4129ba4d75a9dbf63f1c",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/first-pass/topology.go.txt",
+    "artifact": "independent-review/first-pass/topology.go.txt",
+    "rawBytes": 8818,
+    "rawSHA256": "a261e2812672956b9f75af1824a6294c1be483153756b4309d95ddc0a4530a53",
+    "artifactUncompressedBytes": 8818,
+    "artifactUncompressedSHA256": "a261e2812672956b9f75af1824a6294c1be483153756b4309d95ddc0a4530a53",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/generated-remote-python-refined.json",
+    "artifact": "independent-review/generated-remote-python-refined.json",
+    "rawBytes": 22327,
+    "rawSHA256": "2ffa4f41791ca7d9b7070ecf5521a35e181a84bd9dbe02d65efd6845fb80fedf",
+    "artifactUncompressedBytes": 22327,
+    "artifactUncompressedSHA256": "2ffa4f41791ca7d9b7070ecf5521a35e181a84bd9dbe02d65efd6845fb80fedf",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/generated-remote-python.json",
+    "artifact": "independent-review/generated-remote-python.json",
+    "rawBytes": 19102,
+    "rawSHA256": "b8fd7fd06051f8887f895ffbaeba1d4cbf88fab69babedfc0c71da0ce2972c2a",
+    "artifactUncompressedBytes": 19102,
+    "artifactUncompressedSHA256": "b8fd7fd06051f8887f895ffbaeba1d4cbf88fab69babedfc0c71da0ce2972c2a",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/latest-full-lifecycle-generated-python.json",
+    "artifact": "independent-review/latest-full-lifecycle-generated-python.json",
+    "rawBytes": 22327,
+    "rawSHA256": "2ffa4f41791ca7d9b7070ecf5521a35e181a84bd9dbe02d65efd6845fb80fedf",
+    "artifactUncompressedBytes": 22327,
+    "artifactUncompressedSHA256": "2ffa4f41791ca7d9b7070ecf5521a35e181a84bd9dbe02d65efd6845fb80fedf",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/latest-full-lifecycle-generator-overlay.json",
+    "artifact": "independent-review/latest-full-lifecycle-generator-overlay.json",
+    "rawBytes": 587,
+    "rawSHA256": "f3809e9f81321420f440f0d799dcd57718bf8df7375fb128fb4d5c7da0cec3ef",
+    "artifactUncompressedBytes": 587,
+    "artifactUncompressedSHA256": "f3809e9f81321420f440f0d799dcd57718bf8df7375fb128fb4d5c7da0cec3ef",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/latest-full-lifecycle-generator.log",
+    "artifact": "independent-review/latest-full-lifecycle-generator.log.gz",
+    "rawBytes": 287,
+    "rawSHA256": "fedec1f57708dbfe3ea4b2c5bd86079f00a25291474db9c14970dd449efb3e5b",
+    "artifactUncompressedBytes": 287,
+    "artifactUncompressedSHA256": "fedec1f57708dbfe3ea4b2c5bd86079f00a25291474db9c14970dd449efb3e5b",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/latest-full-owned-route-check.json",
+    "artifact": "independent-review/latest-full-owned-route-check.json",
+    "rawBytes": 1926,
+    "rawSHA256": "63df9ce1463cda2ec476bac8283ad4afca246591ef5ba3ed07ec8c8ac57270fc",
+    "artifactUncompressedBytes": 1926,
+    "artifactUncompressedSHA256": "63df9ce1463cda2ec476bac8283ad4afca246591ef5ba3ed07ec8c8ac57270fc",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/latest-generator-check.json",
+    "artifact": "independent-review/latest-generator-check.json",
+    "rawBytes": 3987,
+    "rawSHA256": "b9887c16813147a0232c9fff449a3995b1b3085c9e758da86ce995a9a29361ed",
+    "artifactUncompressedBytes": 3987,
+    "artifactUncompressedSHA256": "b9887c16813147a0232c9fff449a3995b1b3085c9e758da86ce995a9a29361ed",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/latest-main-impact.json",
+    "artifact": "independent-review/latest-main-impact.json",
+    "rawBytes": 5017,
+    "rawSHA256": "d728bfa096631ccf9109a18c9e3ebe8b33296902f60b6e10b51e450b07e199ef",
+    "artifactUncompressedBytes": 5017,
+    "artifactUncompressedSHA256": "d728bfa096631ccf9109a18c9e3ebe8b33296902f60b6e10b51e450b07e199ef",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/latest-native-independent-generated-python.json",
+    "artifact": "independent-review/latest-native-independent-generated-python.json",
+    "rawBytes": 22605,
+    "rawSHA256": "e31843665f875c7219a6e0bfee84d77450d054e00e9aa1d1f50c7014f0be102d",
+    "artifactUncompressedBytes": 22605,
+    "artifactUncompressedSHA256": "e31843665f875c7219a6e0bfee84d77450d054e00e9aa1d1f50c7014f0be102d",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/latest-native-independent-generator-overlay.json",
+    "artifact": "independent-review/latest-native-independent-generator-overlay.json",
+    "rawBytes": 607,
+    "rawSHA256": "3d7fdb01d9dea575d0450b80c6c1e1311d2ce39960f55f2c19c3fe9e10bbf35b",
+    "artifactUncompressedBytes": 607,
+    "artifactUncompressedSHA256": "3d7fdb01d9dea575d0450b80c6c1e1311d2ce39960f55f2c19c3fe9e10bbf35b",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/latest-native-independent-generator.log",
+    "artifact": "independent-review/latest-native-independent-generator.log.gz",
+    "rawBytes": 287,
+    "rawSHA256": "f096d7fa2bbfa7ca282cae213eeb7b4564f2503c18b560466b48fe0673b4e419",
+    "artifactUncompressedBytes": 287,
+    "artifactUncompressedSHA256": "f096d7fa2bbfa7ca282cae213eeb7b4564f2503c18b560466b48fe0673b4e419",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/latest-native-owned-route-check.json",
+    "artifact": "independent-review/latest-native-owned-route-check.json",
+    "rawBytes": 1926,
+    "rawSHA256": "7e73e970ee9a2da3d9adf24cbb9286e30c94260a105cbdf24aec25e4735b4f5b",
+    "artifactUncompressedBytes": 1926,
+    "artifactUncompressedSHA256": "7e73e970ee9a2da3d9adf24cbb9286e30c94260a105cbdf24aec25e4735b4f5b",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/latest_main_impact.py",
+    "artifact": "independent-review/latest_main_impact.py",
+    "rawBytes": 3310,
+    "rawSHA256": "29c2d20f313b08594b093af96b7df1426a378a20a998f19fe0e38fc43520c2b4",
+    "artifactUncompressedBytes": 3310,
+    "artifactUncompressedSHA256": "29c2d20f313b08594b093af96b7df1426a378a20a998f19fe0e38fc43520c2b4",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/management-policy-current.log",
+    "artifact": "independent-review/management-policy-current.log.gz",
+    "rawBytes": 5251,
+    "rawSHA256": "9826599f432c0d84be7adb66b39a0a86513eb2ee4b158caac68166500b98f19b",
+    "artifactUncompressedBytes": 5251,
+    "artifactUncompressedSHA256": "9826599f432c0d84be7adb66b39a0a86513eb2ee4b158caac68166500b98f19b",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/management_subnet_affinity_test.go",
+    "artifact": "independent-review/management_subnet_affinity_test.go.txt",
+    "rawBytes": 2797,
+    "rawSHA256": "5690a4feddba2070ab2fc10d33ffd3de63b8970739c8da0043e9413d1f510697",
+    "artifactUncompressedBytes": 2797,
+    "artifactUncompressedSHA256": "5690a4feddba2070ab2fc10d33ffd3de63b8970739c8da0043e9413d1f510697",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/native-independent-check.json",
+    "artifact": "independent-review/native-independent-check.json",
+    "rawBytes": 3164,
+    "rawSHA256": "5835bdbe4a68e217fb43fd919e501a6979b7997c8f93b4c4dcc85caccfeb3201",
+    "artifactUncompressedBytes": 3164,
+    "artifactUncompressedSHA256": "5835bdbe4a68e217fb43fd919e501a6979b7997c8f93b4c4dcc85caccfeb3201",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/neutron-request-contract-before.log",
+    "artifact": "independent-review/neutron-request-contract-before.log.gz",
+    "rawBytes": 578,
+    "rawSHA256": "4ccd4f60e2ea174851396fc9dcf812dc32784f814dc0a5478d33f69d1f6a33f7",
+    "artifactUncompressedBytes": 578,
+    "artifactUncompressedSHA256": "4ccd4f60e2ea174851396fc9dcf812dc32784f814dc0a5478d33f69d1f6a33f7",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/OWNERSHIP_REVIEW.md",
+    "artifact": "independent-review/OWNERSHIP_REVIEW.md",
+    "rawBytes": 10606,
+    "rawSHA256": "9e8c9a3b2401390d5453b2476fafbae8f10fe40bd689e1d81dcc2ba05dd61eb8",
+    "artifactUncompressedBytes": 10606,
+    "artifactUncompressedSHA256": "9e8c9a3b2401390d5453b2476fafbae8f10fe40bd689e1d81dcc2ba05dd61eb8",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/package-independent-check.json",
+    "artifact": "independent-review/package-independent-check.json",
+    "rawBytes": 2250,
+    "rawSHA256": "5eafa8d56915c4ab3a7eca00ff098f08b7298fb3cd9f0e7fdf854f11dfa7a36a",
+    "artifactUncompressedBytes": 2250,
+    "artifactUncompressedSHA256": "5eafa8d56915c4ab3a7eca00ff098f08b7298fb3cd9f0e7fdf854f11dfa7a36a",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/parse_generated_python.py",
+    "artifact": "independent-review/parse_generated_python.py",
+    "rawBytes": 1246,
+    "rawSHA256": "f6cabdc21414790deaa56a72256252b72bcc89bd82e985a80bbde09166687f2a",
+    "artifactUncompressedBytes": 1246,
+    "artifactUncompressedSHA256": "f6cabdc21414790deaa56a72256252b72bcc89bd82e985a80bbde09166687f2a",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/refined_route_probe.py",
+    "artifact": "independent-review/refined_route_probe.py",
+    "rawBytes": 4466,
+    "rawSHA256": "0b3cf23b1692cf19ee6af53f575e43864eeda25cf3f762604322a93b927be82e",
+    "artifactUncompressedBytes": 4466,
+    "artifactUncompressedSHA256": "0b3cf23b1692cf19ee6af53f575e43864eeda25cf3f762604322a93b927be82e",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/remote-python-refined-dump.log",
+    "artifact": "independent-review/remote-python-refined-dump.log.gz",
+    "rawBytes": 299,
+    "rawSHA256": "e76a2fb2afa4812297e1634086768370b8b7f8c6857f2338391767cf6af317cf",
+    "artifactUncompressedBytes": 299,
+    "artifactUncompressedSHA256": "e76a2fb2afa4812297e1634086768370b8b7f8c6857f2338391767cf6af317cf",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/remote-script-parse-after.json",
+    "artifact": "independent-review/remote-script-parse-after.json",
+    "rawBytes": 1360,
+    "rawSHA256": "4ffccb7a9e93b86938889d804e06090072eaced33d939895f2e098a3e8038f9f",
+    "artifactUncompressedBytes": 1360,
+    "artifactUncompressedSHA256": "4ffccb7a9e93b86938889d804e06090072eaced33d939895f2e098a3e8038f9f",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/remote-script-parse-before.json",
+    "artifact": "independent-review/remote-script-parse-before.json",
+    "rawBytes": 445,
+    "rawSHA256": "975e4ba7225f64e93f48116da128f3cc3744be2c34bbc32a8e44133f9ebc3095",
+    "artifactUncompressedBytes": 445,
+    "artifactUncompressedSHA256": "975e4ba7225f64e93f48116da128f3cc3744be2c34bbc32a8e44133f9ebc3095",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/remote-script-parse-refined.json",
+    "artifact": "independent-review/remote-script-parse-refined.json",
+    "rawBytes": 1360,
+    "rawSHA256": "844a7e7797d08d1e7e885a3a179748dd95878f712e8198f059ec74dc7db46015",
+    "artifactUncompressedBytes": 1360,
+    "artifactUncompressedSHA256": "844a7e7797d08d1e7e885a3a179748dd95878f712e8198f059ec74dc7db46015",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/remote_python_dump_test.go",
+    "artifact": "independent-review/remote_python_dump_test.go.txt",
+    "rawBytes": 1654,
+    "rawSHA256": "6170460be06ca27485414ed2ed2afeebbcdd93c9fc4311476d54d0b42f8a94db",
+    "artifactUncompressedBytes": 1654,
+    "artifactUncompressedSHA256": "6170460be06ca27485414ed2ed2afeebbcdd93c9fc4311476d54d0b42f8a94db",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/route-add-unknown-after.json",
+    "artifact": "independent-review/route-add-unknown-after.json",
+    "rawBytes": 1842,
+    "rawSHA256": "7a053343cab161f0961100cbb5d5cac78ac5c94ff67529ecd7817545c2c20480",
+    "artifactUncompressedBytes": 1842,
+    "artifactUncompressedSHA256": "7a053343cab161f0961100cbb5d5cac78ac5c94ff67529ecd7817545c2c20480",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/route-add-unknown-before.json",
+    "artifact": "independent-review/route-add-unknown-before.json",
+    "rawBytes": 632,
+    "rawSHA256": "d30606bd9818f405517433ba0b439eb3ed83ae9d081bdf6a635714f178dc3986",
+    "artifactUncompressedBytes": 632,
+    "artifactUncompressedSHA256": "d30606bd9818f405517433ba0b439eb3ed83ae9d081bdf6a635714f178dc3986",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/route_add_unknown_probe.py",
+    "artifact": "independent-review/route_add_unknown_probe.py",
+    "rawBytes": 2253,
+    "rawSHA256": "137fa1925d88bd47d9cfcd91125991118dd8a4ce93196e6f7ce419931fc37104",
+    "artifactUncompressedBytes": 2253,
+    "artifactUncompressedSHA256": "137fa1925d88bd47d9cfcd91125991118dd8a4ce93196e6f7ce419931fc37104",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/sdk-decode-before.log",
+    "artifact": "independent-review/sdk-decode-before.log.gz",
+    "rawBytes": 826,
+    "rawSHA256": "0cd20e9916831a6212da3e6f2959a2fed91dc6b6f85b868140e637fa75474dcd",
+    "artifactUncompressedBytes": 826,
+    "artifactUncompressedSHA256": "0cd20e9916831a6212da3e6f2959a2fed91dc6b6f85b868140e637fa75474dcd",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/source-current-check.log",
+    "artifact": "independent-review/source-current-check.log.gz",
+    "rawBytes": 3042,
+    "rawSHA256": "642b8935ba3ef187fc412f950573ee65b741e3381ea7ea37ec3b9976dfeccec6",
+    "artifactUncompressedBytes": 3042,
+    "artifactUncompressedSHA256": "642b8935ba3ef187fc412f950573ee65b741e3381ea7ea37ec3b9976dfeccec6",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/source-current-identity.json",
+    "artifact": "independent-review/source-current-identity.json",
+    "rawBytes": 9176,
+    "rawSHA256": "d1c44e2452b6c283958e0470228e7e91f70b993746661c6953bdb0c756d0ebec",
+    "artifactUncompressedBytes": 9176,
+    "artifactUncompressedSHA256": "d1c44e2452b6c283958e0470228e7e91f70b993746661c6953bdb0c756d0ebec",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/ssot-refresh.json",
+    "artifact": "independent-review/ssot-refresh.json",
+    "rawBytes": 98400,
+    "rawSHA256": "ec94c3b3f9e0d6c1e3d3138a21298eed95af35bfad05f57a7f3da8e2e97ce0b8",
+    "artifactUncompressedBytes": 98400,
+    "artifactUncompressedSHA256": "ec94c3b3f9e0d6c1e3d3138a21298eed95af35bfad05f57a7f3da8e2e97ce0b8",
+    "compression": null,
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/subnet-affinity-after.log",
+    "artifact": "independent-review/subnet-affinity-after.log.gz",
+    "rawBytes": 6061,
+    "rawSHA256": "9718af1cabaa76984ea8fff7d31969d98197a84a076e0722bc31ab5afa23e8f0",
+    "artifactUncompressedBytes": 6061,
+    "artifactUncompressedSHA256": "9718af1cabaa76984ea8fff7d31969d98197a84a076e0722bc31ab5afa23e8f0",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/subnet-affinity-before.log",
+    "artifact": "independent-review/subnet-affinity-before.log.gz",
+    "rawBytes": 736,
+    "rawSHA256": "2b4ef57d47cec1c23714bc8d10c75b475c4cf44b0c862e54147ae8e1ef0900ae",
+    "artifactUncompressedBytes": 736,
+    "artifactUncompressedSHA256": "2b4ef57d47cec1c23714bc8d10c75b475c4cf44b0c862e54147ae8e1ef0900ae",
+    "compression": "gzip",
+    "transformation": null
+  },
+  {
+    "original": "lbt174-routing-fix-independent-20261016/subnet-affinity-overlay.json",
+    "artifact": "independent-review/subnet-affinity-overlay.json",
+    "rawBytes": 305,
+    "rawSHA256": "26c6085313639e28752d82a16721a253321c5db191c061f2cf20f0841c9b3eef",
+    "artifactUncompressedBytes": 305,
+    "artifactUncompressedSHA256": "26c6085313639e28752d82a16721a253321c5db191c061f2cf20f0841c9b3eef",
+    "compression": null,
+    "transformation": null
+  }
+]

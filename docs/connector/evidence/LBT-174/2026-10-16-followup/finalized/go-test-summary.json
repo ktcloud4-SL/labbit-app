@@ -1,0 +1,134 @@
+{
+  "testPass": 3753,
+  "testFail": [],
+  "testSkip": [
+    {
+      "Time": "2026-10-16T16:11:30.8048346+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+      "Test": "TestSymlinkRejectedAndExcludedFromTree",
+      "Elapsed": 0.11
+    },
+    {
+      "Time": "2026-10-16T16:11:31.8576838+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackM2ControlWSSIntegration",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:31.8586784+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackFileTransportIntegration",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:32.0443174+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackM1Integration",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:32.0448145+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackM2ProvisionIntegration",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:32.0453179+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackM3LifecycleIntegration",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:32.0463052+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:32.2002753+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+      "Test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:33.3462512+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:33.3482385+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:33.3502269+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestKTCloudD1ReadOnlyIntegration",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:33.3914517+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestKTCloudD1DisposableNetworkIntegration",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:35.9242564+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackPreviewForwardingIntegration",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:36.2522777+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackPTYCC02Integration",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:37.3873624+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackTerminalC2Integration",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:37.4837418+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackVMAccessIntegration",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:37.5255651+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackWorkspaceFileIntegration",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T16:11:37.5255651+09:00",
+      "Action": "skip",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackPreviewTransportIntegration",
+      "Elapsed": 0
+    }
+  ],
+  "packagePass": 42,
+  "packageFail": []
+}

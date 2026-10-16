@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -177,18 +178,40 @@ func TestOpenStackWorkspaceFileIntegration(t *testing.T) {
 	if fixture.Chmod("/home/ubuntu/workspacefs-tests", 0700) != nil {
 		t.Fatal("VM regression installation failed")
 	}
-	probe := realOpenSession(t, ctx, access, target)
-	var testOutput []byte
-	if err = probe.Setup(ctx, func(raw *ssh.Session) error {
-		var err error
-		testOutput, err = raw.Output("/home/ubuntu/workspacefs-tests -test.v")
-		return err
-	}); err != nil {
-		probe.Close()
+	testOutput, err := workspaceFixtureOutput(t, ctx, access, target, "/home/ubuntu/workspacefs-tests -test.v")
+	if err != nil {
 		t.Fatal("VM-side Linux regression failed")
 	}
-	probe.Close()
 	t.Log(string(testOutput))
+	// Optional cross-compiled regression binaries cover filesystem semantics
+	// which the Windows host cannot assert. They run on this disposable VM only.
+	if directory := os.Getenv("LABBIT_LOCAL_LINUX_REGRESSION_DIR"); directory != "" {
+		for _, check := range []struct {
+			binary, filter string
+			required       []string
+		}{
+			{"provider-tests", "^TestKTFixtureLedgerRejectsSymlinkAndReplacement$", []string{
+				"TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink", "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement"}},
+			{"workspacefile-tests", "^TestSymlinkRejectedAndExcludedFromTree$", []string{"TestSymlinkRejectedAndExcludedFromTree"}},
+			{"credential-tests", "^TestInstallCredentialFile$", []string{
+				"TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"}},
+		} {
+			data, err := os.ReadFile(filepath.Join(directory, check.binary))
+			if err != nil || len(data) < 4 || string(data[:4]) != "\x7fELF" {
+				t.Fatal("Linux filesystem regression binary is required")
+			}
+			remote := "/home/ubuntu/" + check.binary
+			workspaceFixtureWrite(t, fixture, remote, data)
+			if err := fixture.Chmod(remote, 0700); err != nil {
+				t.Fatal("Linux filesystem regression installation failed")
+			}
+			output, err := workspaceFixtureOutput(t, ctx, access, target, remote+" -test.v -test.run '"+check.filter+"'")
+			if err != nil || !linuxRegressionPassed(output, check.required) {
+				t.Fatal("Linux filesystem regression failed or skipped")
+			}
+			t.Logf("Linux filesystem regression %s:\n%s", check.binary, output)
+		}
+	}
 	pty, err := terminal.NewManagedSSHPTY(ctx, access, target, 80, 24)
 	if err != nil {
 		t.Fatal("PTY failed")
@@ -240,6 +263,26 @@ func TestOpenStackWorkspaceFileIntegration(t *testing.T) {
 	workspaceAssertError(t, err, workspacefile.ErrUnavailable)
 	t.Log("Shared real SSH: SFTP timeout preserves PTY; PTY close preserves File; stale generation rejects; outside fixture unchanged PASS")
 }
+
+func linuxRegressionPassed(output []byte, required []string) bool {
+	text := string(output)
+	if len(required) == 0 || strings.Contains(text, "--- SKIP:") || strings.Contains(text, "warning: no tests to run") || !strings.HasSuffix(strings.TrimSpace(text), "PASS") {
+		return false
+	}
+	for _, name := range required {
+		found := false
+		for _, line := range strings.Split(text, "\n") {
+			if strings.HasPrefix(strings.TrimSpace(line), "--- PASS: "+name+" (") {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
 func workspaceFixtureSFTP(t *testing.T, ctx context.Context, m *vmaccess.Manager, target vmaccess.Target) (*sftp.Client, *vmaccess.Session) {
 	t.Helper()
 	session := realOpenSession(t, ctx, m, target)
@@ -279,10 +322,8 @@ func workspaceFixtureWrite(t *testing.T, c *sftp.Client, p string, b []byte) {
 }
 func workspaceFixtureExec(t *testing.T, ctx context.Context, m *vmaccess.Manager, target vmaccess.Target, command string) {
 	t.Helper()
-	s := realOpenSession(t, ctx, m, target)
-	defer s.Close()
-	var output []byte
-	if err := s.Setup(ctx, func(raw *ssh.Session) error { var e error; output, e = raw.CombinedOutput(command); return e }); err != nil {
+	output, err := workspaceFixtureOutput(t, ctx, m, target, command)
+	if err != nil {
 		// Only fixed installation fixtures are executed here. Remove their paths
 		// before reporting diagnostics; never print Provider/connection errors.
 		diagnostic := strings.NewReplacer("/home/ubuntu", "<fixture>", "/usr/local/libexec", "<helper-dir>", "/var/lib/labbit-workspaces", "<root-dir>").Replace(string(output))
@@ -290,6 +331,35 @@ func workspaceFixtureExec(t *testing.T, ctx context.Context, m *vmaccess.Manager
 			diagnostic = diagnostic[:512]
 		}
 		t.Fatalf("fixture setup exec failed: %s", diagnostic)
+	}
+}
+
+func workspaceFixtureOutput(t *testing.T, ctx context.Context, m *vmaccess.Manager, target vmaccess.Target, command string) ([]byte, error) {
+	t.Helper()
+	s := realOpenSession(t, ctx, m, target)
+	defer s.Close()
+	var stdout, stderr bytes.Buffer
+	if err := s.Setup(ctx, func(raw *ssh.Session) error {
+		raw.Stdout = &stdout
+		raw.Stderr = &stderr
+		return raw.Start(command)
+	}); err != nil {
+		// Start may have launched copy workers. Only Wait's completion makes
+		// their output safe to inspect; never read the buffer on early return.
+		return nil, err
+	}
+	// Setup bounds SSH channel requests, not fixture installation or an entire
+	// regression suite. Keep command execution finite without consuming that
+	// shared channel admission slot for the command's full lifetime.
+	waitCtx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	finished := make(chan error, 1)
+	go func() { finished <- s.Wait() }()
+	select {
+	case err := <-finished:
+		return append(stdout.Bytes(), stderr.Bytes()...), err
+	case <-waitCtx.Done():
+		return nil, waitCtx.Err()
 	}
 }
 func workspaceAssertError(t *testing.T, err, want error) {

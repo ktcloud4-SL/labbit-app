@@ -1,0 +1,29 @@
+{
+  "fault": "route-add accepted then local subprocess timeout before reply",
+  "cases": [
+    {
+      "script": "route-ab",
+      "owned": true,
+      "delete_calls": 0,
+      "add_calls": 1,
+      "passed_cleanup": false,
+      "real_operations": 0
+    },
+    {
+      "script": "intentional-timeout",
+      "owned": true,
+      "delete_calls": 0,
+      "add_calls": 1,
+      "passed_cleanup": false,
+      "real_operations": 0
+    },
+    {
+      "script": "apt",
+      "owned": true,
+      "delete_calls": 0,
+      "add_calls": 1,
+      "passed_cleanup": false,
+      "real_operations": 0
+    }
+  ]
+}

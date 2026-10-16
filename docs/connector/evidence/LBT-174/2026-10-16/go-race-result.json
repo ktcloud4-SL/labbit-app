@@ -1,0 +1,25 @@
+{
+  "name": "go-race",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-race",
+    "-p=1",
+    "-count=1",
+    "./internal/connector/provider/openstack",
+    "./internal/connector/vmaccess",
+    "./internal/connector/preview",
+    "./internal/connector/app",
+    "./internal/connector/terminal",
+    "./internal/connector/filetransport",
+    "./internal/connector/wss",
+    "./tools/ktcloud-d1-acceptance",
+    "./tools/ktcloud-op02-bootstrap"
+  ],
+  "started": "2026-10-16T06:17:55.704965+00:00",
+  "ended": "2026-10-16T06:19:58.559356+00:00",
+  "seconds": 122.843,
+  "exitCode": 0,
+  "sourceSHA256": "956c7d6f3b87f6d49d1b842571124da4591db40f5bc15de5c6efce9d65fe98b9",
+  "sourceUnchanged": true
+}

@@ -1,0 +1,47 @@
+{
+  "events": {
+    "start": 2,
+    "run": 40,
+    "output": 85,
+    "pass": 40,
+    "fail": 2
+  },
+  "failed": [
+    {
+      "Time": "2026-10-16T15:11:02.5887754+09:00",
+      "Action": "fail",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.04
+    },
+    {
+      "Time": "2026-10-16T15:11:02.757885+09:00",
+      "Action": "fail",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Elapsed": 2.219
+    }
+  ],
+  "package_results": [
+    {
+      "Time": "2026-10-16T15:10:53.7722676+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Elapsed": 4.1370000000000005
+    },
+    {
+      "Time": "2026-10-16T15:11:02.757885+09:00",
+      "Action": "fail",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Elapsed": 2.219
+    }
+  ],
+  "test_counts": {
+    "TestTCPOpenTimeoutLateChannelAndSiblingIsolation": {
+      "pass": 20
+    },
+    "TestConnectorControlEventsPropagateTraceContext": {
+      "fail": 1,
+      "pass": 19
+    }
+  }
+}

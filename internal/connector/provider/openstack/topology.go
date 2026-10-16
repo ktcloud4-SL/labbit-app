@@ -19,6 +19,8 @@ type provisionTopology struct {
 type provisionNICs struct {
 	portIDs, networkIDs         []string
 	labPortID, managementPortID string
+	managementSubnetID          string
+	managementSubnetCIDR        string
 	managementTier              ktCloudTier
 }
 
@@ -97,6 +99,10 @@ func (a *Adapter) prepareProvisionNICs(ctx context.Context, request coreprovider
 	if a.ktNetwork != nil {
 		return a.prepareKTCloudNICs(ctx, request, vm, config, topology, resources)
 	}
+	managementSubnet, err := a.managementSubnet(ctx, config)
+	if err != nil {
+		return provisionNICs{}, resources, err
+	}
 	vmName := provisionBaseName(request.LabInstanceID, request.Generation) + "-" + safeName(vm.VMKey, 28)
 	description := fmt.Sprintf("Labbit %s generation %d operation %s", safeName(request.LabInstanceID, 36), request.Generation, safeName(request.OperationID, 36))
 	labPortIdentity := resourceIdentity(request.Generation, vm.VMKey+":lab")
@@ -114,17 +120,25 @@ func (a *Adapter) prepareProvisionNICs(ctx context.Context, request coreprovider
 
 	managementPortIdentity := resourceIdentity(request.Generation, vm.VMKey+":management")
 	managementPortResource, _, err := a.EnsurePort(ctx, managementPortIdentity, PortSpec{
-		Name:             vmName + "-management",
-		Description:      description,
-		NetworkID:        config.ManagementNetworkID,
-		SecurityGroupIDs: []string{config.ManagementSecurityGroupID},
+		Name:                     vmName + "-management",
+		Description:              description,
+		NetworkID:                config.ManagementNetworkID,
+		SubnetID:                 managementSubnet.ID,
+		ManagementSubnetCIDR:     managementSubnet.CIDR,
+		SecurityGroupIDs:         []string{config.ManagementSecurityGroupID},
+		SuppressManagementRoutes: true,
 	})
+	if managementPortResource.ProviderID != "" {
+		resources = upsertResource(resources, managementPortResource)
+	}
 	if err != nil {
 		return provisionNICs{}, resources, err
 	}
-	resources = upsertResource(resources, managementPortResource)
+	if _, err := a.verifyManagementPort(ctx, managementPortResource.ProviderID, managementSubnet, config); err != nil {
+		return provisionNICs{}, resources, err
+	}
 
-	return provisionNICs{portIDs: []string{labPortResource.ProviderID, managementPortResource.ProviderID}, labPortID: labPortResource.ProviderID, managementPortID: managementPortResource.ProviderID}, resources, nil
+	return provisionNICs{portIDs: []string{labPortResource.ProviderID, managementPortResource.ProviderID}, labPortID: labPortResource.ProviderID, managementPortID: managementPortResource.ProviderID, managementSubnetID: managementSubnet.ID, managementSubnetCIDR: managementSubnet.CIDR}, resources, nil
 }
 
 func (a *Adapter) refreshProvisionNICs(ctx context.Context, request coreprovider.ProvisionRequest, vm coreprovider.VMSpec, nics provisionNICs, serverID string, resources []coreprovider.ResourceResult) (string, []coreprovider.ResourceResult, error) {
@@ -138,11 +152,13 @@ func (a *Adapter) refreshProvisionNICs(ctx context.Context, request coreprovider
 		return "", resources, err
 	}
 	resources = upsertResource(resources, refreshedLabResource)
-	refreshedManagementResource, refreshedManagementPort, err := a.refreshPort(ctx, managementPortIdentity, nics.managementPortID)
+	// Validate and use one exact observation. A second GET must not validate a
+	// different endpoint, and an unverified ID must never enter the cleanup ledger.
+	refreshedManagementPort, err := a.verifyManagementPort(ctx, nics.managementPortID, managementSubnetInfo{ID: nics.managementSubnetID, CIDR: nics.managementSubnetCIDR}, normalizedProvisionConfig(a.provision))
 	if err != nil {
 		return "", resources, err
 	}
-	resources = upsertResource(resources, refreshedManagementResource)
+	resources = upsertResource(resources, portResource(managementPortIdentity, refreshedManagementPort))
 
 	address, err := managementAddress(refreshedManagementPort)
 	return address, resources, err

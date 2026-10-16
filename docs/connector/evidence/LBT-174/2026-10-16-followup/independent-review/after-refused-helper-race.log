@@ -1,0 +1,282 @@
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+=== RUN   TestConnectionRefusedRecognizesClosedLoopbackPort
+--- PASS: TestConnectionRefusedRecognizesClosedLoopbackPort (0.00s)
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil
+=== RUN   TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline
+--- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/canceled (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/timeout (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/denied (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/nil (0.00s)
+    --- PASS: TestConnectionRefusedDoesNotMisclassifyOtherErrors/deadline (0.00s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest	2.244s

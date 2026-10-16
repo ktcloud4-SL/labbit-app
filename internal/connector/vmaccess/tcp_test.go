@@ -226,15 +226,44 @@ func TestTCPValidationAndSafeErrors(t *testing.T) {
 
 func TestTCPOpenTimeoutLateChannelAndSiblingIsolation(t *testing.T) {
 	p := newSSHPeer(t)
-	m := testManager(t, p, Config{SetupTimeout: 40 * time.Millisecond, IdleTimeout: 50 * time.Millisecond})
+	// Healthy SSH/PTY setup uses the normal budget. Only the deliberately held
+	// direct-tcpip request below receives the short deadline under test.
+	m := testManager(t, p, Config{IdleTimeout: 50 * time.Millisecond})
 	pty := openSession(t, m, testTarget())
 	in, out := echoChannel(t, pty, false)
 	p.stallOpen.Store(true)
-	_, err := m.DialTCP(context.Background(), testTarget(), 8080)
+	dialBeforeSetupTimeout := func(ctx context.Context) error {
+		t.Helper()
+		result := make(chan error, 1)
+		go func() {
+			conn, err := m.DialTCP(ctx, testTarget(), 8080)
+			if conn != nil {
+				_ = conn.Close()
+			}
+			result <- err
+		}()
+		timer := time.NewTimer(2 * time.Second)
+		defer timer.Stop()
+		select {
+		case err := <-result:
+			return err
+		case <-timer.C:
+			t.Fatal("caller deadline fell back to the normal SSH setup timeout")
+			return nil
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	err := dialBeforeSetupTimeout(ctx)
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("timeout not classified: %v", err)
 	}
-	late := <-p.heldOpen
+	var late ssh.NewChannel
+	select {
+	case late = <-p.heldOpen:
+	case <-time.After(time.Second):
+		t.Fatal("timeout occurred before the held TCP open reached the peer")
+	}
 	m.mu.Lock()
 	pending := m.entries[testTarget()].tcpChannels
 	m.mu.Unlock()
@@ -243,7 +272,7 @@ func TestTCPOpenTimeoutLateChannelAndSiblingIsolation(t *testing.T) {
 	}
 	for range 4 {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-		_, err := m.DialTCP(ctx, testTarget(), 8080)
+		err := dialBeforeSetupTimeout(ctx)
 		cancel()
 		if !errors.Is(err, context.DeadlineExceeded) {
 			t.Fatalf("waiter timeout: %v", err)

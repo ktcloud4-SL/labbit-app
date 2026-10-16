@@ -1,0 +1,61 @@
+{
+  "readAtUTC": "2026-10-16T07:37:34.141Z",
+  "jira": {
+    "key": "LBT-174",
+    "url": "https://samsunglions.atlassian.net/browse/LBT-174",
+    "summary": "[OP-03] CC-03 Preview Transport 로컬 통합 및 Lifecycle·회귀 검증",
+    "description": "## 목표\n\n1번에서 구현한 실제 SSH TCP Forwarder를 기존 CC-03(LBT-23) Preview Control/Data Transport에 연결하여 **로컬 OpenStack Workspace VM + Mock Preview Gateway** 조건의 HTTP 왕복과 Lifecycle/보안·오류 회귀를 검증한다.\n\n## 작업 범위\n\n* 최신 main의 CC-03 Preview 구조(`internal/connector/preview`, Control/WSS Handler)를 재사용하고 중복 구현 방지\n* `PREVIEW_OPEN` → 실제 VM SSH TCP forwarding channel 선개설 → `PREVIEW_OPEN_RESULT`/Connector outbound Preview Data WSS → `PREVIEW_ATTACH`/`PREVIEW_ATTACHED` → Binary 양방향 HTTP 스트리밍 → 종료 경로 연결\n* `PREVIEW_ATTACH.replyToMessageId`와 `previewSessionId`, `labInstanceId`, `generation`, 대상 VM·Port 일치 검증\n* `PREVIEW_CLOSE`, Data WSS 정상 종료/오류, upstream 종료, Reset/Cleanup, 이전 generation·stale attach, 순차적 tunnel 재개 검증\n* 대표 오류 `APP_NOT_RUNNING`, `PORT_REJECTED`, `VM_UNREACHABLE`, `UNAVAILABLE`/timeout의 안전한 매핑 및 비밀/원문 오류 비노출\n* 중복 `PREVIEW_OPEN`, 동시 Session/터널 격리, backpressure/cancel/shutdown, 채널·연결 누수 방지 회귀 테스트\n* Unit은 Mock/Fake로 외부 의존성 격리, 로컬 OpenStack 통합 결과는 별도로 기록\n\n## 완료 기준\n\n* Mock Preview Gateway → 기존 Connector Preview WSS → SSH TCP forwarding → 실제 로컬 OpenStack Workspace VM HTTP 서버 간 요청/응답 왕복 확인\n* 1 Preview Data WSS = 1 TCP tunnel, PreviewSession당 동시 active tunnel 최대 1개 및 sequential 재개 계약 준수\n* 실패/종료/권한 경계·세대 변경 시 다른 VM이나 이전 터널로 유출되지 않음\n* 자동 회귀 테스트 및 관련 CI 통과; CC-03 기존 동작과 Terminal/File 동작에 회귀 없음\n* 통합 결과·재현 절차와 Known Limit 기록\n\n## 범위 제외 / 연계\n\n* KT Cloud 최종 실환경 검증, PR/Evidence closeout은 OP-03 3번\n* 실제 SaaS Preview Gateway·Browser 인가 포함 전체 E2E는 C3(LBT-25)에서 검증\n* 계약 SSOT: `contracts/connector/README.md` §7b, `preview-control.schema.json`, `preview-data.schema.json`\n\n",
+    "updated": "2026-10-16T14:59:23.423+0900",
+    "status": "진행 중",
+    "comments": 0,
+    "parent": "LBT-24",
+    "bodyIdenticalToPriorRead": true
+  },
+  "pages": [
+    {
+      "id": "7241730",
+      "title": "D-18 · 실습망·VM 관리 접속 구조",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/7241730/D-18+VM",
+      "version": 5,
+      "versionCreatedAt": "2026-09-15T08:38:08.772Z",
+      "bodyLength": 7463,
+      "bodyIdenticalToPriorRead": true
+    },
+    {
+      "id": "11075640",
+      "title": "결정 완료 사안",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/11075640",
+      "version": 11,
+      "versionCreatedAt": "2026-10-06T07:20:45.681Z",
+      "bodyLength": 14267,
+      "bodyIdenticalToPriorRead": true
+    },
+    {
+      "id": "9666637",
+      "title": "검증 설계 — 테스트 전략·추적성",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/9666637",
+      "version": 3,
+      "versionCreatedAt": "2026-09-18T03:46:00.988Z",
+      "bodyLength": 4710,
+      "bodyIdenticalToPriorRead": true
+    },
+    {
+      "id": "6881283",
+      "title": "D-20 · Lab 작업 충돌·재시도·부분 실패 정책",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/6881283/D-20+Lab",
+      "version": 7,
+      "versionCreatedAt": "2026-09-17T09:03:18.111Z",
+      "bodyLength": 5443,
+      "bodyIdenticalToPriorRead": true
+    },
+    {
+      "id": "18055175",
+      "title": "추가 결정 사안",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/18055175",
+      "version": 3,
+      "versionCreatedAt": "2026-10-07T03:42:19.485Z",
+      "bodyLength": 6849,
+      "bodyIdenticalToPriorRead": true
+    }
+  ]
+}

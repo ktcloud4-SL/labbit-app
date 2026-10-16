@@ -1,0 +1,22 @@
+=== RUN   TestIndependentOldTrustRetirementCannotCancelNewOwner
+--- PASS: TestIndependentOldTrustRetirementCannotCancelNewOwner (0.00s)
+=== RUN   TestIndependentOldTrustRetirementCannotCancelNewOwner
+--- PASS: TestIndependentOldTrustRetirementCannotCancelNewOwner (0.00s)
+=== RUN   TestIndependentOldTrustRetirementCannotCancelNewOwner
+--- PASS: TestIndependentOldTrustRetirementCannotCancelNewOwner (0.00s)
+=== RUN   TestIndependentOldTrustRetirementCannotCancelNewOwner
+--- PASS: TestIndependentOldTrustRetirementCannotCancelNewOwner (0.00s)
+=== RUN   TestIndependentOldTrustRetirementCannotCancelNewOwner
+--- PASS: TestIndependentOldTrustRetirementCannotCancelNewOwner (0.00s)
+=== RUN   TestIndependentOldTrustRetirementCannotCancelNewOwner
+--- PASS: TestIndependentOldTrustRetirementCannotCancelNewOwner (0.00s)
+=== RUN   TestIndependentOldTrustRetirementCannotCancelNewOwner
+--- PASS: TestIndependentOldTrustRetirementCannotCancelNewOwner (0.00s)
+=== RUN   TestIndependentOldTrustRetirementCannotCancelNewOwner
+--- PASS: TestIndependentOldTrustRetirementCannotCancelNewOwner (0.00s)
+=== RUN   TestIndependentOldTrustRetirementCannotCancelNewOwner
+--- PASS: TestIndependentOldTrustRetirementCannotCancelNewOwner (0.00s)
+=== RUN   TestIndependentOldTrustRetirementCannotCancelNewOwner
+--- PASS: TestIndependentOldTrustRetirementCannotCancelNewOwner (0.00s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/wss	2.730s

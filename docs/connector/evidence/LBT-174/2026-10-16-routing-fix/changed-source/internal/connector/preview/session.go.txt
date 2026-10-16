@@ -1,0 +1,386 @@
+package preview
+
+import (
+	"context"
+	"errors"
+	"io"
+	"net"
+	"sync"
+	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+)
+
+type SessionStatus string
+
+const (
+	StatusConnecting SessionStatus = "CONNECTING"
+	StatusActive     SessionStatus = "ACTIVE"
+	StatusClosed     SessionStatus = "CLOSED"
+)
+
+var (
+	ErrSessionNotFound        = errors.New("preview session not found")
+	ErrSessionAlreadyClosed   = errors.New("preview session already closed")
+	ErrSessionClosed          = errors.New("preview session is closed")
+	ErrSessionAlreadyAttached = errors.New("preview session already attached")
+	ErrNoActiveTunnel         = errors.New("preview session has no active tunnel")
+)
+
+type PreviewEndedCallback func(session *PreviewSession, reason string, err error)
+
+// A tunnel is reserved before TCP dial and remains bound to one OPEN attempt.
+type PreviewTunnel struct {
+	mu            sync.Mutex
+	openMessageID string
+	tcpConn       net.Conn
+	dataConn      *websocket.Conn
+	attached      bool
+	ctx           context.Context
+	cancel        context.CancelFunc
+	ready         chan struct{}
+	readyOnce     sync.Once
+	openErr       error
+	done          chan struct{}
+	closeOnce     sync.Once
+	onClosed      func(reason string, err error)
+}
+
+func (t *PreviewTunnel) completeDial(conn net.Conn, err error) error {
+	t.mu.Lock()
+	select {
+	case <-t.done:
+		err = ErrSessionClosed
+	default:
+	}
+	if err == nil {
+		t.tcpConn = conn
+	} else if conn != nil {
+		_ = conn.Close()
+	}
+	t.openErr = err
+	t.readyOnce.Do(func() { close(t.ready) })
+	t.mu.Unlock()
+	return err
+}
+func (t *PreviewTunnel) dialResult() error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	select {
+	case <-t.done:
+		return ErrSessionClosed
+	default:
+		return t.openErr
+	}
+}
+func (t *PreviewTunnel) Close(reason string) { t.closeWithReason(reason, nil) }
+func (t *PreviewTunnel) closeWithReason(reason string, err error) {
+	t.closeWithCode(reason, err, websocket.CloseNormalClosure)
+}
+func (t *PreviewTunnel) closeWithCode(reason string, err error, code int) {
+	closed := false
+	t.closeOnce.Do(func() {
+		closed = true
+		close(t.done)
+		t.cancel()
+		t.mu.Lock()
+		tcp, ws := t.tcpConn, t.dataConn
+		t.mu.Unlock()
+		if tcp != nil {
+			_ = tcp.Close()
+		}
+		if ws != nil {
+			// WriteControl is safe alongside a blocked data writer and has its own
+			// deadline. Closing the socket then interrupts either relay direction.
+			_ = ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(code, reason), time.Now().Add(50*time.Millisecond))
+			_ = ws.Close()
+		}
+	})
+	if closed && t.onClosed != nil {
+		t.onClosed(reason, err)
+	}
+}
+func (t *PreviewTunnel) pipeTCPToWSS(tcp net.Conn, ws *websocket.Conn) {
+	buf := make([]byte, 32*1024)
+	for {
+		n, err := tcp.Read(buf)
+		if n > 0 {
+			if writeErr := ws.WriteMessage(websocket.BinaryMessage, buf[:n]); writeErr != nil {
+				t.Close(protocol.PreviewReasonSessionClosed)
+				return
+			}
+		}
+		if err != nil {
+			reason := protocol.PreviewReasonTargetClosed
+			if !errors.Is(err, io.EOF) && !errors.Is(err, net.ErrClosed) {
+				reason = protocol.PreviewErrorCodeVMUnreachable
+			}
+			t.Close(reason)
+			return
+		}
+	}
+}
+func (t *PreviewTunnel) pipeWSSToTCP(tcp net.Conn, ws *websocket.Conn) {
+	for {
+		kind, reader, err := ws.NextReader()
+		if err != nil {
+			// Peer close text is untrusted and may contain request data or secrets.
+			reason := protocol.PreviewReasonSessionClosed
+			var closed *websocket.CloseError
+			if errors.As(err, &closed) {
+				switch closed.Text {
+				case protocol.PreviewReasonSessionExpired, protocol.PreviewReasonLabReset, protocol.PreviewReasonLabCleanup,
+					protocol.PreviewReasonCredentialRevoked, protocol.PreviewReasonControlReplaced, protocol.PreviewReasonServiceRestart:
+					reason = closed.Text
+				}
+			}
+			t.closeWithReason(reason, err)
+			return
+		}
+		if kind != websocket.BinaryMessage {
+			t.closeWithCode(protocol.PreviewErrProtocolError, nil, websocket.ClosePolicyViolation)
+			return
+		}
+		if _, err := io.Copy(tcp, reader); err != nil {
+			t.Close(protocol.PreviewErrorCodeVMUnreachable)
+			return
+		}
+	}
+}
+
+type PreviewSession struct {
+	mu               sync.Mutex
+	SessionID        string
+	LabInstanceID    string
+	Generation       int64
+	TargetVmKey      string
+	ProviderServerID string
+	TargetPort       int
+	Status           SessionStatus
+	currentAttemptID string
+	activeTunnel     *PreviewTunnel
+	everAttached     bool
+	destroyed        bool
+	// Compatibility references; access them only while holding the session lock.
+	TCPConn   net.Conn
+	DataConn  *websocket.Conn
+	closeOnce sync.Once
+	onEnded   PreviewEndedCallback
+}
+
+func NewPreviewSession(id, lab string, generation int64, vm, server string, port int, tcp net.Conn, ended PreviewEndedCallback) *PreviewSession {
+	s := &PreviewSession{SessionID: id, LabInstanceID: lab, Generation: generation, TargetVmKey: vm, ProviderServerID: server, TargetPort: port, Status: StatusActive, onEnded: ended}
+	if tcp != nil {
+		_, _ = s.BindTunnel("", tcp)
+	}
+	return s
+}
+func (s *PreviewSession) GetStatus() SessionStatus { s.mu.Lock(); defer s.mu.Unlock(); return s.Status }
+func (s *PreviewSession) EverAttached() bool       { s.mu.Lock(); defer s.mu.Unlock(); return s.everAttached }
+func (s *PreviewSession) IsDestroyed() bool        { s.mu.Lock(); defer s.mu.Unlock(); return s.destroyed }
+func (s *PreviewSession) CurrentAttemptID() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.currentAttemptID
+}
+func (s *PreviewSession) HasActiveTunnel() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.activeTunnel != nil
+}
+func (s *PreviewSession) reserveTunnel(attempt string) (*PreviewTunnel, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.destroyed {
+		return nil, false, ErrSessionClosed
+	}
+	if s.activeTunnel != nil {
+		if s.activeTunnel.openMessageID == attempt {
+			return s.activeTunnel, true, nil
+		}
+		return nil, false, ErrSessionConflict
+	}
+	if attempt != "" && s.currentAttemptID == attempt {
+		return nil, false, ErrNoActiveTunnel
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	t := &PreviewTunnel{openMessageID: attempt, ctx: ctx, cancel: cancel, ready: make(chan struct{}), done: make(chan struct{})}
+	t.onClosed = func(reason string, err error) { s.onTunnelFinished(t, reason, err) }
+	s.activeTunnel = t
+	s.currentAttemptID = attempt
+	s.Status = StatusConnecting
+	return t, false, nil
+}
+func (s *PreviewSession) BindTunnel(attempt string, tcp net.Conn) (*PreviewTunnel, error) {
+	t, retry, err := s.reserveTunnel(attempt)
+	if err != nil || retry {
+		if tcp != nil {
+			_ = tcp.Close()
+		}
+		if err == nil {
+			err = ErrSessionConflict
+		}
+		return nil, err
+	}
+	if err := t.completeDial(tcp, nil); err != nil {
+		return nil, err
+	}
+	s.mu.Lock()
+	if s.activeTunnel == t {
+		s.TCPConn = tcp
+		s.Status = StatusActive
+	}
+	s.mu.Unlock()
+	return t, nil
+}
+func (s *PreviewSession) attempt(attempt string) (*PreviewTunnel, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.destroyed {
+		return nil, ErrSessionClosed
+	}
+	if s.activeTunnel == nil {
+		return nil, ErrNoActiveTunnel
+	}
+	if s.activeTunnel.openMessageID != attempt {
+		return nil, ErrCorrelationMismatch
+	}
+	return s.activeTunnel, nil
+}
+func (s *PreviewSession) onTunnelFinished(t *PreviewTunnel, reason string, err error) {
+	s.mu.Lock()
+	if s.activeTunnel != t {
+		s.mu.Unlock()
+		return
+	}
+	s.activeTunnel = nil
+	s.TCPConn = nil
+	s.DataConn = nil
+	s.Status = StatusClosed
+	var closed *websocket.CloseError
+	if errors.As(err, &closed) && (closed.Code == 4001 || closed.Code == 4002) {
+		s.destroyed = true
+	}
+	cb := s.onEnded
+	s.mu.Unlock()
+	if cb != nil {
+		cb(s, reason, err)
+	}
+}
+
+// Track the handshake socket before waiting for ATTACHED, so Close also
+// interrupts pending attach reads and writes.
+func (s *PreviewSession) trackDataConn(t *PreviewTunnel, ws *websocket.Conn) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.destroyed || s.activeTunnel != t {
+		return ErrSessionClosed
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	select {
+	case <-t.done:
+		return ErrSessionClosed
+	default:
+	}
+	if t.dataConn != nil {
+		return ErrSessionAlreadyAttached
+	}
+	t.dataConn = ws
+	return nil
+}
+func (s *PreviewSession) AttachDataConn(ws *websocket.Conn, attempts ...string) error {
+	s.mu.Lock()
+	t := s.activeTunnel
+	if s.destroyed || t == nil {
+		s.mu.Unlock()
+		if ws != nil {
+			_ = ws.Close()
+		}
+		return ErrSessionClosed
+	}
+	if len(attempts) > 0 && t.openMessageID != attempts[0] {
+		s.mu.Unlock()
+		_ = ws.Close()
+		return ErrCorrelationMismatch
+	}
+	t.mu.Lock()
+	select {
+	case <-t.done:
+		t.mu.Unlock()
+		s.mu.Unlock()
+		_ = ws.Close()
+		return ErrSessionClosed
+	default:
+	}
+	if t.attached || (t.dataConn != nil && t.dataConn != ws) {
+		t.mu.Unlock()
+		s.mu.Unlock()
+		_ = ws.Close()
+		return ErrSessionAlreadyAttached
+	}
+	if t.tcpConn == nil || ws == nil {
+		t.mu.Unlock()
+		s.mu.Unlock()
+		if ws != nil {
+			_ = ws.Close()
+		}
+		return ErrNoActiveTunnel
+	}
+	t.dataConn = ws
+	t.attached = true
+	tcp := t.tcpConn
+	t.mu.Unlock()
+	s.DataConn = ws
+	s.TCPConn = tcp
+	s.everAttached = true
+	s.Status = StatusActive
+	s.mu.Unlock()
+	go t.pipeTCPToWSS(tcp, ws)
+	go t.pipeWSSToTCP(tcp, ws)
+	return nil
+}
+func (s *PreviewSession) CloseAttempt(attempt, reason string) {
+	t, err := s.attempt(attempt)
+	if err == nil {
+		t.Close(reason)
+	}
+}
+
+// OnAttemptClosed releases caller-owned cancellation hooks with the tunnel.
+func (s *PreviewSession) OnAttemptClosed(attempt string, fn func()) {
+	t, err := s.attempt(attempt)
+	if err != nil {
+		fn()
+		return
+	}
+	context.AfterFunc(t.ctx, fn)
+}
+func (s *PreviewSession) CloseCurrentTunnel(reason string) {
+	s.mu.Lock()
+	t := s.activeTunnel
+	s.mu.Unlock()
+	if t != nil {
+		t.Close(reason)
+	}
+}
+func (s *PreviewSession) Close(reason string) {
+	s.closeOnce.Do(func() {
+		s.mu.Lock()
+		s.destroyed = true
+		s.Status = StatusClosed
+		t := s.activeTunnel
+		s.activeTunnel = nil
+		s.TCPConn = nil
+		s.DataConn = nil
+		cb := s.onEnded
+		s.mu.Unlock()
+		if t != nil {
+			t.Close(reason)
+		}
+		if cb != nil {
+			cb(s, reason, nil)
+		}
+	})
+}

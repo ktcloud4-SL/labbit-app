@@ -1,0 +1,143 @@
+{
+  "recordedUTC": "2026-10-16T10:34:15.820769+00:00",
+  "sourceBefore": {
+    "count": 521,
+    "aggregate": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "mismatches": []
+  },
+  "sourceAfter": {
+    "count": 521,
+    "aggregate": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "mismatches": []
+  },
+  "manifest": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt174-routing-postadmin-20261016\\final-verified\\source-manifest.json",
+  "mode": "local httptest fault only; restored-before overlays two saved pre-fix production files on final tests; other final tests unchanged",
+  "runs": [
+    {
+      "stage": "restored-before",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "test",
+        "-overlay",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt174-routing-postadmin-independent-20261016\\management-observation-boundary-restored-before-overlay.json",
+        "-json",
+        "-run",
+        "^TestIndependentManagementObservationBoundary$",
+        "-count=1",
+        "-timeout=30s",
+        "./internal/connector/provider/openstack"
+      ],
+      "exitCode": 1,
+      "elapsedSeconds": 13.282,
+      "logSHA256": "99df23a2c5cbc6552ec385b904775ea6ec03357ae5e1985901d8a1c7091ce27d",
+      "overlayInputs": {
+        "management_observation_boundary_test.go": "4793a2ff1c29c8de10201d9bd4998a606d49c8b19e9f26e1529ddac5bd3b3846",
+        "topology.go.before-observation-fix.txt": "b22c77b0906ba01d7e457e2cd22c11c8b3af2b9eed14427bed19168ec58289a0",
+        "management_network.go.before-observation-fix.txt": "0f4f990da746f1f3f62d7191779b92e2e1c982dc2d014eaad1a0eea690aaaecc"
+      },
+      "events": [
+        {
+          "Action": "pass",
+          "Test": "TestIndependentManagementObservationBoundary/stable",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "fail",
+          "Test": "TestIndependentManagementObservationBoundary/outside_address",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "fail",
+          "Test": "TestIndependentManagementObservationBoundary/wrong_identity",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "fail",
+          "Test": "TestIndependentManagementObservationBoundary/wrong_network",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "fail",
+          "Test": "TestIndependentManagementObservationBoundary/wrong_security_group",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "fail",
+          "Test": "TestIndependentManagementObservationBoundary/missing_policy",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "fail",
+          "Test": "TestIndependentManagementObservationBoundary",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "fail",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        }
+      ]
+    },
+    {
+      "stage": "after",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "test",
+        "-overlay",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt174-routing-postadmin-independent-20261016\\management-observation-boundary-after-overlay.json",
+        "-json",
+        "-run",
+        "^TestIndependentManagementObservationBoundary$",
+        "-count=1",
+        "-timeout=30s",
+        "./internal/connector/provider/openstack"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 6.265,
+      "logSHA256": "a1218aa52b15051ed028696bcee60281e2f8735012e9f874247d84a3652d83c5",
+      "overlayInputs": {
+        "management_observation_boundary_test.go": "4793a2ff1c29c8de10201d9bd4998a606d49c8b19e9f26e1529ddac5bd3b3846"
+      },
+      "events": [
+        {
+          "Action": "pass",
+          "Test": "TestIndependentManagementObservationBoundary/stable",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "pass",
+          "Test": "TestIndependentManagementObservationBoundary/outside_address",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "pass",
+          "Test": "TestIndependentManagementObservationBoundary/wrong_identity",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "pass",
+          "Test": "TestIndependentManagementObservationBoundary/wrong_network",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "pass",
+          "Test": "TestIndependentManagementObservationBoundary/wrong_security_group",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "pass",
+          "Test": "TestIndependentManagementObservationBoundary/missing_policy",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "pass",
+          "Test": "TestIndependentManagementObservationBoundary",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        },
+        {
+          "Action": "pass",
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+        }
+      ]
+    }
+  ]
+}

@@ -284,10 +284,12 @@ saas:
         - api
       supported_operations:
         - PROVISION
+        - RESET
+        - CLEANUP
       authority_provider: >-
-        PROVISION은 같은 process의 api role이 소유한 Connector Control Registry/Router로 실행합니다.
-        worker role은 호환 PostgreSQL schema를 확인한 뒤 PROVISION PENDING Item만 claim합니다.
-        RESET/CLEANUP Item은 해당 executor가 구현될 때까지 PENDING으로 유지합니다.
+        PROVISION/RESET/CLEANUP은 같은 process의 api role이 소유한 Connector Control Registry/Router로 실행합니다.
+        worker role은 호환 PostgreSQL schema를 확인한 뒤 PENDING Item만 claim합니다.
+        RUNNING/RECONCILING Item은 lease 만료나 재접속으로 다시 실행하지 않습니다.
       worker_without_api: >-
         api 없이 worker만 enabled되면 작업을 claim하지 않고 /readyz가 실패합니다.
         별도 worker process용 분산 Router나 internal routing RPC는 제공하지 않습니다.

@@ -26,7 +26,7 @@ type WorkerOptions struct {
 }
 
 // Worker is a single-item execution boundary, with no scheduler or polling loop.
-// The provision executor connects execution to the api process's Connector Router.
+// The shared operation executor connects execution to the api process's Connector Router.
 type Worker struct{ opts WorkerOptions }
 
 func NewWorker(opts WorkerOptions) (*Worker, error) {

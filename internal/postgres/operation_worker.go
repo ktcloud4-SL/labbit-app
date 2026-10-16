@@ -16,8 +16,8 @@ func (s *Store) ClaimOperationItem(ctx context.Context, owner uuid.UUID, duratio
 	return s.claimOperationItem(ctx, owner, duration, "")
 }
 
-// ClaimProvisionOperationItem filters before locking/activation. Unsupported
-// RESET/CLEANUP work remains PENDING for its own executor.
+// ClaimProvisionOperationItem filters before locking/activation for callers
+// enabling only PROVISION. The combined executor uses ClaimOperationItem.
 func (s *Store) ClaimProvisionOperationItem(ctx context.Context, owner uuid.UUID, duration time.Duration) (repository.OperationItemClaim, error) {
 	return s.claimOperationItem(ctx, owner, duration, "PROVISION")
 }

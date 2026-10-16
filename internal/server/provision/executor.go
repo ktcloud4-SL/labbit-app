@@ -23,11 +23,15 @@ type Router interface {
 	ForgetOperation(uuid.UUID, connector.Correlation) bool
 }
 
+// Options keeps PROVISION-only callers compatible; Mutations enables the other
+// durable operation types on the same Worker/Router/EventSink.
 type Options struct {
-	Store  repository.ProvisionWorkerStore
-	Router Router
-	Tracer trace.Tracer
-	Logger *slog.Logger
+	Store            repository.ProvisionWorkerStore
+	Mutations        repository.MutationWorkerStore
+	CloseForMutation func(context.Context, repository.ProvisionDispatch) error
+	Router           Router
+	Tracer           trace.Tracer
+	Logger           *slog.Logger
 	// Ready checks application/schema compatibility before a new claim.
 	Ready                                      func(context.Context) error
 	LeaseDuration, ResultTimeout, PollInterval time.Duration
@@ -87,7 +91,11 @@ func NewExecutor(opts Options) (*Executor, error) {
 		opts.Logger = slog.New(slog.DiscardHandler)
 	}
 	p := &Executor{opts: opts, pending: make(map[provisionKey]*provisionInbox)}
-	w, err := operation.NewWorker(operation.WorkerOptions{Store: provisionClaims{opts.Store}, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Execute: p.execute})
+	var claims repository.OperationWorkerStore = provisionClaims{opts.Store}
+	if opts.Mutations != nil {
+		claims = opts.Mutations
+	}
+	w, err := operation.NewWorker(operation.WorkerOptions{Store: claims, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Execute: p.execute})
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +124,7 @@ func (p *Executor) Run(ctx context.Context) {
 					return
 				}
 				if err != nil {
-					p.opts.Logger.Warn("PROVISION execution stopped; durable item retained", "error_code", "provision_execution_unavailable")
+					p.opts.Logger.Warn("Operation execution stopped; durable item retained", "error_code", "operation_execution_unavailable")
 				}
 				if claimed && err == nil {
 					continue
@@ -178,12 +186,21 @@ func (p *Executor) HandleEvent(event connector.Event) {
 }
 
 func (p *Executor) execute(ctx context.Context, claim repository.OperationItemClaim) error {
-	d, err := p.opts.Store.PrepareProvision(ctx, claim.Lease)
+	var d repository.ProvisionDispatch
+	var err error
+	if claim.Operation.Type == "RESET" || claim.Operation.Type == "CLEANUP" {
+		if p.opts.Mutations == nil {
+			return operation.ErrInvalid
+		}
+		d, err = p.opts.Mutations.PrepareMutation(ctx, claim.Lease)
+	} else {
+		d, err = p.opts.Store.PrepareProvision(ctx, claim.Lease)
+	}
 	if err != nil {
 		return err
 	}
 	var snapshot protocol.CreationSnapshot
-	if json.Unmarshal(d.Snapshot, &snapshot) != nil {
+	if d.MutationType != "CLEANUP" && json.Unmarshal(d.Snapshot, &snapshot) != nil {
 		return p.invalidCommand(ctx, d)
 	}
 	corr := connector.Correlation{OperationID: d.OperationID.String(), LabInstanceID: d.LabInstanceID.String(), Generation: d.Generation}
@@ -207,9 +224,28 @@ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemCl
 	if _, err = p.worker.Renew(ctx, d.Lease); err != nil {
 		return err
 	}
+	payload := protocol.OperationCommandPayload{MutationType: protocol.MutationTypeProvision, CreationSnapshot: &snapshot}
+	if d.MutationType != "" {
+		payload.MutationType = d.MutationType
+		payload.ProviderResources = make([]protocol.ProviderResourceRef, 0, len(d.Resources))
+		for _, r := range d.Resources {
+			payload.ProviderResources = append(payload.ProviderResources, protocol.ProviderResourceRef{ResourceType: r.Type, ProviderID: r.ProviderID, LogicalName: r.LogicalName, Generation: r.Generation})
+		}
+		if d.MutationType == "CLEANUP" {
+			payload.CreationSnapshot = nil
+		}
+		if p.opts.CloseForMutation != nil {
+			if err := p.opts.CloseForMutation(ctx, d); err != nil {
+				return err
+			}
+		}
+		if _, err := p.worker.Renew(ctx, d.Lease); err != nil {
+			return err
+		}
+	}
 	sent, err := p.opts.Router.SendOperationCommand(ctx, connector.OperationCommand{
 		ConnectorID: d.ConnectorID, RequestID: claim.Operation.RequestID, Correlation: corr,
-		Payload: protocol.OperationCommandPayload{MutationType: protocol.MutationTypeProvision, CreationSnapshot: &snapshot},
+		Payload: payload,
 		Trace:   connector.TraceFromContext(ctx),
 	})
 	if err != nil {
@@ -241,7 +277,7 @@ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemCl
 				return p.invalidCommand(ctx, d)
 			}
 			if errors.Is(err, connector.ErrConnectorUnavailable) {
-				return p.opts.Store.DeferUnsentProvision(ctx, d, p.opts.DispatchRetryDelay)
+				return p.deferUnsent(ctx, d)
 			}
 		}
 		return p.unknown(ctx, d, "provision_dispatch_unconfirmed")
@@ -286,7 +322,7 @@ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemCl
 				continue
 			}
 			acked = true
-			if err = p.opts.Store.WriteProvision(ctx, repository.ProvisionUpdate{Dispatch: d, Status: "RUNNING", Stage: "PROVISIONING"}); err != nil {
+			if err = p.write(ctx, repository.ProvisionUpdate{Dispatch: d, Status: "RUNNING", Stage: "PROVISIONING"}); err != nil {
 				return err
 			}
 		case e := <-inbox.result:
@@ -299,13 +335,13 @@ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemCl
 }
 
 func (p *Executor) invalidCommand(ctx context.Context, d repository.ProvisionDispatch) error {
-	return p.opts.Store.WriteProvision(ctx, repository.ProvisionUpdate{Dispatch: d, Status: "FAILED", Stage: "REJECTED",
-		ErrorCode: "provision_command_invalid", ErrorMessage: "Provision command failed validation"})
+	return p.write(ctx, repository.ProvisionUpdate{Dispatch: d, Status: "FAILED", Stage: "REJECTED",
+		ErrorCode: "provision_command_invalid", ErrorMessage: "Operation command failed validation"})
 }
 
 func (p *Executor) rejected(ctx context.Context, d repository.ProvisionDispatch, ack protocol.OperationAckPayload) error {
-	return p.opts.Store.WriteProvision(ctx, repository.ProvisionUpdate{Dispatch: d, Status: "FAILED", Stage: "REJECTED",
-		ErrorCode: safeProvisionCode(ack.Error, "provision_command_rejected"), ErrorMessage: "Connector rejected the provision command"})
+	return p.write(ctx, repository.ProvisionUpdate{Dispatch: d, Status: "FAILED", Stage: "REJECTED",
+		ErrorCode: safeProvisionCode(ack.Error, "provision_command_rejected"), ErrorMessage: "Connector rejected the operation command"})
 }
 
 var provisionErrorCode = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]{0,127}$`)
@@ -318,8 +354,8 @@ func safeProvisionCode(err *protocol.SafeError, fallback string) string {
 }
 
 func (p *Executor) unknown(ctx context.Context, d repository.ProvisionDispatch, code string) error {
-	return p.opts.Store.WriteProvision(ctx, repository.ProvisionUpdate{Dispatch: d, Status: "RECONCILING", Stage: "RECONCILING",
-		ErrorCode: code, ErrorMessage: "Provision outcome requires reconciliation"})
+	return p.write(ctx, repository.ProvisionUpdate{Dispatch: d, Status: "RECONCILING", Stage: "RECONCILING",
+		ErrorCode: code, ErrorMessage: "Operation outcome requires reconciliation"})
 }
 
 func (p *Executor) result(ctx context.Context, d repository.ProvisionDispatch, r protocol.OperationResultPayload) error {
@@ -332,12 +368,12 @@ func (p *Executor) result(ctx context.Context, d repository.ProvisionDispatch, r
 		u.Status = "FAILED"
 		u.Stage = "FAILED"
 		u.ErrorCode = safeProvisionCode(r.Error, "provision_failed")
-		u.ErrorMessage = "Connector reported provision failure"
+		u.ErrorMessage = "Connector reported operation failure"
 	case protocol.OutcomeUnknown:
 		u.Status = "RECONCILING"
 		u.Stage = "RECONCILING"
 		u.ErrorCode = safeProvisionCode(r.Error, "provision_outcome_unknown")
-		u.ErrorMessage = "Provision outcome requires reconciliation"
+		u.ErrorMessage = "Operation outcome requires reconciliation"
 	default:
 		return p.unknown(ctx, d, "provision_result_invalid")
 	}
@@ -345,9 +381,28 @@ func (p *Executor) result(ctx context.Context, d repository.ProvisionDispatch, r
 		u.Resources = append(u.Resources, repository.ProvisionResource{Type: resource.ResourceType, ProviderID: resource.ProviderID,
 			Generation: resource.Generation, LogicalName: resource.LogicalName, ObservedState: resource.ObservedState})
 	}
-	err := p.opts.Store.WriteProvision(ctx, u)
+	err := p.write(ctx, u)
 	if errors.Is(err, repository.ErrConstraintViolation) {
 		return p.unknown(ctx, d, "provision_result_invalid")
 	}
 	return err
+}
+
+func (p *Executor) write(ctx context.Context, u repository.ProvisionUpdate) error {
+	if u.Dispatch.MutationType != "" {
+		if u.Status == "RUNNING" {
+			u.Stage = "RESETTING"
+			if u.Dispatch.MutationType == "CLEANUP" {
+				u.Stage = "CLEANING_UP"
+			}
+		}
+		return p.opts.Mutations.WriteMutation(ctx, u)
+	}
+	return p.opts.Store.WriteProvision(ctx, u)
+}
+func (p *Executor) deferUnsent(ctx context.Context, d repository.ProvisionDispatch) error {
+	if d.MutationType != "" {
+		return p.opts.Mutations.DeferUnsentMutation(ctx, d, p.opts.DispatchRetryDelay)
+	}
+	return p.opts.Store.DeferUnsentProvision(ctx, d, p.opts.DispatchRetryDelay)
 }

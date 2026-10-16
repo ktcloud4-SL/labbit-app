@@ -26,6 +26,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/provision"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile"
 )
@@ -34,7 +35,7 @@ import (
 // 0이 아닌 값은 60초 grace나 heartbeat 같은 긴 시간을 test에서 기다리지 않도록 주입하는 용도다.
 type stackOptions struct {
 	Logger *slog.Logger
-	// Worker enables PROVISION on this api process's own Router.
+	// Worker enables PROVISION/RESET/CLEANUP on this api process's own Router.
 	Worker                                                                bool
 	ProvisionLeaseDuration, ProvisionResultTimeout, ProvisionPollInterval time.Duration
 	ProvisionDispatchRetryDelay                                           time.Duration
@@ -133,7 +134,32 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	stack := &controlStack{Registry: registry, Router: router}
 	if opts.Worker {
 		stack.Provisions, err = provision.NewExecutor(provision.Options{
-			Store: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
+			Store: store, Mutations: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
+			CloseForMutation: func(ctx context.Context, d repository.ProvisionDispatch) error {
+				reason := "LAB_RESET"
+				if d.MutationType == "CLEANUP" {
+					reason = "LAB_CLEANUP"
+				}
+				if stack.Terminals == nil {
+					sessions, err := store.UnendedTerminalSessionsByLabInstance(ctx, d.LabInstanceID)
+					if err != nil {
+						return err
+					}
+					if len(sessions) > 0 {
+						return operation.ErrInvalid
+					}
+				}
+				if stack.Terminals != nil {
+					if err := stack.Terminals.CloseForLabMutation(ctx, terminal.LabMutation{LabInstanceID: d.LabInstanceID, OperationID: d.OperationID.String(), Reason: reason}); err != nil {
+						return err
+					}
+				}
+				if stack.Previews != nil {
+					_, err := stack.Previews.CloseForLabMutation(ctx, previewsession.LabMutation{LabInstanceID: d.LabInstanceID, Reason: reason})
+					return err
+				}
+				return nil
+			},
 			LeaseDuration: opts.ProvisionLeaseDuration, ResultTimeout: opts.ProvisionResultTimeout, PollInterval: opts.ProvisionPollInterval,
 			DispatchRetryDelay: opts.ProvisionDispatchRetryDelay,
 		})

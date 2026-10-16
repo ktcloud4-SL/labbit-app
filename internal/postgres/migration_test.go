@@ -24,6 +24,7 @@ func TestLoadMigrationsReadsEmbeddedSSOTInVersionOrder(t *testing.T) {
 		"000006_operation_trace_context.sql",
 		"000007_operation_updated_at.sql",
 		"000008_operation_dispatch_deferral.sql",
+		"000009_mutation_previous_status.sql",
 	}
 	if len(migrations) != len(wantNames) {
 		t.Fatalf("migration count = %d, want %d", len(migrations), len(wantNames))

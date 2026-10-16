@@ -32,7 +32,7 @@ func (f mutationStoreFake) DeferUnsentMutation(ctx context.Context, d repository
 
 func TestMutationExecutorUsesSharedUncertaintyAndCorrelationBoundary(t *testing.T) {
 	for _, kind := range []string{"RESET", "CLEANUP"} {
-		for _, scenario := range []string{"success", "unknown", "timeout", "ambiguous send", "unsent", "lifecycle failure"} {
+		for _, scenario := range []string{"success", "unknown", "timeout", "ambiguous send", "unsent", "lifecycle failure", "preflight rejection"} {
 			t.Run(kind+"/"+scenario, func(t *testing.T) {
 				writes := make(chan repository.ProvisionUpdate, 10)
 				base := provisionTestStore(t, writes)
@@ -80,7 +80,15 @@ func TestMutationExecutorUsesSharedUncertaintyAndCorrelationBoundary(t *testing.
 						if scenario == "unknown" {
 							outcome = protocol.OutcomeUnknown
 						}
-						executor.HandleEvent(connector.OperationResultEvent{Routed: routedFor(c), Payload: protocol.OperationResultPayload{Outcome: outcome}})
+						payload := protocol.OperationResultPayload{Outcome: outcome}
+						if scenario == "preflight rejection" {
+							payload.Outcome = protocol.OutcomeFailed
+							payload.Error = &protocol.SafeError{Code: "ERR_CONNECTOR_INTERNAL", Message: "CIDR assignment lock is unavailable"}
+							for _, ref := range c.Payload.ProviderResources {
+								payload.ProviderResources = append(payload.ProviderResources, protocol.ProviderResourceResult{ResourceType: ref.ResourceType, ProviderID: ref.ProviderID, LogicalName: ref.LogicalName, Generation: ref.Generation, ObservedState: "DELETE_NOT_ATTEMPTED"})
+							}
+						}
+						executor.HandleEvent(connector.OperationResultEvent{Routed: routedFor(c), Payload: payload})
 						return connector.SentMessage{MessageID: "outbound-message"}, nil
 					}}})
 				if err != nil {
@@ -108,6 +116,12 @@ func TestMutationExecutorUsesSharedUncertaintyAndCorrelationBoundary(t *testing.
 					want := "RECONCILING"
 					if scenario == "success" {
 						want = "SUCCEEDED"
+					}
+					if scenario == "preflight rejection" {
+						want = "FAILED"
+						if last.ErrorCode != "ERR_CONNECTOR_INTERNAL" || len(last.Resources) != 1 || last.Resources[0].ProviderID != "previous-exact-ID" || last.Resources[0].Generation != 1 || last.Resources[0].ObservedState != "DELETE_NOT_ATTEMPTED" {
+							t.Fatalf("lost no-mutation result: %+v", last)
+						}
 					}
 					if last.Status != want || last.Dispatch.MutationType != kind {
 						t.Fatalf("result=%+v", last)

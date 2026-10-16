@@ -235,6 +235,14 @@ KT D1은 같은 `LABBIT_PROVIDER_CONFIG_FILE`과 `OS_CLOUD` 설정에서 `auth_u
 
 KT 설정은 `LABBIT_KTCLOUD_CONNECTOR_TIER_ID`에 Connector Tier의 NSM UUID(`networkId`), `LABBIT_KTCLOUD_MANAGEMENT_CIDR`에 실습 VM 전용 Tier의 미사용 `/24`, `LABBIT_OPENSTACK_SSH_ALLOWED_CIDR`에 Connector 주소 `/32`를 사용합니다. Lab CIDR도 미사용 `/24`여야 합니다. 기존 Management Network/SG/External Network 변수는 비웁니다. 실제 VM 연결은 별도의 `refId`를 사용합니다. 현재 지원 범위와 quota API 제약, 실제 리소스 종류 및 보안·Reset·Cleanup 경계는 [Connector 계약](../contracts/connector/README.md#kt-d1-호환-프로필-lbt-158)을 따릅니다. KT API의 부팅 볼륨과 2048 byte base64 User Data 제한을 Preflight하며, 다중 VM·Windows·인터넷 허용 Snapshot은 mutation 전에 거절합니다. 실제 Connector VM 수용 결과는 LBT-145에서 기록하며 C1 전체 수용은 LBT-16에서 별도로 검증합니다.
 
+KT D1에서 여러 LabInstance를 운영할 때는 선택 설정 `LABBIT_KTCLOUD_CIDR_PAIRS`에 `[{"lab":"172.25.240.0/24","management":"172.25.241.0/24"},{"lab":"172.25.242.0/24","management":"172.25.243.0/24"}]`처럼 제한된 풀을 지정합니다. 이 값은 **형식 예시이며 운영 적용 승인이 아닙니다**. 1~64쌍의 canonical private IPv4 `/24`를 사용하며 모든 대역은 서로 겹치지 않아야 합니다. 풀을 켜면 기존 두 CIDR 변수 대신 Instance 예약의 CIDR을 Provision/RESET Preflight, Tier 생성 및 Management IP/SSH 검증에 사용합니다. 두 새 변수를 모두 생략하면 기존 KT 단일 Instance 설정과 일반 OpenStack 경로를 유지합니다.
+
+`LABBIT_KTCLOUD_CIDR_STATE_DIR`은 Connector 사용자만 접근 가능한 기존 절대 경로(0700)의 **영속 디렉터리**입니다. 최초 사용 시 Project/ProviderConnection/풀 순서를 고정하고, 전체 Provider Tier inventory와 대조하여 첫 번째 빈 쌍을 LabInstance ID에 예약합니다. 예약과 generation별 mutation intent는 Provider 변경 전에 exclusive create 및 fsync하며, RESET에서도 같은 예약을 사용합니다. hash로 유일성을 가정하거나 이름으로 기존 Tier를 채택하지 않습니다. 요청마다 Adapter 복사본에 CIDR을 적용합니다.
+
+이 방식의 배포 전제는 **한 Project의 해당 풀을 단일 Connector가 독점**하고, 다른 Connector/운영자가 풀에서 대역을 할당하지 않는 것입니다. 같은 풀의 프로세스는 같은 상태 디렉터리를 사용해야 합니다. 독립된 상태 디렉터리나 외부 할당자와의 분산 원자성은 제공하지 않습니다. 매번 최신 inventory를 확인하며 생성 직전에도 중첩/조회 불확실성을 거부합니다. 파일 잠금 충돌 등 사전 거절은 해당 Instance/generation의 이전 mutation 불확실성이 없고 이번 요청에서 mutation을 시도하지 않았다는 증거가 있을 때 FAILED로 반환합니다. 설정 오류·풀 소진·조회 실패도 같은 경계를 사용하며 자동 재시도하지 않습니다. 응답 유실 후 동일 generation intent가 있으면 새 mutation을 허용하지 않습니다.
+
+Cleanup 성공 후에도 예약/intent를 자동 삭제하지 않으므로 풀은 유한하게 소진됩니다. 상태 파일의 삭제·복제·풀 변경, 임시 디스크 사용은 안전한 재할당 방법이 아닙니다. 비정상 종료의 stale `LOCK`은 자동 회수하지 않습니다. 동일 Instance의 잠금, 대상 generation의 기존 intent, 손상된 원장 등 이전 부작용을 배제할 수 없는 경우는 UNKNOWN/HOLD를 유지합니다. 운영자 복구는 이전 프로세스 종료 및 독점 실행, 모든 generation의 exact-ID 부재/소유권, 미확인 mutation 부재를 확인한 뒤 별도 승인으로 수행해야 합니다. 상태 디렉터리를 보존한 바이너리 rollback은 가능하지만, 구버전에는 풀 모드가 없으므로 기존 고정 CIDR로 lifecycle을 재개해서는 안 됩니다.
+
 D-17의 기본 Heartbeat는 15초, SaaS OFFLINE 판단은 45초입니다. 값은 설정 가능하지만 reconnect를 Operation Retry로 해석하지 않습니다.
 
 ## Frontend Runtime

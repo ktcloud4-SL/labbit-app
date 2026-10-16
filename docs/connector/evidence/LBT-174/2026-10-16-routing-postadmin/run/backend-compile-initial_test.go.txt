@@ -1,0 +1,9 @@
+package openstackprovider
+import("context";"testing";"time";"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/agents")
+func TestLocalReadOnlyDHCPBackend(t *testing.T){
+ ctx,cancel:=context.WithTimeout(context.Background(),30*time.Second);defer cancel()
+ a,err:=New(ctx,ConfigFromEnvironment());if err!=nil{t.Fatal("provider init failed")}
+ pages,err:=agents.List(a.network,agents.ListOpts{}).AllPages(ctx);if err!=nil{t.Fatal("agent discovery failed")}
+ items,err:=agents.ExtractAgents(pages);if err!=nil{t.Fatal("agent decode failed")}
+ for _,a:=range items{t.Logf("networkAgent type=%q binary=%q alive=%t adminStateUp=%t",a.AgentType,a.Binary,a.Alive,a.AdminStateUp)}
+}

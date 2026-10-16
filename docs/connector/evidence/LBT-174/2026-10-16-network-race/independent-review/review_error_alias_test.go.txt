@@ -1,0 +1,89 @@
+package openstackprovider
+
+import (
+	"context"
+	"net"
+	"testing"
+	"time"
+
+	"golang.org/x/crypto/ssh"
+)
+
+// This probe demonstrates information loss in the historical fixture. It does
+// not claim any one injected failure occurred in the deleted original VM.
+func TestReviewInternetFailureAliases(t *testing.T) {
+	for _, mode := range []string{"success", "remote-exit-1", "remote-exit-42", "handshake-drop", "channel-rejected", "exec-rejected", "tcp-refused"} {
+		t.Run(mode, func(t *testing.T) {
+			address, done := reviewInternetPeer(t, mode)
+			adapter := sshCancellationAdapter(t)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			started := time.Now()
+			err := adapter.runSSHCommand(ctx, address, "review-alias:22", "synthetic-fixed-command")
+			if mode == "success" {
+				if err != nil { t.Fatalf("positive control: %v", err) }
+			} else if err != ErrStartupNotReady {
+				t.Fatalf("%s returned %T, want exact shared readiness sentinel", mode, err)
+			}
+			t.Logf("injected=%s exactSharedSentinel=%t elapsedMillis=%d", mode, err == ErrStartupNotReady, time.Since(started).Milliseconds())
+			select {
+			case <-done:
+			case <-time.After(time.Second): t.Fatal("peer did not terminate after caller returned")
+			}
+		})
+	}
+}
+
+func reviewInternetPeer(t *testing.T, mode string) (string, <-chan struct{}) {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil { t.Fatal(err) }
+	t.Cleanup(func() { _ = listener.Close() })
+	done := make(chan struct{})
+	if mode == "tcp-refused" {
+		_ = listener.Close()
+		close(done)
+		return listener.Addr().String(), done
+	}
+	signer, err := ssh.NewSignerFromKey(testPrivateKey("review-alias-peer"))
+	if err != nil { t.Fatal(err) }
+	config := &ssh.ServerConfig{NoClientAuth: true}
+	config.AddHostKey(signer)
+	go func() {
+		defer close(done)
+		conn, err := listener.Accept()
+		if err != nil { return }
+		defer conn.Close()
+		_ = conn.SetDeadline(time.Now().Add(6*time.Second))
+		if mode == "handshake-drop" { return }
+		server, channels, requests, err := ssh.NewServerConn(conn, config)
+		if err != nil { return }
+		defer server.Close()
+		go ssh.DiscardRequests(requests)
+		request, ok := <-channels
+		if !ok { return }
+		if mode == "channel-rejected" {
+			_ = request.Reject(ssh.Prohibited, "synthetic channel rejection")
+			_ = server.Wait()
+			return
+		}
+		channel, channelRequests, err := request.Accept()
+		if err != nil { return }
+		defer channel.Close()
+		exec, ok := <-channelRequests
+		if !ok || exec.Type != "exec" { return }
+		if mode == "exec-rejected" {
+			_ = exec.Reply(false, nil)
+			return
+		}
+		if err := exec.Reply(true, nil); err != nil { return }
+		status := uint32(0)
+		if mode == "remote-exit-1" { status = 1 }
+		if mode == "remote-exit-42" { status = 42 }
+		_, _ = channel.Stderr().Write([]byte("synthetic fixed diagnostic\n"))
+		_, _ = channel.SendRequest("exit-status", false, ssh.Marshal(struct{ Status uint32 }{status}))
+		_ = channel.Close()
+		_ = server.Wait()
+	}()
+	return listener.Addr().String(), done
+}

@@ -1,0 +1,42 @@
+=== RUN   TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit (0.03s)
+=== RUN   TestWorkspaceFixtureExecCancellationClosesExactSession
+--- PASS: TestWorkspaceFixtureExecCancellationClosesExactSession (0.02s)
+=== RUN   TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestWorkspaceFixtureExecCancellationClosesExactSession
+--- PASS: TestWorkspaceFixtureExecCancellationClosesExactSession (0.02s)
+=== RUN   TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit (0.03s)
+=== RUN   TestWorkspaceFixtureExecCancellationClosesExactSession
+--- PASS: TestWorkspaceFixtureExecCancellationClosesExactSession (0.02s)
+=== RUN   TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestWorkspaceFixtureExecCancellationClosesExactSession
+--- PASS: TestWorkspaceFixtureExecCancellationClosesExactSession (0.02s)
+=== RUN   TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestWorkspaceFixtureExecCancellationClosesExactSession
+--- PASS: TestWorkspaceFixtureExecCancellationClosesExactSession (0.02s)
+=== RUN   TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestWorkspaceFixtureExecCancellationClosesExactSession
+--- PASS: TestWorkspaceFixtureExecCancellationClosesExactSession (0.02s)
+=== RUN   TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestWorkspaceFixtureExecCancellationClosesExactSession
+--- PASS: TestWorkspaceFixtureExecCancellationClosesExactSession (0.02s)
+=== RUN   TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestWorkspaceFixtureExecCancellationClosesExactSession
+--- PASS: TestWorkspaceFixtureExecCancellationClosesExactSession (0.02s)
+=== RUN   TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestWorkspaceFixtureExecCancellationClosesExactSession
+--- PASS: TestWorkspaceFixtureExecCancellationClosesExactSession (0.02s)
+=== RUN   TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestWorkspaceFixtureExecCancellationClosesExactSession
+--- PASS: TestWorkspaceFixtureExecCancellationClosesExactSession (0.02s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	4.666s

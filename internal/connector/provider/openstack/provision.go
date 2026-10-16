@@ -216,9 +216,8 @@ func (a *Adapter) preflightProvision(ctx context.Context, config ProvisionConfig
 	if a.ktNetwork != nil {
 		return a.preflightKTCloudProvision(ctx, config, snapshot, credit)
 	}
-	managementNetwork, err := networks.Get(ctx, a.network, config.ManagementNetworkID).Extract()
-	if err != nil || normalizeStatus(managementNetwork.Status) != "ACTIVE" || len(managementNetwork.Subnets) == 0 {
-		return ErrProvisionCheck
+	if _, err := a.managementSubnet(ctx, config); err != nil {
+		return err
 	}
 	if err := a.validateManagementSecurityGroup(ctx, config); err != nil {
 		return err

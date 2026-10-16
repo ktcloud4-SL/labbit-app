@@ -1,0 +1,12 @@
+=== RUN   TestIndependentOldTrustRetirementCannotCancelNewOwner
+    zz_independent_retirement_test.go:45: old-epoch credential retirement canceled newly authenticated Preview owner: context canceled
+--- FAIL: TestIndependentOldTrustRetirementCannotCancelNewOwner (0.02s)
+=== RUN   TestIndependentOldTrustRetirementCannotCancelNewOwner
+    zz_independent_retirement_test.go:45: old-epoch credential retirement canceled newly authenticated Preview owner: context canceled
+--- FAIL: TestIndependentOldTrustRetirementCannotCancelNewOwner (0.02s)
+=== RUN   TestIndependentOldTrustRetirementCannotCancelNewOwner
+    zz_independent_retirement_test.go:45: old-epoch credential retirement canceled newly authenticated Preview owner: context canceled
+--- FAIL: TestIndependentOldTrustRetirementCannotCancelNewOwner (0.02s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/wss	2.711s
+FAIL

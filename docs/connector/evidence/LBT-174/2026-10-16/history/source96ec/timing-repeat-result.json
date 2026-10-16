@@ -1,0 +1,20 @@
+{
+  "name": "timing-repeat",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-p=1",
+    "-count=20",
+    "-json",
+    "./internal/connector/vmaccess",
+    "./internal/server/realtime",
+    "-run",
+    "^(TestTCPOpenTimeoutLateChannelAndSiblingIsolation|TestConnectorControlEventsPropagateTraceContext)$"
+  ],
+  "started": "2026-10-16T06:12:05.735375+00:00",
+  "ended": "2026-10-16T06:12:17.036855+00:00",
+  "seconds": 11.297,
+  "exitCode": 1,
+  "sourceSHA256": "96ec0a79b149ac980d55dd8434a639f38ffa4d5d7f4dd8b480c5d3304db87e44",
+  "sourceUnchanged": true
+}

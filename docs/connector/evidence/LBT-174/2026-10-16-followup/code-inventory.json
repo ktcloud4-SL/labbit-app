@@ -1,0 +1,110 @@
+[
+  {
+    "path": "internal/connector/app/app.go",
+    "sha256LF": "a3891a59d0b714f13d7a20ad6237b7058ce1a9f382e581ee03b49c33b4d7b081"
+  },
+  {
+    "path": "internal/connector/app/vm_access.go",
+    "sha256LF": "67bbce0899b488dc159e28276315841b89050589751d41bf4b866c29c2dc5117"
+  },
+  {
+    "path": "internal/connector/app/vm_access_test.go",
+    "sha256LF": "8fb7f87b11e058770f7463f34adbe3965ff1bbcd8897bee0f6d4b7796a05605a"
+  },
+  {
+    "path": "internal/connector/preview/client.go",
+    "sha256LF": "decd833c003e3f1f43890a5d3f576c02739f484c7243c9a92a98e2fdf9d1d217"
+  },
+  {
+    "path": "internal/connector/preview/lifecycle_test.go",
+    "sha256LF": "4d057ea1d4bbdea200af7736120ecf9c2bb72957d97fc6f31116375d81101fd4"
+  },
+  {
+    "path": "internal/connector/preview/manager.go",
+    "sha256LF": "99a92f6f15898022941fa619b79e63c93d60c3d8ce92308ba95842a3bb94f831"
+  },
+  {
+    "path": "internal/connector/preview/session.go",
+    "sha256LF": "907e21fad01868739d1d5d05e28a0f8cfe257602ed924b0d89254c44a78fe52c"
+  },
+  {
+    "path": "internal/connector/preview/upgrade_cancel_test.go",
+    "sha256LF": "98321cf231aa9e56d818520d4a31fac6917ddfbadb33bd8bab483c1cf99a1db6"
+  },
+  {
+    "path": "internal/connector/provider/openstack/integration_cleanup_test.go",
+    "sha256LF": "6fa56565daf223d0d620166d01ad1dfd371ba5162761fa2c416a6de4a04857eb"
+  },
+  {
+    "path": "internal/connector/provider/openstack/integration_test.go",
+    "sha256LF": "53329a9251476929dd767e80959c4acf28caf2b3f60e19540241f6316368228f"
+  },
+  {
+    "path": "internal/connector/provider/openstack/preview_transport_export_test.go",
+    "sha256LF": "95555bcf60ebc2c14e1465bd7c4af65ddaea25d47718cafc8cff42a4f33901d6"
+  },
+  {
+    "path": "internal/connector/provider/openstack/preview_transport_integration_test.go",
+    "sha256LF": "5b05a40314e71a76410e040450fcaa0c15fda8a25b67f5f3c1768fb1bf2ca041"
+  },
+  {
+    "path": "internal/connector/provider/openstack/workspace_file_fixture_test.go",
+    "sha256LF": "9cac44cd7fc667e89d61423cbc05eb3715c839ef320a29adc3034e0516214836"
+  },
+  {
+    "path": "internal/connector/provider/openstack/workspace_file_integration_gate_test.go",
+    "sha256LF": "93187048c70c4259f4c2ed0c6b2eef6f9e8227c6cab6fb64b19fb1a99006658e"
+  },
+  {
+    "path": "internal/connector/provider/openstack/workspace_file_integration_test.go",
+    "sha256LF": "4c67194bedba84ee34afb523173b65851f19603fde2a0ab1af5bcbbef7f27a20"
+  },
+  {
+    "path": "internal/connector/vmaccess/tcp_test.go",
+    "sha256LF": "c06d5eb59414df671585e5d5ed0f5ef024c760875264921f815aa34f09206776"
+  },
+  {
+    "path": "internal/connector/wss/handler.go",
+    "sha256LF": "69c3d52e57c149fe96869d699530625a8839174966a58dc25f980f08a52fe2f5"
+  },
+  {
+    "path": "internal/connector/wss/handler_preview.go",
+    "sha256LF": "95e6168227fbe2cd8f40dfdfb461a7cf179427e8f58afd60b29597b035966f6b"
+  },
+  {
+    "path": "internal/connector/wss/handler_preview_test.go",
+    "sha256LF": "d9203ae8bb413465bbadb63d0e52f6edefd5e10891ae646655ea9a88d27971b6"
+  },
+  {
+    "path": "internal/connector/wss/preview_owner_test.go",
+    "sha256LF": "2c2c1cbd6ec7fd85508a57e8b6a98bb123992bb9a9a6b1cd36b1139a36180d79"
+  },
+  {
+    "path": "internal/connector/wss/preview_replacement_test.go",
+    "sha256LF": "f693ef9a1ad71316f91055bedf95e284f2e78f464dbecf53e7e0908615120e74"
+  },
+  {
+    "path": "internal/server/preview/previewtest/peer.go",
+    "sha256LF": "15f2a0382518ea8539b2d2a5cf14df9cb6415f128cce23e198c0b834a2a1a724"
+  },
+  {
+    "path": "internal/server/preview/previewtest/refused_other.go",
+    "sha256LF": "75abff0493db026e00414f0f7626caa8444a4f25b393a6c00de12c1342c09d97"
+  },
+  {
+    "path": "internal/server/preview/previewtest/refused_test.go",
+    "sha256LF": "f5dc95030323f9dbcf01b2a70b43c2c42c884e79d50a86299caa72b861780bb6"
+  },
+  {
+    "path": "internal/server/preview/previewtest/refused_windows.go",
+    "sha256LF": "162986a72a911dac7659504d13ee449d1800272094d68283e3edbaed9f7cd673"
+  },
+  {
+    "path": "internal/server/realtime/trace_log_test.go",
+    "sha256LF": "046735f223db318c6c7b15ecfe7dae6d935c4535c5f8b2cc2633e3d79168c678"
+  },
+  {
+    "path": "internal/server/realtime/trace_propagation_test.go",
+    "sha256LF": "586d9a02d167a22579c57ba244f1ff1e88b2d6de83892ed18ec1411a20a44f8b"
+  }
+]

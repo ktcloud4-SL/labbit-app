@@ -1,0 +1,84 @@
+{
+  "cases": [
+    {
+      "case": "baseline",
+      "routeBefore": [
+        {
+          "role": "management",
+          "hasGateway": true
+        }
+      ],
+      "defaultRoutes": [
+        {
+          "role": "management",
+          "metric": 100,
+          "hasGateway": true
+        },
+        {
+          "role": "lab",
+          "metric": 100,
+          "hasGateway": true
+        }
+      ],
+      "connectCode": 11,
+      "elapsed_ms": 5007
+    },
+    {
+      "case": "forced-management",
+      "routeBefore": [
+        {
+          "role": "management",
+          "hasGateway": true
+        }
+      ],
+      "defaultRoutes": [
+        {
+          "role": "management",
+          "metric": 100,
+          "hasGateway": true
+        },
+        {
+          "role": "lab",
+          "metric": 100,
+          "hasGateway": true
+        }
+      ],
+      "connectCode": 11,
+      "elapsed_ms": 5006
+    },
+    {
+      "case": "forced-lab",
+      "routeBefore": [
+        {
+          "role": "lab",
+          "hasGateway": true
+        }
+      ],
+      "defaultRoutes": [
+        {
+          "role": "management",
+          "metric": 100,
+          "hasGateway": true
+        },
+        {
+          "role": "lab",
+          "metric": 100,
+          "hasGateway": true
+        }
+      ],
+      "connectCode": 0,
+      "elapsed_ms": 13
+    },
+    {
+      "case": "restored",
+      "route": [
+        {
+          "role": "management",
+          "hasGateway": true
+        }
+      ],
+      "ownedRouteAbsent": true
+    }
+  ],
+  "rawSHA256": "7269cc480f538d1d164a9462d8f340815ce89e106b331cd78327ab3f80c84c25"
+}

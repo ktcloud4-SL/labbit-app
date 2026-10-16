@@ -1,0 +1,123 @@
+{
+  "source": "local-openstack-all.log",
+  "rawBytes": 35952,
+  "rawSHA256": "5a3173a349b1e5f641fb4adbe69803a2d9b636ac8261146e5c40e6701deb7203",
+  "events": [
+    {
+      "Time": "2026-10-16T15:56:16.5459114+09:00",
+      "Action": "run",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration"
+    },
+    {
+      "Time": "2026-10-16T15:56:16.5459114+09:00",
+      "Action": "output",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration",
+      "Output": "=== RUN   TestOpenStackInternetPolicyIntegration\n",
+      "OutputType": "frame"
+    },
+    {
+      "Time": "2026-10-16T15:56:17.9372129+09:00",
+      "Action": "run",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration/internet-on"
+    },
+    {
+      "Time": "2026-10-16T15:56:17.9372129+09:00",
+      "Action": "output",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration/internet-on",
+      "Output": "=== RUN   TestOpenStackInternetPolicyIntegration/internet-on\n",
+      "OutputType": "frame"
+    },
+    {
+      "Time": "2026-10-16T15:58:07.7050059+09:00",
+      "Action": "output",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration/internet-on",
+      "Output": "    integration_test.go:406: Internet reachability assertion failed (internetOutbound=true); SSH/exec errors are not evidence of blocked egress: VM initialization did not complete\n",
+      "OutputType": "error"
+    },
+    {
+      "Time": "2026-10-16T15:58:22.419323+09:00",
+      "Action": "output",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration/internet-on",
+      "Output": "--- FAIL: TestOpenStackInternetPolicyIntegration/internet-on (124.47s)\n",
+      "OutputType": "frame"
+    },
+    {
+      "Time": "2026-10-16T15:58:22.419323+09:00",
+      "Action": "fail",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration/internet-on",
+      "Elapsed": 124.47
+    },
+    {
+      "Time": "2026-10-16T15:58:22.4200214+09:00",
+      "Action": "run",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration/internet-off"
+    },
+    {
+      "Time": "2026-10-16T15:58:22.4200214+09:00",
+      "Action": "output",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration/internet-off",
+      "Output": "=== RUN   TestOpenStackInternetPolicyIntegration/internet-off\n",
+      "OutputType": "frame"
+    },
+    {
+      "Time": "2026-10-16T16:00:28.4383765+09:00",
+      "Action": "output",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration/internet-off",
+      "Output": "    integration_test.go:408: Internet policy verified: internetOutbound=false expectedReachable=false\n"
+    },
+    {
+      "Time": "2026-10-16T16:00:38.6729978+09:00",
+      "Action": "output",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration/internet-off",
+      "Output": "--- PASS: TestOpenStackInternetPolicyIntegration/internet-off (136.26s)\n",
+      "OutputType": "frame"
+    },
+    {
+      "Time": "2026-10-16T16:00:38.6729978+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration/internet-off",
+      "Elapsed": 136.26
+    },
+    {
+      "Time": "2026-10-16T16:00:38.7868843+09:00",
+      "Action": "output",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration",
+      "Output": "    integration_test.go:486: Temporary Management security group GET absence confirmed\n"
+    },
+    {
+      "Time": "2026-10-16T16:00:38.8325262+09:00",
+      "Action": "output",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration",
+      "Output": "    integration_test.go:587: Temporary integration keypair GET absence confirmed\n"
+    },
+    {
+      "Time": "2026-10-16T16:00:38.8335318+09:00",
+      "Action": "output",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration",
+      "Output": "--- FAIL: TestOpenStackInternetPolicyIntegration (262.29s)\n",
+      "OutputType": "frame"
+    },
+    {
+      "Time": "2026-10-16T16:00:38.8335318+09:00",
+      "Action": "fail",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "Test": "TestOpenStackInternetPolicyIntegration",
+      "Elapsed": 262.29
+    }
+  ]
+}

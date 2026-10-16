@@ -1,0 +1,21 @@
+{
+  "name": "local-internet-diagnostic",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-overlay",
+    "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt174-followup-20261016\\internet-diagnostic-overlay.json",
+    "-json",
+    "-run",
+    "^TestOpenStackInternetPolicyIntegration$",
+    "-count=1",
+    "-timeout=30m",
+    "./internal/connector/provider/openstack"
+  ],
+  "started": "2026-10-16T07:02:01.300142+00:00",
+  "ended": "2026-10-16T07:06:41.990222+00:00",
+  "seconds": 280.688,
+  "exitCode": 0,
+  "sourceSHA256": "67cd9e8a83f24180d9993cc7eee9100067f5d79e8cdb7b9d0a9e2544ea330289",
+  "sourceUnchanged": false
+}

@@ -1,0 +1,271 @@
+package wss
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/mock"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+)
+
+type previewOwnerSender struct{ credential string }
+
+func (s previewOwnerSender) DialCredential() string                 { return s.credential }
+func (s previewOwnerSender) SendMessage(context.Context, any) error { return nil }
+
+type previewOwnerForwarder struct {
+	opened atomic.Int32
+	peer   net.Conn
+}
+
+func (f *previewOwnerForwarder) DialTCP(context.Context, vmaccess.Target, int) (net.Conn, error) {
+	f.opened.Add(1)
+	a, b := net.Pipe()
+	f.peer = b
+	return a, nil
+}
+
+func TestPreviewOldControlEpochCannotUseNewCredential(t *testing.T) {
+	observed := make(chan string, 1)
+	upgrader := websocket.Upgrader{Subprotocols: []string{protocol.SubprotocolPreviewData}}
+	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		observed <- r.Header.Get("Authorization")
+		ws, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer ws.Close()
+		var attach protocol.PreviewAttachMessage
+		if ws.ReadJSON(&attach) != nil {
+			return
+		}
+		_ = ws.WriteJSON(protocol.PreviewAttachedMessage{BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypePreviewAttached, MessageID: "ack", ReplyToMessageID: attach.MessageID, PreviewSessionID: attach.PreviewSessionID, LabInstanceID: attach.LabInstanceID, Generation: attach.Generation}, Payload: protocol.PreviewAttachedPayload{}})
+		for {
+			if _, _, err := ws.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}))
+	defer gateway.Close()
+	forwarder := &previewOwnerForwarder{}
+	manager := preview.NewSessionManager(forwarder, nil)
+	defer manager.CloseAll("cleanup")
+	handler := NewHandler(&provider.MockProvider{}, previewOwnerSender{credential: "old-fixture-token"})
+	handler.SetPreviewManager(manager, preview.DataWSSClientConfig{EndpointURL: strings.Replace(gateway.URL, "http", "ws", 1), AllowInsecure: true, RuntimeID: "runtime"})
+	oldEpoch := handler.fileOwnerEpoch
+	handler.SetSender(previewOwnerSender{credential: "new-fixture-token"})
+	raw, _ := json.Marshal(protocol.PreviewOpenMessage{BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypePreviewOpen, MessageID: "old-control-open", SentAt: time.Now(), PreviewSessionID: "old-S", LabInstanceID: "lab", Generation: 1}, Payload: protocol.PreviewOpenPayload{TargetVmKey: "workspace", ProviderServerID: "server", TargetPort: 3000}})
+	err := handler.handleMessageWithFileOwner(context.Background(), raw, oldEpoch)
+	if forwarder.peer != nil {
+		defer forwarder.peer.Close()
+	}
+	if err == nil || forwarder.opened.Load() != 0 {
+		credential := "no observed upgrade"
+		select {
+		case credential = <-observed:
+		default:
+		}
+		t.Errorf("old Control epoch migrated to current owner: err=%v dialCount=%d authorization=%s", err, forwarder.opened.Load(), credential)
+	}
+}
+
+type previewDialFunc func(context.Context, vmaccess.Target, int) (net.Conn, error)
+
+func (f previewDialFunc) DialTCP(c context.Context, t vmaccess.Target, p int) (net.Conn, error) {
+	return f(c, t, p)
+}
+
+func TestPreviewControlCloseCancelsPendingOpenWithoutBlockingReader(t *testing.T) {
+	saas := mock.NewMockSaaS("fixture-token")
+	defer saas.Close()
+	client := NewClient(Config{BaseURL: saas.URL(), Credential: "fixture-token", AllowInsecure: true})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if client.Dial(ctx) != nil {
+		t.Fatal("Control dial failed")
+	}
+	defer client.Close()
+	if _, err := client.SendHello(ctx); err != nil {
+		t.Fatal(err)
+	}
+	entered, retired := make(chan struct{}), make(chan struct{})
+	manager := preview.NewSessionManager(previewDialFunc(func(ctx context.Context, _ vmaccess.Target, _ int) (net.Conn, error) {
+		close(entered)
+		<-ctx.Done()
+		close(retired)
+		return nil, ctx.Err()
+	}), nil)
+	defer manager.Shutdown("cleanup")
+	handler := NewHandler(&provider.MockProvider{}, client)
+	handler.SetPreviewManager(manager, preview.DataWSSClientConfig{EndpointURL: "ws://127.0.0.1:1", AllowInsecure: true})
+	done := make(chan error, 1)
+	go func() { done <- handler.Listen(ctx, client.Conn()) }()
+	defer func() {
+		cancel()
+		_ = client.Close()
+		select {
+		case <-done:
+		case <-time.After(time.Second):
+			t.Error("Control reader stuck")
+		}
+	}()
+	env := protocol.BaseEnvelope{Type: protocol.MessageTypePreviewOpen, MessageID: "OPEN", SentAt: time.Now(), PreviewSessionID: "S", LabInstanceID: "lab", Generation: 1}
+	if saas.SendRaw(protocol.PreviewOpenMessage{BaseEnvelope: env, Payload: protocol.PreviewOpenPayload{TargetVmKey: "workspace", ProviderServerID: "server", TargetPort: 3000}}) != nil {
+		t.Fatal("OPEN send")
+	}
+	select {
+	case <-entered:
+	case <-time.After(time.Second):
+		t.Fatal("pending open never started")
+	}
+	env.Type = protocol.MessageTypePreviewClose
+	env.MessageID = "CLOSE"
+	if saas.SendRaw(protocol.PreviewCloseMessage{BaseEnvelope: env, Payload: protocol.PreviewClosePayload{Reason: protocol.PreviewReasonSessionClosed}}) != nil {
+		t.Fatal("CLOSE send")
+	}
+	select {
+	case <-retired:
+	case <-time.After(time.Second):
+		t.Fatal("Control CLOSE blocked behind pending OPEN")
+	}
+	if manager.Count() != 0 {
+		t.Fatal("pending logical session retained")
+	}
+}
+
+func TestPreviewResultWriteSurvivesTunnelCancellation(t *testing.T) {
+	gateway := mock.NewPreviewGateway()
+	defer gateway.Close()
+	a, b := net.Pipe()
+	defer b.Close()
+	manager := preview.NewSessionManager(previewDialFunc(func(context.Context, vmaccess.Target, int) (net.Conn, error) { return a, nil }), nil)
+	defer manager.Shutdown("cleanup")
+	writing, release := make(chan context.Context, 1), make(chan struct{})
+	handler := NewHandler(&provider.MockProvider{}, SendMessageFunc(func(ctx context.Context, _ any) error {
+		writing <- ctx
+		<-release
+		return ctx.Err()
+	}))
+	handler.SetPreviewManager(manager, preview.DataWSSClientConfig{EndpointURL: gateway.URL(), RuntimeID: "runtime", AllowInsecure: true})
+	msg := protocol.PreviewOpenMessage{BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypePreviewOpen, MessageID: "M1", SentAt: time.Now(), PreviewSessionID: "S", LabInstanceID: "lab", Generation: 1}, Payload: protocol.PreviewOpenPayload{TargetVmKey: "workspace", ProviderServerID: "server", TargetPort: 3000}}
+	raw, _ := json.Marshal(msg)
+	done := make(chan error, 1)
+	go func() { done <- handler.HandleMessage(context.Background(), raw) }()
+	var notification context.Context
+	select {
+	case notification = <-writing:
+	case <-time.After(time.Second):
+		t.Fatal("result not written")
+	}
+	_ = manager.CloseSession("S", protocol.PreviewReasonSessionClosed)
+	if notification.Err() != nil {
+		t.Error("tunnel cancellation canceled shared Control write")
+	}
+	close(release)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPreviewRetirementDoesNotCancelReplacementOwner(t *testing.T) {
+	for _, code := range []int{protocol.CloseCredentialRevoked, protocol.CloseSessionReplaced} {
+		t.Run(fmt.Sprint(code), func(t *testing.T) {
+			manager := preview.NewSessionManager(nil, nil)
+			defer manager.Shutdown("cleanup")
+			handler := NewHandler(&provider.MockProvider{}, previewOwnerSender{"old"})
+			handler.SetPreviewManager(manager, preview.DataWSSClientConfig{})
+			oldEpoch := handler.fileOwnerEpoch
+			env := protocol.BaseEnvelope{MessageID: "old", PreviewSessionID: "old", LabInstanceID: "lab", Generation: 1}
+			payload := protocol.PreviewOpenPayload{TargetVmKey: "workspace", ProviderServerID: "server", TargetPort: 3000}
+			if _, err := manager.PrepareOpen(context.Background(), payload, env); err != nil {
+				t.Fatal(err)
+			}
+			closing, release := make(chan struct{}), make(chan struct{})
+			manager.SetOnEnded(func(s *preview.PreviewSession, _ string, _ error) {
+				if s.SessionID == "old" {
+					close(closing)
+					<-release
+				}
+			})
+			retired := make(chan struct{})
+			go func() { handler.onControlDisconnected(oldEpoch, &websocket.CloseError{Code: code}); close(retired) }()
+			select {
+			case <-closing:
+			case <-time.After(time.Second):
+				t.Fatal("old session not retired")
+			}
+			replaced := make(chan struct{})
+			go func() { handler.SetSender(previewOwnerSender{"new"}); close(replaced) }()
+			select {
+			case <-replaced:
+			case <-time.After(time.Second):
+				close(release)
+				t.Fatal("retirement callback held Control authority lock")
+			}
+			env.MessageID = "new"
+			env.PreviewSessionID = "new"
+			if _, err := manager.PrepareOpen(context.Background(), payload, env); err != nil {
+				t.Fatal(err)
+			}
+			handler.onControlDisconnected(oldEpoch, &websocket.CloseError{Code: code})
+			close(release)
+			<-retired
+			if handler.previewOwner.Err() != nil || manager.Count() != 1 {
+				t.Fatal("old retirement affected replacement owner/session")
+			}
+		})
+	}
+}
+
+func TestPreviewWorkerBoundAndRetirementRelease(t *testing.T) {
+	manager := preview.NewSessionManager(previewDialFunc(func(ctx context.Context, _ vmaccess.Target, _ int) (net.Conn, error) {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}), nil)
+	defer manager.Shutdown("cleanup")
+	results := make(chan protocol.PreviewOpenResultMessage, 128)
+	handler := NewHandler(&provider.MockProvider{}, SendMessageFunc(func(_ context.Context, msg any) error {
+		if r, ok := msg.(protocol.PreviewOpenResultMessage); ok {
+			results <- r
+		}
+		return nil
+	}))
+	handler.SetPreviewManager(manager, preview.DataWSSClientConfig{EndpointURL: "ws://127.0.0.1:1", AllowInsecure: true})
+	epoch := handler.fileOwnerEpoch
+	for n := 0; n < cap(handler.previewOpenSlots)+1; n++ {
+		id := fmt.Sprintf("open-%d", n)
+		raw, _ := json.Marshal(protocol.PreviewOpenMessage{BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypePreviewOpen, MessageID: id, PreviewSessionID: id, LabInstanceID: "lab", Generation: 1}, Payload: protocol.PreviewOpenPayload{TargetVmKey: "workspace", ProviderServerID: "server", TargetPort: 3000}})
+		_ = handler.handleMessageWithFileOwner(context.Background(), raw, epoch, true)
+	}
+	select {
+	case r := <-results:
+		if r.Payload.Error == nil || r.Payload.Error.Code != protocol.PreviewErrorCodeUnavailable {
+			t.Fatal("worker bound did not fail safely")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Control reader blocked on worker admission")
+	}
+	if manager.Count() != cap(handler.previewOpenSlots) {
+		t.Fatal("unbounded pending opens")
+	}
+	handler.onControlDisconnected(epoch, &websocket.CloseError{Code: protocol.CloseCredentialRevoked})
+	deadline := time.Now().Add(time.Second)
+	for len(handler.previewOpenSlots) > 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if manager.Count() != 0 || len(handler.previewOpenSlots) != 0 {
+		t.Fatal("retirement retained pending worker/session")
+	}
+}

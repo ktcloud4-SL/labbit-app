@@ -1,0 +1,12 @@
+=== RUN   TestPreviewCreateReportsAnApplicationThatIsNotListening
+    preview_integration_test.go:856: status = 504 {"type":"about:blank","title":"Gateway Timeout","status":504,"detail":"Workspace VM에 도달할 수 없습니다.","code":"preview_target_unreachable","requestId":"1a4302ac-16a4-4c9e-9eae-9592bb1edb10"}, want 502 preview_app_not_running
+--- FAIL: TestPreviewCreateReportsAnApplicationThatIsNotListening (0.79s)
+=== RUN   TestPreviewCreateReportsAnApplicationThatIsNotListening
+    preview_integration_test.go:856: status = 504 {"type":"about:blank","title":"Gateway Timeout","status":504,"detail":"Workspace VM에 도달할 수 없습니다.","code":"preview_target_unreachable","requestId":"59725c2f-c299-47fc-b0c8-38c1a780d0b0"}, want 502 preview_app_not_running
+--- FAIL: TestPreviewCreateReportsAnApplicationThatIsNotListening (0.63s)
+=== RUN   TestPreviewCreateReportsAnApplicationThatIsNotListening
+    preview_integration_test.go:856: status = 504 {"type":"about:blank","title":"Gateway Timeout","status":504,"detail":"Workspace VM에 도달할 수 없습니다.","code":"preview_target_unreachable","requestId":"f64eab9f-1bbe-4868-b4b8-803c388af005"}, want 502 preview_app_not_running
+--- FAIL: TestPreviewCreateReportsAnApplicationThatIsNotListening (0.61s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/server/app	8.067s
+FAIL

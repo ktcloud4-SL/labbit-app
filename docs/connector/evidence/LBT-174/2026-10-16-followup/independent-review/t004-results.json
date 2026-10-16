@@ -1,0 +1,48 @@
+{
+  "source": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt174-followup-independent-0051d8d\\after-source",
+  "files": {
+    "internal/server/preview/previewtest/peer.go": "15f2a0382518ea8539b2d2a5cf14df9cb6415f128cce23e198c0b834a2a1a724",
+    "internal/server/preview/previewtest/refused_windows.go": "162986a72a911dac7659504d13ee449d1800272094d68283e3edbaed9f7cd673",
+    "internal/server/preview/previewtest/refused_other.go": "75abff0493db026e00414f0f7626caa8444a4f25b393a6c00de12c1342c09d97",
+    "internal/server/preview/previewtest/refused_test.go": "f5dc95030323f9dbcf01b2a70b43c2c42c884e79d50a86299caa72b861780bb6"
+  },
+  "working_source_unchanged": true,
+  "runs": [
+    {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "./internal/server/preview/previewtest",
+        "-run",
+        "^TestConnectionRefused",
+        "-count=20",
+        "-v",
+        "-timeout=90s"
+      ],
+      "exit": 0,
+      "seconds": 8.631,
+      "log": "after-refused-helper-race.log",
+      "sha256": "cf7a25116adc0695f535e89745ab0d9c903a8c02b3d8f7ae86dad3ae362435c3"
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "-tags",
+        "integration",
+        "./internal/server/app",
+        "-run",
+        "^TestPreviewCreateReportsAnApplicationThatIsNotListening$",
+        "-count=5",
+        "-v",
+        "-timeout=90s"
+      ],
+      "exit": 0,
+      "seconds": 20.711,
+      "log": "after-preview-refused-integration.log",
+      "sha256": "34ebbcc25afcd9bd88ee3b83411509299528136a41e4be345c16a34997cdb2e7"
+    }
+  ],
+  "scope": "External source copy; real disposable local PostgreSQL databases; no cloud calls. Four peer fixture files updated; unrelated first TCP test fix preserved for earlier semantic-mutant evidence."
+}

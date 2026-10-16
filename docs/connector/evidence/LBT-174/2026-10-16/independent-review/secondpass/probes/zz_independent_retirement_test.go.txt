@@ -1,0 +1,48 @@
+package wss
+
+import (
+    "context"
+    "runtime"
+    "sync"
+    "testing"
+    "time"
+
+    "github.com/gorilla/websocket"
+    "github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+    "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+)
+
+// Gate the already-existing File cancellation while the old disconnect holds
+// h.mu. The queued SetSender writer then runs before its second RLock. Neither
+// production code nor retirement logic is replaced by this fixture.
+func TestIndependentOldTrustRetirementCannotCancelNewOwner(t *testing.T) {
+    previous := runtime.GOMAXPROCS(1)
+    defer runtime.GOMAXPROCS(previous)
+    h := NewHandler(&provider.MockProvider{}, previewOwnerSender{"old"})
+    oldEpoch := h.fileOwnerEpoch
+    entered, release := make(chan struct{}), make(chan struct{})
+    var once sync.Once
+    h.fileOwnerCancel = func() { once.Do(func() { close(entered); <-release }) }
+    retired := make(chan struct{})
+    go func() {
+        h.onControlDisconnected(oldEpoch, &websocket.CloseError{Code: protocol.CloseCredentialRevoked})
+        close(retired)
+    }()
+    <-entered
+    replaced := make(chan struct{})
+    go func() { h.SetSender(previewOwnerSender{"new"}); close(replaced) }()
+    // Let SetSender block as the writer behind the old handler's critical
+    // section. A queued writer precedes a newly requested RLock.
+    runtime.Gosched()
+    close(release)
+    select { case <-replaced: case <-time.After(time.Second): t.Fatal("SetSender stuck") }
+    select { case <-retired: case <-time.After(time.Second): t.Fatal("retirement stuck") }
+    h.mu.RLock()
+    owner, epoch := h.previewOwner, h.fileOwnerEpoch
+    h.mu.RUnlock()
+    if epoch != oldEpoch+1 { t.Fatalf("fixture failed replacement: %d", epoch) }
+    if err := owner.Err(); err != nil {
+        t.Fatalf("old-epoch credential retirement canceled newly authenticated Preview owner: %v", err)
+    }
+    if err := context.Cause(owner); err != nil { t.Fatal(err) }
+}

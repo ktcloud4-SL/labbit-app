@@ -1,0 +1,12 @@
+{
+  "timestampUTC": "2026-10-16T07:33:36.098783+00:00",
+  "base": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "head": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "branch": "codex/feat/LBT-174-preview-local-integration",
+  "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+  "sourceFiles": 502,
+  "stagedDiffExit": 0,
+  "remoteMainLastReadOnlyResult": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "noCommitPushOrPRPerformed": true,
+  "rawArtifacts": 245
+}

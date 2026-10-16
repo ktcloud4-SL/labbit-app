@@ -1,0 +1,28 @@
+ M internal/connector/app/app.go
+ M internal/connector/app/vm_access.go
+ M internal/connector/app/vm_access_test.go
+ M internal/connector/preview/client.go
+ M internal/connector/preview/manager.go
+ M internal/connector/preview/session.go
+ M internal/connector/provider/openstack/integration_test.go
+ M internal/connector/provider/openstack/workspace_file_integration_test.go
+ M internal/connector/vmaccess/tcp_test.go
+ M internal/connector/wss/handler.go
+ M internal/connector/wss/handler_preview_test.go
+ M internal/server/preview/previewtest/peer.go
+ M internal/server/realtime/trace_propagation_test.go
+?? docs/connector/evidence/LBT-174/
+?? internal/connector/preview/lifecycle_test.go
+?? internal/connector/preview/upgrade_cancel_test.go
+?? internal/connector/provider/openstack/integration_cleanup_test.go
+?? internal/connector/provider/openstack/preview_transport_export_test.go
+?? internal/connector/provider/openstack/preview_transport_integration_test.go
+?? internal/connector/provider/openstack/workspace_file_fixture_test.go
+?? internal/connector/provider/openstack/workspace_file_integration_gate_test.go
+?? internal/connector/wss/handler_preview.go
+?? internal/connector/wss/preview_owner_test.go
+?? internal/connector/wss/preview_replacement_test.go
+?? internal/server/preview/previewtest/refused_other.go
+?? internal/server/preview/previewtest/refused_test.go
+?? internal/server/preview/previewtest/refused_windows.go
+?? internal/server/realtime/trace_log_test.go

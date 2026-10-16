@@ -1,0 +1,86 @@
+{
+  "final": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+  "stages": [
+    {
+      "stage": "first",
+      "sourceSHA256": "3e1c08aae54430f0b0479e53c900e986be18cd9a2a66cd3483030cf9f7835461",
+      "files": 497,
+      "differentFromFinal": [
+        "internal/connector/provider/openstack/workspace_file_fixture_test.go",
+        "internal/connector/provider/openstack/workspace_file_integration_gate_test.go",
+        "internal/connector/provider/openstack/workspace_file_integration_test.go",
+        "internal/connector/vmaccess/tcp_test.go",
+        "internal/server/preview/previewtest/peer.go",
+        "internal/server/preview/previewtest/refused_other.go",
+        "internal/server/preview/previewtest/refused_test.go",
+        "internal/server/preview/previewtest/refused_windows.go"
+      ],
+      "productionChangesAfterStage": [],
+      "limit": "A different global identity is not a final-source rerun. See AUDIT D, exact command metadata, and the PG compiled-input bridge for scoped applicability."
+    },
+    {
+      "stage": "intermediate",
+      "sourceSHA256": "3329212b6d4e47fc401843545a6c14430bb31aba1c5911ef12f0f1104dea4728",
+      "files": 497,
+      "differentFromFinal": [
+        "internal/connector/provider/openstack/workspace_file_fixture_test.go",
+        "internal/connector/provider/openstack/workspace_file_integration_gate_test.go",
+        "internal/connector/provider/openstack/workspace_file_integration_test.go",
+        "internal/server/preview/previewtest/peer.go",
+        "internal/server/preview/previewtest/refused_other.go",
+        "internal/server/preview/previewtest/refused_test.go",
+        "internal/server/preview/previewtest/refused_windows.go"
+      ],
+      "productionChangesAfterStage": [],
+      "limit": "A different global identity is not a final-source rerun. See AUDIT D, exact command metadata, and the PG compiled-input bridge for scoped applicability."
+    },
+    {
+      "stage": "verified",
+      "sourceSHA256": "8e9ca374d70f9aace38277246bdcf7f1689d0bb21dbab3e38b625b50a45472bf",
+      "files": 498,
+      "differentFromFinal": [
+        "internal/connector/provider/openstack/workspace_file_fixture_test.go",
+        "internal/connector/provider/openstack/workspace_file_integration_test.go",
+        "internal/server/preview/previewtest/peer.go",
+        "internal/server/preview/previewtest/refused_other.go",
+        "internal/server/preview/previewtest/refused_test.go",
+        "internal/server/preview/previewtest/refused_windows.go"
+      ],
+      "productionChangesAfterStage": [],
+      "limit": "A different global identity is not a final-source rerun. See AUDIT D, exact command metadata, and the PG compiled-input bridge for scoped applicability."
+    },
+    {
+      "stage": "sealed",
+      "sourceSHA256": "67cd9e8a83f24180d9993cc7eee9100067f5d79e8cdb7b9d0a9e2544ea330289",
+      "files": 501,
+      "differentFromFinal": [
+        "internal/connector/provider/openstack/workspace_file_fixture_test.go",
+        "internal/connector/provider/openstack/workspace_file_integration_test.go"
+      ],
+      "productionChangesAfterStage": [],
+      "limit": "A different global identity is not a final-source rerun. See AUDIT D, exact command metadata, and the PG compiled-input bridge for scoped applicability."
+    },
+    {
+      "stage": "closing-later-c3a-unit-runs",
+      "sourceSHA256": "c3a736e8084dc5b1ae8c5662e374bd277e7d2103eb217f5adc1973e20c892759",
+      "files": 502,
+      "differentFromFinal": [
+        "internal/connector/provider/openstack/workspace_file_fixture_test.go"
+      ],
+      "productionChangesAfterStage": [],
+      "limit": "A different global identity is not a final-source rerun. See AUDIT D, exact command metadata, and the PG compiled-input bridge for scoped applicability."
+    },
+    {
+      "stage": "closing-5ea-Linux-live-and-build",
+      "sourceSHA256": "5ea69fd1494db8b0e016df6ee9ff3c3f0416e874be26375c8cb60305ef9eb1d6",
+      "files": 501,
+      "differentFromFinal": [
+        "internal/connector/provider/openstack/workspace_file_fixture_test.go"
+      ],
+      "manifest": "closing-live-source-reconstruction.json",
+      "limit": "Reconstructed from sealed 67cd manifest replacing only workspace_file_integration_test.go with final helper file. Aggregate matches original closing build/live result metadata 5ea; this is not a contemporaneously saved manifest."
+    }
+  ],
+  "web": "No web, lockfile, runtime, contracts, dependency, migration or CI changes after verified stage.",
+  "postgres": "finalized/postgres-source-bridge.json and independent-review/postgres-bridge-independent-check.json retain the exact compiled closure."
+}

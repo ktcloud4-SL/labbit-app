@@ -1,0 +1,42 @@
+=== RUN   TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit (0.03s)
+=== RUN   TestReviewWorkspaceExecCancellationClosesExactSession
+--- PASS: TestReviewWorkspaceExecCancellationClosesExactSession (0.03s)
+=== RUN   TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestReviewWorkspaceExecCancellationClosesExactSession
+--- PASS: TestReviewWorkspaceExecCancellationClosesExactSession (0.02s)
+=== RUN   TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestReviewWorkspaceExecCancellationClosesExactSession
+--- PASS: TestReviewWorkspaceExecCancellationClosesExactSession (0.03s)
+=== RUN   TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestReviewWorkspaceExecCancellationClosesExactSession
+--- PASS: TestReviewWorkspaceExecCancellationClosesExactSession (0.03s)
+=== RUN   TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestReviewWorkspaceExecCancellationClosesExactSession
+--- PASS: TestReviewWorkspaceExecCancellationClosesExactSession (0.02s)
+=== RUN   TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestReviewWorkspaceExecCancellationClosesExactSession
+--- PASS: TestReviewWorkspaceExecCancellationClosesExactSession (0.02s)
+=== RUN   TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestReviewWorkspaceExecCancellationClosesExactSession
+--- PASS: TestReviewWorkspaceExecCancellationClosesExactSession (0.02s)
+=== RUN   TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit (0.03s)
+=== RUN   TestReviewWorkspaceExecCancellationClosesExactSession
+--- PASS: TestReviewWorkspaceExecCancellationClosesExactSession (0.03s)
+=== RUN   TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestReviewWorkspaceExecCancellationClosesExactSession
+--- PASS: TestReviewWorkspaceExecCancellationClosesExactSession (0.02s)
+=== RUN   TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit (0.02s)
+=== RUN   TestReviewWorkspaceExecCancellationClosesExactSession
+--- PASS: TestReviewWorkspaceExecCancellationClosesExactSession (0.02s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	4.833s

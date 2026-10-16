@@ -1,0 +1,458 @@
+package openstackprovider
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
+	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
+	"io"
+	"net"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+)
+
+// External validation overlay only. Never copied into production or source archive.
+func TestLocalLinuxRaceAndInternetDiagnostics(t *testing.T) {
+	if os.Getenv("LABBIT_LOCAL_NETWORK_RACE") != "1" {
+		t.Skip("explicit local validation opt-in required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 55*time.Minute)
+	defer cancel()
+	a, err := New(ctx, ConfigFromEnvironment())
+	if err != nil {
+		t.Fatal("provider init failed")
+	}
+	images, err := a.ListImages(ctx)
+	if err != nil {
+		t.Fatal("image discovery failed")
+	}
+	flavors, err := a.ListFlavors(ctx)
+	if err != nil {
+		t.Fatal("flavor discovery failed")
+	}
+	networks, err := a.ListNetworks(ctx)
+	if err != nil {
+		t.Fatal("network discovery failed")
+	}
+	image := exactImage(t, images, "ubuntu")
+	flavor := exactFlavor(t, flavors, "m1.small")
+	management := exactNetwork(t, networks, "sharednet1")
+	key := a.provision.SSHPrivateKeyFile
+	keypair := integrationKeyPairName(t, ctx, a, key)
+	sg := integrationManagementSecurityGroup(t, ctx, a, "172.16.8.1/32")
+	external := integrationExternalNetworkID(t, ctx, a)
+	a.provision = normalizedProvisionConfig(ProvisionConfig{ProviderConnectionID: "local-integration", ProjectID: integrationProjectID(t, a), ManagementNetworkID: management.ID, ManagementSecurityGroupID: sg, ExternalNetworkID: external, KeyPairName: keypair, SSHAllowedCIDR: "172.16.8.1/32", LabSubnetCIDR: "198.24.0.0/24", SSHUsername: "ubuntu", SSHPrivateKeyFile: key, SSHKnownHostsFile: t.TempDir() + "/known_hosts", PollInterval: 2 * time.Second})
+	content := "#!/bin/sh\nset -eu\necho labbit-internet-policy-ready\n"
+	digest := sha256.Sum256([]byte(content))
+	snapshot := coreprovider.CreationSnapshot{ProviderConnectionID: "local-integration", WorkspaceVMKey: "workspace", InternetOutbound: true, StartupScript: &coreprovider.StartupScript{Content: content, SHA256: hex.EncodeToString(digest[:])}, VMs: []coreprovider.VMSpec{{VMKey: "workspace", Role: "WORKSPACE", ImageID: image.ID, FlavorID: flavor.ID, FlavorSpec: coreprovider.FlavorSpec{VCPUs: flavor.VCPUs, RAMMiB: flavor.RAMMiB, DiskGiB: flavor.DiskGiB}}}}
+	labID := "lbt174-race-" + integrationRunID(t)
+	result, err := a.Provision(ctx, coreprovider.ProvisionRequest{Correlation: coreprovider.Correlation{OperationID: labID + "-provision", LabInstanceID: labID, Generation: 1}, CreationSnapshot: snapshot})
+	t.Cleanup(func() {
+		cleanupM2Resources(t, a, result.ProviderResources)
+		t.Logf("Linux race fixture exact tracked absence checked: resources=%d", len(result.ProviderResources))
+	})
+	if err != nil || result.Outcome != coreprovider.OutcomeSucceeded {
+		t.Fatal("disposable fixture provision failed")
+	}
+	serverID := providerResourceID(t, result.ProviderResources, coreprovider.ResourceTypeServer, "workspace")
+	managementID := providerResourceID(t, result.ProviderResources, coreprovider.ResourceTypePort, "workspace:management")
+	p, err := ports.Get(ctx, a.network, managementID).Extract()
+	if err != nil {
+		t.Fatal("management lookup failed")
+	}
+	ip, err := managementAddress(*p)
+	if err != nil {
+		t.Fatal("management address unavailable")
+	}
+	host, err := sshHostKeyIdentity(a.provision.ProviderConnectionID, serverID)
+	if err != nil {
+		t.Fatal("host identity unavailable")
+	}
+	address := net.JoinHostPort(ip, "22")
+	labPortID := providerResourceID(t, result.ProviderResources, coreprovider.ResourceTypePort, "workspace:lab")
+	labPort, err := ports.Get(ctx, a.network, labPortID).Extract()
+	if err != nil {
+		t.Fatal("lab interface lookup failed")
+	}
+	if _, err := net.ParseMAC(labPort.MACAddress); err != nil {
+		t.Fatal("lab MAC invalid")
+	}
+	if _, err := net.ParseMAC(p.MACAddress); err != nil {
+		t.Fatal("management MAC invalid")
+	}
+
+	client := localPinnedSSH(t, ctx, a, address, host)
+	defer client.Close()
+	out := os.Getenv("LABBIT_LOCAL_VALIDATION_DIR")
+	phase := func(name, command string, limit time.Duration) error {
+		phaseContext, cancelPhase := context.WithTimeout(ctx, limit)
+		defer cancelPhase()
+		phaseClient := localPinnedSSH(t, phaseContext, a, address, host)
+		log, err := os.Create(filepath.Join(out, name+".log"))
+		if err != nil {
+			phaseClient.Close()
+			return err
+		}
+		defer log.Close()
+		begin := time.Now()
+		err = integrationDiagnosticSSH(phaseContext, phaseClient, command, log)
+		status := 0
+		var exit *ssh.ExitError
+		if errors.As(err, &exit) {
+			status = exit.ExitStatus()
+		} else if err != nil {
+			status = -1
+		}
+		t.Logf("Linux validation phase=%s exit=%d elapsed_ms=%d joined=true", name, status, time.Since(begin).Milliseconds())
+		return err
+	}
+	// No target connection or route probe precedes this exact first single TCP attempt.
+	for attempt := 1; attempt <= 12; attempt++ {
+		begin := time.Now()
+		err := phase(fmt.Sprintf("internet-first-%02d", attempt), localReachabilityCommand(labPort.MACAddress, p.MACAddress), 15*time.Second)
+		t.Logf("Internet first-series result attempt=%d success=%t elapsed_ms=%d", attempt, err == nil, time.Since(begin).Milliseconds())
+		if err != nil {
+			t.Error("first socket failed after routing fix")
+		}
+	}
+	mgmtSubnet, err := subnets.Get(ctx, a.network, p.FixedIPs[0].SubnetID).Extract()
+	if err != nil || net.ParseIP(mgmtSubnet.GatewayIP) == nil {
+		t.Fatal("management gateway unavailable for owned diagnostic")
+	}
+	if err := phase("diagnostic-timeout-cleanup", localTimeoutCleanupCommand(labPort.MACAddress, p.MACAddress), 15*time.Second); err != nil {
+		t.Fatal("remote bounded timeout cleanup failed")
+	}
+	if err := phase("after-timeout", localReachabilityCommand(labPort.MACAddress, p.MACAddress), 15*time.Second); err != nil {
+		t.Fatal("fresh diagnostic after timeout failed")
+	}
+	if err := phase("route-counterfactual", localRouteABCommand(labPort.MACAddress, p.MACAddress, mgmtSubnet.GatewayIP), 45*time.Second); err != nil {
+		t.Error("owned target-route counterfactual failed")
+	}
+	for _, order := range []string{"lab-first", "management-first"} {
+		if err := phase("renew-"+order, localRenewCommand(labPort.MACAddress, p.MACAddress, order), 45*time.Second); err != nil {
+			t.Fatal("DHCP renew policy failed")
+		}
+	}
+
+	if os.Getenv("LABBIT_LOCAL_PROBE_ONLY") == "1" {
+		return
+	}
+	if err := phase("linux-preflight", "uname -sm; getconf GNU_LIBC_VERSION; command -v gcc || true; free -m; df -h /; sudo -n true", time.Minute); err != nil {
+		t.Fatal("Linux preflight failed")
+	}
+	if err := phase("linux-apt", localAptCommand(labPort.MACAddress, p.MACAddress), 11*time.Minute); err != nil {
+		t.Fatal("Linux C compiler preparation failed")
+	}
+	if err := phase("linux-directory", "mkdir -p /home/ubuntu/lbt174-validation", time.Minute); err != nil {
+		t.Fatal("Linux staging failed")
+	}
+	fileclient, err := sftp.NewClient(client)
+	if err != nil {
+		t.Fatal("Linux SFTP unavailable")
+	}
+	defer fileclient.Close()
+	for _, name := range []string{"go1.27.1.linux-amd64.tar.gz", "linux-source.tar.gz", "linux_ci.sh"} {
+		input, err := os.Open(filepath.Join(out, name))
+		if err != nil {
+			t.Fatal("local staging input unavailable")
+		}
+		output, err := fileclient.Create("/home/ubuntu/lbt174-validation/" + name)
+		if err != nil {
+			input.Close()
+			t.Fatal("Linux staging write failed")
+		}
+		_, copyErr := io.Copy(output, input)
+		input.Close()
+		closeErr := output.Close()
+		if copyErr != nil || closeErr != nil {
+			t.Fatal("Linux staging copy failed")
+		}
+	}
+	install := fmt.Sprintf("cd /home/ubuntu/lbt174-validation && echo '%s  go1.27.1.linux-amd64.tar.gz' | sha256sum -c - && echo '%s  linux-source.tar.gz' | sha256sum -c - && tar xzf go1.27.1.linux-amd64.tar.gz && tar xzf linux-source.tar.gz", os.Getenv("LABBIT_LOCAL_GO_SHA256"), os.Getenv("LABBIT_LOCAL_SOURCE_SHA256"))
+	if err := phase("linux-unpack", install, 3*time.Minute); err != nil {
+		t.Fatal("Linux archive verification failed")
+	}
+	listener, err := client.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal("DB loopback forward unavailable")
+	}
+	defer listener.Close()
+	go func() {
+		for {
+			remote, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				defer remote.Close()
+				local, err := net.DialTimeout("tcp", "127.0.0.1:15432", 5*time.Second)
+				if err != nil {
+					return
+				}
+				defer local.Close()
+				done := make(chan struct{})
+				go func() { io.Copy(local, remote); local.Close(); close(done) }()
+				io.Copy(remote, local)
+				remote.Close()
+				<-done
+			}()
+		}
+	}()
+	_, port, err := net.SplitHostPort(listener.Addr().String())
+	if err != nil {
+		t.Fatal("DB forward port invalid")
+	}
+	command := "LABBIT_TEST_DATABASE_DSN='postgres://postgres@127.0.0.1:" + port + "/postgres?sslmode=disable' bash /home/ubuntu/lbt174-validation/linux_ci.sh"
+	if err := phase("linux-ci", command, 35*time.Minute); err != nil {
+		t.Fatal("Linux exact tagged-race CI phase failed; see bounded local phase output")
+	}
+	b, err := os.ReadFile(filepath.Join(out, "linux-ci.log"))
+	if err != nil || !strings.Contains(string(b), "LBT174_LINUX_RACE_PASS") {
+		t.Fatal("Linux race completion marker absent")
+	}
+	t.Log("Linux native CGO/race CI command completed; JSONL and exact required tests checked separately")
+	// The native CI has returned; no forwarded DB worker is needed across reboot/Reset.
+	listener.Close()
+	fileclient.Close()
+	client.Close()
+	marker := `python3 -c "from pathlib import Path; Path('/home/ubuntu/lbt174-validation-boot').write_text(Path('/proc/sys/kernel/random/boot_id').read_text())"`
+	if err := phase("before-reboot", marker, 15*time.Second); err != nil {
+		t.Fatal("boot identity marker failed")
+	}
+	if err := servers.Reboot(ctx, a.compute, serverID, servers.RebootOpts{Type: servers.SoftReboot}).ExtractErr(); err != nil {
+		t.Fatal("owned VM reboot failed")
+	}
+	rebootCtx, cancelReboot := context.WithTimeout(ctx, 5*time.Minute)
+	bootChanged := false
+	for rebootCtx.Err() == nil {
+		checkCtx, cancelCheck := context.WithTimeout(rebootCtx, 10*time.Second)
+		err := a.runSSHCommand(checkCtx, address, host, `python3 -c "from pathlib import Path; assert Path('/home/ubuntu/lbt174-validation-boot').read_text()!=Path('/proc/sys/kernel/random/boot_id').read_text()"`)
+		cancelCheck()
+		if err == nil {
+			bootChanged = true
+			break
+		}
+		select {
+		case <-time.After(2 * time.Second):
+		case <-rebootCtx.Done():
+		}
+	}
+	cancelReboot()
+	if !bootChanged {
+		t.Fatal("reboot identity and authenticated SSH recovery not observed")
+	}
+	if err := phase("after-reboot", localReachabilityCommand(labPort.MACAddress, p.MACAddress), 15*time.Second); err != nil {
+		t.Fatal("routing after actual reboot failed")
+	}
+	for _, order := range []string{"lab-first", "management-first"} {
+		if err := phase("after-reboot-renew-"+order, localRenewCommand(labPort.MACAddress, p.MACAddress, order), 45*time.Second); err != nil {
+			t.Fatal("renew after reboot failed")
+		}
+	}
+	reset, resetErr := a.Reset(ctx, coreprovider.ResetRequest{Correlation: coreprovider.Correlation{OperationID: labID + "-reset", LabInstanceID: labID, Generation: 2}, CreationSnapshot: snapshot, ProviderResources: resourceRefs(result.ProviderResources, 1)})
+	// Retain both confirmed generations for cleanup on every partial failure.
+	for _, r := range reset.ProviderResources {
+		result.ProviderResources = upsertResource(result.ProviderResources, r)
+	}
+	if resetErr != nil || reset.Outcome != coreprovider.OutcomeSucceeded {
+		t.Fatal("reset generation2 failed")
+	}
+	fresh := resourceResultsForGeneration(reset.ProviderResources, 2)
+	serverID = providerResourceID(t, fresh, coreprovider.ResourceTypeServer, "workspace")
+	managementID = providerResourceID(t, fresh, coreprovider.ResourceTypePort, "workspace:management")
+	p, err = ports.Get(ctx, a.network, managementID).Extract()
+	if err != nil {
+		t.Fatal("reset management lookup failed")
+	}
+	ip, err = managementAddress(*p)
+	if err != nil {
+		t.Fatal("reset management address missing")
+	}
+	address = net.JoinHostPort(ip, "22")
+	host, err = sshHostKeyIdentity(a.provision.ProviderConnectionID, serverID)
+	if err != nil {
+		t.Fatal("reset host identity missing")
+	}
+	labPortID = providerResourceID(t, fresh, coreprovider.ResourceTypePort, "workspace:lab")
+	labPort, err = ports.Get(ctx, a.network, labPortID).Extract()
+	if err != nil {
+		t.Fatal("reset lab lookup failed")
+	}
+	for attempt := 1; attempt <= 12; attempt++ {
+		if err := phase(fmt.Sprintf("after-reset-first-%02d", attempt), localReachabilityCommand(labPort.MACAddress, p.MACAddress), 15*time.Second); err != nil {
+			t.Fatal("reset first-series routing failed")
+		}
+	}
+	for _, order := range []string{"lab-first", "management-first"} {
+		if err := phase("after-reset-renew-"+order, localRenewCommand(labPort.MACAddress, p.MACAddress, order), 45*time.Second); err != nil {
+			t.Fatal("renew after reset failed")
+		}
+	}
+	t.Log("actual reboot boot-id change, authenticated SSH recovery, immutable Reset g2, first12 and both renewal orders verified")
+
+}
+
+func localPython(script string) string {
+	return "python3 -c \"import base64;exec(base64.b64decode('" + base64.StdEncoding.EncodeToString([]byte(script)) + "'))\""
+}
+func localNetworkPrelude(labMAC, managementMAC string) string {
+	return fmt.Sprintf(`import json,socket,subprocess,time
+from pathlib import Path
+import signal
+from contextlib import contextmanager
+def owned_route_entries(args):
+ rows=json.loads(bounded_output(['ip','-j','route','show','exact',args[0]]))
+ return [x for x in rows if x.get('gateway')==args[2] and x.get('dev')==args[4] and x.get('metric',0)==int(args[6])]
+@contextmanager
+def owned_route(args):
+ assert not owned_route_entries(args), 'owned diagnostic route already exists'
+ try:
+  bounded_run(['sudo','-n','ip','route','add']+args,check=True,stdout=subprocess.DEVNULL)
+  yield
+ finally:
+  if owned_route_entries(args): bounded_run(['sudo','-n','ip','route','del']+args,check=True,stdout=subprocess.DEVNULL)
+  assert not owned_route_entries(args), 'owned diagnostic route remains'
+def bounded_output(args,**kwargs):
+ return subprocess.check_output(args,timeout=8,**kwargs)
+def bounded_run(args,**kwargs):
+ return subprocess.run(args,timeout=310 if 'apt-get' in args else 8,**kwargs)
+def diagnostic_deadline(signum,frame): raise TimeoutError('bounded diagnostic deadline')
+signal.signal(signal.SIGALRM,diagnostic_deadline)
+signal.alarm(30)
+macs={'lab':%q,'management':%q}
+def role(dev):
+ try: value=(Path('/sys/class/net')/dev/'address').read_text().strip()
+ except OSError: return 'unknown'
+ return next((k for k,v in macs.items() if v.lower()==value.lower()),'unknown')
+def route():
+ rows=json.loads(bounded_output(['ip','-j','route','get','1.1.1.1']))
+ return [{'role':role(x.get('dev','')), 'hasGateway':'gateway' in x} for x in rows]
+def probe():
+ before=route();defaults=json.loads(bounded_output(['ip','-j','route','show','default']))
+ s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.settimeout(5);start=time.monotonic();code=s.connect_ex(('1.1.1.1',443));elapsed=round((time.monotonic()-start)*1000);source,port=s.getsockname();s.close()
+ addresses=json.loads(bounded_output(['ip','-j','address','show']))
+ socketrole=next((role(x['ifname']) for x in addresses if any(y.get('local')==source for y in x.get('addr_info',[]))),'unknown')
+ try:
+  exact=json.loads(bounded_output(['ip','-j','route','get','1.1.1.1','from',source,'ipproto','tcp','sport',str(port),'dport','443'],stderr=subprocess.DEVNULL))
+  exactroles=[{'role':role(x.get('dev','')),'hasGateway':'gateway' in x} for x in exact]
+ except subprocess.CalledProcessError: exactroles=[{'queryFailed':True}]
+ rpf={role(x.get('dev','')):int((Path('/proc/sys/net/ipv4/conf')/x['dev']/'rp_filter').read_text().strip()) for x in defaults}
+ return {'routeBefore':before,'routeAfter':route(),'socketSourceRole':socketrole,'socketTupleRoute':exactroles,'reversePathFilter':rpf,'defaultRoutes':[{'role':role(x.get('dev','')),'metric':x.get('metric',0),'hasGateway':'gateway' in x} for x in defaults],'connectCode':code,'elapsed_ms':elapsed}
+`, labMAC, managementMAC)
+}
+func localReachabilityCommand(labMAC, managementMAC string) string {
+	return localPython(localNetworkPrelude(labMAC, managementMAC) + "result=probe();print(json.dumps(result),flush=True);assert result['connectCode']==0 and len(result['defaultRoutes'])==1 and result['defaultRoutes'][0]['role']=='lab' and result['socketSourceRole']=='lab', 'unexpected Internet routing'\n")
+}
+func localRouteABCommand(labMAC, managementMAC, managementGateway string) string {
+	return localPython(localNetworkPrelude(labMAC, managementMAC) + fmt.Sprintf("managementGateway=%q\n", managementGateway) + `defaults=json.loads(bounded_output(['ip','-j','route','show','default']))
+original=route()
+assert not json.loads(bounded_output(['ip','-j','route','show','exact','1.1.1.1/32'])), 'target host route already exists'
+print(json.dumps({'case':'baseline',**probe()}),flush=True)
+for wanted in ['management','lab']:
+ selected=next(x for x in defaults if role(x.get('dev',''))==wanted and 'gateway' in x) if wanted=='lab' else {'gateway':managementGateway,'dev':next(x['ifname'] for x in json.loads(bounded_output(['ip','-j','link'])) if role(x['ifname'])=='management')}
+ print(json.dumps({'step':'selected','case':wanted}),flush=True)
+ args=['1.1.1.1/32','via',selected['gateway'],'dev',selected['dev'],'metric','50']
+ with owned_route(args):
+  result=probe();print(json.dumps({'case':'forced-'+wanted,**result}),flush=True)
+  assert result['routeBefore'][0]['role']==wanted
+  assert (result['connectCode']==0)==(wanted=='lab')
+ print(json.dumps({'step':'route-removed','case':wanted}),flush=True)
+assert not json.loads(bounded_output(['ip','-j','route','show','exact','1.1.1.1/32']))
+assert route()==original
+print(json.dumps({'case':'restored','route':route(),'ownedRouteAbsent':True}),flush=True)
+`)
+}
+func localAptCommand(labMAC, managementMAC string) string {
+	return localPython(localNetworkPrelude(labMAC, managementMAC) + `signal.alarm(0)
+bounded_run(['sudo','-n','timeout','300s','apt-get','update','-qq'],check=True)
+bounded_run(['sudo','-n','env','DEBIAN_FRONTEND=noninteractive','NEEDRESTART_MODE=l','timeout','300s','apt-get','install','-y','--no-install-recommends','gcc','libc6-dev'],check=True)
+print(json.dumps({'aptTemporaryRouteUsed':False}),flush=True)
+swap=Path('/home/ubuntu/lbt174-validation.swap')
+assert not swap.exists()
+bounded_run(['sudo','fallocate','-l','1G',str(swap)],check=True)
+bounded_run(['sudo','chmod','600',str(swap)],check=True)
+bounded_run(['sudo','mkswap',str(swap)],check=True,stdout=subprocess.DEVNULL)
+bounded_run(['sudo','swapon',str(swap)],check=True)
+print(json.dumps({'ownedDisposableSwapBytes':swap.stat().st_size}),flush=True)
+`)
+}
+
+func localPinnedSSH(t *testing.T, ctx context.Context, a *Adapter, address, host string) *ssh.Client {
+	t.Helper()
+	key, err := os.ReadFile(a.provision.SSHPrivateKeyFile)
+	if err != nil {
+		t.Fatal("private key input unavailable")
+	}
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		t.Fatal("private key input invalid")
+	}
+	callback, err := trustOnFirstUseCallback(a.provision.SSHKnownHostsFile, host)
+	if err != nil {
+		t.Fatal("host pin unavailable")
+	}
+	tcp, err := (&net.Dialer{Timeout: 5 * time.Second}).DialContext(ctx, "tcp", address)
+	if err != nil {
+		t.Fatal("SSH dial failed")
+	}
+	t.Cleanup(func() { tcp.Close() })
+	stop := context.AfterFunc(ctx, func() { tcp.Close() })
+	t.Cleanup(func() { stop() })
+	conn, channels, requests, err := ssh.NewClientConn(tcp, host, &ssh.ClientConfig{User: a.provision.SSHUsername, Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)}, HostKeyCallback: callback})
+	if err != nil {
+		tcp.Close()
+		t.Fatal("SSH authentication or host pin failed")
+	}
+	return ssh.NewClient(conn, channels, requests)
+}
+
+func localTimeoutCleanupCommand(labMAC, managementMAC string) string {
+	return localPython(localNetworkPrelude(labMAC, managementMAC) + `target='1.0.0.1/32'
+assert not json.loads(bounded_output(['ip','-j','route','show','exact',target]))
+selected=next(x for x in json.loads(bounded_output(['ip','-j','route','show','default'])) if role(x.get('dev',''))=='lab')
+args=[target,'via',selected['gateway'],'dev',selected['dev'],'metric','51']
+timedout=False
+with owned_route(args):
+ try:
+  signal.alarm(1)
+  time.sleep(60)
+ except TimeoutError: timedout=True
+ finally: signal.alarm(0)
+assert timedout
+assert not json.loads(bounded_output(['ip','-j','route','show','exact',target]))
+print(json.dumps({'intentionalTimeoutObserved':True,'ownedRouteAbsent':True,'cleanupComplete':True}),flush=True)
+`)
+}
+
+func localRenewCommand(labMAC, managementMAC, order string) string {
+	return localPython(localNetworkPrelude(labMAC, managementMAC) + fmt.Sprintf("order=%q\n", order) + `sequence=['lab','management'] if order=='lab-first' else ['management','lab']
+links=json.loads(bounded_output(['ip','-j','link']))
+for wanted in sequence:
+ link=next(x for x in links if role(x['ifname'])==wanted)
+ lease=Path('/run/systemd/netif/leases')/str(link['ifindex'])
+ before=lease.stat().st_mtime_ns
+ bounded_run(['sudo','-n','networkctl','renew',link['ifname']],check=True,stdout=subprocess.DEVNULL)
+ deadline=time.monotonic()+10
+ while time.monotonic()<deadline:
+  if lease.exists() and lease.stat().st_mtime_ns!=before:break
+  time.sleep(0.1)
+ else:raise RuntimeError('DHCP renewal completion not observed')
+ print(json.dumps({'renewedRole':wanted,'leaseChanged':True}),flush=True)
+result=probe()
+print(json.dumps({'case':'observed-after-renew-'+order,**result}),flush=True)
+assert len(result['defaultRoutes'])==1 and result['defaultRoutes'][0]['role']=='lab'
+assert result['connectCode']==0 and result['socketSourceRole']=='lab'
+print(json.dumps({'case':'after-renew-'+order,**result}),flush=True)
+`)
+}

@@ -1,0 +1,572 @@
+{
+  "readOnly": true,
+  "actualSourceIdentity": {
+    "files": 520,
+    "sourceSHA256": "86ec2c865b611a512eab3baabed7d238a102765d5095fd0c92a36372aba5b791",
+    "mismatches": 0
+  },
+  "strictProbe": {
+    "childExitCode": 1,
+    "elapsedSeconds": 132.641,
+    "firstCalls": [
+      {
+        "connectCode": 0,
+        "elapsedMs": 11,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          },
+          {
+            "role": "management",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      },
+      {
+        "connectCode": 0,
+        "elapsedMs": 32,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          },
+          {
+            "role": "management",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      },
+      {
+        "connectCode": 0,
+        "elapsedMs": 16,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          },
+          {
+            "role": "management",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      },
+      {
+        "connectCode": 0,
+        "elapsedMs": 10,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          },
+          {
+            "role": "management",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      },
+      {
+        "connectCode": 0,
+        "elapsedMs": 11,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          },
+          {
+            "role": "management",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      },
+      {
+        "connectCode": 0,
+        "elapsedMs": 11,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          },
+          {
+            "role": "management",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      },
+      {
+        "connectCode": 0,
+        "elapsedMs": 11,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          },
+          {
+            "role": "management",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      },
+      {
+        "connectCode": 0,
+        "elapsedMs": 11,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          },
+          {
+            "role": "management",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      },
+      {
+        "connectCode": 0,
+        "elapsedMs": 11,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          },
+          {
+            "role": "management",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      },
+      {
+        "connectCode": 0,
+        "elapsedMs": 10,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          },
+          {
+            "role": "management",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      },
+      {
+        "connectCode": 0,
+        "elapsedMs": 36,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          },
+          {
+            "role": "management",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      },
+      {
+        "connectCode": 0,
+        "elapsedMs": 8,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          },
+          {
+            "role": "management",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      }
+    ],
+    "afterTimeout": {
+      "connectCode": 0,
+      "elapsedMs": 10,
+      "sourceRole": "lab",
+      "tupleRoles": [
+        "lab"
+      ],
+      "defaults": [
+        {
+          "role": "lab",
+          "metric": 100,
+          "hasGateway": true
+        },
+        {
+          "role": "management",
+          "metric": 100,
+          "hasGateway": true
+        }
+      ]
+    },
+    "intentionalTimeout": {
+      "exitCode": 0,
+      "elapsedMs": 1442,
+      "joined": true
+    },
+    "trackedAbsence": 8,
+    "securityGroupGETAbsence": true,
+    "keypairGETAbsence": true,
+    "interpretation": "TCP and Lab source passed; sole-Lab-default routing requirement failed. Later lifecycle gates not reached."
+  },
+  "agents": [
+    {
+      "type": "Metadata agent",
+      "binary": "neutron-metadata-agent",
+      "alive": true,
+      "adminStateUp": true
+    },
+    {
+      "type": "DHCP agent",
+      "binary": "neutron-dhcp-agent",
+      "alive": true,
+      "adminStateUp": true
+    },
+    {
+      "type": "L3 agent",
+      "binary": "neutron-l3-agent",
+      "alive": true,
+      "adminStateUp": true
+    },
+    {
+      "type": "Open vSwitch agent",
+      "binary": "neutron-openvswitch-agent",
+      "alive": true,
+      "adminStateUp": true
+    }
+  ],
+  "leaseObserver": {
+    "managementServerMatchesQueriedNeutronDHCPPort": true,
+    "managementLeaseHasRouter": true,
+    "managementLeaseHasRoutesField": false,
+    "canonicalEmptyAPIOptions": [
+      {
+        "opt_name": "classless-static-route",
+        "opt_value": "",
+        "ip_version": 4
+      },
+      {
+        "opt_name": "router",
+        "opt_value": "",
+        "ip_version": 4
+      }
+    ],
+    "wholeTestPass": false,
+    "netplanObserved": false,
+    "failure": "TypeError serializing bytes after the lease observations",
+    "trackedAbsence": 8,
+    "securityGroupGETAbsence": true,
+    "keypairGETAbsence": true
+  },
+  "limits": [
+    "No private IP/MAC or credentials are emitted in this summary.",
+    "No DHCP packet capture or installed daemon version/config was inspected.",
+    "Lease field absence is an observed file fact, not proof an option was absent on wire."
+  ],
+  "rawProvenance": [
+    {
+      "path": "internet-first-01.log",
+      "sha256": "9ffb6ad5f53272a50f15f3defe83364f31ddd5f3f9433d183752b7c6b997a5e1",
+      "bytes": 568
+    },
+    {
+      "path": "internet-first-02.log",
+      "sha256": "c1fcb94a3fb9407d452b269b36d36a9c7e09a38788e7194e30ff06acc8f8d22c",
+      "bytes": 568
+    },
+    {
+      "path": "internet-first-03.log",
+      "sha256": "4f35992abbd37f4237533923b187965319dcd5929d42ebf419489c0de7ed9073",
+      "bytes": 568
+    },
+    {
+      "path": "internet-first-04.log",
+      "sha256": "d9176b046be0ae0798a92292357e50f20dc7929699c67210817859fcc1009124",
+      "bytes": 568
+    },
+    {
+      "path": "internet-first-05.log",
+      "sha256": "9ffb6ad5f53272a50f15f3defe83364f31ddd5f3f9433d183752b7c6b997a5e1",
+      "bytes": 568
+    },
+    {
+      "path": "internet-first-06.log",
+      "sha256": "9ffb6ad5f53272a50f15f3defe83364f31ddd5f3f9433d183752b7c6b997a5e1",
+      "bytes": 568
+    },
+    {
+      "path": "internet-first-07.log",
+      "sha256": "9ffb6ad5f53272a50f15f3defe83364f31ddd5f3f9433d183752b7c6b997a5e1",
+      "bytes": 568
+    },
+    {
+      "path": "internet-first-08.log",
+      "sha256": "9ffb6ad5f53272a50f15f3defe83364f31ddd5f3f9433d183752b7c6b997a5e1",
+      "bytes": 568
+    },
+    {
+      "path": "internet-first-09.log",
+      "sha256": "9ffb6ad5f53272a50f15f3defe83364f31ddd5f3f9433d183752b7c6b997a5e1",
+      "bytes": 568
+    },
+    {
+      "path": "internet-first-10.log",
+      "sha256": "d9176b046be0ae0798a92292357e50f20dc7929699c67210817859fcc1009124",
+      "bytes": 568
+    },
+    {
+      "path": "internet-first-11.log",
+      "sha256": "3bafa2d3903c88cbb537f3b8f00644fb30ed661d50cb4ba9a6f6aaf5be81c193",
+      "bytes": 568
+    },
+    {
+      "path": "internet-first-12.log",
+      "sha256": "9cc8ac738afcc457f139e48c741040e0791a2ea0fea9eacaf60bc8ea322dd427",
+      "bytes": 567
+    },
+    {
+      "path": "after-timeout.log",
+      "sha256": "d9176b046be0ae0798a92292357e50f20dc7929699c67210817859fcc1009124",
+      "bytes": 568
+    },
+    {
+      "path": "probe-run-result.json",
+      "sha256": "54d627eebd7ff355332a49fed4eb7c12668650635202d91215159233452a74c7",
+      "bytes": 1252
+    },
+    {
+      "path": "probe-live.log",
+      "sha256": "eb9ed2afc24a357c1b0b001d63b4366992fc331883ebc1645cbfba3aec85a8c4",
+      "bytes": 15112
+    },
+    {
+      "path": "backend-observer.log",
+      "sha256": "7272140db157ecdb4f68f799fe49ebd51b6876deddccf9e302fa42a344d53986",
+      "bytes": 2971
+    },
+    {
+      "path": "lease-observer/dhcp-lease-origin.log",
+      "sha256": "2279c96bbf80123e2258b30ccad6162fe1c5893e38ee3f7bb4e62e8f7cc51d86",
+      "bytes": 1088
+    },
+    {
+      "path": "lease-observer/probe-live.log",
+      "sha256": "f15262b77a4ae642b306f45352d5b2e5348e093e9fb99c918f393c997c0afb50",
+      "bytes": 3700
+    },
+    {
+      "path": "candidate-onlink-v2/probe-run-result.json",
+      "sha256": "5beb5904bf6e2da806dbe0077b3f6262bfea81a3a294f5a0eddf1f78dd9c84dd",
+      "bytes": 1272
+    },
+    {
+      "path": "candidate-onlink-v2/probe-live.log",
+      "sha256": "42903f0c6cffb7de0a2a094db22f828483ca82a2d71d9b9057c432952f0a5f88",
+      "bytes": 5044
+    },
+    {
+      "path": "candidate-onlink-v2/candidate-renew-management-first.log",
+      "sha256": "a5fd467df55a4e962fbf94ea43f14217a5dd4a9963a57c3daf1b0dfa06a2d3dc",
+      "bytes": 685
+    },
+    {
+      "path": "candidate-onlink-v2/candidate-dhcp-lease.log",
+      "sha256": "e45084a41842e56cee7664b9ca7735c3dc2df7dad53926ab3b4d63c503a4160d",
+      "bytes": 1090
+    },
+    {
+      "path": "candidate-onlink-v3/probe-run-result.json",
+      "sha256": "f29b14dbf23a0d145efd801bfca143355135d9199d2de4702953b98a51c04f6d",
+      "bytes": 1273
+    },
+    {
+      "path": "candidate-onlink-v3/probe-live.log",
+      "sha256": "70f6aab5ff66c41dc79a85ed246ad2b29008e32ee37b21fc610b433520f2a87a",
+      "bytes": 5036
+    },
+    {
+      "path": "candidate-onlink-v3/candidate-ack-capture.log",
+      "sha256": "104907443f907e01e4a3e760e7c96a6b176109f12a352ce81191c7aea6f3ceb7",
+      "bytes": 179
+    },
+    {
+      "path": "candidate-onlink-v3/candidate-dhcp-lease-0.log",
+      "sha256": "d3287c4b7544014f6b063280157331c18d8996280d6f0c792f0aa79877f30aff",
+      "bytes": 1013
+    },
+    {
+      "path": "candidate-onlink-v3/candidate-renew-0.log",
+      "sha256": "faeef35e2c15a96bcf205edebcdc9a5b31b4e369936a3d42202a2fe29244b131",
+      "bytes": 854
+    }
+  ],
+  "candidateOnlinkV2": {
+    "childExitCode": 1,
+    "elapsedSeconds": 125.36,
+    "originalSourceUnchanged": true,
+    "exactOwnedPortReadback": true,
+    "renewedRoles": [
+      "management",
+      "lab"
+    ],
+    "probe": {
+      "connectCode": 0,
+      "elapsedMs": 13,
+      "sourceRole": "lab",
+      "tupleRoles": [
+        "lab"
+      ],
+      "defaults": [
+        {
+          "role": "lab",
+          "metric": 100,
+          "hasGateway": true
+        },
+        {
+          "role": "management",
+          "metric": 100,
+          "hasGateway": true
+        }
+      ]
+    },
+    "managementServerMatchesQueriedNeutronDHCPPort": true,
+    "managementLeaseHasRouter": true,
+    "managementLeaseHasRoutesField": false,
+    "netplanFilesObserved": 1,
+    "netplanDHCPNoStaticRoutesObserved": true,
+    "trackedAbsence": 8,
+    "securityGroupGETAbsence": true,
+    "keypairGETAbsence": true,
+    "limit": "API readback and lease mtime change do not prove DHCP agent reload completed or establish exact DHCP ACK options. First renew only; no bounded convergence experiment in this run."
+  },
+  "candidateOnlinkV3": {
+    "childExitCode": 0,
+    "elapsedSeconds": 164.766,
+    "originalSourceUnchanged": true,
+    "ackOwnedMACFilter": true,
+    "ackServerMatchesNeutronLeaseServer": true,
+    "ackRouterOptionPresent": true,
+    "ackClasslessRoutes": [
+      {
+        "destinationMatchesManagementPrefix": true,
+        "prefixBits": 24,
+        "isDefault": false,
+        "zeroNextHop": true
+      }
+    ],
+    "ack249PayloadBytes": 0,
+    "managementLeaseHasRoutesField": false,
+    "strictProbesAfterConvergence": [
+      {
+        "connectCode": 0,
+        "elapsedMs": 10,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      },
+      {
+        "connectCode": 0,
+        "elapsedMs": 10,
+        "sourceRole": "lab",
+        "tupleRoles": [
+          "lab"
+        ],
+        "defaults": [
+          {
+            "role": "lab",
+            "metric": 100,
+            "hasGateway": true
+          }
+        ]
+      }
+    ],
+    "trackedAbsence": 8,
+    "securityGroupGETAbsence": true,
+    "keypairGETAbsence": true,
+    "interpretation": "With a single owned port UPDATE, wait and ACK capture, valid nonempty onlink option121 was delivered; sole Lab default passed while option3 was still advertised.",
+    "limits": [
+      "Candidate external mutation; production unchanged and final fresh CREATE/ON-OFF/reboot/Reset not validated by this probe-only run.",
+      "This does not prove blank router suppression or identify the installed daemon version.",
+      "Absence of ROUTES in the lease file is not evidence of option121 absence on wire; this run directly observes option121."
+    ]
+  }
+}

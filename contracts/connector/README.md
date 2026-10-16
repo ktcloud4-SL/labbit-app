@@ -510,6 +510,7 @@ Reset에서 최신 LabSpec이나 비슷한 최신 Image를 다시 선택하지 �
 
 - Preflight는 Image, Flavor, Management/External Network, Key Pair와 함께 Nova의 Instance/vCPU/RAM 및 Neutron의 Network/Subnet/Port/Router/Security Group/Rule 상세 quota를 확인합니다. Reset은 삭제가 확정된 기존 generation 리소스를 quota 사용량에서 차감해 판단하되, Preflight 이후의 동시 사용 변화까지 성공으로 보장하지는 않습니다.
 - `internetOutbound=true`이면 generation별 Lab Router를 만들고 External Gateway와 Lab Subnet interface를 연결합니다. `false`이면 Router를 만들지 않고 Lab Subnet gateway를 비활성화합니다.
+- 표준 Neutron Management 경로의 지원 조건과 DHCP 정책은 `runtime/contract.yaml`의 `LABBIT_OPENSTACK_MANAGEMENT_NETWORK_ID`를 따릅니다. Provider는 생성한 Management port의 IPv4 DHCP 옵션 router(3)는 빈값, classless-static-route(121)는 검증한 Management CIDR과 `0.0.0.0`의 직접 연결 경로로 설정하고 생성 응답과 후속 조회를 검증합니다. 공유 subnet이나 immutable StartupScript를 수정하지 않으며 Lab port의 DHCP·metadata 경로는 유지합니다. 유효한 121을 받은 Linux DHCP client가 option 3을 무시하는 동작을 전제로 하며, Neutron이 빈값을 지원하지 않는 249는 요청하지 않습니다. 검증한 dnsmasq/Linux 배포·이미지 범위의 지원이며 OVN이나 다른 guest 동작은 별도 검증해야 합니다. API 응답 확인만으로 실제 guest 적용을 보장하지 않으므로 배포·이미지별 ON/OFF, cloud-init, DHCP 갱신 및 관리 SSH 검증이 필요합니다.
 - Lab NIC에는 동일 Lab 대역 ingress를 가진 Lab Security Group만, Management NIC에는 Connector SSH CIDR의 TCP 22 ingress를 가진 Management Security Group만 연결합니다.
 - Startup Script가 있으면 VM `ACTIVE`와 SSH banner만으로 `SUCCEEDED`를 반환하지 않습니다. Connector 전용 SSH key와 TOFU로 고정한 host key를 사용해 `cloud-init status --wait` 성공까지 확인합니다.
 

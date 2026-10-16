@@ -1,0 +1,224 @@
+{
+  "scope": "Exact tracked resources of these test runs; not a global assertion about every user/cloud resource. Failing helper gates create no VM. Internet first failure still ran deferred cleanup.",
+  "cloudRuns": [
+    {
+      "stage": "first",
+      "sourceLog": "local-openstack-all.log",
+      "topLevel": [
+        {
+          "test": "TestOpenStackM2ControlWSSIntegration",
+          "action": "pass",
+          "cleanupAndResourceMarkers": [
+            "control_wss_integration_test.go:163: Mock SaaS command reached real OpenStack and returned SUCCEEDED; tracked resources=8",
+            "control_wss_integration_test.go:169: Provision(g1): SUCCEEDED; StartupScript + authenticated SSH/host-key path; resources=[{ResourceType:NETWORK ProviderID:13faf5b0-6249-43ec-97b3-70bf3a93cdc2 Generation:1 LogicalName:lab-network} {ResourceType:SUBNET ProviderID:1bdfbfde-413e-40ab-a3ea-6c14f821169c Generation:1 LogicalName:lab-subnet} {ResourceType:ROUTER ProviderID:f2dcab1f-53e3-4849-9663-b8fd75cb8533 Generation:1 LogicalName:lab-router} {ResourceType:SECURITY_GROUP ProviderID:9f157db6-076a-45f0-b8fc-9b765e05cc9b Generation:1 LogicalName:lab-security-group} {ResourceType:SECURITY_GROUP_RULE ProviderID:f6889dbf-f064-4a87-a48f-746c66ffea9e Generation:1 LogicalName:lab-ingress} {ResourceType:PORT ProviderID:8582a670-0583-4424-a241-0cb01ed019a7 Generation:1 LogicalName:workspace:lab} {ResourceType:PORT ProviderID:943b35f0-e701-4c30-9463-299eb8fe4548 Generation:1 LogicalName:workspace:management} {ResourceType:SERVER ProviderID:4449c8a0-99a5-4bca-9789-950d2bebb267 Generation:1 LogicalName:workspace}]",
+            "control_wss_integration_test.go:190: Reset(g2): SUCCEEDED; StartupScript + authenticated SSH/host-key path; resources=[{ResourceType:NETWORK ProviderID:805be24a-d65c-4292-8f35-cb58ca08580a Generation:2 LogicalName:lab-network} {ResourceType:SUBNET ProviderID:9783b09d-0484-4876-ab05-aac000d8f5fb Generation:2 LogicalName:lab-subnet} {ResourceType:ROUTER ProviderID:245d3461-9128-479a-a33e-b7561d602c6f Generation:2 LogicalName:lab-router} {ResourceType:SECURITY_GROUP ProviderID:2fb13548-82ab-476a-91d9-92f06d24957a Generation:2 LogicalName:lab-security-group} {ResourceType:SECURITY_GROUP_RULE ProviderID:2a1bd584-8ca5-4254-806d-7c8eae8ae063 Generation:2 LogicalName:lab-ingress} {ResourceType:PORT ProviderID:dea5b3c4-7d1e-480b-afe4-71b8a80b991d Generation:2 LogicalName:workspace:lab} {ResourceType:PORT ProviderID:0682f8c6-f415-4e18-ab34-00c47bd398cd Generation:2 LogicalName:workspace:management} {ResourceType:SERVER ProviderID:eb52f71f-d3ea-43b4-85a9-b7fac00d634f Generation:2 LogicalName:workspace}]",
+            "control_wss_integration_test.go:213: Reconcile(g2): known resources=8, all PRESENT",
+            "control_wss_integration_test.go:230: Cleanup(g2): SUCCEEDED; deleted resources=8",
+            "control_wss_integration_test.go:250: Final Reconcile: generation 1 + 2 known resources=16, all ABSENT; residual=0",
+            "control_wss_integration_test.go:251: WSS Provision, Reset, Reconcile, Cleanup, and zero-residual verification succeeded",
+            "integration_test.go:486: Temporary Management security group GET absence confirmed",
+            "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+          ]
+        },
+        {
+          "test": "TestOpenStackFileTransportIntegration",
+          "action": "fail",
+          "cleanupAndResourceMarkers": []
+        },
+        {
+          "test": "TestOpenStackM1Integration",
+          "action": "pass",
+          "cleanupAndResourceMarkers": [
+            "integration_test.go:70: M1 network foundation succeeded and cleanup is scheduled: network=de160e5f-9701-4d5a-8984-0cece04d0233 subnet=50600766-ed28-426c-b6aa-85b13cd819b8 securityGroup=4d39f21e-fea0-416a-bc62-2db38991a56b"
+          ]
+        },
+        {
+          "test": "TestOpenStackM2ProvisionIntegration",
+          "action": "pass",
+          "cleanupAndResourceMarkers": [
+            "integration_test.go:159: M2 Provision reached VM ACTIVE and SSH ready; tracked resources=8",
+            "integration_test.go:486: Temporary Management security group GET absence confirmed",
+            "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+          ]
+        },
+        {
+          "test": "TestOpenStackM3LifecycleIntegration",
+          "action": "pass",
+          "cleanupAndResourceMarkers": [
+            "integration_test.go:297: M3 lifecycle succeeded: Provision -> Reset -> Reconcile -> Cleanup; residual resources=0",
+            "integration_test.go:486: Temporary Management security group GET absence confirmed",
+            "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+          ]
+        },
+        {
+          "test": "TestOpenStackInternetPolicyIntegration",
+          "action": "fail",
+          "cleanupAndResourceMarkers": [
+            "integration_test.go:486: Temporary Management security group GET absence confirmed",
+            "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+          ]
+        },
+        {
+          "test": "TestOpenStackPreviewForwardingIntegration",
+          "action": "pass",
+          "cleanupAndResourceMarkers": [
+            "preview_forwarding_integration_test.go:68: Exact tracked VM/network/port/SG absence verified after cleanup: resources=21",
+            "integration_test.go:486: Temporary Management security group GET absence confirmed",
+            "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+          ]
+        },
+        {
+          "test": "TestOpenStackPTYCC02Integration",
+          "action": "pass",
+          "cleanupAndResourceMarkers": [
+            "pty_cc02_integration_test.go:66: Tracked resource absence verified after cleanup: distinctResources=7",
+            "integration_test.go:486: Temporary Management security group GET absence confirmed",
+            "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+          ]
+        },
+        {
+          "test": "TestOpenStackTerminalC2Integration",
+          "action": "pass",
+          "cleanupAndResourceMarkers": [
+            "terminal_c2_integration_test.go:1101: Scenario 3: Shell Exit, Safe TERMINAL_ENDED, and Resource Release PASS",
+            "terminal_c2_integration_test.go:767: Tracked resource absence verified after C2 test: distinctResources=7",
+            "integration_test.go:486: Temporary Management security group GET absence confirmed",
+            "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+          ]
+        },
+        {
+          "test": "TestOpenStackVMAccessIntegration",
+          "action": "pass",
+          "cleanupAndResourceMarkers": [
+            "vm_access_integration_test.go:84: OP-01 Provision gen1 ACTIVE and authenticated SSH ready: resources=7",
+            "vm_access_integration_test.go:77: Tracked resource absence verified after cleanup: generations=2 distinctResources=14",
+            "integration_test.go:486: Temporary Management security group GET absence confirmed",
+            "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+          ]
+        },
+        {
+          "test": "TestOpenStackWorkspaceFileIntegration",
+          "action": "fail",
+          "cleanupAndResourceMarkers": []
+        },
+        {
+          "test": "TestOpenStackPreviewTransportIntegration",
+          "action": "pass",
+          "cleanupAndResourceMarkers": [
+            "preview_transport_integration_test.go:436: Actual Control Reset gen1->gen2 and Cleanup: old WSS closed, logical sessions removed, stale targets denied, fresh generation HTTP PASS",
+            "preview_transport_export_test.go:62: Exact tracked Lab resource absence checks completed: entries=28",
+            "integration_test.go:486: Temporary Management security group GET absence confirmed",
+            "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "verified",
+      "sourceLog": "local-openstack-files-linux.log",
+      "topLevel": [
+        {
+          "test": "TestOpenStackFileTransportIntegration",
+          "action": "pass",
+          "cleanupAndResourceMarkers": [
+            "file_transport_integration_test.go:121: Tracked resource absence verified: resources=7",
+            "integration_test.go:486: Temporary Management security group GET absence confirmed",
+            "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+          ]
+        },
+        {
+          "test": "TestOpenStackWorkspaceFileIntegration",
+          "action": "fail",
+          "cleanupAndResourceMarkers": [
+            "workspace_file_integration_test.go:64: Tracked resource absence verified: resources=7",
+            "integration_test.go:486: Temporary Management security group GET absence confirmed",
+            "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "sealed",
+      "sourceLog": "local-internet-diagnostic.log",
+      "topLevel": [
+        {
+          "test": "TestOpenStackInternetPolicyIntegration",
+          "action": "pass",
+          "cleanupAndResourceMarkers": [
+            "integration_test.go:504: Temporary Management security group GET absence confirmed",
+            "integration_test.go:605: Temporary integration keypair GET absence confirmed"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "closing",
+      "sourceLog": "local-workspace-linux-harness.log",
+      "topLevel": [
+        {
+          "test": "TestOpenStackWorkspaceFileIntegration",
+          "action": "pass",
+          "cleanupAndResourceMarkers": [
+            "=== RUN   TestC1StopsBeforeCleanupOnUncertainty",
+            "=== RUN   TestC1StopsBeforeCleanupOnUncertainty/unknown",
+            "=== RUN   TestC1StopsBeforeCleanupOnUncertainty/failed",
+            "=== RUN   TestC1StopsBeforeCleanupOnUncertainty/partial",
+            "=== RUN   TestC1StopsBeforeCleanupOnUncertainty/baseline",
+            "=== RUN   TestC1StopsBeforeCleanupOnUncertainty/candidate",
+            "=== RUN   TestC1StopsBeforeCleanupOnUncertainty/generation",
+            "=== RUN   TestC1StopsBeforeCleanupOnUncertainty/absent",
+            "=== RUN   TestC1StopsBeforeCleanupOnUncertainty/write-failed",
+            "=== RUN   TestC1StopsBeforeCleanupOnUncertainty/no-result",
+            "--- PASS: TestC1StopsBeforeCleanupOnUncertainty (0.43s)",
+            "--- PASS: TestC1StopsBeforeCleanupOnUncertainty/unknown (0.04s)",
+            "--- PASS: TestC1StopsBeforeCleanupOnUncertainty/failed (0.04s)",
+            "--- PASS: TestC1StopsBeforeCleanupOnUncertainty/partial (0.04s)",
+            "--- PASS: TestC1StopsBeforeCleanupOnUncertainty/baseline (0.03s)",
+            "--- PASS: TestC1StopsBeforeCleanupOnUncertainty/candidate (0.04s)",
+            "--- PASS: TestC1StopsBeforeCleanupOnUncertainty/generation (0.05s)",
+            "--- PASS: TestC1StopsBeforeCleanupOnUncertainty/absent (0.05s)",
+            "--- PASS: TestC1StopsBeforeCleanupOnUncertainty/write-failed (0.02s)",
+            "--- PASS: TestC1StopsBeforeCleanupOnUncertainty/no-result (0.11s)",
+            "=== RUN   TestC1GateFailClosed/cleanup",
+            "--- PASS: TestC1GateFailClosed/cleanup (0.00s)",
+            "=== RUN   TestC1CorrelationMismatchCannotSupplyCleanupIDs",
+            "=== RUN   TestC1CorrelationMismatchCannotSupplyCleanupIDs/connector",
+            "=== RUN   TestC1CorrelationMismatchCannotSupplyCleanupIDs/operation",
+            "=== RUN   TestC1CorrelationMismatchCannotSupplyCleanupIDs/lab",
+            "=== RUN   TestC1CorrelationMismatchCannotSupplyCleanupIDs/generation",
+            "=== RUN   TestC1CorrelationMismatchCannotSupplyCleanupIDs/reply",
+            "=== RUN   TestC1CorrelationMismatchCannotSupplyCleanupIDs/request",
+            "=== RUN   TestC1CorrelationMismatchCannotSupplyCleanupIDs/message",
+            "--- PASS: TestC1CorrelationMismatchCannotSupplyCleanupIDs (0.24s)",
+            "--- PASS: TestC1CorrelationMismatchCannotSupplyCleanupIDs/connector (0.03s)",
+            "--- PASS: TestC1CorrelationMismatchCannotSupplyCleanupIDs/operation (0.03s)",
+            "--- PASS: TestC1CorrelationMismatchCannotSupplyCleanupIDs/lab (0.03s)",
+            "--- PASS: TestC1CorrelationMismatchCannotSupplyCleanupIDs/generation (0.03s)",
+            "--- PASS: TestC1CorrelationMismatchCannotSupplyCleanupIDs/reply (0.03s)",
+            "--- PASS: TestC1CorrelationMismatchCannotSupplyCleanupIDs/request (0.04s)",
+            "--- PASS: TestC1CorrelationMismatchCannotSupplyCleanupIDs/message (0.04s)",
+            "workspace_file_integration_test.go:67: Tracked resource absence verified: resources=7",
+            "integration_test.go:486: Temporary Management security group GET absence confirmed",
+            "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "finalized",
+      "sourceLog": "local-internet-unmodified.log",
+      "topLevel": [
+        {
+          "test": "TestOpenStackInternetPolicyIntegration",
+          "action": "pass",
+          "cleanupAndResourceMarkers": [
+            "integration_test.go:486: Temporary Management security group GET absence confirmed",
+            "integration_test.go:587: Temporary integration keypair GET absence confirmed"
+          ]
+        }
+      ]
+    }
+  ],
+  "postgresResidualDBCount": "0",
+  "postgresStopped": true
+}

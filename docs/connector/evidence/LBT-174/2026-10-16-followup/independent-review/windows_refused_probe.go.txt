@@ -1,0 +1,29 @@
+package main
+
+import (
+	"encoding/json"
+	"errors"
+	"net"
+	"os"
+	"runtime"
+	"syscall"
+	"time"
+)
+
+func main() {
+	for range 3 {
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil { panic(err) }
+		addr := listener.Addr().String()
+		if err := listener.Close(); err != nil { panic(err) }
+		start := time.Now()
+		conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
+		if conn != nil { conn.Close() }
+		var errno syscall.Errno
+		var ne net.Error
+		_ = errors.As(err, &errno)
+		_ = errors.As(err, &ne)
+		entry := map[string]any{"goos":runtime.GOOS,"milliseconds":time.Since(start).Milliseconds(),"error":err.Error(),"raw_errno":uint32(errno),"syscall_ECONNREFUSED":uint32(syscall.ECONNREFUSED),"matches_syscall_ECONNREFUSED":errors.Is(err,syscall.ECONNREFUSED),"matches_WSAECONNREFUSED_10061":errors.Is(err,syscall.Errno(10061)),"timeout":ne!=nil&&ne.Timeout()}
+		_ = json.NewEncoder(os.Stdout).Encode(entry)
+	}
+}

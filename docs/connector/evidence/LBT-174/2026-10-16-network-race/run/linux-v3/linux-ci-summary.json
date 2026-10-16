@@ -1,0 +1,46 @@
+{
+  "requiredParents": [
+    "TestC1ActualControlStackMockProvider",
+    "TestC1ApprovalRejectsSymlinkAndRawFields",
+    "TestC1CorrelationMismatchCannotSupplyCleanupIDs",
+    "TestC1GateFailClosed",
+    "TestC1LedgerExclusiveAndReplacement",
+    "TestC1NSMExternalInventoryGate",
+    "TestC1NoConnectionOrWrongSessionCannotMutate",
+    "TestC1OperatorSubmissionRequiredAtRuntime",
+    "TestC1PreviousOrUnprotectedLedgerNeverAdopted",
+    "TestC1SingleShotAndLedgerBlocksRestart",
+    "TestC1StoppedResultRetainsConfirmedIDs",
+    "TestC1StopsBeforeCleanupOnUncertainty"
+  ],
+  "observedParents": {
+    "TestC1ActualControlStackMockProvider": "pass",
+    "TestC1NSMExternalInventoryGate": "pass",
+    "TestC1SingleShotAndLedgerBlocksRestart": "pass",
+    "TestC1StopsBeforeCleanupOnUncertainty": "pass",
+    "TestC1GateFailClosed": "pass",
+    "TestC1NoConnectionOrWrongSessionCannotMutate": "pass",
+    "TestC1LedgerExclusiveAndReplacement": "pass",
+    "TestC1ApprovalRejectsSymlinkAndRawFields": "pass",
+    "TestC1PreviousOrUnprotectedLedgerNeverAdopted": "pass",
+    "TestC1CorrelationMismatchCannotSupplyCleanupIDs": "pass",
+    "TestC1StoppedResultRetainsConfirmedIDs": "pass",
+    "TestC1OperatorSubmissionRequiredAtRuntime": "pass"
+  },
+  "missing": [],
+  "nonPass": [],
+  "failures": [],
+  "skips": [],
+  "eventCounts": {
+    "start": 1,
+    "run": 67,
+    "output": 136,
+    "pass": 68
+  },
+  "dataRaceReports": 0,
+  "vetMarker": true,
+  "buildMarker": true,
+  "raceMarker": true,
+  "rawSHA256": "985b9ff745b447aabf3f2d574d0ad4d8c2d11beeaaf502b9e0445626f99b0cb6",
+  "gatePass": true
+}

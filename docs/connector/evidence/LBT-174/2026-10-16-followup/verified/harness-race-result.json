@@ -1,0 +1,20 @@
+{
+  "name": "harness-race",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-race",
+    "-tags=backend_router_harness integration",
+    "-run",
+    "^TestC1",
+    "-count=1",
+    "-json",
+    "./internal/server/app"
+  ],
+  "started": "2026-10-16T06:57:42.636718+00:00",
+  "ended": "2026-10-16T06:57:46.615239+00:00",
+  "seconds": 3.985,
+  "exitCode": 1,
+  "sourceSHA256": "8e9ca374d70f9aace38277246bdcf7f1689d0bb21dbab3e38b625b50a45472bf",
+  "sourceUnchanged": true
+}

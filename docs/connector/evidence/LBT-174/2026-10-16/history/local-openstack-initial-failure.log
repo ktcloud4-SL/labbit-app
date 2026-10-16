@@ -1,0 +1,9 @@
+=== RUN   TestOpenStackPreviewTransportIntegration
+    preview_transport_integration_test.go:326: Control OPEN -> outbound Preview WSS -> exact ATTACH -> actual SSH forwarding -> VM HTTP 200 twice; sequential tunnel contract PASS
+    preview_transport_integration_test.go:409: Concurrent session isolation, Control CLOSE, actual PTY/SFTP after Preview close, APP_NOT_RUNNING/PORT_REJECTED/VM_UNREACHABLE PASS
+    preview_transport_integration_test.go:423: Control reply missing: PREVIEW_OPEN_RESULT
+    preview_transport_export_test.go:62: Exact tracked Lab resource absence checks completed: entries=21
+--- FAIL: TestOpenStackPreviewTransportIntegration (250.13s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	253.854s
+FAIL

@@ -1,0 +1,83 @@
+{
+  "sourceSHA256": "86ec2c865b611a512eab3baabed7d238a102765d5095fd0c92a36372aba5b791",
+  "sourceBeforeMatchesCurrent": true,
+  "sourceAfterMatchesCurrent": true,
+  "nativeRawSourceObservation": [
+    {
+      "sourceFiles": 520,
+      "sourceSHA256": "86ec2c865b611a512eab3baabed7d238a102765d5095fd0c92a36372aba5b791",
+      "mismatches": 0
+    }
+  ],
+  "overlayInputsMatchAsRun": true,
+  "nativeArchiveSHA256": "26fd7ad13d754870f9b5d586801cb622962ae7d92c6a8cce0360c4736dc83774",
+  "nativeArchiveMatchesManifest": true,
+  "goArchiveSHA256": "63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445",
+  "goArchiveMatchesPinnedRunnerValue": true,
+  "toolchainPreamble": [
+    "go version go1.27.1 linux/amd64",
+    "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "linux",
+    "amd64",
+    "1",
+    "local",
+    "-mod=vendor -p=2"
+  ],
+  "completionMarkers": {
+    "VET": 1,
+    "BUILD": 1,
+    "RACE": 1
+  },
+  "requiredParentNamesFromCurrentSource": [
+    "TestC1ActualControlStackMockProvider",
+    "TestC1ApprovalRejectsSymlinkAndRawFields",
+    "TestC1CorrelationMismatchCannotSupplyCleanupIDs",
+    "TestC1GateFailClosed",
+    "TestC1LedgerExclusiveAndReplacement",
+    "TestC1NSMExternalInventoryGate",
+    "TestC1NoConnectionOrWrongSessionCannotMutate",
+    "TestC1OperatorSubmissionRequiredAtRuntime",
+    "TestC1PreviousOrUnprotectedLedgerNeverAdopted",
+    "TestC1SingleShotAndLedgerBlocksRestart",
+    "TestC1StoppedResultRetainsConfirmedIDs",
+    "TestC1StopsBeforeCleanupOnUncertainty"
+  ],
+  "observedPassedParentNames": [
+    "TestC1ActualControlStackMockProvider",
+    "TestC1ApprovalRejectsSymlinkAndRawFields",
+    "TestC1CorrelationMismatchCannotSupplyCleanupIDs",
+    "TestC1GateFailClosed",
+    "TestC1LedgerExclusiveAndReplacement",
+    "TestC1NSMExternalInventoryGate",
+    "TestC1NoConnectionOrWrongSessionCannotMutate",
+    "TestC1OperatorSubmissionRequiredAtRuntime",
+    "TestC1PreviousOrUnprotectedLedgerNeverAdopted",
+    "TestC1SingleShotAndLedgerBlocksRestart",
+    "TestC1StoppedResultRetainsConfirmedIDs",
+    "TestC1StopsBeforeCleanupOnUncertainty"
+  ],
+  "testPassEventsIncludingSubtests": 67,
+  "testSkip": [],
+  "testFail": [],
+  "packagePass": [
+    "github.com/ktcloud4-SL/labbit-app/internal/server/app"
+  ],
+  "packageFail": [],
+  "dataRaceWarnings": 0,
+  "outerExitCode": 0,
+  "outerElapsedSeconds": 758.781,
+  "outerTestPass": [
+    "TestLocalLinuxRaceAndInternetDiagnostics"
+  ],
+  "outerFailures": [],
+  "nativeOnlyScopeLogged": true,
+  "trackedAbsenceCount": 8,
+  "managementSGExactGETAbsenceLogged": true,
+  "keypairExactGETAbsenceLogged": true,
+  "aptOwnedRouteAbsenceLogged": true,
+  "postgresQueryExit": 0,
+  "postgresStopExit": 0,
+  "remainingOwnedDatabaseCountAsQueried": "0",
+  "reviewerExecution": "Read original results; no VM/cloud/service/PG mutation or native command execution by reviewer.",
+  "scope": "Native Linux CGO1 CI-equivalent tagged C1 with Mock Provider and real loopback-forwarded PostgreSQL. Routing/renew/reboot/Reset acceptance excluded. Latest-main migration8/worker integration not executed."
+}

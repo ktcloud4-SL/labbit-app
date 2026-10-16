@@ -1,0 +1,227 @@
+{
+  "observedUTC": "2026-10-16T11:03:37.798536+00:00",
+  "head": "1e2b9c20fa2cfd7d7d449c8abba8558b5a614df4",
+  "sourceFiles": 535,
+  "sourceSHA256": "7263512bc662a6499d5dde739c659b0a42faf4ca40236a573876134d00c87dbe",
+  "sourceMismatch": [],
+  "branchChangedGoFiles": 36,
+  "branchChangedGoMismatches": [],
+  "checks": [
+    {
+      "file": "go-build-result.json",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "ab41783fb1fefaec2aac3a6941bbc81b26c3039ac6e4b5a6844953f4f35e0e9e",
+      "resultSHA256": "52d75bfdecb3cf3b383fbfd4c3acdf666d7196b0abb36a81b04bfbee1776798a"
+    },
+    {
+      "file": "go-test-result.json",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "ab41783fb1fefaec2aac3a6941bbc81b26c3039ac6e4b5a6844953f4f35e0e9e",
+      "resultSHA256": "a996b789f3120d95ba69c07b7df99d5b29b21957885c0563e9c6b2c38a2da6c8"
+    },
+    {
+      "file": "go-vet-result.json",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "ab41783fb1fefaec2aac3a6941bbc81b26c3039ac6e4b5a6844953f4f35e0e9e",
+      "resultSHA256": "ffa35d715f5237f534f49a8602d2980679f6923a04af4ff0211d7a571e177a7f"
+    },
+    {
+      "file": "postgres-integration-result.json",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "ab41783fb1fefaec2aac3a6941bbc81b26c3039ac6e4b5a6844953f4f35e0e9e",
+      "resultSHA256": "4e3d2d87c310b4c74b3371a2c1e4604d0feb27ed883174ca384913655dd618b7"
+    },
+    {
+      "file": "postgres-vet-result.json",
+      "exitCode": 0,
+      "sourceUnchanged": true,
+      "sourceSHA256": "ab41783fb1fefaec2aac3a6941bbc81b26c3039ac6e4b5a6844953f4f35e0e9e",
+      "resultSHA256": "b4e781d0758738246ec25f46b78d267a7431bffb71dd7c59cd4cd8cc2dc75f09"
+    }
+  ],
+  "rawResults": {
+    "go-test": {
+      "testPassEvents": 3865,
+      "testSkipEvents": 18,
+      "testFailEvents": 0,
+      "packagePassEvents": 43,
+      "sha256": "0e710ebb5e937e3b4d539ed41d8b55d4ec16b83df270827fc4c44199ed93b53a",
+      "skippedTests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+          "test": "TestSymlinkRejectedAndExcludedFromTree"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ControlWSSIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackFileTransportIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM1Integration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ProvisionIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM3LifecycleIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackInternetPolicyIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudD1ReadOnlyIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudD1DisposableNetworkIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+          "test": "TestInstallCredentialFile/\uc0c8_credential_file\uc744_\ub9cc\ub4e4\uace0_\uc131\uacf5_\uba54\uc2dc\uc9c0\uc5d0\ub294_path\ub9cc_\ub0a8\uae34\ub2e4/POSIX_permission_0600"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackPreviewForwardingIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackPTYCC02Integration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackTerminalC2Integration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackVMAccessIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackWorkspaceFileIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackPreviewTransportIntegration"
+        }
+      ]
+    },
+    "postgres-integration": {
+      "testPassEvents": 1433,
+      "testSkipEvents": 1,
+      "testFailEvents": 0,
+      "packagePassEvents": 5,
+      "sha256": "2dd630113b027eb1385b750f15f3288eb4273f585c15fd46e905effc7e1f8a76",
+      "skippedTests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestDumpPreviewWireSamples"
+        }
+      ]
+    }
+  },
+  "databaseOwnership": {
+    "exitCode": 0,
+    "queryExit": 0,
+    "stopExit": 0,
+    "temporaryDBs": 0,
+    "sourceUnchanged": true,
+    "metadataSHA256": "77e1739adc55e5f369a7a66be69093adb6ec5a6e2cfd9f939e71fe1ebf0d8f8b"
+  },
+  "sqlMigrations": [
+    {
+      "path": "db/migrations/000001_identity_and_class.sql",
+      "workingRawSHA256": "e4338bf77eb1a53161ca0d9777335a3de920c5b0ff0bee90a6e8ca6ab48a88d6",
+      "canonicalSHA256": "0b8cb401fbdb207ac37b307c04609003486445e801c45ef409e233dcecfc8bee",
+      "HEADCanonicalSHA256": "0b8cb401fbdb207ac37b307c04609003486445e801c45ef409e233dcecfc8bee"
+    },
+    {
+      "path": "db/migrations/000002_connector_and_provider.sql",
+      "workingRawSHA256": "4604772313977ebdec4fac6526e1afd044737080737ab68a7880cf3d30e59e2c",
+      "canonicalSHA256": "5a935031b9fc628dee93ff85ec218d149b687089fa824219633e8406a3a92caa",
+      "HEADCanonicalSHA256": "5a935031b9fc628dee93ff85ec218d149b687089fa824219633e8406a3a92caa"
+    },
+    {
+      "path": "db/migrations/000003_lab_spec.sql",
+      "workingRawSHA256": "4d74e897b5fcfc97e6f9987e398305fff06ad8c601bb6527689182b30212b69d",
+      "canonicalSHA256": "3e896e71e2f6832771bf740e82b5caeeabdf52b3131f42cdb724dd4430bf45a0",
+      "HEADCanonicalSHA256": "3e896e71e2f6832771bf740e82b5caeeabdf52b3131f42cdb724dd4430bf45a0"
+    },
+    {
+      "path": "db/migrations/000004_execution_operation_resource.sql",
+      "workingRawSHA256": "baf95f3be9cccb7664a368ba41e975c37b10dd643243ef2e901476642e98920d",
+      "canonicalSHA256": "c4aad8cfe251b197339bc1f11ed2c45530d58f8aa8dc6343d0e1b14f5c951b60",
+      "HEADCanonicalSHA256": "c4aad8cfe251b197339bc1f11ed2c45530d58f8aa8dc6343d0e1b14f5c951b60"
+    },
+    {
+      "path": "db/migrations/000005_realtime_sessions.sql",
+      "workingRawSHA256": "3aa970996b0af547ec5d1c76bdcb478a9282080c2e3128ca6d3d07744bbb69d8",
+      "canonicalSHA256": "04ce7a1ad056d9eacc44c173e80c21740427cf9d1b4adab5d0f22b805f74f6c9",
+      "HEADCanonicalSHA256": "04ce7a1ad056d9eacc44c173e80c21740427cf9d1b4adab5d0f22b805f74f6c9"
+    },
+    {
+      "path": "db/migrations/000006_operation_trace_context.sql",
+      "workingRawSHA256": "85462de056bf575947b94c21de220e75fa5a88d4e833465b6190de0167a220b0",
+      "canonicalSHA256": "dee411aa1ef2a546965102bde2f052ad19c350935ea95c8c97fc628ccc88640f",
+      "HEADCanonicalSHA256": "dee411aa1ef2a546965102bde2f052ad19c350935ea95c8c97fc628ccc88640f"
+    },
+    {
+      "path": "db/migrations/000007_operation_updated_at.sql",
+      "workingRawSHA256": "7475f80489159e0eae696a26275d3b65336ce87d3636c78807ea3ff091bfc1c6",
+      "canonicalSHA256": "0e65408c679e85d3550593eedbf1f9558ed51dabf87519e2018f8840b638cf88",
+      "HEADCanonicalSHA256": "0e65408c679e85d3550593eedbf1f9558ed51dabf87519e2018f8840b638cf88"
+    },
+    {
+      "path": "db/migrations/000008_operation_dispatch_deferral.sql",
+      "workingRawSHA256": "8cbe6b0d55d9cc8f71d1f3e2324128c82669f849bc7deaea2446d7096e6ea1db",
+      "canonicalSHA256": "7ce2fcc05b6a678f61e835466b955f69b506c7df509490ab45b0d1de60a28512",
+      "HEADCanonicalSHA256": "7ce2fcc05b6a678f61e835466b955f69b506c7df509490ab45b0d1de60a28512"
+    },
+    {
+      "path": "db/migrations/000009_mutation_previous_status.sql",
+      "workingRawSHA256": "7f9d8cc502fc8a32d6ed6939f66fec505745bc03dd12713adb4ddb5c9b5d773b",
+      "canonicalSHA256": "56471aa1d273c1b5c84b720cf914f11728e4be9a3d721ac3f298de4a39501d2e",
+      "HEADCanonicalSHA256": "56471aa1d273c1b5c84b720cf914f11728e4be9a3d721ac3f298de4a39501d2e"
+    }
+  ],
+  "sqlWorkingChanges": [],
+  "sqlScope": "SQL is outside535 Go/module/contracts/runtime source manifest; separately matches pinned HEAD9 migrations at review. Root during-run and post-run SQL9 raw/canonical hashes match. No claim runner535 hash included SQL or SQL initial snapshot preceded DB start.",
+  "sqlObservationTimes": {
+    "firstUTC": "2026-10-16T10:56:19.012748+00:00",
+    "finalUTC": "2026-10-16T11:02:46.843917+00:00",
+    "firstPhase": "during actual PG integration",
+    "finalPhase": "final after DB"
+  },
+  "webBridge": {
+    "files": 66,
+    "mismatches": [],
+    "sameTrackedTree": "837822621e64ae548e537895979f9f49705deb55",
+    "samePackageLock": true,
+    "priorExecuted": "latest-main-check: typecheck/lint/16files217tests/build PASS"
+  },
+  "primaryHEAD": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "primaryStagedFiles": [],
+  "limits": [
+    "Synthetic local integration checkout, not a primary branch rebase or remote CI.",
+    "Real PostgreSQL tests and Mock Provider/control fixture are distinct from live SaaS/Browser C3."
+  ]
+}

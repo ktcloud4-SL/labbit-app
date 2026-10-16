@@ -1,0 +1,104 @@
+package openstackprovider
+
+import (
+	"context"
+	"net/netip"
+
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
+)
+
+// Management is an IPv4, directly connected SSH path. Suppress DHCP routing on
+// the owned port, never on the shared network or in immutable user-data. The Lab
+// NIC supplies metadata routes and (only for Internet ON) the default route.
+func (a *Adapter) managementSubnet(ctx context.Context, config ProvisionConfig) (string, error) {
+	var extension struct {
+		Extension struct {
+			Alias string `json:"alias"`
+		} `json:"extension"`
+	}
+	if _, err := a.network.Get(ctx, a.network.ServiceURL("extensions", "extra_dhcp_opt"), &extension, nil); err != nil || extension.Extension.Alias != "extra_dhcp_opt" {
+		return "", ErrProvisionCheck
+	}
+	network, err := networks.Get(ctx, a.network, config.ManagementNetworkID).Extract()
+	if err != nil || network == nil || network.ID != config.ManagementNetworkID || normalizeStatus(network.Status) != "ACTIVE" || len(network.Subnets) != 1 {
+		return "", ErrProvisionCheck
+	}
+	subnet, err := subnets.Get(ctx, a.network, network.Subnets[0]).Extract()
+	if err != nil || subnet == nil || subnet.ID != network.Subnets[0] || subnet.NetworkID != network.ID || subnet.IPVersion != 4 || !subnet.EnableDHCP || len(subnet.HostRoutes) != 0 {
+		return "", ErrProvisionCheck
+	}
+	prefix, pe := netip.ParsePrefix(subnet.CIDR)
+	ssh, se := netip.ParsePrefix(config.SSHAllowedCIDR)
+	lab, le := netip.ParsePrefix(config.LabSubnetCIDR)
+	if pe != nil || se != nil || le != nil || !prefix.Addr().Is4() || prefix != prefix.Masked() || !ssh.Addr().Is4() || ssh != ssh.Masked() || ssh.Bits() < prefix.Bits() || !prefix.Contains(ssh.Addr()) || prefix.Overlaps(lab) {
+		return "", ErrProvisionCheck
+	}
+	return subnet.ID, nil
+}
+
+type managementDHCPOption struct {
+	Name    string  `json:"opt_name"`
+	Value   *string `json:"opt_value"`
+	Version int     `json:"ip_version"`
+}
+
+type managementPort struct {
+	ports.Port
+	DHCPOptions []managementDHCPOption `json:"extra_dhcp_opts"`
+}
+
+// The SDK's extra DHCP create builder rejects an empty required string. Neutron
+// deliberately distinguishes an empty option (suppress advertisement) from null
+// (remove the override), so preserve the explicit empty strings on the wire.
+type noManagementRoutes struct{ ports.CreateOpts }
+
+func (o noManagementRoutes) ToPortCreateMap() (map[string]any, error) {
+	body, err := o.CreateOpts.ToPortCreateMap()
+	if err != nil {
+		return nil, err
+	}
+	empty := ""
+	body["port"].(map[string]any)["extra_dhcp_opts"] = []managementDHCPOption{
+		{Name: "3", Value: &empty, Version: 4},
+		{Name: "121", Value: &empty, Version: 4},
+		{Name: "249", Value: &empty, Version: 4},
+	}
+	return body, nil
+}
+
+func managementRoutesSuppressed(options []managementDHCPOption) bool {
+	if len(options) != 3 {
+		return false
+	}
+	seen := map[string]bool{}
+	for _, option := range options {
+		name := option.Name
+		switch name {
+		case "router":
+			name = "3"
+		case "classless-static-route":
+			name = "121"
+		case "ms-classless-static-route":
+			name = "249"
+		}
+		if (name != "3" && name != "121" && name != "249") || seen[name] || option.Value == nil || *option.Value != "" || option.Version != 4 {
+			return false
+		}
+		seen[name] = true
+	}
+	return true
+}
+
+func (a *Adapter) verifyManagementPort(ctx context.Context, id, subnetID string, config ProvisionConfig) error {
+	var observed managementPort
+	if err := ports.Get(ctx, a.network, id).ExtractInto(&observed); err != nil {
+		return safeContextError(ctx, ErrPortList)
+	}
+	p := observed
+	if p.ID != id || p.NetworkID != config.ManagementNetworkID || len(p.FixedIPs) != 1 || p.FixedIPs[0].SubnetID != subnetID || !portMatches(p.Port, subnetID, []string{config.ManagementSecurityGroupID}) || !managementRoutesSuppressed(p.DHCPOptions) {
+		return ErrPortConflict
+	}
+	return nil
+}

@@ -1,0 +1,7 @@
+{
+  "openapi": "PASS",
+  "schemas": 8,
+  "runtime": "PASS",
+  "migrationMetadata": "PASS",
+  "sourceSHA256": "61aef239f619ff8a37ba703d12668d854ef6134ac7a7bf8a59850e4628b4bc3c"
+}

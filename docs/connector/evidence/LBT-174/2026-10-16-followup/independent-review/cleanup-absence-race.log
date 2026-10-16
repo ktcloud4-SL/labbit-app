@@ -1,0 +1,82 @@
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails
+--- PASS: TestIntegrationCleanupConfirmsGETAbsence (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent (0.00s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails (0.00s)
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails
+--- PASS: TestIntegrationCleanupConfirmsGETAbsence (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent (0.00s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails (0.00s)
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails
+--- PASS: TestIntegrationCleanupConfirmsGETAbsence (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent (0.00s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails (0.00s)
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails
+--- PASS: TestIntegrationCleanupConfirmsGETAbsence (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent (0.00s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails (0.00s)
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails
+--- PASS: TestIntegrationCleanupConfirmsGETAbsence (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent (0.00s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails (0.00s)
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails
+--- PASS: TestIntegrationCleanupConfirmsGETAbsence (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent (0.00s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails (0.00s)
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails
+--- PASS: TestIntegrationCleanupConfirmsGETAbsence (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent (0.00s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails (0.00s)
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails
+--- PASS: TestIntegrationCleanupConfirmsGETAbsence (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent (0.00s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails (0.00s)
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails
+--- PASS: TestIntegrationCleanupConfirmsGETAbsence (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent (0.00s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails (0.00s)
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails
+--- PASS: TestIntegrationCleanupConfirmsGETAbsence (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent (0.00s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails (0.00s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	6.283s

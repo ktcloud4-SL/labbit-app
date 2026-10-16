@@ -1,0 +1,12 @@
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+    tcp_test.go:257: caller deadline fell back to the normal SSH setup timeout
+--- FAIL: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (2.02s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+    tcp_test.go:257: caller deadline fell back to the normal SSH setup timeout
+--- FAIL: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (2.02s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+    tcp_test.go:257: caller deadline fell back to the normal SSH setup timeout
+--- FAIL: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (2.02s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess	7.725s
+FAIL

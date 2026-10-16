@@ -563,11 +563,18 @@ type m2OpenStackFake struct {
 	labRuleSecurityGroup          string
 	externalNetworkIsInternal     bool
 	managementSecurityGroupEgress bool
+	managementDHCPOptions         any
+	omitManagementDHCPOnCreate    bool
+	omitManagementDHCPOnGet       bool
 }
 
 func (f *m2OpenStackFake) ServeHTTP(response http.ResponseWriter, request *http.Request) {
 	f.t.Helper()
 	switch {
+	case request.Method == http.MethodGet && request.URL.Path == "/network/v2.0/extensions/extra_dhcp_opt":
+		writeJSON(f.t, response, http.StatusOK, map[string]any{"extension": map[string]any{"alias": "extra_dhcp_opt"}})
+	case request.Method == http.MethodGet && request.URL.Path == "/network/v2.0/subnets/management-subnet":
+		writeJSON(f.t, response, http.StatusOK, map[string]any{"subnet": map[string]any{"id": "management-subnet", "network_id": "management-network", "ip_version": 4, "enable_dhcp": true, "cidr": "172.16.8.0/24", "gateway_ip": "172.16.8.2", "host_routes": []any{}}})
 	case request.Method == http.MethodGet && request.URL.Path == "/network/v2.0/networks/management-network":
 		writeJSON(f.t, response, http.StatusOK, map[string]any{"network": map[string]any{"id": "management-network", "name": "management", "status": "ACTIVE", "subnets": []string{"management-subnet"}}})
 	case request.Method == http.MethodGet && request.URL.Path == "/network/v2.0/networks/external-network":
@@ -618,9 +625,14 @@ func (f *m2OpenStackFake) ServeHTTP(response http.ResponseWriter, request *http.
 			"fixed_ips": []map[string]string{{"subnet_id": "subnet-lab", "ip_address": "198.19.0.10"}}, "security_groups": []string{"security-group-lab"},
 		}})
 	case request.Method == http.MethodGet && request.URL.Path == "/network/v2.0/ports/port-management":
+		options := f.managementDHCPOptions
+		if f.omitManagementDHCPOnGet {
+			options = nil
+		}
 		writeJSON(f.t, response, http.StatusOK, map[string]any{"port": map[string]any{
 			"id": "port-management", "name": "management", "network_id": "management-network", "status": "ACTIVE",
 			"fixed_ips": []map[string]string{{"subnet_id": "management-subnet", "ip_address": "172.16.8.200"}}, "security_groups": []string{"security-group-management"},
+			"extra_dhcp_opts": options,
 		}})
 	case request.Method == http.MethodGet && request.URL.Path == "/network/v2.0/ports/port-worker-lab":
 		writeJSON(f.t, response, http.StatusOK, map[string]any{"port": map[string]any{
@@ -631,6 +643,7 @@ func (f *m2OpenStackFake) ServeHTTP(response http.ResponseWriter, request *http.
 		writeJSON(f.t, response, http.StatusOK, map[string]any{"port": map[string]any{
 			"id": "port-worker-management", "name": "worker-management", "network_id": "management-network", "status": "ACTIVE",
 			"fixed_ips": []map[string]string{{"subnet_id": "management-subnet", "ip_address": "172.16.8.201"}}, "security_groups": []string{"security-group-management"},
+			"extra_dhcp_opts": f.managementDHCPOptions,
 		}})
 	case request.URL.Path == "/compute/v2/servers/detail":
 		if request.Method != http.MethodGet {
@@ -770,6 +783,7 @@ func (f *m2OpenStackFake) handlePort(response http.ResponseWriter, request *http
 		networkID := "network-lab"
 		fixedIPs := []map[string]string{{"subnet_id": "subnet-lab", "ip_address": "198.19.0.10"}}
 		if management {
+			f.managementDHCPOptions = created["extra_dhcp_opts"]
 			id = "port-management"
 			networkID = "management-network"
 			fixedIPs = []map[string]string{{"subnet_id": "management-subnet", "ip_address": "172.16.8.200"}}
@@ -786,8 +800,13 @@ func (f *m2OpenStackFake) handlePort(response http.ResponseWriter, request *http
 				fixedIPs = []map[string]string{{"subnet_id": "subnet-lab", "ip_address": "198.19.0.11"}}
 			}
 		}
+		options := created["extra_dhcp_opts"]
+		if management && f.omitManagementDHCPOnCreate {
+			options = nil
+		}
 		writeJSON(f.t, response, http.StatusCreated, map[string]any{"port": map[string]any{
 			"id": id, "name": name, "network_id": networkID, "status": "DOWN", "fixed_ips": fixedIPs, "security_groups": securityGroupIDs,
+			"extra_dhcp_opts": options,
 		}})
 	default:
 		response.WriteHeader(http.StatusMethodNotAllowed)

@@ -1,0 +1,230 @@
+[
+  {
+    "path": "contracts/connector/README.md",
+    "state": "tracked-diff",
+    "rawSHA256": "9b4bb721bae3d3850cb3144db85759683489293ae1696f6d3ef2c28397293b75",
+    "artifact": "changed-source/contracts/connector/README.md"
+  },
+  {
+    "path": "internal/connector/app/app.go",
+    "state": "tracked-diff",
+    "rawSHA256": "1d9c74d08877b6a12f8bb4c4b7142946ee764e0b4f93b50693810023fd2ca503",
+    "artifact": "changed-source/internal/connector/app/app.go.txt"
+  },
+  {
+    "path": "internal/connector/app/vm_access.go",
+    "state": "tracked-diff",
+    "rawSHA256": "0d475d7228d80a0fb6a951d8418b1d31908a80519e3f60f73b4bfd9f66feb57f",
+    "artifact": "changed-source/internal/connector/app/vm_access.go.txt"
+  },
+  {
+    "path": "internal/connector/app/vm_access_test.go",
+    "state": "tracked-diff",
+    "rawSHA256": "15e2b6098beb45d873f3376e925ce86e9eb6c304c067c0756f9d90ef89a659d3",
+    "artifact": "changed-source/internal/connector/app/vm_access_test.go.txt"
+  },
+  {
+    "path": "internal/connector/preview/client.go",
+    "state": "tracked-diff",
+    "rawSHA256": "929a37d856ea6f00a388f7867b5e1c4db966c23f8ec36307909c235f0df9965e",
+    "artifact": "changed-source/internal/connector/preview/client.go.txt"
+  },
+  {
+    "path": "internal/connector/preview/lifecycle_test.go",
+    "state": "untracked",
+    "rawSHA256": "f214007710c257e2a18662a8362135a4781e748030f8f447c953b2d9491af037",
+    "artifact": "changed-source/internal/connector/preview/lifecycle_test.go.txt"
+  },
+  {
+    "path": "internal/connector/preview/manager.go",
+    "state": "tracked-diff",
+    "rawSHA256": "49414e4f58f5db90217df66e72762fcbf77a2ce5cb713b79d2a845a269731a77",
+    "artifact": "changed-source/internal/connector/preview/manager.go.txt"
+  },
+  {
+    "path": "internal/connector/preview/session.go",
+    "state": "tracked-diff",
+    "rawSHA256": "503427edd1a8baa44df57e2eb67d732afcc6f4b3b80236997f6b8170f135979c",
+    "artifact": "changed-source/internal/connector/preview/session.go.txt"
+  },
+  {
+    "path": "internal/connector/preview/upgrade_cancel_test.go",
+    "state": "untracked",
+    "rawSHA256": "9aa20c43f72fb15f1110e515d4c2165b2f19a2df0a23c1a9b2c847d44c55c86f",
+    "artifact": "changed-source/internal/connector/preview/upgrade_cancel_test.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/integration_cleanup_test.go",
+    "state": "untracked",
+    "rawSHA256": "6fa56565daf223d0d620166d01ad1dfd371ba5162761fa2c416a6de4a04857eb",
+    "artifact": "changed-source/internal/connector/provider/openstack/integration_cleanup_test.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/integration_diagnostic_test.go",
+    "state": "untracked",
+    "rawSHA256": "f2301e5524ac7fa41537e621cda05a52cd1842a5c7b1ddcb2653637f01ae5f08",
+    "artifact": "changed-source/internal/connector/provider/openstack/integration_diagnostic_test.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/integration_test.go",
+    "state": "tracked-diff",
+    "rawSHA256": "53329a9251476929dd767e80959c4acf28caf2b3f60e19540241f6316368228f",
+    "artifact": "changed-source/internal/connector/provider/openstack/integration_test.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/management_classless_test.go",
+    "state": "untracked",
+    "rawSHA256": "e934ec6e28ee5dd982044ee7250c6efeb7618f11a0c504d8a9c53358d2247f4f",
+    "artifact": "changed-source/internal/connector/provider/openstack/management_classless_test.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/management_network.go",
+    "state": "untracked",
+    "rawSHA256": "2ce7df0ccbaab6dec443b9483721b17fdd801d623c80f6cf7de014e436fe779c",
+    "artifact": "changed-source/internal/connector/provider/openstack/management_network.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/management_network_test.go",
+    "state": "untracked",
+    "rawSHA256": "9f2cf550070da5a0fc715cbb9d9f1fb8fee8bb0a85bfb14e15978e580699dcd2",
+    "artifact": "changed-source/internal/connector/provider/openstack/management_network_test.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/management_subnet_affinity_test.go",
+    "state": "untracked",
+    "rawSHA256": "e5babaae1dff9afd9bb818ce510b9181fdfb2e43d10e7024d4531a59bc17e3c6",
+    "artifact": "changed-source/internal/connector/provider/openstack/management_subnet_affinity_test.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/port.go",
+    "state": "tracked-diff",
+    "rawSHA256": "79311d3eb602cbf85c2e16b102b9b09080c24bada126eb164ca8b4f831422c29",
+    "artifact": "changed-source/internal/connector/provider/openstack/port.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/preview_transport_export_test.go",
+    "state": "untracked",
+    "rawSHA256": "3c1c123021654c64bfe33cbffb1b8d666404dcaa330ee1f540572b939b19c6e9",
+    "artifact": "changed-source/internal/connector/provider/openstack/preview_transport_export_test.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/preview_transport_integration_test.go",
+    "state": "untracked",
+    "rawSHA256": "1f5ecc9941373e34ffd809b8eba2404f9dadb1f77e6c3c936b7c57f182456d92",
+    "artifact": "changed-source/internal/connector/provider/openstack/preview_transport_integration_test.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/provision.go",
+    "state": "tracked-diff",
+    "rawSHA256": "9955f195cb0784a68f7af312088bd7e18b5452499282eb3e5370e924ceb3b21e",
+    "artifact": "changed-source/internal/connector/provider/openstack/provision.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/provision_test.go",
+    "state": "tracked-diff",
+    "rawSHA256": "1ee31c07ffa97c6e9d9c8f1c5c4fc22f8fe32fa2c84a48b31fe9f1749250a429",
+    "artifact": "changed-source/internal/connector/provider/openstack/provision_test.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/topology.go",
+    "state": "tracked-diff",
+    "rawSHA256": "38f5af2b15f4bc8f6521f802b219b7c12f5a126d2e29837f6e4fe9222d9441ac",
+    "artifact": "changed-source/internal/connector/provider/openstack/topology.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/workspace_file_fixture_test.go",
+    "state": "untracked",
+    "rawSHA256": "9cac44cd7fc667e89d61423cbc05eb3715c839ef320a29adc3034e0516214836",
+    "artifact": "changed-source/internal/connector/provider/openstack/workspace_file_fixture_test.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/workspace_file_integration_gate_test.go",
+    "state": "untracked",
+    "rawSHA256": "93187048c70c4259f4c2ed0c6b2eef6f9e8227c6cab6fb64b19fb1a99006658e",
+    "artifact": "changed-source/internal/connector/provider/openstack/workspace_file_integration_gate_test.go.txt"
+  },
+  {
+    "path": "internal/connector/provider/openstack/workspace_file_integration_test.go",
+    "state": "tracked-diff",
+    "rawSHA256": "4c67194bedba84ee34afb523173b65851f19603fde2a0ab1af5bcbbef7f27a20",
+    "artifact": "changed-source/internal/connector/provider/openstack/workspace_file_integration_test.go.txt"
+  },
+  {
+    "path": "internal/connector/vmaccess/tcp_test.go",
+    "state": "tracked-diff",
+    "rawSHA256": "c06d5eb59414df671585e5d5ed0f5ef024c760875264921f815aa34f09206776",
+    "artifact": "changed-source/internal/connector/vmaccess/tcp_test.go.txt"
+  },
+  {
+    "path": "internal/connector/wss/handler.go",
+    "state": "tracked-diff",
+    "rawSHA256": "69c3d52e57c149fe96869d699530625a8839174966a58dc25f980f08a52fe2f5",
+    "artifact": "changed-source/internal/connector/wss/handler.go.txt"
+  },
+  {
+    "path": "internal/connector/wss/handler_preview.go",
+    "state": "untracked",
+    "rawSHA256": "3a06553e7d542c5212990b410455742a868e4f3af4b6a4e1810716d42373c7f2",
+    "artifact": "changed-source/internal/connector/wss/handler_preview.go.txt"
+  },
+  {
+    "path": "internal/connector/wss/handler_preview_test.go",
+    "state": "tracked-diff",
+    "rawSHA256": "8deffa3ca46eceafdc936fa972f7247feddb52ff55336854248ca7826cd06e9b",
+    "artifact": "changed-source/internal/connector/wss/handler_preview_test.go.txt"
+  },
+  {
+    "path": "internal/connector/wss/preview_owner_test.go",
+    "state": "untracked",
+    "rawSHA256": "49a7fa2ac339659c9bcad22372809ab93ae33f7c53e8f0490a55a4987dca2ed1",
+    "artifact": "changed-source/internal/connector/wss/preview_owner_test.go.txt"
+  },
+  {
+    "path": "internal/connector/wss/preview_replacement_test.go",
+    "state": "untracked",
+    "rawSHA256": "f693ef9a1ad71316f91055bedf95e284f2e78f464dbecf53e7e0908615120e74",
+    "artifact": "changed-source/internal/connector/wss/preview_replacement_test.go.txt"
+  },
+  {
+    "path": "internal/server/preview/previewtest/peer.go",
+    "state": "tracked-diff",
+    "rawSHA256": "15f2a0382518ea8539b2d2a5cf14df9cb6415f128cce23e198c0b834a2a1a724",
+    "artifact": "changed-source/internal/server/preview/previewtest/peer.go.txt"
+  },
+  {
+    "path": "internal/server/preview/previewtest/refused_other.go",
+    "state": "untracked",
+    "rawSHA256": "75abff0493db026e00414f0f7626caa8444a4f25b393a6c00de12c1342c09d97",
+    "artifact": "changed-source/internal/server/preview/previewtest/refused_other.go.txt"
+  },
+  {
+    "path": "internal/server/preview/previewtest/refused_test.go",
+    "state": "untracked",
+    "rawSHA256": "f5dc95030323f9dbcf01b2a70b43c2c42c884e79d50a86299caa72b861780bb6",
+    "artifact": "changed-source/internal/server/preview/previewtest/refused_test.go.txt"
+  },
+  {
+    "path": "internal/server/preview/previewtest/refused_windows.go",
+    "state": "untracked",
+    "rawSHA256": "162986a72a911dac7659504d13ee449d1800272094d68283e3edbaed9f7cd673",
+    "artifact": "changed-source/internal/server/preview/previewtest/refused_windows.go.txt"
+  },
+  {
+    "path": "internal/server/realtime/trace_log_test.go",
+    "state": "untracked",
+    "rawSHA256": "046735f223db318c6c7b15ecfe7dae6d935c4535c5f8b2cc2633e3d79168c678",
+    "artifact": "changed-source/internal/server/realtime/trace_log_test.go.txt"
+  },
+  {
+    "path": "internal/server/realtime/trace_propagation_test.go",
+    "state": "tracked-diff",
+    "rawSHA256": "586d9a02d167a22579c57ba244f1ff1e88b2d6de83892ed18ec1411a20a44f8b",
+    "artifact": "changed-source/internal/server/realtime/trace_propagation_test.go.txt"
+  },
+  {
+    "path": "runtime/contract.yaml",
+    "state": "tracked-diff",
+    "rawSHA256": "ea39bbf44f67bbd8b2106b6166aef8c70c3f1c9dff813b517714d3e291e0560f",
+    "artifact": "changed-source/runtime/contract.yaml"
+  }
+]

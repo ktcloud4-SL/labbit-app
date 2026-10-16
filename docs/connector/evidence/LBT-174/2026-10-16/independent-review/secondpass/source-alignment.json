@@ -1,0 +1,7 @@
+{
+  "declared_files": 489,
+  "different_files": [],
+  "reviewed_base": "4691c0ae8a43955549ae2b9e8bc4f5a464c30001",
+  "author_aggregate": null,
+  "method": "sha256 of LF-normalized bytes for every author source-manifest path; additional independent zz tests excluded"
+}

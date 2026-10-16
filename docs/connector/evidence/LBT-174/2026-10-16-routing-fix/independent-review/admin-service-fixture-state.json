@@ -1,0 +1,6 @@
+{
+  "Name": "VMnetDHCP",
+  "StartType": "Automatic",
+  "WasRunning": true,
+  "ConfigSHA256": "0000000000000000000000000000000000000000000000000000000000000000"
+}

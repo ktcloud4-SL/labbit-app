@@ -1,0 +1,58 @@
+package openstackprovider
+
+import (
+	"context"
+	"encoding/json"
+	"regexp"
+	"strings"
+	"testing"
+	"time"
+)
+
+// Agent GET only. Never emit full configurations, hosts, IDs or HTTP errors.
+func TestIndependentReadOnlyDHCPBackendConfiguration(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	a, err := New(ctx, ConfigFromEnvironment())
+	if err != nil { t.Fatal("provider initialization failed; details suppressed") }
+	var body struct {
+		Agents []struct {
+			AgentType string `json:"agent_type"`
+			Binary string `json:"binary"`
+			Alive bool `json:"alive"`
+			AdminStateUp bool `json:"admin_state_up"`
+			Configurations map[string]json.RawMessage `json:"configurations"`
+			Revision json.RawMessage `json:"revision_number"`
+		} `json:"agents"`
+	}
+	if _, err := a.network.Get(ctx, a.network.ServiceURL("agents"), &body, nil); err != nil {
+		t.Fatal("agent GET failed; details suppressed")
+	}
+	knownAgent := map[string]bool{"DHCP agent": true, "Open vSwitch agent": true, "L3 agent": true, "Metadata agent": true, "OVN Controller agent": true, "OVN Metadata agent": true}
+	versionPattern := regexp.MustCompile(`^[0-9][A-Za-z0-9._+:-]{0,79}$`)
+	for _, agent := range body.Agents {
+		if !knownAgent[agent.AgentType] { continue }
+		summary := map[string]any{"agentType": agent.AgentType, "alive": agent.Alive, "adminStateUp": agent.AdminStateUp}
+		if strings.HasPrefix(agent.Binary, "neutron-") || strings.HasPrefix(agent.Binary, "ovn-") { summary["binary"] = agent.Binary }
+		for _, key := range []string{"dhcp_driver", "dnsmasq_version", "neutron_version", "agent_version", "version", "revision", "revision_number"} {
+			raw, exists := agent.Configurations[key]
+			if !exists { summary[key] = "NOT_EXPOSED"; continue }
+			var value string
+			if err := json.Unmarshal(raw, &value); err != nil {
+				var number json.Number
+				if err := json.Unmarshal(raw, &number); err != nil { summary[key] = "PRESENT_UNSUPPORTED_TYPE"; continue }
+				value = number.String()
+			}
+			if key == "dhcp_driver" {
+				if value == "neutron.agent.linux.dhcp.Dnsmasq" { summary[key] = value } else { summary[key] = "PRESENT_OTHER_VALUE_SUPPRESSED" }
+			} else if versionPattern.MatchString(value) { summary[key] = value } else { summary[key] = "PRESENT_UNSAFE_FORMAT_SUPPRESSED" }
+		}
+		if len(agent.Revision) == 0 { summary["agentTopLevelRevision"] = "NOT_EXPOSED" } else {
+			var revision json.Number
+			if json.Unmarshal(agent.Revision, &revision) == nil && versionPattern.MatchString(revision.String()) { summary["agentTopLevelRevision"] = revision.String() } else { summary["agentTopLevelRevision"] = "PRESENT_UNSUPPORTED_TYPE" }
+		}
+		encoded, _ := json.Marshal(summary)
+		t.Logf("backendConfigurationAllowlist=%s", encoded)
+	}
+	t.Log("READ_ONLY_AGENT_CONFIGURATION_COMPLETE; unavailable release versions are not inferred from API version")
+}

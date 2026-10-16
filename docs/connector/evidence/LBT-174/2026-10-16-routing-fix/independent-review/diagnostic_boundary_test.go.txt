@@ -1,0 +1,98 @@
+package openstackprovider
+
+import (
+ "bytes"
+ "context"
+ "encoding/json"
+ "errors"
+ "fmt"
+ "io"
+ "net"
+ "testing"
+ "time"
+
+ "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
+ "golang.org/x/crypto/ssh"
+)
+
+func TestReviewManagementDHCPRequestUsesNeutronBlankableNames(t *testing.T) {
+ body,err:=(noManagementRoutes{ports.CreateOpts{NetworkID:"fixture-network"}}).ToPortCreateMap()
+ if err!=nil {t.Fatal(err)}
+ raw,err:=json.Marshal(body["port"].(map[string]any)["extra_dhcp_opts"])
+ if err!=nil {t.Fatal(err)}
+ var opts []managementDHCPOption
+ if err:=json.Unmarshal(raw,&opts);err!=nil {t.Fatal(err)}
+ for _,o:=range opts {
+  // neutron-lib api/definitions/extra_dhcp_opt.py VALID_BLANK_EXTRA_DHCP_OPTS;
+  // neutron db/extradhcpopt_db.py _is_valid_opt_value also preserves empty
+  // values only for these exact names.
+  if o.Value!=nil && *o.Value=="" && o.Name!="router" && o.Name!="classless-static-route" {
+   t.Errorf("empty DHCP option %q is not blank-able in Neutron API/DB contract",o.Name)
+  }
+ }
+}
+
+func TestReviewDiagnosticCancellationAtProtocolStages(t *testing.T) {
+ for _,mode:=range []string{"open-reply-held","exec-reply-held","exit-with-output-held","deadline-output-held","normal"} {
+  t.Run(mode,func(t *testing.T) {
+   started:=make(chan struct{})
+   peerDone:=make(chan error,1)
+   signer,err:=ssh.NewSignerFromKey(testPrivateKey("review-diagnostic-host"))
+   if err!=nil {t.Fatal(err)}
+   listener,err:=net.Listen("tcp","127.0.0.1:0")
+   if err!=nil {t.Fatal(err)}
+   defer listener.Close()
+   go func(){
+    raw,err:=listener.Accept();if err!=nil {peerDone<-err;return}
+    defer raw.Close()
+    _=raw.SetDeadline(time.Now().Add(5*time.Second))
+    cfg:=&ssh.ServerConfig{NoClientAuth:true};cfg.AddHostKey(signer)
+    conn,chans,requests,err:=ssh.NewServerConn(raw,cfg)
+    if err!=nil {peerDone<-err;return}
+    defer conn.Close()
+    go ssh.DiscardRequests(requests)
+    incoming,ok:=<-chans;if !ok {peerDone<-fmt.Errorf("session not opened");return}
+    if mode=="open-reply-held" {close(started);peerDone<-conn.Wait();return}
+    ch,reqs,err:=incoming.Accept();if err!=nil {peerDone<-err;return}
+    defer ch.Close()
+    req,ok:=<-reqs;if !ok || req.Type!="exec" {peerDone<-fmt.Errorf("exec missing");return}
+    if mode=="exec-reply-held" {close(started);peerDone<-conn.Wait();return}
+    if err:=req.Reply(true,nil);err!=nil {peerDone<-err;return}
+    if _,err:=io.WriteString(ch,"stdout-result");err!=nil {peerDone<-err;return}
+    if _,err:=io.WriteString(ch.Stderr(),"stderr-result");err!=nil {peerDone<-err;return}
+    if _,err:=ch.SendRequest("exit-status",false,ssh.Marshal(struct{Status uint32}{0}));err!=nil {peerDone<-err;return}
+    if mode=="normal" {_=ch.Close()}
+    close(started)
+    peerDone<-conn.Wait()
+   }()
+   client,err:=ssh.Dial("tcp",listener.Addr().String(),&ssh.ClientConfig{User:"fixture",HostKeyCallback:func(_ string,_ net.Addr,key ssh.PublicKey)error{
+    if !bytes.Equal(key.Marshal(),signer.PublicKey().Marshal()) {return errors.New("wrong fixture host key")};return nil
+   },Timeout:2*time.Second})
+   if err!=nil {t.Fatal(err)}
+   defer client.Close()
+   ctx,cancel:=context.WithCancel(context.Background());defer cancel()
+   if mode=="deadline-output-held" {
+    var cancelDeadline context.CancelFunc
+    ctx,cancelDeadline=context.WithTimeout(context.Background(),250*time.Millisecond);defer cancelDeadline()
+   }
+   var output bytes.Buffer
+   done:=make(chan error,1)
+   go func(){done<-integrationDiagnosticSSH(ctx,client,"review-phase",&output)}()
+   select {case <-started:case <-time.After(2*time.Second):t.Fatal("fault stage not reached")}
+   if mode!="normal" && mode!="deadline-output-held" {cancel()}
+   select {
+    case err:=<-done:
+     if mode=="normal" && err!=nil {t.Fatalf("normal err=%v",err)}
+     if mode=="deadline-output-held" && !errors.Is(err,context.DeadlineExceeded) {t.Fatalf("deadline err=%v",err)}
+     if mode!="normal" && mode!="deadline-output-held" && !errors.Is(err,context.Canceled) {t.Fatalf("cancel err=%v",err)}
+    case <-time.After(2*time.Second):t.Fatal("diagnostic helper did not join")
+   }
+   if mode=="normal" || mode=="exit-with-output-held" || mode=="deadline-output-held" {
+    text:=output.String()
+    if mode=="normal" && (!bytes.Contains([]byte(text),[]byte("stdout-result")) || !bytes.Contains([]byte(text),[]byte("stderr-result"))) {t.Fatalf("normal output lost: %q",text)}
+   }
+   select {case <-peerDone:case <-time.After(time.Second):t.Fatal("owned transport remained open")}
+  })
+ }
+}
+

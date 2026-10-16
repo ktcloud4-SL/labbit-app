@@ -1,0 +1,62 @@
+=== RUN   TestControlLogTraceWaitsForFirstEvent
+--- PASS: TestControlLogTraceWaitsForFirstEvent (0.01s)
+=== RUN   TestControlLogEventRejectsMalformedNonemptyJSON
+--- PASS: TestControlLogEventRejectsMalformedNonemptyJSON (0.00s)
+=== RUN   TestConnectorControlEventsPropagateTraceContext
+--- PASS: TestConnectorControlEventsPropagateTraceContext (0.20s)
+=== RUN   TestControlLogTraceWaitsForFirstEvent
+--- PASS: TestControlLogTraceWaitsForFirstEvent (0.01s)
+=== RUN   TestControlLogEventRejectsMalformedNonemptyJSON
+--- PASS: TestControlLogEventRejectsMalformedNonemptyJSON (0.00s)
+=== RUN   TestConnectorControlEventsPropagateTraceContext
+--- PASS: TestConnectorControlEventsPropagateTraceContext (0.16s)
+=== RUN   TestControlLogTraceWaitsForFirstEvent
+--- PASS: TestControlLogTraceWaitsForFirstEvent (0.01s)
+=== RUN   TestControlLogEventRejectsMalformedNonemptyJSON
+--- PASS: TestControlLogEventRejectsMalformedNonemptyJSON (0.00s)
+=== RUN   TestConnectorControlEventsPropagateTraceContext
+--- PASS: TestConnectorControlEventsPropagateTraceContext (0.16s)
+=== RUN   TestControlLogTraceWaitsForFirstEvent
+--- PASS: TestControlLogTraceWaitsForFirstEvent (0.01s)
+=== RUN   TestControlLogEventRejectsMalformedNonemptyJSON
+--- PASS: TestControlLogEventRejectsMalformedNonemptyJSON (0.00s)
+=== RUN   TestConnectorControlEventsPropagateTraceContext
+--- PASS: TestConnectorControlEventsPropagateTraceContext (0.17s)
+=== RUN   TestControlLogTraceWaitsForFirstEvent
+--- PASS: TestControlLogTraceWaitsForFirstEvent (0.01s)
+=== RUN   TestControlLogEventRejectsMalformedNonemptyJSON
+--- PASS: TestControlLogEventRejectsMalformedNonemptyJSON (0.00s)
+=== RUN   TestConnectorControlEventsPropagateTraceContext
+--- PASS: TestConnectorControlEventsPropagateTraceContext (0.16s)
+=== RUN   TestControlLogTraceWaitsForFirstEvent
+--- PASS: TestControlLogTraceWaitsForFirstEvent (0.01s)
+=== RUN   TestControlLogEventRejectsMalformedNonemptyJSON
+--- PASS: TestControlLogEventRejectsMalformedNonemptyJSON (0.00s)
+=== RUN   TestConnectorControlEventsPropagateTraceContext
+--- PASS: TestConnectorControlEventsPropagateTraceContext (0.16s)
+=== RUN   TestControlLogTraceWaitsForFirstEvent
+--- PASS: TestControlLogTraceWaitsForFirstEvent (0.01s)
+=== RUN   TestControlLogEventRejectsMalformedNonemptyJSON
+--- PASS: TestControlLogEventRejectsMalformedNonemptyJSON (0.00s)
+=== RUN   TestConnectorControlEventsPropagateTraceContext
+--- PASS: TestConnectorControlEventsPropagateTraceContext (0.16s)
+=== RUN   TestControlLogTraceWaitsForFirstEvent
+--- PASS: TestControlLogTraceWaitsForFirstEvent (0.00s)
+=== RUN   TestControlLogEventRejectsMalformedNonemptyJSON
+--- PASS: TestControlLogEventRejectsMalformedNonemptyJSON (0.00s)
+=== RUN   TestConnectorControlEventsPropagateTraceContext
+--- PASS: TestConnectorControlEventsPropagateTraceContext (0.17s)
+=== RUN   TestControlLogTraceWaitsForFirstEvent
+--- PASS: TestControlLogTraceWaitsForFirstEvent (0.01s)
+=== RUN   TestControlLogEventRejectsMalformedNonemptyJSON
+--- PASS: TestControlLogEventRejectsMalformedNonemptyJSON (0.00s)
+=== RUN   TestConnectorControlEventsPropagateTraceContext
+--- PASS: TestConnectorControlEventsPropagateTraceContext (0.16s)
+=== RUN   TestControlLogTraceWaitsForFirstEvent
+--- PASS: TestControlLogTraceWaitsForFirstEvent (0.01s)
+=== RUN   TestControlLogEventRejectsMalformedNonemptyJSON
+--- PASS: TestControlLogEventRejectsMalformedNonemptyJSON (0.00s)
+=== RUN   TestConnectorControlEventsPropagateTraceContext
+--- PASS: TestConnectorControlEventsPropagateTraceContext (0.16s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/realtime	4.782s

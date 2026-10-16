@@ -1,0 +1,510 @@
+{
+  "source": {
+    "files": 521,
+    "sourceSHA256": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "mismatches": 0
+  },
+  "childExitCode": 0,
+  "elapsedSeconds": 1002.157,
+  "testPassEvents": 1,
+  "testSkip": 0,
+  "testFail": 0,
+  "routingChecks": {
+    "internet-first": [
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      }
+    ],
+    "after-reset-first": [
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      }
+    ],
+    "after-timeout": {
+      "connectCode": 0,
+      "sourceRole": "lab",
+      "defaultRoles": [
+        "lab"
+      ]
+    },
+    "after-reboot": {
+      "connectCode": 0,
+      "sourceRole": "lab",
+      "defaultRoles": [
+        "lab"
+      ]
+    }
+  },
+  "renewals": {
+    "renew-lab-first": {
+      "renewedRoles": [
+        "lab",
+        "management"
+      ],
+      "leaseChanges": 2,
+      "probe": {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      "sameFinalEmission": true
+    },
+    "renew-management-first": {
+      "renewedRoles": [
+        "management",
+        "lab"
+      ],
+      "leaseChanges": 2,
+      "probe": {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      "sameFinalEmission": true
+    },
+    "after-reboot-renew-lab-first": {
+      "renewedRoles": [
+        "lab",
+        "management"
+      ],
+      "leaseChanges": 2,
+      "probe": {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      "sameFinalEmission": true
+    },
+    "after-reboot-renew-management-first": {
+      "renewedRoles": [
+        "management",
+        "lab"
+      ],
+      "leaseChanges": 2,
+      "probe": {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      "sameFinalEmission": true
+    },
+    "after-reset-renew-lab-first": {
+      "renewedRoles": [
+        "lab",
+        "management"
+      ],
+      "leaseChanges": 2,
+      "probe": {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      "sameFinalEmission": true
+    },
+    "after-reset-renew-management-first": {
+      "renewedRoles": [
+        "management",
+        "lab"
+      ],
+      "leaseChanges": 2,
+      "probe": {
+        "connectCode": 0,
+        "sourceRole": "lab",
+        "defaultRoles": [
+          "lab"
+        ]
+      },
+      "sameFinalEmission": true
+    }
+  },
+  "intentionalTimeout": {
+    "intentionalTimeoutObserved": true,
+    "ownedRouteAbsent": true,
+    "cleanupComplete": true
+  },
+  "AB": {
+    "forcedManagementTCPFailed": true,
+    "forcedManagementSource": "management",
+    "forcedLabTCPSucceeded": true,
+    "forcedLabSource": "lab",
+    "ownedHostRouteAbsentAndOriginalRouteRestored": true
+  },
+  "aptTemporaryRouteUsed": false,
+  "actualRebootBootIDChangeAuthenticatedPinnedSSH": true,
+  "immutableResetGeneration2": true,
+  "trackedResourceAbsence": 16,
+  "managementSecurityGroupGETAbsence": true,
+  "keypairGETAbsence": true,
+  "PostgreSQL": {
+    "startedHere": true,
+    "temporaryDBs": 0,
+    "queryExit": 0,
+    "stopExit": 0
+  },
+  "nativeCI": "See native-ci-raw-verification.json: exact12parents/67pass/0skip/0race",
+  "scope": "Actual local OpenStack ON lifecycle with native C1 (real PostgreSQL/Mock Provider). OFF, all12 actual fixture parents and packaging are separate.",
+  "rawProvenance": [
+    {
+      "path": "final-verified/internet-first-01.log",
+      "bytes": 334,
+      "sha256": "567e3a26ace518738f0dfaf01741767d2313f6daf6486bc1c1e3b244665f2121"
+    },
+    {
+      "path": "final-verified/internet-first-02.log",
+      "bytes": 334,
+      "sha256": "567e3a26ace518738f0dfaf01741767d2313f6daf6486bc1c1e3b244665f2121"
+    },
+    {
+      "path": "final-verified/internet-first-03.log",
+      "bytes": 334,
+      "sha256": "5f70b78e677794f359b53bc86fbd3d4fc5a0137552218ac6f1b152a2efc1cbcb"
+    },
+    {
+      "path": "final-verified/internet-first-04.log",
+      "bytes": 334,
+      "sha256": "567e3a26ace518738f0dfaf01741767d2313f6daf6486bc1c1e3b244665f2121"
+    },
+    {
+      "path": "final-verified/internet-first-05.log",
+      "bytes": 334,
+      "sha256": "2d714a06d7b9fe7a4730bd98cd69ec968033440406d0fee62829a24ba318c94d"
+    },
+    {
+      "path": "final-verified/internet-first-06.log",
+      "bytes": 333,
+      "sha256": "be989e6c4456419369dc1f3aa042a83abc2d8d7d1dfec1b2926e384ba22f7833"
+    },
+    {
+      "path": "final-verified/internet-first-07.log",
+      "bytes": 334,
+      "sha256": "2d714a06d7b9fe7a4730bd98cd69ec968033440406d0fee62829a24ba318c94d"
+    },
+    {
+      "path": "final-verified/internet-first-08.log",
+      "bytes": 333,
+      "sha256": "be989e6c4456419369dc1f3aa042a83abc2d8d7d1dfec1b2926e384ba22f7833"
+    },
+    {
+      "path": "final-verified/internet-first-09.log",
+      "bytes": 334,
+      "sha256": "567e3a26ace518738f0dfaf01741767d2313f6daf6486bc1c1e3b244665f2121"
+    },
+    {
+      "path": "final-verified/internet-first-10.log",
+      "bytes": 334,
+      "sha256": "dfec45de3e3f45309715b750e035dd6da161d136c78fa2af306ec896e7e86d70"
+    },
+    {
+      "path": "final-verified/internet-first-11.log",
+      "bytes": 334,
+      "sha256": "dfec45de3e3f45309715b750e035dd6da161d136c78fa2af306ec896e7e86d70"
+    },
+    {
+      "path": "final-verified/internet-first-12.log",
+      "bytes": 334,
+      "sha256": "2d714a06d7b9fe7a4730bd98cd69ec968033440406d0fee62829a24ba318c94d"
+    },
+    {
+      "path": "final-verified/after-reset-first-01.log",
+      "bytes": 334,
+      "sha256": "11c03fb181276d6d2c3fa419554ce0f463e59eacc9f22c8429ec8a4360f490f3"
+    },
+    {
+      "path": "final-verified/after-reset-first-02.log",
+      "bytes": 333,
+      "sha256": "be989e6c4456419369dc1f3aa042a83abc2d8d7d1dfec1b2926e384ba22f7833"
+    },
+    {
+      "path": "final-verified/after-reset-first-03.log",
+      "bytes": 334,
+      "sha256": "dfec45de3e3f45309715b750e035dd6da161d136c78fa2af306ec896e7e86d70"
+    },
+    {
+      "path": "final-verified/after-reset-first-04.log",
+      "bytes": 334,
+      "sha256": "dfec45de3e3f45309715b750e035dd6da161d136c78fa2af306ec896e7e86d70"
+    },
+    {
+      "path": "final-verified/after-reset-first-05.log",
+      "bytes": 334,
+      "sha256": "4715421d7c7fa6db2545cf4ac1120d7f57f357fcfc8e9f1321f976849faaeb70"
+    },
+    {
+      "path": "final-verified/after-reset-first-06.log",
+      "bytes": 334,
+      "sha256": "2d714a06d7b9fe7a4730bd98cd69ec968033440406d0fee62829a24ba318c94d"
+    },
+    {
+      "path": "final-verified/after-reset-first-07.log",
+      "bytes": 333,
+      "sha256": "be989e6c4456419369dc1f3aa042a83abc2d8d7d1dfec1b2926e384ba22f7833"
+    },
+    {
+      "path": "final-verified/after-reset-first-08.log",
+      "bytes": 334,
+      "sha256": "dfec45de3e3f45309715b750e035dd6da161d136c78fa2af306ec896e7e86d70"
+    },
+    {
+      "path": "final-verified/after-reset-first-09.log",
+      "bytes": 334,
+      "sha256": "567e3a26ace518738f0dfaf01741767d2313f6daf6486bc1c1e3b244665f2121"
+    },
+    {
+      "path": "final-verified/after-reset-first-10.log",
+      "bytes": 334,
+      "sha256": "567e3a26ace518738f0dfaf01741767d2313f6daf6486bc1c1e3b244665f2121"
+    },
+    {
+      "path": "final-verified/after-reset-first-11.log",
+      "bytes": 334,
+      "sha256": "dfec45de3e3f45309715b750e035dd6da161d136c78fa2af306ec896e7e86d70"
+    },
+    {
+      "path": "final-verified/after-reset-first-12.log",
+      "bytes": 334,
+      "sha256": "2d714a06d7b9fe7a4730bd98cd69ec968033440406d0fee62829a24ba318c94d"
+    },
+    {
+      "path": "final-verified/after-timeout.log",
+      "bytes": 334,
+      "sha256": "4715421d7c7fa6db2545cf4ac1120d7f57f357fcfc8e9f1321f976849faaeb70"
+    },
+    {
+      "path": "final-verified/after-reboot.log",
+      "bytes": 334,
+      "sha256": "2d714a06d7b9fe7a4730bd98cd69ec968033440406d0fee62829a24ba318c94d"
+    },
+    {
+      "path": "final-verified/renew-lab-first.log",
+      "bytes": 840,
+      "sha256": "404e25bc3fac2cb04620b3def90cae3dbc1c8c6dd32786c17f60ecbd5f1acf83"
+    },
+    {
+      "path": "final-verified/renew-management-first.log",
+      "bytes": 852,
+      "sha256": "97fe1af42d9eaca30dcad72865d6f7783166ca60f808434964ec5e7633328a32"
+    },
+    {
+      "path": "final-verified/after-reboot-renew-lab-first.log",
+      "bytes": 840,
+      "sha256": "4fb1dfbc30c590cdb0fd2c226db5a8b2bd1eb5721b273efbaba180365ddb0f32"
+    },
+    {
+      "path": "final-verified/after-reboot-renew-management-first.log",
+      "bytes": 854,
+      "sha256": "811d2daeeb7099f32788e2a8613b293d3ec66f983853a0911076107e5600d4d0"
+    },
+    {
+      "path": "final-verified/after-reset-renew-lab-first.log",
+      "bytes": 840,
+      "sha256": "2ed6bfbe055d6b8fa5c38b66a74a9ffb1b5e67a390c5972f0d9916abb9811c13"
+    },
+    {
+      "path": "final-verified/after-reset-renew-management-first.log",
+      "bytes": 854,
+      "sha256": "11c13488e35b341f5a3cb0fb4219b59dc56f75ead12dc2346f9cd9da3aaee2a4"
+    },
+    {
+      "path": "final-verified/diagnostic-timeout-cleanup.log",
+      "bytes": 88,
+      "sha256": "c3b50f0770f6e63f010e4efab42ee85b331cd3b80a33bfc256020b3d5db43faa"
+    },
+    {
+      "path": "final-verified/route-counterfactual.log",
+      "bytes": 1367,
+      "sha256": "a80f4b55d65adb2101ed4cf37492830920eefb943199ed3b407475544b5052f4"
+    },
+    {
+      "path": "final-verified/linux-apt.log",
+      "bytes": 17436,
+      "sha256": "88c4a4398ec7f0cad11b32bc1e8c326458add2dbbdb4ecb2db59f11e1d96d272"
+    },
+    {
+      "path": "final-verified/native-run-result.json",
+      "bytes": 1272,
+      "sha256": "0106f07fe576495f0607ba7f50bb6cbe2df1cb1d38da8bb114e94a835d9d62fd"
+    },
+    {
+      "path": "final-verified/postgres-cleanup.log",
+      "bytes": 3,
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+    },
+    {
+      "path": "final-verified/native-live.log",
+      "bytes": 20322,
+      "sha256": "c85a283fcf80c3c37517ee45a146836dec946434fed0c6c5ee2543ec343959c1"
+    }
+  ]
+}

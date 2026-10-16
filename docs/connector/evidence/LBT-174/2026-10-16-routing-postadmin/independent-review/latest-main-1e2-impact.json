@@ -1,0 +1,48 @@
+{
+  "previousReviewedIntegration": "ee05485bd9a1668f222e7a54fb5f880ea197e35a",
+  "newMain": "1e2b9c20fa2cfd7d7d449c8abba8558b5a614df4",
+  "commitSubject": "feat(operation): [LBT-179] UNKNOWN Reconciliation 및 KT Cloud Worker 시험 준비",
+  "changedPaths": [
+    "db/migrations/README.md",
+    "docs/backend/README.md",
+    "docs/backend/evidence/LBT-179/README.md",
+    "docs/backend/evidence/LBT-179/cluster.txt",
+    "docs/backend/evidence/LBT-179/connector-build.txt",
+    "docs/backend/evidence/LBT-179/shared-db.jsonl",
+    "internal/postgres/reconciliation.go",
+    "internal/server/app/control_stack.go",
+    "internal/server/app/mutation_integration_test.go",
+    "internal/server/app/provision_integration_test.go",
+    "internal/server/app/reconciliation_integration_test.go",
+    "internal/server/provision/executor.go",
+    "internal/server/provision/reconciliation.go",
+    "internal/server/repository/reconciliation.go",
+    "runtime/contract.yaml"
+  ],
+  "productionPaths": [
+    "internal/postgres/reconciliation.go",
+    "internal/server/app/control_stack.go",
+    "internal/server/provision/executor.go",
+    "internal/server/provision/reconciliation.go",
+    "internal/server/repository/reconciliation.go"
+  ],
+  "boundaryPathsCompared": [
+    "internal/connector",
+    "internal/server/preview",
+    "internal/server/realtime",
+    "internal/server/connector",
+    "contracts/http",
+    "contracts/realtime",
+    "contracts/connector",
+    "go.mod",
+    "go.sum",
+    "web"
+  ],
+  "boundaryChanges": [],
+  "newSQLMigrations": [],
+  "productionDiffSHA256": "34ebe01fa78743e568d9aebf268123c1e04e47cdc944c2bc49eefe46cd5bd85d",
+  "runtimeDelta": "Read-only UNKNOWN reconciliation claim/lease fencing; only CLEANUP complete exact known absence may finish; no mutation replay or PROVISION/RESET READY inference",
+  "impact": "Existing tested branch Preview/Provider/Connector component sources and HTTP/WSS consumers are unchanged. New production worker/store wiring requires a distinct integrated-main verification; ee05485 PASS cannot establish this new path.",
+  "integrationStatus": "Subsequently completed: see latest-main-reconcile-verification.json for separate1e2 source535 Go/vet/build/realPG5package verification and source/SQL/Web bridge.",
+  "reviewerBoundary": "Read-only diff/source impact review; no claim of full independent audit of unrelated LBT179, no primary checkout/ref/product mutation"
+}

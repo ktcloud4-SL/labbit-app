@@ -1,0 +1,106 @@
+{
+  "base": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "latest_fetched_sha": "27039422d48c39eb4edd41606fbc829156e43355",
+  "checkout_head": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "origin_main": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "changed_file_count": 17,
+  "changed_files": [
+    "contracts/connector/README.md",
+    "db/migrations/000008_operation_dispatch_deferral.sql",
+    "db/migrations/README.md",
+    "internal/postgres/migrate_integration_test.go",
+    "internal/postgres/migration_test.go",
+    "internal/postgres/operation_worker.go",
+    "internal/postgres/provision_worker.go",
+    "internal/postgres/provision_worker_integration_test.go",
+    "internal/server/app/app.go",
+    "internal/server/app/connector_integration_test.go",
+    "internal/server/app/control_stack.go",
+    "internal/server/app/provision_integration_test.go",
+    "internal/server/operation/worker.go",
+    "internal/server/provision/executor.go",
+    "internal/server/provision/executor_test.go",
+    "internal/server/repository/provision_worker.go",
+    "runtime/contract.yaml"
+  ],
+  "wire_and_module_identity": [
+    {
+      "path": "contracts/connector/connector.schema.json",
+      "same": true,
+      "base_sha256": "f1a5eea9e40a05adfd7fad45221b36c8e1e5f5928f399a998ecf1250d41e5f31",
+      "latest_sha256": "f1a5eea9e40a05adfd7fad45221b36c8e1e5f5928f399a998ecf1250d41e5f31"
+    },
+    {
+      "path": "contracts/connector/file-control.schema.json",
+      "same": true,
+      "base_sha256": "b8f48f7bfe144766427dbcf229c7ef32059e65447547f2c8fe6858ba08af5b48",
+      "latest_sha256": "b8f48f7bfe144766427dbcf229c7ef32059e65447547f2c8fe6858ba08af5b48"
+    },
+    {
+      "path": "contracts/connector/file-data.schema.json",
+      "same": true,
+      "base_sha256": "91fc4d9d4dba5ffa2296a13f63c24c4ab8bae1fa422bb806c4c70bd23b0f5e81",
+      "latest_sha256": "91fc4d9d4dba5ffa2296a13f63c24c4ab8bae1fa422bb806c4c70bd23b0f5e81"
+    },
+    {
+      "path": "contracts/connector/preview-control.schema.json",
+      "same": true,
+      "base_sha256": "a9d833b36984fffd44038af5d74dcf80f34dd10d58ab7893605f6a409c8a2f7a",
+      "latest_sha256": "a9d833b36984fffd44038af5d74dcf80f34dd10d58ab7893605f6a409c8a2f7a"
+    },
+    {
+      "path": "contracts/connector/preview-data.schema.json",
+      "same": true,
+      "base_sha256": "bb512c1359abbb7a1a893d96a74bea499df8ea6e31df360ff7af8dc87ee1ba16",
+      "latest_sha256": "bb512c1359abbb7a1a893d96a74bea499df8ea6e31df360ff7af8dc87ee1ba16"
+    },
+    {
+      "path": "contracts/connector/terminal-control.schema.json",
+      "same": true,
+      "base_sha256": "82cdc8ee7cc6275c060133615f956b7c1dbdfb117e634d690c7b5cbfe3ac8162",
+      "latest_sha256": "82cdc8ee7cc6275c060133615f956b7c1dbdfb117e634d690c7b5cbfe3ac8162"
+    },
+    {
+      "path": "contracts/connector/terminal-data.schema.json",
+      "same": true,
+      "base_sha256": "1cd5699fa157fb3580eff78d3d8b1a834014e796324adf704084b564eefc619b",
+      "latest_sha256": "1cd5699fa157fb3580eff78d3d8b1a834014e796324adf704084b564eefc619b"
+    },
+    {
+      "path": "contracts/http/openapi.yaml",
+      "same": true,
+      "base_sha256": "a9516f2af1706b363196814d405b8597d233cd45c77aeac20cd60809b989af6c",
+      "latest_sha256": "a9516f2af1706b363196814d405b8597d233cd45c77aeac20cd60809b989af6c"
+    },
+    {
+      "path": "contracts/realtime/terminal-live.schema.json",
+      "same": true,
+      "base_sha256": "320089494975d01b1db2a2507b381e743b026b5f2c6ef51c1e5a729224fdeff8",
+      "latest_sha256": "320089494975d01b1db2a2507b381e743b026b5f2c6ef51c1e5a729224fdeff8"
+    },
+    {
+      "path": "go.mod",
+      "same": true,
+      "base_sha256": "d9edb3cb0b349c2aaf878eac77e312dbb8fa03e9ad79f8c9569d309baecbf4b4",
+      "latest_sha256": "d9edb3cb0b349c2aaf878eac77e312dbb8fa03e9ad79f8c9569d309baecbf4b4"
+    },
+    {
+      "path": "go.sum",
+      "same": true,
+      "base_sha256": "accde73f8f6e210dc68e55c2293110f83d3d87902f84edf169b426a5fb5a0d90",
+      "latest_sha256": "accde73f8f6e210dc68e55c2293110f83d3d87902f84edf169b426a5fb5a0d90"
+    }
+  ],
+  "wire_and_module_differences": 0,
+  "connector_or_preview_product_changes": [],
+  "current_contract_patch_apply_check_on_latest": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "external_tree": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt174-routing-fix-independent-20261016\\latest-main-document-check"
+  },
+  "new_migration": "db/migrations/000008_operation_dispatch_deferral.sql",
+  "readiness_boundary": "Latest PROVISION stores Provider success/resources but leaves LabInstance PROVISIONING. Existing PreviewSession authority requires READY. Fresh production Provision-to-Preview is not proven by this local MockGateway fixture.",
+  "integration_execution": "NOT RUN: no merged checkout/build, migration8 DB, real worker dispatch, or latest-main integrated lifecycle was executed by reviewer.",
+  "shared_checkout_mutations": 0
+}

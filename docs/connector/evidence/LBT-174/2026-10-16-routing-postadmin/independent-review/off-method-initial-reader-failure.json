@@ -1,0 +1,8 @@
+{
+  "scope": "reviewer-only verification script, not product or OFF helper",
+  "initialAttempt": "Python SyntaxError at report dictionary construction in verify_off_method.py before any script execution",
+  "goOrCloudCallsBeforeFailure": 0,
+  "correction": "Separate the mode string value and cloudCalls key in the report dictionary",
+  "after": "Local Go overlay compile and 3 generated Python AST checks PASS; source521 unchanged",
+  "evidence": "off-method-review.json"
+}

@@ -1,0 +1,179 @@
+{
+  "finding": "F174-METHOD003",
+  "verdict": "Fixed for the reported PG ownership boundary",
+  "scope": "Independent AST execution of both new safe runners with every subprocess stubbed; no PostgreSQL, Go child or cloud process runs",
+  "sources": [
+    {
+      "source": "run_validation_safe.py",
+      "SHA256": "8c905769507f528e8d2a786e2ea0e7254dc014720ad1e451a40bc87e2cfcdfd4",
+      "originalSHA256StillMatches": true
+    },
+    {
+      "source": "linux-v3\\run_validation_safe.py",
+      "SHA256": "1442deead33e8b84c847634e265b04be6f5f0e5c75b2df5603e863be1b181d36",
+      "originalSHA256StillMatches": true
+    }
+  ],
+  "casesPassed": 8,
+  "cases": [
+    {
+      "source": "run_validation_safe.py",
+      "mode": "start-rejected",
+      "startCalls": 1,
+      "stopCalls": 0,
+      "testCalls": 0,
+      "queryCalls": 0,
+      "exception": "CalledProcessError",
+      "result": {
+        "postgresStartedHere": false,
+        "runnerExceptionType": "CalledProcessError",
+        "postgresCleanupSkipped": "not_started_here",
+        "finishedUTC": "2026-10-16T08:06:53.898000+00:00",
+        "elapsedSeconds": 0.0,
+        "sourceAfter": {
+          "sourceUnchanged": true
+        }
+      }
+    },
+    {
+      "source": "run_validation_safe.py",
+      "mode": "normal",
+      "startCalls": 1,
+      "stopCalls": 1,
+      "testCalls": 1,
+      "queryCalls": 1,
+      "exception": null,
+      "result": {
+        "postgresStartedHere": true,
+        "exitCode": 0,
+        "postgresQueryExit": 0,
+        "postgresStopExit": 0,
+        "finishedUTC": "2026-10-16T08:06:53.899351+00:00",
+        "elapsedSeconds": 0.0,
+        "sourceAfter": {
+          "sourceUnchanged": true
+        }
+      }
+    },
+    {
+      "source": "run_validation_safe.py",
+      "mode": "go-exit1",
+      "startCalls": 1,
+      "stopCalls": 1,
+      "testCalls": 1,
+      "queryCalls": 1,
+      "exception": null,
+      "result": {
+        "postgresStartedHere": true,
+        "exitCode": 1,
+        "postgresQueryExit": 0,
+        "postgresStopExit": 0,
+        "finishedUTC": "2026-10-16T08:06:53.900840+00:00",
+        "elapsedSeconds": 0.0,
+        "sourceAfter": {
+          "sourceUnchanged": true
+        }
+      }
+    },
+    {
+      "source": "run_validation_safe.py",
+      "mode": "go-timeout",
+      "startCalls": 1,
+      "stopCalls": 1,
+      "testCalls": 1,
+      "queryCalls": 1,
+      "exception": "TimeoutExpired",
+      "result": {
+        "postgresStartedHere": true,
+        "runnerExceptionType": "TimeoutExpired",
+        "postgresQueryExit": 0,
+        "postgresStopExit": 0,
+        "finishedUTC": "2026-10-16T08:06:53.901337+00:00",
+        "elapsedSeconds": 0.0,
+        "sourceAfter": {
+          "sourceUnchanged": true
+        }
+      }
+    },
+    {
+      "source": "linux-v3\\run_validation_safe.py",
+      "mode": "start-rejected",
+      "startCalls": 1,
+      "stopCalls": 0,
+      "testCalls": 0,
+      "queryCalls": 0,
+      "exception": "CalledProcessError",
+      "result": {
+        "postgresStartedHere": false,
+        "runnerExceptionType": "CalledProcessError",
+        "postgresCleanupSkipped": "not_started_here",
+        "finishedUTC": "2026-10-16T08:06:53.903846+00:00",
+        "elapsedSeconds": 0.0,
+        "sourceAfter": {
+          "sourceUnchanged": true
+        }
+      }
+    },
+    {
+      "source": "linux-v3\\run_validation_safe.py",
+      "mode": "normal",
+      "startCalls": 1,
+      "stopCalls": 1,
+      "testCalls": 1,
+      "queryCalls": 1,
+      "exception": null,
+      "result": {
+        "postgresStartedHere": true,
+        "exitCode": 0,
+        "postgresQueryExit": 0,
+        "postgresStopExit": 0,
+        "finishedUTC": "2026-10-16T08:06:53.904840+00:00",
+        "elapsedSeconds": 0.0,
+        "sourceAfter": {
+          "sourceUnchanged": true
+        }
+      }
+    },
+    {
+      "source": "linux-v3\\run_validation_safe.py",
+      "mode": "go-exit1",
+      "startCalls": 1,
+      "stopCalls": 1,
+      "testCalls": 1,
+      "queryCalls": 1,
+      "exception": null,
+      "result": {
+        "postgresStartedHere": true,
+        "exitCode": 1,
+        "postgresQueryExit": 0,
+        "postgresStopExit": 0,
+        "finishedUTC": "2026-10-16T08:06:53.905833+00:00",
+        "elapsedSeconds": 0.0,
+        "sourceAfter": {
+          "sourceUnchanged": true
+        }
+      }
+    },
+    {
+      "source": "linux-v3\\run_validation_safe.py",
+      "mode": "go-timeout",
+      "startCalls": 1,
+      "stopCalls": 1,
+      "testCalls": 1,
+      "queryCalls": 1,
+      "exception": "TimeoutExpired",
+      "result": {
+        "postgresStartedHere": true,
+        "runnerExceptionType": "TimeoutExpired",
+        "postgresQueryExit": 0,
+        "postgresStopExit": 0,
+        "finishedUTC": "2026-10-16T08:06:53.907541+00:00",
+        "elapsedSeconds": 0.0,
+        "sourceAfter": {
+          "sourceUnchanged": true
+        }
+      }
+    }
+  ],
+  "limits": "Does not execute live cloud cleanup, PG binary failures during cleanup or interrupted-process recovery; historical as-run runners stay unchanged"
+}

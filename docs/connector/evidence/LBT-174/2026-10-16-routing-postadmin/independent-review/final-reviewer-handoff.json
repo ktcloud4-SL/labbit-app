@@ -1,0 +1,17 @@
+{
+  "reviewedSnapshotFiles": 431,
+  "snapshotChangedAfterRead": [],
+  "finalReviewerReportLinksMissing": [],
+  "primaryHEAD": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "stagedPaths": [],
+  "newReviewerReports": [
+    "AUDIT_DRAFT.md",
+    "FINAL_AUDIT.md",
+    "final-cloud-batch-verification.json",
+    "package-independent-verification.json",
+    "package-independent-snapshot.json",
+    "verify_cloud_batch.py",
+    "verify_package_independent.py"
+  ],
+  "limits": "Final reviewer files await root re-export and final seal; original reviewed snapshot unchanged."
+}

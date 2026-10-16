@@ -1,0 +1,18 @@
+[
+  {
+    "file": "zz_independent_upgrade_cancel_test.go.txt",
+    "equal": true
+  },
+  {
+    "file": "zz_independent_idle_retirement_test.go.txt",
+    "equal": true
+  },
+  {
+    "file": "zz_independent_retirement_test.go.txt",
+    "equal": true
+  },
+  {
+    "file": "handler-retirement-scheduling-overlay.go.txt",
+    "equal": true
+  }
+]

@@ -1,0 +1,22 @@
+=== RUN   TestLinuxRegressionRequiresEveryRequestedTest
+--- PASS: TestLinuxRegressionRequiresEveryRequestedTest (0.00s)
+=== RUN   TestLinuxRegressionRequiresEveryRequestedTest
+--- PASS: TestLinuxRegressionRequiresEveryRequestedTest (0.00s)
+=== RUN   TestLinuxRegressionRequiresEveryRequestedTest
+--- PASS: TestLinuxRegressionRequiresEveryRequestedTest (0.00s)
+=== RUN   TestLinuxRegressionRequiresEveryRequestedTest
+--- PASS: TestLinuxRegressionRequiresEveryRequestedTest (0.00s)
+=== RUN   TestLinuxRegressionRequiresEveryRequestedTest
+--- PASS: TestLinuxRegressionRequiresEveryRequestedTest (0.00s)
+=== RUN   TestLinuxRegressionRequiresEveryRequestedTest
+--- PASS: TestLinuxRegressionRequiresEveryRequestedTest (0.00s)
+=== RUN   TestLinuxRegressionRequiresEveryRequestedTest
+--- PASS: TestLinuxRegressionRequiresEveryRequestedTest (0.00s)
+=== RUN   TestLinuxRegressionRequiresEveryRequestedTest
+--- PASS: TestLinuxRegressionRequiresEveryRequestedTest (0.00s)
+=== RUN   TestLinuxRegressionRequiresEveryRequestedTest
+--- PASS: TestLinuxRegressionRequiresEveryRequestedTest (0.00s)
+=== RUN   TestLinuxRegressionRequiresEveryRequestedTest
+--- PASS: TestLinuxRegressionRequiresEveryRequestedTest (0.00s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	4.240s

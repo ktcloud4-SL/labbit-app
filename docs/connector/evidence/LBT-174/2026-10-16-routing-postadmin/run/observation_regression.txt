@@ -1,0 +1,17 @@
+
+func TestManagementPortUsesValidatedObservation(t *testing.T) {
+ for _,kind:=range []string{"outside address","foreign ID","foreign network","empty 121"} {t.Run(kind,func(t *testing.T){
+  fake:=&m2OpenStackFake{t:t};postNovaGets:=0
+  a:=newTestAdapter(t,http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
+   if fake.serverCreates>0 && r.Method==http.MethodGet && strings.HasSuffix(r.URL.Path,"/ports/port-management") {postNovaGets++;if postNovaGets==1 {
+    rr:=httptest.NewRecorder();fake.ServeHTTP(rr,r);var body map[string]any;if err:=json.Unmarshal(rr.Body.Bytes(),&body);err!=nil {t.Error(err);return};port:=body["port"].(map[string]any)
+    switch kind {case "outside address":port["fixed_ips"]=[]map[string]string{{"subnet_id":"management-subnet","ip_address":"172.16.9.200"}};case "foreign ID":port["id"]="foreign-port";case "foreign network":port["network_id"]="foreign-network";case "empty 121":port["extra_dhcp_opts"]=[]map[string]any{{"opt_name":"router","opt_value":"","ip_version":4},{"opt_name":"classless-static-route","opt_value":"","ip_version":4}}}
+    writeJSON(t,w,rr.Code,body);return
+   }};fake.ServeHTTP(w,r)
+  }))
+  a.provision=testProvisionConfig(t);probed:="";a.sshProbe=func(_ context.Context,address string)error{probed=address;return nil};a.startupProbe=func(context.Context,string,string)error{return nil}
+  result,err:=a.Provision(context.Background(),coreprovider.ProvisionRequest{Correlation:coreprovider.Correlation{OperationID:"single-observation",LabInstanceID:"single-observation",Generation:1},CreationSnapshot:validSnapshot()})
+  if postNovaGets<1 || err!=nil || result.Outcome==coreprovider.OutcomeSucceeded || probed!="" {t.Fatalf("unvalidated observation used: gets=%d probed=%q outcome=%s err=%v",postNovaGets,probed,result.Outcome,err)}
+  retained:=false;for _,r:=range result.ProviderResources {if r.ProviderID=="port-management" {retained=true};if r.ProviderID=="foreign-port" {t.Fatal("unowned identity entered cleanup ledger")}};if !retained {t.Fatal("known owned port lost")}
+ })}
+}

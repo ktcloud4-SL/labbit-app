@@ -3,175 +3,149 @@ package preview
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 
-	"github.com/gorilla/websocket"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 )
 
-// ErrSessionConflict 는 동일 세션 ID로 기존과 다른 generation/target 요청이 들어왔을 때 반환됩니다.
-var ErrSessionConflict = errors.New("preview: session conflict (stale generation or target mismatch)")
+var ErrSessionConflict = errors.New("preview: session conflict (stale generation, target or active attempt)")
 
-// SessionManager 는 모든 활성 프리뷰 세션을 관리하는 Thread-safe 레지스트리입니다.
+// SessionManager owns pending opens as well as attached tunnels. Network IO
+// runs outside its lock, so Close can cancel a dial without waiting for its peer.
 type SessionManager struct {
-	mu        sync.RWMutex
-	sessions  map[string]*PreviewSession
-	forwarder TCPForwarder
-	onEnded   PreviewEndedCallback
+	mu                sync.RWMutex
+	sessions          map[string]*PreviewSession
+	minimumGeneration map[string]int64
+	forwarder         TCPForwarder
+	onEnded           PreviewEndedCallback
+	stopped           bool
 }
 
-// NewSessionManager 는 포워더와 종료 콜백을 주입받아 SessionManager 를 초기화합니다.
 func NewSessionManager(forwarder TCPForwarder, onEnded PreviewEndedCallback) *SessionManager {
-	return &SessionManager{
-		sessions:  make(map[string]*PreviewSession),
-		forwarder: forwarder,
-		onEnded:   onEnded,
-	}
+	return &SessionManager{sessions: make(map[string]*PreviewSession), minimumGeneration: make(map[string]int64), forwarder: forwarder, onEnded: onEnded}
 }
-
-// SetOnEnded 는 세션 종료 콜백을 등록하거나 변경합니다.
 func (sm *SessionManager) SetOnEnded(cb PreviewEndedCallback) {
 	sm.mu.Lock()
-	defer sm.mu.Unlock()
 	sm.onEnded = cb
+	sm.mu.Unlock()
 }
 
-// GetOrCreateSession 은 동일한 previewSessionId 가 존재하면 기존 세션을 반환하고,
-// 없으면 TCPForwarder 를 통해 VM 대상 포트에 연결하여 새 PreviewSession 을 등록합니다.
-// attempt 멱등성 및 순차 터널 규칙:
-// 1) 동일 openMessageId (envelope.MessageID)로 활성 터널이 존재하면 isRetry=true 반환 (재다이얼 없음).
-// 2) 다른 openMessageId 인 경우 새 sequential 터널을 위해 새로 TCP 다이얼 후 바인딩 (isRetry=false).
-// 3) Generation/Target 불일치 시 fail-closed (ErrSessionConflict) 반환.
-func (sm *SessionManager) GetOrCreateSession(
-	ctx context.Context,
-	payload protocol.PreviewOpenPayload,
-	envelope protocol.BaseEnvelope,
-) (*PreviewSession, bool, error) {
-	sessionID := envelope.PreviewSessionID
-	if sessionID == "" {
-		return nil, false, errors.New("previewSessionId is required")
-	}
+type OpenAttempt struct {
+	manager *SessionManager
+	session *PreviewSession
+	tunnel  *PreviewTunnel
+	retry   bool
+	env     protocol.BaseEnvelope
+	payload protocol.PreviewOpenPayload
+}
 
+// PrepareOpen reserves synchronously in Control receive order. Open may do
+// network IO in a worker while the reader continues to process CLOSE.
+func (sm *SessionManager) PrepareOpen(ctx context.Context, payload protocol.PreviewOpenPayload, env protocol.BaseEnvelope) (*OpenAttempt, error) {
+	if env.PreviewSessionID == "" {
+		return nil, errors.New("previewSessionId is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	sm.mu.Lock()
-	if existing, ok := sm.sessions[sessionID]; ok {
-		if existing.IsDestroyed() {
-			sm.mu.Unlock()
-			return nil, false, ErrSessionClosed
-		}
-
-		if existing.LabInstanceID != envelope.LabInstanceID ||
-			existing.Generation != envelope.Generation ||
-			existing.TargetVmKey != payload.TargetVmKey ||
-			existing.ProviderServerID != payload.ProviderServerID ||
-			existing.TargetPort != payload.TargetPort {
-			sm.mu.Unlock()
-			return nil, false, fmt.Errorf("%w: mismatch in existing session correlation/target", ErrSessionConflict)
-		}
-
-		// 동일 openMessageId (또는 envelope.MessageID가 비어있는 경우 활성 터널 존재) 재시도인 경우 멱등 성공 처리
-		isSameAttempt := (envelope.MessageID == "" && existing.HasActiveTunnel()) || (envelope.MessageID != "" && existing.CurrentAttemptID() == envelope.MessageID && existing.HasActiveTunnel())
-		if isSameAttempt {
-			sm.mu.Unlock()
-			return existing, true, nil
-		}
+	if sm.stopped || env.Generation < sm.minimumGeneration[env.LabInstanceID] {
+		sm.mu.Unlock()
+		return nil, ErrSessionClosed
 	}
-	sm.mu.Unlock()
-
-	if sm.forwarder == nil {
-		return nil, false, errors.New("tcp forwarder is not configured")
+	s, exists := sm.sessions[env.PreviewSessionID]
+	if exists && (s.LabInstanceID != env.LabInstanceID || s.Generation != env.Generation || s.TargetVmKey != payload.TargetVmKey || s.ProviderServerID != payload.ProviderServerID || s.TargetPort != payload.TargetPort) {
+		sm.mu.Unlock()
+		return nil, ErrSessionConflict
 	}
-
-	// Lock 외부에서 TCP 다이얼 수행
-	conn, err := sm.forwarder.DialTCP(ctx, vmaccess.Target{
-		LabInstanceID: envelope.LabInstanceID, Generation: envelope.Generation,
-		VMKey: payload.TargetVmKey, ServerID: payload.ProviderServerID,
-	}, payload.TargetPort)
-	if err != nil {
-		return nil, false, err
-	}
-
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	// Double check
-	if existing, ok := sm.sessions[sessionID]; ok {
-		if existing.IsDestroyed() {
-			_ = conn.Close()
-			return nil, false, ErrSessionClosed
-		}
-
-		if existing.LabInstanceID != envelope.LabInstanceID ||
-			existing.Generation != envelope.Generation ||
-			existing.TargetVmKey != payload.TargetVmKey ||
-			existing.ProviderServerID != payload.ProviderServerID ||
-			existing.TargetPort != payload.TargetPort {
-			_ = conn.Close()
-			return nil, false, fmt.Errorf("%w: mismatch in existing session correlation/target", ErrSessionConflict)
-		}
-
-		isSameAttempt := (envelope.MessageID == "" && existing.HasActiveTunnel()) || (envelope.MessageID != "" && existing.CurrentAttemptID() == envelope.MessageID && existing.HasActiveTunnel())
-		if isSameAttempt {
-			_ = conn.Close()
-			return existing, true, nil
-		}
-
-		if _, err := existing.BindTunnel(envelope.MessageID, conn); err != nil {
-			_ = conn.Close()
-			return nil, false, err
-		}
-		return existing, false, nil
-	}
-
-	session := NewPreviewSession(
-		sessionID,
-		envelope.LabInstanceID,
-		envelope.Generation,
-		payload.TargetVmKey,
-		payload.ProviderServerID,
-		payload.TargetPort,
-		nil,
-		func(s *PreviewSession, reason string, err error) {
-			var closeErr *websocket.CloseError
-			if (errors.As(err, &closeErr) && (closeErr.Code == 4001 || closeErr.Code == 4002)) || s.IsDestroyed() {
-				sm.removeSession(s.SessionID)
+	if !exists {
+		s = NewPreviewSession(env.PreviewSessionID, env.LabInstanceID, env.Generation, payload.TargetVmKey, payload.ProviderServerID, payload.TargetPort, nil, func(s *PreviewSession, reason string, err error) {
+			sm.mu.Lock()
+			if s.IsDestroyed() && sm.sessions[s.SessionID] == s {
+				delete(sm.sessions, s.SessionID)
 			}
-			sm.mu.RLock()
 			cb := sm.onEnded
-			sm.mu.RUnlock()
+			sm.mu.Unlock()
 			if cb != nil {
 				cb(s, reason, err)
 			}
-		},
-	)
-
-	if _, err := session.BindTunnel(envelope.MessageID, conn); err != nil {
-		_ = conn.Close()
+		})
+		sm.sessions[s.SessionID] = s
+	}
+	tunnel, retry, err := s.reserveTunnel(env.MessageID)
+	sm.mu.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	return &OpenAttempt{manager: sm, session: s, tunnel: tunnel, retry: retry, env: env, payload: payload}, nil
+}
+func (sm *SessionManager) GetOrCreateSession(ctx context.Context, payload protocol.PreviewOpenPayload, env protocol.BaseEnvelope) (*PreviewSession, bool, error) {
+	a, err := sm.PrepareOpen(ctx, payload, env)
+	if err != nil {
 		return nil, false, err
 	}
-
-	sm.sessions[sessionID] = session
-	return session, false, nil
+	return a.Open(ctx)
+}
+func (a *OpenAttempt) Open(ctx context.Context) (*PreviewSession, bool, error) {
+	sm, s, tunnel, retry, env, payload := a.manager, a.session, a.tunnel, a.retry, a.env, a.payload
+	var err error
+	if retry {
+		select {
+		case <-ctx.Done():
+			return nil, true, ctx.Err()
+		case <-tunnel.ready:
+			if err := tunnel.dialResult(); err != nil {
+				return nil, true, err
+			}
+			return s, true, nil
+		case <-tunnel.done:
+			return nil, true, ErrSessionClosed
+		}
+	}
+	dialCtx, cancel := context.WithCancel(ctx)
+	stop := context.AfterFunc(tunnel.ctx, cancel)
+	defer stop()
+	defer cancel()
+	if sm.forwarder == nil {
+		err = errors.New("tcp forwarder is not configured")
+	} else {
+		conn, dialErr := sm.forwarder.DialTCP(dialCtx, vmaccess.Target{LabInstanceID: env.LabInstanceID, Generation: env.Generation, VMKey: payload.TargetVmKey, ServerID: payload.ProviderServerID}, payload.TargetPort)
+		err = tunnel.completeDial(conn, dialErr)
+	}
+	if err == nil {
+		err = dialCtx.Err()
+	}
+	if err != nil {
+		tunnel.closeWithReason(protocol.PreviewErrorCodeUnavailable, err)
+		sm.discardUnattached(s, env.MessageID)
+		return nil, false, err
+	}
+	return s, false, nil
 }
 
-// GetSession 은 식별자로 세션을 조회합니다.
-func (sm *SessionManager) GetSession(sessionID string) (*PreviewSession, bool) {
+// A delayed failure cannot discard a newer attempt or an established session.
+func (sm *SessionManager) discardUnattached(s *PreviewSession, attempt string) {
+	sm.mu.Lock()
+	s.mu.Lock()
+	if sm.sessions[s.SessionID] == s && !s.everAttached && s.currentAttemptID == attempt && s.activeTunnel == nil {
+		s.destroyed = true
+		delete(sm.sessions, s.SessionID)
+	}
+	s.mu.Unlock()
+	sm.mu.Unlock()
+}
+func (sm *SessionManager) GetSession(id string) (*PreviewSession, bool) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	s, ok := sm.sessions[sessionID]
+	s, ok := sm.sessions[id]
 	return s, ok
 }
-
-// CloseSession 은 특정 세션을 닫고 레지스트리에서 제거합니다.
-func (sm *SessionManager) CloseSession(sessionID string, reason string) error {
+func (sm *SessionManager) CloseSession(id, reason string) error {
 	sm.mu.Lock()
-	s, ok := sm.sessions[sessionID]
-	if ok {
-		delete(sm.sessions, sessionID)
-	}
+	s, ok := sm.sessions[id]
+	delete(sm.sessions, id)
 	sm.mu.Unlock()
-
 	if !ok {
 		return ErrSessionNotFound
 	}
@@ -179,30 +153,70 @@ func (sm *SessionManager) CloseSession(sessionID string, reason string) error {
 	return nil
 }
 
-// CloseAll 은 런타임 종료 시 모든 활성 세션을 닫고 정리합니다.
-func (sm *SessionManager) CloseAll(reason string) {
+// CloseMatchingSession validates and removes under the same registry lock.
+func (sm *SessionManager) CloseMatchingSession(id, lab string, generation int64, reason string) error {
+	closeSession, err := sm.RetireMatchingSession(id, lab, generation, reason)
+	closeSession()
+	return err
+}
+
+// RetireMatchingSession detaches under the registry lock; the returned closure
+// does network IO and callbacks outside an enclosing Control authority lock.
+func (sm *SessionManager) RetireMatchingSession(id, lab string, generation int64, reason string) (func(), error) {
 	sm.mu.Lock()
-	list := make([]*PreviewSession, 0, len(sm.sessions))
-	for _, s := range sm.sessions {
-		list = append(list, s)
+	s, ok := sm.sessions[id]
+	if ok && (s.LabInstanceID != lab || s.Generation != generation) {
+		sm.mu.Unlock()
+		return func() {}, ErrSessionConflict
 	}
-	sm.sessions = make(map[string]*PreviewSession)
+	if ok {
+		delete(sm.sessions, id)
+	}
 	sm.mu.Unlock()
+	return func() {
+		if ok {
+			s.Close(reason)
+		}
+	}, nil
+}
+func (sm *SessionManager) CloseAttempt(s *PreviewSession, attempt, reason string) {
+	s.CloseAttempt(attempt, reason)
+	sm.discardUnattached(s, attempt)
+}
+func (sm *SessionManager) CloseAll(reason string) { sm.closeWhere(reason, false, "", 0) }
 
-	for _, s := range list {
-		s.Close(reason)
+// RetireAll atomically detaches the current registry without blocking on peers.
+// Call the returned closure after releasing the Control authority lock.
+func (sm *SessionManager) RetireAll(reason string) func() {
+	return sm.retireWhere(reason, false, "", 0)
+}
+func (sm *SessionManager) Shutdown(reason string) { sm.closeWhere(reason, true, "", 0) }
+func (sm *SessionManager) InvalidateBefore(lab string, generation int64) {
+	sm.closeWhere(protocol.PreviewReasonSessionClosed, false, lab, generation)
+}
+func (sm *SessionManager) closeWhere(reason string, shutdown bool, lab string, generation int64) {
+	sm.retireWhere(reason, shutdown, lab, generation)()
+}
+func (sm *SessionManager) retireWhere(reason string, shutdown bool, lab string, generation int64) func() {
+	sm.mu.Lock()
+	if shutdown {
+		sm.stopped = true
+	}
+	if lab != "" && generation > sm.minimumGeneration[lab] {
+		sm.minimumGeneration[lab] = generation
+	}
+	var sessions []*PreviewSession
+	for id, s := range sm.sessions {
+		if lab == "" || (s.LabInstanceID == lab && s.Generation < generation) {
+			delete(sm.sessions, id)
+			sessions = append(sessions, s)
+		}
+	}
+	sm.mu.Unlock()
+	return func() {
+		for _, s := range sessions {
+			s.Close(reason)
+		}
 	}
 }
-
-// Count 는 현재 관리 중인 세션 개수를 반환합니다.
-func (sm *SessionManager) Count() int {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-	return len(sm.sessions)
-}
-
-func (sm *SessionManager) removeSession(sessionID string) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	delete(sm.sessions, sessionID)
-}
+func (sm *SessionManager) Count() int { sm.mu.RLock(); defer sm.mu.RUnlock(); return len(sm.sessions) }

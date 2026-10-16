@@ -35,6 +35,10 @@ type ProvisionWorkerStore interface {
 	// PrepareProvision activates dispatch exactly once under a live RUNNING lease,
 	// checking the Operation/Instance/Execution/Snapshot/Connection relationships.
 	PrepareProvision(context.Context, OperationItemLease) (ProvisionDispatch, error)
+	// DeferUnsentProvision is only for a Router guarantee that no write occurred.
+	// It releases a live DISPATCHING lease and atomically restores PENDING with a
+	// durable not-before time. ACKed/resource-bearing/stale work cannot be deferred.
+	DeferUnsentProvision(context.Context, ProvisionDispatch, time.Duration) error
 	// WriteProvision updates resources, item and parent atomically. Correlation,
 	// generation, connection affinity and live lease are rechecked after locking.
 	WriteProvision(context.Context, ProvisionUpdate) error

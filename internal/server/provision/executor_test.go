@@ -28,8 +28,9 @@ func (f workerStoreFake) RenewOperationItemLease(ctx context.Context, l reposito
 
 type provisionStoreFake struct {
 	workerStoreFake
-	prepare func(context.Context, repository.OperationItemLease) (repository.ProvisionDispatch, error)
-	write   func(context.Context, repository.ProvisionUpdate) error
+	prepare     func(context.Context, repository.OperationItemLease) (repository.ProvisionDispatch, error)
+	write       func(context.Context, repository.ProvisionUpdate) error
+	deferUnsent func(context.Context, repository.ProvisionDispatch, time.Duration) error
 }
 
 func (f provisionStoreFake) ClaimProvisionOperationItem(ctx context.Context, owner uuid.UUID, d time.Duration) (repository.OperationItemClaim, error) {
@@ -40,6 +41,9 @@ func (f provisionStoreFake) PrepareProvision(ctx context.Context, l repository.O
 }
 func (f provisionStoreFake) WriteProvision(ctx context.Context, u repository.ProvisionUpdate) error {
 	return f.write(ctx, u)
+}
+func (f provisionStoreFake) DeferUnsentProvision(ctx context.Context, d repository.ProvisionDispatch, delay time.Duration) error {
+	return f.deferUnsent(ctx, d, delay)
 }
 
 type provisionRouterFake struct {
@@ -284,5 +288,102 @@ func TestExecutorDoesNotDispatchAfterActivationLosesLease(t *testing.T) {
 	}
 	if len(writes) != 0 {
 		t.Fatal("stale writer")
+	}
+}
+
+func TestExecutorClassifiesUnsentAndUncertainDispatch(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		err         error
+		deferUnsent bool
+		status      string
+	}{
+		{"disconnected", connector.ErrNotConnected, true, ""},
+		{"not ready", connector.ErrNotReady, true, ""},
+		{"closing", connector.ErrConnectionClosing, true, ""},
+		{"invalid command", connector.ErrInvalidCommand, false, "FAILED"},
+		{"send failed", connector.ErrSendFailed, false, "RECONCILING"},
+		{"duplicate", connector.ErrDuplicateCorrelation, false, "RECONCILING"},
+		{"unclassified", errors.New("unclassified dispatch error"), false, "RECONCILING"},
+		{"ambiguous joined error", errors.Join(connector.ErrSendFailed, connector.ErrNotConnected), false, "RECONCILING"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			writes := make(chan repository.ProvisionUpdate, 2)
+			store := provisionTestStore(t, writes)
+			deferrals := 0
+			store.deferUnsent = func(_ context.Context, d repository.ProvisionDispatch, delay time.Duration) error {
+				deferrals++
+				if d.Lease.Owner == uuid.Nil || delay != 5*time.Second {
+					t.Error("missing fencing/delay")
+				}
+				return nil
+			}
+			calls := 0
+			p, err := NewExecutor(Options{Store: store, Router: provisionRouterFake{send: func(context.Context, connector.OperationCommand) (connector.SentMessage, error) {
+				calls++
+				return connector.SentMessage{}, tc.err
+			}}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if claimed, err := p.RunOne(t.Context()); !claimed || err != nil {
+				t.Fatalf("run=%v %v", claimed, err)
+			}
+			if tc.deferUnsent {
+				if deferrals != 1 || len(writes) != 0 {
+					t.Fatalf("deferrals=%d writes=%d", deferrals, len(writes))
+				}
+			} else {
+				if deferrals != 0 || len(writes) != 1 {
+					t.Fatalf("deferrals=%d writes=%d", deferrals, len(writes))
+				}
+				if u := <-writes; u.Status != tc.status {
+					t.Fatalf("outcome=%+v", u)
+				}
+			}
+			if claimed, err := p.RunOne(t.Context()); claimed || err != nil || calls != 1 {
+				t.Fatalf("unexpected replay=%v %v calls=%d", claimed, err, calls)
+			}
+		})
+	}
+}
+
+func TestExecutorShutdownAndAcceptedAckCannotAuthorizeDeferral(t *testing.T) {
+	for _, scenario := range []string{"shutdown after send", "accepted ACK with send error"} {
+		t.Run(scenario, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			writes := make(chan repository.ProvisionUpdate, 2)
+			store := provisionTestStore(t, writes)
+			store.deferUnsent = func(context.Context, repository.ProvisionDispatch, time.Duration) error {
+				t.Error("potentially sent work deferred")
+				return nil
+			}
+			var p *Executor
+			p, err := NewExecutor(Options{Store: store, Router: provisionRouterFake{send: func(_ context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
+				if scenario == "shutdown after send" {
+					cancel()
+					return connector.SentMessage{MessageID: "outbound-message"}, nil
+				}
+				p.HandleEvent(connector.OperationAckEvent{Routed: routedFor(c), Payload: protocol.OperationAckPayload{Accepted: true}})
+				return connector.SentMessage{}, connector.ErrNotConnected
+			}}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = p.RunOne(ctx)
+			if scenario == "shutdown after send" {
+				if !errors.Is(err, context.Canceled) || len(writes) != 0 {
+					t.Fatalf("shutdown=%v writes=%d", err, len(writes))
+				}
+			} else {
+				if err != nil || len(writes) != 1 {
+					t.Fatalf("ACK=%v writes=%d", err, len(writes))
+				}
+				if u := <-writes; u.Status != "RECONCILING" {
+					t.Fatalf("ACK=%+v", u)
+				}
+			}
+		})
 	}
 }

@@ -42,6 +42,9 @@ Confluence는 Domain/Data 의미·ownership·결정 이유를 관리하고, 실�
 7. `000007_operation_updated_at.sql`
    - `operations.updated_at` 필수 시각을 additive 변경으로 추가
    - 기존 row는 `finished_at` / `started_at` / `created_at` 순으로 backfill하며, 이후 상태 갱신 writer는 같은 transaction에서 갱신
+8. `000008_operation_dispatch_deferral.sql`
+   - `operation_items.dispatch_not_before` nullable 시각 추가. 확실한 미전송 PROVISION을 PENDING으로 복귀시킨 뒤 다음 claim까지의 대기 시각을 보존
+   - 기존 row는 NULL이며 RUNNING/RECONCILING 재실행을 허용하는 시각이나 lease expiry가 아님
 
 ## 확정된 Domain/Data 모델과의 관계
 

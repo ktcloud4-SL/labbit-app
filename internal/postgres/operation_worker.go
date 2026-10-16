@@ -35,6 +35,7 @@ func (s *Store) claimOperationItem(ctx context.Context, owner uuid.UUID, duratio
  i.generation, COALESCE(i.stage,''), COALESCE(i.error_code,''), COALESCE(i.error_message,''), i.created_at
  FROM operation_items i JOIN operations o ON o.id=i.operation_id AND o.organization_id=i.organization_id
  WHERE i.status='PENDING' AND i.finished_at IS NULL
+ AND (i.dispatch_not_before IS NULL OR i.dispatch_not_before<=clock_timestamp())
  AND ($1::text='' OR o.operation_type=$1)
  AND o.status IN ('PENDING','RUNNING') AND o.finished_at IS NULL
  ORDER BY i.created_at,i.id LIMIT 1 FOR UPDATE OF i,o SKIP LOCKED`, operationType).Scan(
@@ -48,6 +49,7 @@ func (s *Store) claimOperationItem(ctx context.Context, owner uuid.UUID, duratio
 		var claimedAt time.Time
 		err = q.db.QueryRow(ctx, `WITH timing AS MATERIALIZED (SELECT clock_timestamp() AS at)
  UPDATE operation_items SET status='RUNNING',lease_owner=$2,
+ dispatch_not_before=NULL,
  lease_expires_at=timing.at + $3::bigint * interval '1 microsecond',
  started_at=COALESCE(started_at,timing.at)
  FROM timing WHERE id=$1 RETURNING started_at,lease_expires_at,timing.at`,

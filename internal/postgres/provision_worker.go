@@ -71,7 +71,7 @@ func (s *Store) PrepareProvision(ctx context.Context, lease repository.Operation
 		if err != nil {
 			return err
 		}
-		if stage != "" || d.Generation != 1 {
+		if (stage != "" && stage != "DEFERRED") || d.Generation != 1 {
 			return invalidProvision()
 		}
 		var eligible bool
@@ -98,6 +98,53 @@ func (s *Store) PrepareProvision(ctx context.Context, lease repository.Operation
 	return dispatch, nil
 }
 
+func sameProvisionDispatch(a, b repository.ProvisionDispatch) bool {
+	return a.OrganizationID == b.OrganizationID && a.OperationID == b.OperationID && a.LabInstanceID == b.LabInstanceID &&
+		a.LabExecutionID == b.LabExecutionID && a.Generation == b.Generation && a.ConnectorID == b.ConnectorID && a.ProviderConnectionID == b.ProviderConnectionID
+}
+
+func (s *Store) DeferUnsentProvision(ctx context.Context, expected repository.ProvisionDispatch, delay time.Duration) error {
+	if delay < time.Microsecond {
+		return invalidProvision()
+	}
+	return s.inTransaction(ctx, func(ctx context.Context, q queries) error {
+		d, stage, err := q.lockProvision(ctx, expected.Lease)
+		if err != nil {
+			return err
+		}
+		if stage != "DISPATCHING" || !sameProvisionDispatch(d, expected) {
+			return invalidProvision()
+		}
+		var eligible bool
+		if err := q.db.QueryRow(ctx, `SELECT status='PROVISIONING' AND NOT EXISTS (
+ SELECT 1 FROM provider_resources WHERE lab_instance_id=$1)
+ FROM lab_instances WHERE id=$1`, d.LabInstanceID).Scan(&eligible); err != nil {
+			return normalize("DeferUnsentProvision", err)
+		}
+		if !eligible {
+			return invalidProvision()
+		}
+		var at time.Time
+		// Locks are held and time is checked at the transition, as in the result
+		// writer. Commit failure cannot authorize another external dispatch.
+		err = q.db.QueryRow(ctx, `WITH timing AS MATERIALIZED (SELECT clock_timestamp() AS at)
+ UPDATE operation_items SET status='PENDING',stage='DEFERRED',lease_owner=NULL,lease_expires_at=NULL,
+ dispatch_not_before=timing.at+$2::bigint*interval '1 microsecond',error_code=NULL,error_message=NULL
+ FROM timing WHERE id=$1 AND lease_expires_at>timing.at RETURNING timing.at`, d.Lease.ItemID, delay.Microseconds()).Scan(&at)
+		if err != nil {
+			if errors.Is(normalize("DeferUnsentProvision", err), repository.ErrNotFound) {
+				return repository.ErrOperationLeaseLost
+			}
+			return normalize("DeferUnsentProvision", err)
+		}
+		_, err = q.db.Exec(ctx, `UPDATE lab_instances SET status='PENDING',updated_at=$2 WHERE id=$1`, d.LabInstanceID, at)
+		if err != nil {
+			return normalize("DeferUnsentProvision", err)
+		}
+		return q.aggregateProvision(ctx, d.OperationID, at)
+	})
+}
+
 func (s *Store) WriteProvision(ctx context.Context, u repository.ProvisionUpdate) error {
 	if u.Status != "RUNNING" && u.Status != "SUCCEEDED" && u.Status != "FAILED" && u.Status != "RECONCILING" {
 		return invalidProvision()
@@ -107,9 +154,7 @@ func (s *Store) WriteProvision(ctx context.Context, u repository.ProvisionUpdate
 		if err != nil {
 			return err
 		}
-		if stage == "" || d.OrganizationID != u.Dispatch.OrganizationID || d.OperationID != u.Dispatch.OperationID ||
-			d.LabInstanceID != u.Dispatch.LabInstanceID || d.LabExecutionID != u.Dispatch.LabExecutionID ||
-			d.Generation != u.Dispatch.Generation || d.ConnectorID != u.Dispatch.ConnectorID || d.ProviderConnectionID != u.Dispatch.ProviderConnectionID {
+		if stage == "" || !sameProvisionDispatch(d, u.Dispatch) {
 			return invalidProvision()
 		}
 		var at time.Time
@@ -192,7 +237,8 @@ func (q queries) aggregateProvision(ctx context.Context, id uuid.UUID, at time.T
 	// The parent lock serializes sibling writers. Pending/running siblings keep
 	// executing even when another sibling fails or needs reconciliation.
 	_, err := q.db.Exec(ctx, `WITH aggregate AS (
- SELECT CASE WHEN bool_or(status IN ('PENDING','RUNNING')) THEN 'RUNNING'
+ SELECT CASE WHEN bool_and(status='PENDING') THEN 'PENDING'
+ WHEN bool_or(status IN ('PENDING','RUNNING')) THEN 'RUNNING'
  WHEN bool_or(status='RECONCILING') THEN 'RECONCILING'
  WHEN bool_or(status='FAILED') THEN 'FAILED' ELSE 'SUCCEEDED' END AS status
  FROM operation_items WHERE operation_id=$1
@@ -202,6 +248,7 @@ func (q queries) aggregateProvision(ctx context.Context, id uuid.UUID, at time.T
  ) UPDATE operations SET status=a.status,updated_at=$2::timestamptz,
  finished_at=CASE WHEN a.status IN ('SUCCEEDED','FAILED') THEN $2::timestamptz ELSE NULL END,
  stage=CASE WHEN a.status='SUCCEEDED' THEN 'VERIFYING_READINESS'
+ WHEN a.status='PENDING' THEN 'DEFERRED'
  WHEN a.status='RECONCILING' THEN 'RECONCILING' WHEN a.status='FAILED' THEN 'FAILED' ELSE 'PROVISIONING' END,
  error_code=(SELECT error_code FROM failure),error_message=(SELECT error_message FROM failure)
  FROM aggregate a WHERE operations.id=$1`, id, at)

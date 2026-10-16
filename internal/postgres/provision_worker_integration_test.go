@@ -5,6 +5,7 @@ package postgres_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -260,5 +261,185 @@ func TestProvisionClaimLeavesResetCleanupPending(t *testing.T) {
 				t.Fatalf("pending=%d", n)
 			}
 		})
+	}
+}
+
+func TestProvisionUnsentDeferralPreservesDurableDelayAndSiblingAggregation(t *testing.T) {
+	p, op := pendingProvision(t)
+	first := prepareProvision(t, p)
+	if err := p.store.DeferUnsentProvision(t.Context(), first, time.Second); err != nil {
+		t.Fatal(err)
+	}
+	var status, instance string
+	var delay, unowned bool
+	if err := p.pool.QueryRow(t.Context(), `SELECT i.status,li.status,i.dispatch_not_before>clock_timestamp(),
+ i.lease_owner IS NULL AND i.lease_expires_at IS NULL AND i.finished_at IS NULL
+ FROM operation_items i JOIN lab_instances li ON li.id=i.lab_instance_id WHERE i.id=$1`, first.Lease.ItemID).Scan(&status, &instance, &delay, &unowned); err != nil {
+		t.Fatal(err)
+	}
+	parent, err := p.store.OperationByID(t.Context(), op)
+	if err != nil || status != "PENDING" || instance != "PENDING" || !delay || !unowned || parent.Status != "PENDING" || parent.FinishedAt != nil {
+		t.Fatalf("deferral=%s/%s delay=%v unowned=%v parent=%+v %v", status, instance, delay, unowned, parent, err)
+	}
+	second, third := prepareProvision(t, p), prepareProvision(t, p)
+	if err := p.store.WriteProvision(t.Context(), provisionUpdate(second, "SUCCEEDED", "independent-success")); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.store.WriteProvision(t.Context(), provisionUpdate(third, "FAILED", "independent-partial-resource")); err != nil {
+		t.Fatal(err)
+	}
+	parent, _ = p.store.OperationByID(t.Context(), op)
+	if parent.Status != "RUNNING" || parent.FinishedAt != nil {
+		t.Fatalf("pending sibling lost: %+v", parent)
+	}
+	if _, err := p.store.ClaimProvisionOperationItem(t.Context(), uuid.New(), time.Minute); !errors.Is(err, repository.ErrNotFound) {
+		t.Fatalf("early re-claim=%v", err)
+	}
+	// PostgreSQL time, not a process timer, gates the next claim (also after a
+	// process restart or when the general LBT-176 claimer is used).
+	if _, err := p.store.ClaimOperationItem(t.Context(), uuid.New(), time.Minute); !errors.Is(err, repository.ErrNotFound) {
+		t.Fatalf("general early claim=%v", err)
+	}
+	if _, err := p.pool.Exec(t.Context(), `SELECT pg_sleep(GREATEST(0,extract(epoch FROM dispatch_not_before-clock_timestamp()))+0.01) FROM operation_items WHERE id=$1`, first.Lease.ItemID); err != nil {
+		t.Fatal(err)
+	}
+	c, err := p.store.ClaimProvisionOperationItem(t.Context(), uuid.New(), time.Minute)
+	if err != nil || c.Lease.ItemID != first.Lease.ItemID || c.Lease.Owner == first.Lease.Owner {
+		t.Fatalf("new claim=%+v %v", c, err)
+	}
+	if err := p.store.DeferUnsentProvision(t.Context(), first, time.Minute); !errors.Is(err, repository.ErrOperationLeaseLost) {
+		t.Fatalf("old owner deferred new claim: %v", err)
+	}
+	if err := p.store.WriteProvision(t.Context(), provisionUpdate(first, "SUCCEEDED", "stale-resource")); !errors.Is(err, repository.ErrOperationLeaseLost) {
+		t.Fatalf("old owner result=%v", err)
+	}
+	d, err := p.store.PrepareProvision(t.Context(), c.Lease)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := p.store.WriteProvision(t.Context(), provisionUpdate(d, "SUCCEEDED", "deferred-exact-resource")); err != nil {
+		t.Fatal(err)
+	}
+	parent, _ = p.store.OperationByID(t.Context(), op)
+	if parent.Status != "FAILED" || parent.FinishedAt == nil {
+		t.Fatalf("final parent=%+v", parent)
+	}
+	if n := countRows(t, p.testDB, `SELECT count(*) FROM provider_resources`); n != 3 {
+		t.Fatalf("resources=%d", n)
+	}
+}
+
+func TestProvisionUnsentDeferralRejectsStaleOrAlreadyProgressedWork(t *testing.T) {
+	for _, scenario := range []string{"owner", "expired", "item state", "parent state", "generation", "ACK", "resource", "wrong correlation", "invalid delay"} {
+		t.Run(scenario, func(t *testing.T) {
+			p, _ := pendingProvision(t)
+			d := prepareProvision(t, p)
+			attempt := d
+			delay := time.Second
+			switch scenario {
+			case "owner":
+				attempt.Lease.Owner = uuid.New()
+			case "expired":
+				mustExec(t, p.testDB, `UPDATE operation_items SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE id=$1`, d.Lease.ItemID)
+			case "item state":
+				mustExec(t, p.testDB, `UPDATE operation_items SET status='RECONCILING' WHERE id=$1`, d.Lease.ItemID)
+			case "parent state":
+				mustExec(t, p.testDB, `UPDATE operations SET status='RECONCILING' WHERE id=$1`, d.OperationID)
+			case "generation":
+				mustExec(t, p.testDB, `UPDATE lab_instances SET generation=2 WHERE id=$1`, d.LabInstanceID)
+			case "ACK":
+				if err := p.store.WriteProvision(t.Context(), repository.ProvisionUpdate{Dispatch: d, Status: "RUNNING", Stage: "PROVISIONING"}); err != nil {
+					t.Fatal(err)
+				}
+			case "resource":
+				u := provisionUpdate(d, "RUNNING", "confirmed-resource")
+				u.Stage = "DISPATCHING"
+				if err := p.store.WriteProvision(t.Context(), u); err != nil {
+					t.Fatal(err)
+				}
+			case "wrong correlation":
+				attempt.LabInstanceID = uuid.New()
+			case "invalid delay":
+				delay = 0
+			}
+			if err := p.store.DeferUnsentProvision(t.Context(), attempt, delay); err == nil {
+				t.Fatal("unsafe deferral accepted")
+			}
+			if n := countRows(t, p.testDB, `SELECT count(*) FROM operation_items WHERE dispatch_not_before IS NOT NULL`); n != 0 {
+				t.Fatalf("retry timestamps=%d", n)
+			}
+			if n := countRows(t, p.testDB, `SELECT count(*) FROM operation_items WHERE status='PENDING'`); n != 2 {
+				t.Fatalf("other items changed: %d", n)
+			}
+		})
+	}
+}
+
+func TestProvisionUnsentDeferralConcurrentDuplicateAndLockExpiry(t *testing.T) {
+	t.Run("duplicate processors", func(t *testing.T) {
+		p, _ := pendingProvision(t)
+		d := prepareProvision(t, p)
+		var wg sync.WaitGroup
+		results := make(chan error, 8)
+		for range 8 {
+			wg.Go(func() { results <- p.store.DeferUnsentProvision(t.Context(), d, time.Second) })
+		}
+		wg.Wait()
+		close(results)
+		winners := 0
+		for err := range results {
+			if err == nil {
+				winners++
+			} else if !errors.Is(err, repository.ErrOperationLeaseLost) {
+				t.Fatal(err)
+			}
+		}
+		if winners != 1 {
+			t.Fatalf("deferral winners=%d", winners)
+		}
+	})
+	t.Run("expiry during lock wait", func(t *testing.T) {
+		p, _ := pendingProvision(t)
+		d := prepareProvision(t, p)
+		tx, err := p.holder.Begin(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Rollback(context.Background())
+		if _, err := tx.Exec(t.Context(), `UPDATE operation_items SET lease_expires_at=clock_timestamp()+interval '500 milliseconds' WHERE id=$1`, d.Lease.ItemID); err != nil {
+			t.Fatal(err)
+		}
+		done := make(chan error, 1)
+		go func() { done <- p.store.DeferUnsentProvision(t.Context(), d, time.Second) }()
+		p.waitForLockWaiters(t, 1)
+		if _, err := tx.Exec(t.Context(), `SELECT pg_sleep(GREATEST(0,extract(epoch FROM lease_expires_at-clock_timestamp()))+0.05) FROM operation_items WHERE id=$1`, d.Lease.ItemID); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+		if err := <-done; !errors.Is(err, repository.ErrOperationLeaseLost) {
+			t.Fatalf("expired deferral=%v", err)
+		}
+		if n := countRows(t, p.testDB, `SELECT count(*) FROM operation_items WHERE dispatch_not_before IS NOT NULL`); n != 0 {
+			t.Fatalf("retry timestamps=%d", n)
+		}
+	})
+}
+
+func TestProvisionUnsentDeferralRollbackIsAtomic(t *testing.T) {
+	p, _ := pendingProvision(t)
+	d := prepareProvision(t, p)
+	mustExec(t, p.testDB, `CREATE FUNCTION reject_deferral_parent() RETURNS trigger LANGUAGE plpgsql AS $$
+ BEGIN RAISE EXCEPTION 'test deferral rejection'; END; $$;
+ CREATE TRIGGER reject_deferral_parent BEFORE UPDATE ON operations FOR EACH ROW EXECUTE FUNCTION reject_deferral_parent()`)
+	if err := p.store.DeferUnsentProvision(t.Context(), d, time.Second); err == nil {
+		t.Fatal("parent rejection accepted")
+	}
+	var retained bool
+	if err := p.pool.QueryRow(t.Context(), `SELECT i.status='RUNNING' AND i.stage='DISPATCHING' AND i.lease_owner=$2
+ AND i.dispatch_not_before IS NULL AND li.status='PROVISIONING'
+ FROM operation_items i JOIN lab_instances li ON li.id=i.lab_instance_id WHERE i.id=$1`, d.Lease.ItemID, d.Lease.Owner.String()).Scan(&retained); err != nil || !retained {
+		t.Fatalf("partial deferral survived=%v %v", retained, err)
 	}
 }

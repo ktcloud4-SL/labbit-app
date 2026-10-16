@@ -31,6 +31,7 @@ type Options struct {
 	// Ready checks application/schema compatibility before a new claim.
 	Ready                                      func(context.Context) error
 	LeaseDuration, ResultTimeout, PollInterval time.Duration
+	DispatchRetryDelay                         time.Duration
 }
 
 // Executor is also the Router's typed EventSink. Only correlation and
@@ -76,7 +77,10 @@ func NewExecutor(opts Options) (*Executor, error) {
 	if opts.PollInterval == 0 {
 		opts.PollInterval = time.Second
 	}
-	if opts.LeaseDuration < 3*time.Microsecond || opts.ResultTimeout <= 0 || opts.PollInterval <= 0 {
+	if opts.DispatchRetryDelay == 0 {
+		opts.DispatchRetryDelay = 5 * time.Second
+	}
+	if opts.LeaseDuration < 3*time.Microsecond || opts.ResultTimeout <= 0 || opts.PollInterval <= 0 || opts.DispatchRetryDelay < time.Microsecond {
 		return nil, operation.ErrInvalid
 	}
 	if opts.Logger == nil {
@@ -180,7 +184,7 @@ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemCl
 	}
 	var snapshot protocol.CreationSnapshot
 	if json.Unmarshal(d.Snapshot, &snapshot) != nil {
-		return p.unknown(ctx, d, "provision_snapshot_invalid")
+		return p.invalidCommand(ctx, d)
 	}
 	corr := connector.Correlation{OperationID: d.OperationID.String(), LabInstanceID: d.LabInstanceID.String(), Generation: d.Generation}
 	key := provisionKey{d.ConnectorID, corr}
@@ -210,7 +214,7 @@ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemCl
 	})
 	if err != nil {
 		// Even if the write returned an error, an immediate correlated RESULT
-		// may prove the actual outcome. Otherwise retain uncertainty; never replay.
+		// may prove the actual outcome. Otherwise classify the Router error.
 		select {
 		case e := <-inbox.result:
 			return p.result(ctx, d, e.Payload)
@@ -220,6 +224,25 @@ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemCl
 		case e := <-inbox.rejected:
 			return p.rejected(ctx, d, e.Payload)
 		default:
+		}
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		select {
+		case <-inbox.ack:
+			return p.unknown(ctx, d, "provision_dispatch_unconfirmed")
+		default:
+		}
+		// Only an explicit no-write guarantee authorizes a new attempt. Wrapped
+		// send/duplicate/unknown errors fail closed even if they also match a
+		// no-write category. The durable delay prevents polling the same Item hot.
+		if !errors.Is(err, connector.ErrSendFailed) && !errors.Is(err, connector.ErrDuplicateCorrelation) {
+			if errors.Is(err, connector.ErrInvalidCommand) {
+				return p.invalidCommand(ctx, d)
+			}
+			if errors.Is(err, connector.ErrConnectorUnavailable) {
+				return p.opts.Store.DeferUnsentProvision(ctx, d, p.opts.DispatchRetryDelay)
+			}
 		}
 		return p.unknown(ctx, d, "provision_dispatch_unconfirmed")
 	}
@@ -273,6 +296,11 @@ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemCl
 			return p.result(ctx, d, e.Payload)
 		}
 	}
+}
+
+func (p *Executor) invalidCommand(ctx context.Context, d repository.ProvisionDispatch) error {
+	return p.opts.Store.WriteProvision(ctx, repository.ProvisionUpdate{Dispatch: d, Status: "FAILED", Stage: "REJECTED",
+		ErrorCode: "provision_command_invalid", ErrorMessage: "Provision command failed validation"})
 }
 
 func (p *Executor) rejected(ctx context.Context, d repository.ProvisionDispatch, ack protocol.OperationAckPayload) error {

@@ -37,6 +37,7 @@ type stackOptions struct {
 	// Worker enables PROVISION on this api process's own Router.
 	Worker                                                                bool
 	ProvisionLeaseDuration, ProvisionResultTimeout, ProvisionPollInterval time.Duration
+	ProvisionDispatchRetryDelay                                           time.Duration
 	WorkerReady                                                           func(context.Context) error
 	// OperationSink is an optional observer, including the tagged C1 harness.
 	OperationSink connector.EventSink
@@ -134,6 +135,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		stack.Provisions, err = provision.NewExecutor(provision.Options{
 			Store: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
 			LeaseDuration: opts.ProvisionLeaseDuration, ResultTimeout: opts.ProvisionResultTimeout, PollInterval: opts.ProvisionPollInterval,
+			DispatchRetryDelay: opts.ProvisionDispatchRetryDelay,
 		})
 		if err != nil {
 			return nil, err

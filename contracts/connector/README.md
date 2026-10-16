@@ -543,7 +543,11 @@ SaaS PROVISION writer는 확인된 Provider 결과·Resource를 저장하지만 
 현재 성공 Item/Operation은 `SUCCEEDED`·`VERIFYING_READINESS` stage이며 LabInstance는 `PROVISIONING`을 유지합니다.
 필수 초기화·SSH·Terminal 증거를 제품 readiness에 연결하는 계약과 writer는 후속 통합에서 확정해야 합니다.
 
-응답 유실 때문에 동일 Create/Delete를 자동 재전송하지 않습니다.
+응답 유실 때문에 동일 Create/Delete를 자동 재전송하지 않습니다. Router가 미전송을 보장하는 `ErrConnectorUnavailable`은
+Provider UNKNOWN과 구분하며, live lease·DISPATCHING stage·리소스 부재를 확인한 transaction에서 PENDING/DEFERRED로 복귀합니다.
+다음 시도 가능 시각은 `operation_items.dispatch_not_before`에 보존하며 그 전에는 claim하지 않습니다.
+`ErrInvalidCommand`는 FAILED로 종료하고 같은 입력을 반복하지 않습니다. `ErrSendFailed`, 중복 active correlation 및 분류되지 않은 오류는
+미전송으로 추정하지 않습니다. 이미 전송된 작업의 shutdown 중 결과 불명은 RUNNING을 보존해 LBT-179에서 복구합니다.
 
 ## 13. Reconciliation
 

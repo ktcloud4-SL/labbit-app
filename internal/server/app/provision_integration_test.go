@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -57,7 +58,7 @@ func newProvisionEnv(t *testing.T, timeout time.Duration, register ...bool) *pro
 	store := postgres.NewStore(pool)
 	events := &routedEvents{}
 	stack, err := newControlStack(store, stackOptions{PublicOrigin: publicOrigin, Worker: true, OperationSink: events,
-		ProvisionLeaseDuration: 300 * time.Millisecond, ProvisionResultTimeout: timeout, ProvisionPollInterval: 10 * time.Millisecond})
+		ProvisionLeaseDuration: 300 * time.Millisecond, ProvisionResultTimeout: timeout, ProvisionPollInterval: 10 * time.Millisecond, ProvisionDispatchRetryDelay: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -521,5 +522,202 @@ func TestProvisionRuntimeDoesNotClaimUnsupportedRolesOrIncompatibleSchema(t *tes
 				}
 			}
 		})
+	}
+}
+
+func (e *provisionEnv) runOneMustClaim() {
+	e.t.Helper()
+	if claimed, err := e.stack.Provisions.RunOne(e.t.Context()); !claimed || err != nil {
+		e.t.Fatalf("RunOne=%v %v", claimed, err)
+	}
+}
+
+func (e *provisionEnv) assertUnsentDeferred() {
+	e.t.Helper()
+	var eligible, instances, resources int
+	var last time.Time
+	if err := e.db.QueryRow(e.t.Context(), `SELECT
+ (SELECT count(*) FROM operation_items WHERE operation_id=$1 AND status='PENDING' AND stage='DEFERRED'
+ AND lease_owner IS NULL AND lease_expires_at IS NULL AND finished_at IS NULL AND dispatch_not_before>clock_timestamp()),
+ (SELECT count(*) FROM lab_instances WHERE lab_execution_id=$2 AND status='PENDING'),
+ (SELECT count(*) FROM provider_resources),
+ (SELECT max(dispatch_not_before) FROM operation_items WHERE operation_id=$1)`, e.opID, e.executionID).Scan(&eligible, &instances, &resources, &last); err != nil {
+		e.t.Fatal(err)
+	}
+	if eligible != 3 || instances != 3 || resources != 0 || e.operationStatus() != "PENDING" {
+		e.t.Fatalf("deferred=%d instances=%d resources=%d parent=%s", eligible, instances, resources, e.operationStatus())
+	}
+	if n, _ := e.stack.Router.PendingCount(e.f.ConnectorID); n != 0 {
+		e.t.Fatalf("unsent command pending=%d", n)
+	}
+	for range 5 {
+		if claimed, err := e.stack.Provisions.RunOne(e.t.Context()); claimed || err != nil {
+			e.t.Fatalf("hot deferred claim=%v %v", claimed, err)
+		}
+	}
+	var after time.Time
+	if err := e.db.QueryRow(e.t.Context(), `SELECT max(dispatch_not_before) FROM operation_items WHERE operation_id=$1`, e.opID).Scan(&after); err != nil || !last.Equal(after) {
+		e.t.Fatalf("polling re-deferred before deadline=%v %v", after, err)
+	}
+	e.assertHTTPMatchesDatabase()
+}
+
+func TestProvisionControlStackDisconnectedThenReadyDispatchesExactlyOnce(t *testing.T) {
+	e := newProvisionEnv(t, 5*time.Second)
+	for range 3 {
+		e.runOneMustClaim()
+	}
+	e.assertUnsentDeferred()
+	var calls, duplicates atomic.Int32
+	var seen sync.Map
+	e.startMock(&provider.MockProvider{ProvisionFunc: func(_ context.Context, r provider.ProvisionRequest) (provider.OperationResult, error) {
+		calls.Add(1)
+		if _, loaded := seen.LoadOrStore(r.LabInstanceID, true); loaded {
+			duplicates.Add(1)
+		}
+		return mockProvisionResult(r, provider.OutcomeSucceeded), nil
+	}})
+	e.startWorker()
+	eventually(t, "deferred Items finish after ready Connector", 5*time.Second, func() bool { return e.operationStatus() == "SUCCEEDED" })
+	if calls.Load() != 3 || duplicates.Load() != 0 {
+		t.Fatalf("Provider calls=%d duplicates=%d", calls.Load(), duplicates.Load())
+	}
+	e.assertHTTPMatchesDatabase()
+	var resources int
+	if err := e.db.QueryRow(t.Context(), `SELECT count(*) FROM provider_resources WHERE provider_connection_id=$1 AND generation=1
+ AND lifecycle_status='PRESENT' AND created_by_operation_item_id IS NOT NULL`, e.f.ProviderConnectionID).Scan(&resources); err != nil || resources != 12 {
+		t.Fatalf("resources=%d %v", resources, err)
+	}
+}
+
+func TestProvisionControlStackPreHelloDefersUntilHelloAck(t *testing.T) {
+	e := newProvisionEnv(t, 5*time.Second)
+	peer := newConnectorClient(e.server.URL, e2eConnectorCredential)
+	t.Cleanup(func() { _ = peer.Close() })
+	if err := peer.Dial(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "authenticated but not protocol-ready route", 5*time.Second, func() bool {
+		return errors.Is(e.stack.Registry.WithReadyRoute(e.f.ConnectorID, func(connector.Session, connector.Route) error { return nil }), connector.ErrNotReady)
+	})
+	for range 3 {
+		e.runOneMustClaim()
+	}
+	e.assertUnsentDeferred()
+	if _, err := peer.SendHello(t.Context()); err != nil {
+		t.Fatalf("unexpected pre-HELLO command or missing HELLO_ACK: %v", err)
+	}
+	e.startWorker()
+	seen := map[string]bool{}
+	for range 3 {
+		var cmd protocol.OperationCommandMessage
+		_ = peer.Conn().SetReadDeadline(time.Now().Add(5 * time.Second))
+		if err := peer.Conn().ReadJSON(&cmd); err != nil {
+			t.Fatal(err)
+		}
+		if cmd.Type != "OPERATION_COMMAND" || cmd.OperationID != e.opID.String() || seen[cmd.LabInstanceID] {
+			t.Fatalf("duplicate/wrong command=%+v", cmd.BaseEnvelope)
+		}
+		seen[cmd.LabInstanceID] = true
+		resources := []protocol.ProviderResourceResult{}
+		for _, vm := range cmd.Payload.CreationSnapshot.VMs {
+			resources = append(resources, protocol.ProviderResourceResult{ProviderResourceRef: protocol.ProviderResourceRef{ResourceType: "SERVER", ProviderID: "deferred-exact-" + cmd.LabInstanceID + "/" + vm.VMKey, Generation: cmd.Generation, LogicalName: vm.VMKey}, ObservedState: "ACTIVE"})
+		}
+		result := protocol.OperationResultMessage{BaseEnvelope: protocol.BaseEnvelope{Type: "OPERATION_RESULT", MessageID: uuid.NewString(), SentAt: time.Now(), ReplyToMessageID: cmd.MessageID, OperationID: cmd.OperationID, LabInstanceID: cmd.LabInstanceID, Generation: cmd.Generation}, Payload: protocol.OperationResultPayload{Outcome: "SUCCEEDED", ProviderResources: resources}}
+		if err := peer.SendMessage(t.Context(), result); err != nil {
+			t.Fatal(err)
+		}
+	}
+	eventually(t, "post-HELLO results persisted", 5*time.Second, func() bool { return e.operationStatus() == "SUCCEEDED" })
+	if claimed, err := e.stack.Provisions.RunOne(t.Context()); claimed || err != nil {
+		t.Fatalf("completed replay=%v %v", claimed, err)
+	}
+	e.assertHTTPMatchesDatabase()
+}
+
+func TestProvisionControlStackAmbiguousWriteNeverDefersOrReplays(t *testing.T) {
+	e := newProvisionEnv(t, 5*time.Second)
+	principal, err := connector.NewService(e.store).Authenticate(t.Context(), connector.Credential(e2eConnectorCredential))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var writes atomic.Int32
+	registration := e.stack.Registry.Register(principal, nil)
+	t.Cleanup(func() { registration.Release() })
+	registration.MarkReady(func([]byte) error { writes.Add(1); return errors.New("mock partial write failure") })
+	for range 3 {
+		e.runOneMustClaim()
+	}
+	if e.operationStatus() != "RECONCILING" || writes.Load() != 3 {
+		t.Fatalf("uncertain parent=%s writes=%d", e.operationStatus(), writes.Load())
+	}
+	var uncertain int
+	if err := e.db.QueryRow(t.Context(), `SELECT count(*) FROM operation_items WHERE operation_id=$1 AND status='RECONCILING' AND dispatch_not_before IS NULL AND finished_at IS NULL`, e.opID).Scan(&uncertain); err != nil || uncertain != 3 {
+		t.Fatalf("uncertain=%d %v", uncertain, err)
+	}
+	replacement := e.stack.Registry.Register(principal, nil)
+	t.Cleanup(func() { replacement.Release() })
+	replacement.MarkReady(func([]byte) error { writes.Add(1); return nil })
+	for range 5 {
+		if claimed, err := e.stack.Provisions.RunOne(t.Context()); claimed || err != nil {
+			t.Fatalf("ambiguous replay=%v %v", claimed, err)
+		}
+	}
+	if writes.Load() != 3 {
+		t.Fatalf("replayed writes=%d", writes.Load())
+	}
+	e.assertHTTPMatchesDatabase()
+}
+
+func TestProvisionControlStackInvalidCommandFailsWithoutRequeue(t *testing.T) {
+	e := newProvisionEnv(t, 5*time.Second)
+	// Replace the fixture snapshot before dispatch with a malformed stored input.
+	// Production's immutable UPDATE trigger stays enabled; Router validation is real.
+	labexecutiontest.Exec(t, e.db, `WITH original AS (DELETE FROM creation_snapshots WHERE lab_execution_id=$1 RETURNING *)
+ INSERT INTO creation_snapshots (id,organization_id,lab_execution_id,source_lab_spec_id,source_lab_spec_revision,
+ provider_connection_id,schema_version,snapshot,created_at)
+ SELECT id,organization_id,lab_execution_id,source_lab_spec_id,source_lab_spec_revision,provider_connection_id,
+ schema_version,jsonb_set(snapshot,'{vms}','[]'::jsonb),created_at FROM original`, e.executionID)
+	for range 3 {
+		e.runOneMustClaim()
+	}
+	if e.operationStatus() != "FAILED" {
+		t.Fatalf("invalid command parent=%s", e.operationStatus())
+	}
+	for range 3 {
+		if claimed, err := e.stack.Provisions.RunOne(t.Context()); claimed || err != nil {
+			t.Fatalf("invalid command requeued=%v %v", claimed, err)
+		}
+	}
+	var failed, resources int
+	if err := e.db.QueryRow(t.Context(), `SELECT (SELECT count(*) FROM operation_items WHERE operation_id=$1 AND status='FAILED'
+ AND error_code='provision_command_invalid' AND dispatch_not_before IS NULL AND finished_at IS NOT NULL),
+ (SELECT count(*) FROM provider_resources)`, e.opID).Scan(&failed, &resources); err != nil || failed != 3 || resources != 0 {
+		t.Fatalf("failed=%d resources=%d %v", failed, resources, err)
+	}
+	if n, _ := e.stack.Router.PendingCount(e.f.ConnectorID); n != 0 {
+		t.Fatalf("invalid pending=%d", n)
+	}
+	e.assertHTTPMatchesDatabase()
+}
+
+func TestProvisionControlStackShutdownPreservesSentRunningItem(t *testing.T) {
+	e := newProvisionEnv(t, 5*time.Second)
+	principal, err := connector.NewService(e.store).Authenticate(t.Context(), connector.Credential(e2eConnectorCredential))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	registration := e.stack.Registry.Register(principal, nil)
+	t.Cleanup(func() { registration.Release() })
+	registration.MarkReady(func([]byte) error { cancel(); return nil })
+	if claimed, err := e.stack.Provisions.RunOne(ctx); !claimed || !errors.Is(err, context.Canceled) {
+		t.Fatalf("shutdown=%v %v", claimed, err)
+	}
+	var running int
+	if err := e.db.QueryRow(t.Context(), `SELECT count(*) FROM operation_items WHERE operation_id=$1 AND status='RUNNING'
+ AND stage='DISPATCHING' AND lease_owner IS NOT NULL AND finished_at IS NULL AND dispatch_not_before IS NULL`, e.opID).Scan(&running); err != nil || running != 1 {
+		t.Fatalf("shutdown running=%d %v", running, err)
 	}
 }

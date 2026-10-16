@@ -162,13 +162,20 @@ labbit-app/
 
 ## 6. 다음 개발 진행 계획 (LBT-20 실제 VM Acceptance / C2 / M4 Preview)
 
-* **LBT-20 Connector-side 실제 Workspace VM 검증**:
-  * 최신 `main`의 Connector Terminal Transport와 OpenStack Provider의 management address 경계를 이용해 실제 Workspace VM SSH/PTY를 연결합니다.
-  * 실제 VM에서 PTY INPUT/OUTPUT, resize, close를 실측하고 LBT-20 Evidence로 남깁니다.
-  * 이 Acceptance가 완료되면 LBT-20을 Done 처리할 수 있습니다.
-* **LBT-22(C2) 공동 통합**:
-  * LBT-20 및 BE-06/OP-02 선행조건 완료 후 Browser/SaaS TerminalSession → Connector Transport → 실제 VM SSH/PTY 전체 왕복을 검증합니다.
-  * reconnect/close 대표 흐름의 공동 Evidence를 LBT-22에 남깁니다.
+* **LBT-20 Connector-side 실제 Workspace VM 검증 (서빈 님 완료)**:
+  * 최신 `main`의 Connector Terminal Transport와 OpenStack Provider의 management address 경계를 이용해 실제 Workspace VM SSH/PTY를 연결 완료.
+  * 실제 VM에서 PTY INPUT/OUTPUT, resize, close를 실측 완료 (LBT-148/LBT-20 Acceptance 충족).
+* **LBT-22(C2) Loopback 하네스 구현/회귀 PASS (실환경 VM 연동 전)**:
+  * LBT-20 선행조건 및 Mock Echo PTY를 결합하여 simulated Browser WebSocket ↔ SaaS Terminal Relay ↔ Connector Transport ↔ Mock Echo PTY 전체 왕복 루프백 E2E 통합 테스트 구축 완료 (`internal/connector/provider/openstack/terminal_c2_integration_test.go`).
+  * `TestTerminalC2_FullStackLoopback` 자동 검증 하네스 구현 및 회귀 PASS:
+    - **Scenario 1A**: simulated Browser WSS ↔ SaaS Relay ↔ Connector Transport ↔ Mock Echo PTY 양방향 바이트 스트리밍 Echo PASS
+    - **Scenario 1B**: 터미널 창 Resize 제어 프레임 (80x24 ➔ 120x40) 채널 동기화 PASS
+    - **Scenario 2**: Browser 네트워크 강제 단절 ➔ SaaS Relay DETACHED 상태 전이 및 Grace Period 내 세션 보존 ➔ 재연결 및 세션 복구(`resumed=true`) PASS
+    - **Scenario 3**: `echoPTY.Close()` 호출 ➔ Safe `TERMINAL_ENDED` 이벤트 통지 및 Connector 인메모리 세션 정리(`ActiveCount() == 0`) PASS
+  * **검증 경계 및 실환경 C2 연동 안내**:
+    - 본 Loopback 테스트는 in-memory Mock Echo PTY 기반 프로토콜 하네스 검증이며, 실제 Linux bash 셸 종료(`exit 0`)나 클라우드 가상머신 자원 해제는 포함되지 않습니다.
+    - 실제 Browser/SaaS → Connector → KT Cloud VM 전체 왕복은 **미검증(후속 LBT-22 Acceptance)** 상태이며, 서빈 님의 OP-02 인계 가이드(댓글 #10479)에 따라 LBT-22 최종 Acceptance에서 `LABBIT_OPENSTACK_TERMINAL_C2_TEST=1` 플래그로 별도 진행 예정입니다.
 * **Milestone M4 착수 (웹 애플리케이션 미리보기 Preview)**:
   * 준비 5에서 합의한 `PREVIEW_OPEN`/`PREVIEW_CLOSE` 및 `labbit.connector-preview.v1` WSS 파이프라인 구축
+
 

@@ -1,0 +1,70 @@
+{
+  "issue": "LBT-22",
+  "summary": "[C2] VM Access / Terminal 사전 루프백 검증",
+  "dri": "이주희",
+  "date": "2026-10-15",
+  "baseCommit": "a1de269e7333b658a5ee94854e53e661400db410",
+  "pr": "https://github.com/ktcloud4-SL/labbit-app/pull/103",
+  "branch": "feat/LBT-22-c2-terminal-integration",
+  "status": "LOOPBACK_PASS",
+  "scope": {
+    "loopback_test": "PASS (0.02s, mock Echo PTY)",
+    "real_vm_c2": "not verified (deferred to downstream LBT-22 acceptance)"
+  },
+  "review_revisions": {
+    "gofmt": "RESOLVED (0 diff)",
+    "security_pty_redaction": "RESOLVED (raw bytes replaced with metadata len)",
+    "resize_race_and_sleep": "RESOLVED (c2ResizeAwarePTY channel synchronization, race=0)",
+    "reconnect_detached_check": "RESOLVED (auth.isDetached verified before reconnect)",
+    "env_flag_separation": "RESOLVED (LABBIT_OPENSTACK_TERMINAL_C2_TEST isolated from CC-02)",
+    "documentation_alignment": "RESOLVED (separated mock loopback from live VM acceptance)"
+  },
+  "results": {
+    "gofmt_check": "PASS",
+    "go_vet": "PASS",
+    "go_build": "PASS",
+    "loopback_test": {
+      "name": "TestTerminalC2_FullStackLoopback",
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "status": "PASS",
+      "race_detector": "PASS",
+      "duration_seconds": 0.02,
+      "scenarios": [
+        {
+          "id": "1A",
+          "name": "Simulated Browser ↔ Relay ↔ Connector ↔ Echo PTY I/O Roundtrip",
+          "status": "PASS"
+        },
+        {
+          "id": "1B",
+          "name": "Terminal RESIZE Control Frame (80x24 -> 120x40, channel sync)",
+          "status": "PASS"
+        },
+        {
+          "id": "2",
+          "name": "Browser Unclean Disconnect & DETACHED Grace Check & Reconnect (resumed=true)",
+          "status": "PASS"
+        },
+        {
+          "id": "3",
+          "name": "Mock echoPTY.Close(), Safe TERMINAL_ENDED, and In-Memory ActiveCount=0",
+          "status": "PASS"
+        }
+      ]
+    },
+    "real_vm_c2_test": {
+      "name": "TestOpenStackTerminalC2Integration",
+      "status": "NOT_RUN",
+      "env_flag": "LABBIT_OPENSTACK_TERMINAL_C2_TEST=1",
+      "acceptance_deferred": true,
+      "note": "Live VM execution and verification deferred to downstream LBT-22 acceptance"
+    }
+  },
+  "handoff": {
+    "source_issue": "LBT-21",
+    "source_dri": "백서빈",
+    "pr": "https://github.com/ktcloud4-SL/labbit-app/pull/104",
+    "ktcloud_d1_project_id": "a4dce102c4af4fd09cb65970593e17ba",
+    "clouds_yaml_status": "CONFIGURED_AND_VALIDATED"
+  }
+}

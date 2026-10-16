@@ -87,8 +87,12 @@ func TestKTCloudCIDRPoolIsolationResetAndRestart(t *testing.T) {
 		reset      bool
 	}{{"student", 2, true}, {"student", 1, false}, {"third", 1, false}, {"missing", 2, true}} {
 		result, _ := restarted.withCIDRScope(context.Background(), cidrCorrelation(tc.instance, tc.generation), tc.reset, hold)
-		if result.Outcome != coreprovider.OutcomeUnknown {
-			t.Fatal("duplicate, exhausted, or missing assignment did not HOLD")
+		want := coreprovider.OutcomeUnknown
+		if tc.instance == "third" {
+			want = coreprovider.OutcomeFailed
+		}
+		if result.Outcome != want {
+			t.Fatalf("%s generation %d: got %s want %s", tc.instance, tc.generation, result.Outcome, want)
 		}
 	}
 	if runs != 0 {
@@ -113,7 +117,7 @@ func TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory(t *testing.T) {
 				selected = scoped.provision.LabSubnetCIDR
 				return coreprovider.OperationResult{Outcome: coreprovider.OutcomeSucceeded}, nil
 			})
-			if selected != tc.want || (tc.want == "" && result.Outcome != coreprovider.OutcomeUnknown) {
+			if selected != tc.want || (tc.want == "" && result.Outcome != coreprovider.OutcomeFailed) {
 				t.Fatalf("selected %q, outcome %s", selected, result.Outcome)
 			}
 		})
@@ -124,8 +128,8 @@ func TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory(t *testing.T) {
 		t.Fatal("uncertain inventory accepted")
 		return coreprovider.OperationResult{}, nil
 	})
-	if result.Outcome != coreprovider.OutcomeUnknown {
-		t.Fatal("lookup uncertainty did not HOLD")
+	if result.Outcome != coreprovider.OutcomeFailed || result.Error == nil || result.Error.Code != errorOpenStack {
+		t.Fatal("read-only preflight failure was classified as a Provider side effect")
 	}
 }
 func TestKTCloudCIDRPoolConcurrentAndUnknownMutation(t *testing.T) {
@@ -150,8 +154,8 @@ func TestKTCloudCIDRPoolConcurrentAndUnknownMutation(t *testing.T) {
 		t.Error("concurrent mutation entered")
 		return coreprovider.OperationResult{}, nil
 	})
-	if result.Outcome != coreprovider.OutcomeUnknown {
-		t.Error("concurrent operation did not HOLD")
+	if result.Outcome != coreprovider.OutcomeFailed || result.Error == nil || result.Error.Code != errorInvalidProvision {
+		t.Error("unattempted concurrent operation was not rejected deterministically")
 	}
 	close(release)
 	wg.Wait()
@@ -206,8 +210,12 @@ func TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed(t *testing.T) {
 				t.Error("unsafe configuration entered lifecycle")
 				return coreprovider.OperationResult{}, nil
 			})
-			if result.Outcome != coreprovider.OutcomeUnknown {
-				t.Fatal("not HOLD")
+			want := coreprovider.OutcomeFailed
+			if kind == "symlink" || kind == "corrupt slot" {
+				want = coreprovider.OutcomeUnknown
+			}
+			if result.Outcome != want {
+				t.Fatalf("got %s want %s", result.Outcome, want)
 			}
 		})
 	}
@@ -406,8 +414,8 @@ func TestKTCloudCIDRPoolTierCreateAndCleanupIsolation(t *testing.T) {
 		t.Fatal("cleaned reservation automatically reused")
 		return coreprovider.OperationResult{}, nil
 	})
-	if result.Outcome != coreprovider.OutcomeUnknown {
-		t.Fatal("pool exhaustion did not HOLD")
+	if result.Outcome != coreprovider.OutcomeFailed || result.Error == nil || result.Error.Code != errorOpenStack {
+		t.Fatal("confirmed pool exhaustion was not rejected deterministically")
 	}
 }
 

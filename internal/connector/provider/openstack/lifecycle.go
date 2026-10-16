@@ -39,9 +39,15 @@ func (a *Adapter) Reset(ctx context.Context, request coreprovider.ResetRequest) 
 		return failedResult(nil, errorInvalidProvision, "OpenStack Provider is not available"), nil
 	}
 	if a.cidrPoolEnabled() && a.cidrScope == nil {
-		return a.withCIDRScope(ctx, request.Correlation, true, func(scoped *Adapter) (coreprovider.OperationResult, error) {
+		result, err := a.withCIDRScope(ctx, request.Correlation, true, func(scoped *Adapter) (coreprovider.OperationResult, error) {
 			return scoped.Reset(ctx, request)
 		})
+		if result.Outcome == coreprovider.OutcomeFailed && len(result.ProviderResources) == 0 {
+			// Scope rejection precedes all deletes. Keep the exact previous-generation
+			// resources explicitly marked as untouched for the caller.
+			result.ProviderResources = resourceResults(request.ProviderResources, stateDeleteNotAttempted)
+		}
+		return result, err
 	}
 	provisionRequest := coreprovider.ProvisionRequest{
 		Correlation:      request.Correlation,

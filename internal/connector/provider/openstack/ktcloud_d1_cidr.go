@@ -202,25 +202,122 @@ func (a *Adapter) loadCIDRAssignment(instance string) (ktCIDRPair, error) {
 	return ktCIDRPair{}, ErrProvisionCheck
 }
 
+// A local rejection is FAILED only when the configured durable state provides
+// no evidence of prior work for this generation. Inspect stored bindings even
+// when the new configuration is invalid; a typo must not hide an old intent.
+// This is read-only, including when another process owns LOCK.
+func (a *Adapter) cidrPriorUncertain(correlation coreprovider.Correlation, ownLock bool) bool {
+	dir := a.provision.KTCloudCIDRStateDir
+	if dir == "" {
+		return false
+	}
+	info, err := os.Lstat(dir)
+	if os.IsNotExist(err) {
+		return false
+	}
+	if err != nil || !info.IsDir() || info.Mode().Perm() != 0700 {
+		return true
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return true
+	}
+	var pool ktCIDRPool
+	poolErr := readCIDRFile(filepath.Join(dir, "pool.json"), &pool)
+	assignments := map[int]ktCIDRAssignment{}
+	if poolErr == nil {
+		// Validate the stored pool independently of the proposed pool configuration.
+		stored := *a
+		pairs, _ := json.Marshal(pool.Pairs)
+		stored.provision.KTCloudCIDRPairs = string(pairs)
+		stored.provision.ProjectID, stored.provision.ProviderConnectionID = pool.Project, pool.Connection
+		if pool.Version != 1 {
+			return true
+		}
+		if _, _, err := stored.cidrPool(); err != nil {
+			return true
+		}
+		assignments, err = readCIDRAssignments(pool, dir)
+		if err != nil {
+			return true
+		}
+	} else if !os.IsNotExist(poolErr) {
+		return true
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		switch {
+		case name == "LOCK":
+			if ownLock {
+				continue
+			}
+			var owner coreprovider.Correlation
+			if readCIDRFile(filepath.Join(dir, name), &owner) != nil || !validCorrelation(owner) || owner.LabInstanceID == correlation.LabInstanceID {
+				return true
+			}
+		case name == "pool.json":
+		case strings.HasPrefix(name, "slot-"):
+			if poolErr != nil {
+				return true
+			}
+		case strings.HasPrefix(name, "intent-"):
+			var slot int
+			var generation int64
+			var intent coreprovider.Correlation
+			if poolErr != nil {
+				return true
+			}
+			if _, err := fmt.Sscanf(name, "intent-%03d-%d.json", &slot, &generation); err != nil || intentName(slot, generation) != name {
+				return true
+			}
+			assignment, ok := assignments[slot]
+			if !ok || readCIDRFile(filepath.Join(dir, name), &intent) != nil || !validCorrelation(intent) || intent.Generation != generation || intent.LabInstanceID != assignment.Instance {
+				return true
+			}
+			if intent.LabInstanceID == correlation.LabInstanceID && intent.Generation >= correlation.Generation {
+				return true
+			}
+		default:
+			return true
+		}
+	}
+	return false
+}
+
 func (a *Adapter) withCIDRScope(ctx context.Context, correlation coreprovider.Correlation, reset bool, run func(*Adapter) (coreprovider.OperationResult, error)) (coreprovider.OperationResult, error) {
 	hold := func() (coreprovider.OperationResult, error) {
 		return unknownResult(nil, "CIDR assignment is unavailable; reconciliation required"), nil
 	}
+	ownLock := false
+	reject := func(code, message string) (coreprovider.OperationResult, error) {
+		if a.cidrPriorUncertain(correlation, ownLock) {
+			return hold()
+		}
+		return failedResult(nil, code, message), nil
+	}
 	if !validCorrelation(correlation) || (reset && correlation.Generation < 2) || (!reset && correlation.Generation != 1) {
-		return hold()
+		return reject(errorInvalidProvision, "CIDR request is invalid")
 	}
 	pool, dir, err := a.cidrPool()
 	if err != nil {
-		return hold()
+		return reject(errorInvalidProvision, "CIDR pool configuration is invalid")
 	}
 	// Fail immediately on simultaneous operations, another process, or a stale
 	// lock. No TTL, blind takeover, or provider mutation retries.
 	if writeCIDRFile(dir, "LOCK", correlation) != nil {
+		return reject(errorInvalidProvision, "CIDR assignment lock is unavailable")
+	}
+	ownLock = true
+	defer os.Remove(filepath.Join(dir, "LOCK"))
+	// Do not repair a damaged reservation around an existing mutation intent.
+	if a.cidrPriorUncertain(correlation, true) {
 		return hold()
 	}
-	defer os.Remove(filepath.Join(dir, "LOCK"))
-	if ctx.Err() != nil || checkCIDRPoolFile(pool, dir, true) != nil {
-		return hold()
+	if ctx.Err() != nil {
+		return reject(errorOpenStack, "CIDR preflight was cancelled")
+	}
+	if checkCIDRPoolFile(pool, dir, true) != nil {
+		return reject(errorInvalidProvision, "CIDR pool binding is unavailable")
 	}
 	assignments, err := readCIDRAssignments(pool, dir)
 	if err != nil {
@@ -238,7 +335,7 @@ func (a *Adapter) withCIDRScope(ctx context.Context, correlation coreprovider.Co
 		}
 		tiers, err := a.ktNetwork.tiers(ctx)
 		if err != nil {
-			return hold()
+			return reject(errorOpenStack, "CIDR inventory preflight failed")
 		}
 		for index, pair := range pool.Pairs {
 			if _, used := assignments[index]; used {
@@ -246,7 +343,7 @@ func (a *Adapter) withCIDRScope(ctx context.Context, correlation coreprovider.Co
 			}
 			free, err := cidrPairFree(pair, tiers)
 			if err != nil {
-				return hold()
+				return reject(errorOpenStack, "CIDR inventory preflight failed")
 			}
 			if free {
 				slot = index
@@ -254,7 +351,7 @@ func (a *Adapter) withCIDRScope(ctx context.Context, correlation coreprovider.Co
 			}
 		}
 		if slot < 0 {
-			return hold()
+			return reject(errorOpenStack, "CIDR pool has no available pair")
 		}
 		if writeCIDRFile(dir, slotName(slot), ktCIDRAssignment{Instance: correlation.LabInstanceID, Pair: pool.Pairs[slot]}) != nil {
 			return hold()

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -71,14 +72,19 @@ func TestResetSnapshotFailureTransitionAndResourceHistory(t *testing.T) {
 	for _, scenario := range []string{"preflight failure", "success", "partial delete", "unknown", "incomplete success", "replacement failure", "replacement empty failure", "MISSING", "ABSENT", "DELETED", "partial replacement", "failed partial replacement", "failed absent replacement", "old residual with replacement", "duplicate VM", "wrong VM key", "unknown replacement", "stale lease"} {
 		t.Run(scenario, func(t *testing.T) {
 			e := newProvisionEnv(t, 5*time.Second)
+			var mutations atomic.Int32
 			var instance uuid.UUID
 			var oldIDs []provider.ResourceRef
 			var expectedNew int
 			e.startMock(&provider.MockProvider{
+				ReconcileFunc: func(context.Context, provider.ReconcileRequest) (provider.ReconcileResult, error) {
+					return provider.ReconcileResult{Error: &provider.SafeError{Code: "PROVIDER_RECONCILE_UNAVAILABLE", Message: "query unavailable"}}, nil
+				},
 				ProvisionFunc: func(_ context.Context, r provider.ProvisionRequest) (provider.OperationResult, error) {
 					return mockProvisionResult(r, provider.OutcomeSucceeded), nil
 				},
 				ResetFunc: func(_ context.Context, r provider.ResetRequest) (provider.OperationResult, error) {
+					mutations.Add(1)
 					if r.LabInstanceID != instance.String() || r.Generation != 2 || r.CreationSnapshot.ProviderConnectionID != e.f.ProviderConnectionID.String() || r.CreationSnapshot.StartupScript.Content != labexecutiontest.StartupScript {
 						t.Error("reset correlation/snapshot changed")
 					}
@@ -254,8 +260,12 @@ func TestResetSnapshotFailureTransitionAndResourceHistory(t *testing.T) {
 				}
 			}
 			e.assertHTTPMatchesDatabase()
-			if claimed, err := e.stack.Provisions.RunOne(t.Context()); claimed || err != nil {
-				t.Fatalf("blind retry=%v %v", claimed, err)
+			before := mutations.Load()
+			if claimed, err := e.stack.Provisions.RunOne(t.Context()); claimed != (wantStatus == "RECONCILING") || err != nil {
+				t.Fatalf("observation claim=%v %v", claimed, err)
+			}
+			if mutations.Load() != before {
+				t.Fatal("reconciliation replayed mutation")
 			}
 		})
 	}
@@ -265,12 +275,17 @@ func TestCleanupIndependentItemsAndConfirmedAbsence(t *testing.T) {
 	for _, scenario := range []string{"success", "partial failure", "unknown", "incomplete success"} {
 		t.Run(scenario, func(t *testing.T) {
 			e := newProvisionEnv(t, 5*time.Second)
+			var mutations atomic.Int32
 			var target uuid.UUID
 			e.startMock(&provider.MockProvider{
+				ReconcileFunc: func(context.Context, provider.ReconcileRequest) (provider.ReconcileResult, error) {
+					return provider.ReconcileResult{Error: &provider.SafeError{Code: "PROVIDER_RECONCILE_UNAVAILABLE", Message: "query unavailable"}}, nil
+				},
 				ProvisionFunc: func(_ context.Context, r provider.ProvisionRequest) (provider.OperationResult, error) {
 					return mockProvisionResult(r, provider.OutcomeSucceeded), nil
 				},
 				CleanupFunc: func(_ context.Context, r provider.CleanupRequest) (provider.OperationResult, error) {
+					mutations.Add(1)
 					result := provider.OperationResult{Outcome: provider.OutcomeSucceeded, ProviderResources: deletedRefs(r.ProviderResources)}
 					if r.LabInstanceID == target.String() {
 						switch scenario {
@@ -330,8 +345,12 @@ func TestCleanupIndependentItemsAndConfirmedAbsence(t *testing.T) {
 				t.Fatalf("parent=%s want %s", got, want)
 			}
 			e.assertHTTPMatchesDatabase()
-			if claimed, err := e.stack.Provisions.RunOne(t.Context()); claimed || err != nil {
-				t.Fatalf("replay=%v %v", claimed, err)
+			before := mutations.Load()
+			if claimed, err := e.stack.Provisions.RunOne(t.Context()); claimed != (want == "RECONCILING") || err != nil {
+				t.Fatalf("observation claim=%v %v", claimed, err)
+			}
+			if mutations.Load() != before {
+				t.Fatal("reconciliation replayed mutation")
 			}
 			if scenario == "partial failure" {
 				// A new explicit Cleanup can clean the known remainder without replaying

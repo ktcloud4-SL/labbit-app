@@ -115,7 +115,7 @@ export function ClassDetailPage() {
 
   return (
     <main className="app-page">
-      <header className="page-header page-header-spacious">
+      <header className="page-header page-header-spacious page-header-with-action">
         <div>
           <Link className="back-link" to="/classes">
             ← 수업 목록

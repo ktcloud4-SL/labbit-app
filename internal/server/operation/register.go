@@ -1,5 +1,5 @@
-// Package operation provides durable registration primitives and authorized status reads.
-// It does not execute or dispatch Provider work.
+// Package operation provides durable registration, authorized status reads and
+// the claim/lease execution boundary. Provider dispatch is supplied by its caller.
 package operation
 
 import (

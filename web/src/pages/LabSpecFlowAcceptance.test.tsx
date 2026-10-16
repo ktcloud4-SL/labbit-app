@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { LabSpec, LabSpecWrite } from '../shared/api/contracts'
@@ -17,6 +18,7 @@ import { LabSpecListPage } from './LabSpecListPage'
 function mountLabSpecFlow(
   overrides: Partial<typeof mockLabbitApi> = {},
   initialPath = '/lab-specs',
+  detailElement: ReactNode = <div>LabSpec 저장 완료</div>,
 ) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -32,7 +34,7 @@ function mountLabSpecFlow(
     [
       { path: '/lab-specs', element: <LabSpecListPage /> },
       { path: '/lab-specs/new', element: <LabSpecEditorPage /> },
-      { path: '/lab-specs/:labSpecId', element: <div>LabSpec 저장 완료</div> },
+      { path: '/lab-specs/:labSpecId', element: detailElement },
     ],
     { initialEntries: [initialPath] },
   )
@@ -209,7 +211,11 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
       revision = 2
       throw new HttpError(412)
     })
-    mountLabSpecFlow({ getLabSpec, updateLabSpec }, '/lab-specs/lab-spec-existing')
+    mountLabSpecFlow(
+      { getLabSpec, updateLabSpec },
+      '/lab-specs/lab-spec-existing',
+      <LabSpecEditorPage />,
+    )
     expect(await screen.findByRole('heading', { level: 1, name: 'Original Spec' })).toBeInTheDocument()
     fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
       target: { value: 'My concurrent edit' },

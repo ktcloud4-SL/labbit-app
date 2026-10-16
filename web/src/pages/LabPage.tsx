@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
+import { classReadinessPollingInterval } from '../shared/workspace/classReadinessPolling'
 import { LoginRedirect } from '../shared/ui/LoginRedirect'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
@@ -26,6 +27,8 @@ export function LabPage() {
     queryFn: () => api.getClass(resolvedClassId),
     enabled: Boolean(resolvedClassId),
     retry: false,
+    refetchInterval: (query) =>
+      classReadinessPollingInterval(query.state.data, query.state.error),
   })
 
   if (!resolvedClassId) {

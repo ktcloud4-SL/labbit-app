@@ -40,11 +40,13 @@ Self-review는 다음 경계를 직접 대조했다.
 | PostgreSQL/Mock Reconciliation 및 응답 유실·전송 불명 회귀 | PASS |
 | `go test -race -tags 'backend_router_harness integration' -run '^Test(C1\|Reconciliation\|ProvisionControlStack(Ambiguous\|ResponseLoss))' -count=1 -v ./internal/server/app` | PASS. Mock만 실행 |
 | 최종 삭제 이력 수정 후 Cleanup 전체 5개 대표 사례 `-race` | PASS |
-| 저장소 전체 `make go-integration-test` | 실행 결과를 최종 제출에서 갱신 |
+| 저장소 전체 `make go-integration-test` | 기본 10분 제한 timeout 기록 보존. 동일 target의 최종 재실행은 로컬 Go wrapper로 `go test -timeout=30m -v`만 적용하며, 최종 결과는 [PR #112](https://github.com/ktcloud4-SL/labbit-app/pull/112) 검증 항목에 기록 |
+
+최초 전체 회귀에서 LBT-178 테스트의 “UNKNOWN 이후 claim 없음” 기대가 새 조회 전용 claim과 충돌했다. Reconcile mock을 명시하고 실제 Mutation 호출 수가 증가하지 않는지를 검증하도록 수정했다. 기존 generation/소유관계/이력/종료 검증은 유지한다.
 
 핵심 테스트는 presence/absence, lookup error, 후보 발견, 일부 관측 누락, 잘못된 generation/logicalName, 중복 관측, 응답 유실/late result, Reconcile 응답 유실, Worker 재시작/lease 만료, 동시 claim, stale owner fencing, Cleanup 잔여 자원/후보/불확실성 후 확인된 부재, Reset generation 유지 및 중복 Mutation 방지를 검증한다.
 
-로컬 로그: `/home/imcherry/labbit-evidence/LBT-179/`. `default.log`와 `baseline-terminal.log`에 기존 실패를 보존했다. 범위 외 실패를 숨기기 위해 테스트를 skip하거나 기준을 완화하지 않았다. 최종 HEAD의 원격 CI 근거는 PR checks와 최종 제출을 참조한다.
+로컬 로그: `/home/imcherry/labbit-evidence/LBT-179/`. `default.log`와 `baseline-terminal.log`에 기존 실패를 보존했다. 범위 외 실패를 숨기기 위해 테스트를 skip하거나 기준을 완화하지 않았다. 최종 HEAD의 원격 CI 근거는 [PR #112 checks](https://github.com/ktcloud4-SL/labbit-app/pull/112/checks)와 최종 제출을 참조한다. PR workflow의 Backend image 검증은 build만 수행하며 image publish/GitOps 갱신은 하지 않는다. main merge는 배포 workflow를 유발하므로 이 Gate에서 수행하지 않는다.
 
 ## 실제 환경 Read-only 확인
 

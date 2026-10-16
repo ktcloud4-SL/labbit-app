@@ -183,6 +183,54 @@ func (s *Store) DeferUnsentMutation(ctx context.Context, expected repository.Pro
 
 func absent(state string) bool { return state == "DELETED" || state == "ABSENT" || state == "MISSING" }
 
+// resetVMsPresent checks the immutable VM keys independently of old-resource
+// deletion. ACTIVE is the Provider's confirmed SERVER creation observation;
+// this does not attest application readiness or make the instance READY.
+func resetVMsPresent(snapshot json.RawMessage, resources []repository.ProvisionResource, generation int64) bool {
+	var spec struct {
+		VMs []struct {
+			VMKey string `json:"vmKey"`
+		} `json:"vms"`
+	}
+	if json.Unmarshal(snapshot, &spec) != nil || len(spec.VMs) == 0 {
+		return false
+	}
+	required := make(map[string]int, len(spec.VMs))
+	for _, vm := range spec.VMs {
+		if strings.TrimSpace(vm.VMKey) == "" {
+			return false
+		}
+		if _, exists := required[vm.VMKey]; exists {
+			return false
+		}
+		required[vm.VMKey] = 0
+	}
+	for _, r := range resources {
+		if r.Generation != generation {
+			continue
+		}
+		// Preserve these observations as history, but never use them as evidence
+		// that a replacement exists (including absent non-SERVER resources).
+		if absent(r.ObservedState) || r.ObservedState == "" || r.ObservedState == "UNKNOWN" || r.ObservedState == "DELETE_NOT_ATTEMPTED" {
+			return false
+		}
+		if r.Type != "SERVER" {
+			continue
+		}
+		count, expected := required[r.LogicalName]
+		if !expected || count != 0 || r.ObservedState != "ACTIVE" {
+			return false
+		}
+		required[r.LogicalName]++
+	}
+	for _, count := range required {
+		if count != 1 {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *Store) WriteMutation(ctx context.Context, u repository.ProvisionUpdate) error {
 	if u.Status != "RUNNING" && u.Status != "SUCCEEDED" && u.Status != "FAILED" && u.Status != "RECONCILING" {
 		return invalidMutation()
@@ -218,7 +266,7 @@ func (s *Store) WriteMutation(ctx context.Context, u repository.ProvisionUpdate)
 		seen := make(map[[2]string]bool)
 		allAbsent := true
 		unchanged := true
-		newCount := 0
+		hasReplacementObservations := false
 		for _, r := range u.Resources {
 			key := [2]string{r.Type, r.ProviderID}
 			if strings.TrimSpace(r.Type) == "" || strings.TrimSpace(r.ProviderID) == "" || seen[key] {
@@ -255,7 +303,7 @@ func (s *Store) WriteMutation(ctx context.Context, u repository.ProvisionUpdate)
 					return invalidMutation()
 				}
 				unchanged = false
-				newCount++
+				hasReplacementObservations = true
 				lifecycle := "PRESENT"
 				var deleted *time.Time
 				if absent(r.ObservedState) {
@@ -283,20 +331,22 @@ func (s *Store) WriteMutation(ctx context.Context, u repository.ProvisionUpdate)
 				allAbsent = false
 			}
 		}
-		// Outcome alone cannot attest absence. Keep incomplete successes durable
-		// for LBT-179; no additional mutation or reconciliation is performed here.
-		if u.Status == "SUCCEEDED" && (!allAbsent || (d.MutationType == "RESET" && newCount == 0)) {
+		// Old-resource absence and replacement existence are separate proofs.
+		// Incomplete/contradictory replacement results retain every observation
+		// above and require reconciliation, even if the outcome says FAILED.
+		replacementComplete := d.MutationType == "RESET" && resetVMsPresent(d.Snapshot, u.Resources, d.Generation)
+		incomplete := u.Status == "SUCCEEDED" && (!allAbsent || (d.MutationType == "RESET" && !replacementComplete))
+		if d.MutationType == "RESET" && ((hasReplacementObservations && (!allAbsent || !replacementComplete)) ||
+			(u.Status == "FAILED" && allAbsent && !replacementComplete)) {
+			incomplete = true
+		}
+		if incomplete {
 			u.Status = "RECONCILING"
 			u.Stage = "RECONCILING"
 			u.ErrorCode = "mutation_result_incomplete"
 			u.ErrorMessage = "Resource confirmation requires reconciliation"
 		}
-		if d.MutationType == "RESET" && newCount > 0 && !allAbsent {
-			u.Status = "RECONCILING"
-			u.Stage = "RECONCILING"
-			u.ErrorCode = "mutation_result_incomplete"
-			u.ErrorMessage = "Resource confirmation requires reconciliation"
-		}
+
 		if d.MutationType == "CLEANUP" && u.Status == "SUCCEEDED" {
 			u.Stage = "COMPLETED"
 		}
@@ -322,7 +372,7 @@ func (s *Store) WriteMutation(ctx context.Context, u repository.ProvisionUpdate)
 				status = "RESETTING"
 			case u.Stage == "REJECTED" || (u.Status == "FAILED" && unchanged):
 				status = d.PreviousStatus
-			case allAbsent && newCount > 0:
+			case allAbsent && replacementComplete:
 				generation = d.Generation
 				status = "PROVISIONING"
 				if u.Status == "FAILED" {

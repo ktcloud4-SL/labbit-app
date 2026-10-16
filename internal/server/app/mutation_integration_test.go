@@ -4,6 +4,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"testing"
@@ -67,11 +68,12 @@ func deletedRefs(refs []provider.ResourceRef) []provider.ResourceResult {
 }
 
 func TestResetSnapshotFailureTransitionAndResourceHistory(t *testing.T) {
-	for _, scenario := range []string{"preflight failure", "success", "partial delete", "unknown", "incomplete success", "replacement failure", "replacement empty failure"} {
+	for _, scenario := range []string{"preflight failure", "success", "partial delete", "unknown", "incomplete success", "replacement failure", "replacement empty failure", "MISSING", "ABSENT", "DELETED", "partial replacement", "failed partial replacement", "failed absent replacement", "old residual with replacement", "duplicate VM", "wrong VM key", "unknown replacement", "stale lease"} {
 		t.Run(scenario, func(t *testing.T) {
 			e := newProvisionEnv(t, 5*time.Second)
 			var instance uuid.UUID
 			var oldIDs []provider.ResourceRef
+			var expectedNew int
 			e.startMock(&provider.MockProvider{
 				ProvisionFunc: func(_ context.Context, r provider.ProvisionRequest) (provider.OperationResult, error) {
 					return mockProvisionResult(r, provider.OutcomeSucceeded), nil
@@ -118,7 +120,42 @@ func TestResetSnapshotFailureTransitionAndResourceHistory(t *testing.T) {
 					for i := range result.ProviderResources {
 						result.ProviderResources[i].ProviderID += "/generation-2"
 					}
+					switch scenario {
+					case "MISSING", "ABSENT", "DELETED", "failed absent replacement":
+						state := scenario
+						if scenario == "failed absent replacement" {
+							state = "MISSING"
+							result.Outcome = provider.OutcomeFailed
+						}
+						for i := range result.ProviderResources {
+							result.ProviderResources[i].ObservedState = state
+						}
+					case "partial replacement", "failed partial replacement":
+						result.ProviderResources = result.ProviderResources[:2] // tier + just one of three VMs
+						if scenario == "failed partial replacement" {
+							result.Outcome = provider.OutcomeFailed
+						}
+					case "duplicate VM":
+						duplicate := result.ProviderResources[1]
+						duplicate.ProviderID += "/duplicate"
+						result.ProviderResources = append(result.ProviderResources, duplicate)
+					case "wrong VM key":
+						result.ProviderResources[1].LogicalName = "not-in-snapshot"
+					case "unknown replacement":
+						result.ProviderResources[1].ObservedState = "UNKNOWN"
+					}
 					result.ProviderResources = append(deletedRefs(r.ProviderResources), result.ProviderResources...)
+					if scenario == "old residual with replacement" {
+						result.ProviderResources[0].ObservedState = "ACTIVE"
+					}
+					if scenario == "stale lease" {
+						labexecutiontest.Exec(t, e.db, `UPDATE operation_items SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE operation_id=$1`, e.opID)
+					}
+					for _, ref := range result.ProviderResources {
+						if ref.Generation == r.Generation {
+							expectedNew++
+						}
+					}
 					if scenario == "replacement failure" {
 						result.Outcome = provider.OutcomeFailed
 					}
@@ -131,6 +168,21 @@ func TestResetSnapshotFailureTransitionAndResourceHistory(t *testing.T) {
 			labexecutiontest.Exec(t, e.db, `UPDATE provider_flavor_mappings SET provider_flavor_id='changed-flavor' WHERE id=$1`, e.f.FlavorMappingID)
 			labexecutiontest.Exec(t, e.db, `UPDATE lab_specs SET startup_script='changed-script',revision=revision+1 WHERE id=$1`, e.f.LabSpecID)
 			e.reset(instance, "reset-immutable-snapshot")
+			if scenario == "stale lease" {
+				claimed, err := e.stack.Provisions.RunOne(t.Context())
+				if !claimed || !errors.Is(err, repository.ErrOperationLeaseLost) {
+					t.Fatalf("stale result=%v %v", claimed, err)
+				}
+				li, err := e.store.LabInstanceByID(t.Context(), instance)
+				if err != nil || li.Generation != 1 || e.operationStatus() != "RUNNING" {
+					t.Fatalf("stale result changed lifecycle: %+v %v", li, err)
+				}
+				var oldPresent, newCount int
+				if err := e.db.QueryRow(t.Context(), `SELECT count(*) FILTER (WHERE generation=1 AND lifecycle_status='PRESENT'),count(*) FILTER (WHERE generation=2) FROM provider_resources WHERE lab_instance_id=$1`, instance).Scan(&oldPresent, &newCount); err != nil || oldPresent != 4 || newCount != 0 {
+					t.Fatalf("stale result changed resources: %d/%d %v", oldPresent, newCount, err)
+				}
+				return
+			}
 			e.runOneMustClaim()
 			wantGeneration := int64(1)
 			wantStatus := "FAILED"
@@ -144,7 +196,7 @@ func TestResetSnapshotFailureTransitionAndResourceHistory(t *testing.T) {
 				wantInstance = "PROVISIONING"
 			case "replacement failure":
 				wantGeneration = 2
-			case "unknown", "incomplete success":
+			case "unknown", "incomplete success", "replacement empty failure", "MISSING", "ABSENT", "DELETED", "partial replacement", "failed partial replacement", "failed absent replacement", "old residual with replacement", "duplicate VM", "wrong VM key", "unknown replacement":
 				wantStatus = "RECONCILING"
 				wantInstance = "RESETTING"
 			}
@@ -152,7 +204,7 @@ func TestResetSnapshotFailureTransitionAndResourceHistory(t *testing.T) {
 			if err != nil || li.Generation != wantGeneration || li.Status != wantInstance || e.operationStatus() != wantStatus {
 				t.Fatalf("instance=%+v op=%s err=%v", li, e.operationStatus(), err)
 			}
-			for _, ref := range oldIDs {
+			for index, ref := range oldIDs {
 				var generation int64
 				var logical, life string
 				var creator uuid.UUID
@@ -163,14 +215,42 @@ func TestResetSnapshotFailureTransitionAndResourceHistory(t *testing.T) {
 				if scenario == "preflight failure" && life != "PRESENT" {
 					t.Fatal("preflight removed existing environment")
 				}
+				if scenario == "old residual with replacement" {
+					expected := "DELETED"
+					if index == 0 {
+						expected = "PRESENT"
+					}
+					if life != expected {
+						t.Fatalf("old residual history=%s want %s", life, expected)
+					}
+				}
 				if wantGeneration == 2 && life != "DELETED" {
 					t.Fatal("old generation not absent")
 				}
 			}
-			if wantGeneration == 2 {
+			var n int
+			if err := e.db.QueryRow(t.Context(), `SELECT count(*) FROM provider_resources r JOIN operation_items i ON i.id=r.created_by_operation_item_id WHERE r.lab_instance_id=$1 AND r.generation=2 AND i.operation_id=$2`, instance, e.opID).Scan(&n); err != nil || n != expectedNew {
+				t.Fatalf("new history=%d want %d: %v", n, expectedNew, err)
+			}
+
+			if scenario == "MISSING" || scenario == "ABSENT" || scenario == "DELETED" || scenario == "failed absent replacement" {
+				state := scenario
+				if scenario == "failed absent replacement" {
+					state = "MISSING"
+				}
 				var n int
-				if err := e.db.QueryRow(t.Context(), `SELECT count(*) FROM provider_resources r JOIN operation_items i ON i.id=r.created_by_operation_item_id WHERE r.lab_instance_id=$1 AND r.generation=2 AND i.operation_id=$2`, instance, e.opID).Scan(&n); err != nil || n != 4 {
-					t.Fatalf("new history=%d %v", n, err)
+				if err := e.db.QueryRow(t.Context(), `SELECT count(*) FROM provider_resources WHERE lab_instance_id=$1 AND generation=2 AND observed_state=$2 AND lifecycle_status IN ('MISSING','DELETED')`, instance, state).Scan(&n); err != nil || n != 4 {
+					t.Fatalf("absence history lost: %d %v", n, err)
+				}
+			}
+			if wantStatus == "RECONCILING" {
+				items, err := e.store.OperationItems(t.Context(), e.opID)
+				if err != nil || len(items) != 1 || items[0].FinishedAt != nil {
+					t.Fatalf("incomplete item finished: %+v %v", items, err)
+				}
+				op, err := e.store.OperationByID(t.Context(), e.opID)
+				if err != nil || op.FinishedAt != nil {
+					t.Fatal("incomplete parent finished")
 				}
 			}
 			e.assertHTTPMatchesDatabase()

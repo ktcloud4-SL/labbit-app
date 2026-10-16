@@ -1,4 +1,4 @@
-package operation
+package provision
 
 import (
 	"context"
@@ -14,17 +14,18 @@ import (
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/operation"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 )
 
-type ProvisionRouter interface {
+type Router interface {
 	SendOperationCommand(context.Context, connector.OperationCommand) (connector.SentMessage, error)
 	ForgetOperation(uuid.UUID, connector.Correlation) bool
 }
 
-type ProvisionOptions struct {
+type Options struct {
 	Store  repository.ProvisionWorkerStore
-	Router ProvisionRouter
+	Router Router
 	Tracer trace.Tracer
 	Logger *slog.Logger
 	// Ready checks application/schema compatibility before a new claim.
@@ -32,11 +33,11 @@ type ProvisionOptions struct {
 	LeaseDuration, ResultTimeout, PollInterval time.Duration
 }
 
-// ProvisionExecutor is also the Router's typed EventSink. Only correlation and
+// Executor is also the Router's typed EventSink. Only correlation and
 // bounded inbox delivery happen on Control read loops; DB I/O runs in Execute.
-type ProvisionExecutor struct {
-	opts    ProvisionOptions
-	worker  *Worker
+type Executor struct {
+	opts    Options
+	worker  *operation.Worker
 	mu      sync.Mutex
 	pending map[provisionKey]*provisionInbox
 }
@@ -62,9 +63,9 @@ func (s provisionClaims) ClaimOperationItem(ctx context.Context, owner uuid.UUID
 	return s.ClaimProvisionOperationItem(ctx, owner, duration)
 }
 
-func NewProvisionExecutor(opts ProvisionOptions) (*ProvisionExecutor, error) {
+func NewExecutor(opts Options) (*Executor, error) {
 	if opts.Store == nil || opts.Router == nil {
-		return nil, ErrInvalid
+		return nil, operation.ErrInvalid
 	}
 	if opts.LeaseDuration == 0 {
 		opts.LeaseDuration = 30 * time.Second
@@ -76,13 +77,13 @@ func NewProvisionExecutor(opts ProvisionOptions) (*ProvisionExecutor, error) {
 		opts.PollInterval = time.Second
 	}
 	if opts.LeaseDuration < 3*time.Microsecond || opts.ResultTimeout <= 0 || opts.PollInterval <= 0 {
-		return nil, ErrInvalid
+		return nil, operation.ErrInvalid
 	}
 	if opts.Logger == nil {
 		opts.Logger = slog.New(slog.DiscardHandler)
 	}
-	p := &ProvisionExecutor{opts: opts, pending: make(map[provisionKey]*provisionInbox)}
-	w, err := NewWorker(WorkerOptions{Store: provisionClaims{opts.Store}, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Execute: p.execute})
+	p := &Executor{opts: opts, pending: make(map[provisionKey]*provisionInbox)}
+	w, err := operation.NewWorker(operation.WorkerOptions{Store: provisionClaims{opts.Store}, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Execute: p.execute})
 	if err != nil {
 		return nil, err
 	}
@@ -90,11 +91,11 @@ func NewProvisionExecutor(opts ProvisionOptions) (*ProvisionExecutor, error) {
 	return p, nil
 }
 
-func (p *ProvisionExecutor) RunOne(ctx context.Context) (bool, error) { return p.worker.RunOne(ctx) }
+func (p *Executor) RunOne(ctx context.Context) (bool, error) { return p.worker.RunOne(ctx) }
 
 // Run has a small fixed number of independent slots, no separate deployment or
 // queue. Process cancellation stops claims and leaves uncertain work durable.
-func (p *ProvisionExecutor) Run(ctx context.Context) {
+func (p *Executor) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 	for range 4 {
 		wg.Go(func() {
@@ -129,7 +130,7 @@ func (p *ProvisionExecutor) Run(ctx context.Context) {
 	wg.Wait()
 }
 
-func (p *ProvisionExecutor) HandleEvent(event connector.Event) {
+func (p *Executor) HandleEvent(event connector.Event) {
 	var routed connector.Routed
 	switch e := event.(type) {
 	case connector.OperationAckEvent:
@@ -172,7 +173,7 @@ func (p *ProvisionExecutor) HandleEvent(event connector.Event) {
 	}
 }
 
-func (p *ProvisionExecutor) execute(ctx context.Context, claim repository.OperationItemClaim) error {
+func (p *Executor) execute(ctx context.Context, claim repository.OperationItemClaim) error {
 	d, err := p.opts.Store.PrepareProvision(ctx, claim.Lease)
 	if err != nil {
 		return err
@@ -187,7 +188,7 @@ func (p *ProvisionExecutor) execute(ctx context.Context, claim repository.Operat
 	p.mu.Lock()
 	if p.pending[key] != nil {
 		p.mu.Unlock()
-		return ErrInvalid
+		return operation.ErrInvalid
 	}
 	p.pending[key] = inbox
 	p.mu.Unlock()
@@ -274,7 +275,7 @@ func (p *ProvisionExecutor) execute(ctx context.Context, claim repository.Operat
 	}
 }
 
-func (p *ProvisionExecutor) rejected(ctx context.Context, d repository.ProvisionDispatch, ack protocol.OperationAckPayload) error {
+func (p *Executor) rejected(ctx context.Context, d repository.ProvisionDispatch, ack protocol.OperationAckPayload) error {
 	return p.opts.Store.WriteProvision(ctx, repository.ProvisionUpdate{Dispatch: d, Status: "FAILED", Stage: "REJECTED",
 		ErrorCode: safeProvisionCode(ack.Error, "provision_command_rejected"), ErrorMessage: "Connector rejected the provision command"})
 }
@@ -288,12 +289,12 @@ func safeProvisionCode(err *protocol.SafeError, fallback string) string {
 	return fallback
 }
 
-func (p *ProvisionExecutor) unknown(ctx context.Context, d repository.ProvisionDispatch, code string) error {
+func (p *Executor) unknown(ctx context.Context, d repository.ProvisionDispatch, code string) error {
 	return p.opts.Store.WriteProvision(ctx, repository.ProvisionUpdate{Dispatch: d, Status: "RECONCILING", Stage: "RECONCILING",
 		ErrorCode: code, ErrorMessage: "Provision outcome requires reconciliation"})
 }
 
-func (p *ProvisionExecutor) result(ctx context.Context, d repository.ProvisionDispatch, r protocol.OperationResultPayload) error {
+func (p *Executor) result(ctx context.Context, d repository.ProvisionDispatch, r protocol.OperationResultPayload) error {
 	u := repository.ProvisionUpdate{Dispatch: d}
 	switch r.Outcome {
 	case protocol.OutcomeSucceeded:

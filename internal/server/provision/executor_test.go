@@ -1,4 +1,4 @@
-package operation
+package provision
 
 import (
 	"context"
@@ -13,6 +13,18 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 )
+
+type workerStoreFake struct {
+	claim func(context.Context, uuid.UUID, time.Duration) (repository.OperationItemClaim, error)
+	renew func(context.Context, repository.OperationItemLease, time.Duration) (time.Time, error)
+}
+
+func (f workerStoreFake) ClaimOperationItem(ctx context.Context, owner uuid.UUID, d time.Duration) (repository.OperationItemClaim, error) {
+	return f.claim(ctx, owner, d)
+}
+func (f workerStoreFake) RenewOperationItemLease(ctx context.Context, l repository.OperationItemLease, d time.Duration) (time.Time, error) {
+	return f.renew(ctx, l, d)
+}
 
 type provisionStoreFake struct {
 	workerStoreFake
@@ -72,11 +84,11 @@ func routedFor(c connector.OperationCommand) connector.Routed {
 	return connector.Routed{ConnectorID: c.ConnectorID, Correlation: c.Correlation, MessageID: uuid.NewString(), RequestMessageID: "outbound-message"}
 }
 
-func TestProvisionExecutorRetainsImmediateResultBeforeSendReturns(t *testing.T) {
+func TestExecutorRetainsImmediateResultBeforeSendReturns(t *testing.T) {
 	for _, sendFails := range []bool{false, true} {
 		t.Run(map[bool]string{false: "sent", true: "write returned error"}[sendFails], func(t *testing.T) {
 			writes := make(chan repository.ProvisionUpdate, 10)
-			var p *ProvisionExecutor
+			var p *Executor
 			router := provisionRouterFake{send: func(_ context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
 				if c.Payload.CreationSnapshot.VMs[0].ImageID != "immutable-image" {
 					t.Error("snapshot changed")
@@ -91,7 +103,7 @@ func TestProvisionExecutorRetainsImmediateResultBeforeSendReturns(t *testing.T) 
 				return connector.SentMessage{MessageID: "outbound-message"}, nil
 			}}
 			var err error
-			p, err = NewProvisionExecutor(ProvisionOptions{Store: provisionTestStore(t, writes), Router: router})
+			p, err = NewExecutor(Options{Store: provisionTestStore(t, writes), Router: router})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -131,9 +143,9 @@ func TestProvisionEventDeliveryNeverWaitsForDatabaseWriter(t *testing.T) {
 		writes <- u
 		return nil
 	}
-	var p *ProvisionExecutor
+	var p *Executor
 	var cmd connector.OperationCommand
-	p, err := NewProvisionExecutor(ProvisionOptions{Store: store, Router: provisionRouterFake{send: func(_ context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
+	p, err := NewExecutor(Options{Store: store, Router: provisionRouterFake{send: func(_ context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
 		cmd = c
 		p.HandleEvent(connector.OperationAckEvent{Routed: routedFor(c), Payload: protocol.OperationAckPayload{Accepted: true}})
 		return connector.SentMessage{MessageID: "outbound-message"}, nil
@@ -164,10 +176,10 @@ func TestProvisionEventDeliveryNeverWaitsForDatabaseWriter(t *testing.T) {
 	}
 }
 
-func TestProvisionExecutorRejectsWrongCorrelationAndReplyID(t *testing.T) {
+func TestExecutorRejectsWrongCorrelationAndReplyID(t *testing.T) {
 	writes := make(chan repository.ProvisionUpdate, 10)
-	var p *ProvisionExecutor
-	p, err := NewProvisionExecutor(ProvisionOptions{Store: provisionTestStore(t, writes), ResultTimeout: 20 * time.Millisecond, Router: provisionRouterFake{send: func(_ context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
+	var p *Executor
+	p, err := NewExecutor(Options{Store: provisionTestStore(t, writes), ResultTimeout: 20 * time.Millisecond, Router: provisionRouterFake{send: func(_ context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
 		for _, wrong := range []string{"connector", "operation", "instance", "generation", "reply"} {
 			r := routedFor(c)
 			switch wrong {
@@ -198,13 +210,13 @@ func TestProvisionExecutorRejectsWrongCorrelationAndReplyID(t *testing.T) {
 	}
 }
 
-func TestProvisionExecutorUncertainSendAndAckOnlyNeverReplay(t *testing.T) {
+func TestExecutorUncertainSendAndAckOnlyNeverReplay(t *testing.T) {
 	for _, scenario := range []string{"send failed", "ack only", "rejected", "rejected after accepted", "rejected before send error", "unknown"} {
 		t.Run(scenario, func(t *testing.T) {
 			writes := make(chan repository.ProvisionUpdate, 10)
 			calls := 0
-			var p *ProvisionExecutor
-			p, err := NewProvisionExecutor(ProvisionOptions{Store: provisionTestStore(t, writes), ResultTimeout: 20 * time.Millisecond, Router: provisionRouterFake{send: func(_ context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
+			var p *Executor
+			p, err := NewExecutor(Options{Store: provisionTestStore(t, writes), ResultTimeout: 20 * time.Millisecond, Router: provisionRouterFake{send: func(_ context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
 				calls++
 				if scenario == "send failed" {
 					return connector.SentMessage{}, connector.ErrSendFailed
@@ -249,7 +261,7 @@ func TestProvisionExecutorUncertainSendAndAckOnlyNeverReplay(t *testing.T) {
 	}
 }
 
-func TestProvisionExecutorDoesNotDispatchAfterActivationLosesLease(t *testing.T) {
+func TestExecutorDoesNotDispatchAfterActivationLosesLease(t *testing.T) {
 	writes := make(chan repository.ProvisionUpdate, 10)
 	store := provisionTestStore(t, writes)
 	count := 0
@@ -260,7 +272,7 @@ func TestProvisionExecutorDoesNotDispatchAfterActivationLosesLease(t *testing.T)
 		}
 		return time.Now().Add(time.Minute), nil
 	}
-	p, err := NewProvisionExecutor(ProvisionOptions{Store: store, Router: provisionRouterFake{send: func(context.Context, connector.OperationCommand) (connector.SentMessage, error) {
+	p, err := NewExecutor(Options{Store: store, Router: provisionRouterFake{send: func(context.Context, connector.OperationCommand) (connector.SentMessage, error) {
 		t.Error("stale dispatch")
 		return connector.SentMessage{}, nil
 	}}})

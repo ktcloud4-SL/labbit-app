@@ -24,6 +24,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/operation"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/provision"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile"
@@ -81,7 +82,7 @@ type controlStack struct {
 	ConnectorControl *connectorwss.Handler
 	Registry         *connector.Registry
 	Router           *connector.Router
-	Provisions       *operation.ProvisionExecutor
+	Provisions       *provision.Executor
 
 	// Terminals, Relay, LiveSessions는 Realtime이 false이면 nil이다.
 	Terminals    *terminal.Service
@@ -130,7 +131,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 
 	stack := &controlStack{Registry: registry, Router: router}
 	if opts.Worker {
-		stack.Provisions, err = operation.NewProvisionExecutor(operation.ProvisionOptions{
+		stack.Provisions, err = provision.NewExecutor(provision.Options{
 			Store: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
 			LeaseDuration: opts.ProvisionLeaseDuration, ResultTimeout: opts.ProvisionResultTimeout, PollInterval: opts.ProvisionPollInterval,
 		})

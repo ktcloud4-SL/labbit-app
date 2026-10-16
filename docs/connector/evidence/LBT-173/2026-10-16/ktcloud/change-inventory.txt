@@ -1,0 +1,20 @@
+ M internal/connector/app/app.go
+ M internal/connector/app/app_test.go
+ M internal/connector/preview/forwarder.go
+ M internal/connector/preview/manager.go
+ M internal/connector/vmaccess/access.go
+ M internal/connector/vmaccess/access_test.go
+ M runtime/contract.yaml
+ M tools/ktcloud-d1-acceptance/main.go
+ M tools/ktcloud-d1-acceptance/recovery.go
+ M tools/ktcloud-d1-acceptance/recovery_test.go
+ M tools/ktcloud-op02-bootstrap/README.md
+ M tools/ktcloud-op02-bootstrap/deploy.go
+?? docs/connector/evidence/LBT-173/
+?? internal/connector/preview/forwarder_test.go
+?? internal/connector/provider/openstack/preview_forwarding_integration_test.go
+?? internal/connector/vmaccess/tcp.go
+?? internal/connector/vmaccess/tcp_test.go
+?? tools/ktcloud-d1-acceptance/preview.go
+?? tools/ktcloud-d1-acceptance/preview_test.go
+?? tools/ktcloud-op02-bootstrap/preview_mode_test.go

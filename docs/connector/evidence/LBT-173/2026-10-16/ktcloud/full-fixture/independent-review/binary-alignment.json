@@ -1,0 +1,38 @@
+{
+  "atUTC": "2026-10-16T02:43:25.3806096Z",
+  "binaryChecks": [
+    {
+      "binary": "labbit-connector-ktcloud",
+      "copies": 2,
+      "allHashesEqual": true
+    },
+    {
+      "binary": "lbt145-control-linux",
+      "copies": 2,
+      "allHashesEqual": true
+    },
+    {
+      "binary": "labbit-workspace-sftp",
+      "copies": 2,
+      "allHashesEqual": true
+    },
+    {
+      "binary": "bootstrap.exe",
+      "copies": 2,
+      "allHashesEqual": true
+    }
+  ],
+  "privateArtifactFieldNamesOnly": {
+    "ktcloud-residual-current.json": [
+      "not produced yet"
+    ],
+    "phase-results.jsonl": [
+      "phase",
+      "started",
+      "finished",
+      "exitCode",
+      "log"
+    ]
+  },
+  "rawPrivateContentExported": false
+}

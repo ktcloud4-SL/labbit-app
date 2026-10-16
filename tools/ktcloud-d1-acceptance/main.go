@@ -202,6 +202,15 @@ func run() (runErr error) {
 	}
 	journalPath = filepath.Join(workspace, "control-ledger.json")
 	recovery := os.Getenv("LBT145_CONTROL_RECOVERY") == "1"
+	previewSmoke := os.Getenv("LABBIT_KTCLOUD_PREVIEW_SMOKE") == "1"
+	if err := validatePreviewScope(previewSmoke, op02Enabled(), generations, recovery); err != nil {
+		return err
+	}
+	strictRuntime := op02Enabled() || previewSmoke
+	runtimeStagePrefix := "OP02"
+	if previewSmoke {
+		runtimeStagePrefix = "PREVIEW"
+	}
 	if op02Enabled() && (generations != 2 || recovery) {
 		return errors.New("OP02 requires a fresh two-generation fixture")
 	}
@@ -284,13 +293,13 @@ func run() (runErr error) {
 		go func() { done <- command.Wait() }()
 		select {
 		case waitErr := <-done:
-			if op02 != nil {
+			if strictRuntime {
 				if waitErr != nil {
 					journal.Passed = false
 					runErr = errors.Join(runErr, errors.New("production Connector did not exit successfully"))
-					_ = save("OP02_CONNECTOR_SHUTDOWN_FAILED")
+					_ = save(runtimeStagePrefix + "_CONNECTOR_SHUTDOWN_FAILED")
 				} else {
-					if err := save("OP02_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS"); err != nil {
+					if err := save(runtimeStagePrefix + "_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS"); err != nil {
 						runErr = errors.Join(runErr, err)
 					}
 					fmt.Println("Production Connector shutdown: exited successfully within 5s; forcedKill=false")
@@ -304,10 +313,10 @@ func run() (runErr error) {
 			case <-done:
 			case <-time.After(5 * time.Second):
 			}
-			if op02 != nil {
+			if strictRuntime {
 				journal.Passed = false
 				runErr = errors.Join(runErr, errors.New("production Connector required forced shutdown"))
-				_ = save("OP02_CONNECTOR_FORCED_SHUTDOWN_FAILED")
+				_ = save(runtimeStagePrefix + "_CONNECTOR_FORCED_SHUTDOWN_FAILED")
 			}
 		}
 	}()
@@ -319,6 +328,11 @@ func run() (runErr error) {
 	}
 	if op02 != nil {
 		if e = requireFileCapability(hello); e != nil {
+			return e
+		}
+	}
+	if previewSmoke {
+		if e = requirePreviewCapability(hello); e != nil {
 			return e
 		}
 	}
@@ -344,15 +358,8 @@ func run() (runErr error) {
 		}
 	}
 	if recovery {
-		known := refs(journal.Resources, 1)
-		known = append(known, refs(journal.Resources, 2)...)
+		known := recoveryResourceRefs(journal.Resources)
 		readOnly := os.Getenv("LBT145_CONTROL_RECOVERY_READ_ONLY") == "1"
-		if readOnly {
-			known = make([]protocol.ProviderResourceRef, 0, len(journal.Resources))
-			for _, r := range journal.Resources {
-				known = append(known, r.ProviderResourceRef)
-			}
-		}
 		return recoverKnownResources(ctx, known, readOnly, recoveryActions{
 			observe: func(ctx context.Context, stage string, refs []protocol.ProviderResourceRef) ([]protocol.ResourceObservation, error) {
 				return reconcile(ctx, stage, 2, refs)
@@ -404,10 +411,10 @@ func run() (runErr error) {
 			})
 		if err != nil {
 			fmt.Println("CONTROL TEARDOWN NEEDS ATTENTION; safe tracked-ID ledger retained")
-			if op02 != nil {
+			if strictRuntime {
 				journal.Passed = false
 				runErr = errors.Join(runErr, errors.New("owned Control fixture cleanup did not finish"))
-				_ = save("OP02_OWNED_CLEANUP_FAILED")
+				_ = save(runtimeStagePrefix + "_OWNED_CLEANUP_FAILED")
 			}
 		}
 	}()
@@ -431,6 +438,11 @@ func run() (runErr error) {
 	}
 	if e = save("GENERATION1_RECONCILE_PASS"); e != nil {
 		return e
+	}
+	if previewSmoke {
+		if e = provePreviewForwarding(ctx, firstRefs, 1, ""); e != nil {
+			return e
+		}
 	}
 	if op02 != nil {
 		if e = op02.normal(ctx, firstRefs, 1); e != nil {
@@ -500,6 +512,11 @@ func run() (runErr error) {
 	}
 	if e = save("RESET_TARGET_CHANGED_OLD_ABSENT_NEW_PRESENT_PASS"); e != nil {
 		return e
+	}
+	if previewSmoke {
+		if e = provePreviewForwarding(ctx, secondRefs, 2, oldServer); e != nil {
+			return e
+		}
 	}
 	if op02 != nil {
 		if e = op02.stale(ctx, oldServer, 1); e != nil {
@@ -571,6 +588,9 @@ func run() (runErr error) {
 		}
 	}
 	journal.Passed = true
+	if previewSmoke {
+		return save("KT_PREVIEW_FORWARDING_SMOKE_PASS_OWNED_LAB_RESIDUAL_0")
+	}
 	return save("REAL_PRODUCTION_CONNECTOR_WSS_LIFECYCLE_PASS_OWNED_RESIDUAL_0")
 }
 func main() {

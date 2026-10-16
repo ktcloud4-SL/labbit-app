@@ -1,0 +1,18 @@
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Packages: +1
++
+Progress: resolved 1, reused 0, downloaded 1, added 0
+Progress: resolved 1, reused 0, downloaded 1, added 1
+Progress: resolved 1, reused 0, downloaded 1, added 1, done
+
+added 239 packages, and audited 240 packages in 18s
+
+58 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+npm notice
+npm notice New major version of npm available! 10.9.2 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

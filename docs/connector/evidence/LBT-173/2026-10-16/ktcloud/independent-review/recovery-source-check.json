@@ -1,0 +1,22 @@
+{
+  "checked_utc": "2026-10-16T02:23:21.0999189Z",
+  "base": "88097be5d9bb6996b718fd185515ca324629fda6",
+  "head": "88097be5d9bb6996b718fd185515ca324629fda6",
+  "branch": "codex/feat/LBT-173-ssh-tcp-forwarding",
+  "source_count": 542,
+  "live_manifest_captured_utc": "2026-10-16T10:11:32.590731+09:00",
+  "current_vs_original_live_differences": [
+    "tools/ktcloud-d1-acceptance/main.go",
+    "tools/ktcloud-d1-acceptance/recovery_test.go",
+    "tools/ktcloud-d1-acceptance/recovery.go"
+  ],
+  "production_runtime_contract_web_differences_from_live": [],
+  "final_manifest_captured_utc": "2026-10-16T11:19:39.967553+09:00",
+  "current_vs_final_manifest_differences": [],
+  "changed_file_hashes": {
+    "tools/ktcloud-d1-acceptance/recovery.go": "65d4fb723876712443bc0bcbd2d7250c7d05973561be0859627e8eeb44d5a00a",
+    "tools/ktcloud-d1-acceptance/main.go": "d6c8ca0490ddb90e3c332876e8074f5aad8439ebce703107bd06248215d50965",
+    "tools/ktcloud-d1-acceptance/recovery_test.go": "2d076faf1b35ae553f3b1f79feb06205ac29ed71b55b0702c7ba9b2e26785cab"
+  },
+  "note": "Original failed live run source is immutable live-source-manifest; recovery fix changes are separately identified. No cloud API invoked."
+}

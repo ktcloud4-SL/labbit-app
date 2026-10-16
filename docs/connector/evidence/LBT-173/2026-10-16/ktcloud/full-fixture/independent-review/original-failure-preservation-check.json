@@ -1,0 +1,16 @@
+{
+  "originalJournalPassed": false,
+  "originalFailedResources": [
+    {
+      "resourceType": "VOLUME",
+      "generation": 2,
+      "logicalName": "workspace:root-volume",
+      "observedState": "DELETE_FAILED"
+    }
+  ],
+  "originalControlExitOnePreserved": true,
+  "freshJournalPassed": true,
+  "newLabHashDiffers": true,
+  "newProviderIdHashesDisjoint": true,
+  "scope": "Published historical original-failure evidence retained separately from fresh full fixture; no claim of diagnosing original HTTP rejection cause."
+}

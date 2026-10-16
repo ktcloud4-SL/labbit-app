@@ -1,0 +1,115 @@
+{
+  "checked_utc": "2026-10-16T02:25:03.3262435Z",
+  "cloud_calls": 0,
+  "protected_source_metadata_mismatches": [],
+  "ledgers": [
+    {
+      "deleted": 9,
+      "name": "original-control-ledger.metadata.json",
+      "delete_failed": 1,
+      "stage": "PREVIEW_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS",
+      "passed": false,
+      "resource_count": 10
+    },
+    {
+      "deleted": 10,
+      "name": "recovered-control-ledger.metadata.json",
+      "delete_failed": 0,
+      "stage": "RECOVERY_KNOWN_RESOURCE_CLEANUP_ABSENCE_CONFIRMED",
+      "passed": false,
+      "resource_count": 10
+    }
+  ],
+  "inventory": [
+    {
+      "kind": "FORWARD",
+      "baseline_count": 0,
+      "final_count": 0,
+      "exact_ids_equal": true
+    },
+    {
+      "kind": "KEYPAIR",
+      "baseline_count": 0,
+      "final_count": 0,
+      "exact_ids_equal": true
+    },
+    {
+      "kind": "POLICY",
+      "baseline_count": 0,
+      "final_count": 0,
+      "exact_ids_equal": true
+    },
+    {
+      "kind": "PUBLIC_IP",
+      "baseline_count": 0,
+      "final_count": 0,
+      "exact_ids_equal": true
+    },
+    {
+      "kind": "SERVER",
+      "baseline_count": 0,
+      "final_count": 0,
+      "exact_ids_equal": true
+    },
+    {
+      "kind": "TIER",
+      "baseline_count": 3,
+      "final_count": 3,
+      "exact_ids_equal": true
+    },
+    {
+      "kind": "VOLUME",
+      "baseline_count": 0,
+      "final_count": 0,
+      "exact_ids_equal": true
+    }
+  ],
+  "bootstrap_deleted": true,
+  "baseline_preserved": true,
+  "owned_residual_total": 0,
+  "owned_kind_counters": 10,
+  "live_lifecycle_whitelisted_lines": 31,
+  "binaries": [
+    {
+      "manifest": "live-binary-manifest.json",
+      "file": "bootstrap.exe",
+      "matches": true
+    },
+    {
+      "manifest": "live-binary-manifest.json",
+      "file": "labbit-connector-ktcloud",
+      "matches": true
+    },
+    {
+      "manifest": "live-binary-manifest.json",
+      "file": "lbt145-control-linux",
+      "matches": true
+    },
+    {
+      "manifest": "live-binary-manifest.json",
+      "file": "labbit-workspace-sftp",
+      "matches": true
+    },
+    {
+      "manifest": "binary-manifest.json",
+      "file": "bootstrap.exe",
+      "matches": true
+    },
+    {
+      "manifest": "binary-manifest.json",
+      "file": "labbit-connector-ktcloud",
+      "matches": true
+    },
+    {
+      "manifest": "binary-manifest.json",
+      "file": "lbt145-control-linux",
+      "matches": true
+    },
+    {
+      "manifest": "binary-manifest.json",
+      "file": "labbit-workspace-sftp",
+      "matches": true
+    }
+  ],
+  "limits": "Read-only local verification of protected raw files and published metadata; no raw IDs, addresses, private keys or host pins copied."
+}

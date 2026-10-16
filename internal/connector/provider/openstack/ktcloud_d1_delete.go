@@ -20,7 +20,29 @@ func (a *Adapter) deleteKTCloudVolume(ctx context.Context, id string) error {
 	if err != nil || item == nil || item.ID != id || item.Status == "" || len(item.Attachments) != 0 {
 		return ErrReconcileLookup
 	}
-	return volumes.Delete(ctx, a.volume, id, volumes.DeleteOpts{}).ExtractErr()
+	// Nova may already be removing a delete-on-termination root. The caller
+	// still polls this exact volume to actual absence; do not race that delete
+	// with another mutation, or report the in-progress observation as absent.
+	if item.Status == "deleting" {
+		return nil
+	}
+	err = volumes.Delete(ctx, a.volume, id, volumes.DeleteOpts{}).ExtractErr()
+	if !gophercloud.ResponseCodeIs(err, 400) && !gophercloud.ResponseCodeIs(err, 409) {
+		return err
+	}
+	// Auto-deletion can start after the first GET. A rejected receipt does
+	// not justify another DELETE: observe this exact volume once more.
+	current, lookupErr := volumes.Get(ctx, a.volume, id).Extract()
+	if gophercloud.ResponseCodeIs(lookupErr, 404) {
+		return nil
+	}
+	if lookupErr != nil || current == nil || current.ID != id || current.Status == "" || len(current.Attachments) != 0 {
+		return ErrReconcileLookup
+	}
+	if current.Status == "deleting" {
+		return nil
+	}
+	return err
 }
 
 func (p ktCloudVolumePage) IsEmpty() (bool, error) {

@@ -1,0 +1,76 @@
+{
+  "packages": {
+    "skip": 12,
+    "pass": 41
+  },
+  "tests": {
+    "pass": 3668,
+    "skip": 16
+  },
+  "skipped": [
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+      "test": "TestSymlinkRejectedAndExcludedFromTree"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM2ControlWSSIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackFileTransportIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM1Integration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM2ProvisionIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM3LifecycleIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackInternetPolicyIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTCloudD1ReadOnlyIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTCloudD1DisposableNetworkIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+      "test": "TestInstallCredentialFile/\uc0c8_credential_file\uc744_\ub9cc\ub4e4\uace0_\uc131\uacf5_\uba54\uc2dc\uc9c0\uc5d0\ub294_path\ub9cc_\ub0a8\uae34\ub2e4/POSIX_permission_0600"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackPreviewForwardingIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackPTYCC02Integration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackVMAccessIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackWorkspaceFileIntegration"
+    }
+  ]
+}

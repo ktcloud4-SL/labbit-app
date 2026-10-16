@@ -1,0 +1,10 @@
+Protected log: deploy-20261016T101307595.log
+Verified deployed labbit-connector-ktcloud SHA256: 6b021c3a757278a85b5afcd8589f9ee6c028785b3523b2ba0938696459815136
+Verified deployed lbt145-control-linux SHA256: 39151619e99af820fe9dbb61142d9a7198af57037b0e9ca7a1be37de75922dcd
+Verified deployed labbit-workspace-sftp SHA256: d65f6762e997c3df8cd6ea6a52b52b79ad66c6996359e9cc928e8638df4ac7d1
+Deployment: production Connector and Control harness uploaded through pinned authenticated SSH; remote files protected
+Protected log: deploy-20261016T111848832.log
+Verified deployed labbit-connector-ktcloud SHA256: 6b021c3a757278a85b5afcd8589f9ee6c028785b3523b2ba0938696459815136
+Verified deployed lbt145-control-linux SHA256: d3488698b02315a82e367b4fc99b62932231700156c2284edccb2e68c76f5cd8
+Verified deployed labbit-workspace-sftp SHA256: d65f6762e997c3df8cd6ea6a52b52b79ad66c6996359e9cc928e8638df4ac7d1
+Deployment: production Connector and Control harness uploaded through pinned authenticated SSH; remote files protected

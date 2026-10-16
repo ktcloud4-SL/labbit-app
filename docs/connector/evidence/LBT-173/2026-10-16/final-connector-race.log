@@ -1,0 +1,7 @@
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess	4.349s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/preview	3.649s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/app	5.132s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/terminal	21.311s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile	2.287s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/filetransport	2.907s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/wss	6.907s

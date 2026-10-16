@@ -1,0 +1,8 @@
+=== RUN   TestReviewTCPReadUnblocksAfterCloseWithResponsiveSibling
+    zz_review_close_test.go:36: pending TCP Read stayed blocked after Close for >250ms while sibling kept SSH alive
+    zz_review_close_test.go:44: sibling echo PASS; SSH accepted=1 active=1 users=1 retired=false idleTimer=false
+    zz_review_close_test.go:49: Manager shutdown unblocked pending TCP Read: EOF
+--- FAIL: TestReviewTCPReadUnblocksAfterCloseWithResponsiveSibling (0.27s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess	1.878s
+FAIL

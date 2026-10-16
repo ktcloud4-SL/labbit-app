@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 )
 
 // ErrSessionConflict 는 동일 세션 ID로 기존과 다른 generation/target 요청이 들어왔을 때 반환됩니다.
@@ -83,7 +84,10 @@ func (sm *SessionManager) GetOrCreateSession(
 	}
 
 	// Lock 외부에서 TCP 다이얼 수행
-	conn, err := sm.forwarder.DialTCP(ctx, payload.TargetVmKey, payload.ProviderServerID, payload.TargetPort)
+	conn, err := sm.forwarder.DialTCP(ctx, vmaccess.Target{
+		LabInstanceID: envelope.LabInstanceID, Generation: envelope.Generation,
+		VMKey: payload.TargetVmKey, ServerID: payload.ProviderServerID,
+	}, payload.TargetPort)
 	if err != nil {
 		return nil, false, err
 	}

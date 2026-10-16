@@ -1,0 +1,16 @@
+{
+  "checked_utc": "2026-10-16T02:26:59.0928051Z",
+  "pinned_main": "6755fc15062446b4bf0931e8e8be03efdb2563ef",
+  "base_to_latest_main_files": [
+    "docs/JUHEE_DEV_STATUS.md",
+    "docs/connector/evidence/LBT-22/2026-10-15/README.md",
+    "docs/connector/evidence/LBT-22/2026-10-15/validation-summary.json",
+    "internal/connector/provider/openstack/terminal_c2_integration_test.go"
+  ],
+  "production_runtime_contract_changes": [],
+  "pinned_test_blob_sha256": "6279d8e6a2213142b34dd7c10426d75024daa2eb003c9001bf5047c6eae15e3a",
+  "pinned_test_matches_overlay_record": true,
+  "overlay_test_pass": 1,
+  "overlay_failure_events": 0,
+  "test_scope": "Parent executed pinned main loopback test with mock EchoPTY over feature code via overlay; reviewer verified source blob SHA, test events and overlap. Not real VM C2/C3 or full Preview WSS."
+}

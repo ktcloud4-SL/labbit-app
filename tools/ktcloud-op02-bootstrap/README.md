@@ -95,3 +95,14 @@ does not adopt candidates or attempt SSH/cleanup. Other diagnostic/force-delete
 functions copied from the historical source are excluded from the phase allowlist.
 Logs and protected inputs stay outside Git; publish
 only reviewed lifecycle metadata and hashes.
+
+For the standalone LBT-173 Preview forwarding smoke, set
+`LBT173_BOOTSTRAP_PREVIEW_SMOKE=1` before `deploy`. This selects
+`LABBIT_KTCLOUD_PREVIEW_SMOKE=1` and disables OP-02. The fresh two-generation
+Control lifecycle remains the same. Each generation starts an HTTP fixture on
+VM loopback port 3000, then uses the production SSHForwarder and VMAccess library
+on the Connector host to check exact HTTP response, shared SSH transport,
+PTY/SFTP survival after forwarding close, target/port guards and refused app
+classification. Reset verifies old target rejection. Preview Data WSS, Browser
+and Backend acceptance are separate. Recovery explicitly clears both test modes
+and only observes/cleans recorded owned IDs. No app port is exposed publicly.

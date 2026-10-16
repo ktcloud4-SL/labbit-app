@@ -1,0 +1,7 @@
+=== RUN   TestReviewEOFWithoutCloseRetainsTransportBudget
+    zz_review_close_test.go:132: iteration=16 EOF peer denied before channel open: VM SSH access is unavailable
+    zz_review_close_test.go:161: EOF-without-CLOSE peer-active=16; max=16; accounted slots=16; users=1; sibling echo PASS
+    zz_review_close_test.go:167: Manager shutdown reaped every EOF-only channel
+--- PASS: TestReviewEOFWithoutCloseRetainsTransportBudget (0.03s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess	1.660s

@@ -21,6 +21,49 @@ func recoveryInventory() ([]protocol.ProviderResourceRef, []protocol.ResourceObs
 	return known, observations
 }
 
+func TestRecoveryAfterReadOnlyDeletedLedgerRechecksAllIDs(t *testing.T) {
+	for _, currentlyPresent := range []bool{false, true} {
+		t.Run(map[bool]string{false: "allAbsent", true: "reappeared"}[currentlyPresent], func(t *testing.T) {
+			known, baseline := recoveryInventory()
+			items := make([]protocol.ProviderResourceResult, 0, len(known))
+			for _, ref := range known {
+				items = append(items, protocol.ProviderResourceResult{ProviderResourceRef: ref, ObservedState: "DELETED"})
+			}
+			observes, cleanups := 0, 0
+			err := recoverKnownResources(context.Background(), recoveryResourceRefs(items), false, recoveryActions{
+				observe: func(_ context.Context, _ string, requested []protocol.ProviderResourceRef) ([]protocol.ResourceObservation, error) {
+					if !reflect.DeepEqual(requested, known) {
+						t.Fatal("prior DELETED entries disappeared from current exact-ID query")
+					}
+					observes++
+					result := append([]protocol.ResourceObservation(nil), baseline...)
+					for i := range result {
+						result[i].Exists = false
+						result[i].ObservedState = "ABSENT"
+					}
+					if currentlyPresent && observes == 1 {
+						result[0].Exists = true
+						result[0].ObservedState = "ACTIVE"
+					}
+					return result, nil
+				},
+				cleanup: func(_ context.Context, requested []protocol.ProviderResourceRef) error {
+					cleanups++
+					if !currentlyPresent || !reflect.DeepEqual(requested, known[:1]) {
+						t.Fatal("cleanup did not use fresh presence only")
+					}
+					return nil
+				},
+				record: func([]protocol.ResourceObservation) {},
+				save:   func(string) error { return nil },
+			})
+			if err != nil || observes != 2 || cleanups != map[bool]int{false: 0, true: 1}[currentlyPresent] {
+				t.Fatalf("recovery=%v observes=%d cleanups=%d", err, observes, cleanups)
+			}
+		})
+	}
+}
+
 func TestRecoveryRejectsUncertainInventoryWithoutMutationOrFalseSuccess(t *testing.T) {
 	changes := map[string]func([]protocol.ResourceObservation) []protocol.ResourceObservation{
 		"empty":     func(o []protocol.ResourceObservation) []protocol.ResourceObservation { return nil },

@@ -1,0 +1,16 @@
+=== RUN   TestReviewTCPReadUnblocksAfterCloseWithResponsiveSibling
+    zz_review_close_test.go:40: pending TCP Read unblocked after Close: io: read/write on closed pipe
+    zz_review_close_test.go:50: sibling echo PASS; SSH accepted=1 active=1 users=1 retired=false idleTimer=false
+--- PASS: TestReviewTCPReadUnblocksAfterCloseWithResponsiveSibling (0.02s)
+=== RUN   TestReviewCanceledLateTCPRespectsTransportBudget
+    zz_review_close_test.go:74: iteration=16 dial denied before peer open: VM SSH access is unavailable
+    zz_review_close_test.go:104: late channels still peer-active=16; configured max=16; accounted TCP slots=16; users=1; sibling echo PASS
+    zz_review_close_test.go:110: Manager shutdown reaped every late channel
+--- PASS: TestReviewCanceledLateTCPRespectsTransportBudget (0.44s)
+=== RUN   TestReviewEOFWithoutCloseRetainsTransportBudget
+    zz_review_close_test.go:132: iteration=16 EOF peer denied before channel open: VM SSH access is unavailable
+    zz_review_close_test.go:161: EOF-without-CLOSE peer-active=16; max=16; accounted slots=16; users=1; sibling echo PASS
+    zz_review_close_test.go:167: Manager shutdown reaped every EOF-only channel
+--- PASS: TestReviewEOFWithoutCloseRetainsTransportBudget (0.02s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess	2.066s

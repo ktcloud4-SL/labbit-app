@@ -1,0 +1,9 @@
+=== RUN   TestOpenStackPreviewForwardingIntegration
+    preview_forwarding_integration_test.go:77: Local OpenStack Workspace ACTIVE, authenticated SSH ready and host key enrolled
+    preview_forwarding_integration_test.go:152: SSH direct-tcpip loopback:3000 HTTP 200 exact body twice; same SSH transport; PTY and SFTP survive Preview close PASS
+    preview_forwarding_integration_test.go:171: Wrong LabInstance/generation/VM/server rejected; invalid/22 ports rejected; real closed app port -> APP_NOT_RUNNING PASS
+    preview_forwarding_integration_test.go:190: Real Reset gen1->gen2: stale target rejected; new VM fresh SSH and closed application port confirmed PASS
+    preview_forwarding_integration_test.go:68: Exact tracked VM/network/port/SG absence verified after cleanup: resources=21
+--- PASS: TestOpenStackPreviewForwardingIntegration (218.31s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	221.986s

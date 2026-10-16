@@ -1,0 +1,24 @@
+{
+  "goVersion": "go version go1.27.1 windows/amd64",
+  "linux": {
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "CGO_ENABLED": "0"
+  },
+  "bootstrap": {
+    "GOOS": "windows",
+    "GOARCH": "amd64",
+    "CGO_ENABLED": "0"
+  },
+  "flags": [
+    "-mod=readonly",
+    "-buildvcs=false"
+  ],
+  "sha256": {
+    "labbit-connector-ktcloud": "1ba2e60edabfb429e8417aca5e6e020a6f7f4c6fb4e7b205a716c9b625d9705a",
+    "lbt145-control-linux": "4cfa125c6cab5ae89c5d782aa1c4619cf5bdef15f740d711df2b191937d3b1f0",
+    "labbit-workspace-sftp": "ad2b6a9251b86755dbe46248099b03b1a58322656be778196a54f26b1761228a",
+    "bootstrap.exe": "be9f5dd106e3bd2ff1dc8a4a76806af226ad89b1d196ff11ae3d4e156208671f"
+  },
+  "source": "compiled-source-build-before.json"
+}

@@ -7,6 +7,9 @@ import (
 	"net"
 	"strings"
 	"syscall"
+	"time"
+
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 )
 
 // 미리 정의된 Preview Forwarding 표준 에러
@@ -22,7 +25,48 @@ var (
 // TCPForwarder 는 대상 VM의 특정 포트로 TCP 연결을 수립하는 인터페이스입니다.
 // LBT-24(SSH Direct TCP-IP forwarding channel) 구현체 또는 테스트용 포워더를 주입받을 수 있습니다.
 type TCPForwarder interface {
-	DialTCP(ctx context.Context, targetVmKey, serverID string, port int) (net.Conn, error)
+	DialTCP(ctx context.Context, target vmaccess.Target, port int) (net.Conn, error)
+}
+
+// WorkspaceValidator checks the immutable creation designation in Provider.
+type WorkspaceValidator interface {
+	ValidateWorkspace(context.Context, vmaccess.Target) error
+}
+
+// SSHForwarder shares VMAccess with Terminal and File while owning only its
+// direct-tcpip channel. The Backend has already approved the exact port.
+type SSHForwarder struct {
+	Access    *vmaccess.Manager
+	Validator WorkspaceValidator
+}
+
+func (f *SSHForwarder) DialTCP(ctx context.Context, target vmaccess.Target, port int) (net.Conn, error) {
+	if port <= 0 || port > 65535 || port == 22 {
+		return nil, ErrPortRejected
+	}
+	if f == nil || f.Access == nil || f.Validator == nil {
+		return nil, ErrVMUnreachable
+	}
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	if err := f.Validator.ValidateWorkspace(ctx, target); err != nil {
+		return nil, safeForwardError(ctx)
+	}
+	conn, err := f.Access.DialTCP(ctx, target, port)
+	if errors.Is(err, vmaccess.ErrConnectionRefused) {
+		return nil, ErrAppNotRunning
+	}
+	if err != nil {
+		return nil, safeForwardError(ctx)
+	}
+	return conn, nil
+}
+
+func safeForwardError(ctx context.Context) error {
+	if ctx.Err() != nil {
+		return errors.Join(ErrVMUnreachable, ctx.Err())
+	}
+	return ErrVMUnreachable
 }
 
 // DirectTCPForwarder 는 테스트 및 로컬 환경에서 지정된 주소 변환기를 거쳐 TCP 연결을 수립하는 TCPForwarder 기본 구현체입니다.
@@ -39,14 +83,14 @@ func NewDirectTCPForwarder(resolver func(ctx context.Context, targetVmKey, serve
 }
 
 // DialTCP 는 대상 주소를 결정한 후 TCP 연결을 수립합니다. 포트 22번(SSH)은 보안 정책상 거절됩니다.
-func (f *DirectTCPForwarder) DialTCP(ctx context.Context, targetVmKey, serverID string, port int) (net.Conn, error) {
+func (f *DirectTCPForwarder) DialTCP(ctx context.Context, target vmaccess.Target, port int) (net.Conn, error) {
 	if port <= 0 || port > 65535 || port == 22 {
 		return nil, fmt.Errorf("%w: port %d is not allowed", ErrPortRejected, port)
 	}
 
 	host := "127.0.0.1"
 	if f.AddressResolver != nil {
-		resolved, err := f.AddressResolver(ctx, targetVmKey, serverID)
+		resolved, err := f.AddressResolver(ctx, target.VMKey, target.ServerID)
 		if err != nil {
 			return nil, fmt.Errorf("%w: resolve failed: %v", ErrVMUnreachable, err)
 		}

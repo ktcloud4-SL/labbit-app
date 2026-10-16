@@ -1,0 +1,28 @@
+Control evidence: CONTROL_FIXTURE_REGISTERED
+Control evidence: HELLO_HELLO_ACK_HEARTBEAT_PASS
+Production Provider query VALIDATE_CONNECTION PASS; items=0
+Control evidence: QUERY_VALIDATE_CONNECTION_PASS
+Production Provider query LIST_IMAGES PASS; items=12
+Control evidence: QUERY_LIST_IMAGES_PASS
+Production Provider query LIST_FLAVORS PASS; items=235
+Control evidence: QUERY_LIST_FLAVORS_PASS
+Control evidence: provision_SUCCEEDED
+Actual WSS PROVISION(g1): outcome=SUCCEEDED resources=5
+Control evidence: GENERATION1_MANAGEMENT_IP_PINNED_SSH_EGRESS_DENY_PASS
+Control evidence: GENERATION1_RECONCILE_PASS
+KT Preview g1: pinned management SSH direct-tcpip loopback:3000 HTTP200/exact-body twice, shared transport, PTY/SFTP isolation, target/port/refused guards PASS; bodies withheld
+Control evidence: PREVIEW_GENERATION1_HTTP_SHARED_SSH_TARGET_PORT_ISOLATION_PASS
+Control evidence: reset_SUCCEEDED
+Actual WSS RESET(g2): outcome=SUCCEEDED resources=10
+Control evidence: GENERATION2_MANAGEMENT_IP_PINNED_SSH_EGRESS_DENY_PASS
+Control evidence: RESET_TARGET_CHANGED_OLD_ABSENT_NEW_PRESENT_PASS
+KT Preview g2: pinned management SSH direct-tcpip loopback:3000 HTTP200/exact-body twice, shared transport, PTY/SFTP isolation, target/port/refused guards PASS; bodies withheld
+Control evidence: PREVIEW_GENERATION2_HTTP_SHARED_SSH_TARGET_PORT_ISOLATION_PASS
+Control evidence: empty-cleanup_SUCCEEDED
+Actual WSS CLEANUP(g2): outcome=SUCCEEDED resources=0
+Control evidence: CANDIDATE_NOT_OWNED_OR_AUTODELETED_PASS
+Control evidence: cleanup_SUCCEEDED
+Actual WSS CLEANUP(g2): outcome=SUCCEEDED resources=5
+Control evidence: KT_PREVIEW_FORWARDING_SMOKE_PASS_OWNED_LAB_RESIDUAL_0
+Control evidence: PREVIEW_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS
+Production Connector shutdown: exited successfully within 5s; forcedKill=false

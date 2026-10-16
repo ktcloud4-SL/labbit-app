@@ -1,0 +1,35 @@
+{
+  "checkedAt": "2026-10-16 Asia/Seoul",
+  "sources": [
+    {
+      "type": "Jira",
+      "key": "LBT-173",
+      "updated": "2026-10-16T09:23:53.415+0900",
+      "commentCount": 0,
+      "summary": "[OP-03] VMAccess 기반 SSH TCP Forwarding 구현 및 KT Cloud 단독 Smoke Test",
+      "url": "https://samsunglions.atlassian.net/browse/LBT-173"
+    },
+    {
+      "type": "Confluence",
+      "id": "7241730",
+      "title": "D-18 · 실습망·VM 관리 접속 구조",
+      "version": 5,
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/7241730/D-18+VM"
+    },
+    {
+      "type": "Confluence",
+      "id": "9666637",
+      "title": "검증 설계 — 테스트 전략·추적성",
+      "version": 3,
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/9666637"
+    },
+    {
+      "type": "Confluence",
+      "id": "6881283",
+      "title": "D-20 · Lab 작업 충돌·재시도·부분 실패 정책",
+      "version": 7,
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/6881283/D-20+Lab"
+    }
+  ],
+  "externalWrites": 0
+}

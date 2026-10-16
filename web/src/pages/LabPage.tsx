@@ -1,9 +1,14 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 
+import type { ClassDetail } from '../shared/api/contracts'
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
+import {
+  classReadinessPollingInterval,
+  retryPendingClassReadiness,
+} from '../shared/workspace/classReadinessPolling'
 import { LoginRedirect } from '../shared/ui/LoginRedirect'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
@@ -18,6 +23,7 @@ const roleLabel = (role: string) => {
 
 export function LabPage() {
   const api = useLabbitApi()
+  const queryClient = useQueryClient()
   const { classId } = useParams()
   const resolvedClassId = classId ?? ''
 
@@ -25,7 +31,14 @@ export function LabPage() {
     queryKey: labbitQueryKeys.classDetail(resolvedClassId),
     queryFn: () => api.getClass(resolvedClassId),
     enabled: Boolean(resolvedClassId),
-    retry: false,
+    retry: (failureCount, error) =>
+      retryPendingClassReadiness(
+        queryClient.getQueryData<ClassDetail>(labbitQueryKeys.classDetail(resolvedClassId)),
+        failureCount,
+        error,
+      ),
+    refetchInterval: (query) =>
+      classReadinessPollingInterval(query.state.data, query.state.error),
   })
 
   if (!resolvedClassId) {

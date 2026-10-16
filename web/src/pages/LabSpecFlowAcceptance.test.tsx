@@ -234,4 +234,80 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     expect(updateLabSpec).toHaveBeenCalledTimes(1)
   })
 
+  it('LabSpec 조회 403이면 상세 내용을 렌더하지 않고 목록 복귀를 안내한다', async () => {
+    const updateLabSpec = vi.fn(async () => {
+      throw new Error('접근 거부 상태에서 쓰기를 호출하면 안 됨')
+    })
+    mountLabSpecFlow(
+      {
+        getLabSpec: async () => { throw new HttpError(403) },
+        updateLabSpec,
+      },
+      '/lab-specs/private',
+      <LabSpecEditorPage />,
+    )
+
+    expect(await screen.findByText('이 LabSpec을 볼 권한이 없습니다.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '실습 정의 목록으로 돌아가기' })).toHaveAttribute('href', '/lab-specs')
+    expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
+    expect(updateLabSpec).not.toHaveBeenCalled()
+  })
+
+  it('API가 타인 소유 LabSpec을 반환하더라도 내용을 화면에 노출하지 않는다', async () => {
+    const getLabSpec = vi.fn(async () => ({
+      labSpec: {
+        id: 'private-spec',
+        name: 'Do not show private data',
+        ownerUserId: 'other-instructor',
+        vms: [],
+        workspaceVm: { role: '', instanceIndex: 0 },
+        internetOutbound: true,
+      },
+      etag: '"revision-1"',
+    }))
+    mountLabSpecFlow(
+      { getLabSpec },
+      '/lab-specs/private-spec',
+      <LabSpecEditorPage />,
+    )
+
+    expect(await screen.findByText('이 LabSpec을 볼 권한이 없습니다.')).toBeInTheDocument()
+    expect(screen.queryByText('Do not show private data')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
+  })
+
+  it('수정 대상 LabSpec의 ETag 누락 시 PUT을 차단하고 재조회 안내를 표시한다', async () => {
+    const candidate = mockLabSpecMappingOptions.items[0]
+    const updateLabSpec = vi.fn(async () => {
+      throw new Error('ETag 없이 PUT하면 안 됨')
+    })
+    mountLabSpecFlow(
+      {
+        getLabSpec: async () => ({
+          labSpec: {
+            id: 'no-etag',
+            name: 'Existing Spec',
+            ownerUserId: mockMe.id,
+            vms: [{
+              role: 'control',
+              imageRef: candidate.images[0].id,
+              sizeRef: candidate.flavors[0].id,
+              count: 1,
+            }],
+            workspaceVm: { role: 'control', instanceIndex: 0 },
+            internetOutbound: true,
+          },
+        }),
+        updateLabSpec,
+      },
+      '/lab-specs/no-etag',
+      <LabSpecEditorPage />,
+    )
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Existing Spec' })).toBeInTheDocument()
+    expect(screen.getByText(/최신 ETag를 확인하지 못해 안전한 수정 요청을 보낼 수 없습니다/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '실습 정의 저장' })).toBeDisabled()
+    expect(updateLabSpec).not.toHaveBeenCalled()
+  })
+
 })

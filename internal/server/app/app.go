@@ -217,19 +217,22 @@ func Run(ctx context.Context, cfg Config) error {
 		if err != nil {
 			return err
 		}
-		checks = append(checks, (&databaseReadiness{
+		databaseReady := (&databaseReadiness{
 			querier:    pool,
 			migrations: migrations,
 			logger:     logger,
-		}).check)
+		}).check
+		checks = append(checks, databaseReady)
 
 		if slices.Contains(cfg.Roles, "api") {
 			// api role이 Auth/Class HTTP와 Connector Control WSS를 소유한다. realtime role이 같은 process에서 함께 enabled되면
 			// 같은 Connector Registry/Router 위에 Terminal Relay와 TerminalSession 생성/종료를 조립한다.
-			// 기본 build에는 Operation Sink가 없다(LBT-18 이전). tagged 시험 build만 단발 Sink를 주입한다.
+			// PROVISION uses this process's Router; the tagged C1 harness remains an optional observer.
 			stack, err = newControlStack(postgres.NewStore(pool), stackOptions{
 				Logger:          logger,
 				OperationSink:   harness.sink(),
+				Worker:          slices.Contains(cfg.Roles, "worker"),
+				WorkerReady:     databaseReady,
 				PublicOrigin:    cfg.PublicOrigin,
 				Realtime:        slices.Contains(cfg.Roles, "realtime"),
 				HTTPMetrics:     httpMetrics,
@@ -252,6 +255,10 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Warn("realtime role은 같은 process의 api role 없이는 Terminal을 제공하지 않습니다",
 			"roles", strings.Join(cfg.Roles, ","))
 		checks = append(checks, func(context.Context) error { return errRealtimeRequiresAPI })
+	}
+	if slices.Contains(cfg.Roles, "worker") && stack == nil {
+		logger.Warn("worker role requires the co-located api Connector Router", "error_code", "worker_requires_api")
+		checks = append(checks, func(context.Context) error { return errWorkerRequiresAPI })
 	}
 
 	if slices.Contains(cfg.Roles, "preview") && stack == nil {
@@ -289,6 +296,31 @@ func Run(ctx context.Context, cfg Config) error {
 	// DB가 필요한 role의 PostgreSQL/schema 조건은 /readyz 요청마다 별도로 확인한다.
 	ready.Store(true)
 	defer harness.start(ctx, stack, logger)()
+	stopWorker := func() {}
+	var workerDone <-chan struct{}
+	workerWaited := false
+	if stack != nil && stack.Provisions != nil {
+		workerCtx, cancelWorker := context.WithCancel(ctx)
+		done := make(chan struct{})
+		workerDone = done
+		go func() { defer close(done); stack.Provisions.Run(workerCtx) }()
+		stopWorker = cancelWorker
+		// Listener failures also cancel claims and close Control writes before
+		// draining the worker. Normal shutdown shares the existing grace budget.
+		defer func() {
+			stopWorker()
+			if workerWaited {
+				return
+			}
+			stack.close()
+			waitCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownGrace)
+			defer cancel()
+			select {
+			case <-workerDone:
+			case <-waitCtx.Done():
+			}
+		}()
+	}
 	logger.Info("Labbit 서버 스켈레톤 시작",
 		"roles", strings.Join(cfg.Roles, ","),
 		"http_addr", cfg.HTTPAddr,
@@ -306,6 +338,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// D-22/Runtime Contract에 따라 먼저 readiness를 내리고 신규 트래픽을 받지 않도록 한다.
 	ready.Store(false)
+	stopWorker()
 	if realtimeMetrics != nil {
 		realtimeMetrics.Draining.Set(1)
 	}
@@ -320,6 +353,14 @@ func Run(ctx context.Context, cfg Config) error {
 		applicationErr = errors.Join(applicationErr, stack.shutdown(shutdownCtx))
 	}
 	adminErr := adminServer.Shutdown(shutdownCtx)
+	if workerDone != nil {
+		select {
+		case <-workerDone:
+		case <-shutdownCtx.Done():
+			applicationErr = errors.Join(applicationErr, shutdownCtx.Err())
+		}
+		workerWaited = true
+	}
 
 	// 관측 flush는 업무 HTTP/WSS drain과 정리가 끝난 뒤 남은 shutdown budget 안에서만 한다. 별도의 context를 만들지 않으므로
 	// Collector가 응답하지 않아도 LABBIT_SHUTDOWN_GRACE를 넘겨 종료를 지연시키지 않는다. flush 실패는 이미 끝난 업무 정리의 결과를
@@ -330,6 +371,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 // errRealtimeRequiresAPI는 realtime role만으로는 Terminal을 제공할 수 없음을 readiness에 알리는 사유다. 응답 본문에는 싣지 않는다.
 var errRealtimeRequiresAPI = errors.New("realtime role은 같은 process의 api role이 필요합니다")
+
+var errWorkerRequiresAPI = errors.New("worker role은 같은 process의 api role과 Connector Router가 필요합니다")
 
 // errPreviewRequiresAPI는 preview role만으로는 Preview를 제공할 수 없음을 readiness에 알리는 사유다. 응답 본문에는 싣지 않는다.
 var errPreviewRequiresAPI = errors.New("preview role은 같은 process의 api role이 필요합니다")

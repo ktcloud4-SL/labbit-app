@@ -278,6 +278,25 @@ saas:
       note: >-
         migration별 호환성 metadata는 두지 않습니다. 이 invariant는 review와 integration validation으로 확인합니다.
 
+  worker:
+    v0_1_topology:
+      required_co_located_roles:
+        - api
+      supported_operations:
+        - PROVISION
+      authority_provider: >-
+        PROVISION은 같은 process의 api role이 소유한 Connector Control Registry/Router로 실행합니다.
+        worker role은 호환 PostgreSQL schema를 확인한 뒤 PROVISION PENDING Item만 claim합니다.
+        RESET/CLEANUP Item은 해당 executor가 구현될 때까지 PENDING으로 유지합니다.
+      worker_without_api: >-
+        api 없이 worker만 enabled되면 작업을 claim하지 않고 /readyz가 실패합니다.
+        별도 worker process용 분산 Router나 internal routing RPC는 제공하지 않습니다.
+      api_without_worker: >-
+        api만 enabled되면 Operation을 등록하고 조회하지만 Item을 실행하지 않습니다.
+      note: >-
+        Connector는 실행하는 process의 Control Router에 연결되어 있어야 합니다.
+        multi-replica Connector ownership routing은 지원한다고 주장하지 않습니다.
+
   realtime:
     endpoints:
       browser_terminal:

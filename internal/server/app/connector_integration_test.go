@@ -300,7 +300,8 @@ func TestConnectorControlEndpointIsOwnedByAPIRole(t *testing.T) {
 		seedConnector(t, dsn, e2eConnectorCredential, false, false)
 
 		admin, application := startServerWithApplication(t, "development", "worker", dsn, "")
-		waitForStatus(t, admin+"/readyz", http.StatusOK)
+		waitForStatus(t, admin+"/livez", http.StatusOK)
+		waitForStatus(t, admin+"/readyz", http.StatusServiceUnavailable)
 
 		requireControlNotServed(t, application)
 	})

@@ -33,7 +33,11 @@ import (
 // 0이 아닌 값은 60초 grace나 heartbeat 같은 긴 시간을 test에서 기다리지 않도록 주입하는 용도다.
 type stackOptions struct {
 	Logger *slog.Logger
-	// OperationSink는 optional application event port다. 기본 Run은 nil을 전달한다.
+	// Worker enables PROVISION on this api process's own Router.
+	Worker                                                                bool
+	ProvisionLeaseDuration, ProvisionResultTimeout, ProvisionPollInterval time.Duration
+	WorkerReady                                                           func(context.Context) error
+	// OperationSink is an optional observer, including the tagged C1 harness.
 	OperationSink connector.EventSink
 	// PublicOrigin은 httpapi.ParseOrigin으로 정규화한 trusted origin이다. HTTP unsafe method와 Browser WSS Upgrade의 Origin 검증에 쓴다.
 	PublicOrigin string
@@ -77,6 +81,7 @@ type controlStack struct {
 	ConnectorControl *connectorwss.Handler
 	Registry         *connector.Registry
 	Router           *connector.Router
+	Provisions       *operation.ProvisionExecutor
 
 	// Terminals, Relay, LiveSessions는 Realtime이 false이면 nil이다.
 	Terminals    *terminal.Service
@@ -110,7 +115,8 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	fileSink := &fileSinkForwarder{}
 	// Preview도 같은 관계다. Router가 PREVIEW_OPEN_RESULT를 PreviewSession use case에 넘기고 use case가 Router로 PREVIEW_OPEN을 보낸다.
 	previewSink := &previewSinkForwarder{}
-	routerOpts := connector.RouterOptions{Registry: registry, Logger: logger, FileSink: fileSink, Sink: opts.OperationSink}
+	operationSink := &operationSinkForwarder{observer: opts.OperationSink}
+	routerOpts := connector.RouterOptions{Registry: registry, Logger: logger, FileSink: fileSink, Sink: operationSink}
 	if opts.Preview {
 		routerOpts.PreviewSink = previewSink
 	}
@@ -123,6 +129,16 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	}
 
 	stack := &controlStack{Registry: registry, Router: router}
+	if opts.Worker {
+		stack.Provisions, err = operation.NewProvisionExecutor(operation.ProvisionOptions{
+			Store: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
+			LeaseDuration: opts.ProvisionLeaseDuration, ResultTimeout: opts.ProvisionResultTimeout, PollInterval: opts.ProvisionPollInterval,
+		})
+		if err != nil {
+			return nil, err
+		}
+		operationSink.target = stack.Provisions
+	}
 
 	// Workspace File은 api role의 일이다. 권한 판정(workspacefile.Service)은 PostgreSQL 상태를 쓰고, 파일 I/O는 Connector Control의
 	// FILE_OPEN과 요청별 File Data WSS(filetransport.Broker)로 한다. Broker의 pending 요청은 process 안의 ephemeral 상태다.
@@ -314,6 +330,17 @@ func (c *controlStack) shutdown(ctx context.Context) error {
 
 // terminalSinkForwarder는 조립 시점에 target이 정해지는 connector.TerminalSink다.
 type terminalSinkForwarder struct{ target connector.TerminalSink }
+
+type operationSinkForwarder struct{ target, observer connector.EventSink }
+
+func (f *operationSinkForwarder) HandleEvent(e connector.Event) {
+	if f.target != nil {
+		f.target.HandleEvent(e)
+	}
+	if f.observer != nil {
+		f.observer.HandleEvent(e)
+	}
+}
 
 func (f *terminalSinkForwarder) HandleTerminalEvent(e connector.TerminalEvent) {
 	f.target.HandleTerminalEvent(e)

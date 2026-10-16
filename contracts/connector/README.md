@@ -537,6 +537,12 @@ UNKNOWN
 
 `UNKNOWN`은 실패가 아니라 Provider side effect 발생 여부를 현재 확정할 수 없어 Reconciliation이 필요한 상태입니다.
 
+`SUCCEEDED`는 Provider 작업의 완료 보고이며 LabInstance의 `READY`와 구분합니다. 현재 `OPERATION_RESULT`에는 D-20의
+Terminal PTY 경로 확인을 증명하는 필드가 없고 C2의 `TERMINAL_OPEN_RESULT`는 별도 TerminalSession lifecycle입니다.
+SaaS PROVISION writer는 확인된 Provider 결과·Resource를 저장하지만 이 응답만으로 `READY`를 확정하지 않습니다.
+현재 성공 Item/Operation은 `SUCCEEDED`·`VERIFYING_READINESS` stage이며 LabInstance는 `PROVISIONING`을 유지합니다.
+필수 초기화·SSH·Terminal 증거를 제품 readiness에 연결하는 계약과 writer는 후속 통합에서 확정해야 합니다.
+
 응답 유실 때문에 동일 Create/Delete를 자동 재전송하지 않습니다.
 
 ## 13. Reconciliation

@@ -98,13 +98,21 @@ func (a *Adapter) resolveServerAddress(ctx context.Context, targetVmKey, serverI
 		return "", ErrSSHNotReady
 	}
 	if a.ktNetwork != nil {
+		managementCIDR := a.provision.KTCloudManagementCIDR
+		if a.cidrPoolEnabled() {
+			pair, err := a.loadCIDRAssignment(labID)
+			if err != nil {
+				return "", ErrManagementIP
+			}
+			managementCIDR = pair.Management
+		}
 		items, err := a.ktNetwork.tiers(ctx)
 		if err != nil {
 			return "", ErrManagementIP
 		}
 		matches := []ktCloudTier{}
 		for _, tier := range items {
-			if ktCloudManagementTierNameMatches(tier.Name, labID, generation, targetVmKey) && tier.CIDR == a.provision.KTCloudManagementCIDR && tier.sharedKnown && !tier.Shared && normalizeStatus(tier.Status) == "ACTIVE" {
+			if ktCloudManagementTierNameMatches(tier.Name, labID, generation, targetVmKey) && tier.CIDR == managementCIDR && tier.sharedKnown && !tier.Shared && normalizeStatus(tier.Status) == "ACTIVE" {
 				matches = append(matches, tier)
 			}
 		}

@@ -637,11 +637,19 @@ connector:
       secret: false
       note: "Connector VM이 연결된 공유 NSM Tier UUID(networkId)입니다. refId나 기존 Management Network 변수에 넣지 않습니다. Lab lifecycle은 이 Tier를 생성·삭제하지 않습니다."
     LABBIT_KTCLOUD_MANAGEMENT_CIDR:
-      required_when: "KT D1 auth_url profile"
+      required_when: "KT D1 auth_url profile without LABBIT_KTCLOUD_CIDR_PAIRS"
       secret: false
       note: "Lab VM 전용 Management Tier에 사용할 미사용 IPv4 /24입니다. Lab CIDR 및 기존 Tier와 겹치면 생성 전에 거절합니다. 현재 KT D1 호환 범위는 Linux 50 GiB 부팅 볼륨, VM 한 대, internetOutbound=false이며 표준 Neutron Management/SG/External Network 변수는 비워야 합니다."
+    LABBIT_KTCLOUD_CIDR_PAIRS:
+      required: false
+      secret: false
+      note: 'KT D1 선택 모드: [{"lab":"172.25.240.0/24","management":"172.25.241.0/24"}] 형식의 JSON 배열, 1~64쌍. 모든 CIDR은 canonical private IPv4 /24이고 풀 전체에서 비중첩이어야 합니다. 예시는 승인된 운영 설정이 아닙니다. 단일 Connector가 독점하는 풀만 지정하고 다른 프로세스/운영자의 해당 대역 할당을 금지합니다. 기존 Tier 전체 조회와 로컬 영속 예약을 대조하며 RESET generation과 무관하게 LabInstance별 예약을 재사용합니다.'
+    LABBIT_KTCLOUD_CIDR_STATE_DIR:
+      required_when: "LABBIT_KTCLOUD_CIDR_PAIRS is set"
+      secret: false
+      note: "Connector 사용자 소유의 기존 absolute 0700 영속 디렉터리. 풀/Project/ProviderConnection binding, Instance 예약 및 generation별 mutation intent를 0600 파일로 동기화합니다. 동일 풀의 모든 실행은 이 디렉터리를 공유해야 하며 복제/초기화/임시 디스크 사용을 금지합니다. 동시 실행, stale LOCK, 손상, 풀 변경, 소진은 UNKNOWN/HOLD입니다. Cleanup도 예약을 자동 반환하지 않습니다. 비정상 종료 후에는 exact-ID Reconcile과 독점 실행 확인 후 운영자 복구가 필요합니다."
     LABBIT_OPENSTACK_LAB_SUBNET_CIDR:
-      required: true
+      required_when: "standard OpenStack or KT D1 without LABBIT_KTCLOUD_CIDR_PAIRS"
       secret: false
     LABBIT_OPENSTACK_SSH_USERNAME:
       required: true

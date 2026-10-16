@@ -28,6 +28,7 @@ type Router interface {
 type Options struct {
 	Store            repository.ProvisionWorkerStore
 	Mutations        repository.MutationWorkerStore
+	Reconciliation   repository.ReconciliationStore
 	CloseForMutation func(context.Context, repository.ProvisionDispatch) error
 	Router           Router
 	Tracer           trace.Tracer
@@ -53,9 +54,10 @@ type provisionKey struct {
 }
 
 type provisionInbox struct {
-	ack      chan connector.OperationAckEvent
-	rejected chan connector.OperationAckEvent
-	result   chan connector.OperationResultEvent
+	ack       chan connector.OperationAckEvent
+	rejected  chan connector.OperationAckEvent
+	result    chan connector.OperationResultEvent
+	reconcile chan connector.ReconcileResultEvent
 }
 
 // The restricted store changes only claim eligibility; Worker.RunOne/Execute/
@@ -94,6 +96,12 @@ func NewExecutor(opts Options) (*Executor, error) {
 	var claims repository.OperationWorkerStore = provisionClaims{opts.Store}
 	if opts.Mutations != nil {
 		claims = opts.Mutations
+	}
+	if opts.Reconciliation != nil {
+		if _, ok := opts.Router.(reconcileRouter); !ok {
+			return nil, operation.ErrInvalid
+		}
+		claims = reconciliationClaims{OperationWorkerStore: claims, store: opts.Reconciliation}
 	}
 	w, err := operation.NewWorker(operation.WorkerOptions{Store: claims, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Execute: p.execute})
 	if err != nil {
@@ -149,6 +157,8 @@ func (p *Executor) HandleEvent(event connector.Event) {
 		routed = e.Routed
 	case connector.OperationResultEvent:
 		routed = e.Routed
+	case connector.ReconcileResultEvent:
+		routed = e.Routed
 	default:
 		return
 	}
@@ -165,6 +175,11 @@ func (p *Executor) HandleEvent(event connector.Event) {
 	// authenticated and correlated these events; reply ID is checked again after
 	// Send returns, including ACK/RESULT received before the write returned.
 	switch e := event.(type) {
+	case connector.ReconcileResultEvent:
+		select {
+		case inbox.reconcile <- e:
+		default:
+		}
 	case connector.OperationAckEvent:
 		if !e.Payload.Accepted {
 			select {
@@ -186,6 +201,9 @@ func (p *Executor) HandleEvent(event connector.Event) {
 }
 
 func (p *Executor) execute(ctx context.Context, claim repository.OperationItemClaim) error {
+	if claim.Item.Status == "RECONCILING" {
+		return p.reconcile(ctx, claim)
+	}
 	var d repository.ProvisionDispatch
 	var err error
 	if claim.Operation.Type == "RESET" || claim.Operation.Type == "CLEANUP" {

@@ -130,6 +130,8 @@ PostgreSQL polling Worker는 `operation_items`의 `PENDING` row를 `FOR UPDATE S
 
 `lease_expires_at`은 같은 Provider Mutation을 즉시 다시 실행할 권한이 아닙니다. RUNNING 작업의 결과가 불명확해지면 D-20/D-24에 따라 `RECONCILING`으로 전환하고 Provider 현실을 먼저 확인합니다.
 
+LBT-179의 조회 전용 Reconciliation은 기존 `RECONCILING` 상태와 lease column을 재사용합니다. HOLD 시 owner를 해제하고 `lease_expires_at`을 다음 조회 가능 시각으로 둡니다. `dispatch_not_before`는 mutation 미전송 재선점에만 사용하며, Reconciliation은 mutation 재실행을 허용하지 않습니다. 새 Migration은 없습니다.
+
 ### D-25: 비동기 Trace Context
 
 `000006`은 `operations`에 nullable `text` 필드 두 개만 추가합니다. `operation_items`마다 원본 Context를 복제하거나 별도 Trace/Span 저장 테이블을 만들지 않습니다.

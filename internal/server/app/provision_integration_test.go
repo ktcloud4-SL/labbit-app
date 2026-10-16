@@ -450,6 +450,46 @@ func TestProvisionControlStackResponseLossDoesNotRetryOnReplacement(t *testing.T
 	if _, err := e.store.ClaimProvisionOperationItem(t.Context(), uuid.New(), time.Minute); !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("reclaim=%v", err)
 	}
+	go func() { _, err := e.stack.Provisions.RunOne(t.Context()); done <- err }()
+	var request protocol.ReconcileRequestMessage
+	if err := replacement.Conn().ReadJSON(&request); err != nil {
+		t.Fatal(err)
+	}
+	if request.Type != "RECONCILE_REQUEST" || request.LabInstanceID != cmd.LabInstanceID || len(request.Payload.KnownResources) != 0 {
+		t.Fatal("lost response replayed or invented ownership")
+	}
+	response := protocol.ReconcileResultMessage{BaseEnvelope: protocol.BaseEnvelope{Type: "RECONCILE_RESULT", MessageID: uuid.NewString(), SentAt: time.Now(), ReplyToMessageID: request.MessageID, OperationID: request.OperationID, LabInstanceID: request.LabInstanceID, Generation: request.Generation}, Payload: protocol.ReconcileResultPayload{Observations: []protocol.ResourceObservation{{ResourceType: "SERVER", ProviderID: "unowned-lost-result", Exists: true, Source: "DISCOVERED_CANDIDATE"}}}}
+	if err := replacement.SendMessage(t.Context(), response); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err := e.db.QueryRow(t.Context(), `SELECT count(*) FROM provider_resources`).Scan(&count); err != nil || count != 0 {
+		t.Fatalf("candidate adopted: %d %v", count, err)
+	}
+	var stage string
+	if err := e.db.QueryRow(t.Context(), `SELECT stage FROM operation_items WHERE operation_id=$1 AND lab_instance_id=$2`, e.opID, cmd.LabInstanceID).Scan(&stage); err != nil || stage != "HOLD" {
+		t.Fatalf("loss stage=%s %v", stage, err)
+	}
+
+	// Losing a Reconcile response also remains HOLD; it cannot authorize mutation.
+	labexecutiontest.Exec(t, e.db, `UPDATE operation_items SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE operation_id=$1 AND lab_instance_id=$2`, e.opID, cmd.LabInstanceID)
+	go func() { _, err := e.stack.Provisions.RunOne(t.Context()); done <- err }()
+	if err := replacement.Conn().ReadJSON(&request); err != nil {
+		t.Fatal(err)
+	}
+	if request.Type != "RECONCILE_REQUEST" {
+		t.Fatal("reconciliation timeout replayed mutation")
+	}
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if _, pending := e.stack.Router.PendingCount(e.f.ConnectorID); pending != 0 {
+		t.Fatalf("reconciliation pending leaked: %d", pending)
+	}
+
 }
 
 func TestProvisionRuntimeOwnsControlAndRunsRegisteredWork(t *testing.T) {
@@ -657,14 +697,33 @@ func TestProvisionControlStackAmbiguousWriteNeverDefersOrReplays(t *testing.T) {
 	}
 	replacement := e.stack.Registry.Register(principal, nil)
 	t.Cleanup(func() { replacement.Release() })
-	replacement.MarkReady(func([]byte) error { writes.Add(1); return nil })
-	for range 5 {
+	var reconciles atomic.Int32
+	replacement.MarkReady(func(data []byte) error {
+		var request protocol.ReconcileRequestMessage
+		if err := json.Unmarshal(data, &request); err != nil {
+			return err
+		}
+		if request.Type != "RECONCILE_REQUEST" {
+			writes.Add(1)
+			return errors.New("unexpected mutation replay")
+		}
+		reconciles.Add(1)
+		if !e.stack.Router.RouteReconcileResult(e.f.ConnectorID, connector.Inbound{MessageID: uuid.NewString(), ReplyToMessageID: request.MessageID,
+			OperationID: request.OperationID, LabInstanceID: request.LabInstanceID, Generation: request.Generation}, protocol.ReconcileResultPayload{Observations: []protocol.ResourceObservation{}}) {
+			t.Error("reconciliation response rejected")
+		}
+		return nil
+	})
+	for range 3 {
+		e.runOneMustClaim()
+	}
+	for range 2 {
 		if claimed, err := e.stack.Provisions.RunOne(t.Context()); claimed || err != nil {
-			t.Fatalf("ambiguous replay=%v %v", claimed, err)
+			t.Fatalf("HOLD claim=%v %v", claimed, err)
 		}
 	}
-	if writes.Load() != 3 {
-		t.Fatalf("replayed writes=%d", writes.Load())
+	if writes.Load() != 3 || reconciles.Load() != 3 {
+		t.Fatalf("mutation/reconciliation writes=%d/%d", writes.Load(), reconciles.Load())
 	}
 	e.assertHTTPMatchesDatabase()
 }

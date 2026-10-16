@@ -288,8 +288,11 @@ saas:
         - CLEANUP
       authority_provider: >-
         PROVISION/RESET/CLEANUP은 같은 process의 api role이 소유한 Connector Control Registry/Router로 실행합니다.
-        worker role은 호환 PostgreSQL schema를 확인한 뒤 PENDING Item만 claim합니다.
-        RUNNING/RECONCILING Item은 lease 만료나 재접속으로 다시 실행하지 않습니다.
+        worker role은 호환 PostgreSQL schema를 확인한 뒤 PENDING Item을 mutation 실행용으로 claim합니다.
+        만료된 RUNNING 및 RECONCILING Item은 새 lease로 조회 전용 Reconciliation을 수행하며 mutation을 다시 실행하지 않습니다.
+        저장된 exact ID·generation·제품 소유관계를 기존 RECONCILE_REQUEST/RESULT로 대조합니다.
+        불확실성·발견 후보는 RECONCILING/HOLD를 유지하고 자동 채택·삭제하지 않습니다.
+        CLEANUP의 전체 추적 자원 부재가 확인된 경우만 완료를 반영하며 PROVISION/RESET의 관측만으로 생성 완료나 READY를 추정하지 않습니다.
       worker_without_api: >-
         api 없이 worker만 enabled되면 작업을 claim하지 않고 /readyz가 실패합니다.
         별도 worker process용 분산 Router나 internal routing RPC는 제공하지 않습니다.

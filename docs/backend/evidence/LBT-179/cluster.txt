@@ -1,0 +1,5 @@
+2026-10-16T10:01:27Z
+backend-685ff59984-dmt8z
+common-app=true ghcr.io/ktcloud4-sl/backend:sha-bb2c25d ghcr.io/ktcloud4-sl/backend@sha256:30195249ed341820e125d6bb51f830d4aecffa36c24035ba94739a990dc32ec7
+NAME      SYNC     HEALTH    REVISION
+backend   Synced   Healthy   8154923420471c55a3faaae6e63f4b81ec12b377

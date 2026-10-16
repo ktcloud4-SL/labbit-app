@@ -11,8 +11,15 @@ export function classReadinessPollingInterval(
   if (error || !classDetail?.activeLabExecution) return false
 
   const status = classDetail.myLabInstance?.status
-  return !status ||
-    status === 'PENDING' ||
+  if (!status) {
+    // 선택되지 않은 학생에게는 LabInstance가 없을 수 있다.
+    // 실습 생성이 끝난 뒤에는 미할당 상태를 무한 조회하지 않는다.
+    return classDetail.activeLabExecution.status === 'PROVISIONING'
+      ? CLASS_READINESS_POLL_MS
+      : false
+  }
+
+  return status === 'PENDING' ||
     status === 'PROVISIONING' ||
     status === 'DELETING'
     ? CLASS_READINESS_POLL_MS

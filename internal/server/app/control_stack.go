@@ -134,7 +134,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	stack := &controlStack{Registry: registry, Router: router}
 	if opts.Worker {
 		stack.Provisions, err = provision.NewExecutor(provision.Options{
-			Store: store, Mutations: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
+			Store: store, Mutations: store, Reconciliation: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
 			CloseForMutation: func(ctx context.Context, d repository.ProvisionDispatch) error {
 				reason := "LAB_RESET"
 				if d.MutationType == "CLEANUP" {

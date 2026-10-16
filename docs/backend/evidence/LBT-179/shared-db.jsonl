@@ -1,0 +1,8 @@
+{"observed_at": [["2026-10-16 19:03:16.996426+09", "on", "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)"]]}
+{"schema": [["1", "0b8cb401fbdb207ac37b307c04609003486445e801c45ef409e233dcecfc8bee"], ["2", "5a935031b9fc628dee93ff85ec218d149b687089fa824219633e8406a3a92caa"], ["3", "3e896e71e2f6832771bf740e82b5caeeabdf52b3131f42cdb724dd4430bf45a0"], ["4", "c4aad8cfe251b197339bc1f11ed2c45530d58f8aa8dc6343d0e1b14f5c951b60"], ["5", "04ce7a1ad056d9eacc44c173e80c21740427cf9d1b4adab5d0f22b805f74f6c9"], ["6", "dee411aa1ef2a546965102bde2f052ad19c350935ea95c8c97fc628ccc88640f"], ["7", "0e65408c679e85d3550593eedbf1f9558ed51dabf87519e2018f8840b638cf88"], ["8", "7ce2fcc05b6a678f61e835466b955f69b506c7df509490ab45b0d1de60a28512"], ["9", "56471aa1d273c1b5c84b720cf914f11728e4be9a3d721ac3f298de4a39501d2e"]]}
+{"operation_counts": []}
+{"item_counts": []}
+{"resource_counts": []}
+{"connector": [["7a31cea7-44b4-474b-bbde-dde650c22768", null, "2026-10-16 19:03:10.318326+09", null]]}
+{"credentials": [["1", null]]}
+{"connections": []}

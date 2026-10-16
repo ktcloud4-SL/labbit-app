@@ -16,6 +16,8 @@ type ProvisionDispatch struct {
 	ProviderConnectionID, ConnectorID                          uuid.UUID
 	Generation                                                 int64
 	Snapshot                                                   json.RawMessage
+	MutationType, PreviousStatus                               string
+	Resources                                                  []ProvisionResource
 }
 
 type ProvisionResource struct {
@@ -42,4 +44,13 @@ type ProvisionWorkerStore interface {
 	// WriteProvision updates resources, item and parent atomically. Correlation,
 	// generation, connection affinity and live lease are rechecked after locking.
 	WriteProvision(context.Context, ProvisionUpdate) error
+}
+
+// MutationWorkerStore shares claims, fencing and the dispatch/result value types
+// with PROVISION. RESET/CLEANUP never reclaim uncertain RUNNING work.
+type MutationWorkerStore interface {
+	OperationWorkerStore
+	PrepareMutation(context.Context, OperationItemLease) (ProvisionDispatch, error)
+	DeferUnsentMutation(context.Context, ProvisionDispatch, time.Duration) error
+	WriteMutation(context.Context, ProvisionUpdate) error
 }

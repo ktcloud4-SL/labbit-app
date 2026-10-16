@@ -46,6 +46,10 @@ Confluence는 Domain/Data 의미·ownership·결정 이유를 관리하고, 실�
    - `operation_items.dispatch_not_before` nullable 시각 추가. 확실한 미전송 PROVISION을 PENDING으로 복귀시킨 뒤 다음 claim까지의 대기 시각을 보존
    - 기존 row는 NULL이며 RUNNING/RECONCILING 재실행을 허용하는 시각이나 lease expiry가 아님
 
+9. `000009_mutation_previous_status.sql`
+   - `operation_items.previous_instance_status` nullable metadata 추가. RESET 거절·Preflight 실패 및 확실한 미전송 뒤 기존 LabInstance 상태를 복원
+   - 기존 row와 generation·Resource 이력은 변경하지 않음
+
 ## 확정된 Domain/Data 모델과의 관계
 
 Physical Schema 초안은 다음 논리 모델과 불변조건을 구현하기 위한 시작점입니다.

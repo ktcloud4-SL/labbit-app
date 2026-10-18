@@ -45,6 +45,19 @@ type PreviewTunnel struct {
 	done          chan struct{}
 	closeOnce     sync.Once
 	onClosed      func(reason string, err error)
+	previous      *PreviewTunnel
+	retireOnce    sync.Once
+}
+
+// A new OPEN replaces an attached tunnel, but cannot dial until that exact
+// predecessor has closed. Close joins the same retirement if work is canceled.
+func (t *PreviewTunnel) retirePrevious() {
+	t.retireOnce.Do(func() {
+		if t.previous != nil {
+			t.previous.Close(protocol.PreviewReasonTargetClosed)
+			t.previous = nil
+		}
+	})
 }
 
 func (t *PreviewTunnel) completeDial(conn net.Conn, err error) error {
@@ -79,11 +92,10 @@ func (t *PreviewTunnel) closeWithReason(reason string, err error) {
 	t.closeWithCode(reason, err, websocket.CloseNormalClosure)
 }
 func (t *PreviewTunnel) closeWithCode(reason string, err error, code int) {
-	closed := false
 	t.closeOnce.Do(func() {
-		closed = true
 		close(t.done)
 		t.cancel()
+		t.retirePrevious()
 		t.mu.Lock()
 		tcp, ws := t.tcpConn, t.dataConn
 		t.mu.Unlock()
@@ -96,10 +108,12 @@ func (t *PreviewTunnel) closeWithCode(reason string, err error, code int) {
 			_ = ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(code, reason), time.Now().Add(50*time.Millisecond))
 			_ = ws.Close()
 		}
+		// Competing CloseAttempt calls must observe the session publication
+		// before deciding whether an initial failed session can be discarded.
+		if t.onClosed != nil {
+			t.onClosed(reason, err)
+		}
 	})
-	if closed && t.onClosed != nil {
-		t.onClosed(reason, err)
-	}
 }
 func (t *PreviewTunnel) pipeTCPToWSS(tcp net.Conn, ws *websocket.Conn) {
 	buf := make([]byte, 32*1024)
@@ -195,17 +209,24 @@ func (s *PreviewSession) reserveTunnel(attempt string) (*PreviewTunnel, bool, er
 	if s.destroyed {
 		return nil, false, ErrSessionClosed
 	}
+	var previous *PreviewTunnel
 	if s.activeTunnel != nil {
 		if s.activeTunnel.openMessageID == attempt {
 			return s.activeTunnel, true, nil
 		}
-		return nil, false, ErrSessionConflict
+		s.activeTunnel.mu.Lock()
+		attached := s.activeTunnel.attached
+		s.activeTunnel.mu.Unlock()
+		if !attached {
+			return nil, false, ErrSessionConflict
+		}
+		previous = s.activeTunnel
 	}
 	if attempt != "" && s.currentAttemptID == attempt {
 		return nil, false, ErrNoActiveTunnel
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	t := &PreviewTunnel{openMessageID: attempt, ctx: ctx, cancel: cancel, ready: make(chan struct{}), done: make(chan struct{})}
+	t := &PreviewTunnel{openMessageID: attempt, ctx: ctx, cancel: cancel, ready: make(chan struct{}), done: make(chan struct{}), previous: previous}
 	t.onClosed = func(reason string, err error) { s.onTunnelFinished(t, reason, err) }
 	s.activeTunnel = t
 	s.currentAttemptID = attempt
@@ -222,6 +243,14 @@ func (s *PreviewSession) BindTunnel(attempt string, tcp net.Conn) (*PreviewTunne
 			err = ErrSessionConflict
 		}
 		return nil, err
+	}
+	t.retirePrevious()
+	if t.ctx.Err() != nil || s.IsDestroyed() {
+		if tcp != nil {
+			_ = tcp.Close()
+		}
+		t.Close(protocol.PreviewReasonSessionClosed)
+		return nil, ErrSessionClosed
 	}
 	if err := t.completeDial(tcp, nil); err != nil {
 		return nil, err
@@ -250,16 +279,28 @@ func (s *PreviewSession) attempt(attempt string) (*PreviewTunnel, error) {
 }
 func (s *PreviewSession) onTunnelFinished(t *PreviewTunnel, reason string, err error) {
 	s.mu.Lock()
+	var closed *websocket.CloseError
+	trustEnded := errors.As(err, &closed) && (closed.Code == 4001 || closed.Code == 4002)
 	if s.activeTunnel != t {
+		if trustEnded {
+			s.destroyed = true
+			if s.activeTunnel != nil {
+				s.activeTunnel.cancel()
+			}
+		}
 		s.mu.Unlock()
+		if trustEnded {
+			// The current tunnel may be joining this predecessor's Close.
+			// Finish its retirement after this callback releases the predecessor.
+			go s.Close(reason)
+		}
 		return
 	}
 	s.activeTunnel = nil
 	s.TCPConn = nil
 	s.DataConn = nil
 	s.Status = StatusClosed
-	var closed *websocket.CloseError
-	if errors.As(err, &closed) && (closed.Code == 4001 || closed.Code == 4002) {
+	if trustEnded {
 		s.destroyed = true
 	}
 	cb := s.onEnded

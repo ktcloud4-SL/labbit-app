@@ -120,6 +120,12 @@ func (a *OpenAttempt) Open(ctx context.Context) (*PreviewSession, bool, error) {
 			return nil, true, ErrSessionClosed
 		}
 	}
+	tunnel.retirePrevious()
+	if ctx.Err() != nil || tunnel.ctx.Err() != nil || s.IsDestroyed() {
+		tunnel.Close(protocol.PreviewReasonSessionClosed)
+		sm.discardUnattached(s, env.MessageID)
+		return nil, false, ErrSessionClosed
+	}
 	dialCtx, cancel := context.WithCancel(ctx)
 	stop := context.AfterFunc(tunnel.ctx, cancel)
 	defer stop()

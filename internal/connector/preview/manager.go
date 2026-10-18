@@ -87,6 +87,23 @@ func (sm *SessionManager) GetOrCreateSession(ctx context.Context, payload protoc
 	}
 	return a.Open(ctx)
 }
+
+// CancelPending serializes Control-owner cancellation with Data attach.
+// Once attached, the exact tunnel belongs to its caller and explicit retirement.
+func (a *OpenAttempt) CancelPending() {
+	t := a.tunnel
+	t.mu.Lock()
+	pending := !t.attached
+	if pending {
+		t.cancel()
+	}
+	t.mu.Unlock()
+	if pending {
+		t.Close(protocol.PreviewReasonSessionClosed)
+		a.manager.discardUnattached(a.session, a.env.MessageID)
+	}
+}
+
 func (a *OpenAttempt) Open(ctx context.Context) (*PreviewSession, bool, error) {
 	sm, s, tunnel, retry, env, payload := a.manager, a.session, a.tunnel, a.retry, a.env, a.payload
 	var err error

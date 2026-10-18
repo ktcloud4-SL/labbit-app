@@ -2,6 +2,8 @@ package preview
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -20,6 +22,76 @@ type lifecycleForwarder func(context.Context, vmaccess.Target, int) (net.Conn, e
 
 func (f lifecycleForwarder) DialTCP(ctx context.Context, target vmaccess.Target, port int) (net.Conn, error) {
 	return f(ctx, target, port)
+}
+
+func TestPreviewOwnerCancellationAttachBoundary(t *testing.T) {
+	for _, order := range []string{"attached", "pending", "canceling"} {
+		t.Run(order, func(t *testing.T) {
+			accepted, finish := make(chan *websocket.Conn, 1), make(chan struct{})
+			upgrader := websocket.Upgrader{}
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				ws, err := upgrader.Upgrade(w, r, nil)
+				if err != nil {
+					return
+				}
+				defer ws.Close()
+				accepted <- ws
+				<-finish
+			}))
+			defer server.Close()
+			defer close(finish)
+			ws, _, err := websocket.DefaultDialer.Dial(strings.Replace(server.URL, "http", "ws", 1), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer ws.Close()
+			remote := <-accepted
+			tcp, peer := net.Pipe()
+			defer peer.Close()
+			manager := NewSessionManager(lifecycleForwarder(func(context.Context, vmaccess.Target, int) (net.Conn, error) { return tcp, nil }), nil)
+			defer manager.Shutdown("cleanup")
+			attempt, err := manager.PrepareOpen(context.Background(), protocol.PreviewOpenPayload{TargetVmKey: "workspace", ProviderServerID: "server", TargetPort: 3000}, protocol.BaseEnvelope{MessageID: "OPEN", PreviewSessionID: "S", LabInstanceID: "lab", Generation: 1})
+			if err != nil {
+				t.Fatal(err)
+			}
+			session, _, err := attempt.Open(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if order != "attached" {
+				if order == "canceling" {
+					// Fix the interval after pending cancellation wins, before Close.
+					attempt.tunnel.cancel()
+				} else {
+					attempt.CancelPending()
+				}
+				if err := session.AttachDataConn(ws, "OPEN"); !errors.Is(err, ErrSessionClosed) {
+					t.Fatalf("canceled pending tunnel attached: %v", err)
+				}
+				attempt.CancelPending()
+				if manager.Count() != 0 {
+					t.Fatal("canceled initial attempt retained logical session")
+				}
+				return
+			}
+			if err := session.AttachDataConn(ws, "OPEN"); err != nil {
+				t.Fatal(err)
+			}
+			attempt.CancelPending() // Also covers an already-started owner callback.
+			if attempt.tunnel.ctx.Err() != nil || !session.HasActiveTunnel() {
+				t.Fatal("pending cancellation closed attached tunnel")
+			}
+			request := "GET / HTTP/1.1\r\nHost: workspace\r\n\r\n"
+			if err := remote.WriteMessage(websocket.BinaryMessage, []byte(request)); err != nil {
+				t.Fatal(err)
+			}
+			_ = peer.SetReadDeadline(time.Now().Add(time.Second))
+			got := make([]byte, len(request))
+			if _, err := io.ReadFull(peer, got); err != nil || string(got) != request {
+				t.Fatalf("attached HTTP request interrupted: %q, %v", got, err)
+			}
+		})
+	}
 }
 
 func TestPreviewLifecyclePendingOpenRetiredByClose(t *testing.T) {

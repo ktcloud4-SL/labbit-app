@@ -285,6 +285,140 @@ func TestPreviewAttachedTunnelControlDisconnect(t *testing.T) {
 	}
 }
 
+func TestPreviewAttachedTunnelDuringOpenResult(t *testing.T) {
+	for _, name := range []string{"send_failure", "eof_send_success", "eof_send_failure", "timeout", "4001", "4002", "close", "reset", "cleanup", "shutdown", "caller_cancel"} {
+		t.Run(name, func(t *testing.T) {
+			gateway := mock.NewPreviewGateway()
+			defer gateway.Close()
+			tcp, peer := net.Pipe()
+			defer peer.Close()
+			manager := preview.NewSessionManager(previewDialFunc(func(context.Context, vmaccess.Target, int) (net.Conn, error) { return tcp, nil }), nil)
+			defer manager.Shutdown("cleanup")
+			writing, release := make(chan struct{}), make(chan struct{})
+			defer func() {
+				select {
+				case <-release:
+				default:
+					close(release)
+				}
+			}()
+			h := NewHandler(&provider.MockProvider{}, SendMessageFunc(func(ctx context.Context, _ any) error {
+				close(writing)
+				<-release
+				if name == "timeout" {
+					<-ctx.Done()
+					return ctx.Err()
+				}
+				if name == "eof_send_success" {
+					return nil
+				}
+				return io.ErrClosedPipe
+			}))
+			h.SetPreviewManager(manager, preview.DataWSSClientConfig{EndpointURL: gateway.URL(), RuntimeID: "runtime", AllowInsecure: true})
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			msg := protocol.PreviewOpenMessage{BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypePreviewOpen, MessageID: "OPEN", PreviewSessionID: "S", LabInstanceID: "lab", Generation: 1}, Payload: protocol.PreviewOpenPayload{TargetVmKey: "workspace", ProviderServerID: "server", TargetPort: 3000}}
+			raw, _ := json.Marshal(msg)
+			done := make(chan error, 1)
+			go func() { done <- h.HandleMessage(ctx, raw) }()
+			select {
+			case <-writing:
+			case <-time.After(3 * time.Second):
+				t.Fatal("OPEN_RESULT write not reached")
+			}
+			session, ok := manager.GetSession("S")
+			if !ok || !session.EverAttached() || !session.HasActiveTunnel() {
+				t.Fatal("result write began without attached tunnel")
+			}
+			request := "GET / HTTP/1.1\r\nHost: workspace\r\n\r\n"
+			if err := gateway.SendBinary([]byte(request)); err != nil {
+				t.Fatal(err)
+			}
+			_ = peer.SetReadDeadline(time.Now().Add(3 * time.Second))
+			got := make([]byte, len(request))
+			if _, err := io.ReadFull(peer, got); err != nil || string(got) != request {
+				t.Fatalf("HTTP request: %q, %v", got, err)
+			}
+			stream := func(chunk string) {
+				t.Helper()
+				_ = peer.SetWriteDeadline(time.Now().Add(time.Second))
+				if _, err := io.WriteString(peer, chunk); err != nil {
+					t.Fatalf("attached HTTP response interrupted: %v", err)
+				}
+				var received []byte
+				for len(received) < len(chunk) {
+					frame, err := gateway.WaitForBinary(time.Second)
+					if err != nil {
+						t.Fatal(err)
+					}
+					received = append(received, frame...)
+				}
+				if string(received) != chunk {
+					t.Fatalf("HTTP response: %q, want %q", received, chunk)
+				}
+			}
+			stream("HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\nab")
+			retired := true
+			switch name {
+			case "4001", "4002":
+				code := protocol.CloseCredentialRevoked
+				if name == "4002" {
+					code = protocol.CloseSessionReplaced
+				}
+				h.OnControlDisconnected(&websocket.CloseError{Code: code})
+				h.SetSender(nil)
+			case "close":
+				closeRaw, _ := json.Marshal(protocol.PreviewCloseMessage{BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypePreviewClose, MessageID: "CLOSE", PreviewSessionID: "S", LabInstanceID: "lab", Generation: 1}, Payload: protocol.PreviewClosePayload{Reason: protocol.PreviewReasonSessionClosed}})
+				if err := h.HandleMessage(ctx, closeRaw); err != nil {
+					t.Fatal(err)
+				}
+			case "reset":
+				manager.InvalidateBefore("lab", 2)
+			case "cleanup":
+				manager.CloseAll(protocol.PreviewReasonLabCleanup)
+			case "shutdown":
+				manager.Shutdown(protocol.PreviewReasonServiceRestart)
+			case "caller_cancel":
+				cancel()
+			default:
+				retired = false
+				if strings.HasPrefix(name, "eof_") {
+					h.OnControlDisconnected(io.EOF)
+					h.SetSender(nil)
+				}
+				stream("cd") // OPEN_RESULT remains blocked throughout the disconnect.
+			}
+			if retired {
+				if err := gateway.WaitForClose(time.Second); err != nil {
+					t.Fatal("explicit termination waited for result write:", err)
+				}
+				_ = peer.SetReadDeadline(time.Now().Add(time.Second))
+				if _, err := peer.Read(make([]byte, 1)); err != io.EOF {
+					t.Fatalf("explicit termination retained TCP: %v", err)
+				}
+			}
+			close(release)
+			select {
+			case err := <-done:
+				if (err == nil) != (name == "eof_send_success") {
+					t.Fatalf("result delivery error: %v", err)
+				}
+			case <-time.After(3 * time.Second):
+				t.Fatal("result writer did not finish")
+			}
+			if !retired {
+				if strings.HasPrefix(name, "eof_") {
+					h.SetSender(previewOwnerSender{"fixture-token"})
+				}
+				stream("ef")
+				if current, ok := manager.GetSession("S"); !ok || current != session || !session.HasActiveTunnel() {
+					t.Fatal("result delivery replaced attached tunnel")
+				}
+			}
+		})
+	}
+}
+
 func TestPreviewRetirementDoesNotCancelReplacementOwner(t *testing.T) {
 	for _, code := range []int{protocol.CloseCredentialRevoked, protocol.CloseSessionReplaced} {
 		t.Run(fmt.Sprint(code), func(t *testing.T) {

@@ -66,14 +66,12 @@ func (h *Handler) handlePreviewOpen(ctx context.Context, _ protocol.BaseEnvelope
 		return fail(protocol.PreviewErrorCodeUnavailable, "preview transport unavailable")
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	stopOwner := context.AfterFunc(owner, cancel)
 	// Bound workers without blocking the Control reader behind an unresponsive
 	// VM or Gateway. This internal bound is not an application port policy.
 	if asynchronous {
 		select {
 		case h.previewOpenSlots <- struct{}{}:
 		default:
-			stopOwner()
 			cancel()
 			return fail(protocol.PreviewErrorCodeUnavailable, "preview transport busy")
 		}
@@ -88,15 +86,18 @@ func (h *Handler) handlePreviewOpen(ctx context.Context, _ protocol.BaseEnvelope
 	h.mu.RLock()
 	var attempt *preview.OpenAttempt
 	var err error
+	var stopOwner func() bool
 	if epoch != h.fileOwnerEpoch || owner.Err() != nil {
 		err = context.Canceled
 	} else {
 		attempt, err = mgr.PrepareOpen(ctx, msg.Payload, msg.BaseEnvelope)
+		if err == nil {
+			stopOwner = context.AfterFunc(owner, attempt.CancelPending)
+		}
 	}
 	h.mu.RUnlock()
 	if err != nil {
 		releaseSlot()
-		stopOwner()
 		cancel()
 		return fail(protocol.PreviewErrorCodeUnavailable, "preview attempt rejected")
 	}
@@ -128,13 +129,12 @@ func (h *Handler) handlePreviewOpen(ctx context.Context, _ protocol.BaseEnvelope
 			mgr.CloseAttempt(session, msg.MessageID, protocol.PreviewReasonOpenFailed)
 			return fail(protocol.PreviewErrorCodeUnavailable, "preview data attach failed")
 		}
-		if err := result("", ""); err != nil {
-			mgr.CloseAttempt(session, msg.MessageID, protocol.PreviewReasonOpenFailed)
-			return errors.New("preview open result delivery failed")
-		}
 		// The completed Data tunnel outlives ordinary Control reconnects.
 		// Explicit trust retirement still closes it through the manager.
 		stopOwner()
+		if err := result("", ""); err != nil {
+			return errors.New("preview open result delivery failed")
+		}
 		return nil
 	}
 	if asynchronous {

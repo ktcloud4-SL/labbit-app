@@ -314,6 +314,13 @@ func (s *PreviewSession) AttachDataConn(ws *websocket.Conn, attempts ...string) 
 		return ErrSessionClosed
 	default:
 	}
+	// A pending owner cancellation may have won before Close reaches done.
+	if t.ctx.Err() != nil {
+		t.mu.Unlock()
+		s.mu.Unlock()
+		_ = ws.Close()
+		return ErrSessionClosed
+	}
 	if t.attached || (t.dataConn != nil && t.dataConn != ws) {
 		t.mu.Unlock()
 		s.mu.Unlock()

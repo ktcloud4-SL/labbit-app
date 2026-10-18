@@ -132,6 +132,9 @@ func (h *Handler) handlePreviewOpen(ctx context.Context, _ protocol.BaseEnvelope
 			mgr.CloseAttempt(session, msg.MessageID, protocol.PreviewReasonOpenFailed)
 			return errors.New("preview open result delivery failed")
 		}
+		// The completed Data tunnel outlives ordinary Control reconnects.
+		// Explicit trust retirement still closes it through the manager.
+		stopOwner()
 		return nil
 	}
 	if asynchronous {

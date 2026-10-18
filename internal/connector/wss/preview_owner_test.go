@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -176,6 +177,111 @@ func TestPreviewResultWriteSurvivesTunnelCancellation(t *testing.T) {
 	close(release)
 	if err := <-done; err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestPreviewAttachedTunnelControlDisconnect(t *testing.T) {
+	for _, code := range []int{0, protocol.CloseCredentialRevoked, protocol.CloseSessionReplaced} {
+		t.Run(fmt.Sprint(code), func(t *testing.T) {
+			gateway := mock.NewPreviewGateway()
+			defer gateway.Close()
+			tcp, peer := net.Pipe()
+			defer peer.Close()
+			pending, canceled := make(chan struct{}), make(chan struct{})
+			manager := preview.NewSessionManager(previewDialFunc(func(ctx context.Context, target vmaccess.Target, _ int) (net.Conn, error) {
+				if target.VMKey == "pending" {
+					close(pending)
+					<-ctx.Done()
+					close(canceled)
+					return nil, ctx.Err()
+				}
+				return tcp, nil
+			}), nil)
+			defer manager.Shutdown("cleanup")
+			h := NewHandler(&provider.MockProvider{}, previewOwnerSender{"fixture-token"})
+			h.SetPreviewManager(manager, preview.DataWSSClientConfig{EndpointURL: gateway.URL(), RuntimeID: "runtime", AllowInsecure: true})
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			msg := protocol.PreviewOpenMessage{BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypePreviewOpen, MessageID: "OPEN", PreviewSessionID: "S", LabInstanceID: "lab", Generation: 1}, Payload: protocol.PreviewOpenPayload{TargetVmKey: "workspace", ProviderServerID: "server", TargetPort: 3000}}
+			raw, _ := json.Marshal(msg)
+			if err := h.HandleMessage(ctx, raw); err != nil {
+				t.Fatal(err)
+			}
+			session, ok := manager.GetSession("S")
+			if !ok || !session.HasActiveTunnel() || !session.EverAttached() {
+				t.Fatal("fixture did not attach")
+			}
+			request := "GET / HTTP/1.1\r\nHost: workspace\r\n\r\n"
+			if err := gateway.SendBinary([]byte(request)); err != nil {
+				t.Fatal(err)
+			}
+			_ = peer.SetDeadline(time.Now().Add(3 * time.Second))
+			got := make([]byte, len(request))
+			if _, err := io.ReadFull(peer, got); err != nil || string(got) != request {
+				t.Fatalf("HTTP request: %q, %v", got, err)
+			}
+			stream := func(chunk string) {
+				t.Helper()
+				_ = peer.SetWriteDeadline(time.Now().Add(time.Second))
+				if _, err := io.WriteString(peer, chunk); err != nil {
+					t.Fatalf("HTTP response interrupted: %v", err)
+				}
+				var received []byte
+				for len(received) < len(chunk) {
+					frame, err := gateway.WaitForBinary(time.Second)
+					if err != nil {
+						t.Fatal(err)
+					}
+					received = append(received, frame...)
+				}
+				if string(received) != chunk {
+					t.Fatalf("HTTP response: got %q, want %q", received, chunk)
+				}
+			}
+			stream("HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\nab")
+			if code == 0 {
+				msg.MessageID, msg.PreviewSessionID, msg.Payload.TargetVmKey = "PENDING", "pending", "pending"
+				raw, _ = json.Marshal(msg)
+				if err := h.handleMessageWithFileOwner(ctx, raw, h.fileOwnerEpoch, true); err != nil {
+					t.Fatal(err)
+				}
+				select {
+				case <-pending:
+				case <-time.After(time.Second):
+					t.Fatal("pending OPEN not started")
+				}
+				h.OnControlDisconnected(io.EOF)
+				h.SetSender(nil)
+				select {
+				case <-canceled:
+				case <-time.After(time.Second):
+					t.Fatal("ordinary disconnect retained pending OPEN")
+				}
+				stream("cd") // The in-flight response continues while Control is offline.
+				h.SetSender(previewOwnerSender{"fixture-token"})
+				stream("ef")
+				if current, ok := manager.GetSession("S"); !ok || current != session || !session.HasActiveTunnel() {
+					t.Fatal("reconnect replaced the active tunnel")
+				}
+				closeRaw, _ := json.Marshal(protocol.PreviewCloseMessage{BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypePreviewClose, MessageID: "CLOSE", PreviewSessionID: "S", LabInstanceID: "lab", Generation: 1}, Payload: protocol.PreviewClosePayload{Reason: protocol.PreviewReasonSessionClosed}})
+				if err := h.HandleMessage(ctx, closeRaw); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				h.OnControlDisconnected(&websocket.CloseError{Code: code})
+				h.SetSender(nil)
+			}
+			if err := gateway.WaitForClose(time.Second); err != nil {
+				t.Fatal("explicit termination retained Data WSS:", err)
+			}
+			_ = peer.SetReadDeadline(time.Now().Add(time.Second))
+			if _, err := peer.Read(make([]byte, 1)); err != io.EOF {
+				t.Fatalf("explicit termination did not close TCP: %v", err)
+			}
+			if !session.IsDestroyed() {
+				t.Fatal("explicit termination retained logical session")
+			}
+		})
 	}
 }
 

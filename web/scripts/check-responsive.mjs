@@ -43,7 +43,7 @@ async function availablePort() {
   })
 }
 
-async function waitForUrl(url) {
+async function waitForUrl(url, label) {
   for (let i = 0; i < 120; i++) {
     try {
       const response = await fetch(url)
@@ -51,7 +51,7 @@ async function waitForUrl(url) {
     } catch { /* startup in progress */ }
     await sleep(125)
   }
-  throw new Error('isolated localhost service did not start')
+  throw new Error('isolated localhost service did not start: ' + label)
 }
 
 class Cdp {
@@ -158,7 +158,8 @@ async function main() {
   const chrome = findChrome()
   if (!chrome) throw new Error('Chrome/Chromium unavailable; set CHROME_PATH')
   const vitePort = await availablePort()
-  const chromePort = await availablePort()
+  let chromePort = await availablePort()
+  while (chromePort === vitePort) chromePort = await availablePort()
   const base = 'http://127.0.0.1:' + vitePort
   const profile = await mkdtemp(path.join(os.tmpdir(), 'labbit-mobile-mock-'))
   let vite, browser, cdp
@@ -168,7 +169,7 @@ async function main() {
     vite = spawn(process.execPath, [viteBin, '--host', '127.0.0.1', '--port', String(vitePort), '--strictPort'], {
       cwd: process.cwd(), env: { ...process.env, VITE_LABBIT_API_MODE: 'mock' }, stdio: 'ignore',
     })
-    await waitForUrl(base)
+    await waitForUrl(base, 'Mock Vite')
     const args = [
       '--headless=new', '--no-proxy-server', '--no-first-run', '--no-default-browser-check',
       '--disable-sync', '--disable-background-networking', '--window-size=1000,900',
@@ -176,7 +177,7 @@ async function main() {
     ]
     if (typeof process.getuid === 'function' && process.getuid() === 0) args.push('--no-sandbox')
     browser = spawn(chrome, args, { stdio: 'ignore' })
-    await waitForUrl('http://127.0.0.1:' + chromePort + '/json/version')
+    await waitForUrl('http://127.0.0.1:' + chromePort + '/json/version', 'Chrome CDP')
     cdp = await connectChrome(chromePort)
     await cdp.send('Page.enable')
     await cdp.send('Runtime.enable')

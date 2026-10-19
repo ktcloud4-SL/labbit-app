@@ -6,7 +6,7 @@
 >
 > 목적: Sprint 01 / AWS1 G1에서 시작한 Frontend 배포 입력을 Sprint 02의 Local/AWS Browser Acceptance까지 유지한다. **Web image/Helm/Istio의 배포 소유권은 Platform에 있고, Frontend는 Router·HTTP/WSS Consumer와 사용자 화면 검증을 담당한다.**
 >
-> 현재 판정(2026-10-12 14:50 Jira 최종 마감): LBT-32 Web packaging과 공개 HTTPS Web 서빙은 준비됐고, LBT-74 Auth/Class는 Local Stage A **PASS**와 공개 HTTPS Stage B의 정상 Login/Class/Logout·401/403/404·Session Cookie 및 오류 UX Browser Evidence를 종합해 **완료** 처리됐다([Jira LBT-74 #10418](https://samsunglions.atlassian.net/browse/LBT-74), 상위 LBT-12 #10419 완료). 다만 공유 HTTPS에서 FE가 직접 강제한 Session 만료·서버 5xx UI 등은 미실측이며 Backend Owner 검증은 별도 Evidence다. Backend 배포/DB/rollback은 LBT-36에서 독립 판정한다. 자세한 검증 범위는 8절을 따른다.
+> Auth/Class 판정 이력(2026-10-12 14:50 Jira 최종 마감): LBT-32 Web packaging과 공개 HTTPS Web 서빙은 준비됐고, LBT-74 Auth/Class는 Local Stage A **PASS**와 공개 HTTPS Stage B의 정상 Login/Class/Logout·401/403/404·Session Cookie 및 오류 UX Browser Evidence를 종합해 **완료** 처리됐다([Jira LBT-74 #10418](https://samsunglions.atlassian.net/browse/LBT-74), 상위 LBT-12 #10419 완료). 다만 공유 HTTPS에서 FE가 직접 강제한 Session 만료·서버 5xx UI 등은 미실측이며 Backend Owner 검증은 별도 Evidence다. Backend 배포/DB/rollback은 LBT-36에서 독립 판정한다. 자세한 검증 범위는 8절을 따른다.
 
 ## 1. 현재 Web build 계약
 
@@ -66,7 +66,7 @@ Production에서는 API mode를 별도 환경변수로 고르지 않는다.
 
 `web/nginx.conf`의 `/api/v1` 위치는 SPA HTML fallback을 차단하는 보호용 404입니다. 정상 환경에서 실제 `/api/v1/*` 요청을 Backend로 보내는 분기는 Nginx 내부 proxy가 아니라 Platform Gateway/Istio Routing 책임입니다. HTTP endpoint 상세와 Session/Cookie/Origin 정책은 Git OpenAPI와 Backend 계약을 소비하며 Frontend packaging에서 새로 정의하지 않습니다.
 
-Terminal Browser WSS는 `contracts/realtime/README.md`의 same-origin `/realtime/v1/terminal`, subprotocol `labbit.terminal.v1`을 사용합니다. 배포 환경에서 HTTPS는 WSS로 업그레이드되어야 하며 이 경로도 Web SPA로 fallback시키지 않습니다.
+Terminal Browser WSS는 `contracts/realtime/README.md`의 same-origin `/realtime/v1/terminal`, subprotocol `labbit.terminal.v1`을 사용합니다. HTTPS entry에서는 Browser가 `wss:` URL을 사용하며, WebSocket Upgrade가 올바른 Backend에서 처리되어야 합니다. 이 경로를 Web SPA로 fallback시키지 않습니다.
 
 **WSS 배포 검증 주의:** 현재 `web/nginx.conf`에는 `/realtime/v1` 별도 차단/Proxy 규칙이 없습니다. 따라서 Gateway/Istio가 해당 WSS 요청을 Web SPA보다 먼저 올바른 Relay로 라우팅하는지, 실제 WebSocket Upgrade·Origin·subprotocol 협상이 정상인지 LBT-26/27 실환경 통합 때 확인해야 합니다. 이는 라우팅 위험에 대한 인계사항이며 실제 WSS E2E PASS 또는 배포 결함 확정은 아닙니다.
 
@@ -169,8 +169,28 @@ Platform packaging에서 현재 필요한 Frontend 입력은 다음과 같다.
 - **Local Stage A PASS:** LBT-72/73의 실제 Backend HTTP Auth/Class 연동 확인.
 - **고정 HTTPS Stage B Browser 부분 PASS(LBT-74 최종 Acceptance의 직접 검증 근거):** 개발용 관리자·강사·학생 계정의 Login `204` → `/me 200` → Class 목록/상세 `200` → Logout `204` → `/me 401`, 관리자/학생의 비인가 Class 접근 `403`, 없는 Class `404`, 잘못된 비밀번호 `401`, 새로고침 후 세션 유지·로그아웃 후 보호 Route 차단 및 `__Host-labbit-session` Cookie의 Secure/HttpOnly/SameSite=Lax/Path=/를 Browser에서 관측. [Jira LBT-74](https://samsunglions.atlassian.net/browse/LBT-74) 댓글 #10398·#10399가 상세 Evidence이며, 과거 `/me 503`은 최신 결과가 아닙니다.
 - **공유 HTTPS에서 FE 직접 미검증인 별도 시나리오:** FE가 강제한 Origin/Referer 거부, 시간 경과에 따른 서버 측 세션 만료, 실제 서버 5xx·장애/복구 UI는 이번 FE Browser 직접 실측이 아님. Backend Owner의 LBT-68 #10405 Origin/Referer·세션/격리 오류 계약 증거는 별도 Owner Evidence로 재사용하며 LBT-74 Jira 완료 판정과 구분한다. LBT-36의 DB/Migration/read-write/readiness/rollback도 별도 Gate입니다.
-- **Provision의 별도 404:** Browser에서 `GET /classes/{classId}/memberships`와 `GET /lab-specs`가 404였습니다. 두 경로 모두 현재 Backend HTTP router에 등록되지 않았습니다. LabSpec은 LBT-17 후속 구현 범위이나 Membership 목록 조회는 LBT-67 완료 범위에 명시되지 않았으므로 **Backend 담당자와 Owner/일정을 별도로 확인**합니다. 이를 Auth/Class Stage B의 실패나 Provision E2E 완료로 판정하지 않습니다.
+- **10/12 Provision 404 관측 이력:** 당시 Browser에서 `GET /api/v1/classes/{classId}/memberships`와 `GET /api/v1/lab-specs`가 404였고 당시 Backend 미등록 상태를 인계했습니다. **10/19 현재 main의 `internal/server/httpapi/api.go`에는 두 GET 경로와 LabSpec Mapping/생성/수정 경로가 등록돼 있습니다.** 과거의 미구현 인계를 현재 blocker로 재사용하지 않습니다. 다만 Router 등록은 현재 실행 Pod의 배포 적용이나 Provision 전체 E2E 성공을 증명하지 않습니다.
 - **후속 E2E:** Terminal/File 실제 VM은 LBT-21/22 준비 후 LBT-26/27에서, Local/AWS 전체 사용자 Flow는 LBT-53에서 각각 검증합니다.
+
+### 8.1 최신 검증 기록과 G3/G4 재개 조건
+
+이 문서의 10/12 결과는 당시 Evidence입니다. 10/19 이후 최신 판정은 [LBT-27 종합 색인 #10592](https://samsunglions.atlassian.net/browse/LBT-27?focusedCommentId=10592), 상세 Browser 관측은 [LBT-26 #10577](https://samsunglions.atlassian.net/browse/LBT-26?focusedCommentId=10577), G3/G4 배포 사전 대조는 [LBT-53 #10595](https://samsunglions.atlassian.net/browse/LBT-53?focusedCommentId=10595)를 재사용합니다. PR/CI 성공과 GitOps desired tag는 실행 Pod 적용 또는 실제 VM E2E PASS와 구분합니다.
+
+[공식 AWS Gate](https://samsunglions.atlassian.net/wiki/spaces/SL/pages/19398877)의 기존 요구 안에서 FE가 실행 전에 인계받을 최소 정보는 다음과 같습니다.
+
+| 입력 | 필요한 근거 | 인계가 없을 때 |
+| --- | --- | --- |
+| 실행 배포 기준선 | 환경/HTTPS entry, 실제 Web·Backend image 식별자와 GitOps/Argo revision·적용 근거 | 최신 소스 변경의 실환경 QA로 계상하지 않음 |
+| 실제 Terminal 경로 | applied Backend route, Host/Origin/subprotocol, 인증·Upgrade 결과 | WSS/Terminal E2E BLOCKED. HTTP101만으로 attach·PTY 성공을 판정하지 않음 |
+| 허용된 시험 대상 | Class/Execution/LabInstance·generation·Workspace VM target, 사용 기간·소유 및 Cleanup 책임 | 새 Provision/Reset/Cleanup을 임의 실행하지 않음 |
+| File 쓰기 범위 | 시험 전용 허용 경로와 변경·정리 책임 | Save/ETag 충돌 검증 BLOCKED. 파일 내용을 Evidence로 수집하지 않음 |
+| Seoul 관측성 | 담당자가 승인한 Metric scrape·Trace export 설정 및 실제 조회 위치 | Web 화면이나 설정 존재만으로 G4 Metric/Log/Trace PASS를 판정하지 않음 |
+
+10/19 정적 대조에서 Seoul Backend values는 G2 Smoke용 `OTEL_TRACES_EXPORTER=none`과 `metrics.enabled=false`를 유지했습니다. 이 chart의 수집 경로가 비활성이라는 근거이며, 다른 scrape 경로나 실제 운영 상태의 부재를 단정하지 않습니다. CD-07과 기존 관측성 담당 작업의 인계를 확인하고 FE가 임의 활성화하지 않습니다.
+
+WSS 거부 응답은 현재 Backend의 `internal/server/realtime/browser.go`와 `upgrade_test.go`를 따릅니다. 일반 GET·비인증 Upgrade·Origin 거부·정상 인증 Upgrade는 요청 조건이 다르므로 status만 단독 비교하지 않습니다. 조건별 기대 응답과 관측 범위는 LBT-53 #10595에 기록하며, Cookie/Token을 수동 추출하거나 live 서비스에 비정상 control을 주입하는 지시로 해석하지 않습니다.
+
+이 준비는 G3/G4의 새 Gate 요구를 추가하지 않습니다. Installer/Enrollment와 Preview/Live 고도화는 공식 Gate가 정한 비필수 범위를 유지합니다. 이미 확인한 Auth/Class/CTA PASS는 변경 영향이나 회귀 의심이 있을 때만 재검증합니다.
 
 ## 9. 이 문서에서 확정하지 않는 것
 

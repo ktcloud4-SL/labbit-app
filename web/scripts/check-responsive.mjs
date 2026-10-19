@@ -182,7 +182,7 @@ async function main() {
     await cdp.send('Runtime.enable')
     for (const width of widths) {
       await cdp.send('Emulation.setDeviceMetricsOverride', {
-        width, height: 900, deviceScaleFactor: 1, mobile: false,
+        width, height: 900, deviceScaleFactor: 1, mobile: true,
       })
       for (const screen of screens) await testScreen(cdp, base, screen, width)
     }

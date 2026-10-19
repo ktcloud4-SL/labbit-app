@@ -103,6 +103,10 @@ function createApi(overrides: Partial<LabbitApi> = {}): LabbitApi {
     login: async () => {},
     logout: async () => {},
     getMe: async () => meFixture,
+    listConnectors: async () => ({ observedAt: '2026-10-19T00:00:00Z', items: [] }),
+    createConnectorEnrollmentToken: async () => { throw new HttpError(403) },
+    cancelConnectorEnrollmentToken: async () => { throw new HttpError(403) },
+    revokeConnector: async () => { throw new HttpError(403) },
     listClasses: async () => ({
       items: [
         {

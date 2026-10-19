@@ -1,0 +1,16 @@
+{
+  "testPass": 0,
+  "testFail": [],
+  "testSkip": [],
+  "packagePass": 0,
+  "packageFail": [
+    {
+      "Time": "2026-10-16T15:57:46.1331985+09:00",
+      "Action": "fail",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+      "Elapsed": 0,
+      "FailedBuild": "github.com/ktcloud4-SL/labbit-app/internal/server/app [github.com/ktcloud4-SL/labbit-app/internal/server/app.test]"
+    }
+  ],
+  "testResults": []
+}

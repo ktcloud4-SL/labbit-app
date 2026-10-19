@@ -19,11 +19,13 @@ var (
 )
 
 type PortSpec struct {
-	Name             string
-	Description      string
-	NetworkID        string
-	SubnetID         string
-	SecurityGroupIDs []string
+	Name                     string
+	Description              string
+	NetworkID                string
+	SubnetID                 string
+	SecurityGroupIDs         []string
+	SuppressManagementRoutes bool
+	ManagementSubnetCIDR     string
 }
 
 // EnsurePort creates a port only when the deterministic network/name tuple is
@@ -43,6 +45,12 @@ func (a *Adapter) EnsurePort(
 	securityGroupIDs := normalizedIDs(spec.SecurityGroupIDs)
 	if !validIdentity(identity) || name == "" || networkID == "" || len(securityGroupIDs) == 0 {
 		return coreprovider.ResourceResult{}, ports.Port{}, ErrInvalidResourceSpec
+	}
+
+	if spec.SuppressManagementRoutes {
+		if _, valid := managementOnLinkRoute(spec.ManagementSubnetCIDR); subnetID == "" || !valid {
+			return coreprovider.ResourceResult{}, ports.Port{}, ErrInvalidResourceSpec
+		}
 	}
 
 	pages, err := ports.List(a.network, ports.ListOpts{Name: name, NetworkID: networkID}).AllPages(ctx)
@@ -82,9 +90,23 @@ func (a *Adapter) EnsurePort(
 	if subnetID != "" {
 		createOpts.FixedIPs = []ports.IP{{SubnetID: subnetID}}
 	}
-	created, err := ports.Create(ctx, a.network, createOpts).Extract()
+	var options ports.CreateOptsBuilder = createOpts
+	if spec.SuppressManagementRoutes {
+		if subnetID == "" {
+			return coreprovider.ResourceResult{}, ports.Port{}, ErrInvalidResourceSpec
+		}
+		options = noManagementRoutes{CreateOpts: createOpts, cidr: spec.ManagementSubnetCIDR}
+	}
+	result := ports.Create(ctx, a.network, options)
+	created, err := result.Extract()
 	if err != nil {
 		return coreprovider.ResourceResult{}, ports.Port{}, safeMutationError(ctx, err, ErrPortCreate)
+	}
+	if spec.SuppressManagementRoutes {
+		var observed managementPort
+		if err := result.ExtractInto(&observed); err != nil || !managementRoutesSuppressed(observed.DHCPOptions, spec.ManagementSubnetCIDR) {
+			return portResource(identity, *created), *created, ErrPortConflict
+		}
 	}
 	return portResource(identity, *created), *created, nil
 }

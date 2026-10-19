@@ -1,0 +1,5 @@
+=== RUN   TestOpenStackM1Integration
+    integration_test.go:65: Keystone and M1 discovery succeeded: images=3 flavors=4 servers=0 networks=4
+--- PASS: TestOpenStackM1Integration (1.35s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	4.994s

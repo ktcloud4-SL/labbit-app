@@ -1,0 +1,22 @@
+[
+  {
+    "command": "localRouteABCommand",
+    "parsed": true
+  },
+  {
+    "command": "localAptCommand",
+    "parsed": false,
+    "line": 6,
+    "type": "IndentationError",
+    "message": "unexpected indent",
+    "text": " print(json.dumps({'step':'route-added'}),flush=True)\n"
+  },
+  {
+    "command": "localTimeoutCleanupCommand",
+    "parsed": true
+  },
+  {
+    "command": "localRenewCommand",
+    "parsed": true
+  }
+]

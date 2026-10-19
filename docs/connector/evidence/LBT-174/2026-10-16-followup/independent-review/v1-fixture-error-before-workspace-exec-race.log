@@ -1,0 +1,5 @@
+# github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack [github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.test]
+internal\connector\provider\openstack\review_workspace_exec_test.go:134:18: undefined: workspaceFixtureOutput
+internal\connector\provider\openstack\review_workspace_exec_test.go:174:24: undefined: workspaceFixtureOutput
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack [build failed]
+FAIL

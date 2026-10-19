@@ -1,0 +1,62 @@
+package openstackprovider
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+)
+
+func TestIndependentManagementObservationBoundary(t *testing.T) {
+	for _, kind := range []string{"stable", "outside address", "wrong identity", "wrong network", "wrong security group", "missing policy"} {
+		t.Run(kind, func(t *testing.T) {
+			fake := &m2OpenStackFake{t: t}
+			postNovaGets := 0
+			a := newTestAdapter(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if fake.serverCreates > 0 && r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/ports/port-management") {
+					postNovaGets++
+					if postNovaGets == 1 && kind != "stable" {
+						rr := httptest.NewRecorder()
+						fake.ServeHTTP(rr, r)
+						var body map[string]any
+						if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil { t.Error(err); return }
+						port := body["port"].(map[string]any)
+						switch kind {
+						case "outside address": port["fixed_ips"] = []map[string]string{{"subnet_id": "management-subnet", "ip_address": "172.16.9.200"}}
+						case "wrong identity": port["id"] = "not-owned-management-port"
+						case "wrong network": port["network_id"] = "other-network"
+						case "wrong security group": port["security_groups"] = []string{"other-sg"}
+						case "missing policy": delete(port, "extra_dhcp_opts")
+						}
+						writeJSON(t, w, rr.Code, body)
+						return
+					}
+				}
+				fake.ServeHTTP(w, r)
+			}))
+			a.provision = testProvisionConfig(t)
+			probed := ""
+			a.sshProbe = func(_ context.Context, address string) error { probed = address; return nil }
+			a.startupProbe = func(context.Context, string, string) error { return nil }
+			result, err := a.Provision(context.Background(), coreprovider.ProvisionRequest{
+				Correlation: coreprovider.Correlation{OperationID: "boundary", LabInstanceID: "boundary", Generation: 1}, CreationSnapshot: validSnapshot(),
+			})
+			if err != nil || postNovaGets == 0 { t.Fatalf("fixture not reached: gets=%d err=%v", postNovaGets, err) }
+			if kind == "stable" {
+				if result.Outcome != coreprovider.OutcomeSucceeded || probed != "172.16.8.200:22" { t.Fatalf("normal path rejected: %s %q", result.Outcome, probed) }
+				return
+			}
+			if result.Outcome == coreprovider.OutcomeSucceeded || probed != "" { t.Errorf("first invalid observation used: kind=%s gets=%d outcome=%s SSH=%q", kind, postNovaGets, result.Outcome, probed) }
+			owned := false
+			for _, resource := range result.ProviderResources {
+				if resource.ProviderID == "port-management" { owned = true }
+				if resource.ProviderID == "not-owned-management-port" { t.Error("unowned response ID entered cleanup ledger") }
+			}
+			if !owned { t.Error("known created Management port was lost") }
+		})
+	}
+}

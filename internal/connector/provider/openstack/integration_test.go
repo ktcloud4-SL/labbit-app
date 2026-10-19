@@ -474,7 +474,16 @@ func integrationManagementSecurityGroup(t *testing.T, ctx context.Context, adapt
 		defer cancel()
 		if err := groups.Delete(cleanupCtx, adapter.network, group.ID).ExtractErr(); err != nil && !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 			t.Errorf("temporary Management security group cleanup failed")
+			return
 		}
+		if err := waitIntegrationResourceAbsent(cleanupCtx, func(ctx context.Context) error {
+			_, err := groups.Get(ctx, adapter.network, group.ID).Extract()
+			return err
+		}); err != nil {
+			t.Error("temporary Management security group absence confirmation failed")
+			return
+		}
+		t.Log("Temporary Management security group GET absence confirmed")
 	})
 	for _, rule := range group.Rules {
 		if err := rules.Delete(ctx, adapter.network, rule.ID).ExtractErr(); err != nil {
@@ -566,9 +575,39 @@ func integrationKeyPairName(t *testing.T, ctx context.Context, adapter *Adapter,
 		defer cancel()
 		if err := keypairs.Delete(cleanupCtx, adapter.compute, name, nil).ExtractErr(); err != nil && !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 			t.Errorf("temporary integration keypair cleanup failed")
+			return
 		}
+		if err := waitIntegrationResourceAbsent(cleanupCtx, func(ctx context.Context) error {
+			_, err := keypairs.Get(ctx, adapter.compute, name, nil).Extract()
+			return err
+		}); err != nil {
+			t.Error("temporary integration keypair absence confirmation failed")
+			return
+		}
+		t.Log("Temporary integration keypair GET absence confirmed")
 	})
 	return name
+}
+
+// A successful DELETE is not proof that an eventually consistent resource is
+// absent. Only a GET 404 confirms this; auth, network and server errors fail.
+func waitIntegrationResourceAbsent(ctx context.Context, get func(context.Context) error) error {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		err := get(ctx)
+		if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
 }
 
 func testM1NetworkFoundation(t *testing.T, adapter *Adapter) {

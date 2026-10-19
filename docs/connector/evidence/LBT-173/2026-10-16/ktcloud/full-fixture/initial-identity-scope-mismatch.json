@@ -1,0 +1,17 @@
+{
+  "branch": "codex/feat/LBT-173-ssh-tcp-forwarding",
+  "head": "88097be5d9bb6996b718fd185515ca324629fda6",
+  "sourceFiles": 543,
+  "compiledFiles": 482,
+  "buildBeforeAfterEqual": true,
+  "snapshotBuildDifferences": [
+    "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/actual_runtime_shutdown_test.go",
+    "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/integration_metadata_test.go",
+    "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/read_only_residual_test.go",
+    "docs/connector/evidence/LBT-147/2026-10-12-additional-verification/_fixtures/real_failure_test.go",
+    "docs/connector/evidence/LBT-147/2026-10-12-review-followup/_fixtures/independent_unacked_setup_test.go",
+    "docs/connector/evidence/LBT-147/2026-10-12-review-followup/_fixtures/ssh-channel-no-b-close-ack.go"
+  ],
+  "sourceAlignmentDifferences": [],
+  "binaryManifestSource": "compiled-source-build-before.json"
+}

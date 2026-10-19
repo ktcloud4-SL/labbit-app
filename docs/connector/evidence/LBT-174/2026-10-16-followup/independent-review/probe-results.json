@@ -1,0 +1,81 @@
+{
+  "scope": "Local loopback/fixture only; no reviewer cloud calls",
+  "runs": [
+    {
+      "log": "before-realtime.log",
+      "observed_process_exit": 1,
+      "meaning": "expected failure",
+      "requested_count": 3,
+      "sha256": "b46a174753f2407d4f2628acca4dec7ca8989d667a13530a4019f6d183b5142c"
+    },
+    {
+      "log": "before-vmaccess.log",
+      "observed_process_exit": 1,
+      "meaning": "expected failure",
+      "requested_count": 3,
+      "sha256": "68764470ea13011a50f53049f08dacaad00e5e4be3bbab919eedbfcd0e4d22a4"
+    },
+    {
+      "log": "after-realtime.log",
+      "observed_process_exit": 0,
+      "meaning": "first fix with 75ms scheduling fault",
+      "requested_count": 10,
+      "sha256": "a531dddf7d3d379284bcc39860476bc1520ed0e7b3c3ba0f8bf8d2591e72b71e"
+    },
+    {
+      "log": "after-vmaccess.log",
+      "observed_process_exit": 0,
+      "meaning": "first fix with 75ms healthy handshake delay",
+      "requested_count": 10,
+      "sha256": "0ee92dc658ebcf2f86c0d37d7e4760d5b6ff83ae844b6f62274dfd8c5b46efe9"
+    },
+    {
+      "log": "mutant-caller-deadline.log",
+      "observed_process_exit": 0,
+      "meaning": "undesired mutant survivor: 50.08s",
+      "requested_count": 1,
+      "sha256": "8e9d8216a4945797d7bf2217b2c44eb676e315c50ca806781b3eae8e683c9d6b"
+    },
+    {
+      "log": "bounded-normal.log",
+      "observed_process_exit": 0,
+      "meaning": "bounded fix with 75ms healthy handshake delay",
+      "requested_count": 10,
+      "sha256": "fe6b2f8460e8ac18f2619775d23d11f946abae9066ad2aafd0ce5a0124c1c55b"
+    },
+    {
+      "log": "bounded-mutant.log",
+      "observed_process_exit": 1,
+      "meaning": "expected mutant rejection at 2.02s",
+      "requested_count": 3,
+      "sha256": "0dfaa0bde09773c510059f4e16529d653e31ff8c14b046b1350280dc70ccf995"
+    },
+    {
+      "log": "cleanup-absence-race.log",
+      "observed_process_exit": 0,
+      "meaning": "GET absence helper race regression",
+      "requested_count": 10,
+      "sha256": "7d9216be15a216226ef3f0fd33a91953799ea9e7e678e077b43710fbde810f57"
+    },
+    {
+      "log": "linux-gate-race.log",
+      "observed_process_exit": 0,
+      "meaning": "Linux required tests gate race regression",
+      "requested_count": 10,
+      "sha256": "4098d8024afb4fbfa7b43510667cf17292d0c3a05e61e19c03fff6347c4a882b"
+    }
+  ],
+  "copied_after_source_files": {
+    "internal/server/realtime/trace_propagation_test.go": "586d9a02d167a22579c57ba244f1ff1e88b2d6de83892ed18ec1411a20a44f8b",
+    "internal/server/realtime/trace_log_test.go": "046735f223db318c6c7b15ecfe7dae6d935c4535c5f8b2cc2633e3d79168c678",
+    "internal/connector/provider/openstack/integration_test.go": "53329a9251476929dd767e80959c4acf28caf2b3f60e19540241f6316368228f",
+    "internal/connector/provider/openstack/integration_cleanup_test.go": "6fa56565daf223d0d620166d01ad1dfd371ba5162761fa2c416a6de4a04857eb",
+    "internal/connector/provider/openstack/workspace_file_integration_test.go": "0db3827b7aae108bbc4dc9c612f275a61d9bdff096f9d32bd5b282ef5f1890d9",
+    "internal/connector/provider/openstack/workspace_file_integration_gate_test.go": "93187048c70c4259f4c2ed0c6b2eef6f9e8227c6cab6fb64b19fb1a99006658e"
+  },
+  "bounded_tcp_test": {
+    "path": "internal/connector/vmaccess/tcp_test.go",
+    "copied_from": "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-connector-gates-20261015",
+    "lf_sha256": "c06d5eb59414df671585e5d5ed0f5ef024c760875264921f815aa34f09206776"
+  }
+}

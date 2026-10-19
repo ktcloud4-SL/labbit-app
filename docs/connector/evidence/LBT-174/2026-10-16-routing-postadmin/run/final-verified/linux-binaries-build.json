@@ -1,0 +1,81 @@
+[
+  {
+    "name": "workspace-sftp",
+    "command": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "build",
+      "-o",
+      "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\lbt174-routing-postadmin-20261016\\final-verified\\workspace-sftp",
+      "./cmd/labbit-workspace-sftp"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 4.906,
+    "sourceBefore": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "sourceAfter": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "binarySHA256": "d649b6f6fec7f98fca0d5fa3787a509aa51a53025738e02aa34e2eac96b37510"
+  },
+  {
+    "name": "workspacefs-tests",
+    "command": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "test",
+      "-c",
+      "-o",
+      "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\lbt174-routing-postadmin-20261016\\final-verified\\workspacefs-tests",
+      "./internal/connector/workspacefs"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 1.609,
+    "sourceBefore": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "sourceAfter": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "binarySHA256": "cd63904d1ec989744a747be9a27a5de4cf6adc40797adf116ee5260677c5ed99"
+  },
+  {
+    "name": "provider-tests",
+    "command": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "test",
+      "-c",
+      "-o",
+      "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\lbt174-routing-postadmin-20261016\\final-verified\\provider-tests",
+      "./internal/connector/provider/openstack"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 4.485,
+    "sourceBefore": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "sourceAfter": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "binarySHA256": "3a98c9ba8153d325674b8a289467c1bc2d963d0bbb9dae7a3eb794451ade834e"
+  },
+  {
+    "name": "workspacefile-tests",
+    "command": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "test",
+      "-c",
+      "-o",
+      "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\lbt174-routing-postadmin-20261016\\final-verified\\workspacefile-tests",
+      "./internal/connector/workspacefile"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 1.157,
+    "sourceBefore": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "sourceAfter": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "binarySHA256": "1edecb57bda0df5e9ac0bd155fcf85cbd4666ed0a61620adc24691ea0a0f9efd"
+  },
+  {
+    "name": "credential-tests",
+    "command": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "test",
+      "-c",
+      "-o",
+      "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\lbt174-routing-postadmin-20261016\\final-verified\\credential-tests",
+      "./tools/dev-auth-class-fixture"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 1.766,
+    "sourceBefore": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "sourceAfter": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "binarySHA256": "02ced6e8390f4c5e8f50e624430543de19631ffda6afd5d7208323e9c85125cc"
+  }
+]

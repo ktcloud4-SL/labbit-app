@@ -1,0 +1,82 @@
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/timeout
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/cancel
+--- PASS: TestHandshakeTimeoutAndCancellationCloseSocket (0.17s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/timeout (0.16s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/cancel (0.02s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+--- PASS: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (0.40s)
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/timeout
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/cancel
+--- PASS: TestHandshakeTimeoutAndCancellationCloseSocket (0.17s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/timeout (0.15s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/cancel (0.01s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+--- PASS: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (0.39s)
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/timeout
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/cancel
+--- PASS: TestHandshakeTimeoutAndCancellationCloseSocket (0.17s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/timeout (0.15s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/cancel (0.01s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+--- PASS: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (0.39s)
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/timeout
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/cancel
+--- PASS: TestHandshakeTimeoutAndCancellationCloseSocket (0.17s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/timeout (0.15s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/cancel (0.01s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+--- PASS: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (0.39s)
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/timeout
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/cancel
+--- PASS: TestHandshakeTimeoutAndCancellationCloseSocket (0.17s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/timeout (0.15s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/cancel (0.02s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+--- PASS: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (0.39s)
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/timeout
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/cancel
+--- PASS: TestHandshakeTimeoutAndCancellationCloseSocket (0.17s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/timeout (0.15s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/cancel (0.02s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+--- PASS: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (0.39s)
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/timeout
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/cancel
+--- PASS: TestHandshakeTimeoutAndCancellationCloseSocket (0.17s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/timeout (0.15s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/cancel (0.02s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+--- PASS: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (0.39s)
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/timeout
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/cancel
+--- PASS: TestHandshakeTimeoutAndCancellationCloseSocket (0.17s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/timeout (0.15s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/cancel (0.02s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+--- PASS: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (0.39s)
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/timeout
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/cancel
+--- PASS: TestHandshakeTimeoutAndCancellationCloseSocket (0.17s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/timeout (0.15s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/cancel (0.02s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+--- PASS: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (0.40s)
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/timeout
+=== RUN   TestHandshakeTimeoutAndCancellationCloseSocket/cancel
+--- PASS: TestHandshakeTimeoutAndCancellationCloseSocket (0.17s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/timeout (0.15s)
+    --- PASS: TestHandshakeTimeoutAndCancellationCloseSocket/cancel (0.02s)
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+--- PASS: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (0.39s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess	7.335s

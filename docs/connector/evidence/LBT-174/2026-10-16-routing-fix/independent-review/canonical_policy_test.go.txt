@@ -1,0 +1,36 @@
+package openstackprovider
+
+import (
+	"encoding/json"
+	"testing"
+
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
+)
+
+func TestReviewCanonicalDHCPRequestWireContract(t *testing.T) {
+	body, err := (noManagementRoutes{ports.CreateOpts{
+		NetworkID: "owned-management-network",
+		FixedIPs: []ports.IP{{SubnetID: "selected-management-subnet"}},
+	}}).ToPortCreateMap()
+	if err != nil { t.Fatal(err) }
+	raw, err := json.Marshal(body)
+	if err != nil { t.Fatal(err) }
+	var wire struct { Port struct {
+		Network string `json:"network_id"`
+		Options []map[string]json.RawMessage `json:"extra_dhcp_opts"`
+	} `json:"port"` }
+	if err := json.Unmarshal(raw, &wire); err != nil { t.Fatal(err) }
+	if wire.Port.Network != "owned-management-network" || len(wire.Port.Options) != 2 {
+		t.Fatalf("wire target/options changed: %s", raw)
+	}
+	seen := map[string]bool{}
+	for _, option := range wire.Port.Options {
+		var name string
+		if err := json.Unmarshal(option["opt_name"], &name); err != nil { t.Fatal(err) }
+		if name != "router" && name != "classless-static-route" { t.Errorf("nonblankable name %q", name) }
+		if seen[name] { t.Errorf("duplicate option %q", name) }; seen[name] = true
+		if string(option["opt_value"]) != `""` { t.Errorf("%s must preserve explicit empty string; got %s", name, option["opt_value"]) }
+		if string(option["ip_version"]) != "4" { t.Errorf("%s is not IPv4", name) }
+	}
+	if !seen["router"] || !seen["classless-static-route"] { t.Fatal("canonical suppression pair missing") }
+}

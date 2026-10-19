@@ -1,0 +1,58 @@
+{
+  "source_state": "uncommitted working tree; final three-probe control+fault and vmaccess/preview race tests passed",
+  "base": "88097be5d9bb6996b718fd185515ca324629fda6",
+  "dependency": "golang.org/x/crypto v0.57.0; temporary copied SERVER peer ignores only inbound direct-tcpip CLOSE",
+  "reviewed_at_utc": "2026-10-16T00:52:33.4856821Z",
+  "branch": "codex/feat/LBT-173-ssh-tcp-forwarding",
+  "head": "88097be5d9bb6996b718fd185515ca324629fda6",
+  "files": [
+    {
+      "sha256": "44A1404BF891E5BEF0F78D416A2DEEF53F7A1C52B3E3156A2EB049B95E2CCA65",
+      "file": "internal/connector/vmaccess/tcp_test.go"
+    },
+    {
+      "sha256": "B3BFC633954B8D432D985FD5EB635EC91A7B4CECE8F3A78344F052B7E63753B6",
+      "file": "internal/connector/vmaccess/tcp.go"
+    },
+    {
+      "sha256": "970E6CE3C922F954BAFF55D9F7AD704028549AC69168164D7A7CE692A82DBF4B",
+      "file": "internal/connector/vmaccess/channel_isolation_test.go"
+    },
+    {
+      "sha256": "679D7ED628946309F7FBA28E4B42BC31382AC2FDEFFF7860D61CE8095F599747",
+      "file": "internal/connector/vmaccess/cancellation_test.go"
+    },
+    {
+      "sha256": "4083974FB40962409DF02F66231D910491F3A7211237F6DA2C8418BA1DB10C5D",
+      "file": "internal/connector/vmaccess/access_test.go"
+    },
+    {
+      "sha256": "FA75EA2D1FFAE33AF1CDC64F24CC946E45E10B834B1CCB6A7F676EA31B559755",
+      "file": "internal/connector/vmaccess/access.go"
+    },
+    {
+      "sha256": "21C96DF774FBB7FEDE92893138B397C1D34D5F6E37B8BB2457268E1529E0087B",
+      "file": "internal/connector/preview/forwarder.go"
+    },
+    {
+      "sha256": "75F9D1DFCA398E7A99C5A359A3FCCDECA6106F0DA4947B9C793295F2B9D14226",
+      "file": "internal/connector/preview/manager.go"
+    },
+    {
+      "sha256": "ABD6A2493AF746FF15AC6A26FEE03579BD9E00E7DA2AA16A05B2182EC7B7FEC1",
+      "file": "internal/connector/preview/forwarder_test.go"
+    },
+    {
+      "sha256": "4DCED42274D095EAEEB5F138E552290826000DA86B9055590D4FF7FE1A249340",
+      "file": "internal/connector/app/app.go"
+    },
+    {
+      "sha256": "92DB0D97245C5C703B3FDB58398703F4159C213020EC32C80AB07EA557692C2F",
+      "file": "internal/connector/app/app_test.go"
+    },
+    {
+      "sha256": "D3E6AFB1618C9A8D842F26C9E342982E1DE2054EBC5C2A92B1B77832D1551B37",
+      "file": "runtime/contract.yaml"
+    }
+  ]
+}

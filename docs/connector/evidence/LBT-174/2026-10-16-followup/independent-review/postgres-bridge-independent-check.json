@@ -1,0 +1,25 @@
+{
+  "command": [
+    "go",
+    "list",
+    "-deps",
+    "-test",
+    "-json",
+    "-tags=integration",
+    "./internal/postgres",
+    "./internal/postgres/postgrestest",
+    "./internal/server/app",
+    "./internal/server/auth",
+    "./internal/server/httpapi"
+  ],
+  "tested": "67cd9e8a83f24180d9993cc7eee9100067f5d79e8cdb7b9d0a9e2544ea330289",
+  "reviewed": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+  "compiled_repo_go_module_files": 238,
+  "author_set_difference": [],
+  "compiled_differences": [],
+  "global_differences": [
+    "internal/connector/provider/openstack/workspace_file_fixture_test.go",
+    "internal/connector/provider/openstack/workspace_file_integration_test.go"
+  ],
+  "unchanged_contract_migration_runtime_inputs": "Independently checked by check_finalized_source.py against HEAD; this closure is Go/module inputs only. Original sourceUnchanged=false result remains preserved."
+}

@@ -1,0 +1,55 @@
+package requeststatusprobe
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/gophercloud/gophercloud/v2"
+)
+
+// No OpenStack endpoints, credentials, local service or cloud mutation.
+func TestPortUpdateSuccessCodeBoundary(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		status int
+		opts *gophercloud.RequestOpts
+		wantErr bool
+	}{
+		{"nil_opts_rejects_200_after_apply", 200, nil, true},
+		{"nil_opts_accepts_201", 201, nil, false},
+		{"port_codes_accept_200", 200, &gophercloud.RequestOpts{OkCodes: []int{200, 201}}, false},
+		{"port_codes_reject_400", 400, &gophercloud.RequestOpts{OkCodes: []int{200, 201}}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			puts := 0
+			applied := false
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if r.Method == http.MethodPut {
+					puts++
+					applied = tc.status < 300
+					w.WriteHeader(tc.status)
+					_, _ = w.Write([]byte(`{}`))
+					return
+				}
+				_ = json.NewEncoder(w).Encode(map[string]bool{"applied": applied})
+			}))
+			defer server.Close()
+			client := &gophercloud.ServiceClient{ProviderClient: &gophercloud.ProviderClient{HTTPClient: *server.Client()}}
+			response, err := client.Put(context.Background(), server.URL+"/ports/synthetic", map[string]any{"port": map[string]any{}}, nil, tc.opts)
+			if (err != nil) != tc.wantErr { t.Fatalf("PUT error=%v, want error=%v", err, tc.wantErr) }
+			if response == nil || response.StatusCode != tc.status { t.Fatal("missing actual HTTP response status") }
+			if err != nil {
+				var unexpected gophercloud.ErrUnexpectedResponseCode
+				if !errors.As(err, &unexpected) || unexpected.Actual != tc.status { t.Fatalf("unexpected error type: %T", err) }
+			}
+			var lookup map[string]bool
+			if _, err := client.Get(context.Background(), server.URL+"/ports/synthetic", &lookup, nil); err != nil { t.Fatal(err) }
+			if puts != 1 || lookup["applied"] != (tc.status < 300) { t.Fatal("application/readback boundary differs") }
+		})
+	}
+}

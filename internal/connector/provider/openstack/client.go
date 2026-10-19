@@ -43,6 +43,8 @@ type Config struct {
 type ProvisionConfig struct {
 	KTCloudConnectorTierID    string
 	KTCloudManagementCIDR     string
+	KTCloudCIDRPairs          string
+	KTCloudCIDRStateDir       string
 	ProviderConnectionID      string
 	ProjectID                 string
 	ManagementNetworkID       string
@@ -76,6 +78,8 @@ const (
 	EnvSSHKnownHostsFile       = "LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE"
 	EnvKTCloudConnectorTier    = "LABBIT_KTCLOUD_CONNECTOR_TIER_ID"
 	EnvKTCloudManagementCIDR   = "LABBIT_KTCLOUD_MANAGEMENT_CIDR"
+	EnvKTCloudCIDRPairs        = "LABBIT_KTCLOUD_CIDR_PAIRS"
+	EnvKTCloudCIDRStateDir     = "LABBIT_KTCLOUD_CIDR_STATE_DIR"
 )
 
 // ConfigFromEnvironment uses Labbit's provider-config path and OpenStack's
@@ -88,6 +92,8 @@ func ConfigFromEnvironment() Config {
 		Provision: ProvisionConfig{
 			KTCloudConnectorTierID:    strings.TrimSpace(os.Getenv(EnvKTCloudConnectorTier)),
 			KTCloudManagementCIDR:     strings.TrimSpace(os.Getenv(EnvKTCloudManagementCIDR)),
+			KTCloudCIDRPairs:          strings.TrimSpace(os.Getenv(EnvKTCloudCIDRPairs)),
+			KTCloudCIDRStateDir:       strings.TrimSpace(os.Getenv(EnvKTCloudCIDRStateDir)),
 			ProviderConnectionID:      strings.TrimSpace(os.Getenv(EnvProviderConnection)),
 			ProjectID:                 strings.TrimSpace(os.Getenv(EnvProjectID)),
 			ManagementNetworkID:       strings.TrimSpace(os.Getenv(EnvManagementNetwork)),
@@ -114,6 +120,7 @@ type Adapter struct {
 	compute      *gophercloud.ServiceClient
 	network      *gophercloud.ServiceClient
 	provision    ProvisionConfig
+	cidrScope    *ktCIDRScope
 	sshProbe     func(context.Context, string) error
 	startupProbe func(context.Context, string, string) error
 }

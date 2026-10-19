@@ -1,0 +1,431 @@
+package openstackprovider
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"io"
+"fmt"
+"net"
+"strconv"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile"
+	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
+)
+
+// Disposable local OpenStack only. The unrestricted SFTP client below installs
+// fixtures/helper; every acceptance operation uses the production rooted Service.
+// File paths/bytes, private endpoints, keys and raw errors are never logged.
+func TestOpenStackWorkspaceFileIntegration(t *testing.T) {
+	if os.Getenv("LABBIT_OPENSTACK_WORKSPACE_FILE_TEST") != "1" {
+		t.Skip("set LABBIT_OPENSTACK_WORKSPACE_FILE_TEST=1 for disposable local OpenStack acceptance")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Minute)
+	defer cancel()
+	binary, err := os.ReadFile(os.Getenv("LABBIT_WORKSPACE_SFTP_HELPER_FILE"))
+	if err != nil || len(binary) < 4 || string(binary[:4]) != "\x7fELF" {
+		t.Fatal("Linux helper build is required")
+	}
+	a, err := New(ctx, ConfigFromEnvironment())
+	if err != nil {
+		t.Fatal("Provider initialization failed")
+	}
+	images, err := a.ListImages(ctx)
+	if err != nil {
+		t.Fatal("Image discovery failed")
+	}
+	flavors, err := a.ListFlavors(ctx)
+	if err != nil {
+		t.Fatal("Flavor discovery failed")
+	}
+	networks, err := a.ListNetworks(ctx)
+	if err != nil {
+		t.Fatal("Network discovery failed")
+	}
+	image := exactImage(t, images, environmentOrDefault("LABBIT_OPENSTACK_TEST_IMAGE", "ubuntu"))
+	flavor := exactFlavor(t, flavors, environmentOrDefault("LABBIT_OPENSTACK_TEST_FLAVOR", "m1.small"))
+	management := exactNetwork(t, networks, environmentOrDefault("LABBIT_OPENSTACK_TEST_MANAGEMENT_NETWORK", "sharednet1"))
+	keyFile := a.provision.SSHPrivateKeyFile
+	keypair := integrationKeyPairName(t, ctx, a, keyFile)
+	allowed := environmentOrDefault("LABBIT_OPENSTACK_TEST_SSH_CIDR", "172.16.8.1/32")
+	sg := integrationManagementSecurityGroup(t, ctx, a, allowed)
+	a.provision = normalizedProvisionConfig(ProvisionConfig{ProviderConnectionID: "local-integration", ProjectID: integrationProjectID(t, a), ManagementNetworkID: management.ID, ManagementSecurityGroupID: sg, KeyPairName: keypair, SSHAllowedCIDR: allowed, LabSubnetCIDR: environmentOrDefault("LABBIT_OPENSTACK_TEST_LAB_CIDR", "198.20.0.0/24"), SSHUsername: a.provision.SSHUsername, SSHPrivateKeyFile: keyFile, SSHKnownHostsFile: t.TempDir() + "/known_hosts", PollInterval: 2 * time.Second})
+	snapshot := coreprovider.CreationSnapshot{ProviderConnectionID: "local-integration", WorkspaceVMKey: "workspace", VMs: []coreprovider.VMSpec{{VMKey: "workspace", Role: "WORKSPACE", ImageID: image.ID, FlavorID: flavor.ID, FlavorSpec: coreprovider.FlavorSpec{VCPUs: flavor.VCPUs, RAMMiB: flavor.RAMMiB, DiskGiB: flavor.DiskGiB}}}}
+	labID := "lbt149-" + integrationRunID(t)
+	var tracked []coreprovider.ResourceResult
+	t.Cleanup(func() {
+		cleanupM2Resources(t, a, tracked)
+		t.Logf("Tracked resource absence verified: resources=%d", len(tracked))
+	})
+	created, err := a.Provision(ctx, coreprovider.ProvisionRequest{Correlation: coreprovider.Correlation{OperationID: labID + "-provision", LabInstanceID: labID, Generation: 1}, CreationSnapshot: snapshot})
+	tracked = append(tracked, created.ProviderResources...)
+	if err != nil || created.Outcome != coreprovider.OutcomeSucceeded {
+		t.Fatal("Disposable Workspace Provision failed")
+	}
+	target := vmaccess.Target{LabInstanceID: labID, Generation: 1, VMKey: "workspace", ServerID: providerResourceID(t, created.ProviderResources, coreprovider.ResourceTypeServer, "workspace")}
+	access := vmaccess.NewManager(a, vmaccess.Config{IdleTimeout: time.Second})
+	defer access.Close()
+	fixture, session := workspaceFixtureSFTP(t, ctx, access, target)
+	defer session.Close()
+	defer fixture.Close()
+	root := "/var/lib/labbit-workspaces/workspace"
+	helper := "/usr/local/libexec/labbit-workspace-sftp"
+	workspaceFixtureWrite(t, fixture, "/home/ubuntu/helper-upload", binary)
+	workspaceFixtureExec(t, ctx, access, target, "sudo -n install -d -o root -g root -m 0755 /usr/local/libexec /var/lib/labbit-workspaces && sudo -n install -o root -g root -m 0755 /home/ubuntu/helper-upload /usr/local/libexec/labbit-workspace-sftp && sudo -n install -d -o ubuntu -g ubuntu -m 0750 /var/lib/labbit-workspaces/workspace && mkdir /var/lib/labbit-workspaces/workspace/dir")
+	workspaceFixtureWrite(t, fixture, root+"/file", []byte("initial"))
+	workspaceFixtureWrite(t, fixture, root+"/empty", nil)
+	workspaceFixtureWrite(t, fixture, "/home/ubuntu/outside", []byte("outside-fixture"))
+	if err = fixture.Symlink("/home/ubuntu/outside", root+"/link"); err != nil {
+		t.Fatal("symlink fixture failed")
+	}
+	if err = fixture.Symlink("/home/ubuntu", root+"/escape"); err != nil {
+		t.Fatal("ancestor symlink fixture failed")
+	}
+	workspaceFixtureExec(t, ctx, access, target, "sudo sh -c 'printf denied > /var/lib/labbit-workspaces/workspace/denied; chmod 000 /var/lib/labbit-workspaces/workspace/denied'; mkfifo /var/lib/labbit-workspaces/workspace/fifo")
+	s, err := workspacefile.New(access, a, workspacefile.Config{Root: root, HelperPath: helper, Timeout: 3 * time.Second, MaxFileBytes: 64})
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries, err := s.Tree(ctx, target, "")
+	if err != nil || len(entries) != 4 {
+		t.Fatal("Tree regular/direct-child filtering failed")
+	}
+	read, err := s.Read(ctx, target, "file", 64)
+	if err != nil || !bytes.Equal(read.Content, []byte("initial")) {
+		t.Fatal("Read failed")
+	}
+	newRev, err := s.Save(ctx, target, "file", read.Revision, []byte("new"))
+	if err != nil {
+		t.Fatal("Save failed")
+	}
+	readBack, err := s.Read(ctx, target, "file", 64)
+	if err != nil || string(readBack.Content) != "new" || readBack.Revision != newRev {
+		t.Fatal("Read/Save/revision/truncation mismatch")
+	}
+	_, err = s.Save(ctx, target, "file", read.Revision, []byte("stale"))
+	workspaceAssertError(t, err, workspacefile.ErrRevisionConflict)
+	_, err = s.Save(ctx, target, "file", newRev, nil)
+	if err != nil {
+		t.Fatal("empty Save failed")
+	}
+	empty, err := s.Read(ctx, target, "file", 1)
+	if err != nil || len(empty.Content) != 0 {
+		t.Fatal("empty Read failed")
+	}
+	// A real Linux RLIMIT_FSIZE=0 raises EFBIG for a nonempty regular-file
+	// write without consuming disk space. Verify helper -> SFTP -> Service
+	// classification and re-read state after the failed mutation.
+	limitedHelper := "/usr/local/libexec/labbit-workspace-sftp-size-limit"
+	workspaceFixtureWrite(t, fixture, "/home/ubuntu/limit-upload", []byte("#!/bin/sh\nulimit -f 0\nexec /usr/local/libexec/labbit-workspace-sftp \"$@\"\n"))
+	workspaceFixtureExec(t, ctx, access, target, "sudo -n install -o root -g root -m 0755 /home/ubuntu/limit-upload /usr/local/libexec/labbit-workspace-sftp-size-limit")
+	limited, err := workspacefile.New(access, a, workspacefile.Config{Root: root, HelperPath: limitedHelper, Timeout: 3 * time.Second, MaxFileBytes: 64})
+	if err != nil {
+		t.Fatal("size-limited helper configuration failed")
+	}
+	_, err = limited.Save(ctx, target, "file", empty.Revision, []byte("x"))
+	workspaceAssertError(t, err, workspacefile.ErrInternal)
+	unchanged, err := s.Read(ctx, target, "file", 64)
+	if err != nil || unchanged.Revision != empty.Revision {
+		t.Fatal("failed kernel-limit write changed file")
+	}
+	t.Log("Real Linux EFBIG write -> safe INTERNAL_ERROR and unchanged file PASS")
+	for _, p := range []string{"../outside", "/home/ubuntu/outside", "dir/../file", "link", "escape/outside"} {
+		_, err = s.Read(ctx, target, p, 64)
+		workspaceAssertError(t, err, workspacefile.ErrInvalidPath)
+	}
+	for _, p := range []string{"link", "escape/outside"} {
+		_, err = s.Save(ctx, target, p, read.Revision, []byte("no"))
+		workspaceAssertError(t, err, workspacefile.ErrInvalidPath)
+	}
+	_, err = s.Read(ctx, target, "denied", 64)
+	workspaceAssertError(t, err, workspacefile.ErrPermissionDenied)
+	_, err = s.Save(ctx, target, "denied", read.Revision, nil)
+	workspaceAssertError(t, err, workspacefile.ErrPermissionDenied)
+	_, err = s.Read(ctx, target, "dir", 64)
+	workspaceAssertError(t, err, workspacefile.ErrNotAFile)
+	_, err = s.Tree(ctx, target, "file")
+	workspaceAssertError(t, err, workspacefile.ErrNotADirectory)
+	_, err = s.Read(ctx, target, "fifo", 64)
+	workspaceAssertError(t, err, workspacefile.ErrNotAFile)
+	_, err = s.Save(ctx, target, "missing", read.Revision, nil)
+	workspaceAssertError(t, err, workspacefile.ErrNotFound)
+	if _, err = fixture.Stat(root + "/missing"); !os.IsNotExist(err) {
+		t.Fatal("Save created missing file")
+	}
+	workspaceFixtureWrite(t, fixture, root+"/large", bytes.Repeat([]byte{'x'}, 65))
+	_, err = s.Read(ctx, target, "large", 64)
+	workspaceAssertError(t, err, workspacefile.ErrTooLarge)
+	_, err = s.Save(ctx, target, "file", empty.Revision, bytes.Repeat([]byte{'x'}, 65))
+	workspaceAssertError(t, err, workspacefile.ErrTooLarge)
+	for _, bad := range []vmaccess.Target{{LabInstanceID: "wrong", Generation: 1, VMKey: target.VMKey, ServerID: target.ServerID}, {LabInstanceID: labID, Generation: 2, VMKey: target.VMKey, ServerID: target.ServerID}, {LabInstanceID: labID, Generation: 1, VMKey: "other", ServerID: target.ServerID}} {
+		_, err = s.Read(ctx, bad, "file", 64)
+		workspaceAssertError(t, err, workspacefile.ErrUnavailable)
+	}
+	t.Log("Real Tree/Read/Save, empty bytes, revision conflict, no create, size/permission/type/path/symlink and target failures PASS")
+	// The same source's VM-side regression binary exercises Linux fd-root,
+	// symlink swap, inode replacement, cross-helper flock and listing budgets.
+	testBinary, err := os.ReadFile(os.Getenv("LABBIT_WORKSPACE_SFTP_TEST_BINARY"))
+	if err != nil {
+		t.Fatal("Linux helper regression binary required")
+	}
+	workspaceFixtureWrite(t, fixture, "/home/ubuntu/workspacefs-tests", testBinary)
+	if fixture.Chmod("/home/ubuntu/workspacefs-tests", 0700) != nil {
+		t.Fatal("VM regression installation failed")
+	}
+	testOutput, err := workspaceFixtureOutput(t, ctx, access, target, "/home/ubuntu/workspacefs-tests -test.v")
+	if err != nil {
+		t.Fatal("VM-side Linux regression failed")
+	}
+	t.Log(string(testOutput))
+	// Optional cross-compiled regression binaries cover filesystem semantics
+	// which the Windows host cannot assert. They run on this disposable VM only.
+	if directory := os.Getenv("LABBIT_LOCAL_LINUX_REGRESSION_DIR"); directory != "" {
+		for _, check := range []struct {
+			binary, filter string
+			required       []string
+		}{
+			{"provider-tests", "^TestKTFixtureLedgerRejectsSymlinkAndReplacement$", []string{
+				"TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink", "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement"}},
+			{"workspacefile-tests", "^TestSymlinkRejectedAndExcludedFromTree$", []string{"TestSymlinkRejectedAndExcludedFromTree"}},
+			{"credential-tests", "^TestInstallCredentialFile$", []string{
+				"TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"}},
+		} {
+			data, err := os.ReadFile(filepath.Join(directory, check.binary))
+			if err != nil || len(data) < 4 || string(data[:4]) != "\x7fELF" {
+				t.Fatal("Linux filesystem regression binary is required")
+			}
+			remote := "/home/ubuntu/" + check.binary
+			workspaceFixtureWrite(t, fixture, remote, data)
+			if err := fixture.Chmod(remote, 0700); err != nil {
+				t.Fatal("Linux filesystem regression installation failed")
+			}
+			output, err := workspaceFixtureOutput(t, ctx, access, target, remote+" -test.v -test.run '"+check.filter+"'")
+			if err != nil || !linuxRegressionPassed(output, check.required) {
+				t.Fatal("Linux filesystem regression failed or skipped")
+			}
+			t.Logf("Linux filesystem regression %s:\n%s", check.binary, output)
+		}
+	}
+	runLocalLinuxHarness(t, ctx, a, access, target, fixture)
+	pty, err := terminal.NewManagedSSHPTY(ctx, access, target, 80, 24)
+	if err != nil {
+		t.Fatal("PTY failed")
+	}
+	defer pty.Close()
+	connection := realSSHConnection(t, ctx, access, target)
+	if _, err = s.Read(ctx, target, "file", 64); err != nil {
+		t.Fatal("SFTP while PTY active failed")
+	}
+	request, cancelRequest := context.WithCancel(ctx)
+	cancelRequest()
+	_, err = s.Read(request, target, "file", 64)
+	workspaceAssertError(t, err, context.Canceled)
+	// An exec fixture accepts SSH but never serves SFTP: exercise active
+	// initialization cancellation/timeout without changing the shared transport.
+	stall := "/home/ubuntu/stall-workspace-sftp"
+	workspaceFixtureWrite(t, fixture, stall, []byte("#!/bin/sh\nsleep 30\n"))
+	if err = fixture.Chmod(stall, 0700); err != nil {
+		t.Fatal("stall fixture failed")
+	}
+	stalled, err := workspacefile.New(access, a, workspacefile.Config{Root: root, HelperPath: stall, Timeout: 200 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = stalled.Read(ctx, target, "file", 64)
+	workspaceAssertError(t, err, context.DeadlineExceeded)
+	if connection != realSSHConnection(t, ctx, access, target) {
+		t.Fatal("SFTP timeout replaced PTY SSH transport")
+	}
+	if _, err = pty.Write([]byte("printf 'LBT147-%s\\n' 'PTY-OK'\n")); err != nil {
+		t.Fatal("PTY input failed after SFTP timeout")
+	}
+	assertPTYMarker(t, pty)
+	pty.Close()
+	if _, err = s.Read(ctx, target, "file", 64); err != nil {
+		t.Fatal("SFTP failed after PTY close")
+	}
+	outside, err := fixture.Open("/home/ubuntu/outside")
+	if err != nil {
+		t.Fatal("outside fixture verification failed")
+	}
+	outsideBody, err := io.ReadAll(outside)
+	outside.Close()
+	if err != nil || string(outsideBody) != "outside-fixture" {
+		t.Fatal("outside file changed")
+	}
+	access.InvalidateBefore(labID, 2)
+	_, err = s.Read(ctx, target, "file", 64)
+	workspaceAssertError(t, err, workspacefile.ErrUnavailable)
+	t.Log("Shared real SSH: SFTP timeout preserves PTY; PTY close preserves File; stale generation rejects; outside fixture unchanged PASS")
+}
+
+func linuxRegressionPassed(output []byte, required []string) bool {
+	text := string(output)
+	if len(required) == 0 || strings.Contains(text, "--- SKIP:") || strings.Contains(text, "warning: no tests to run") || !strings.HasSuffix(strings.TrimSpace(text), "PASS") {
+		return false
+	}
+	for _, name := range required {
+		found := false
+		for _, line := range strings.Split(text, "\n") {
+			if strings.HasPrefix(strings.TrimSpace(line), "--- PASS: "+name+" (") {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+func workspaceFixtureSFTP(t *testing.T, ctx context.Context, m *vmaccess.Manager, target vmaccess.Target) (*sftp.Client, *vmaccess.Session) {
+	t.Helper()
+	session := realOpenSession(t, ctx, m, target)
+	var in io.WriteCloser
+	var out io.Reader
+	if err := session.Setup(ctx, func(raw *ssh.Session) error {
+		var err error
+		in, err = raw.StdinPipe()
+		if err != nil {
+			return err
+		}
+		out, err = raw.StdoutPipe()
+		if err != nil {
+			return err
+		}
+		return raw.RequestSubsystem("sftp")
+	}); err != nil {
+		t.Fatal("fixture SFTP setup failed")
+	}
+	client, err := sftp.NewClientPipe(out, in)
+	if err != nil {
+		t.Fatal("fixture SFTP init failed")
+	}
+	return client, session
+}
+func workspaceFixtureWrite(t *testing.T, c *sftp.Client, p string, b []byte) {
+	t.Helper()
+	f, err := c.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+	if err != nil {
+		t.Fatal("fixture open failed")
+	}
+	_, err = f.Write(b)
+	closeErr := f.Close()
+	if err != nil || closeErr != nil {
+		t.Fatal("fixture write failed")
+	}
+}
+func workspaceFixtureExec(t *testing.T, ctx context.Context, m *vmaccess.Manager, target vmaccess.Target, command string) {
+	t.Helper()
+	output, err := workspaceFixtureOutput(t, ctx, m, target, command)
+	if err != nil {
+		// Only fixed installation fixtures are executed here. Remove their paths
+		// before reporting diagnostics; never print Provider/connection errors.
+		diagnostic := strings.NewReplacer("/home/ubuntu", "<fixture>", "/usr/local/libexec", "<helper-dir>", "/var/lib/labbit-workspaces", "<root-dir>").Replace(string(output))
+		if len(diagnostic) > 512 {
+			diagnostic = diagnostic[:512]
+		}
+		t.Fatalf("fixture setup exec failed: %s", diagnostic)
+	}
+}
+
+func workspaceFixtureOutput(t *testing.T, ctx context.Context, m *vmaccess.Manager, target vmaccess.Target, command string) ([]byte, error) {
+	t.Helper()
+	s := realOpenSession(t, ctx, m, target)
+	defer s.Close()
+	var stdout, stderr bytes.Buffer
+	if err := s.Setup(ctx, func(raw *ssh.Session) error {
+		raw.Stdout = &stdout
+		raw.Stderr = &stderr
+		return raw.Start(command)
+	}); err != nil {
+		// Start may have launched copy workers. Only Wait's completion makes
+		// their output safe to inspect; never read the buffer on early return.
+		return nil, err
+	}
+	// Setup bounds SSH channel requests, not fixture installation or an entire
+	// regression suite. Keep command execution finite without consuming that
+	// shared channel admission slot for the command's full lifetime.
+	waitCtx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	finished := make(chan error, 1)
+	go func() { finished <- s.Wait() }()
+	select {
+	case err := <-finished:
+		return append(stdout.Bytes(), stderr.Bytes()...), err
+	case <-waitCtx.Done():
+		return nil, waitCtx.Err()
+	}
+}
+func workspaceAssertError(t *testing.T, err, want error) {
+	t.Helper()
+	if !errors.Is(err, want) {
+		t.Fatalf("safe error=%v expected=%v", err, want)
+	}
+}
+
+// External validation overlay only: remote loopback PostgreSQL forward to the
+// temporary Windows-local DB; no KT provider/API credentials enter this VM.
+func runLocalLinuxHarness(t *testing.T, ctx context.Context, a *Adapter, access *vmaccess.Manager, target vmaccess.Target, fixture *sftp.Client) {
+    t.Helper()
+    binary, err := os.ReadFile(os.Getenv("LABBIT_LOCAL_HARNESS_BINARY"))
+    if err != nil { t.Fatal("Linux harness test binary missing") }
+    remoteBinary := "/home/ubuntu/harness-tests"
+    workspaceFixtureWrite(t, fixture, remoteBinary, binary)
+    if fixture.Chmod(remoteBinary, 0700) != nil { t.Fatal("Linux harness installation failed") }
+    info, err := a.ResolveVMAccess(ctx, target)
+    if err != nil { t.Fatal("Linux harness target resolution failed") }
+    privateKey, err := os.ReadFile(a.provision.SSHPrivateKeyFile)
+    if err != nil { t.Fatal("Linux harness SSH key input missing") }
+    signer, err := ssh.ParsePrivateKey(privateKey)
+    if err != nil { t.Fatal("Linux harness SSH key input invalid") }
+    hostIdentity, err := sshHostKeyIdentity(a.provision.ProviderConnectionID, target.ServerID)
+    if err != nil { t.Fatal("Linux harness host identity invalid") }
+    callback, err := trustOnFirstUseCallback(a.provision.SSHKnownHostsFile, hostIdentity)
+    if err != nil { t.Fatal("Linux harness host pin unavailable") }
+    tcp, err := (&net.Dialer{Timeout: 10*time.Second}).DialContext(ctx, "tcp", info.Address)
+    if err != nil { t.Fatal("Linux harness SSH connection failed") }
+    defer tcp.Close()
+    stop := context.AfterFunc(ctx, func() { tcp.Close() }); defer stop()
+    conn, channels, requests, err := ssh.NewClientConn(tcp, hostIdentity, &ssh.ClientConfig{User: a.provision.SSHUsername, Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)}, HostKeyCallback: callback})
+    if err != nil { t.Fatal("Linux harness SSH authentication failed") }
+    client := ssh.NewClient(conn, channels, requests); defer client.Close()
+    listener, err := client.Listen("tcp", "127.0.0.1:0")
+    if err != nil { t.Fatal("Linux harness loopback DB forward failed") }
+    defer listener.Close()
+    _, portText, err := net.SplitHostPort(listener.Addr().String())
+    if err != nil { t.Fatal("Linux harness loopback DB port invalid") }
+    port, err := strconv.Atoi(portText)
+    if err != nil || port <= 0 { t.Fatal("Linux harness loopback DB port invalid") }
+    go func() {
+        for {
+            remote, err := listener.Accept()
+            if err != nil { return }
+            go func() {
+                defer remote.Close()
+                local, err := net.DialTimeout("tcp", "127.0.0.1:15432", 5*time.Second)
+                if err != nil { return }
+                defer local.Close()
+                copied := make(chan struct{})
+                go func() { io.Copy(local, remote); local.Close(); close(copied) }()
+                io.Copy(remote, local)
+                remote.Close()
+                <-copied
+            }()
+        }
+    }()
+    command := fmt.Sprintf("LABBIT_TEST_DATABASE_DSN='postgres://postgres@127.0.0.1:%d/postgres?sslmode=disable' %s -test.v -test.run '^TestC1'", port, remoteBinary)
+    output, err := workspaceFixtureOutput(t, ctx, access, target, command)
+    required := []string{"TestC1ActualControlStackMockProvider", "TestC1NSMExternalInventoryGate", "TestC1SingleShotAndLedgerBlocksRestart", "TestC1StopsBeforeCleanupOnUncertainty", "TestC1GateFailClosed", "TestC1NoConnectionOrWrongSessionCannotMutate", "TestC1LedgerExclusiveAndReplacement", "TestC1ApprovalRejectsSymlinkAndRawFields", "TestC1PreviousOrUnprotectedLedgerNeverAdopted", "TestC1CorrelationMismatchCannotSupplyCleanupIDs", "TestC1StoppedResultRetainsConfirmedIDs", "TestC1OperatorSubmissionRequiredAtRuntime"}
+    if err != nil || !linuxRegressionPassed(output, required) { t.Logf("Linux harness output: %s", output); t.Fatal("Linux harness failed, skipped or omitted tests") }
+    t.Logf("Linux Backend Router harness (Mock Provider, real PostgreSQL, non-race):\n%s", output)
+}

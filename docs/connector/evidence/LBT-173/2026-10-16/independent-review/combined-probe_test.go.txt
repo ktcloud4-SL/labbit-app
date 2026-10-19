@@ -1,0 +1,168 @@
+package vmaccess
+
+import (
+    "context"
+    "errors"
+    "io"
+    "net"
+    "sync/atomic"
+
+    "golang.org/x/crypto/ssh"
+    "testing"
+    "time"
+)
+
+// This independent review probe is overlaid from outside the repository.
+// The optional peer overlay ignores inbound direct-tcpip CLOSE only; PTY and
+// the SSH transport continue normally.
+func TestReviewTCPReadUnblocksAfterCloseWithResponsiveSibling(t *testing.T) {
+    p := newSSHPeer(t)
+    m := testManager(t, p, Config{IdleTimeout: 30 * time.Millisecond})
+    sibling := openSession(t, m, testTarget())
+    in, out := echoChannel(t, sibling, false)
+    tcp, err := m.DialTCP(context.Background(), testTarget(), 8080)
+    if err != nil { t.Fatal(err) }
+    assertEcho(t, tcp, tcp)
+    readDone := make(chan error, 1)
+    readStarted := make(chan struct{})
+    go func() {
+        close(readStarted)
+        _, err := tcp.Read(make([]byte, 1))
+        readDone <- err
+    }()
+    <-readStarted
+    if err := tcp.Close(); err != nil { t.Fatal(err) }
+    readUnblocked := false
+    select {
+    case err := <-readDone:
+        readUnblocked = true
+        if err == nil { t.Error("closed Read returned no error") }
+        t.Logf("pending TCP Read unblocked after Close: %v", err)
+    case <-time.After(250 * time.Millisecond):
+        t.Error("pending TCP Read stayed blocked after Close for >250ms while sibling kept SSH alive")
+    }
+    assertEcho(t, in, out)
+    m.mu.Lock()
+    c := m.entries[testTarget()]
+    if c == nil { m.mu.Unlock(); t.Fatal("closing TCP retired sibling transport") }
+    users, retired, hasIdle := c.users, c.retired, c.idle != nil
+    m.mu.Unlock()
+    t.Logf("sibling echo PASS; SSH accepted=%d active=%d users=%d retired=%v idleTimer=%v", p.accepted.Load(), p.active.Load(), users, retired, hasIdle)
+    _ = m.Close()
+    if !readUnblocked {
+        select {
+        case err := <-readDone:
+            t.Logf("Manager shutdown unblocked pending TCP Read: %v", err)
+        case <-time.After(time.Second):
+            t.Error("Manager shutdown failed to unblock TCP Read")
+        }
+    }
+}
+
+func TestReviewCanceledLateTCPRespectsTransportBudget(t *testing.T) {
+    p := newSSHPeer(t)
+    m := testManager(t, p, Config{IdleTimeout: 30 * time.Millisecond})
+    sibling := openSession(t, m, testTarget())
+    in, out := echoChannel(t, sibling, false)
+    p.stallOpen.Store(true)
+    var lateLive atomic.Int64
+    for i := 0; i < maxTCPChannels+4; i++ {
+        ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+        _, err := m.DialTCP(ctx, testTarget(), 8080)
+        cancel()
+        if !errors.Is(err, context.DeadlineExceeded) {
+            t.Logf("iteration=%d dial denied before peer open: %v", i, err)
+            break
+        }
+        var late ssh.NewChannel
+        select {
+        case late = <-p.heldOpen:
+        case <-time.After(time.Second):
+            t.Fatal("canceled operation did not reach held peer open")
+        }
+        ch, reqs, err := late.Accept()
+        if err != nil { t.Fatal(err) }
+        lateLive.Add(1)
+        go ssh.DiscardRequests(reqs)
+        go func() {
+            defer lateLive.Add(-1)
+            defer ch.Close()
+            _, _ = io.Copy(io.Discard, ch)
+        }()
+        eventually(t, func() bool {
+            m.mu.Lock()
+            defer m.mu.Unlock()
+            c := m.entries[testTarget()]
+            return c != nil && len(c.opening) == 0
+        })
+    }
+    assertEcho(t, in, out)
+    m.mu.Lock()
+    c := m.entries[testTarget()]
+    slots, users := c.tcpChannels, c.users
+    m.mu.Unlock()
+    t.Logf("late channels still peer-active=%d; configured max=%d; accounted TCP slots=%d; users=%d; sibling echo PASS", lateLive.Load(), maxTCPChannels, slots, users)
+    if lateLive.Load() > int64(maxTCPChannels) {
+        t.Error("late successful canceled TCP channels bypassed the transport channel budget")
+    }
+    _ = m.Close()
+    eventually(t, func() bool { return lateLive.Load() == 0 })
+    t.Log("Manager shutdown reaped every late channel")
+}
+func TestReviewEOFWithoutCloseRetainsTransportBudget(t *testing.T) {
+    p := newSSHPeer(t)
+    m := testManager(t, p, Config{IdleTimeout: 30 * time.Millisecond})
+    sibling := openSession(t, m, testTarget())
+    in, out := echoChannel(t, sibling, false)
+    p.stallOpen.Store(true)
+    var eofLive atomic.Int64
+    for i := 0; i < maxTCPChannels+4; i++ {
+        type dialResult struct { conn net.Conn; err error }
+        result := make(chan dialResult, 1)
+        ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+        go func() { conn, err := m.DialTCP(ctx, testTarget(), 8080); result <- dialResult{conn, err} }()
+        var held ssh.NewChannel
+        select {
+        case held = <-p.heldOpen:
+        case r := <-result:
+            cancel()
+            if i < maxTCPChannels || !errors.Is(r.err, ErrUnavailable) {
+                t.Fatalf("unexpected early EOF-probe dial denial at %d: %v", i, r.err)
+            }
+            t.Logf("iteration=%d EOF peer denied before channel open: %v", i, r.err)
+            goto finished
+        case <-time.After(2 * time.Second):
+            cancel()
+            t.Fatal("EOF-probe open did not reach peer or return")
+        }
+        ch, reqs, err := held.Accept()
+        if err != nil { cancel(); t.Fatal(err) }
+        eofLive.Add(1)
+        go ssh.DiscardRequests(reqs)
+        go func() { defer eofLive.Add(-1); defer ch.Close(); _, _ = io.Copy(io.Discard, ch) }()
+        if err := ch.CloseWrite(); err != nil { cancel(); t.Fatal(err) }
+        r := <-result
+        cancel()
+        if r.err != nil { t.Fatalf("accepted EOF channel did not open: %v", r.err) }
+        _ = r.conn.Close()
+        eventually(t, func() bool {
+            m.mu.Lock()
+            defer m.mu.Unlock()
+            c := m.entries[testTarget()]
+            return c != nil && len(c.opening) == 0
+        })
+    }
+finished:
+    assertEcho(t, in, out)
+    m.mu.Lock()
+    c := m.entries[testTarget()]
+    slots, users := c.tcpChannels, c.users
+    m.mu.Unlock()
+    t.Logf("EOF-without-CLOSE peer-active=%d; max=%d; accounted slots=%d; users=%d; sibling echo PASS", eofLive.Load(), maxTCPChannels, slots, users)
+    if eofLive.Load() > int64(maxTCPChannels) {
+        t.Error("EOF-only channels escaped transport slot budget before SSH CLOSE completed")
+    }
+    _ = m.Close()
+    eventually(t, func() bool { return eofLive.Load() == 0 })
+    t.Log("Manager shutdown reaped every EOF-only channel")
+}

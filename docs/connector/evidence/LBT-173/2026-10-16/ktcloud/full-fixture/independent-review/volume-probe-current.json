@@ -1,0 +1,6 @@
+{
+  "mode": "Current",
+  "go_test_exit": 0,
+  "current_source_sha256": "536dbe20d7815a15a59b99973514a78fafd16cae35daaf57a9e43fc088b31cea",
+  "scope": "In-process local scripted HTTP peer only. Original replaces pinned base volume file (verified LF identity with original live); DeletingGuardOnly is an explicit semantic mutant. No cloud API or repository source edits."
+}

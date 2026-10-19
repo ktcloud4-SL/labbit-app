@@ -1,0 +1,88 @@
+{
+  "real_network_or_process_operations": 0,
+  "cases": [
+    {
+      "mode": "normal",
+      "exception": null,
+      "owned": false,
+      "adds": 1,
+      "deletes": 1,
+      "queries": 3,
+      "passed": true
+    },
+    {
+      "mode": "add-timeout-applied",
+      "exception": "TimeoutExpired",
+      "owned": false,
+      "adds": 1,
+      "deletes": 1,
+      "queries": 3,
+      "passed": true
+    },
+    {
+      "mode": "add-timeout-not-applied",
+      "exception": "TimeoutExpired",
+      "owned": false,
+      "adds": 1,
+      "deletes": 0,
+      "queries": 3,
+      "passed": true
+    },
+    {
+      "mode": "add-rejected",
+      "exception": "CalledProcessError",
+      "owned": false,
+      "adds": 1,
+      "deletes": 0,
+      "queries": 3,
+      "passed": true
+    },
+    {
+      "mode": "body-failed",
+      "exception": "RuntimeError",
+      "owned": false,
+      "adds": 1,
+      "deletes": 1,
+      "queries": 3,
+      "passed": true
+    },
+    {
+      "mode": "preexisting",
+      "exception": "AssertionError",
+      "owned": true,
+      "adds": 0,
+      "deletes": 0,
+      "queries": 1,
+      "passed": true
+    },
+    {
+      "mode": "lookup-failed-before",
+      "exception": "CalledProcessError",
+      "owned": false,
+      "adds": 0,
+      "deletes": 0,
+      "queries": 1,
+      "passed": true
+    },
+    {
+      "mode": "lookup-failed-after",
+      "exception": "CalledProcessError",
+      "owned": true,
+      "adds": 1,
+      "deletes": 0,
+      "queries": 2,
+      "passed": true
+    },
+    {
+      "mode": "delete-failed",
+      "exception": "CalledProcessError",
+      "owned": true,
+      "adds": 1,
+      "deletes": 1,
+      "queries": 2,
+      "passed": true
+    }
+  ],
+  "apt_route_add_calls": 0,
+  "passed": true
+}

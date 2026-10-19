@@ -1,0 +1,5 @@
+{
+  "zz_independent_upgrade_cancel_test.go.txt": "internal/connector/preview/zz_independent_upgrade_cancel_test.go",
+  "zz_independent_idle_retirement_test.go.txt": "internal/connector/wss/zz_independent_idle_retirement_test.go",
+  "zz_independent_retirement_test.go.txt": "internal/connector/wss/zz_independent_retirement_test.go"
+}

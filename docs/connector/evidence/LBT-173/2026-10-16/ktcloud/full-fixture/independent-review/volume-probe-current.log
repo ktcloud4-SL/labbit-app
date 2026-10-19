@@ -1,0 +1,60 @@
+=== RUN   TestReviewKTVolumeDeletionConvergence
+=== RUN   TestReviewKTVolumeDeletionConvergence/alreadyAbsent
+    zz_review_volume_convergence_test.go:64: mode=alreadyAbsent outcome=SUCCEEDED GET=2 DELETE=0
+=== RUN   TestReviewKTVolumeDeletionConvergence/available
+    zz_review_volume_convergence_test.go:64: mode=available outcome=SUCCEEDED GET=2 DELETE=1
+=== RUN   TestReviewKTVolumeDeletionConvergence/deletingThenAbsent
+    zz_review_volume_convergence_test.go:64: mode=deletingThenAbsent outcome=SUCCEEDED GET=2 DELETE=0
+=== RUN   TestReviewKTVolumeDeletionConvergence/deletingUntilDeadline
+    zz_review_volume_convergence_test.go:64: mode=deletingUntilDeadline outcome=UNKNOWN GET=31 DELETE=0
+=== RUN   TestReviewKTVolumeDeletionConvergence/availableThenAutoDeletedBeforeDelete
+    zz_review_volume_convergence_test.go:64: mode=availableThenAutoDeletedBeforeDelete outcome=SUCCEEDED GET=3 DELETE=1
+--- PASS: TestReviewKTVolumeDeletionConvergence (0.04s)
+    --- PASS: TestReviewKTVolumeDeletionConvergence/alreadyAbsent (0.00s)
+    --- PASS: TestReviewKTVolumeDeletionConvergence/available (0.00s)
+    --- PASS: TestReviewKTVolumeDeletionConvergence/deletingThenAbsent (0.00s)
+    --- PASS: TestReviewKTVolumeDeletionConvergence/deletingUntilDeadline (0.03s)
+    --- PASS: TestReviewKTVolumeDeletionConvergence/availableThenAutoDeletedBeforeDelete (0.00s)
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState/400absent
+    zz_review_volume_rejection_test.go:89: outcome=SUCCEEDED GET=3 DELETE=1
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState/409absent
+    zz_review_volume_rejection_test.go:89: outcome=SUCCEEDED GET=3 DELETE=1
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState/400deleting
+    zz_review_volume_rejection_test.go:89: outcome=SUCCEEDED GET=3 DELETE=1
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState/409deleting
+    zz_review_volume_rejection_test.go:89: outcome=SUCCEEDED GET=3 DELETE=1
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState/400stable
+    zz_review_volume_rejection_test.go:89: outcome=FAILED GET=2 DELETE=1
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState/409stable
+    zz_review_volume_rejection_test.go:89: outcome=FAILED GET=2 DELETE=1
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState/400lookupFailure
+    zz_review_volume_rejection_test.go:89: outcome=UNKNOWN GET=2 DELETE=1
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState/409malformed
+    zz_review_volume_rejection_test.go:89: outcome=UNKNOWN GET=2 DELETE=1
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState/400wrongID
+    zz_review_volume_rejection_test.go:89: outcome=UNKNOWN GET=2 DELETE=1
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState/409attached
+    zz_review_volume_rejection_test.go:89: outcome=UNKNOWN GET=2 DELETE=1
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState/403noRetry
+    zz_review_volume_rejection_test.go:89: outcome=FAILED GET=1 DELETE=1
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState/500unknown
+    zz_review_volume_rejection_test.go:89: outcome=UNKNOWN GET=1 DELETE=1
+=== RUN   TestReviewKTRejectedVolumeDeleteFreshState/429unknown
+    zz_review_volume_rejection_test.go:89: outcome=UNKNOWN GET=1 DELETE=1
+--- PASS: TestReviewKTRejectedVolumeDeleteFreshState (0.01s)
+    --- PASS: TestReviewKTRejectedVolumeDeleteFreshState/400absent (0.00s)
+    --- PASS: TestReviewKTRejectedVolumeDeleteFreshState/409absent (0.00s)
+    --- PASS: TestReviewKTRejectedVolumeDeleteFreshState/400deleting (0.00s)
+    --- PASS: TestReviewKTRejectedVolumeDeleteFreshState/409deleting (0.00s)
+    --- PASS: TestReviewKTRejectedVolumeDeleteFreshState/400stable (0.00s)
+    --- PASS: TestReviewKTRejectedVolumeDeleteFreshState/409stable (0.00s)
+    --- PASS: TestReviewKTRejectedVolumeDeleteFreshState/400lookupFailure (0.00s)
+    --- PASS: TestReviewKTRejectedVolumeDeleteFreshState/409malformed (0.00s)
+    --- PASS: TestReviewKTRejectedVolumeDeleteFreshState/400wrongID (0.00s)
+    --- PASS: TestReviewKTRejectedVolumeDeleteFreshState/409attached (0.00s)
+    --- PASS: TestReviewKTRejectedVolumeDeleteFreshState/403noRetry (0.00s)
+    --- PASS: TestReviewKTRejectedVolumeDeleteFreshState/500unknown (0.00s)
+    --- PASS: TestReviewKTRejectedVolumeDeleteFreshState/429unknown (0.00s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	3.548s

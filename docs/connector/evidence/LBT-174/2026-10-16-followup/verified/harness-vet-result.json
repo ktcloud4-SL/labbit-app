@@ -1,0 +1,16 @@
+{
+  "name": "harness-vet",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "vet",
+    "-tags=backend_router_harness integration",
+    "./internal/server/app",
+    "./internal/server/connector"
+  ],
+  "started": "2026-10-16T06:57:34.746913+00:00",
+  "ended": "2026-10-16T06:57:40.960629+00:00",
+  "seconds": 6.219,
+  "exitCode": 1,
+  "sourceSHA256": "8e9ca374d70f9aace38277246bdcf7f1689d0bb21dbab3e38b625b50a45472bf",
+  "sourceUnchanged": true
+}

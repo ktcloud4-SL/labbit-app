@@ -1,0 +1,9 @@
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	8.888s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess	3.926s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/preview	2.461s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/app	4.949s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/terminal	21.415s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/filetransport	2.974s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/wss	6.342s
+ok  	github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance	8.721s
+ok  	github.com/ktcloud4-SL/labbit-app/tools/ktcloud-op02-bootstrap	2.501s

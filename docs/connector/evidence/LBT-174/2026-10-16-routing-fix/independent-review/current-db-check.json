@@ -1,0 +1,27 @@
+{
+  "sourceSHA256": "61aef239f619ff8a37ba703d12668d854ef6134ac7a7bf8a59850e4628b4bc3c",
+  "sourceMatchesCurrentGoModule": true,
+  "sourceUnchangedAsRecordedByRunner": true,
+  "executedByReviewer": false,
+  "rawJSONLReadByReviewer": true,
+  "exitCode": 0,
+  "vetExitCode": 0,
+  "testPassEvents": 1305,
+  "testSkip": [
+    "TestDumpPreviewWireSamples"
+  ],
+  "testFail": [],
+  "packagePass": [
+    "github.com/ktcloud4-SL/labbit-app/internal/postgres",
+    "github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest",
+    "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+    "github.com/ktcloud4-SL/labbit-app/internal/server/auth",
+    "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
+  ],
+  "packageFail": [],
+  "postgresStartedHere": true,
+  "postgresQueryExit": 0,
+  "remainingOwnedDatabaseCountAsQueried": "0",
+  "postgresStopExit": 0,
+  "migrationBoundary": "Tested source remains0051 based, no latest-main migration8 or worker integration claim."
+}

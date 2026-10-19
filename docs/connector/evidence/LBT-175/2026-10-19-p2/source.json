@@ -1,0 +1,135 @@
+{
+  "recordedAt": "2026-10-19T01:49:52.692119+00:00",
+  "base": "89a698dac50a8705ed305a5eccf94ee9505b033f",
+  "head": "ef921c106f621d1282c14e7e8b429cfda107e9c5",
+  "originMain": "8369790226f6823c1531dacff7147923611973bb",
+  "branch": "codex/feat/LBT-175-ktcloud-preview-validation",
+  "testedState": "HEAD plus uncommitted fixture Go2 files; documentation-only addendum written after execution",
+  "compiledSource": {
+    "fileCount": 530,
+    "canonicalSHA256": "7ca6d5cebf5b1332ec0e9ae7b5012238abb9b37b98bff928ca2b3ef508bf4869",
+    "canonicalAlgorithm": "SHA256 of Python json.dumps(path-to-sha256LF map, sort_keys=True).encode(UTF8); file data CRLF normalized to LF",
+    "reconstructionBase": "../2026-10-19/compiled-source-final.json",
+    "delta": [
+      {
+        "path": "tools/ktcloud-d1-acceptance/preview_transport.go",
+        "historicalSHA256LF": "66f35c21182c3fb0a9b846325d5b166193fde4bd026ef795657e1df6c5d91f0e",
+        "sha256LF": "e8658812ab81c339ab3c01e0b9f267c6736376710261f7f132bec8e73a1e7bcf"
+      },
+      {
+        "path": "tools/ktcloud-d1-acceptance/preview_transport_test.go",
+        "historicalSHA256LF": "70be9207999d7e02144b6d67844857a9fb464c9af2e5ce7480970c84252c2e34",
+        "sha256LF": "4fe16b134df97be30064cf8dd7a720cb3c9588d259fd7239117b088ce624d652"
+      }
+    ]
+  },
+  "sourceStability": {
+    "basic/basic-source-stability.json": true,
+    "basic-retry/basic-source-stability.json": true,
+    "build/build-source-stability.json": true,
+    "contracts/contracts-source-stability.json": true,
+    "contracts-final/contracts-source-stability.json": true,
+    "contracts-retry/contracts-source-stability.json": true,
+    "related/related-source-stability.json": true,
+    "related-supported/related-source-stability.json": true,
+    "web/web-source-stability.json": true
+  },
+  "binaryComparison": {
+    "labbit-connector-ktcloud": {
+      "historicalSHA256": "a55208bb895ac7c601a6d490c689a20d890e39a0d7ebef9f718e6d5a80a34dae",
+      "currentSHA256": "a55208bb895ac7c601a6d490c689a20d890e39a0d7ebef9f718e6d5a80a34dae",
+      "unchanged": true
+    },
+    "lbt145-control-linux": {
+      "historicalSHA256": "48f0e2c72e7f22d0909255553c9214ae9a2bfde3b1292bc5b417982ee4f3ed60",
+      "currentSHA256": "af2a943ecee074f548b952652fdf7ae2f0c9c85245f9bc3355df0640de75846d",
+      "unchanged": false
+    },
+    "labbit-workspace-sftp": {
+      "historicalSHA256": "ad2b6a9251b86755dbe46248099b03b1a58322656be778196a54f26b1761228a",
+      "currentSHA256": "ad2b6a9251b86755dbe46248099b03b1a58322656be778196a54f26b1761228a",
+      "unchanged": true
+    },
+    "bootstrap.exe": {
+      "historicalSHA256": "859c02fb9b6ea3e28a46b2f1e3a2c02804f5e72610dbb0d384d4dc1f8c6d300d",
+      "currentSHA256": "859c02fb9b6ea3e28a46b2f1e3a2c02804f5e72610dbb0d384d4dc1f8c6d300d",
+      "unchanged": true
+    }
+  },
+  "integration": {
+    "main": "8369790226f6823c1531dacff7147923611973bb",
+    "prHead": "ef921c106f621d1282c14e7e8b429cfda107e9c5",
+    "mergeTree": "152f7869979eae1abdd0ef1ff4bf23196422f9a3",
+    "localSourceOverrides": [
+      {
+        "path": "tools/ktcloud-d1-acceptance/preview_transport.go",
+        "sha256LF": "e8658812ab81c339ab3c01e0b9f267c6736376710261f7f132bec8e73a1e7bcf"
+      },
+      {
+        "path": "tools/ktcloud-d1-acceptance/preview_transport_test.go",
+        "sha256LF": "4fe16b134df97be30064cf8dd7a720cb3c9588d259fd7239117b088ce624d652"
+      }
+    ],
+    "command": [
+      "go",
+      "test",
+      "-mod=readonly",
+      "-race",
+      "-json",
+      "-count=1",
+      "-timeout=5m",
+      "./tools/ktcloud-d1-acceptance",
+      "./tools/ktcloud-op02-bootstrap",
+      "./internal/connector/terminal",
+      "./internal/connector/preview",
+      "./internal/connector/wss",
+      "./internal/connector/app",
+      "./internal/connector/vmaccess",
+      "./internal/server/connector",
+      "./internal/server/connectorwss",
+      "./internal/server/app"
+    ],
+    "scope": "temporary merged source INCLUDING local P2 fix; no branch modification, cloud mutation or push",
+    "exitCode": 0,
+    "seconds": 37.914
+  },
+  "notExecuted": [
+    "new KT Cloud fixture",
+    "new remote GitHub CI",
+    "PostgreSQL integration",
+    "actual Backend/SaaS/Browser C3"
+  ],
+  "authorizationState": {
+    "commitCreated": false,
+    "pushed": false,
+    "remotePRModified": false,
+    "cloudMutated": true,
+    "cloudMutationScope": "LOCAL labbit-test disposable Linux execution fixtures only; all tracked resources and helper management SG/keypair GET-absent",
+    "paidKTCloudMutated": false
+  },
+  "linuxExecution": {
+    "compiledCanonicalSHA256": "7ca6d5cebf5b1332ec0e9ae7b5012238abb9b37b98bff928ca2b3ef508bf4869",
+    "compiledFiles": 530,
+    "rawSourceFiles": 654,
+    "sourceArchiveSHA256": "1f966225692a194dda384b4d65899cad5988f5297466fb8c4adb8e2c6138bb1f",
+    "archiveManifestSHA256": "16f9025d7291b3882a7ade1626b995e18c1f558786db3e83d989ba42c204c00b",
+    "metadataSHA256": "9b8c2ae97b9f50749602ee3d6e1c6f5c915f8ec85d913915d6e2292002497ed1",
+    "actualExecution": true,
+    "sourceStableAfterChecks": true,
+    "goEnv": {
+      "CGO_ENABLED": "0",
+      "GOARCH": "amd64",
+      "GOOS": "linux",
+      "GOVERSION": "go1.27.1"
+    }
+  },
+  "remoteRefVerification": {
+    "readOnly": true,
+    "command": "git -c credential.interactive=false ls-remote --heads origin main codex/feat/LBT-175-ktcloud-preview-validation",
+    "exitCode": 0,
+    "main": "8369790226f6823c1531dacff7147923611973bb",
+    "prBranch": "ef921c106f621d1282c14e7e8b429cfda107e9c5",
+    "unchanged": true,
+    "recordedAt": "2026-10-19T01:52:39.323770+00:00"
+  }
+}

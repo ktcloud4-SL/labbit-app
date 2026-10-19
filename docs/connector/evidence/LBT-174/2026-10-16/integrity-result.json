@@ -1,0 +1,11 @@
+{
+  "sourceSHA256": "956c7d6f3b87f6d49d1b842571124da4591db40f5bc15de5c6efce9d65fe98b9",
+  "sourceFilesChecked": 495,
+  "sourceMismatches": [],
+  "completeCodePatchFiles": 15,
+  "webDiffSince96ecBase": 0,
+  "jsonParsed": 53,
+  "gzipVerified": 4,
+  "privateKeyMarkers": [],
+  "limitations": "Marker scan complements manual sensitive-data review; not a general secret-detection proof."
+}

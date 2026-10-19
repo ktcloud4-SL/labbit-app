@@ -1,0 +1,6 @@
+=== RUN   TestReviewTCPReadUnblocksAfterCloseWithResponsiveSibling
+    zz_review_close_test.go:34: pending TCP Read unblocked after Close: EOF
+    zz_review_close_test.go:44: sibling echo PASS; SSH accepted=1 active=1 users=1 retired=false idleTimer=false
+--- PASS: TestReviewTCPReadUnblocksAfterCloseWithResponsiveSibling (0.02s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess	1.587s

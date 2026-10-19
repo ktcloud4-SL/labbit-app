@@ -1,0 +1,23 @@
+{
+  "name": "postgres-integration",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-tags=integration",
+    "-p=1",
+    "-count=1",
+    "-json",
+    "-timeout=30m",
+    "./internal/postgres",
+    "./internal/postgres/postgrestest",
+    "./internal/server/app",
+    "./internal/server/auth",
+    "./internal/server/httpapi"
+  ],
+  "started": "2026-10-16T08:47:43.200482+00:00",
+  "ended": "2026-10-16T08:53:49.698722+00:00",
+  "seconds": 366.5,
+  "exitCode": 0,
+  "sourceSHA256": "61aef239f619ff8a37ba703d12668d854ef6134ac7a7bf8a59850e4628b4bc3c",
+  "sourceUnchanged": true
+}

@@ -1,0 +1,1842 @@
+diff --git a/internal/connector/app/app.go b/internal/connector/app/app.go
+index 3575558..e8335b4 100644
+--- a/internal/connector/app/app.go
++++ b/internal/connector/app/app.go
+@@ -200,38 +200,6 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
+ 		previewGatewayURL = u.String()
+ 	}
+ 
+-	// 5. Preview Forwarder 및 SessionManager 배선
+-	// 프로덕션 환경(isProduction)에서는 반드시 Provider가 preview.TCPForwarder를 구현해야 하며,
+-	// 미구현 시 DirectTCPForwarder 로 우회(fallback)하지 않고 fail-closed 처리합니다 (Blocker 1).
+-	var forwarder preview.TCPForwarder
+-	if tf, ok := p.(preview.TCPForwarder); ok {
+-		forwarder = tf
+-	} else if !isProduction {
+-		forwarder = preview.NewDirectTCPForwarder(addressResolver)
+-	} else {
+-		forwarder = nil
+-	}
+-
+-	var previewMgr *preview.SessionManager
+-	if forwarder != nil {
+-		previewMgr = preview.NewSessionManager(forwarder, nil)
+-	}
+-
+-	// Runtime HELLO Capabilities 배선 (Blocker 4):
+-	// usable한 forwarder가 준비되었을 때만 protocol.CapabilityPreviewV1을 광고합니다.
+-	if controlConfig != nil && forwarder != nil {
+-		hasCap := false
+-		for _, cap := range controlConfig.Capabilities {
+-			if cap == protocol.CapabilityPreviewV1 {
+-				hasCap = true
+-				break
+-			}
+-		}
+-		if !hasCap {
+-			controlConfig.Capabilities = append(controlConfig.Capabilities, protocol.CapabilityPreviewV1)
+-		}
+-	}
+-
+ 	prevCfg := preview.DataWSSClientConfig{
+ 		EndpointURL:   previewGatewayURL,
+ 		Credential:    credential,
+@@ -266,9 +234,31 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
+ 			return terminal.NewManagedSSHPTY(ctx, accessManager, target, cols, rows)
+ 		})
+ 	}
+-	if previewMgr != nil {
++	// Preview uses exactly the same validated VM transport as PTY/SFTP.
++	// A Provider-supplied generic TCP dialer cannot bypass this production path.
++	var forwarder preview.TCPForwarder
++	if validator, ok := p.(preview.WorkspaceValidator); accessManager != nil && ok {
++		forwarder = &preview.SSHForwarder{Access: accessManager, Validator: validator}
++	} else if !isProduction && accessManager == nil {
++		forwarder = preview.NewDirectTCPForwarder(addressResolver)
++	}
++	var previewMgr *preview.SessionManager
++	if forwarder != nil {
++		previewMgr = preview.NewSessionManager(forwarder, nil)
+ 		handler.SetPreviewManager(previewMgr, prevCfg)
+ 	}
++	if controlConfig != nil {
++		caps := make([]string, 0, len(controlConfig.Capabilities)+1)
++		for _, capability := range controlConfig.Capabilities {
++			if capability != protocol.CapabilityPreviewV1 {
++				caps = append(caps, capability)
++			}
++		}
++		if forwarder != nil {
++			caps = append(caps, protocol.CapabilityPreviewV1)
++		}
++		controlConfig.Capabilities = caps
++	}
+ 	var files *workspacefile.Service
+ 	var fileTransport *filetransport.Manager
+ 	// User-configured HELLO cannot advertise an unavailable File implementation.
+diff --git a/internal/connector/app/app_test.go b/internal/connector/app/app_test.go
+index 6ed28ae..32cb37f 100644
+--- a/internal/connector/app/app_test.go
++++ b/internal/connector/app/app_test.go
+@@ -14,6 +14,7 @@ import (
+ 	"time"
+ 
+ 	"github.com/ktcloud4-SL/labbit-app/internal/connector/mock"
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
+ 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+ 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+ 	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
+@@ -356,8 +357,23 @@ type mockProviderWithTCPForwarder struct {
+ 	mockProviderWithVMAccessResolver
+ }
+ 
+-func (m *mockProviderWithTCPForwarder) DialTCP(ctx context.Context, targetVmKey, serverID string, port int) (net.Conn, error) {
+-	return nil, nil
++func (m *mockProviderWithTCPForwarder) DialTCP(ctx context.Context, target vmaccess.Target, port int) (net.Conn, error) {
++	panic("Provider generic TCP forwarder must not be selected")
++}
++
++type mockProviderWithWorkspace struct {
++	mockProviderWithVMAccessResolver
++	validated, resolved []vmaccess.Target
++}
++
++func (p *mockProviderWithWorkspace) ValidateWorkspace(_ context.Context, target vmaccess.Target) error {
++	p.validated = append(p.validated, target)
++	return nil
++}
++
++func (p *mockProviderWithWorkspace) ResolveVMAccess(_ context.Context, target vmaccess.Target) (vmaccess.Endpoint, error) {
++	p.resolved = append(p.resolved, target)
++	return vmaccess.Endpoint{}, vmaccess.ErrInvalidTarget
+ }
+ 
+ func TestBuildConnector_Production_Preview_FailClosed_And_Capabilities(t *testing.T) {
+@@ -373,22 +389,23 @@ func TestBuildConnector_Production_Preview_FailClosed_And_Capabilities(t *testin
+ 	}
+ 
+ 	t.Setenv("LABBIT_ENV", "production")
++	t.Setenv("LABBIT_ENVIRONMENT", "production")
+ 	t.Setenv("LABBIT_SAAS_BASE_URL", "https://saas.example.com")
+ 	t.Setenv("LABBIT_CONNECTOR_CREDENTIAL_FILE", credFile)
+ 	t.Setenv("LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE", knownHostsFile)
+ 
+-	// 1. 프로덕션 환경 + Provider가 preview.TCPForwarder 미구현 -> fail-closed (PreviewManager=nil, capability 미선언)
++	// Generic TCP support cannot bypass a missing Workspace designation.
+ 	ctrlCfg1 := &wss.Config{
+ 		BaseURL:        "https://saas.example.com",
+ 		CredentialFile: credFile,
+-		Capabilities:   []string{"terminal.v1"},
++		Capabilities:   []string{"terminal.v1", protocol.CapabilityPreviewV1},
+ 	}
+-	app1, err := buildConnector(&mockProviderWithVMAccessResolver{}, sender, ctrlCfg1)
++	app1, err := buildConnector(&mockProviderWithTCPForwarder{}, sender, ctrlCfg1)
+ 	if err != nil {
+ 		t.Fatalf("buildConnector failed: %v", err)
+ 	}
+ 	if app1.PreviewManager != nil {
+-		t.Fatalf("expected PreviewManager to be nil in production when provider has no TCPForwarder")
++		t.Fatal("Preview must fail closed without Workspace validation")
+ 	}
+ 	for _, cap := range ctrlCfg1.Capabilities {
+ 		if cap == protocol.CapabilityPreviewV1 {
+@@ -396,27 +413,37 @@ func TestBuildConnector_Production_Preview_FailClosed_And_Capabilities(t *testin
+ 		}
+ 	}
+ 
+-	// 2. 프로덕션 환경 + Provider가 preview.TCPForwarder 구현 -> PreviewManager 활성화 및 capability 광고
++	defer app1.VMAccess.Close()
++	// Production needs both the VMAccess resolver and Workspace designation.
+ 	ctrlCfg2 := &wss.Config{
+ 		BaseURL:        "https://saas.example.com",
+ 		CredentialFile: credFile,
+-		Capabilities:   []string{"terminal.v1"},
++		Capabilities:   []string{"terminal.v1", protocol.CapabilityPreviewV1, protocol.CapabilityPreviewV1},
+ 	}
+-	app2, err := buildConnector(&mockProviderWithTCPForwarder{}, sender, ctrlCfg2)
++	workspaceProvider := &mockProviderWithWorkspace{}
++	app2, err := buildConnector(workspaceProvider, sender, ctrlCfg2)
+ 	if err != nil {
+ 		t.Fatalf("buildConnector failed: %v", err)
+ 	}
+ 	if app2.PreviewManager == nil {
+-		t.Fatalf("expected PreviewManager to be initialized when provider implements TCPForwarder")
++		t.Fatal("SSH Preview was not wired with VMAccess and Workspace validation")
+ 	}
+-	hasPreviewCap := false
++	defer app2.VMAccess.Close()
++	hasPreviewCap := 0
+ 	for _, cap := range ctrlCfg2.Capabilities {
+ 		if cap == protocol.CapabilityPreviewV1 {
+-			hasPreviewCap = true
+-			break
++			hasPreviewCap++
+ 		}
+ 	}
+-	if !hasPreviewCap {
++	if hasPreviewCap != 1 {
+ 		t.Fatalf("protocol.CapabilityPreviewV1 must be advertised in capabilities: got %+v", ctrlCfg2.Capabilities)
+ 	}
++	target := vmaccess.Target{LabInstanceID: "lab", Generation: 4, VMKey: "workspace", ServerID: "server"}
++	_, _, err = app2.PreviewManager.GetOrCreateSession(context.Background(),
++		protocol.PreviewOpenPayload{TargetVmKey: target.VMKey, ProviderServerID: target.ServerID, TargetPort: 3000},
++		protocol.BaseEnvelope{PreviewSessionID: "preview", LabInstanceID: target.LabInstanceID, Generation: target.Generation})
++	if !errors.Is(err, preview.ErrVMUnreachable) || len(workspaceProvider.validated) != 1 || len(workspaceProvider.resolved) != 1 ||
++		workspaceProvider.validated[0] != target || workspaceProvider.resolved[0] != target || app2.PreviewManager.Count() != 0 {
++		t.Fatal("Production Preview bypassed validated VMAccess or registered a failed tunnel")
++	}
+ }
+diff --git a/internal/connector/preview/forwarder.go b/internal/connector/preview/forwarder.go
+index ab73599..380aa0f 100644
+--- a/internal/connector/preview/forwarder.go
++++ b/internal/connector/preview/forwarder.go
+@@ -7,6 +7,9 @@ import (
+ 	"net"
+ 	"strings"
+ 	"syscall"
++	"time"
++
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+ )
+ 
+ // 미리 정의된 Preview Forwarding 표준 에러
+@@ -22,7 +25,48 @@ var (
+ // TCPForwarder 는 대상 VM의 특정 포트로 TCP 연결을 수립하는 인터페이스입니다.
+ // LBT-24(SSH Direct TCP-IP forwarding channel) 구현체 또는 테스트용 포워더를 주입받을 수 있습니다.
+ type TCPForwarder interface {
+-	DialTCP(ctx context.Context, targetVmKey, serverID string, port int) (net.Conn, error)
++	DialTCP(ctx context.Context, target vmaccess.Target, port int) (net.Conn, error)
++}
++
++// WorkspaceValidator checks the immutable creation designation in Provider.
++type WorkspaceValidator interface {
++	ValidateWorkspace(context.Context, vmaccess.Target) error
++}
++
++// SSHForwarder shares VMAccess with Terminal and File while owning only its
++// direct-tcpip channel. The Backend has already approved the exact port.
++type SSHForwarder struct {
++	Access    *vmaccess.Manager
++	Validator WorkspaceValidator
++}
++
++func (f *SSHForwarder) DialTCP(ctx context.Context, target vmaccess.Target, port int) (net.Conn, error) {
++	if port <= 0 || port > 65535 || port == 22 {
++		return nil, ErrPortRejected
++	}
++	if f == nil || f.Access == nil || f.Validator == nil {
++		return nil, ErrVMUnreachable
++	}
++	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
++	defer cancel()
++	if err := f.Validator.ValidateWorkspace(ctx, target); err != nil {
++		return nil, safeForwardError(ctx)
++	}
++	conn, err := f.Access.DialTCP(ctx, target, port)
++	if errors.Is(err, vmaccess.ErrConnectionRefused) {
++		return nil, ErrAppNotRunning
++	}
++	if err != nil {
++		return nil, safeForwardError(ctx)
++	}
++	return conn, nil
++}
++
++func safeForwardError(ctx context.Context) error {
++	if ctx.Err() != nil {
++		return errors.Join(ErrVMUnreachable, ctx.Err())
++	}
++	return ErrVMUnreachable
+ }
+ 
+ // DirectTCPForwarder 는 테스트 및 로컬 환경에서 지정된 주소 변환기를 거쳐 TCP 연결을 수립하는 TCPForwarder 기본 구현체입니다.
+@@ -39,14 +83,14 @@ func NewDirectTCPForwarder(resolver func(ctx context.Context, targetVmKey, serve
+ }
+ 
+ // DialTCP 는 대상 주소를 결정한 후 TCP 연결을 수립합니다. 포트 22번(SSH)은 보안 정책상 거절됩니다.
+-func (f *DirectTCPForwarder) DialTCP(ctx context.Context, targetVmKey, serverID string, port int) (net.Conn, error) {
++func (f *DirectTCPForwarder) DialTCP(ctx context.Context, target vmaccess.Target, port int) (net.Conn, error) {
+ 	if port <= 0 || port > 65535 || port == 22 {
+ 		return nil, fmt.Errorf("%w: port %d is not allowed", ErrPortRejected, port)
+ 	}
+ 
+ 	host := "127.0.0.1"
+ 	if f.AddressResolver != nil {
+-		resolved, err := f.AddressResolver(ctx, targetVmKey, serverID)
++		resolved, err := f.AddressResolver(ctx, target.VMKey, target.ServerID)
+ 		if err != nil {
+ 			return nil, fmt.Errorf("%w: resolve failed: %v", ErrVMUnreachable, err)
+ 		}
+diff --git a/internal/connector/preview/manager.go b/internal/connector/preview/manager.go
+index a8df6f2..972dbb0 100644
+--- a/internal/connector/preview/manager.go
++++ b/internal/connector/preview/manager.go
+@@ -8,6 +8,7 @@ import (
+ 
+ 	"github.com/gorilla/websocket"
+ 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+ )
+ 
+ // ErrSessionConflict 는 동일 세션 ID로 기존과 다른 generation/target 요청이 들어왔을 때 반환됩니다.
+@@ -83,7 +84,10 @@ func (sm *SessionManager) GetOrCreateSession(
+ 	}
+ 
+ 	// Lock 외부에서 TCP 다이얼 수행
+-	conn, err := sm.forwarder.DialTCP(ctx, payload.TargetVmKey, payload.ProviderServerID, payload.TargetPort)
++	conn, err := sm.forwarder.DialTCP(ctx, vmaccess.Target{
++		LabInstanceID: envelope.LabInstanceID, Generation: envelope.Generation,
++		VMKey: payload.TargetVmKey, ServerID: payload.ProviderServerID,
++	}, payload.TargetPort)
+ 	if err != nil {
+ 		return nil, false, err
+ 	}
+diff --git a/internal/connector/vmaccess/access.go b/internal/connector/vmaccess/access.go
+index f9a4110..7647e73 100644
+--- a/internal/connector/vmaccess/access.go
++++ b/internal/connector/vmaccess/access.go
+@@ -1,10 +1,11 @@
+ // Package vmaccess owns the customer-local SSH transport shared by a VM's
+-// independent PTY and SFTP sessions. It has no Control or file protocol policy.
++// independent PTY, SFTP and TCP forwarding channels. It has no Control policy.
+ package vmaccess
+ 
+ import (
+ 	"context"
+ 	"errors"
++	"io"
+ 	"net"
+ 	"os"
+ 	"sync"
+@@ -56,19 +57,20 @@ type Manager struct {
+ }
+ 
+ type connection struct {
+-	target    Target
+-	endpoint  Endpoint
+-	ready     chan struct{}
+-	cancel    context.CancelFunc
+-	client    *ssh.Client
+-	err       error
+-	retired   bool
+-	users     int
+-	idle      *time.Timer
+-	done      chan struct{}
+-	opening   chan struct{}
+-	closing   []*ssh.Session
+-	closeWake chan struct{}
++	target      Target
++	endpoint    Endpoint
++	ready       chan struct{}
++	cancel      context.CancelFunc
++	client      *ssh.Client
++	err         error
++	retired     bool
++	users       int
++	tcpChannels int // Includes channels awaiting peer CLOSE after EOF/caller Close.
++	idle        *time.Timer
++	done        chan struct{}
++	opening     chan struct{}
++	closing     []io.Closer
++	closeWake   chan struct{}
+ }
+ 
+ func NewManager(resolver Resolver, config Config) *Manager {
+@@ -81,11 +83,9 @@ func NewManager(resolver Resolver, config Config) *Manager {
+ 	return &Manager{resolver: resolver, config: config, entries: make(map[Target]*connection), generation: make(map[string]int64)}
+ }
+ 
+-// OpenSession revalidates Provider ownership even when a connection is cached.
+-// Simultaneous opens share one handshake; canceling a waiter leaves it alone.
+-func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, error) {
+-	ctx, cancel := context.WithTimeout(ctx, m.config.SetupTimeout)
+-	defer cancel()
++// acquire revalidates Provider ownership even when a connection is cached.
++// The caller owns one reservation, including channel setup, until release.
++func (m *Manager) acquire(ctx context.Context, target Target) (*connection, error) {
+ 	if target.LabInstanceID == "" || target.Generation < 1 || target.VMKey == "" || target.ServerID == "" || m.resolver == nil {
+ 		return nil, ErrInvalidTarget
+ 	}
+@@ -164,6 +164,17 @@ func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, err
+ 	}
+ 	c.users++ // Includes channel setup so idle expiry cannot race an open.
+ 	m.mu.Unlock()
++	return c, nil
++}
++
++// OpenSession opens an independent PTY/SFTP channel on the shared transport.
++func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, error) {
++	ctx, cancel := context.WithTimeout(ctx, m.config.SetupTimeout)
++	defer cancel()
++	c, err := m.acquire(ctx, target)
++	if err != nil {
++		return nil, err
++	}
+ 
+ 	result, err := m.channelOperation(ctx, c, func() channelResult {
+ 		s, err := c.client.NewSession()
+@@ -171,7 +182,7 @@ func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, err
+ 	})
+ 	sshSession := result.session
+ 	if ctx.Err() != nil || err != nil || result.err != nil {
+-		m.closeChannel(c, sshSession)
++		m.closeChannel(c, result.closer())
+ 		m.release(c)
+ 		return nil, m.connectionError(ctx, c)
+ 	}
+@@ -182,7 +193,7 @@ func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, err
+ 	}
+ 	m.mu.Unlock()
+ 	if err != nil {
+-		m.closeChannel(c, sshSession)
++		m.closeChannel(c, result.closer())
+ 		m.release(c)
+ 		return nil, err
+ 	}
+@@ -323,9 +334,20 @@ func (s *Session) Setup(ctx context.Context, setup func(*ssh.Session) error) err
+ 
+ type channelResult struct {
+ 	session *ssh.Session
++	conn    net.Conn
+ 	err     error
+ }
+ 
++func (r channelResult) closer() io.Closer {
++	if r.session != nil {
++		return r.session
++	}
++	if r.conn != nil {
++		return r.conn
++	}
++	return nil
++}
++
+ // The SSH API cannot cancel an open/request. Keep at most one such operation
+ // per transport; canceled waiters start no worker. The worker owns late results
+ // until the peer replies or idle expiry, invalidation or shutdown closes SSH.
+@@ -354,9 +376,9 @@ func (m *Manager) channelOperation(ctx context.Context, c *connection, operation
+ 		select {
+ 		case result <- r: // Unbuffered delivery transfers ownership to the caller.
+ 		case <-ctx.Done():
+-			m.closeChannel(c, r.session)
++			m.discardResult(c, r)
+ 		case <-c.done:
+-			m.closeChannel(c, r.session)
++			m.discardResult(c, r)
+ 		}
+ 	}()
+ 	select {
+@@ -369,6 +391,16 @@ func (m *Manager) channelOperation(ctx context.Context, c *connection, operation
+ 	}
+ }
+ 
++func (m *Manager) discardResult(c *connection, result channelResult) {
++	if result.conn != nil {
++		// TCP results are managed pipes: close locally even if the transport's
++		// raw SSH close writer is stalled on an earlier channel.
++		_ = result.conn.Close()
++		return
++	}
++	m.closeChannel(c, result.closer())
++}
++
+ func (m *Manager) connectionError(ctx context.Context, c *connection) error {
+ 	m.mu.Lock()
+ 	err := m.targetErrorLocked(c.target)
+@@ -379,13 +411,13 @@ func (m *Manager) connectionError(ctx context.Context, c *connection) error {
+ 	return safeError(ctx, err)
+ }
+ 
+-func (m *Manager) closeChannel(c *connection, session *ssh.Session) {
++func (m *Manager) closeChannel(c *connection, session io.Closer) {
+ 	m.mu.Lock()
+ 	defer m.mu.Unlock()
+ 	m.closeChannelLocked(c, session)
+ }
+ 
+-func (m *Manager) closeChannelLocked(c *connection, session *ssh.Session) {
++func (m *Manager) closeChannelLocked(c *connection, session io.Closer) {
+ 	if session == nil || c.retired {
+ 		return
+ 	}
+@@ -405,7 +437,7 @@ func (m *Manager) closeChannels(c *connection) {
+ 			m.mu.Unlock()
+ 			return
+ 		}
+-		var session *ssh.Session
++		var session io.Closer
+ 		if len(c.closing) > 0 {
+ 			session = c.closing[0]
+ 			c.closing[0] = nil
+diff --git a/internal/connector/vmaccess/access_test.go b/internal/connector/vmaccess/access_test.go
+index 9afbe43..59061be 100644
+--- a/internal/connector/vmaccess/access_test.go
++++ b/internal/connector/vmaccess/access_test.go
+@@ -38,6 +38,15 @@ type sshPeer struct {
+ 	openCount    atomic.Int64
+ 	heldOpen     chan ssh.NewChannel
+ 	heldRequest  chan string
++	forwarded    chan tcpRequest
++	rejectTCP    atomic.Int64
++}
++
++type tcpRequest struct {
++	Host       string
++	Port       uint32
++	OriginHost string
++	OriginPort uint32
+ }
+ 
+ func newSSHPeer(t *testing.T) *sshPeer {
+@@ -68,7 +77,7 @@ func newSSHPeer(t *testing.T) *sshPeer {
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
+-	p := &sshPeer{listener: listener, heldOpen: make(chan ssh.NewChannel, 64), heldRequest: make(chan string, 64), endpoint: Endpoint{ProviderConnectionID: "provider-1", Address: listener.Addr().String(), Username: "test-user", PrivateKeyFile: keyFile, HostKeyCallback: ssh.FixedHostKey(host.PublicKey())}}
++	p := &sshPeer{listener: listener, heldOpen: make(chan ssh.NewChannel, 64), heldRequest: make(chan string, 64), forwarded: make(chan tcpRequest, 64), endpoint: Endpoint{ProviderConnectionID: "provider-1", Address: listener.Addr().String(), Username: "test-user", PrivateKeyFile: keyFile, HostKeyCallback: ssh.FixedHostKey(host.PublicKey())}}
+ 	t.Cleanup(func() { _ = listener.Close(); p.disconnect() })
+ 	go func() {
+ 		for {
+@@ -96,6 +105,29 @@ func newSSHPeer(t *testing.T) *sshPeer {
+ 						p.heldOpen <- next
+ 						continue
+ 					}
++					if next.ChannelType() == "direct-tcpip" {
++						var target tcpRequest
++						if err := ssh.Unmarshal(next.ExtraData(), &target); err != nil {
++							_ = next.Reject(ssh.ConnectionFailed, "invalid target")
++							continue
++						}
++						p.forwarded <- target
++						if mode := p.rejectTCP.Load(); mode != 0 {
++							reason, message := ssh.ConnectionFailed, "connect failed: Connection refused (private detail)"
++							if mode == 2 {
++								reason, message = ssh.Prohibited, "private forwarding policy detail"
++							}
++							_ = next.Reject(reason, message)
++							continue
++						}
++						ch, reqs, err := next.Accept()
++						if err != nil {
++							return
++						}
++						go ssh.DiscardRequests(reqs)
++						go func() { defer ch.Close(); _, _ = io.Copy(ch, ch) }()
++						continue
++					}
+ 					channel, requests, err := next.Accept()
+ 					if err != nil {
+ 						return
+diff --git a/runtime/contract.yaml b/runtime/contract.yaml
+index e8bb708..b2c1af9 100644
+--- a/runtime/contract.yaml
++++ b/runtime/contract.yaml
+@@ -652,7 +652,7 @@ connector:
+       required: false
+       secret: false
+       default: "1m"
+-      note: "VM별 공유 SSH Connection에 열린 PTY/SFTP Channel이 없을 때 종료까지의 시간입니다. 양수 Go duration만 허용하며 TerminalSession의 PTY grace와 독립입니다."
++      note: "VM별 공유 SSH Connection에 열린 PTY/SFTP/Preview TCP forwarding Channel이 없을 때 종료까지의 시간입니다. 양수 Go duration만 허용하며 TerminalSession의 PTY grace와 독립입니다."
+   heartbeat:
+     interval: "15s"
+     saas_offline_after: "45s"
+diff --git a/tools/ktcloud-d1-acceptance/main.go b/tools/ktcloud-d1-acceptance/main.go
+index 7fdc5ba..2c043cc 100644
+--- a/tools/ktcloud-d1-acceptance/main.go
++++ b/tools/ktcloud-d1-acceptance/main.go
+@@ -202,6 +202,15 @@ func run() (runErr error) {
+ 	}
+ 	journalPath = filepath.Join(workspace, "control-ledger.json")
+ 	recovery := os.Getenv("LBT145_CONTROL_RECOVERY") == "1"
++	previewSmoke := os.Getenv("LABBIT_KTCLOUD_PREVIEW_SMOKE") == "1"
++	if err := validatePreviewScope(previewSmoke, op02Enabled(), generations, recovery); err != nil {
++		return err
++	}
++	strictRuntime := op02Enabled() || previewSmoke
++	runtimeStagePrefix := "OP02"
++	if previewSmoke {
++		runtimeStagePrefix = "PREVIEW"
++	}
+ 	if op02Enabled() && (generations != 2 || recovery) {
+ 		return errors.New("OP02 requires a fresh two-generation fixture")
+ 	}
+@@ -284,13 +293,13 @@ func run() (runErr error) {
+ 		go func() { done <- command.Wait() }()
+ 		select {
+ 		case waitErr := <-done:
+-			if op02 != nil {
++			if strictRuntime {
+ 				if waitErr != nil {
+ 					journal.Passed = false
+ 					runErr = errors.Join(runErr, errors.New("production Connector did not exit successfully"))
+-					_ = save("OP02_CONNECTOR_SHUTDOWN_FAILED")
++					_ = save(runtimeStagePrefix + "_CONNECTOR_SHUTDOWN_FAILED")
+ 				} else {
+-					if err := save("OP02_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS"); err != nil {
++					if err := save(runtimeStagePrefix + "_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS"); err != nil {
+ 						runErr = errors.Join(runErr, err)
+ 					}
+ 					fmt.Println("Production Connector shutdown: exited successfully within 5s; forcedKill=false")
+@@ -304,10 +313,10 @@ func run() (runErr error) {
+ 			case <-done:
+ 			case <-time.After(5 * time.Second):
+ 			}
+-			if op02 != nil {
++			if strictRuntime {
+ 				journal.Passed = false
+ 				runErr = errors.Join(runErr, errors.New("production Connector required forced shutdown"))
+-				_ = save("OP02_CONNECTOR_FORCED_SHUTDOWN_FAILED")
++				_ = save(runtimeStagePrefix + "_CONNECTOR_FORCED_SHUTDOWN_FAILED")
+ 			}
+ 		}
+ 	}()
+@@ -322,6 +331,11 @@ func run() (runErr error) {
+ 			return e
+ 		}
+ 	}
++	if previewSmoke {
++		if e = requirePreviewCapability(hello); e != nil {
++			return e
++		}
++	}
+ 	journal.Hello = true
+ 	for !journal.Heartbeat {
+ 		select {
+@@ -404,10 +418,10 @@ func run() (runErr error) {
+ 			})
+ 		if err != nil {
+ 			fmt.Println("CONTROL TEARDOWN NEEDS ATTENTION; safe tracked-ID ledger retained")
+-			if op02 != nil {
++			if strictRuntime {
+ 				journal.Passed = false
+ 				runErr = errors.Join(runErr, errors.New("owned Control fixture cleanup did not finish"))
+-				_ = save("OP02_OWNED_CLEANUP_FAILED")
++				_ = save(runtimeStagePrefix + "_OWNED_CLEANUP_FAILED")
+ 			}
+ 		}
+ 	}()
+@@ -432,6 +446,11 @@ func run() (runErr error) {
+ 	if e = save("GENERATION1_RECONCILE_PASS"); e != nil {
+ 		return e
+ 	}
++	if previewSmoke {
++		if e = provePreviewForwarding(ctx, firstRefs, 1, ""); e != nil {
++			return e
++		}
++	}
+ 	if op02 != nil {
+ 		if e = op02.normal(ctx, firstRefs, 1); e != nil {
+ 			return op02Error("generation1", e)
+@@ -501,6 +520,11 @@ func run() (runErr error) {
+ 	if e = save("RESET_TARGET_CHANGED_OLD_ABSENT_NEW_PRESENT_PASS"); e != nil {
+ 		return e
+ 	}
++	if previewSmoke {
++		if e = provePreviewForwarding(ctx, secondRefs, 2, oldServer); e != nil {
++			return e
++		}
++	}
+ 	if op02 != nil {
+ 		if e = op02.stale(ctx, oldServer, 1); e != nil {
+ 			return e
+@@ -571,6 +595,9 @@ func run() (runErr error) {
+ 		}
+ 	}
+ 	journal.Passed = true
++	if previewSmoke {
++		return save("KT_PREVIEW_FORWARDING_SMOKE_PASS_OWNED_LAB_RESIDUAL_0")
++	}
+ 	return save("REAL_PRODUCTION_CONNECTOR_WSS_LIFECYCLE_PASS_OWNED_RESIDUAL_0")
+ }
+ func main() {
+diff --git a/tools/ktcloud-op02-bootstrap/README.md b/tools/ktcloud-op02-bootstrap/README.md
+index 8bb798d..3420051 100644
+--- a/tools/ktcloud-op02-bootstrap/README.md
++++ b/tools/ktcloud-op02-bootstrap/README.md
+@@ -95,3 +95,14 @@ does not adopt candidates or attempt SSH/cleanup. Other diagnostic/force-delete
+ functions copied from the historical source are excluded from the phase allowlist.
+ Logs and protected inputs stay outside Git; publish
+ only reviewed lifecycle metadata and hashes.
++
++For the standalone LBT-173 Preview forwarding smoke, set
++`LBT173_BOOTSTRAP_PREVIEW_SMOKE=1` before `deploy`. This selects
++`LABBIT_KTCLOUD_PREVIEW_SMOKE=1` and disables OP-02. The fresh two-generation
++Control lifecycle remains the same. Each generation starts an HTTP fixture on
++VM loopback port 3000, then uses the production SSHForwarder and VMAccess library
++on the Connector host to check exact HTTP response, shared SSH transport,
++PTY/SFTP survival after forwarding close, target/port guards and refused app
++classification. Reset verifies old target rejection. Preview Data WSS, Browser
++and Backend acceptance are separate. Recovery explicitly clears both test modes
++and only observes/cleans recorded owned IDs. No app port is exposed publicly.
+diff --git a/tools/ktcloud-op02-bootstrap/deploy.go b/tools/ktcloud-op02-bootstrap/deploy.go
+index ab12fdf..04b47fb 100644
+--- a/tools/ktcloud-op02-bootstrap/deploy.go
++++ b/tools/ktcloud-op02-bootstrap/deploy.go
+@@ -645,6 +645,9 @@ func deployControl(ctx context.Context) error {
+ 		"LABBIT_WORKSPACE_ROOT":        "/var/lib/labbit-workspaces/workspace",
+ 		"LABBIT_WORKSPACE_SFTP_HELPER": "/usr/local/libexec/labbit-workspace-sftp",
+ 	}
++	op02Mode, previewMode := fixtureModes(os.Getenv("LBT173_BOOTSTRAP_PREVIEW_SMOKE") == "1")
++	vars["LABBIT_KTCLOUD_OP02_TEST"] = op02Mode
++	vars["LABBIT_KTCLOUD_PREVIEW_SMOKE"] = previewMode
+ 	var env strings.Builder
+ 	for k, v := range vars {
+ 		if strings.ContainsAny(v, "'\r\n") {
+@@ -742,14 +745,22 @@ func archiveControl(ctx context.Context) error {
+ func controlCommand(recovery, readOnly bool) string {
+ 	mode := ""
+ 	if recovery {
+-		mode = "export LABBIT_KTCLOUD_OP02_TEST=0 LBT145_CONTROL_RECOVERY=1 LBT145_CONTROL_RECOVERY_READ_ONLY=0; "
++		mode = "export LABBIT_KTCLOUD_OP02_TEST=0 LABBIT_KTCLOUD_PREVIEW_SMOKE=0 LBT145_CONTROL_RECOVERY=1 LBT145_CONTROL_RECOVERY_READ_ONLY=0; "
+ 		if readOnly {
+-			mode = "export LABBIT_KTCLOUD_OP02_TEST=0 LBT145_CONTROL_RECOVERY=1 LBT145_CONTROL_RECOVERY_READ_ONLY=1; "
++			mode = "export LABBIT_KTCLOUD_OP02_TEST=0 LABBIT_KTCLOUD_PREVIEW_SMOKE=0 LBT145_CONTROL_RECOVERY=1 LBT145_CONTROL_RECOVERY_READ_ONLY=1; "
+ 		}
+ 	}
+ 	return ". " + remoteControl + "/environment; cd " + remoteControl + "; " + mode + "umask 077; exec timeout --signal=TERM --kill-after=30s 45m ./control-harness"
+ }
+ 
++// Existing OP02 remains the default; Preview smoke has its own exclusive gate.
++func fixtureModes(preview bool) (op02Mode, previewMode string) {
++	if preview {
++		return "0", "1"
++	}
++	return "1", "0"
++}
++
+ func runControlCommand(ctx context.Context, recovery, readOnly bool) error {
+ 	client, err := connectSSH(ctx)
+ 	if err != nil {
+diff --git a/internal/connector/preview/forwarder_test.go b/internal/connector/preview/forwarder_test.go
+new file mode 100644
+index 0000000..325ade7
+--- /dev/null
++++ b/internal/connector/preview/forwarder_test.go
+@@ -0,0 +1,109 @@
++package preview
++
++import (
++	"context"
++	"errors"
++	"net"
++	"strings"
++	"testing"
++	"time"
++
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
++)
++
++type forwardingFunc func(context.Context, vmaccess.Target, int) (net.Conn, error)
++
++func (f forwardingFunc) DialTCP(ctx context.Context, target vmaccess.Target, port int) (net.Conn, error) {
++	return f(ctx, target, port)
++}
++
++type workspaceValidatorFunc func(context.Context, vmaccess.Target) error
++
++func (f workspaceValidatorFunc) ValidateWorkspace(ctx context.Context, target vmaccess.Target) error {
++	return f(ctx, target)
++}
++
++type accessResolverFunc func(context.Context, vmaccess.Target) (vmaccess.Endpoint, error)
++
++func (f accessResolverFunc) ResolveVMAccess(ctx context.Context, target vmaccess.Target) (vmaccess.Endpoint, error) {
++	return f(ctx, target)
++}
++
++func TestSessionManagerForwardsFullControlTarget(t *testing.T) {
++	expected := vmaccess.Target{LabInstanceID: "lab", Generation: 7, VMKey: "workspace", ServerID: "server"}
++	manager := NewSessionManager(forwardingFunc(func(_ context.Context, target vmaccess.Target, port int) (net.Conn, error) {
++		if target != expected || port != 5000 {
++			t.Fatalf("control target lost: %+v port=%d", target, port)
++		}
++		return nil, ErrAppNotRunning
++	}), nil)
++	_, _, err := manager.GetOrCreateSession(context.Background(), protocol.PreviewOpenPayload{TargetVmKey: expected.VMKey, ProviderServerID: expected.ServerID, TargetPort: 5000}, protocol.BaseEnvelope{PreviewSessionID: "preview", LabInstanceID: expected.LabInstanceID, Generation: expected.Generation})
++	if !errors.Is(err, ErrAppNotRunning) || manager.Count() != 0 {
++		t.Fatal("failed dial registered a session")
++	}
++}
++
++func TestSSHForwarderGuardsWorkspacePortAndSanitizesErrors(t *testing.T) {
++	expected := vmaccess.Target{LabInstanceID: "lab", Generation: 7, VMKey: "workspace", ServerID: "server"}
++	var validations, resolutions int
++	access := vmaccess.NewManager(accessResolverFunc(func(_ context.Context, target vmaccess.Target) (vmaccess.Endpoint, error) {
++		resolutions++
++		if target != expected {
++			t.Fatal("resolver target changed")
++		}
++		return vmaccess.Endpoint{}, errors.New("private provider endpoint/key detail")
++	}), vmaccess.Config{})
++	defer access.Close()
++	var reject bool
++	f := &SSHForwarder{Access: access, Validator: workspaceValidatorFunc(func(_ context.Context, target vmaccess.Target) error {
++		validations++
++		if target != expected {
++			t.Fatal("validator target changed")
++		}
++		if reject {
++			return errors.New("private Workspace metadata")
++		}
++		return nil
++	})}
++	for _, port := range []int{-1, 0, 22, 65536} {
++		if _, err := f.DialTCP(context.Background(), expected, port); !errors.Is(err, ErrPortRejected) {
++			t.Fatal("unsafe port accepted")
++		}
++	}
++	if validations != 0 || resolutions != 0 {
++		t.Fatal("port rejection reached Provider")
++	}
++	reject = true
++	if _, err := f.DialTCP(context.Background(), expected, 80); !errors.Is(err, ErrVMUnreachable) || strings.Contains(err.Error(), "private") {
++		t.Fatal("unsafe Workspace error")
++	}
++	if resolutions != 0 {
++		t.Fatal("non-Workspace target reached SSH resolver")
++	}
++	reject = false
++	for _, port := range []int{80, 3000, 5000, 65535} {
++		if _, err := f.DialTCP(context.Background(), expected, port); !errors.Is(err, ErrVMUnreachable) || strings.Contains(err.Error(), "private") {
++			t.Fatal("unsafe Provider error")
++		}
++	}
++	if resolutions != 4 {
++		t.Fatal("connector introduced an application port allowlist")
++	}
++}
++
++func TestSSHForwarderCancellationAndUnavailableConfiguration(t *testing.T) {
++	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
++	defer cancel()
++	access := vmaccess.NewManager(nil, vmaccess.Config{})
++	defer access.Close()
++	f := &SSHForwarder{Access: access, Validator: workspaceValidatorFunc(func(ctx context.Context, _ vmaccess.Target) error { <-ctx.Done(); return ctx.Err() })}
++	if _, err := f.DialTCP(ctx, vmaccess.Target{}, 8080); !errors.Is(err, ErrVMUnreachable) || !errors.Is(err, context.DeadlineExceeded) {
++		t.Fatalf("cancellation classification: %v", err)
++	}
++	for _, f := range []*SSHForwarder{nil, {}, {Access: access}} {
++		if _, err := f.DialTCP(context.Background(), vmaccess.Target{}, 8080); !errors.Is(err, ErrVMUnreachable) {
++			t.Fatal("unconfigured SSH forwarder accepted")
++		}
++	}
++}
+diff --git a/internal/connector/provider/openstack/preview_forwarding_integration_test.go b/internal/connector/provider/openstack/preview_forwarding_integration_test.go
+new file mode 100644
+index 0000000..be1434b
+--- /dev/null
++++ b/internal/connector/provider/openstack/preview_forwarding_integration_test.go
+@@ -0,0 +1,191 @@
++package openstackprovider
++
++import (
++	"bufio"
++	"context"
++	"errors"
++	"fmt"
++	"io"
++	"net/http"
++	"os"
++	"testing"
++	"time"
++
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
++	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
++	"golang.org/x/crypto/ssh"
++)
++
++// Opt-in disposable LOCAL OpenStack test. HTTP listens only inside the VM;
++// the sole access path is production SSHForwarder/direct-tcpip. No Gateway,
++// SaaS or KT Cloud acceptance is implied. Teardown uses exact tracked IDs.
++func TestOpenStackPreviewForwardingIntegration(t *testing.T) {
++	if os.Getenv("LABBIT_OPENSTACK_PREVIEW_TEST") != "1" {
++		t.Skip("set LABBIT_OPENSTACK_PREVIEW_TEST=1 for disposable local OpenStack forwarding acceptance")
++	}
++	ctx, cancel := context.WithTimeout(context.Background(), 14*time.Minute)
++	defer cancel()
++	a, err := New(ctx, ConfigFromEnvironment())
++	if err != nil {
++		t.Fatal("Provider initialization failed")
++	}
++	images, err := a.ListImages(ctx)
++	if err != nil {
++		t.Fatal("image discovery failed")
++	}
++	flavors, err := a.ListFlavors(ctx)
++	if err != nil {
++		t.Fatal("flavor discovery failed")
++	}
++	networks, err := a.ListNetworks(ctx)
++	if err != nil {
++		t.Fatal("network discovery failed")
++	}
++	image := exactImage(t, images, environmentOrDefault("LABBIT_OPENSTACK_TEST_IMAGE", "ubuntu"))
++	flavor := exactFlavor(t, flavors, environmentOrDefault("LABBIT_OPENSTACK_TEST_FLAVOR", "m1.small"))
++	management := exactNetwork(t, networks, environmentOrDefault("LABBIT_OPENSTACK_TEST_MANAGEMENT_NETWORK", "sharednet1"))
++	keyFile := a.provision.SSHPrivateKeyFile
++	keypair := integrationKeyPairName(t, ctx, a, keyFile)
++	allowed := environmentOrDefault("LABBIT_OPENSTACK_TEST_SSH_CIDR", "172.16.8.1/32")
++	sg := integrationManagementSecurityGroup(t, ctx, a, allowed)
++	a.provision = normalizedProvisionConfig(ProvisionConfig{
++		ProviderConnectionID: "local-integration", ProjectID: integrationProjectID(t, a),
++		ManagementNetworkID: management.ID, ManagementSecurityGroupID: sg,
++		KeyPairName: keypair, SSHAllowedCIDR: allowed,
++		LabSubnetCIDR: environmentOrDefault("LABBIT_OPENSTACK_TEST_LAB_CIDR", "198.20.0.0/24"),
++		SSHUsername:   a.provision.SSHUsername, SSHPrivateKeyFile: keyFile,
++		SSHKnownHostsFile: t.TempDir() + "/known_hosts", PollInterval: 2 * time.Second,
++	})
++	snapshot := coreprovider.CreationSnapshot{ProviderConnectionID: "local-integration", WorkspaceVMKey: "workspace",
++		VMs: []coreprovider.VMSpec{{VMKey: "workspace", Role: "WORKSPACE", ImageID: image.ID, FlavorID: flavor.ID,
++			FlavorSpec: coreprovider.FlavorSpec{VCPUs: flavor.VCPUs, RAMMiB: flavor.RAMMiB, DiskGiB: flavor.DiskGiB}}}}
++	labID := "lbt173-" + integrationRunID(t)
++	var tracked []coreprovider.ResourceResult
++	t.Cleanup(func() {
++		cleanupM2Resources(t, a, tracked)
++		t.Logf("Exact tracked VM/network/port/SG absence verified after cleanup: resources=%d", len(tracked))
++	})
++	created, err := a.Provision(ctx, coreprovider.ProvisionRequest{
++		Correlation: coreprovider.Correlation{OperationID: labID + "-provision", LabInstanceID: labID, Generation: 1}, CreationSnapshot: snapshot,
++	})
++	tracked = append(tracked, created.ProviderResources...)
++	if err != nil || created.Outcome != coreprovider.OutcomeSucceeded {
++		t.Fatal("disposable Workspace Provision failed")
++	}
++	t.Log("Local OpenStack Workspace ACTIVE, authenticated SSH ready and host key enrolled")
++	target := vmaccess.Target{LabInstanceID: labID, Generation: 1, VMKey: "workspace", ServerID: providerResourceID(t, created.ProviderResources, coreprovider.ResourceTypeServer, "workspace")}
++	access := vmaccess.NewManager(a, vmaccess.Config{IdleTimeout: 100 * time.Millisecond})
++	defer access.Close()
++	forwarder := &preview.SSHForwarder{Access: access, Validator: a}
++	server := realOpenSession(t, ctx, access, target)
++	defer server.Close()
++	var stdout io.Reader
++	if err := server.Setup(ctx, func(raw *ssh.Session) error {
++		var err error
++		stdout, err = raw.StdoutPipe()
++		if err != nil {
++			return err
++		}
++		raw.Stderr = io.Discard
++		return raw.Start("exec python3 -u -c 'from http.server import BaseHTTPRequestHandler, HTTPServer; exec(\"class Handler(BaseHTTPRequestHandler):\\n def do_GET(self):\\n  body=b\\\"LBT173-HTTP-OK\\\"; self.send_response(200); self.send_header(\\\"Content-Length\\\",str(len(body))); self.end_headers(); self.wfile.write(body)\\n def log_message(self,*args): pass\"); server=HTTPServer((\"127.0.0.1\",3000),Handler); print(\"READY\",flush=True); server.serve_forever()'")
++	}); err != nil {
++		t.Fatal("HTTP fixture setup failed")
++	}
++	ready := make(chan bool, 1)
++	go func() {
++		line, err := bufio.NewReader(stdout).ReadString('\n')
++		ready <- err == nil && line == "READY\n"
++	}()
++	select {
++	case ok := <-ready:
++		if !ok {
++			t.Fatal("HTTP fixture did not start")
++		}
++	case <-time.After(10 * time.Second):
++		t.Fatal("HTTP fixture startup timed out")
++	}
++	pty, err := terminal.NewManagedSSHPTY(ctx, access, target, 80, 24)
++	if err != nil {
++		t.Fatal("sibling PTY setup failed")
++	}
++	defer pty.Close()
++	sftp, fileSession := workspaceFixtureSFTP(t, ctx, access, target)
++	defer fileSession.Close()
++	defer sftp.Close()
++	identity := realSSHConnection(t, ctx, access, target)
++	for range 2 {
++		conn, err := forwarder.DialTCP(ctx, target, 3000)
++		if err != nil {
++			t.Fatalf("SSH forwarding failed: %v", err)
++		}
++		func() {
++			defer conn.Close()
++			// Bound a stalled fixture response through the managed stream Close.
++			stop := time.AfterFunc(10*time.Second, func() { _ = conn.Close() })
++			defer stop.Stop()
++			if _, err := fmt.Fprint(conn, "GET / HTTP/1.1\r\nHost: fixture\r\nConnection: close\r\n\r\n"); err != nil {
++				t.Fatal("forwarded HTTP write failed")
++			}
++			response, err := http.ReadResponse(bufio.NewReader(conn), nil)
++			if err != nil {
++				t.Fatal("forwarded HTTP read failed")
++			}
++			defer response.Body.Close()
++			body, err := io.ReadAll(io.LimitReader(response.Body, 128))
++			if err != nil || response.StatusCode != 200 || string(body) != "LBT173-HTTP-OK" {
++				t.Fatal("forwarded HTTP response mismatch")
++			}
++		}()
++	}
++	if identity != realSSHConnection(t, ctx, access, target) {
++		t.Fatal("Preview replaced shared SSH transport")
++	}
++	if _, err := pty.Write([]byte("printf 'LBT147-%s\\n' 'PTY-OK'\n")); err != nil {
++		t.Fatal("sibling PTY write failed")
++	}
++	assertPTYMarker(t, pty)
++	if _, err := sftp.Stat("."); err != nil {
++		t.Fatal("sibling SFTP broken after Preview close")
++	}
++	t.Log("SSH direct-tcpip loopback:3000 HTTP 200 exact body twice; same SSH transport; PTY and SFTP survive Preview close PASS")
++	for _, bad := range []vmaccess.Target{
++		{LabInstanceID: "wrong", Generation: 1, VMKey: target.VMKey, ServerID: target.ServerID},
++		{LabInstanceID: labID, Generation: 2, VMKey: target.VMKey, ServerID: target.ServerID},
++		{LabInstanceID: labID, Generation: 1, VMKey: "other", ServerID: target.ServerID},
++		{LabInstanceID: labID, Generation: 1, VMKey: target.VMKey, ServerID: "missing-server"},
++	} {
++		if _, err := forwarder.DialTCP(ctx, bad, 3000); !errors.Is(err, preview.ErrVMUnreachable) {
++			t.Fatal("invalid real Provider target accepted")
++		}
++	}
++	for _, port := range []int{-1, 0, 22, 65536} {
++		if _, err := forwarder.DialTCP(ctx, target, port); !errors.Is(err, preview.ErrPortRejected) {
++			t.Fatal("unsafe Preview port accepted")
++		}
++	}
++	if _, err := forwarder.DialTCP(ctx, target, 3001); !errors.Is(err, preview.ErrAppNotRunning) {
++		t.Fatal("closed application port not classified")
++	}
++	t.Log("Wrong LabInstance/generation/VM/server rejected; invalid/22 ports rejected; real closed app port -> APP_NOT_RUNNING PASS")
++	// Actual reset supplies a positive older generation and a replaced Server ID.
++	_ = sftp.Close()
++	_ = fileSession.Close()
++	_ = pty.Close()
++	_ = server.Close()
++	access.InvalidateBefore(labID, 2)
++	reset, err := a.Reset(ctx, coreprovider.ResetRequest{Correlation: coreprovider.Correlation{OperationID: labID + "-reset", LabInstanceID: labID, Generation: 2}, CreationSnapshot: snapshot, ProviderResources: resourceRefs(created.ProviderResources, 1)})
++	tracked = append(tracked, reset.ProviderResources...)
++	if err != nil || reset.Outcome != coreprovider.OutcomeSucceeded {
++		t.Fatal("disposable Workspace Reset failed")
++	}
++	if _, err := forwarder.DialTCP(ctx, target, 3000); !errors.Is(err, preview.ErrVMUnreachable) {
++		t.Fatal("old generation target accepted after Reset")
++	}
++	newTarget := vmaccess.Target{LabInstanceID: labID, Generation: 2, VMKey: "workspace", ServerID: providerResourceID(t, resourceResultsForGeneration(reset.ProviderResources, 2), coreprovider.ResourceTypeServer, "workspace")}
++	if _, err := forwarder.DialTCP(ctx, newTarget, 3000); !errors.Is(err, preview.ErrAppNotRunning) {
++		t.Fatal("new VM was not independently reached")
++	}
++	t.Log("Real Reset gen1->gen2: stale target rejected; new VM fresh SSH and closed application port confirmed PASS")
++}
+diff --git a/internal/connector/vmaccess/tcp.go b/internal/connector/vmaccess/tcp.go
+new file mode 100644
+index 0000000..8370813
+--- /dev/null
++++ b/internal/connector/vmaccess/tcp.go
+@@ -0,0 +1,145 @@
++package vmaccess
++
++import (
++	"context"
++	"errors"
++	"io"
++	"net"
++	"strings"
++	"sync"
++
++	"golang.org/x/crypto/ssh"
++)
++
++// ErrConnectionRefused distinguishes a reached VM with no listening app.
++var ErrConnectionRefused = errors.New("VM application connection refused")
++
++// Includes setup, stream pumps and channels awaiting the peer's SSH CLOSE.
++// Never accumulate unbounded channels/workers on a shared SSH transport.
++const maxTCPChannels = 16
++
++// DialTCP opens direct-tcpip to the VM's own loopback, never a supplied host.
++// Context bounds setup only; the returned connection owns its channel until
++// Close, transport failure, generation invalidation or Manager shutdown.
++func (m *Manager) DialTCP(ctx context.Context, target Target, port int) (net.Conn, error) {
++	if port < 1 || port > 65535 || port == 22 {
++		return nil, ErrInvalidTarget
++	}
++	ctx, cancel := context.WithTimeout(ctx, m.config.SetupTimeout)
++	defer cancel()
++	c, err := m.acquire(ctx, target)
++	if err != nil {
++		return nil, err
++	}
++	releaseUser := sync.OnceFunc(func() { m.release(c) })
++	result, err := m.channelOperation(ctx, c, func() channelResult {
++		// Only an actual worker reserves a slot. Waiting canceled callers
++		// never allocate one; late successes retain theirs until SSH CLOSE.
++		m.mu.Lock()
++		if ctx.Err() != nil || c.retired || c.tcpChannels >= maxTCPChannels {
++			m.mu.Unlock()
++			return channelResult{err: ErrUnavailable}
++		}
++		c.tcpChannels++
++		m.mu.Unlock()
++		// RFC 4254 section 7.2: exact loopback destination, no caller host.
++		payload := struct {
++			Destination string
++			Port        uint32
++			Origin      string
++			OriginPort  uint32
++		}{"127.0.0.1", uint32(port), "0.0.0.0", 0}
++		channel, requests, err := c.client.OpenChannel("direct-tcpip", ssh.Marshal(payload))
++		if err != nil {
++			m.releaseTCP(c)
++			return channelResult{err: err}
++		}
++		closed := make(chan struct{})
++		go func() {
++			ssh.DiscardRequests(requests)
++			close(closed) // EOF alone does not release x/crypto's channel map.
++		}()
++		// Even a late success owns its slot until pumps and SSH channel exit.
++		return channelResult{conn: m.tcpStream(c, channel, closed, port, releaseUser)}
++	})
++	if ctx.Err() != nil || err != nil || result.err != nil {
++		m.discardResult(c, result)
++		releaseUser()
++		var refused *ssh.OpenChannelError
++		if ctx.Err() == nil && err == nil && errors.As(result.err, &refused) &&
++			refused.Reason == ssh.ConnectionFailed && strings.Contains(strings.ToLower(refused.Message), "connection refused") {
++			return nil, ErrConnectionRefused
++		}
++		return nil, m.connectionError(ctx, c)
++	}
++	m.mu.Lock()
++	err = m.targetErrorLocked(target)
++	if c.retired && err == nil {
++		err = ErrUnavailable
++	}
++	m.mu.Unlock()
++	if err != nil {
++		m.discardResult(c, result)
++		releaseUser()
++		return nil, err
++	}
++	return result.conn, nil
++}
++
++func (m *Manager) releaseTCP(c *connection) {
++	m.mu.Lock()
++	c.tcpChannels--
++	m.mu.Unlock()
++}
++
++// x/crypto's channel Close cannot interrupt a local Read without a peer CLOSE.
++// The pipe gives callers local cancellation/deadlines without retiring sibling
++// channels. At most maxTCPChannels channels/pump pairs belong to this transport;
++// idle expiry, invalidation and shutdown also reap non-cooperating peers.
++func (m *Manager) tcpStream(c *connection, raw io.ReadWriteCloser, closed <-chan struct{}, port int, release func()) net.Conn {
++	caller, bridge := net.Pipe()
++	stream := &tcpConnection{Conn: caller, bridge: bridge, raw: raw, manager: m, connection: c, port: port, release: release}
++	var pumps sync.WaitGroup
++	pumps.Add(2)
++	go func() {
++		defer pumps.Done()
++		_, _ = io.Copy(raw, bridge)
++		_ = stream.Close()
++	}()
++	go func() {
++		defer pumps.Done()
++		_, _ = io.Copy(bridge, raw)
++		_ = stream.Close()
++	}()
++	go func() { pumps.Wait(); <-closed; m.releaseTCP(c) }()
++	return stream
++}
++
++type tcpConnection struct {
++	net.Conn
++	bridge     net.Conn
++	raw        io.ReadWriteCloser
++	manager    *Manager
++	connection *connection
++	port       int
++	release    func()
++	once       sync.Once
++}
++
++// Close queues potentially blocking SSH writes without closing sibling channels.
++func (c *tcpConnection) Close() error {
++	c.once.Do(func() {
++		_ = c.Conn.Close()
++		_ = c.bridge.Close()
++		c.manager.mu.Lock()
++		c.manager.closeChannelLocked(c.connection, c.raw)
++		c.manager.mu.Unlock()
++		c.release()
++	})
++	return nil
++}
++
++func (c *tcpConnection) LocalAddr() net.Addr { return &net.TCPAddr{IP: net.IPv4zero} }
++func (c *tcpConnection) RemoteAddr() net.Addr {
++	return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: c.port}
++}
+diff --git a/internal/connector/vmaccess/tcp_test.go b/internal/connector/vmaccess/tcp_test.go
+new file mode 100644
+index 0000000..69cd80e
+--- /dev/null
++++ b/internal/connector/vmaccess/tcp_test.go
+@@ -0,0 +1,311 @@
++package vmaccess
++
++import (
++	"bytes"
++	"context"
++	"errors"
++	"io"
++	"net"
++	"strings"
++	"testing"
++	"time"
++
++	"golang.org/x/crypto/ssh"
++)
++
++// Models an SSH channel whose peer keeps the transport alive but never
++// completes channel I/O or acknowledges CLOSE. Transport retirement ends it.
++type unresponsiveTCP struct {
++	net.Conn
++	done    <-chan struct{}
++	writing chan struct{}
++}
++
++func (c *unresponsiveTCP) Read([]byte) (int, error) { <-c.done; return 0, io.EOF }
++func (c *unresponsiveTCP) Write([]byte) (int, error) {
++	if c.writing != nil {
++		close(c.writing)
++	}
++	<-c.done
++	return 0, io.ErrClosedPipe
++}
++func (c *unresponsiveTCP) Close() error { return nil }
++
++func TestTCPEOFDoesNotReleaseChannelBudgetBeforeSSHClose(t *testing.T) {
++	p := newSSHPeer(t)
++	m := testManager(t, p, Config{})
++	pty := openSession(t, m, testTarget())
++	in, out := echoChannel(t, pty, false)
++	var transport *connection
++	for range maxTCPChannels {
++		c, err := m.acquire(context.Background(), testTarget())
++		if err != nil {
++			t.Fatal(err)
++		}
++		transport = c
++		m.mu.Lock()
++		c.tcpChannels++
++		m.mu.Unlock()
++		raw, peer := net.Pipe()
++		stream := m.tcpStream(c, raw, c.done, 8080, func() { m.release(c) })
++		_ = peer.Close() // Data EOF, but no SSH CLOSE until transport shutdown.
++		if _, err := stream.Read(make([]byte, 1)); err == nil {
++			t.Fatal("EOF did not terminate caller stream")
++		}
++	}
++	if _, err := m.DialTCP(context.Background(), testTarget(), 8080); !errors.Is(err, ErrUnavailable) {
++		t.Fatal("EOF-only channels escaped transport channel budget")
++	}
++	assertEcho(t, in, out)
++	_ = m.Close()
++	eventually(t, func() bool {
++		m.mu.Lock()
++		defer m.mu.Unlock()
++		return transport.tcpChannels == 0
++	})
++}
++
++func TestTCPCloseUnblocksCallersAndBoundsNonCooperatingPeer(t *testing.T) {
++	p := newSSHPeer(t)
++	m := testManager(t, p, Config{IdleTimeout: 30 * time.Millisecond})
++	pty := openSession(t, m, testTarget())
++	in, out := echoChannel(t, pty, false)
++	var transport *connection
++	for range maxTCPChannels {
++		c, err := m.acquire(context.Background(), testTarget())
++		if err != nil {
++			t.Fatal(err)
++		}
++		transport = c
++		m.mu.Lock()
++		c.tcpChannels++
++		m.mu.Unlock()
++		raw := &unresponsiveTCP{done: c.done, writing: make(chan struct{})}
++		stream := m.tcpStream(c, raw, c.done, 8080, func() { m.release(c) })
++		reading, writing := make(chan error, 1), make(chan error, 1)
++		go func() { _, err := stream.Read(make([]byte, 1)); reading <- err }()
++		go func() { _, err := stream.Write(bytes.Repeat([]byte{'x'}, 65536)); writing <- err }()
++		select {
++		case <-raw.writing:
++		case <-time.After(time.Second):
++			t.Fatal("raw write not started")
++		}
++		_ = stream.Close()
++		for _, done := range []chan error{reading, writing} {
++			select {
++			case err := <-done:
++				if err == nil {
++					t.Fatal("closed caller I/O succeeded")
++				}
++			case <-time.After(time.Second):
++				t.Fatal("Close did not interrupt caller I/O")
++			}
++		}
++	}
++	if _, err := m.DialTCP(context.Background(), testTarget(), 8080); !errors.Is(err, ErrUnavailable) {
++		t.Fatal("lingering pumps escaped per-transport budget")
++	}
++	assertEcho(t, in, out)
++	if p.accepted.Load() != 1 {
++		t.Fatal("budget exhaustion replaced sibling transport")
++	}
++	_ = pty.Close()
++	eventually(t, func() bool {
++		m.mu.Lock()
++		defer m.mu.Unlock()
++		return transport.retired && transport.tcpChannels == 0
++	})
++	eventually(t, func() bool { return p.active.Load() == 0 })
++}
++
++func TestTCPSSHUnavailableAndHostPinFailureAreSafe(t *testing.T) {
++	for _, mode := range []string{"pin", "offline"} {
++		t.Run(mode, func(t *testing.T) {
++			p := newSSHPeer(t)
++			if mode == "pin" {
++				p.endpoint.HostKeyCallback = func(string, net.Addr, ssh.PublicKey) error { return errors.New("private host key mismatch") }
++			} else {
++				_ = p.listener.Close()
++			}
++			m := testManager(t, p, Config{})
++			if _, err := m.DialTCP(context.Background(), testTarget(), 8080); !errors.Is(err, ErrUnavailable) || strings.Contains(err.Error(), "private") {
++				t.Fatalf("SSH failure not sanitized: %v", err)
++			}
++		})
++	}
++}
++
++func TestTCPSharedTransportExactDestinationAndIsolation(t *testing.T) {
++	p := newSSHPeer(t)
++	m := testManager(t, p, Config{IdleTimeout: 50 * time.Millisecond})
++	pty := openSession(t, m, testTarget())
++	file := openSession(t, m, testTarget())
++	ptyIn, ptyOut := echoChannel(t, pty, false)
++	fileIn, fileOut := echoChannel(t, file, true)
++	ctx, cancel := context.WithCancel(context.Background())
++	tcp, err := m.DialTCP(ctx, testTarget(), 5000)
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer tcp.Close()
++	cancel() // Setup context does not own an established stream.
++	request := <-p.forwarded
++	if request.Host != "127.0.0.1" || request.Port != 5000 {
++		t.Fatal("wrong SSH destination")
++	}
++	assertEcho(t, tcp, tcp)
++	if p.accepted.Load() != 1 {
++		t.Fatal("TCP did not share PTY/SFTP transport")
++	}
++	_ = tcp.Close()
++	_ = tcp.Close()
++	assertEcho(t, ptyIn, ptyOut)
++	assertEcho(t, fileIn, fileOut)
++	other, err := m.DialTCP(context.Background(), testTarget(), 80)
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer other.Close()
++	_ = pty.Close()
++	_ = file.Close()
++	assertEcho(t, other, other)
++	_ = other.Close()
++	eventually(t, func() bool { return p.active.Load() == 0 })
++}
++
++func TestTCPValidationAndSafeErrors(t *testing.T) {
++	p := newSSHPeer(t)
++	var resolved int
++	m := NewManager(resolverFunc(func(_ context.Context, target Target) (Endpoint, error) {
++		resolved++
++		if target != testTarget() {
++			return Endpoint{}, ErrInvalidTarget
++		}
++		return p.endpoint, nil
++	}), Config{})
++	defer m.Close()
++	for _, port := range []int{-1, 0, 22, 65536} {
++		if _, err := m.DialTCP(context.Background(), testTarget(), port); !errors.Is(err, ErrInvalidTarget) {
++			t.Fatal("invalid port accepted")
++		}
++	}
++	if resolved != 0 {
++		t.Fatal("rejected port reached resolver")
++	}
++	for _, target := range []Target{
++		{LabInstanceID: "other", Generation: 1, VMKey: "workspace", ServerID: "server-1"},
++		{LabInstanceID: "lab-1", Generation: 2, VMKey: "workspace", ServerID: "server-1"},
++		{LabInstanceID: "lab-1", Generation: 1, VMKey: "other", ServerID: "server-1"},
++		{LabInstanceID: "lab-1", Generation: 1, VMKey: "workspace", ServerID: "other"},
++	} {
++		if _, err := m.DialTCP(context.Background(), target, 8080); !errors.Is(err, ErrInvalidTarget) {
++			t.Fatal("wrong target accepted")
++		}
++	}
++	for mode, expected := range map[int64]error{1: ErrConnectionRefused, 2: ErrUnavailable} {
++		p.rejectTCP.Store(mode)
++		_, err := m.DialTCP(context.Background(), testTarget(), 8080)
++		if !errors.Is(err, expected) || strings.Contains(err.Error(), "private") {
++			t.Fatalf("unsafe or incorrect error: %v", err)
++		}
++	}
++	p.rejectTCP.Store(0)
++	tcp, err := m.DialTCP(context.Background(), testTarget(), 8080)
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer tcp.Close()
++	m.InvalidateBefore("lab-1", 2)
++	if _, err := m.DialTCP(context.Background(), testTarget(), 8080); !errors.Is(err, ErrInvalidTarget) {
++		t.Fatal("stale generation accepted")
++	}
++	if _, err := tcp.Read(make([]byte, 1)); err == nil {
++		t.Fatal("invalidated stream still active")
++	}
++}
++
++func TestTCPOpenTimeoutLateChannelAndSiblingIsolation(t *testing.T) {
++	p := newSSHPeer(t)
++	m := testManager(t, p, Config{SetupTimeout: 40 * time.Millisecond, IdleTimeout: 50 * time.Millisecond})
++	pty := openSession(t, m, testTarget())
++	in, out := echoChannel(t, pty, false)
++	p.stallOpen.Store(true)
++	_, err := m.DialTCP(context.Background(), testTarget(), 8080)
++	if !errors.Is(err, context.DeadlineExceeded) {
++		t.Fatalf("timeout not classified: %v", err)
++	}
++	late := <-p.heldOpen
++	m.mu.Lock()
++	pending := m.entries[testTarget()].tcpChannels
++	m.mu.Unlock()
++	if pending != 1 {
++		t.Fatal("timed-out in-flight open lost its transport slot")
++	}
++	for range 4 {
++		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
++		_, err := m.DialTCP(ctx, testTarget(), 8080)
++		cancel()
++		if !errors.Is(err, context.DeadlineExceeded) {
++			t.Fatalf("waiter timeout: %v", err)
++		}
++	}
++	if p.openCount.Load() != 2 {
++		t.Fatal("canceled waiters started unbounded channel workers")
++	}
++	assertEcho(t, in, out)
++	p.stallOpen.Store(false)
++	channel, requests, err := late.Accept()
++	if err != nil {
++		t.Fatal(err)
++	}
++	go ssh.DiscardRequests(requests)
++	closed := make(chan struct{})
++	go func() { _, _ = io.Copy(io.Discard, channel); _ = channel.Close(); close(closed) }()
++	select {
++	case <-closed:
++	case <-time.After(time.Second):
++		t.Fatal("late successful channel leaked")
++	}
++	eventually(t, func() bool {
++		m.mu.Lock()
++		defer m.mu.Unlock()
++		return m.entries[testTarget()].tcpChannels == 0
++	})
++	assertEcho(t, in, out)
++	tcp, err := m.DialTCP(context.Background(), testTarget(), 8080)
++	if err != nil {
++		t.Fatal(err)
++	}
++	assertEcho(t, tcp, tcp)
++	_ = tcp.Close()
++	_ = pty.Close()
++	eventually(t, func() bool { return p.active.Load() == 0 })
++}
++
++func TestTCPCancelAndShutdownPendingOpen(t *testing.T) {
++	p := newSSHPeer(t)
++	m := testManager(t, p, Config{})
++	ctx, cancel := context.WithCancel(context.Background())
++	cancel()
++	if _, err := m.DialTCP(ctx, testTarget(), 8080); !errors.Is(err, context.Canceled) {
++		t.Fatalf("canceled dial: %v", err)
++	}
++	p.stallOpen.Store(true)
++	done := make(chan error, 1)
++	go func() { _, err := m.DialTCP(context.Background(), testTarget(), 8080); done <- err }()
++	select {
++	case <-p.heldOpen:
++	case <-time.After(time.Second):
++		t.Fatal("open not started")
++	}
++	_ = m.Close()
++	select {
++	case err := <-done:
++		if err == nil {
++			t.Fatal("shutdown dial succeeded")
++		}
++	case <-time.After(time.Second):
++		t.Fatal("shutdown did not unblock dial")
++	}
++	eventually(t, func() bool { return p.active.Load() == 0 })
++}
+diff --git a/tools/ktcloud-d1-acceptance/preview.go b/tools/ktcloud-d1-acceptance/preview.go
+new file mode 100644
+index 0000000..10071ac
+--- /dev/null
++++ b/tools/ktcloud-d1-acceptance/preview.go
+@@ -0,0 +1,247 @@
++package main
++
++import (
++	"bufio"
++	"bytes"
++	"context"
++	"encoding/json"
++	"errors"
++	"fmt"
++	"io"
++	"net"
++	"net/http"
++	"time"
++
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
++	openstackprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
++	"github.com/pkg/sftp"
++	"golang.org/x/crypto/ssh"
++)
++
++// Fixture-only selection. Preview Data WSS and Browser acceptance are separate.
++func validatePreviewScope(enabled, op02 bool, generations int, recovery bool) error {
++	if enabled && (op02 || generations != 2 || recovery) {
++		return errors.New("Preview smoke requires a fresh exclusive two-generation fixture")
++	}
++	return nil
++}
++
++func requirePreviewCapability(raw []byte) error {
++	var hello struct {
++		Payload struct {
++			Capabilities []string `json:"capabilities"`
++		} `json:"payload"`
++	}
++	if json.Unmarshal(raw, &hello) != nil {
++		return errors.New("Preview capability HELLO malformed")
++	}
++	for _, capability := range hello.Payload.Capabilities {
++		if capability == protocol.CapabilityPreviewV1 {
++			return nil
++		}
++	}
++	return errors.New("Production Connector did not advertise preview-v1")
++}
++
++// Uses the production SSHForwarder/VMAccess on the actual KT Connector host.
++// Provider mutations remain exclusively in the existing journaled Control path.
++func provePreviewForwarding(ctx context.Context, resources []protocol.ProviderResourceRef, generation int64, oldServer string) error {
++	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
++	defer cancel()
++	adapter, err := openstackprovider.New(ctx, openstackprovider.ConfigFromEnvironment())
++	if err != nil {
++		return errors.New("Preview fixture Provider initialization failed")
++	}
++	access := vmaccess.NewManager(adapter, vmaccess.Config{})
++	defer access.Close()
++	stopClose := context.AfterFunc(ctx, func() { _ = access.Close() })
++	defer stopClose()
++	target := vmaccess.Target{LabInstanceID: journal.LabID, Generation: generation, VMKey: "workspace", ServerID: serverRef(resources)}
++	forwarder := &preview.SSHForwarder{Access: access, Validator: adapter}
++	server, err := access.OpenSession(ctx, target)
++	if err != nil {
++		return errors.New("Preview HTTP fixture pinned SSH unavailable")
++	}
++	defer server.Close()
++	var stdout io.Reader
++	err = server.Setup(ctx, func(raw *ssh.Session) error {
++		var err error
++		stdout, err = raw.StdoutPipe()
++		if err != nil {
++			return err
++		}
++		raw.Stderr = io.Discard
++		return raw.Start("exec python3 -u -c 'from http.server import BaseHTTPRequestHandler, HTTPServer; exec(\"class Handler(BaseHTTPRequestHandler):\\n def do_GET(self):\\n  body=b\\\"LBT173-HTTP-OK\\\"; self.send_response(200); self.send_header(\\\"Content-Length\\\",str(len(body))); self.end_headers(); self.wfile.write(body)\\n def log_message(self,*args): pass\"); server=HTTPServer((\"127.0.0.1\",3000),Handler); print(\"READY\",flush=True); server.serve_forever()'")
++	})
++	if err != nil {
++		return errors.New("Preview HTTP fixture setup failed")
++	}
++	ready := make(chan bool, 1)
++	go func() {
++		line, err := bufio.NewReader(stdout).ReadString('\n')
++		ready <- err == nil && line == "READY\n"
++	}()
++	select {
++	case ok := <-ready:
++		if !ok {
++			return errors.New("Preview HTTP fixture did not start")
++		}
++	case <-ctx.Done():
++		return errors.New("Preview HTTP fixture timed out")
++	}
++	pty, err := terminal.NewManagedSSHPTY(ctx, access, target, 80, 24)
++	if err != nil {
++		return errors.New("Preview sibling PTY setup failed")
++	}
++	defer pty.Close()
++	file, err := access.OpenSession(ctx, target)
++	if err != nil {
++		return errors.New("Preview sibling SFTP SSH setup failed")
++	}
++	defer file.Close()
++	var in io.WriteCloser
++	var out io.Reader
++	err = file.Setup(ctx, func(raw *ssh.Session) error {
++		var err error
++		in, err = raw.StdinPipe()
++		if err != nil {
++			return err
++		}
++		out, err = raw.StdoutPipe()
++		if err != nil {
++			return err
++		}
++		raw.Stderr = io.Discard
++		return raw.RequestSubsystem("sftp")
++	})
++	if err != nil {
++		return errors.New("Preview sibling SFTP subsystem failed")
++	}
++	client, err := sftp.NewClientPipe(out, in)
++	if err != nil {
++		return errors.New("Preview sibling SFTP initialization failed")
++	}
++	defer client.Close()
++	identity, err := previewSSHIdentity(ctx, access, target)
++	if err != nil {
++		return err
++	}
++	for range 2 {
++		conn, err := forwarder.DialTCP(ctx, target, 3000)
++		if err != nil {
++			return errors.New("KT SSH Preview forwarding failed")
++		}
++		err = checkPreviewHTTP(conn)
++		_ = conn.Close()
++		if err != nil {
++			return err
++		}
++	}
++	after, err := previewSSHIdentity(ctx, access, target)
++	if err != nil || !bytes.Equal(identity, after) {
++		return errors.New("Preview did not reuse sibling SSH transport")
++	}
++	if _, err := client.Stat("."); err != nil {
++		return errors.New("Preview close broke sibling SFTP")
++	}
++	if _, err := pty.Write([]byte("printf 'LBT173-%s\\n' 'PTY-OK'\n")); err != nil {
++		return errors.New("Preview close broke sibling PTY write")
++	}
++	marker := make(chan bool, 1)
++	go func() {
++		var body []byte
++		buf := make([]byte, 1024)
++		for len(body) < 32768 {
++			n, err := pty.Read(buf)
++			body = append(body, buf[:n]...)
++			if bytes.Contains(body, []byte("LBT173-PTY-OK")) {
++				marker <- true
++				return
++			}
++			if err != nil {
++				break
++			}
++		}
++		marker <- false
++	}()
++	select {
++	case ok := <-marker:
++		if !ok {
++			return errors.New("Preview sibling PTY marker missing; contents withheld")
++		}
++	case <-ctx.Done():
++		return errors.New("Preview sibling PTY timed out; contents withheld")
++	}
++	for _, bad := range []vmaccess.Target{
++		{LabInstanceID: "other", Generation: generation, VMKey: target.VMKey, ServerID: target.ServerID},
++		{LabInstanceID: target.LabInstanceID, Generation: generation + 1, VMKey: target.VMKey, ServerID: target.ServerID},
++		{LabInstanceID: target.LabInstanceID, Generation: generation, VMKey: "other", ServerID: target.ServerID},
++		{LabInstanceID: target.LabInstanceID, Generation: generation, VMKey: target.VMKey, ServerID: "missing-server"},
++	} {
++		if _, err := forwarder.DialTCP(ctx, bad, 3000); !errors.Is(err, preview.ErrVMUnreachable) {
++			return errors.New("KT Preview accepted wrong target")
++		}
++	}
++	for _, port := range []int{-1, 0, 22, 65536} {
++		if _, err := forwarder.DialTCP(ctx, target, port); !errors.Is(err, preview.ErrPortRejected) {
++			return errors.New("KT Preview accepted unsafe port")
++		}
++	}
++	if _, err := forwarder.DialTCP(ctx, target, 3001); !errors.Is(err, preview.ErrAppNotRunning) {
++		return errors.New("KT Preview closed app port classification failed")
++	}
++	if generation == 2 {
++		for _, stale := range []vmaccess.Target{
++			{LabInstanceID: target.LabInstanceID, Generation: 1, VMKey: target.VMKey, ServerID: oldServer},
++			{LabInstanceID: target.LabInstanceID, Generation: 1, VMKey: target.VMKey, ServerID: target.ServerID},
++		} {
++			if _, err := forwarder.DialTCP(ctx, stale, 3000); !errors.Is(err, preview.ErrVMUnreachable) {
++				return errors.New("KT Preview accepted stale generation after Reset")
++			}
++		}
++	}
++	fmt.Printf("KT Preview g%d: pinned management SSH direct-tcpip loopback:3000 HTTP200/exact-body twice, shared transport, PTY/SFTP isolation, target/port/refused guards PASS; bodies withheld\n", generation)
++	return save(fmt.Sprintf("PREVIEW_GENERATION%d_HTTP_SHARED_SSH_TARGET_PORT_ISOLATION_PASS", generation))
++}
++
++func previewSSHIdentity(ctx context.Context, access *vmaccess.Manager, target vmaccess.Target) ([]byte, error) {
++	s, err := access.OpenSession(ctx, target)
++	if err != nil {
++		return nil, errors.New("Preview SSH transport probe unavailable")
++	}
++	defer s.Close()
++	var output bytes.Buffer
++	err = s.Setup(ctx, func(raw *ssh.Session) error {
++		raw.Stdout = &output
++		raw.Stderr = io.Discard
++		return raw.Run("printf '%s' \"$SSH_CONNECTION\"")
++	})
++	if err != nil || output.Len() == 0 {
++		return nil, errors.New("Preview SSH transport probe failed")
++	}
++	return output.Bytes(), nil
++}
++
++func checkPreviewHTTP(conn net.Conn) error {
++	_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
++	if _, err := fmt.Fprint(conn, "GET / HTTP/1.1\r\nHost: fixture\r\nConnection: close\r\n\r\n"); err != nil {
++		return errors.New("Preview HTTP write failed")
++	}
++	return validatePreviewHTTP(bufio.NewReader(conn))
++}
++
++func validatePreviewHTTP(reader *bufio.Reader) error {
++	response, err := http.ReadResponse(reader, nil)
++	if err != nil {
++		return errors.New("Preview HTTP response malformed; contents withheld")
++	}
++	defer response.Body.Close()
++	body, err := io.ReadAll(io.LimitReader(response.Body, 128))
++	if err != nil || response.StatusCode != http.StatusOK || !bytes.Equal(body, []byte("LBT173-HTTP-OK")) {
++		return errors.New("Preview HTTP status/body mismatch; contents withheld")
++	}
++	return nil
++}
+diff --git a/tools/ktcloud-d1-acceptance/preview_test.go b/tools/ktcloud-d1-acceptance/preview_test.go
+new file mode 100644
+index 0000000..f4d44fe
+--- /dev/null
++++ b/tools/ktcloud-d1-acceptance/preview_test.go
+@@ -0,0 +1,65 @@
++package main
++
++import (
++	"bufio"
++	"fmt"
++	"strings"
++	"testing"
++)
++
++func TestPreviewScopeRequiresExclusiveFreshTwoGenerations(t *testing.T) {
++	for _, tc := range []struct {
++		name                string
++		enabled, op02       bool
++		generations         int
++		recovery, wantError bool
++	}{
++		{"preview", true, false, 2, false, false},
++		{"mixed", true, true, 2, false, true},
++		{"single", true, false, 1, false, true},
++		{"recovery", true, false, 2, true, true},
++		{"default", false, true, 2, false, false},
++		{"recoveryDefault", false, false, 1, true, false},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			if got := validatePreviewScope(tc.enabled, tc.op02, tc.generations, tc.recovery); (got != nil) != tc.wantError {
++				t.Fatalf("scope error=%v", got)
++			}
++		})
++	}
++}
++
++func TestPreviewCapabilityRequiresProductionAdvertisement(t *testing.T) {
++	for _, raw := range []string{`{}`, `{"payload":{"capabilities":["file-v1"]}}`, `malformed`} {
++		if requirePreviewCapability([]byte(raw)) == nil {
++			t.Fatal("missing capability accepted")
++		}
++	}
++	if err := requirePreviewCapability([]byte(`{"payload":{"capabilities":["preview-v1"]}}`)); err != nil {
++		t.Fatal(err)
++	}
++}
++
++func TestPreviewHTTPRequiresExactResponse(t *testing.T) {
++	for _, tc := range []struct {
++		name, raw string
++		good      bool
++	}{
++		{"exact", "HTTP/1.1 200 OK\r\nContent-Length: 14\r\n\r\nLBT173-HTTP-OK", true},
++		{"truncated", "HTTP/1.1 200 OK\r\nContent-Length: 15\r\n\r\nLBT173-HTTP-OK", false},
++		{"wrongBody", "HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nwrong", false},
++		{"status", "HTTP/1.1 503 Unavailable\r\nContent-Length: 14\r\n\r\nLBT173-HTTP-OK", false},
++		{"oversized", fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Length: 1024\r\n\r\n%s", strings.Repeat("x", 1024)), false},
++		{"malformed", "malformed", false},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			err := validatePreviewHTTP(bufio.NewReader(strings.NewReader(tc.raw)))
++			if (err == nil) != tc.good {
++				t.Fatalf("validation error=%v", err)
++			}
++			if err != nil && strings.Contains(err.Error(), "wrong") {
++				t.Fatal("response leaked into evidence")
++			}
++		})
++	}
++}
+diff --git a/tools/ktcloud-op02-bootstrap/preview_mode_test.go b/tools/ktcloud-op02-bootstrap/preview_mode_test.go
+new file mode 100644
+index 0000000..17ec167
+--- /dev/null
++++ b/tools/ktcloud-op02-bootstrap/preview_mode_test.go
+@@ -0,0 +1,23 @@
++package main
++
++import (
++	"strings"
++	"testing"
++)
++
++func TestPreviewDeployModeAndRecoveryIsolation(t *testing.T) {
++	if op02, preview := fixtureModes(false); op02 != "1" || preview != "0" {
++		t.Fatal("default OP02 mode changed")
++	}
++	if op02, preview := fixtureModes(true); op02 != "0" || preview != "1" {
++		t.Fatal("Preview mode is not exclusive")
++	}
++	for _, readOnly := range []bool{false, true} {
++		command := controlCommand(true, readOnly)
++		for _, gate := range []string{"LABBIT_KTCLOUD_OP02_TEST=0", "LABBIT_KTCLOUD_PREVIEW_SMOKE=0", "LBT145_CONTROL_RECOVERY=1"} {
++			if !strings.Contains(command, gate) {
++				t.Fatalf("recovery missing %s", gate)
++			}
++		}
++	}
++}

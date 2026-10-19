@@ -38,6 +38,15 @@ type sshPeer struct {
 	openCount    atomic.Int64
 	heldOpen     chan ssh.NewChannel
 	heldRequest  chan string
+	forwarded    chan tcpRequest
+	rejectTCP    atomic.Int64
+}
+
+type tcpRequest struct {
+	Host       string
+	Port       uint32
+	OriginHost string
+	OriginPort uint32
 }
 
 func newSSHPeer(t *testing.T) *sshPeer {
@@ -68,7 +77,7 @@ func newSSHPeer(t *testing.T) *sshPeer {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p := &sshPeer{listener: listener, heldOpen: make(chan ssh.NewChannel, 64), heldRequest: make(chan string, 64), endpoint: Endpoint{ProviderConnectionID: "provider-1", Address: listener.Addr().String(), Username: "test-user", PrivateKeyFile: keyFile, HostKeyCallback: ssh.FixedHostKey(host.PublicKey())}}
+	p := &sshPeer{listener: listener, heldOpen: make(chan ssh.NewChannel, 64), heldRequest: make(chan string, 64), forwarded: make(chan tcpRequest, 64), endpoint: Endpoint{ProviderConnectionID: "provider-1", Address: listener.Addr().String(), Username: "test-user", PrivateKeyFile: keyFile, HostKeyCallback: ssh.FixedHostKey(host.PublicKey())}}
 	t.Cleanup(func() { _ = listener.Close(); p.disconnect() })
 	go func() {
 		for {
@@ -94,6 +103,29 @@ func newSSHPeer(t *testing.T) *sshPeer {
 					p.openCount.Add(1)
 					if p.stallOpen.Load() {
 						p.heldOpen <- next
+						continue
+					}
+					if next.ChannelType() == "direct-tcpip" {
+						var target tcpRequest
+						if err := ssh.Unmarshal(next.ExtraData(), &target); err != nil {
+							_ = next.Reject(ssh.ConnectionFailed, "invalid target")
+							continue
+						}
+						p.forwarded <- target
+						if mode := p.rejectTCP.Load(); mode != 0 {
+							reason, message := ssh.ConnectionFailed, "connect failed: Connection refused (private detail)"
+							if mode == 2 {
+								reason, message = ssh.Prohibited, "private forwarding policy detail"
+							}
+							_ = next.Reject(reason, message)
+							continue
+						}
+						ch, reqs, err := next.Accept()
+						if err != nil {
+							return
+						}
+						go ssh.DiscardRequests(reqs)
+						go func() { defer ch.Close(); _, _ = io.Copy(ch, ch) }()
 						continue
 					}
 					channel, requests, err := next.Accept()

@@ -1,0 +1,74 @@
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:59783->127.0.0.1:59781: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.01s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:59785->127.0.0.1:59784: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:59787->127.0.0.1:59786: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:59789->127.0.0.1:59788: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:59791->127.0.0.1:59790: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:59793->127.0.0.1:59792: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:59795->127.0.0.1:59794: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:59797->127.0.0.1:59796: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:59799->127.0.0.1:59798: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:59801->127.0.0.1:59800: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/preview	2.269s
+=== RUN   TestIndependentDirectControlReplacementRetiresOldIdleSession
+--- PASS: TestIndependentDirectControlReplacementRetiresOldIdleSession (0.06s)
+=== RUN   TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager
+--- PASS: TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager (0.03s)
+=== RUN   TestIndependentDirectControlReplacementRetiresOldIdleSession
+--- PASS: TestIndependentDirectControlReplacementRetiresOldIdleSession (0.00s)
+=== RUN   TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager
+--- PASS: TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager (0.03s)
+=== RUN   TestIndependentDirectControlReplacementRetiresOldIdleSession
+--- PASS: TestIndependentDirectControlReplacementRetiresOldIdleSession (0.00s)
+=== RUN   TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager
+--- PASS: TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager (0.03s)
+=== RUN   TestIndependentDirectControlReplacementRetiresOldIdleSession
+--- PASS: TestIndependentDirectControlReplacementRetiresOldIdleSession (0.00s)
+=== RUN   TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager
+--- PASS: TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager (0.03s)
+=== RUN   TestIndependentDirectControlReplacementRetiresOldIdleSession
+--- PASS: TestIndependentDirectControlReplacementRetiresOldIdleSession (0.00s)
+=== RUN   TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager
+--- PASS: TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager (0.02s)
+=== RUN   TestIndependentDirectControlReplacementRetiresOldIdleSession
+--- PASS: TestIndependentDirectControlReplacementRetiresOldIdleSession (0.00s)
+=== RUN   TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager
+--- PASS: TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager (0.03s)
+=== RUN   TestIndependentDirectControlReplacementRetiresOldIdleSession
+--- PASS: TestIndependentDirectControlReplacementRetiresOldIdleSession (0.00s)
+=== RUN   TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager
+--- PASS: TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager (0.03s)
+=== RUN   TestIndependentDirectControlReplacementRetiresOldIdleSession
+--- PASS: TestIndependentDirectControlReplacementRetiresOldIdleSession (0.00s)
+=== RUN   TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager
+--- PASS: TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager (0.03s)
+=== RUN   TestIndependentDirectControlReplacementRetiresOldIdleSession
+--- PASS: TestIndependentDirectControlReplacementRetiresOldIdleSession (0.00s)
+=== RUN   TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager
+--- PASS: TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager (0.03s)
+=== RUN   TestIndependentDirectControlReplacementRetiresOldIdleSession
+--- PASS: TestIndependentDirectControlReplacementRetiresOldIdleSession (0.00s)
+=== RUN   TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager
+--- PASS: TestSupervisor_ControlNormalDisconnect_PreservesPreviewManager (0.03s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/wss	2.734s

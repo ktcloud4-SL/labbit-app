@@ -44,6 +44,11 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 	if a == nil || a.image == nil || a.compute == nil || a.network == nil {
 		return failedResult(nil, errorInvalidProvision, "OpenStack Provider is not available"), nil
 	}
+	if a.cidrPoolEnabled() && a.cidrScope == nil {
+		return a.withCIDRScope(ctx, request.Correlation, false, func(scoped *Adapter) (coreprovider.OperationResult, error) {
+			return scoped.Provision(ctx, request)
+		})
+	}
 	config := normalizedProvisionConfig(a.provision)
 	if err := a.validateProvisionSettings(config, request.CreationSnapshot); err != nil {
 		return failedResult(nil, errorInvalidProvision, "OpenStack Provision settings are incomplete"), nil
@@ -53,6 +58,10 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 	}
 	if err := a.preflightProvision(ctx, config, request.CreationSnapshot, quotaUsage{}); err != nil {
 		return preflightFailure(nil, err, "OpenStack Provision preflight failed"), nil
+	}
+
+	if err := a.startCIDRMutation(request.Correlation); err != nil {
+		return unknownResult(nil, "CIDR mutation reservation requires reconciliation"), nil
 	}
 
 	baseName := provisionBaseName(request.LabInstanceID, request.Generation)
@@ -216,9 +225,8 @@ func (a *Adapter) preflightProvision(ctx context.Context, config ProvisionConfig
 	if a.ktNetwork != nil {
 		return a.preflightKTCloudProvision(ctx, config, snapshot, credit)
 	}
-	managementNetwork, err := networks.Get(ctx, a.network, config.ManagementNetworkID).Extract()
-	if err != nil || normalizeStatus(managementNetwork.Status) != "ACTIVE" || len(managementNetwork.Subnets) == 0 {
-		return ErrProvisionCheck
+	if _, err := a.managementSubnet(ctx, config); err != nil {
+		return err
 	}
 	if err := a.validateManagementSecurityGroup(ctx, config); err != nil {
 		return err

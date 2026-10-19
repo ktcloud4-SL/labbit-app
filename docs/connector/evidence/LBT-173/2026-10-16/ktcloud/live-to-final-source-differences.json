@@ -1,0 +1,7 @@
+{
+  "differences": [
+    "tools/ktcloud-d1-acceptance/main.go",
+    "tools/ktcloud-d1-acceptance/recovery.go",
+    "tools/ktcloud-d1-acceptance/recovery_test.go"
+  ]
+}

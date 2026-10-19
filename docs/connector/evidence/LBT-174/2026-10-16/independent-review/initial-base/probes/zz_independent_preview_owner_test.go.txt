@@ -1,0 +1,80 @@
+package wss
+
+import (
+	"context"
+	"encoding/json"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+)
+
+type reviewOwnerSender struct{ credential string }
+
+func (s reviewOwnerSender) DialCredential() string                 { return s.credential }
+func (s reviewOwnerSender) SendMessage(context.Context, any) error { return nil }
+
+type reviewOwnerForwarder struct {
+	opened atomic.Int32
+	peer   net.Conn
+}
+
+func (f *reviewOwnerForwarder) DialTCP(context.Context, vmaccess.Target, int) (net.Conn, error) {
+	f.opened.Add(1)
+	a, b := net.Pipe()
+	f.peer = b
+	return a, nil
+}
+
+func TestReviewOldControlEpochCannotUseNewCredential(t *testing.T) {
+	observed := make(chan string, 1)
+	upgrader := websocket.Upgrader{Subprotocols: []string{protocol.SubprotocolPreviewData}}
+	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		observed <- r.Header.Get("Authorization")
+		ws, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer ws.Close()
+		var attach protocol.PreviewAttachMessage
+		if ws.ReadJSON(&attach) != nil {
+			return
+		}
+		_ = ws.WriteJSON(protocol.PreviewAttachedMessage{BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypePreviewAttached, MessageID: "ack", ReplyToMessageID: attach.MessageID, PreviewSessionID: attach.PreviewSessionID, LabInstanceID: attach.LabInstanceID, Generation: attach.Generation}, Payload: protocol.PreviewAttachedPayload{}})
+		for {
+			if _, _, err := ws.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}))
+	defer gateway.Close()
+	forwarder := &reviewOwnerForwarder{}
+	manager := preview.NewSessionManager(forwarder, nil)
+	defer manager.CloseAll("cleanup")
+	handler := NewHandler(&provider.MockProvider{}, reviewOwnerSender{credential: "old-fixture-token"})
+	handler.SetPreviewManager(manager, preview.DataWSSClientConfig{EndpointURL: strings.Replace(gateway.URL, "http", "ws", 1), AllowInsecure: true, RuntimeID: "runtime"})
+	oldEpoch := handler.fileOwnerEpoch
+	handler.SetSender(reviewOwnerSender{credential: "new-fixture-token"})
+	raw, _ := json.Marshal(protocol.PreviewOpenMessage{BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypePreviewOpen, MessageID: "old-control-open", SentAt: time.Now(), PreviewSessionID: "old-S", LabInstanceID: "lab", Generation: 1}, Payload: protocol.PreviewOpenPayload{TargetVmKey: "workspace", ProviderServerID: "server", TargetPort: 3000}})
+	err := handler.handleMessageWithFileOwner(context.Background(), raw, oldEpoch)
+	if forwarder.peer != nil {
+		defer forwarder.peer.Close()
+	}
+	if err == nil || forwarder.opened.Load() != 0 {
+		credential := "no observed upgrade"
+		select {
+		case credential = <-observed:
+		default:
+		}
+		t.Errorf("old Control epoch migrated to current owner: err=%v dialCount=%d authorization=%s", err, forwarder.opened.Load(), credential)
+	}
+}

@@ -1,0 +1,9 @@
+=== RUN   TestSessionReleasesUnreadDataConnectionOnReplaceAndDetach
+=== RUN   TestSessionReleasesUnreadDataConnectionOnReplaceAndDetach/replace
+    data_connection_backpressure_test.go:110: ownership transition=replace oldWriteInFlight=0 operationBlocked=false shutdownBlocked=true PTYClosed=false callbacks=0
+    data_connection_backpressure_test.go:124: old Data socket was not closed independently of its blocked writer during replacement/detach
+--- FAIL: TestSessionReleasesUnreadDataConnectionOnReplaceAndDetach/replace (1.29s)
+=== RUN   TestSessionReleasesUnreadDataConnectionOnReplaceAndDetach/detach
+    data_connection_backpressure_test.go:110: ownership transition=detach oldWriteInFlight=0 operationBlocked=false shutdownBlocked=false PTYClosed=true callbacks=1
+--- PASS: TestSessionReleasesUnreadDataConnectionOnReplaceAndDetach/detach (0.25s)
+--- FAIL: TestSessionReleasesUnreadDataConnectionOnReplaceAndDetach (1.54s)

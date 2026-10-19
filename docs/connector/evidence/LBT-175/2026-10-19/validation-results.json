@@ -1,0 +1,142 @@
+{
+  "scope": "local pre-PR gates and real KT Preview transport; no push/PR/new remote CI",
+  "go": {
+    "packages": {
+      "skip": 10,
+      "pass": 43
+    },
+    "tests": {
+      "pass": 3970,
+      "skip": 14
+    },
+    "skipped": [
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM2ControlWSSIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackFileTransportIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM1Integration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM2ProvisionIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM3LifecycleIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackInternetPolicyIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudD1ReadOnlyIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudD1DisposableNetworkIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackPreviewForwardingIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackPTYCC02Integration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackTerminalC2Integration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackVMAccessIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackWorkspaceFileIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackPreviewTransportIntegration"
+      }
+    ],
+    "failed": []
+  },
+  "relatedRace": {
+    "packages": {
+      "pass": 9
+    },
+    "tests": {
+      "pass": 534,
+      "skip": 1
+    },
+    "skipped": [
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+        "test": "TestSymlinkRejectedAndExcludedFromTree"
+      }
+    ],
+    "failed": []
+  },
+  "fixtureRace20": {
+    "packages": {
+      "pass": 2
+    },
+    "tests": {
+      "pass": 3400
+    },
+    "skipped": [],
+    "failed": []
+  },
+  "terminalOwnershipRace20": {
+    "packages": {
+      "pass": 1
+    },
+    "tests": {
+      "pass": 60
+    },
+    "skipped": [],
+    "failed": []
+  },
+  "fmt": {
+    "checked": 528,
+    "unformatted": [],
+    "exitCode": 0
+  },
+  "static": {
+    "vetExitCode": 0,
+    "buildExitCode": 0
+  },
+  "web": {
+    "install": 0,
+    "typecheck": 0,
+    "lint": 0,
+    "test": 0,
+    "build": 0
+  },
+  "contracts": {
+    "exitCode": 0,
+    "versions": {
+      "PyYAML": "6.0.3",
+      "jsonschema": "4.26.0",
+      "openapi-spec-validator": "0.9.0"
+    },
+    "scope": "OpenAPI and exact current workflow JSON Schema/runtime/migration scripts"
+  },
+  "initialFailuresPreserved": [
+    "wrong-config inventory parse",
+    "bootstrap SSH TCP22 attempt",
+    "missing pnpm executable",
+    "Linux Terminal replacement oracle"
+  ],
+  "remoteCI": "not run: user prohibits push/PR",
+  "postgresIntegration": "not run: tools-only and Terminal test change",
+  "actualBackendSaaSBrowser": "separate LBT-25 C3 gate"
+}

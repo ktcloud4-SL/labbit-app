@@ -1,0 +1,17 @@
+{
+  "name": "web-test",
+  "command": [
+    "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+    "--package=npm@10.9.2",
+    "dlx",
+    "npm",
+    "run",
+    "test"
+  ],
+  "started": "2026-10-16T06:10:19.548994+00:00",
+  "ended": "2026-10-16T06:11:03.229157+00:00",
+  "seconds": 43.672,
+  "exitCode": 0,
+  "sourceSHA256": "96ec0a79b149ac980d55dd8434a639f38ffa4d5d7f4dd8b480c5d3304db87e44",
+  "sourceUnchanged": true
+}

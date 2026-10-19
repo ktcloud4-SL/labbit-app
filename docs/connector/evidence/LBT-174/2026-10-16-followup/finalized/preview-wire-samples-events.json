@@ -1,0 +1,16 @@
+{
+  "testPass": 1,
+  "testFail": [],
+  "testSkip": [],
+  "packagePass": 1,
+  "packageFail": [],
+  "testResults": [
+    {
+      "Time": "2026-10-16T16:12:37.6780497+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+      "Test": "TestDumpPreviewWireSamples",
+      "Elapsed": 1
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "main": "8f88833ec433c2de19ea91375dec57ae95a2baea",
+  "source": "internal/connector/provider/openstack/terminal_c2_integration_test.go",
+  "sourceSha256": "6279D8E6A2213142B34DD7C10426D75024DAA2EB003C9001BF5047C6EAE15E3A",
+  "exitCode": 0,
+  "scope": "Pinned new main C2 loopback test over current feature source via external Go overlay; no cloud"
+}

@@ -1,0 +1,22 @@
+{
+  "command": [
+    "go",
+    "test",
+    "-race",
+    "./internal/connector/provider/openstack",
+    "-run",
+    "^TestWorkspaceFixtureExec",
+    "-count=10",
+    "-v",
+    "-timeout=90s"
+  ],
+  "exit": 0,
+  "seconds": 10.881,
+  "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+  "source_files": 502,
+  "source_matches_manifest": true,
+  "source_unchanged": true,
+  "log": "finalized-workspace-exec-race.log",
+  "log_sha256": "5c36e965950d8d15dde922467bab824d2c0615c01454843117a8a178f100ddc6",
+  "scope": "Finalized working-tree source; real loopback SSH peer only; no cloud calls."
+}

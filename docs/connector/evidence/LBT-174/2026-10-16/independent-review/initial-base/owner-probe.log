@@ -1,0 +1,6 @@
+=== RUN   TestReviewOldControlEpochCannotUseNewCredential
+    zz_independent_preview_owner_test.go:78: old Control epoch migrated to current owner: err=<nil> dialCount=1 authorization=Bearer new-fixture-token
+--- FAIL: TestReviewOldControlEpochCannotUseNewCredential (0.03s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/wss	2.649s
+FAIL

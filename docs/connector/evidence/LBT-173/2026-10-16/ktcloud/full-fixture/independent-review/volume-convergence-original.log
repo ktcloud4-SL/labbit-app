@@ -1,0 +1,23 @@
+=== RUN   TestReviewKTVolumeDeletionConvergence
+=== RUN   TestReviewKTVolumeDeletionConvergence/alreadyAbsent
+    zz_review_volume_convergence_test.go:64: mode=alreadyAbsent outcome=SUCCEEDED GET=2 DELETE=0
+=== RUN   TestReviewKTVolumeDeletionConvergence/available
+    zz_review_volume_convergence_test.go:64: mode=available outcome=SUCCEEDED GET=2 DELETE=1
+=== RUN   TestReviewKTVolumeDeletionConvergence/deletingThenAbsent
+    zz_review_volume_convergence_test.go:64: mode=deletingThenAbsent outcome=FAILED GET=1 DELETE=1
+    zz_review_volume_convergence_test.go:66: volume convergence: want outcome=SUCCEEDED DELETE=0; actual outcome=FAILED GET=1 DELETE=1 err=<nil>
+=== RUN   TestReviewKTVolumeDeletionConvergence/deletingUntilDeadline
+    zz_review_volume_convergence_test.go:64: mode=deletingUntilDeadline outcome=FAILED GET=1 DELETE=1
+    zz_review_volume_convergence_test.go:66: volume convergence: want outcome=UNKNOWN DELETE=0; actual outcome=FAILED GET=1 DELETE=1 err=<nil>
+=== RUN   TestReviewKTVolumeDeletionConvergence/availableThenAutoDeletedBeforeDelete
+    zz_review_volume_convergence_test.go:64: mode=availableThenAutoDeletedBeforeDelete outcome=FAILED GET=1 DELETE=1
+    zz_review_volume_convergence_test.go:66: volume convergence: want outcome=SUCCEEDED DELETE=1; actual outcome=FAILED GET=1 DELETE=1 err=<nil>
+--- FAIL: TestReviewKTVolumeDeletionConvergence (0.01s)
+    --- PASS: TestReviewKTVolumeDeletionConvergence/alreadyAbsent (0.01s)
+    --- PASS: TestReviewKTVolumeDeletionConvergence/available (0.00s)
+    --- FAIL: TestReviewKTVolumeDeletionConvergence/deletingThenAbsent (0.00s)
+    --- FAIL: TestReviewKTVolumeDeletionConvergence/deletingUntilDeadline (0.00s)
+    --- FAIL: TestReviewKTVolumeDeletionConvergence/availableThenAutoDeletedBeforeDelete (0.00s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	3.379s
+FAIL

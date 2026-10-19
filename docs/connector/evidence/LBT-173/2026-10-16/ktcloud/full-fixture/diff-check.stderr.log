@@ -1,0 +1,11 @@
+warning: in the working copy of 'internal/connector/app/app.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'internal/connector/app/app_test.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'internal/connector/preview/forwarder.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'internal/connector/preview/manager.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'internal/connector/provider/openstack/ktcloud_d1_delete.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'internal/connector/vmaccess/access.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'internal/connector/vmaccess/access_test.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tools/ktcloud-d1-acceptance/main.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tools/ktcloud-d1-acceptance/recovery.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tools/ktcloud-d1-acceptance/recovery_test.go', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tools/ktcloud-op02-bootstrap/deploy.go', LF will be replaced by CRLF the next time Git touches it

@@ -1,0 +1,19 @@
+{
+  "name": "local-openstack-final",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "./internal/connector/provider/openstack",
+    "-run",
+    "^TestOpenStackPreviewTransportIntegration$",
+    "-v",
+    "-count=1",
+    "-timeout=22m"
+  ],
+  "started": "2026-10-16T06:08:53.769785+00:00",
+  "ended": "2026-10-16T06:12:46.869679+00:00",
+  "seconds": 233.094,
+  "exitCode": 0,
+  "sourceSHA256": "96ec0a79b149ac980d55dd8434a639f38ffa4d5d7f4dd8b480c5d3304db87e44",
+  "sourceUnchanged": true
+}

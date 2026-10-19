@@ -1,0 +1,16 @@
+{
+  "command": [
+    "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+    "install",
+    "--frozen-lockfile"
+  ],
+  "startedAt": "2026-10-19T00:27:44.732763+00:00",
+  "endedAt": "2026-10-19T00:27:50.378096+00:00",
+  "exitCode": 0,
+  "goEvents": {
+    "pass": 0,
+    "skip": 0,
+    "fail": 0,
+    "packagesPass": 0
+  }
+}

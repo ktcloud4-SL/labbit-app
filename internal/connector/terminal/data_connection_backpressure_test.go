@@ -82,7 +82,28 @@ func TestSessionReleasesUnreadDataConnectionOnReplaceAndDetach(t *testing.T) {
 			operationDone := make(chan struct{})
 			var second *websocket.Conn
 			if operation == "replace" {
-				second, _, _ = unreadDataPair(t)
+				var secondPeer *websocket.Conn
+				second, secondPeer, _ = unreadDataPair(t)
+				// Only the old peer is intentionally unread. A blocked final
+				// ENDED write to the replacement has its own one-second budget
+				// and would confound this old-socket ownership assertion.
+				drained := make(chan struct{})
+				go func() {
+					defer close(drained)
+					for {
+						if _, _, err := secondPeer.ReadMessage(); err != nil {
+							return
+						}
+					}
+				}()
+				t.Cleanup(func() {
+					_ = secondPeer.Close()
+					select {
+					case <-drained:
+					case <-time.After(2 * time.Second):
+						t.Error("replacement peer reader did not stop")
+					}
+				})
 				go func() { _, _ = session.AttachDataConn(second); close(operationDone) }()
 			} else {
 				go func() { session.DetachDataConn(first); close(operationDone) }()
@@ -108,6 +129,13 @@ func TestSessionReleasesUnreadDataConnectionOnReplaceAndDetach(t *testing.T) {
 				shutdownBlocked = true
 			}
 			t.Logf("ownership transition=%s oldWriteInFlight=%d operationBlocked=%t shutdownBlocked=%t PTYClosed=%t callbacks=%d", operation, observed.inWrite.Load(), operationBlocked, shutdownBlocked, pty.wasClosed.Load(), callbacks.Load())
+			deadline = time.Now().Add(time.Second)
+			for observed.inWrite.Load() != 0 && time.Now().Before(deadline) {
+				time.Sleep(5 * time.Millisecond)
+			}
+			if observed.inWrite.Load() != 0 {
+				t.Error("old writer remained blocked before fixture peer cleanup")
+			}
 			// Always release only the fixture-owned peer, including expected red.
 			_ = firstPeer.Close()
 			select {

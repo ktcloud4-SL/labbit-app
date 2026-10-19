@@ -1,0 +1,664 @@
+[
+  {
+    "elapsed_ms": 5001,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 5001,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 5001,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 5001,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 5001,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 5001,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 5001,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 5001,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 5001,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 5001,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 5000,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 5001,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 5000,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 5001,
+    "errorType": "*net.OpError",
+    "kind": "ready",
+    "stage": "tcp_dial",
+    "success": false
+  },
+  {
+    "elapsed_ms": 1003,
+    "kind": "ready",
+    "stage": "remote_exec",
+    "success": true
+  },
+  {
+    "elapsed_ms": 2328,
+    "kind": "cloud-init",
+    "stage": "remote_exec",
+    "success": true
+  },
+  {
+    "elapsed_ms": 1323,
+    "kind": "internet-probe",
+    "probe": {
+      "connectCode": 0,
+      "defaultRoutes": [
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "lab"
+        },
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "management"
+        }
+      ],
+      "elapsed_ms": 13,
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "routeAfter": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "routeBefore": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ]
+    },
+    "reachabilityAssertion": false,
+    "stage": "remote_exec",
+    "success": true
+  },
+  {
+    "elapsed_ms": 519,
+    "kind": "internet-probe",
+    "probe": {
+      "connectCode": 0,
+      "defaultRoutes": [
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "lab"
+        },
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "management"
+        }
+      ],
+      "elapsed_ms": 12,
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "routeAfter": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "routeBefore": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ]
+    },
+    "reachabilityAssertion": false,
+    "stage": "remote_exec",
+    "success": true
+  },
+  {
+    "elapsed_ms": 478,
+    "kind": "internet-probe",
+    "probe": {
+      "connectCode": 0,
+      "defaultRoutes": [
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "lab"
+        },
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "management"
+        }
+      ],
+      "elapsed_ms": 14,
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "routeAfter": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "routeBefore": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ]
+    },
+    "reachabilityAssertion": false,
+    "stage": "remote_exec",
+    "success": true
+  },
+  {
+    "elapsed_ms": 441,
+    "kind": "internet-probe",
+    "probe": {
+      "connectCode": 0,
+      "defaultRoutes": [
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "lab"
+        },
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "management"
+        }
+      ],
+      "elapsed_ms": 9,
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "routeAfter": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "routeBefore": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ]
+    },
+    "reachabilityAssertion": false,
+    "stage": "remote_exec",
+    "success": true
+  },
+  {
+    "elapsed_ms": 443,
+    "kind": "internet-probe",
+    "probe": {
+      "connectCode": 0,
+      "defaultRoutes": [
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "lab"
+        },
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "management"
+        }
+      ],
+      "elapsed_ms": 17,
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "routeAfter": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "routeBefore": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ]
+    },
+    "reachabilityAssertion": false,
+    "stage": "remote_exec",
+    "success": true
+  },
+  {
+    "elapsed_ms": 433,
+    "kind": "internet-probe",
+    "probe": {
+      "connectCode": 0,
+      "defaultRoutes": [
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "lab"
+        },
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "management"
+        }
+      ],
+      "elapsed_ms": 10,
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "routeAfter": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "routeBefore": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ]
+    },
+    "reachabilityAssertion": false,
+    "stage": "remote_exec",
+    "success": true
+  },
+  {
+    "elapsed_ms": 417,
+    "kind": "internet-probe",
+    "probe": {
+      "connectCode": 0,
+      "defaultRoutes": [
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "lab"
+        },
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "management"
+        }
+      ],
+      "elapsed_ms": 11,
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "routeAfter": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "routeBefore": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ]
+    },
+    "reachabilityAssertion": false,
+    "stage": "remote_exec",
+    "success": true
+  },
+  {
+    "elapsed_ms": 418,
+    "kind": "internet-probe",
+    "probe": {
+      "connectCode": 0,
+      "defaultRoutes": [
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "lab"
+        },
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "management"
+        }
+      ],
+      "elapsed_ms": 14,
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "routeAfter": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "routeBefore": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ]
+    },
+    "reachabilityAssertion": false,
+    "stage": "remote_exec",
+    "success": true
+  },
+  {
+    "elapsed_ms": 470,
+    "kind": "internet-probe",
+    "probe": {
+      "connectCode": 0,
+      "defaultRoutes": [
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "lab"
+        },
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "management"
+        }
+      ],
+      "elapsed_ms": 49,
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "routeAfter": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "routeBefore": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ]
+    },
+    "reachabilityAssertion": false,
+    "stage": "remote_exec",
+    "success": true
+  },
+  {
+    "elapsed_ms": 434,
+    "kind": "internet-probe",
+    "probe": {
+      "connectCode": 0,
+      "defaultRoutes": [
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "lab"
+        },
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "management"
+        }
+      ],
+      "elapsed_ms": 11,
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "routeAfter": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "routeBefore": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ]
+    },
+    "reachabilityAssertion": false,
+    "stage": "remote_exec",
+    "success": true
+  },
+  {
+    "elapsed_ms": 441,
+    "kind": "internet-probe",
+    "probe": {
+      "connectCode": 0,
+      "defaultRoutes": [
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "lab"
+        },
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "management"
+        }
+      ],
+      "elapsed_ms": 10,
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "routeAfter": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "routeBefore": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ]
+    },
+    "reachabilityAssertion": false,
+    "stage": "remote_exec",
+    "success": true
+  },
+  {
+    "elapsed_ms": 437,
+    "kind": "internet-probe",
+    "probe": {
+      "connectCode": 0,
+      "defaultRoutes": [
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "lab"
+        },
+        {
+          "hasGateway": true,
+          "metric": 100,
+          "role": "management"
+        }
+      ],
+      "elapsed_ms": 11,
+      "reversePathFilter": {
+        "lab": 2,
+        "management": 2
+      },
+      "routeAfter": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "routeBefore": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ],
+      "socketSourceRole": "lab",
+      "socketTupleRoute": [
+        {
+          "hasGateway": true,
+          "role": "lab"
+        }
+      ]
+    },
+    "reachabilityAssertion": false,
+    "stage": "remote_exec",
+    "success": true
+  }
+]

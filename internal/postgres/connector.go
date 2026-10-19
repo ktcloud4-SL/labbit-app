@@ -57,6 +57,20 @@ func (s *Store) RecordConnectorHeartbeat(ctx context.Context, connectorID, crede
 func (q queries) recordConnectorHeartbeat(ctx context.Context, connectorID, credentialID uuid.UUID, seenAt time.Time) (bool, error) {
 	const op = "RecordConnectorHeartbeat"
 
+	active, err := q.lockActiveConnectorCredential(ctx, connectorID, credentialID)
+	if err != nil || !active {
+		return false, err
+	}
+	tag, err := q.db.Exec(ctx, `UPDATE connectors SET last_seen_at = $2 WHERE id = $1`, connectorID, seenAt)
+	if err != nil {
+		return false, normalize(op, err)
+	}
+	return tag.RowsAffected() == 1, nil
+}
+
+// Parent → child locking is shared by heartbeat and HELLO metadata persistence.
+func (q queries) lockActiveConnectorCredential(ctx context.Context, connectorID, credentialID uuid.UUID) (bool, error) {
+	const op = "LockActiveConnectorCredential"
 	var locked int
 	// 1. Connector: revoke 중인 transaction이 있으면 끝날 때까지 기다린 뒤 revoked_at을 다시 평가한다.
 	err := q.db.QueryRow(ctx,
@@ -82,10 +96,5 @@ func (q queries) recordConnectorHeartbeat(ctx context.Context, connectorID, cred
 		return false, normalize(op, err)
 	}
 
-	// 3. 두 row가 모두 active임을 lock한 채 확인했다.
-	tag, err := q.db.Exec(ctx, `UPDATE connectors SET last_seen_at = $2 WHERE id = $1`, connectorID, seenAt)
-	if err != nil {
-		return false, normalize(op, err)
-	}
-	return tag.RowsAffected() == 1, nil
+	return true, nil
 }

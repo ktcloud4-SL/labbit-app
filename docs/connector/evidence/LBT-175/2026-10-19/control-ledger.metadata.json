@@ -1,0 +1,69 @@
+{
+  "stage": "PREVIEW_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS",
+  "passed": true,
+  "hello": true,
+  "heartbeat": true,
+  "plannedGenerations": 2,
+  "resources": [
+    {
+      "resourceType": "KT_TIER",
+      "providerIdSHA256": "03962eb00fa9a637ac8c426d11aace9e95d842aca611833e92085e923d1dc655",
+      "generation": 1,
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_TIER",
+      "providerIdSHA256": "0bbc0d9b4b4122365672942ac520a4d43515409862e647c4cd33c48061541794",
+      "generation": 1,
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_FIREWALL_POLICY",
+      "providerIdSHA256": "2374347e16373973d599ec0f763a9862fb311afc6ef34fbe30dabd1942d5c6ad",
+      "generation": 1,
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "SERVER",
+      "providerIdSHA256": "eb2efb2a1d4b5ab2deb1e3c66b061444e9ea56adf60827cffbc4ee9bee740b8a",
+      "generation": 1,
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "VOLUME",
+      "providerIdSHA256": "16a3c34a74f755de7523157884bbfbe549e3d029b9643dfab42ca96733e1808b",
+      "generation": 1,
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_TIER",
+      "providerIdSHA256": "42a966e1ea8b8817bfc7f2ad0d84f61b59bdb192b5f312230b988ce6a030e49c",
+      "generation": 2,
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_TIER",
+      "providerIdSHA256": "5cf6bf37ebe881fc66ad549b01790e74c080ad630ab496ddb10ef5d1aca973bb",
+      "generation": 2,
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_FIREWALL_POLICY",
+      "providerIdSHA256": "dfa05705967084f577881a3e58cc58a4ff10e9499464aa5255d587c6e22a365e",
+      "generation": 2,
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "SERVER",
+      "providerIdSHA256": "e75c2514f9cd5f5f1be61b26f718fbcf3c668d5eb2f8988abc2a868354dd1a9d",
+      "generation": 2,
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "VOLUME",
+      "providerIdSHA256": "4d346f61fc806b69bfd41f3888271d55136184d7ee157801c31f433fecb8b07e",
+      "generation": 2,
+      "observedState": "DELETED"
+    }
+  ]
+}

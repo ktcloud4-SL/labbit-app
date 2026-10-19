@@ -63,10 +63,15 @@ type HeartbeatRecorder interface {
 	RecordHeartbeat(ctx context.Context, principal connector.Principal, seenAt time.Time) error
 }
 
+type HelloRecorder interface {
+	RecordHello(context.Context, connector.Principal, string, string) error
+}
+
 // Options는 Handler 구성이다.
 type Options struct {
 	Auth       Authenticator
 	Heartbeats HeartbeatRecorder
+	Hellos     HelloRecorder
 	Registry   *connector.Registry
 	// Router가 있으면 HELLO 이후의 command 응답 message(OPERATION_ACK/PROGRESS/RESULT, RECONCILE_RESULT)를 검증해 넘긴다.
 	// Router는 이 Options의 Registry와 같은 Registry를 사용해야 한다. nil이면 그 message들을 해석하지 않고 버린다.
@@ -89,6 +94,7 @@ type Options struct {
 type Handler struct {
 	auth       Authenticator
 	heartbeats HeartbeatRecorder
+	hellos     HelloRecorder
 	registry   *connector.Registry
 	router     *connector.Router
 	logger     *slog.Logger
@@ -126,6 +132,7 @@ func New(opts Options) (*Handler, error) {
 	h := &Handler{
 		auth:       opts.Auth,
 		heartbeats: opts.Heartbeats,
+		hellos:     opts.Hellos,
 		registry:   opts.Registry,
 		router:     opts.Router,
 		logger:     logger,
@@ -245,10 +252,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.logger.Warn("Connector Control Upgrade 실패", "connector_id", principal.ConnectorID.String(), "reason", "upgrade_failed")
 		return
 	}
-	h.serve(conn, principal)
+	h.serve(conn, principal, credential)
 }
 
-func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal) {
+func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal, credential connector.Credential) {
 	log := h.logger.With("connector_id", principal.ConnectorID.String())
 	cc := newControlConn(conn)
 
@@ -277,6 +284,21 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal) {
 	// HELLO 실패·timeout이면 아래 Release가 이 Session만 제거하며 더 새로운 Session은 건드리지 않는다.
 	registration := h.registry.Register(principal, cc.closeFor)
 	defer registration.Release()
+	// Authentication may have finished before a concurrent revoke committed and
+	// notified the Registry. Recheck after registration: either this sees revoke,
+	// or a later revoke hook sees this registered connection. No DB/Registry lock overlap.
+	ctx, cancel := context.WithTimeout(context.Background(), heartbeatRecordTimeout)
+	checked, err := h.auth.Authenticate(ctx, credential)
+	cancel()
+	if errors.Is(err, connector.ErrUnauthenticated) || (err == nil && checked != principal) {
+		cc.close(closeCredentialRevoked, "credential unavailable")
+		return
+	}
+	if err != nil {
+		log.Error("Connector Control 인증 재확인 실패", "error_code", "DEPENDENCY_UNAVAILABLE")
+		cc.close(websocket.CloseInternalServerErr, "authentication unavailable")
+		return
+	}
 	log = log.With("session_id", registration.Session().ID.String())
 	log.Info("Connector Control connection 소유")
 
@@ -310,6 +332,28 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal) {
 		return
 	}
 
+	if h.hellos != nil {
+		envelope, _ := jsonObject(data)
+		payload, _ := jsonObject(envelope["payload"])
+		version, _ := jsonString(payload["connectorVersion"])
+		runtimeID, _ := jsonString(payload["runtimeId"])
+		current, err := registration.IfCurrent(func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), heartbeatRecordTimeout)
+			defer cancel()
+			return h.hellos.RecordHello(ctx, principal, version, runtimeID)
+		})
+		if !current {
+			return
+		}
+		if errors.Is(err, connector.ErrUnauthenticated) {
+			h.registry.RevokeCredential(principal.CredentialID)
+			cc.close(closeCredentialRevoked, "credential revoked")
+			return
+		}
+		if err != nil {
+			log.Error("Connector HELLO 기록 실패", "error_code", "DEPENDENCY_UNAVAILABLE")
+		}
+	}
 	now := time.Now().UTC()
 	ack := protocol.HelloAckMessage{
 		BaseEnvelope: protocol.BaseEnvelope{

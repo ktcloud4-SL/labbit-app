@@ -64,10 +64,13 @@ func (a *Adapter) preflightKTCloudProvision(ctx context.Context, config Provisio
 			connectorFound = true
 		}
 		if e != nil {
-			if tier.RefID != "" {
+			if tier.RefID != "" || (a.cidrScope != nil && !(tier.CIDR == "" && strings.EqualFold(tier.Name, "external"))) {
 				return ErrProvisionCheck
 			}
 			continue
+		}
+		if a.cidrScope != nil && !prefix.Addr().Is4() {
+			return ErrProvisionCheck
 		}
 		if _, owned := credit.ktTiers[tier.ID]; owned {
 			continue
@@ -127,6 +130,12 @@ func (a *Adapter) createKTCloudTier(ctx context.Context, identity ResourceIdenti
 	inventory, err := a.ktNetwork.tiers(ctx)
 	if err != nil {
 		return ktCloudTier{}, resources, err
+	}
+	if a.cidrScope != nil {
+		free, err := cidrPairFree(ktCIDRPair{Lab: cidr, Management: cidr}, inventory)
+		if err != nil || !free {
+			return ktCloudTier{}, resources, ErrResourceOwnership
+		}
 	}
 	for _, item := range inventory {
 		if item.Name == name || item.CIDR == cidr {

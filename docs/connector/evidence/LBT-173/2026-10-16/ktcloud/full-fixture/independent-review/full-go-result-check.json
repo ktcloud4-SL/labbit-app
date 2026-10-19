@@ -1,0 +1,16 @@
+{
+  "eventCount": 15910,
+  "uncompressedCharacters": 4127768,
+  "packages": {
+    "skip": 12,
+    "pass": 41
+  },
+  "tests": {
+    "skip": 16,
+    "pass": 3707
+  },
+  "summaryCountsMatch": true,
+  "skippedPackages": 12,
+  "allPackageSkipsHaveNoTestFilesOutput": true,
+  "scope": "Ordinary Go suite; opt-in cloud tests skipped, actual local/KT evidence separate."
+}

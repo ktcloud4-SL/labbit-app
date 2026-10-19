@@ -1,0 +1,2809 @@
+{
+  "testPass": 400,
+  "testFail": [],
+  "testSkip": [],
+  "packagePass": 2,
+  "packageFail": [],
+  "testResults": [
+    {
+      "Time": "2026-10-16T15:46:46.492608+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:46.8111532+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:47.125918+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:47.5100115+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.38
+    },
+    {
+      "Time": "2026-10-16T15:46:47.8362488+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.33
+    },
+    {
+      "Time": "2026-10-16T15:46:48.1527376+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:48.4748711+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:48.5959235+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.5964216+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.6724494+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.08
+    },
+    {
+      "Time": "2026-10-16T15:46:48.6780522+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.6780522+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.6898311+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.6949974+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.6949974+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7039361+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7097444+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7097444+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7202314+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7260045+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7260045+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7364414+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7420347+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7420347+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7504826+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7559439+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7559439+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7648914+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7703473+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7703473+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7787909+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7844154+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7844154+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7924687+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7924687+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7974442+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.7974442+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8068769+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8123484+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8123484+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8209379+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.82658+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.82658+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8355504+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8410111+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8410111+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8484521+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8539252+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8539252+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8628595+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8684076+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8684076+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8773795+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8828524+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8828524+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8917834+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8972584+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.8972584+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.905194+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9107333+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9107333+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9188044+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9242909+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9242909+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9340367+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.940001+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.940001+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9479431+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9534269+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9534269+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9619995+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9674643+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9674643+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9764044+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.981902+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.981902+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9908415+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9963689+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:48.9963689+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.006381+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0118439+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0118439+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0197904+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0252542+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0252542+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0337265+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0392214+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0392214+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0486642+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0541244+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0541244+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0645775+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0700424+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0700424+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0800545+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0849933+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0849933+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.0954439+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1006577+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1006577+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1056281+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1101124+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.115563+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.115563+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1245031+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1299674+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1299674+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1389056+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1445269+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1445269+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1535081+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1589704+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1589704+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1679652+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1734271+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1739249+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1823688+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1878493+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.1878493+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.19679+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2022521+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2022521+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2111974+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2161844+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2161844+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2246285+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2301497+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2301497+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.238616+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2440799+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2440799+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2526505+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2581228+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2581228+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2655639+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2710361+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2710361+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2799924+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2854564+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2854564+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.2948963+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3003652+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3003652+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3083021+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3138299+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3138299+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3223001+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3277629+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3277629+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3362068+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3416701+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3416701+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3496172+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3550979+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3550979+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3636379+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.36911+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.36911+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.377126+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3821623+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3821623+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3905968+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3960877+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.3960877+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4055747+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4110371+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4110371+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4199938+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4214833+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4249607+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4249607+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4334039+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4384601+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4384601+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4473969+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4528709+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4533568+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4629351+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4683991+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4683991+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4768411+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.481978+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.481978+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4921577+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4976179+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.4976179+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5057541+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5112285+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5112285+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5196609+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5252309+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5252309+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5332141+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5386772+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5386772+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5471245+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5525937+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5525937+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5605312+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5660706+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5660706+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5736318+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5786081+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5786081+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5865451+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5920179+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5920179+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.5999555+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.605455+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.605455+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6134125+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6188808+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6188808+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6263207+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6317944+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6317944+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6392391+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6447244+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6447244+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6521778+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6576421+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6576421+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6655868+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6710605+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6710605+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.678998+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6844604+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6844604+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.692408+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6978796+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.6978796+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7053206+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7107938+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7107938+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7187307+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7242566+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7242566+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7325588+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7375274+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7380238+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7380238+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.745972+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7514318+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7514318+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.759378+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7646865+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7646865+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7724534+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7776653+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7776653+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.785976+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7914483+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7914483+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.7998823+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.804922+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.804922+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8135499+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8185293+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8185293+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8264622+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8319343+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8319343+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8398716+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8453633+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8453633+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8538585+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8593222+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8593222+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8667725+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8722346+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8722346+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8801844+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8856791+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8856791+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8941991+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8996672+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.8996672+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9081014+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9135731+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9135731+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9220077+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9275574+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9275574+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9350087+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9404826+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9404826+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9484191+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.953891+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.953891+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9618286+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9669315+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9669315+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.974435+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9799063+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9799063+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9878448+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9933172+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:49.9933172+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0012555+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0067557+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0067557+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0146926+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0196714+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0196714+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0276062+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0335752+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0335752+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0410167+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0465199+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogTraceWaitsForFirstEvent",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0465199+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestControlLogEventRejectsMalformedNonemptyJSON",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0545103+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.01
+    },
+    {
+      "Time": "2026-10-16T15:46:50.0564976+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:50.3663035+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:50.6795328+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:50.9975837+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:51.3161874+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:51.6402524+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:51.9534782+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:52.2649402+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:52.5788675+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:52.8913133+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:53.2056111+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:53.5241239+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:53.8387598+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:54.1475414+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:54.4634997+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:54.778549+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:55.1096926+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.33
+    },
+    {
+      "Time": "2026-10-16T15:46:55.4220339+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:55.7382384+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:56.0562189+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:56.3737761+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:56.6919574+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:57.0092654+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:57.32248+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:57.6358376+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:57.9502946+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:58.2632225+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:58.5808163+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:58.8953799+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:46:59.2133396+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:59.5291808+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:46:59.8500111+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:00.1695913+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:00.4853537+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:00.7993504+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:01.1156198+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:01.429034+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:01.7419774+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:02.057382+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:02.3745784+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:02.697926+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:03.0099981+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:03.3271323+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:03.6459516+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:03.962963+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:04.2786378+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:04.5940101+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:04.9118278+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:05.2303305+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:05.5461369+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:05.8571919+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:06.1734314+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:06.492779+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:06.803604+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:07.1229425+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:07.4351243+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:07.7526367+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:08.0692327+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:08.3853776+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:08.7006556+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:09.0133799+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:09.3295975+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:09.6446713+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:09.9633529+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:10.2800316+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:10.5942028+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:10.9129847+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:11.23242+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:11.5503922+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:11.8636227+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:12.1809199+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:12.4986234+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:12.8063644+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:13.1243175+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:13.4440601+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:13.7598006+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:14.076966+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:14.3943457+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:14.7122388+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:15.0279825+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:15.3424105+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:15.6556811+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:15.9656499+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:16.2825482+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:16.6011354+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:16.9166934+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:17.2320091+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.32
+    },
+    {
+      "Time": "2026-10-16T15:47:17.5460892+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    },
+    {
+      "Time": "2026-10-16T15:47:17.8611991+09:00",
+      "Action": "pass",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+      "Test": "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+      "Elapsed": 0.31
+    }
+  ]
+}

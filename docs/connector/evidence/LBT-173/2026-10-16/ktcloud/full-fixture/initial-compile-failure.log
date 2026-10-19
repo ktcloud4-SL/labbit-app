@@ -1,0 +1,8 @@
+# github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack
+internal\connector\provider\openstack\ktcloud_d1_delete.go:30:43: too many arguments in call to gophercloud.ResponseCodeIs
+	have (error, number, number)
+	want (error, int)
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack [build failed]
+FAIL	github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance [build failed]
+FAIL	github.com/ktcloud4-SL/labbit-app/tools/ktcloud-op02-bootstrap [build failed]
+FAIL

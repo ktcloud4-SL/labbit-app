@@ -14,8 +14,10 @@ import (
 	"time"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/mock"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	openstackprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/wss"
@@ -442,8 +444,23 @@ type mockProviderWithTCPForwarder struct {
 	mockProviderWithVMAccessResolver
 }
 
-func (m *mockProviderWithTCPForwarder) DialTCP(ctx context.Context, targetVmKey, serverID string, port int) (net.Conn, error) {
-	return nil, nil
+func (m *mockProviderWithTCPForwarder) DialTCP(ctx context.Context, target vmaccess.Target, port int) (net.Conn, error) {
+	panic("Provider generic TCP forwarder must not be selected")
+}
+
+type mockProviderWithWorkspace struct {
+	mockProviderWithVMAccessResolver
+	validated, resolved []vmaccess.Target
+}
+
+func (p *mockProviderWithWorkspace) ValidateWorkspace(_ context.Context, target vmaccess.Target) error {
+	p.validated = append(p.validated, target)
+	return nil
+}
+
+func (p *mockProviderWithWorkspace) ResolveVMAccess(_ context.Context, target vmaccess.Target) (vmaccess.Endpoint, error) {
+	p.resolved = append(p.resolved, target)
+	return vmaccess.Endpoint{}, vmaccess.ErrInvalidTarget
 }
 
 func TestBuildConnector_Production_Preview_FailClosed_And_Capabilities(t *testing.T) {
@@ -459,22 +476,23 @@ func TestBuildConnector_Production_Preview_FailClosed_And_Capabilities(t *testin
 	}
 
 	t.Setenv("LABBIT_ENV", "production")
+	t.Setenv("LABBIT_ENVIRONMENT", "production")
 	t.Setenv("LABBIT_SAAS_BASE_URL", "https://saas.example.com")
 	t.Setenv("LABBIT_CONNECTOR_CREDENTIAL_FILE", credFile)
 	t.Setenv("LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE", knownHostsFile)
 
-	// 1. 프로덕션 환경 + Provider가 preview.TCPForwarder 미구현 -> fail-closed (PreviewManager=nil, capability 미선언)
+	// Generic TCP support cannot bypass a missing Workspace designation.
 	ctrlCfg1 := &wss.Config{
 		BaseURL:        "https://saas.example.com",
 		CredentialFile: credFile,
-		Capabilities:   []string{"terminal.v1"},
+		Capabilities:   []string{"terminal.v1", protocol.CapabilityPreviewV1},
 	}
-	app1, err := buildConnector(&mockProviderWithVMAccessResolver{}, sender, ctrlCfg1)
+	app1, err := buildConnector(&mockProviderWithTCPForwarder{}, sender, ctrlCfg1)
 	if err != nil {
 		t.Fatalf("buildConnector failed: %v", err)
 	}
 	if app1.PreviewManager != nil {
-		t.Fatalf("expected PreviewManager to be nil in production when provider has no TCPForwarder")
+		t.Fatal("Preview must fail closed without Workspace validation")
 	}
 	for _, cap := range ctrlCfg1.Capabilities {
 		if cap == protocol.CapabilityPreviewV1 {
@@ -482,27 +500,134 @@ func TestBuildConnector_Production_Preview_FailClosed_And_Capabilities(t *testin
 		}
 	}
 
-	// 2. 프로덕션 환경 + Provider가 preview.TCPForwarder 구현 -> PreviewManager 활성화 및 capability 광고
+	defer app1.VMAccess.Close()
+	// Production needs both the VMAccess resolver and Workspace designation.
 	ctrlCfg2 := &wss.Config{
 		BaseURL:        "https://saas.example.com",
 		CredentialFile: credFile,
-		Capabilities:   []string{"terminal.v1"},
+		Capabilities:   []string{"terminal.v1", protocol.CapabilityPreviewV1, protocol.CapabilityPreviewV1},
 	}
-	app2, err := buildConnector(&mockProviderWithTCPForwarder{}, sender, ctrlCfg2)
+	workspaceProvider := &mockProviderWithWorkspace{}
+	app2, err := buildConnector(workspaceProvider, sender, ctrlCfg2)
 	if err != nil {
 		t.Fatalf("buildConnector failed: %v", err)
 	}
 	if app2.PreviewManager == nil {
-		t.Fatalf("expected PreviewManager to be initialized when provider implements TCPForwarder")
+		t.Fatal("SSH Preview was not wired with VMAccess and Workspace validation")
 	}
-	hasPreviewCap := false
+	defer app2.VMAccess.Close()
+	hasPreviewCap := 0
 	for _, cap := range ctrlCfg2.Capabilities {
 		if cap == protocol.CapabilityPreviewV1 {
-			hasPreviewCap = true
-			break
+			hasPreviewCap++
 		}
 	}
-	if !hasPreviewCap {
+	if hasPreviewCap != 1 {
 		t.Fatalf("protocol.CapabilityPreviewV1 must be advertised in capabilities: got %+v", ctrlCfg2.Capabilities)
 	}
+	target := vmaccess.Target{LabInstanceID: "lab", Generation: 4, VMKey: "workspace", ServerID: "server"}
+	_, _, err = app2.PreviewManager.GetOrCreateSession(context.Background(),
+		protocol.PreviewOpenPayload{TargetVmKey: target.VMKey, ProviderServerID: target.ServerID, TargetPort: 3000},
+		protocol.BaseEnvelope{PreviewSessionID: "preview", LabInstanceID: target.LabInstanceID, Generation: target.Generation})
+	if !errors.Is(err, preview.ErrVMUnreachable) || len(workspaceProvider.validated) != 1 || len(workspaceProvider.resolved) != 1 ||
+		workspaceProvider.validated[0] != target || workspaceProvider.resolved[0] != target || app2.PreviewManager.Count() != 0 {
+		t.Fatal("Production Preview bypassed validated VMAccess or registered a failed tunnel")
+	}
+}
+
+func TestConnectorRuntimeContract_ConfigProfiles(t *testing.T) {
+	tmpDir := t.TempDir()
+	credFile := filepath.Join(tmpDir, "credential")
+	if err := os.WriteFile(credFile, []byte("secret-connector-cred\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	knownHostsFile := filepath.Join(tmpDir, "known_hosts")
+	if err := os.WriteFile(knownHostsFile, []byte("# known_hosts\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Profile 1: Provider unconfigured initial Control WSS ONLINE
+	t.Run("ProviderUnconfigured_ControlWSSOnly", func(t *testing.T) {
+		t.Setenv("LABBIT_ENVIRONMENT", "production")
+		t.Setenv("LABBIT_SAAS_BASE_URL", "https://saas.example.com")
+		t.Setenv("LABBIT_CONNECTOR_ID", "conn-unconfigured")
+		t.Setenv("LABBIT_CONNECTOR_CREDENTIAL_FILE", credFile)
+		t.Setenv("LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE", knownHostsFile)
+		t.Setenv(openstackprovider.EnvProviderConfigFile, "")
+		t.Setenv(openstackprovider.EnvCloudName, "")
+		t.Setenv(openstackprovider.EnvLabSubnetCIDR, "")
+		t.Setenv(openstackprovider.EnvKTCloudCIDRPairs, "")
+
+		ctrlCfg, err := controlConfigFromEnvironment()
+		if err != nil {
+			t.Fatalf("controlConfigFromEnvironment failed without Provider config: %v", err)
+		}
+		if ctrlCfg.BaseURL != "https://saas.example.com" {
+			t.Fatalf("unexpected BaseURL: %s", ctrlCfg.BaseURL)
+		}
+		provCfg := openstackprovider.ConfigFromEnvironment()
+		if provCfg.File != "" || provCfg.CloudName != "" {
+			t.Fatalf("expected empty Provider config in unconfigured mode, got %+v", provCfg)
+		}
+	})
+
+	// Profile 2: Standard OpenStack configuration
+	t.Run("StandardOpenStackProfile", func(t *testing.T) {
+		t.Setenv(openstackprovider.EnvProviderConfigFile, "/etc/labbit-connector/clouds.yaml")
+		t.Setenv(openstackprovider.EnvCloudName, "openstack-prod")
+		t.Setenv(openstackprovider.EnvProviderConnection, "prov-conn-std")
+		t.Setenv(openstackprovider.EnvProjectID, "proj-1")
+		t.Setenv(openstackprovider.EnvManagementNetwork, "mgmt-net-1")
+		t.Setenv(openstackprovider.EnvManagementSecurityGroup, "mgmt-sg-1")
+		t.Setenv(openstackprovider.EnvLabSubnetCIDR, "10.20.30.0/24")
+		t.Setenv(openstackprovider.EnvKTCloudCIDRPairs, "")
+		t.Setenv(openstackprovider.EnvKTCloudCIDRStateDir, "")
+
+		provCfg := openstackprovider.ConfigFromEnvironment()
+		if provCfg.Provision.ManagementNetworkID != "mgmt-net-1" ||
+			provCfg.Provision.ManagementSecurityGroupID != "mgmt-sg-1" ||
+			provCfg.Provision.LabSubnetCIDR != "10.20.30.0/24" ||
+			provCfg.Provision.KTCloudCIDRPairs != "" {
+			t.Fatalf("unexpected Standard OpenStack config: %+v", provCfg.Provision)
+		}
+	})
+
+	// Profile 3A: KT D1 without LABBIT_KTCLOUD_CIDR_PAIRS (single static CIDR)
+	t.Run("KTD1_SingleStaticCIDR", func(t *testing.T) {
+		t.Setenv(openstackprovider.EnvProviderConfigFile, "/etc/labbit-connector/clouds.yaml")
+		t.Setenv(openstackprovider.EnvCloudName, "kt-d1")
+		t.Setenv(openstackprovider.EnvKTCloudConnectorTier, "tier-conn-1")
+		t.Setenv(openstackprovider.EnvKTCloudManagementCIDR, "172.25.201.0/24")
+		t.Setenv(openstackprovider.EnvLabSubnetCIDR, "172.25.200.0/24")
+		t.Setenv(openstackprovider.EnvKTCloudCIDRPairs, "")
+		t.Setenv(openstackprovider.EnvKTCloudCIDRStateDir, "")
+
+		provCfg := openstackprovider.ConfigFromEnvironment()
+		if provCfg.Provision.KTCloudConnectorTierID != "tier-conn-1" ||
+			provCfg.Provision.KTCloudManagementCIDR != "172.25.201.0/24" ||
+			provCfg.Provision.LabSubnetCIDR != "172.25.200.0/24" ||
+			provCfg.Provision.KTCloudCIDRPairs != "" {
+			t.Fatalf("unexpected KT D1 single static CIDR config: %+v", provCfg.Provision)
+		}
+	})
+
+	// Profile 3B: KT D1 with LABBIT_KTCLOUD_CIDR_PAIRS (pooled CIDR pairs; LABBIT_OPENSTACK_LAB_SUBNET_CIDR & LABBIT_KTCLOUD_MANAGEMENT_CIDR omitted)
+	t.Run("KTD1_PooledCIDRPairs", func(t *testing.T) {
+		stateDir := filepath.Join(tmpDir, "cidr-state")
+		t.Setenv(openstackprovider.EnvProviderConfigFile, "/etc/labbit-connector/clouds.yaml")
+		t.Setenv(openstackprovider.EnvCloudName, "kt-d1")
+		t.Setenv(openstackprovider.EnvKTCloudConnectorTier, "tier-conn-1")
+		t.Setenv(openstackprovider.EnvKTCloudManagementCIDR, "")
+		t.Setenv(openstackprovider.EnvLabSubnetCIDR, "")
+		t.Setenv(openstackprovider.EnvKTCloudCIDRPairs, `[{"lab":"172.25.240.0/24","management":"172.25.241.0/24"}]`)
+		t.Setenv(openstackprovider.EnvKTCloudCIDRStateDir, stateDir)
+
+		provCfg := openstackprovider.ConfigFromEnvironment()
+		if provCfg.Provision.KTCloudCIDRPairs == "" ||
+			provCfg.Provision.KTCloudCIDRStateDir != stateDir ||
+			provCfg.Provision.LabSubnetCIDR != "" ||
+			provCfg.Provision.KTCloudManagementCIDR != "" {
+			t.Fatalf("unexpected KT D1 pooled CIDR pairs config: %+v", provCfg.Provision)
+		}
+	})
 }

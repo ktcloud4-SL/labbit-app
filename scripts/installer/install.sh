@@ -194,7 +194,7 @@ fi
 echo "==> [3/6] Enrolling connector with SaaS (${LABBIT_SAAS_BASE_URL})..."
 ENROLL_TMP="$(mktemp)"
 chmod 0600 "$ENROLL_TMP"
-printf '{"token":"%s"}' "$ENROLLMENT_TOKEN" > "$ENROLL_TMP"
+printf '{"enrollmentToken":"%s"}' "$ENROLLMENT_TOKEN" > "$ENROLL_TMP"
 unset ENROLLMENT_TOKEN
 
 HTTP_RESPONSE_FILE="$(mktemp)"
@@ -226,12 +226,12 @@ parse_json() {
 }
 
 CONNECTOR_ID="$(parse_json "connectorId")"
-CONNECTOR_CREDENTIAL="$(parse_json "credential")"
+CONNECTOR_CREDENTIAL="$(parse_json "connectorCredential")"
 rm -f "$HTTP_RESPONSE_FILE"
 HTTP_RESPONSE_FILE=""
 
 if [ -z "$CONNECTOR_ID" ] || [ -z "$CONNECTOR_CREDENTIAL" ]; then
-  echo "::error::Enrollment response did not contain required connectorId and credential." >&2
+  echo "::error::Enrollment response did not contain required connectorId and connectorCredential." >&2
   exit 1
 fi
 

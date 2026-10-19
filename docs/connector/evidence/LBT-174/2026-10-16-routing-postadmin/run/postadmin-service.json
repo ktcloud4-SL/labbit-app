@@ -1,0 +1,8 @@
+{
+  "ObservedUTC": "2026-10-16T10:07:51.9232526Z",
+  "Name": "VMnetDHCP",
+  "Status": "Stopped",
+  "StartType": "Disabled",
+  "ActionPerformedBy": "user administrator PowerShell",
+  "ConfigSHA256": "B7BB6CA59B4C77D4DF7C1BEAE6AC7D2D0FC4E2DAB6976CB706CEA7F354327277"
+}

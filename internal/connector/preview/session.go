@@ -1,6 +1,7 @@
 package preview
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net"
@@ -11,7 +12,6 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 )
 
-// SessionStatus 는 프리뷰 세션의 라이프사이클 상태입니다.
 type SessionStatus string
 
 const (
@@ -28,335 +28,391 @@ var (
 	ErrNoActiveTunnel         = errors.New("preview session has no active tunnel")
 )
 
-// PreviewEndedCallback 은 프리뷰 세션 또는 터널이 종료되었을 때 호출되는 콜백입니다.
 type PreviewEndedCallback func(session *PreviewSession, reason string, err error)
 
-// PreviewTunnel 은 단일 TCP 연결(VM application port)과 SaaS Preview Data WSS 간의 양방향 바이트 스트리밍 터널입니다.
-// 1 PreviewSession 은 0..N 개의 sequential PreviewTunnel 을 가질 수 있습니다 (LBT-101 / §7b).
+// A tunnel is reserved before TCP dial and remains bound to one OPEN attempt.
 type PreviewTunnel struct {
+	mu            sync.Mutex
 	openMessageID string
 	tcpConn       net.Conn
 	dataConn      *websocket.Conn
-	writeMu       sync.Mutex
+	attached      bool
+	ctx           context.Context
+	cancel        context.CancelFunc
+	ready         chan struct{}
+	readyOnce     sync.Once
+	openErr       error
 	done          chan struct{}
 	closeOnce     sync.Once
 	onClosed      func(reason string, err error)
+	previous      *PreviewTunnel
+	retireOnce    sync.Once
 }
 
-// Close 는 터널(TCP 연결 및 Data WSS 연결)을 닫고 정리합니다.
-func (t *PreviewTunnel) Close(reason string) {
-	t.closeWithReason(reason, nil)
-}
-
-func (t *PreviewTunnel) closeWithReason(reason string, closeErr error) {
-	t.closeOnce.Do(func() {
-		close(t.done)
-
-		if t.tcpConn != nil {
-			_ = t.tcpConn.Close()
-		}
-
-		if t.dataConn != nil {
-			t.writeMu.Lock()
-			_ = t.dataConn.WriteControl(
-				websocket.CloseMessage,
-				websocket.FormatCloseMessage(websocket.CloseNormalClosure, reason),
-				time.Now().Add(time.Second),
-			)
-			_ = t.dataConn.Close()
-			t.writeMu.Unlock()
-		}
-
-		if t.onClosed != nil {
-			t.onClosed(reason, closeErr)
+// A new OPEN replaces an attached tunnel, but cannot dial until that exact
+// predecessor has closed. Close joins the same retirement if work is canceled.
+func (t *PreviewTunnel) retirePrevious() {
+	t.retireOnce.Do(func() {
+		if t.previous != nil {
+			t.previous.Close(protocol.PreviewReasonTargetClosed)
+			t.previous = nil
 		}
 	})
 }
 
-// pipeTCPToWSS 는 VM TCP 포트에서 읽은 바이트를 WebSocket Binary Frame으로 SaaS Gateway에 전달합니다.
-func (t *PreviewTunnel) pipeTCPToWSS() {
+func (t *PreviewTunnel) completeDial(conn net.Conn, err error) error {
+	t.mu.Lock()
+	select {
+	case <-t.done:
+		err = ErrSessionClosed
+	default:
+	}
+	if err == nil {
+		t.tcpConn = conn
+	} else if conn != nil {
+		_ = conn.Close()
+	}
+	t.openErr = err
+	t.readyOnce.Do(func() { close(t.ready) })
+	t.mu.Unlock()
+	return err
+}
+func (t *PreviewTunnel) dialResult() error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	select {
+	case <-t.done:
+		return ErrSessionClosed
+	default:
+		return t.openErr
+	}
+}
+func (t *PreviewTunnel) Close(reason string) { t.closeWithReason(reason, nil) }
+func (t *PreviewTunnel) closeWithReason(reason string, err error) {
+	t.closeWithCode(reason, err, websocket.CloseNormalClosure)
+}
+func (t *PreviewTunnel) closeWithCode(reason string, err error, code int) {
+	t.closeOnce.Do(func() {
+		close(t.done)
+		t.cancel()
+		t.retirePrevious()
+		t.mu.Lock()
+		tcp, ws := t.tcpConn, t.dataConn
+		t.mu.Unlock()
+		if tcp != nil {
+			_ = tcp.Close()
+		}
+		if ws != nil {
+			// WriteControl is safe alongside a blocked data writer and has its own
+			// deadline. Closing the socket then interrupts either relay direction.
+			_ = ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(code, reason), time.Now().Add(50*time.Millisecond))
+			_ = ws.Close()
+		}
+		// Competing CloseAttempt calls must observe the session publication
+		// before deciding whether an initial failed session can be discarded.
+		if t.onClosed != nil {
+			t.onClosed(reason, err)
+		}
+	})
+}
+func (t *PreviewTunnel) pipeTCPToWSS(tcp net.Conn, ws *websocket.Conn) {
 	buf := make([]byte, 32*1024)
 	for {
-		select {
-		case <-t.done:
-			return
-		default:
-		}
-
-		n, err := t.tcpConn.Read(buf)
+		n, err := tcp.Read(buf)
 		if n > 0 {
-			t.writeMu.Lock()
-			writeErr := t.dataConn.WriteMessage(websocket.BinaryMessage, buf[:n])
-			t.writeMu.Unlock()
-			if writeErr != nil {
+			if writeErr := ws.WriteMessage(websocket.BinaryMessage, buf[:n]); writeErr != nil {
 				t.Close(protocol.PreviewReasonSessionClosed)
 				return
 			}
 		}
-
 		if err != nil {
-			if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
-				t.Close(protocol.PreviewReasonTargetClosed)
-			} else {
-				t.Close(protocol.PreviewErrorCodeVMUnreachable)
+			reason := protocol.PreviewReasonTargetClosed
+			if !errors.Is(err, io.EOF) && !errors.Is(err, net.ErrClosed) {
+				reason = protocol.PreviewErrorCodeVMUnreachable
 			}
+			t.Close(reason)
 			return
 		}
 	}
 }
-
-// pipeWSSToTCP 는 SaaS Gateway에서 수신한 바이너리 데이터를 VM TCP 포트로 기록합니다.
-// PREVIEW_ATTACHED 이후에는 순수 Binary Frame만 허용되며, Text Frame 수신은 1008 프로토콜 위반으로 종료합니다.
-func (t *PreviewTunnel) pipeWSSToTCP() {
+func (t *PreviewTunnel) pipeWSSToTCP(tcp net.Conn, ws *websocket.Conn) {
 	for {
-		select {
-		case <-t.done:
-			return
-		default:
-		}
-
-		msgType, r, err := t.dataConn.NextReader()
+		kind, reader, err := ws.NextReader()
 		if err != nil {
-			var closeErr *websocket.CloseError
-			if errors.As(err, &closeErr) {
-				reason := closeErr.Text
-				if reason == "" {
-					reason = protocol.PreviewReasonSessionClosed
+			// Peer close text is untrusted and may contain request data or secrets.
+			reason := protocol.PreviewReasonSessionClosed
+			var closed *websocket.CloseError
+			if errors.As(err, &closed) {
+				switch closed.Text {
+				case protocol.PreviewReasonSessionExpired, protocol.PreviewReasonLabReset, protocol.PreviewReasonLabCleanup,
+					protocol.PreviewReasonCredentialRevoked, protocol.PreviewReasonControlReplaced, protocol.PreviewReasonServiceRestart:
+					reason = closed.Text
 				}
-				t.closeWithReason(reason, closeErr)
-			} else {
-				t.closeWithReason(protocol.PreviewReasonSessionClosed, err)
 			}
+			t.closeWithReason(reason, err)
 			return
 		}
-
-		switch msgType {
-		case websocket.BinaryMessage:
-			if _, err := io.Copy(t.tcpConn, r); err != nil {
-				t.Close(protocol.PreviewErrorCodeVMUnreachable)
-				return
-			}
-		case websocket.TextMessage:
-			// LBT-101 계약: PREVIEW_ATTACHED 이후 JSON Text frame은 프로토콜 위반 (Close 1008)
-			t.writeMu.Lock()
-			_ = t.dataConn.WriteControl(
-				websocket.CloseMessage,
-				websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "text frame is not allowed after attach"),
-				time.Now().Add(time.Second),
-			)
-			t.writeMu.Unlock()
-			t.Close(protocol.PreviewErrProtocolError)
+		if kind != websocket.BinaryMessage {
+			t.closeWithCode(protocol.PreviewErrProtocolError, nil, websocket.ClosePolicyViolation)
 			return
-		case websocket.CloseMessage:
-			t.Close(protocol.PreviewReasonSessionClosed)
+		}
+		if _, err := io.Copy(tcp, reader); err != nil {
+			t.Close(protocol.PreviewErrorCodeVMUnreachable)
 			return
 		}
 	}
 }
 
-// PreviewSession 은 logical PreviewSession 을 관리합니다.
 type PreviewSession struct {
-	mu sync.Mutex
-
+	mu               sync.Mutex
 	SessionID        string
 	LabInstanceID    string
 	Generation       int64
 	TargetVmKey      string
 	ProviderServerID string
 	TargetPort       int
-
 	Status           SessionStatus
 	currentAttemptID string
 	activeTunnel     *PreviewTunnel
 	everAttached     bool
 	destroyed        bool
-
-	// 하위 호환성 필드: 현재 활성 터널의 커넥션 참조
-	TCPConn  net.Conn
-	DataConn *websocket.Conn
-
+	// Compatibility references; access them only while holding the session lock.
+	TCPConn   net.Conn
+	DataConn  *websocket.Conn
 	closeOnce sync.Once
 	onEnded   PreviewEndedCallback
 }
 
-// NewPreviewSession 은 logical PreviewSession 을 생성합니다.
-// tcpConn 이 전달되면 초기 터널로 자동 바인딩합니다.
-func NewPreviewSession(
-	sessionID, labInstanceID string,
-	generation int64,
-	targetVmKey, serverID string,
-	targetPort int,
-	tcpConn net.Conn,
-	onEnded PreviewEndedCallback,
-) *PreviewSession {
-	s := &PreviewSession{
-		SessionID:        sessionID,
-		LabInstanceID:    labInstanceID,
-		Generation:       generation,
-		TargetVmKey:      targetVmKey,
-		ProviderServerID: serverID,
-		TargetPort:       targetPort,
-		Status:           StatusActive,
-		onEnded:          onEnded,
-	}
-	if tcpConn != nil {
-		_, _ = s.BindTunnel("", tcpConn)
+func NewPreviewSession(id, lab string, generation int64, vm, server string, port int, tcp net.Conn, ended PreviewEndedCallback) *PreviewSession {
+	s := &PreviewSession{SessionID: id, LabInstanceID: lab, Generation: generation, TargetVmKey: vm, ProviderServerID: server, TargetPort: port, Status: StatusActive, onEnded: ended}
+	if tcp != nil {
+		_, _ = s.BindTunnel("", tcp)
 	}
 	return s
 }
-
-// GetStatus 는 현재 세션의 상태를 안전하게 반환합니다.
-func (s *PreviewSession) GetStatus() SessionStatus {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.Status
-}
-
-// EverAttached 는 이 세션에 최소 1회 이상 Data WSS 연결이 성공적으로 attach 되었는지 여부를 반환합니다.
-func (s *PreviewSession) EverAttached() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.everAttached
-}
-
-// IsDestroyed 는 세션이 완전히 파기(종료)되었는지 여부를 반환합니다.
-func (s *PreviewSession) IsDestroyed() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.destroyed
-}
-
-// CurrentAttemptID 는 현재 바인딩된 터널의 openMessageID를 반환합니다.
+func (s *PreviewSession) GetStatus() SessionStatus { s.mu.Lock(); defer s.mu.Unlock(); return s.Status }
+func (s *PreviewSession) EverAttached() bool       { s.mu.Lock(); defer s.mu.Unlock(); return s.everAttached }
+func (s *PreviewSession) IsDestroyed() bool        { s.mu.Lock(); defer s.mu.Unlock(); return s.destroyed }
 func (s *PreviewSession) CurrentAttemptID() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.currentAttemptID
 }
-
-// HasActiveTunnel 은 현재 활성(열려있는) 터널이 존재하는지 여부를 반환합니다.
 func (s *PreviewSession) HasActiveTunnel() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.activeTunnel != nil
 }
-
-// BindTunnel 은 새로운 TCP 커넥션을 터널로 세션에 바인딩합니다.
-// 이전 활성 터널이 존재하면 새 터널을 위해 정상 종료합니다.
-func (s *PreviewSession) BindTunnel(openMessageID string, tcpConn net.Conn) (*PreviewTunnel, error) {
+func (s *PreviewSession) reserveTunnel(attempt string) (*PreviewTunnel, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
 	if s.destroyed {
-		if tcpConn != nil {
-			_ = tcpConn.Close()
+		return nil, false, ErrSessionClosed
+	}
+	var previous *PreviewTunnel
+	if s.activeTunnel != nil {
+		if s.activeTunnel.openMessageID == attempt {
+			return s.activeTunnel, true, nil
 		}
+		s.activeTunnel.mu.Lock()
+		attached := s.activeTunnel.attached
+		s.activeTunnel.mu.Unlock()
+		if !attached {
+			return nil, false, ErrSessionConflict
+		}
+		previous = s.activeTunnel
+	}
+	if attempt != "" && s.currentAttemptID == attempt {
+		return nil, false, ErrNoActiveTunnel
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	t := &PreviewTunnel{openMessageID: attempt, ctx: ctx, cancel: cancel, ready: make(chan struct{}), done: make(chan struct{}), previous: previous}
+	t.onClosed = func(reason string, err error) { s.onTunnelFinished(t, reason, err) }
+	s.activeTunnel = t
+	s.currentAttemptID = attempt
+	s.Status = StatusConnecting
+	return t, false, nil
+}
+func (s *PreviewSession) BindTunnel(attempt string, tcp net.Conn) (*PreviewTunnel, error) {
+	t, retry, err := s.reserveTunnel(attempt)
+	if err != nil || retry {
+		if tcp != nil {
+			_ = tcp.Close()
+		}
+		if err == nil {
+			err = ErrSessionConflict
+		}
+		return nil, err
+	}
+	t.retirePrevious()
+	if t.ctx.Err() != nil || s.IsDestroyed() {
+		if tcp != nil {
+			_ = tcp.Close()
+		}
+		t.Close(protocol.PreviewReasonSessionClosed)
 		return nil, ErrSessionClosed
 	}
-
-	if s.activeTunnel != nil {
-		old := s.activeTunnel
-		go old.Close(protocol.PreviewReasonTargetClosed)
+	if err := t.completeDial(tcp, nil); err != nil {
+		return nil, err
 	}
-
-	t := &PreviewTunnel{
-		openMessageID: openMessageID,
-		tcpConn:       tcpConn,
-		done:          make(chan struct{}),
+	s.mu.Lock()
+	if s.activeTunnel == t {
+		s.TCPConn = tcp
+		s.Status = StatusActive
 	}
-	t.onClosed = func(reason string, err error) {
-		s.onTunnelFinished(t, reason, err)
-	}
-
-	s.activeTunnel = t
-	s.currentAttemptID = openMessageID
-	s.TCPConn = tcpConn
-	s.DataConn = nil
-	s.Status = StatusActive
-
+	s.mu.Unlock()
 	return t, nil
 }
-
+func (s *PreviewSession) attempt(attempt string) (*PreviewTunnel, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.destroyed {
+		return nil, ErrSessionClosed
+	}
+	if s.activeTunnel == nil {
+		return nil, ErrNoActiveTunnel
+	}
+	if s.activeTunnel.openMessageID != attempt {
+		return nil, ErrCorrelationMismatch
+	}
+	return s.activeTunnel, nil
+}
 func (s *PreviewSession) onTunnelFinished(t *PreviewTunnel, reason string, err error) {
 	s.mu.Lock()
+	var closed *websocket.CloseError
+	trustEnded := errors.As(err, &closed) && (closed.Code == 4001 || closed.Code == 4002)
 	if s.activeTunnel != t {
+		if trustEnded {
+			s.destroyed = true
+			if s.activeTunnel != nil {
+				s.activeTunnel.cancel()
+			}
+		}
 		s.mu.Unlock()
+		if trustEnded {
+			// The current tunnel may be joining this predecessor's Close.
+			// Finish its retirement after this callback releases the predecessor.
+			go s.Close(reason)
+		}
 		return
 	}
 	s.activeTunnel = nil
 	s.TCPConn = nil
 	s.DataConn = nil
 	s.Status = StatusClosed
-
-	var closeErr *websocket.CloseError
-	isTrustTermination := errors.As(err, &closeErr) && (closeErr.Code == 4001 || closeErr.Code == 4002)
-	if isTrustTermination {
+	if trustEnded {
 		s.destroyed = true
 	}
-	wasExplicitlyDestroyed := s.destroyed && !isTrustTermination
 	cb := s.onEnded
 	s.mu.Unlock()
-
-	if wasExplicitlyDestroyed {
-		return
-	}
-
 	if cb != nil {
 		cb(s, reason, err)
 	}
 }
 
-// AttachDataConn 은 SaaS Preview Data WSS 연결을 현재 활성 터널에 바인딩하고 프록시 스트리밍을 시작합니다.
-func (s *PreviewSession) AttachDataConn(conn *websocket.Conn) error {
+// Track the handshake socket before waiting for ATTACHED, so Close also
+// interrupts pending attach reads and writes.
+func (s *PreviewSession) trackDataConn(t *PreviewTunnel, ws *websocket.Conn) error {
 	s.mu.Lock()
-	if s.destroyed {
+	defer s.mu.Unlock()
+	if s.destroyed || s.activeTunnel != t {
+		return ErrSessionClosed
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	select {
+	case <-t.done:
+		return ErrSessionClosed
+	default:
+	}
+	if t.dataConn != nil {
+		return ErrSessionAlreadyAttached
+	}
+	t.dataConn = ws
+	return nil
+}
+func (s *PreviewSession) AttachDataConn(ws *websocket.Conn, attempts ...string) error {
+	s.mu.Lock()
+	t := s.activeTunnel
+	if s.destroyed || t == nil {
 		s.mu.Unlock()
-		if conn != nil {
-			_ = conn.Close()
+		if ws != nil {
+			_ = ws.Close()
 		}
 		return ErrSessionClosed
 	}
-
-	t := s.activeTunnel
-	if t == nil {
+	if len(attempts) > 0 && t.openMessageID != attempts[0] {
 		s.mu.Unlock()
-		if conn != nil {
-			_ = conn.Close()
+		_ = ws.Close()
+		return ErrCorrelationMismatch
+	}
+	t.mu.Lock()
+	select {
+	case <-t.done:
+		t.mu.Unlock()
+		s.mu.Unlock()
+		_ = ws.Close()
+		return ErrSessionClosed
+	default:
+	}
+	// A pending owner cancellation may have won before Close reaches done.
+	if t.ctx.Err() != nil {
+		t.mu.Unlock()
+		s.mu.Unlock()
+		_ = ws.Close()
+		return ErrSessionClosed
+	}
+	if t.attached || (t.dataConn != nil && t.dataConn != ws) {
+		t.mu.Unlock()
+		s.mu.Unlock()
+		_ = ws.Close()
+		return ErrSessionAlreadyAttached
+	}
+	if t.tcpConn == nil || ws == nil {
+		t.mu.Unlock()
+		s.mu.Unlock()
+		if ws != nil {
+			_ = ws.Close()
 		}
 		return ErrNoActiveTunnel
 	}
-
-	if t.dataConn != nil {
-		s.mu.Unlock()
-		if conn != nil {
-			_ = conn.Close()
-		}
-		return ErrSessionAlreadyAttached
-	}
-
-	t.dataConn = conn
-	s.DataConn = conn
+	t.dataConn = ws
+	t.attached = true
+	tcp := t.tcpConn
+	t.mu.Unlock()
+	s.DataConn = ws
+	s.TCPConn = tcp
 	s.everAttached = true
 	s.Status = StatusActive
 	s.mu.Unlock()
-
-	go t.pipeTCPToWSS()
-	go t.pipeWSSToTCP()
-
+	go t.pipeTCPToWSS(tcp, ws)
+	go t.pipeWSSToTCP(tcp, ws)
 	return nil
 }
-
-// CloseCurrentTunnel 은 현재 활성 터널만 종료하고 세션 자체는 유지합니다 (순차 터널 지원).
-func (s *PreviewSession) CloseCurrentTunnel(reason string) {
-	s.mu.Lock()
-	t := s.activeTunnel
-	s.mu.Unlock()
-
-	if t != nil {
+func (s *PreviewSession) CloseAttempt(attempt, reason string) {
+	t, err := s.attempt(attempt)
+	if err == nil {
 		t.Close(reason)
 	}
 }
 
-// Close 는 logical PreviewSession 과 활성 터널을 완전히 닫고 리소스를 정리합니다 (멱등성 보장).
+// OnAttemptClosed releases caller-owned cancellation hooks with the tunnel.
+func (s *PreviewSession) OnAttemptClosed(attempt string, fn func()) {
+	t, err := s.attempt(attempt)
+	if err != nil {
+		fn()
+		return
+	}
+	context.AfterFunc(t.ctx, fn)
+}
+func (s *PreviewSession) CloseCurrentTunnel(reason string) {
+	s.mu.Lock()
+	t := s.activeTunnel
+	s.mu.Unlock()
+	if t != nil {
+		t.Close(reason)
+	}
+}
 func (s *PreviewSession) Close(reason string) {
 	s.closeOnce.Do(func() {
 		s.mu.Lock()
@@ -368,11 +424,9 @@ func (s *PreviewSession) Close(reason string) {
 		s.DataConn = nil
 		cb := s.onEnded
 		s.mu.Unlock()
-
 		if t != nil {
 			t.Close(reason)
 		}
-
 		if cb != nil {
 			cb(s, reason, nil)
 		}

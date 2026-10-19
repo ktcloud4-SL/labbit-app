@@ -1,0 +1,18 @@
+{
+  "source_base": "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\lbt174-final-independent-review-0051d8d\\reconstruction-isolated",
+  "working_tree": "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-connector-gates-20261015",
+  "copied_files": [
+    {
+      "path": "internal/server/realtime/trace_propagation_test.go",
+      "lf_sha256": "586d9a02d167a22579c57ba244f1ff1e88b2d6de83892ed18ec1411a20a44f8b"
+    },
+    {
+      "path": "internal/server/realtime/trace_log_test.go",
+      "lf_sha256": "046735f223db318c6c7b15ecfe7dae6d935c4535c5f8b2cc2633e3d79168c678"
+    },
+    {
+      "path": "internal/connector/vmaccess/tcp_test.go",
+      "lf_sha256": "345094a203eab0ec730094bd5139cab58c57ac1df62d7df45380d05a7d216923"
+    }
+  ]
+}

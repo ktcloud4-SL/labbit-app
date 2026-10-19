@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 )
@@ -24,6 +26,12 @@ func TestOperationResultInvalidatesObsoleteAccess(t *testing.T) {
 				resolver := &rejectedAccessResolver{}
 				manager := vmaccess.NewManager(resolver, vmaccess.Config{})
 				defer manager.Close()
+				previews := preview.NewSessionManager(nil, nil)
+				defer previews.Shutdown("cleanup")
+				_, reserveErr := previews.PrepareOpen(context.Background(), protocol.PreviewOpenPayload{TargetVmKey: "workspace", ProviderServerID: "server-1", TargetPort: 3000}, protocol.BaseEnvelope{MessageID: "open", PreviewSessionID: "preview", LabInstanceID: "lab-1", Generation: 1})
+				if reserveErr != nil {
+					t.Fatal(reserveErr)
+				}
 				result := provider.OperationResult{Outcome: provider.OutcomeSucceeded}
 				var mutationErr error
 				switch outcome {
@@ -50,7 +58,7 @@ func TestOperationResultInvalidatesObsoleteAccess(t *testing.T) {
 					CleanupFunc: func(context.Context, provider.CleanupRequest) (provider.OperationResult, error) {
 						return result, mutationErr
 					},
-				}, manager: manager}
+				}, manager: manager, preview: previews}
 				target := vmaccess.Target{LabInstanceID: "lab-1", Generation: 1, VMKey: "workspace", ServerID: "server-1"}
 				if mutation == "reset" {
 					_, _ = p.Reset(context.Background(), provider.ResetRequest{Correlation: provider.Correlation{LabInstanceID: "lab-1", Generation: 2}})
@@ -64,6 +72,9 @@ func TestOperationResultInvalidatesObsoleteAccess(t *testing.T) {
 				}
 				if resolver.calls != want {
 					t.Fatalf("obsolete target reached resolver %d times, want %d", resolver.calls, want)
+				}
+				if previews.Count() != want {
+					t.Fatalf("Preview lifetime disagrees with mutation outcome: count=%d want=%d", previews.Count(), want)
 				}
 			})
 		}

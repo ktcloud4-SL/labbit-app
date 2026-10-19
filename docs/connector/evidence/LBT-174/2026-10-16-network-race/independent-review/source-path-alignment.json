@@ -1,0 +1,89 @@
+{
+  "base": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "firstSourceSHA256": "3e1c08aae54430f0b0479e53c900e986be18cd9a2a66cd3483030cf9f7835461",
+  "currentSourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+  "firstRunResult": {
+    "name": "local-openstack-all",
+    "command": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "test",
+      "./internal/connector/provider/openstack",
+      "-run",
+      "^TestOpenStack",
+      "-json",
+      "-count=1",
+      "-timeout=120m"
+    ],
+    "started": "2026-10-16T06:46:33.176738+00:00",
+    "ended": "2026-10-16T07:15:08.780265+00:00",
+    "seconds": 1715.61,
+    "exitCode": 1,
+    "sourceSHA256": "3e1c08aae54430f0b0479e53c900e986be18cd9a2a66cd3483030cf9f7835461",
+    "sourceUnchanged": false
+  },
+  "files": [
+    {
+      "path": "internal/connector/provider/openstack/startup.go",
+      "sha256LF": "33bfebd3e0c1d8bc0513c89ab34c8a179cfb88c9a5d73b9f6a6b1141beaede69",
+      "firstManifestHash": "33bfebd3e0c1d8bc0513c89ab34c8a179cfb88c9a5d73b9f6a6b1141beaede69",
+      "finalManifestHash": "33bfebd3e0c1d8bc0513c89ab34c8a179cfb88c9a5d73b9f6a6b1141beaede69",
+      "firstAndFinalGoManifestMatch": true
+    },
+    {
+      "path": "internal/connector/provider/openstack/server.go",
+      "sha256LF": "2c277d2399a2cc9928514ddad7cc4a477338bd1153349ff5073ae8f7164c86e5",
+      "firstManifestHash": "2c277d2399a2cc9928514ddad7cc4a477338bd1153349ff5073ae8f7164c86e5",
+      "finalManifestHash": "2c277d2399a2cc9928514ddad7cc4a477338bd1153349ff5073ae8f7164c86e5",
+      "firstAndFinalGoManifestMatch": true
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision.go",
+      "sha256LF": "9ff0973facd09026534f4bbc4c29dcf614dbd7bfc73d54d9101d838099aae9ff",
+      "firstManifestHash": "9ff0973facd09026534f4bbc4c29dcf614dbd7bfc73d54d9101d838099aae9ff",
+      "finalManifestHash": "9ff0973facd09026534f4bbc4c29dcf614dbd7bfc73d54d9101d838099aae9ff",
+      "firstAndFinalGoManifestMatch": true
+    },
+    {
+      "path": "internal/connector/provider/openstack/topology.go",
+      "sha256LF": "06971b6c7835269911c803c9afa87274ee3e5de8d9fb7b06a14d225f88c505ec",
+      "firstManifestHash": "06971b6c7835269911c803c9afa87274ee3e5de8d9fb7b06a14d225f88c505ec",
+      "finalManifestHash": "06971b6c7835269911c803c9afa87274ee3e5de8d9fb7b06a14d225f88c505ec",
+      "firstAndFinalGoManifestMatch": true
+    },
+    {
+      "path": "internal/connector/provider/openstack/integration_test.go",
+      "sha256LF": "53329a9251476929dd767e80959c4acf28caf2b3f60e19540241f6316368228f",
+      "firstManifestHash": "53329a9251476929dd767e80959c4acf28caf2b3f60e19540241f6316368228f",
+      "finalManifestHash": "53329a9251476929dd767e80959c4acf28caf2b3f60e19540241f6316368228f",
+      "firstAndFinalGoManifestMatch": true
+    },
+    {
+      "path": ".github/workflows/go.yml",
+      "sha256LF": "180fd1e4076cecaf237db405e315aeefa2ae4bf0c15dd26bbedc7b9d88e22149",
+      "firstManifestHash": null,
+      "finalManifestHash": null,
+      "firstAndFinalGoManifestMatch": null
+    },
+    {
+      "path": "TESTING.md",
+      "sha256LF": "060ee89f49ca2abb9c2459148f990346153de4f9ae70310dc5159d3c5ea9f8ac",
+      "firstManifestHash": null,
+      "finalManifestHash": null,
+      "firstAndFinalGoManifestMatch": null
+    },
+    {
+      "path": "go.mod",
+      "sha256LF": "d9edb3cb0b349c2aaf878eac77e312dbb8fa03e9ad79f8c9569d309baecbf4b4",
+      "firstManifestHash": "d9edb3cb0b349c2aaf878eac77e312dbb8fa03e9ad79f8c9569d309baecbf4b4",
+      "finalManifestHash": "d9edb3cb0b349c2aaf878eac77e312dbb8fa03e9ad79f8c9569d309baecbf4b4",
+      "firstAndFinalGoManifestMatch": true
+    },
+    {
+      "path": "go.sum",
+      "sha256LF": "accde73f8f6e210dc68e55c2293110f83d3d87902f84edf169b426a5fb5a0d90",
+      "firstManifestHash": "accde73f8f6e210dc68e55c2293110f83d3d87902f84edf169b426a5fb5a0d90",
+      "finalManifestHash": "accde73f8f6e210dc68e55c2293110f83d3d87902f84edf169b426a5fb5a0d90",
+      "firstAndFinalGoManifestMatch": true
+    }
+  ]
+}

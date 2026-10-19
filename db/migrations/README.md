@@ -42,6 +42,16 @@ Confluence는 Domain/Data 의미·ownership·결정 이유를 관리하고, 실�
 7. `000007_operation_updated_at.sql`
    - `operations.updated_at` 필수 시각을 additive 변경으로 추가
    - 기존 row는 `finished_at` / `started_at` / `created_at` 순으로 backfill하며, 이후 상태 갱신 writer는 같은 transaction에서 갱신
+8. `000008_operation_dispatch_deferral.sql`
+   - `operation_items.dispatch_not_before` nullable 시각 추가. 확실한 미전송 PROVISION을 PENDING으로 복귀시킨 뒤 다음 claim까지의 대기 시각을 보존
+   - 기존 row는 NULL이며 RUNNING/RECONCILING 재실행을 허용하는 시각이나 lease expiry가 아님
+
+9. `000009_mutation_previous_status.sql`
+   - `operation_items.previous_instance_status` nullable metadata 추가. RESET 거절·Preflight 실패 및 확실한 미전송 뒤 기존 LabInstance 상태를 복원
+   - 기존 row와 generation·Resource 이력은 변경하지 않음
+
+10. `000010_connector_enrollment_tokens.sql`
+   - `connector_enrollment_tokens` 추가. 기존 Connector·Credential table은 재사용하며 Physical Schema는 해당 SQL을 따릅니다.
 
 ## 확정된 Domain/Data 모델과의 관계
 
@@ -122,6 +132,8 @@ Browser가 보는 durable 작업은 `operations`, 실제 LabInstance별 실행 �
 PostgreSQL polling Worker는 `operation_items`의 `PENDING` row를 `FOR UPDATE SKIP LOCKED` 방식으로 claim하는 것을 기준으로 합니다. Claim transaction을 commit한 뒤 Connector/OpenStack 작업을 수행하며 외부 Provider 호출 중 DB transaction을 열어 두지 않습니다.
 
 `lease_expires_at`은 같은 Provider Mutation을 즉시 다시 실행할 권한이 아닙니다. RUNNING 작업의 결과가 불명확해지면 D-20/D-24에 따라 `RECONCILING`으로 전환하고 Provider 현실을 먼저 확인합니다.
+
+LBT-179의 조회 전용 Reconciliation은 기존 `RECONCILING` 상태와 lease column을 재사용합니다. HOLD 시 owner를 해제하고 `lease_expires_at`을 다음 조회 가능 시각으로 둡니다. `dispatch_not_before`는 mutation 미전송 재선점에만 사용하며, Reconciliation은 mutation 재실행을 허용하지 않습니다. 새 Migration은 없습니다.
 
 ### D-25: 비동기 Trace Context
 

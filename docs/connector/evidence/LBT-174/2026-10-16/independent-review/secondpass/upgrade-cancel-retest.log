@@ -1,0 +1,32 @@
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:64635->127.0.0.1:64634: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.01s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:64637->127.0.0.1:64636: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:64639->127.0.0.1:64638: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:64641->127.0.0.1:64640: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:64643->127.0.0.1:64642: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:64645->127.0.0.1:64644: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:64647->127.0.0.1:64646: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:64649->127.0.0.1:64648: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:64651->127.0.0.1:64650: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+=== RUN   TestIndependentCancelClosesPendingHTTPUpgrade
+    zz_independent_upgrade_cancel_test.go:35: canceled Upgrade returned promptly: dial failed: read tcp 127.0.0.1:64653->127.0.0.1:64652: use of closed network connection
+--- PASS: TestIndependentCancelClosesPendingHTTPUpgrade (0.00s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/preview	2.429s

@@ -1,0 +1,8 @@
+{
+  "go_files": 474,
+  "canonical_unformatted": [],
+  "inherited_raw_crlf_differences": 455,
+  "production_runtime_contract_web_differences_from_local_audit": [
+    "internal/connector/provider/openstack/ktcloud_d1_delete.go"
+  ]
+}

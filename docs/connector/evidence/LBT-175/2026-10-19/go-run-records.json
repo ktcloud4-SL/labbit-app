@@ -1,0 +1,42 @@
+[
+  {
+    "name": "linux-full-initial",
+    "command": "go test -mod=readonly -json -count=1 -timeout=5m ./...",
+    "environment": "Ubuntu24.04 linux/amd64 CGO_ENABLED=0",
+    "source": "210453dab55a2514bcb1a74cd6b4c881da3f3573ff605fdbc181baf417fafa04",
+    "exitCode": 1,
+    "raw": "go-full-initial.jsonl"
+  },
+  {
+    "name": "linux-full-final",
+    "command": "go test -mod=readonly -json -count=1 -timeout=5m ./...",
+    "environment": "Ubuntu24.04 linux/amd64 CGO_ENABLED=0",
+    "source": "8d0a0f7b2baf3fdabc3e440620dd7530dfc734b91110b9d3a713e0f2afc532ce",
+    "exitCode": 0,
+    "raw": "go-full.jsonl"
+  },
+  {
+    "name": "related-race",
+    "command": "go test -mod=readonly -race -json -count=1 -timeout=5m ./internal/connector/preview ./internal/connector/wss ./internal/connector/app ./internal/connector/workspacefs ./internal/connector/workspacefile ./internal/connector/filetransport ./internal/connector/vmaccess ./tools/ktcloud-d1-acceptance ./tools/ktcloud-op02-bootstrap",
+    "environment": "Windows amd64 CGO_ENABLED=1 GCC",
+    "source": "210453dab55a2514bcb1a74cd6b4c881da3f3573ff605fdbc181baf417fafa04",
+    "exitCode": 0,
+    "raw": "related-race.jsonl"
+  },
+  {
+    "name": "fixture-race20",
+    "command": "go test -mod=readonly -race -json -count=20 -timeout=5m ./tools/ktcloud-d1-acceptance ./tools/ktcloud-op02-bootstrap",
+    "environment": "Windows amd64 CGO_ENABLED=1 GCC",
+    "source": "210453dab55a2514bcb1a74cd6b4c881da3f3573ff605fdbc181baf417fafa04",
+    "exitCode": 0,
+    "raw": "fixture-repeat.jsonl"
+  },
+  {
+    "name": "terminal-ownership-race20",
+    "command": "go test -mod=readonly -race -json -count=20 -timeout=5m -run ^TestSessionReleasesUnreadDataConnectionOnReplaceAndDetach$ ./internal/connector/terminal",
+    "environment": "Windows amd64 CGO_ENABLED=1 GCC",
+    "source": "8d0a0f7b2baf3fdabc3e440620dd7530dfc734b91110b9d3a713e0f2afc532ce",
+    "exitCode": 0,
+    "raw": "terminal-ownership-repeat.jsonl"
+  }
+]

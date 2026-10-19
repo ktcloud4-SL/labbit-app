@@ -1,0 +1,24 @@
+{
+  "finding": "F174-DOC002",
+  "before": {
+    "command": [
+      "go",
+      "list",
+      "./docs/connector/evidence/LBT-174/..."
+    ],
+    "exitCode": 1,
+    "observedToolOutput": "found packages vmaccess (after-T003-tcp_test.go) and openstackprovider (before-t005-combined-output.go) in .../2026-10-16-followup/independent-review",
+    "source": "Actual tool invocation before artifact rename; observation transcribed, not a new command result."
+  },
+  "after": {
+    "command": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "list",
+      "./docs/connector/evidence/LBT-174/..."
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": "go: warning: \"./docs/connector/evidence/LBT-174/...\" matched no packages\n"
+  },
+  "timestamp": "2026-10-16T07:24:46.448172+00:00"
+}

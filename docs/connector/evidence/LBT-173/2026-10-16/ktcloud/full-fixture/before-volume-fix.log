@@ -1,0 +1,8 @@
+--- FAIL: TestKTCloudDeletingRootWaitsForActualAbsenceWithoutDuplicateDelete (0.01s)
+    --- FAIL: TestKTCloudDeletingRootWaitsForActualAbsenceWithoutDuplicateDelete/converges (0.00s)
+        ktcloud_d1_volume_deleting_test.go:50: outcome=FAILED err=<nil> resources=[{{VOLUME root-id 2 workspace:root-volume} DELETE_FAILED}] GET=1 DELETE=1
+    --- FAIL: TestKTCloudDeletingRootWaitsForActualAbsenceWithoutDuplicateDelete/staysDeleting (0.00s)
+        ktcloud_d1_volume_deleting_test.go:50: outcome=FAILED err=<nil> resources=[{{VOLUME root-id 2 workspace:root-volume} DELETE_FAILED}] GET=1 DELETE=1
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	3.477s
+FAIL

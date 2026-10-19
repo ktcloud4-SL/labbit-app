@@ -1,0 +1,6 @@
+# github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack [github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.test]
+..\before-t005-combined-output.go:99:20: undefined: bytes
+..\before-t005-combined-output.go:160:51: undefined: bytes
+..\before-t005-combined-output.go:163:55: undefined: bytes
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack [build failed]
+FAIL

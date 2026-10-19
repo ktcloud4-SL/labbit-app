@@ -1,0 +1,8 @@
+
+ RUN  v5.0.3 C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-connector-gates-20261015/web
+
+
+ Test Files  16 passed (16)
+      Tests  217 passed (217)
+   Start at  09:28:34
+   Duration  33.41s (environment 78%, setup 17%, tests 2%, import 2%, transform 1%)

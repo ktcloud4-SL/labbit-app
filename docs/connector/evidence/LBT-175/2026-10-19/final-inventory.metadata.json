@@ -1,0 +1,57 @@
+{
+  "atUTC": "2026-10-19T00:43:10.5830767Z",
+  "baselinePreserved": true,
+  "bootstrapDeleted": true,
+  "differentKinds": [],
+  "kinds": {
+    "FORWARD": {
+      "baselineCount": 0,
+      "finalCount": 0,
+      "exactIDsEqual": true,
+      "baselineIDsSHA256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "finalIDsSHA256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "KEYPAIR": {
+      "baselineCount": 0,
+      "finalCount": 0,
+      "exactIDsEqual": true,
+      "baselineIDsSHA256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "finalIDsSHA256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "POLICY": {
+      "baselineCount": 0,
+      "finalCount": 0,
+      "exactIDsEqual": true,
+      "baselineIDsSHA256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "finalIDsSHA256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "PUBLIC_IP": {
+      "baselineCount": 0,
+      "finalCount": 0,
+      "exactIDsEqual": true,
+      "baselineIDsSHA256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "finalIDsSHA256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "SERVER": {
+      "baselineCount": 0,
+      "finalCount": 0,
+      "exactIDsEqual": true,
+      "baselineIDsSHA256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "finalIDsSHA256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "TIER": {
+      "baselineCount": 3,
+      "finalCount": 3,
+      "exactIDsEqual": true,
+      "baselineIDsSHA256": "b8a31a215397c1f67f81dd35788587ef31a3b160ab84b4bc78de0c7f953c357d",
+      "finalIDsSHA256": "b8a31a215397c1f67f81dd35788587ef31a3b160ab84b4bc78de0c7f953c357d"
+    },
+    "VOLUME": {
+      "baselineCount": 0,
+      "finalCount": 0,
+      "exactIDsEqual": true,
+      "baselineIDsSHA256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "finalIDsSHA256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  }
+}

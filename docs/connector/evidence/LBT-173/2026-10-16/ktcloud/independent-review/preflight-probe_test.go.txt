@@ -1,0 +1,101 @@
+package main
+
+import (
+	"bufio"
+	"context"
+	"errors"
+	"net"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+)
+
+type reviewNoCloudTransport struct{ called *bool }
+
+func (r reviewNoCloudTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	*r.called = true
+	return nil, errors.New("independent review forbids cloud calls")
+}
+
+func TestReviewPreviewInvalidModeStopsBeforeJournalOrHTTP(t *testing.T) {
+	for _, tc := range []struct{ name, op02, generations, recovery string }{
+		{"mixed", "1", "2", "0"},
+		{"oneGeneration", "0", "1", "0"},
+		{"recovery", "0", "2", "1"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			t.Setenv("LABBIT_KTCLOUD_D1_CONTROL_TEST", "1")
+			t.Setenv("LABBIT_KTCLOUD_PREVIEW_SMOKE", "1")
+			t.Setenv("LABBIT_KTCLOUD_OP02_TEST", tc.op02)
+			t.Setenv("LBT145_CONTROL_GENERATIONS", tc.generations)
+			t.Setenv("LBT145_CONTROL_RECOVERY", tc.recovery)
+			t.Setenv("LBT145_CONTROL_DIRECTORY", dir)
+			oldTransport := http.DefaultTransport
+			called := false
+			http.DefaultTransport = reviewNoCloudTransport{&called}
+			defer func() { http.DefaultTransport = oldTransport }()
+			if err := run(); err == nil || !strings.Contains(err.Error(), "fresh exclusive two-generation") {
+				t.Fatalf("expected early exclusive mode rejection, got %v", err)
+			}
+			if called {
+				t.Fatal("invalid mode attempted external HTTP")
+			}
+			if _, err := os.Stat(filepath.Join(dir, "control-ledger.json")); !os.IsNotExist(err) {
+				t.Fatal("invalid mode wrote fixture ledger")
+			}
+		})
+	}
+}
+
+type reviewShortDeadlineConn struct {
+	net.Conn
+	requested chan time.Time
+}
+
+func (c reviewShortDeadlineConn) SetDeadline(deadline time.Time) error {
+	c.requested <- deadline
+	return c.Conn.SetDeadline(time.Now().Add(40 * time.Millisecond))
+}
+
+func TestReviewPreviewHTTPStallReturnsAtConnectionDeadline(t *testing.T) {
+	for _, response := range []string{"", "HTTP/1.1 200 OK\r\nContent-Length: 14\r\n\r\n"} {
+		t.Run(map[bool]string{true: "body", false: "headers"}[response != ""], func(t *testing.T) {
+			caller, peer := net.Pipe()
+			defer caller.Close()
+			defer peer.Close()
+			stop, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			go func() {
+				_, _ = http.ReadRequest(bufio.NewReader(peer))
+				if response != "" {
+					_, _ = peer.Write([]byte(response))
+				}
+				<-stop.Done()
+			}()
+			requested := make(chan time.Time, 1)
+			result := make(chan error, 1)
+			started := time.Now()
+			go func() { result <- checkPreviewHTTP(reviewShortDeadlineConn{caller, requested}) }()
+			select {
+			case err := <-result:
+				if err == nil {
+					t.Fatal("stalled response accepted")
+				}
+			case <-time.After(time.Second):
+				t.Fatal("stalled HTTP failed to unblock")
+			}
+			select {
+			case deadline := <-requested:
+				if d := deadline.Sub(started); d < 9*time.Second || d > 11*time.Second {
+					t.Fatalf("HTTP deadline is %v, want approximately ten seconds", d)
+				}
+			default:
+				t.Fatal("HTTP never configured a connection deadline")
+			}
+		})
+	}
+}

@@ -1,0 +1,385 @@
+{
+  "firstSeriesAttempts": 12,
+  "successes": 0,
+  "failures": 12,
+  "observations": [
+    {
+      "elapsed_ms": 5980,
+      "errorType": "*ssh.ExitError",
+      "exitStatus": 1,
+      "kind": "internet-probe",
+      "probe": {
+        "connectCode": 11,
+        "defaultRoutes": [
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "management"
+          },
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "lab"
+          }
+        ],
+        "elapsed_ms": 5005,
+        "routeBefore": [
+          {
+            "hasGateway": true,
+            "role": "lab"
+          }
+        ]
+      },
+      "reachabilityAssertion": true,
+      "stage": "remote_exec",
+      "success": false
+    },
+    {
+      "elapsed_ms": 5613,
+      "errorType": "*ssh.ExitError",
+      "exitStatus": 1,
+      "kind": "internet-probe",
+      "probe": {
+        "connectCode": 11,
+        "defaultRoutes": [
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "management"
+          },
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "lab"
+          }
+        ],
+        "elapsed_ms": 5007,
+        "routeBefore": [
+          {
+            "hasGateway": true,
+            "role": "management"
+          }
+        ]
+      },
+      "reachabilityAssertion": true,
+      "stage": "remote_exec",
+      "success": false
+    },
+    {
+      "elapsed_ms": 5521,
+      "errorType": "*ssh.ExitError",
+      "exitStatus": 1,
+      "kind": "internet-probe",
+      "probe": {
+        "connectCode": 11,
+        "defaultRoutes": [
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "management"
+          },
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "lab"
+          }
+        ],
+        "elapsed_ms": 5007,
+        "routeBefore": [
+          {
+            "hasGateway": true,
+            "role": "management"
+          }
+        ]
+      },
+      "reachabilityAssertion": true,
+      "stage": "remote_exec",
+      "success": false
+    },
+    {
+      "elapsed_ms": 5575,
+      "errorType": "*ssh.ExitError",
+      "exitStatus": 1,
+      "kind": "internet-probe",
+      "probe": {
+        "connectCode": 11,
+        "defaultRoutes": [
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "management"
+          },
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "lab"
+          }
+        ],
+        "elapsed_ms": 5006,
+        "routeBefore": [
+          {
+            "hasGateway": true,
+            "role": "management"
+          }
+        ]
+      },
+      "reachabilityAssertion": true,
+      "stage": "remote_exec",
+      "success": false
+    },
+    {
+      "elapsed_ms": 6623,
+      "errorType": "*ssh.ExitError",
+      "exitStatus": 1,
+      "kind": "internet-probe",
+      "probe": {
+        "connectCode": 11,
+        "defaultRoutes": [
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "management"
+          },
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "lab"
+          }
+        ],
+        "elapsed_ms": 5007,
+        "routeBefore": [
+          {
+            "hasGateway": true,
+            "role": "management"
+          }
+        ]
+      },
+      "reachabilityAssertion": true,
+      "stage": "remote_exec",
+      "success": false
+    },
+    {
+      "elapsed_ms": 5529,
+      "errorType": "*ssh.ExitError",
+      "exitStatus": 1,
+      "kind": "internet-probe",
+      "probe": {
+        "connectCode": 11,
+        "defaultRoutes": [
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "management"
+          },
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "lab"
+          }
+        ],
+        "elapsed_ms": 5007,
+        "routeBefore": [
+          {
+            "hasGateway": true,
+            "role": "management"
+          }
+        ]
+      },
+      "reachabilityAssertion": true,
+      "stage": "remote_exec",
+      "success": false
+    },
+    {
+      "elapsed_ms": 5501,
+      "errorType": "*ssh.ExitError",
+      "exitStatus": 1,
+      "kind": "internet-probe",
+      "probe": {
+        "connectCode": 11,
+        "defaultRoutes": [
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "management"
+          },
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "lab"
+          }
+        ],
+        "elapsed_ms": 5006,
+        "routeBefore": [
+          {
+            "hasGateway": true,
+            "role": "management"
+          }
+        ]
+      },
+      "reachabilityAssertion": true,
+      "stage": "remote_exec",
+      "success": false
+    },
+    {
+      "elapsed_ms": 5529,
+      "errorType": "*ssh.ExitError",
+      "exitStatus": 1,
+      "kind": "internet-probe",
+      "probe": {
+        "connectCode": 11,
+        "defaultRoutes": [
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "management"
+          },
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "lab"
+          }
+        ],
+        "elapsed_ms": 5008,
+        "routeBefore": [
+          {
+            "hasGateway": true,
+            "role": "management"
+          }
+        ]
+      },
+      "reachabilityAssertion": true,
+      "stage": "remote_exec",
+      "success": false
+    },
+    {
+      "elapsed_ms": 5547,
+      "errorType": "*ssh.ExitError",
+      "exitStatus": 1,
+      "kind": "internet-probe",
+      "probe": {
+        "connectCode": 11,
+        "defaultRoutes": [
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "management"
+          },
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "lab"
+          }
+        ],
+        "elapsed_ms": 5006,
+        "routeBefore": [
+          {
+            "hasGateway": true,
+            "role": "lab"
+          }
+        ]
+      },
+      "reachabilityAssertion": true,
+      "stage": "remote_exec",
+      "success": false
+    },
+    {
+      "elapsed_ms": 5542,
+      "errorType": "*ssh.ExitError",
+      "exitStatus": 1,
+      "kind": "internet-probe",
+      "probe": {
+        "connectCode": 11,
+        "defaultRoutes": [
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "management"
+          },
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "lab"
+          }
+        ],
+        "elapsed_ms": 5007,
+        "routeBefore": [
+          {
+            "hasGateway": true,
+            "role": "management"
+          }
+        ]
+      },
+      "reachabilityAssertion": true,
+      "stage": "remote_exec",
+      "success": false
+    },
+    {
+      "elapsed_ms": 5564,
+      "errorType": "*ssh.ExitError",
+      "exitStatus": 1,
+      "kind": "internet-probe",
+      "probe": {
+        "connectCode": 11,
+        "defaultRoutes": [
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "management"
+          },
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "lab"
+          }
+        ],
+        "elapsed_ms": 5006,
+        "routeBefore": [
+          {
+            "hasGateway": true,
+            "role": "management"
+          }
+        ]
+      },
+      "reachabilityAssertion": true,
+      "stage": "remote_exec",
+      "success": false
+    },
+    {
+      "elapsed_ms": 5549,
+      "errorType": "*ssh.ExitError",
+      "exitStatus": 1,
+      "kind": "internet-probe",
+      "probe": {
+        "connectCode": 11,
+        "defaultRoutes": [
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "management"
+          },
+          {
+            "hasGateway": true,
+            "metric": 100,
+            "role": "lab"
+          }
+        ],
+        "elapsed_ms": 5006,
+        "routeBefore": [
+          {
+            "hasGateway": true,
+            "role": "management"
+          }
+        ]
+      },
+      "reachabilityAssertion": true,
+      "stage": "remote_exec",
+      "success": false
+    }
+  ],
+  "hostEvents": {
+    "start": 1,
+    "run": 1,
+    "output": 52,
+    "fail": 2
+  }
+}

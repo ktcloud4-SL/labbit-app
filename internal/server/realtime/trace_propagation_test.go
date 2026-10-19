@@ -260,23 +260,39 @@ func TestConnectorControlEventsPropagateTraceContext(t *testing.T) {
 
 func requireControlLogTrace(t *testing.T, e *env, message, sessionID, traceID string) {
 	t.Helper()
+	requireControlLogTraceFrom(t, e.logs.String, message, sessionID, traceID)
+}
+
+func requireControlLogTraceFrom(t *testing.T, logs func() string, message, sessionID, traceID string) {
+	t.Helper()
 	var found map[string]any
 	eventually(t, "control log: "+message, func() bool {
-		for _, line := range strings.Split(strings.TrimSpace(e.logs.String()), "\n") {
-			var event map[string]any
-			if err := json.Unmarshal([]byte(line), &event); err != nil {
-				t.Fatal("control log is not JSON")
-			}
-			if event["message"] == message && event["terminal_session_id"] == sessionID {
-				found = event
-				return true
-			}
+		var err error
+		found, err = findControlLogEvent(logs(), message, sessionID)
+		if err != nil {
+			t.Fatal("control log is not JSON")
 		}
-		return false
+		return found != nil
 	})
 	if found["trace_id"] != traceID {
 		t.Fatal("control log lost its own normalized trace_id")
 	}
+}
+
+func findControlLogEvent(logs, message, sessionID string) (map[string]any, error) {
+	for _, line := range strings.Split(logs, "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue // The WebSocket ACK can arrive before the first log write.
+		}
+		var event map[string]any
+		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			return nil, err
+		}
+		if event["message"] == message && event["terminal_session_id"] == sessionID {
+			return event, nil
+		}
+	}
+	return nil, nil
 }
 
 // attach가 거절되어도 오류 응답은 요청의 Trace를 돌려준다. 그 Trace는 Control 호출 ctx에도 전달되었다.

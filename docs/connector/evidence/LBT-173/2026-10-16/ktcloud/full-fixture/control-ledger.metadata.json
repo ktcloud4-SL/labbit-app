@@ -1,0 +1,80 @@
+{
+  "stage": "PREVIEW_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS",
+  "passed": true,
+  "hello": true,
+  "heartbeat": true,
+  "plannedGenerations": 2,
+  "labInstanceIdSha256": "7058de8651bf2e9bf94055aca4d3aac266fae80abb6f32572e10dbf490037ecd",
+  "resources": [
+    {
+      "resourceType": "KT_TIER",
+      "providerIdSha256": "18a7626b5f29ce686637f53da9accf832c239366d160422fc32aeddb5f104d03",
+      "generation": 1,
+      "logicalName": "lab-tier",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_TIER",
+      "providerIdSha256": "82e3bb7a03dfc6446988e38931bb529fd3898f8b4f75aaff97376b9a97a9229c",
+      "generation": 1,
+      "logicalName": "workspace:management-tier",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_FIREWALL_POLICY",
+      "providerIdSha256": "3a1be8b04399545cb64f56c5bcdf305429ddcb58a54fcd596e01791c544e78d6",
+      "generation": 1,
+      "logicalName": "workspace:management-ssh",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "SERVER",
+      "providerIdSha256": "267230042551f383b58b8cb5510ee7375a43437ac4a6669bf8a0663a01d5df67",
+      "generation": 1,
+      "logicalName": "workspace",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "VOLUME",
+      "providerIdSha256": "d9657e9907f941a3d4f09b576a24e7aa2609df5dc9db0ac548b67476329fccc1",
+      "generation": 1,
+      "logicalName": "workspace:root-volume",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_TIER",
+      "providerIdSha256": "4e29dabfee705f48186a8e5930ad765286ad588ab3ab2d3208c4fa83b812b1c7",
+      "generation": 2,
+      "logicalName": "lab-tier",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_TIER",
+      "providerIdSha256": "f7c10837122eb4bcf38e0b1a3b521df787a2468f0b015eb6e325b05fdd24da38",
+      "generation": 2,
+      "logicalName": "workspace:management-tier",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "KT_FIREWALL_POLICY",
+      "providerIdSha256": "f9d4e4b88533b119b3674eec56784ba9216520a7e630ca7237347c3110ea8ae2",
+      "generation": 2,
+      "logicalName": "workspace:management-ssh",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "SERVER",
+      "providerIdSha256": "5b71775c642c4a06c3e375723ff2e9c315b226eb5e784fc2b7b857eef0c61408",
+      "generation": 2,
+      "logicalName": "workspace",
+      "observedState": "DELETED"
+    },
+    {
+      "resourceType": "VOLUME",
+      "providerIdSha256": "7abc6d5f25a7953f9b03f1c0de5ddcc3c93a4ccf2bb9fd0a36f4961190173841",
+      "generation": 2,
+      "logicalName": "workspace:root-volume",
+      "observedState": "DELETED"
+    }
+  ]
+}

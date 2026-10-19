@@ -1,0 +1,4 @@
+{
+  "web/package.json": true,
+  "web/package-lock.json": true
+}

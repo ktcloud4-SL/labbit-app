@@ -188,11 +188,23 @@ EOF
   fi
 }
 
+# Test 7: Enrollment API contract uses enrollmentToken request and connectorCredential response (LBT-182)
+test_enrollment_api_contract() {
+  echo "--- Test 7: LBT-182 Enrollment API contract check ---"
+  if grep -q '{"enrollmentToken":"%s"}' "$INSTALLER" && grep -q 'parse_json "connectorId"' "$INSTALLER" && grep -q 'parse_json "connectorCredential"' "$INSTALLER"; then
+    echo "PASS: Enrollment request/response fields match LBT-182 OpenAPI contract."
+  else
+    echo "FAIL: Installer enrollment fields do not match LBT-182 OpenAPI contract"
+    exit 1
+  fi
+}
+
 test_non_root
 test_unsupported_os
 test_unsupported_arch
 test_missing_systemd
 test_checksum_mismatch
 test_existing_credentials_preserved
+test_enrollment_api_contract
 
 echo "==> All install.sh tests passed successfully!"

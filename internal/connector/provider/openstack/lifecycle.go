@@ -38,6 +38,17 @@ func (a *Adapter) Reset(ctx context.Context, request coreprovider.ResetRequest) 
 	if !adapterAvailable(a) {
 		return failedResult(nil, errorInvalidProvision, "OpenStack Provider is not available"), nil
 	}
+	if a.cidrPoolEnabled() && a.cidrScope == nil {
+		result, err := a.withCIDRScope(ctx, request.Correlation, true, func(scoped *Adapter) (coreprovider.OperationResult, error) {
+			return scoped.Reset(ctx, request)
+		})
+		if result.Outcome == coreprovider.OutcomeFailed && len(result.ProviderResources) == 0 {
+			// Scope rejection precedes all deletes. Keep the exact previous-generation
+			// resources explicitly marked as untouched for the caller.
+			result.ProviderResources = resourceResults(request.ProviderResources, stateDeleteNotAttempted)
+		}
+		return result, err
+	}
 	provisionRequest := coreprovider.ProvisionRequest{
 		Correlation:      request.Correlation,
 		CreationSnapshot: request.CreationSnapshot,
@@ -54,6 +65,9 @@ func (a *Adapter) Reset(ctx context.Context, request coreprovider.ResetRequest) 
 	// This read-only check intentionally happens before cleanup. If the original
 	// image, flavor, key pair, or network can no longer reproduce the snapshot,
 	// the existing generation remains untouched.
+	if a.cidrScope != nil && a.validateCIDRResetOwnership(ctx, request, oldResources) != nil {
+		return preflightFailure(resourceResults(oldResources, stateDeleteNotAttempted), ErrResourceOwnership, "Reset ownership could not be verified"), nil
+	}
 	credit, err := a.quotaCreditForExistingReset(ctx, oldResources)
 	if err != nil {
 		return preflightFailure(resourceResults(oldResources, stateDeleteNotAttempted), err, "OpenStack Reset resource preflight failed"), nil
@@ -62,6 +76,9 @@ func (a *Adapter) Reset(ctx context.Context, request coreprovider.ResetRequest) 
 		return preflightFailure(resourceResults(oldResources, stateDeleteNotAttempted), err, "OpenStack Reset preflight failed"), nil
 	}
 
+	if err := a.startCIDRMutation(request.Correlation); err != nil {
+		return unknownResult(resourceResults(oldResources, stateDeleteNotAttempted), "CIDR mutation reservation requires reconciliation"), nil
+	}
 	cleanup := a.cleanupResources(ctx, oldResources)
 	if cleanup.Outcome != coreprovider.OutcomeSucceeded {
 		return cleanup, nil

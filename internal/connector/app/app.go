@@ -201,38 +201,6 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 		previewGatewayURL = u.String()
 	}
 
-	// 5. Preview Forwarder 및 SessionManager 배선
-	// 프로덕션 환경(isProduction)에서는 반드시 Provider가 preview.TCPForwarder를 구현해야 하며,
-	// 미구현 시 DirectTCPForwarder 로 우회(fallback)하지 않고 fail-closed 처리합니다 (Blocker 1).
-	var forwarder preview.TCPForwarder
-	if tf, ok := p.(preview.TCPForwarder); ok {
-		forwarder = tf
-	} else if !isProduction {
-		forwarder = preview.NewDirectTCPForwarder(addressResolver)
-	} else {
-		forwarder = nil
-	}
-
-	var previewMgr *preview.SessionManager
-	if forwarder != nil {
-		previewMgr = preview.NewSessionManager(forwarder, nil)
-	}
-
-	// Runtime HELLO Capabilities 배선 (Blocker 4):
-	// usable한 forwarder가 준비되었을 때만 protocol.CapabilityPreviewV1을 광고합니다.
-	if controlConfig != nil && forwarder != nil {
-		hasCap := false
-		for _, cap := range controlConfig.Capabilities {
-			if cap == protocol.CapabilityPreviewV1 {
-				hasCap = true
-				break
-			}
-		}
-		if !hasCap {
-			controlConfig.Capabilities = append(controlConfig.Capabilities, protocol.CapabilityPreviewV1)
-		}
-	}
-
 	prevCfg := preview.DataWSSClientConfig{
 		EndpointURL:   previewGatewayURL,
 		Credential:    credential,
@@ -247,6 +215,7 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 	handler := wss.NewHandler(p, sender)
 	handler.SetTerminalManager(sessionMgr, ptyFactory, termCfg)
 	var accessManager *vmaccess.Manager
+	var lifecycleProvider *accessLifecycleProvider
 	if _, ok := p.(vmaccess.Resolver); isProduction && !ok {
 		return nil, fmt.Errorf("Provider VM access resolver is required in production")
 	}
@@ -261,14 +230,40 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 		ptyFactory = func(string, string, int, int) (terminal.PTYChannel, error) {
 			return nil, vmaccess.ErrInvalidTarget
 		}
-		handler = wss.NewHandler(&accessLifecycleProvider{Provider: p, manager: accessManager}, sender)
+		lifecycleProvider = &accessLifecycleProvider{Provider: p, manager: accessManager}
+		handler = wss.NewHandler(lifecycleProvider, sender)
 		handler.SetTerminalManager(sessionMgr, ptyFactory, termCfg)
 		handler.SetVMPTYFactory(func(ctx context.Context, target vmaccess.Target, cols, rows int) (terminal.PTYChannel, error) {
 			return terminal.NewManagedSSHPTY(ctx, accessManager, target, cols, rows)
 		})
 	}
-	if previewMgr != nil {
+	// Preview uses exactly the same validated VM transport as PTY/SFTP.
+	// A Provider-supplied generic TCP dialer cannot bypass this production path.
+	var forwarder preview.TCPForwarder
+	if validator, ok := p.(preview.WorkspaceValidator); accessManager != nil && ok {
+		forwarder = &preview.SSHForwarder{Access: accessManager, Validator: validator}
+	} else if !isProduction && accessManager == nil {
+		forwarder = preview.NewDirectTCPForwarder(addressResolver)
+	}
+	var previewMgr *preview.SessionManager
+	if forwarder != nil {
+		previewMgr = preview.NewSessionManager(forwarder, nil)
 		handler.SetPreviewManager(previewMgr, prevCfg)
+		if lifecycleProvider != nil {
+			lifecycleProvider.preview = previewMgr
+		}
+	}
+	if controlConfig != nil {
+		caps := make([]string, 0, len(controlConfig.Capabilities)+1)
+		for _, capability := range controlConfig.Capabilities {
+			if capability != protocol.CapabilityPreviewV1 {
+				caps = append(caps, capability)
+			}
+		}
+		if forwarder != nil {
+			caps = append(caps, protocol.CapabilityPreviewV1)
+		}
+		controlConfig.Capabilities = caps
 	}
 	var files *workspacefile.Service
 	var fileTransport *filetransport.Manager
@@ -385,7 +380,7 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
 		}
 		connectorApp.TerminalManager.Shutdown(protocol.TerminalReasonServiceRestart)
 		if connectorApp.PreviewManager != nil {
-			connectorApp.PreviewManager.CloseAll(protocol.PreviewReasonServiceRestart)
+			connectorApp.PreviewManager.Shutdown(protocol.PreviewReasonServiceRestart)
 		}
 		if connectorApp.VMAccess != nil {
 			_ = connectorApp.VMAccess.Close()

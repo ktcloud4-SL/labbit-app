@@ -1,0 +1,19 @@
+{
+  "name": "local-openstack-files-linux",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "./internal/connector/provider/openstack",
+    "-run",
+    "^TestOpenStack(WorkspaceFile|FileTransport)Integration$",
+    "-json",
+    "-count=1",
+    "-timeout=40m"
+  ],
+  "started": "2026-10-16T06:56:15.962752+00:00",
+  "ended": "2026-10-16T07:01:29.459764+00:00",
+  "seconds": 313.5,
+  "exitCode": 1,
+  "sourceSHA256": "8e9ca374d70f9aace38277246bdcf7f1689d0bb21dbab3e38b625b50a45472bf",
+  "sourceUnchanged": false
+}

@@ -95,6 +95,11 @@ export class BrowserTerminalClient {
   }
 
   private handleMessage(data: unknown, sourceSocket: WebSocket) {
+    // A SESSION_ENDED frame is authoritative. Its terminal identity was
+    // checked before closing was set; any queued frames after it must not
+    // replace the ended UI state with a second protocol error or PTY output.
+    if (this.socket !== sourceSocket || this.closing) return
+
     if (typeof data === 'string') {
       let message: Record<string, unknown>
       try {

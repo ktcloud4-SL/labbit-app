@@ -98,7 +98,11 @@ export class BrowserTerminalClient {
     if (typeof data === 'string') {
       let message: Record<string, unknown>
       try {
-        message = JSON.parse(data) as Record<string, unknown>
+        const parsed: unknown = JSON.parse(data)
+        if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          throw new Error('Invalid terminal control envelope')
+        }
+        message = parsed as Record<string, unknown>
       } catch {
         this.handlers.onProtocolError({
           code: 'PROTOCOL_ERROR',

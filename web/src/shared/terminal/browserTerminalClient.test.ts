@@ -385,6 +385,52 @@ describe('BrowserTerminalClient', () => {
     expect(client.sendInput('must-not-send')).toBe(false)
   })
 
+  it.each(['null', '[]', '"text"', '0', 'true', 'false'])(
+    'object가 아닌 control %s를 예외 없이 차단하고 이전 PTY input을 거부한다',
+    (frame) => {
+      vi.stubGlobal('WebSocket', FakeWebSocket)
+
+      const onProtocolError = vi.fn()
+      const onOutput = vi.fn()
+      const client = new BrowserTerminalClient({
+        onAttached: vi.fn(),
+        onOutput,
+        onEnded: vi.fn(),
+        onProtocolError,
+        onClose: vi.fn(),
+      })
+
+      client.connect({
+        terminalSessionId: 'terminal-session-1',
+        sessionToken: 'opaque-token',
+        cols: 80,
+        rows: 20,
+      })
+
+      const socket = FakeWebSocket.instances[0]
+      socket.open()
+      socket.message(
+        JSON.stringify({
+          type: 'TERMINAL_ATTACHED',
+          payload: { resumed: false, historyAvailable: false },
+        }),
+      )
+
+      expect(() => socket.message(frame)).not.toThrow()
+      expect(onProtocolError).toHaveBeenCalledExactlyOnceWith({
+        code: 'PROTOCOL_ERROR',
+        message: 'Terminal control message를 해석하지 못했습니다.',
+        fatal: true,
+      })
+      expect(socket.readyState).toBe(FakeWebSocket.CLOSED)
+      expect(client.sendInput('must-not-send')).toBe(false)
+      expect(client.resize(120, 32)).toBe(false)
+
+      socket.message(new Uint8Array([1, 2, 3]).buffer)
+      expect(onOutput).not.toHaveBeenCalled()
+    },
+  )
+
   it('malformed control 뒤 socket을 닫고 이전 PTY input을 거부한다', () => {
     vi.stubGlobal('WebSocket', FakeWebSocket)
 

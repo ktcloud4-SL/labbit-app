@@ -107,6 +107,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
   const retryTimerRef = useRef<number | null>(null)
   const reconnectStartedAtRef = useRef<number | null>(null)
   const connectionSequenceRef = useRef(0)
+  const createSequenceRef = useRef(0)
   const suppressReconnectRef = useRef(false)
   const connectRef = useRef<(state: TerminalResumeState, reconnect: boolean) => void>(
     () => {},
@@ -139,6 +140,11 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     queryFn: () => api.listTerminalTargets(labInstanceId),
     retry: false,
   })
+
+  useEffect(() => () => {
+    // Mutation callbacks can outlive this panel or its Workspace generation.
+    createSequenceRef.current += 1
+  }, [labInstanceId, generation])
 
   const clearRetryTimer = useCallback(() => {
     if (retryTimerRef.current !== null) {
@@ -454,6 +460,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
       })
     },
     onMutate: () => {
+      const sequence = ++createSequenceRef.current
       suppressReconnectRef.current = true
       clearRetryTimer()
       setStatus('creating')
@@ -463,8 +470,10 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
       const terminal = ensureTerminal()
       terminal?.reset()
       terminal?.clear()
+      return sequence
     },
-    onSuccess: (session) => {
+    onSuccess: (session, _variables, sequence) => {
+      if (sequence !== createSequenceRef.current) return
       if (session.generation !== generation) {
         invalidateResume()
         setStatus('error')
@@ -488,7 +497,8 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
       suppressReconnectRef.current = false
       connectSocket(state, false)
     },
-    onError: (error) => {
+    onError: (error, _variables, sequence) => {
+      if (sequence !== createSequenceRef.current) return
       invalidateResume()
       if (error instanceof HttpError && error.status === 401) {
         setAuthExpired(true)
@@ -540,6 +550,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
   useEffect(() => {
     if (!targetAuthExpired) return
 
+    createSequenceRef.current += 1
     suppressReconnectRef.current = true
     clearRetryTimer()
     connectionSequenceRef.current += 1

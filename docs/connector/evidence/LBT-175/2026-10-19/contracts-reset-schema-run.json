@@ -1,0 +1,16 @@
+{
+  "command": [
+    "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+    "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-connector-gates-20261015\\contracts\\connector\\tests\\test_reset_schema.py",
+    "-v"
+  ],
+  "startedAt": "2026-10-19T00:32:31.480905+00:00",
+  "endedAt": "2026-10-19T00:32:31.850160+00:00",
+  "exitCode": 0,
+  "goEvents": {
+    "pass": 0,
+    "skip": 0,
+    "fail": 0,
+    "packagesPass": 0
+  }
+}

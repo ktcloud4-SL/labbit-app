@@ -1,0 +1,79 @@
+[
+  {
+    "Phase": "create",
+    "Started": "2026-10-19T00:21:13.3360500Z",
+    "Ended": "2026-10-19T00:25:59.3364511Z",
+    "ExitCode": 0,
+    "ProtectedLog": "create-002113336.log"
+  },
+  {
+    "Phase": "access",
+    "Started": "2026-10-19T00:25:59.3593622Z",
+    "Ended": "2026-10-19T00:26:19.1669954Z",
+    "ExitCode": 0,
+    "ProtectedLog": "access-002559359.log"
+  },
+  {
+    "Phase": "ssh",
+    "Started": "2026-10-19T00:26:19.1705370Z",
+    "Ended": "2026-10-19T00:26:34.8387394Z",
+    "ExitCode": 1,
+    "ProtectedLog": "ssh-002619170.log"
+  },
+  {
+    "Phase": "ssh",
+    "Started": "2026-10-19T00:27:32.8544520Z",
+    "Ended": "2026-10-19T00:27:39.7337918Z",
+    "ExitCode": 0,
+    "ProtectedLog": "ssh-002732854.log"
+  },
+  {
+    "Phase": "deploy",
+    "Started": "2026-10-19T00:28:24.8909191Z",
+    "Ended": "2026-10-19T00:28:31.2595392Z",
+    "ExitCode": 0,
+    "ProtectedLog": "deploy-002824890.log"
+  },
+  {
+    "Phase": "control",
+    "Started": "2026-10-19T00:29:05.8165548Z",
+    "Ended": "2026-10-19T00:38:42.0240615Z",
+    "ExitCode": 0,
+    "ProtectedLog": "control-002905816.log"
+  },
+  {
+    "Phase": "collect",
+    "Started": "2026-10-19T00:38:48.9512971Z",
+    "Ended": "2026-10-19T00:38:50.0997934Z",
+    "ExitCode": 0,
+    "ProtectedLog": "collect-003848951.log"
+  },
+  {
+    "Phase": "residual",
+    "Started": "2026-10-19T00:38:50.1278048Z",
+    "Ended": "2026-10-19T00:38:52.1242945Z",
+    "ExitCode": 0,
+    "ProtectedLog": "residual-003850127.log"
+  },
+  {
+    "Phase": "cleanup",
+    "Started": "2026-10-19T00:41:41.0258733Z",
+    "Ended": "2026-10-19T00:43:06.1107917Z",
+    "ExitCode": 0,
+    "ProtectedLog": "cleanup-004141025.log"
+  },
+  {
+    "Phase": "residual",
+    "Started": "2026-10-19T00:43:06.1332939Z",
+    "Ended": "2026-10-19T00:43:08.9584668Z",
+    "ExitCode": 0,
+    "ProtectedLog": "residual-004306133.log"
+  },
+  {
+    "Phase": "final",
+    "Started": "2026-10-19T00:43:08.9608342Z",
+    "Ended": "2026-10-19T00:43:10.5877327Z",
+    "ExitCode": 0,
+    "ProtectedLog": "final-004308960.log"
+  }
+]

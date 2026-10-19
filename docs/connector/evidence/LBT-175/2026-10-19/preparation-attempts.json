@@ -1,0 +1,13 @@
+{
+  "initialFailures": [
+    {
+      "Phase": "ssh",
+      "Started": "2026-10-19T00:26:19.1705370Z",
+      "Ended": "2026-10-19T00:26:34.8387394Z",
+      "ExitCode": 1,
+      "ProtectedLog": "ssh-002619170.log"
+    }
+  ],
+  "retriesAreReadOnlySSH": true,
+  "allAttemptsRetained": true
+}

@@ -106,3 +106,14 @@ PTY/SFTP survival after forwarding close, target/port guards and refused app
 classification. Reset verifies old target rejection. Preview Data WSS, Browser
 and Backend acceptance are separate. Recovery explicitly clears both test modes
 and only observes/cleans recorded owned IDs. No app port is exposed publicly.
+
+For LBT-175, set `LBT175_BOOTSTRAP_PREVIEW_TRANSPORT=1` and leave
+`LBT173_BOOTSTRAP_PREVIEW_SMOKE=0` before `deploy`. The modes are exclusive;
+deployment selects `LABBIT_KTCLOUD_PREVIEW_TRANSPORT_TEST=1` and disables OP-02
+and the library smoke. This covers the actual production Control/Preview Data
+WSS path, unlike the LBT-173 component smoke. Both generations use an application
+bound only to VM loopback port 3000. The existing ownership, recovery and cleanup
+rules apply; recovery clears all three modes. Keep the bootstrap VM until any
+Linux regression checks and `collect` finish, then complete
+`residual → cleanup → residual → final`.
+See [LBT-175](../../docs/connector/evidence/LBT-175/2026-10-19/README.md).

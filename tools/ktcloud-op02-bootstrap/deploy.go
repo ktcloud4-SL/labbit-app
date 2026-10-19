@@ -646,8 +646,13 @@ func deployControl(ctx context.Context) error {
 		"LABBIT_WORKSPACE_SFTP_HELPER": "/usr/local/libexec/labbit-workspace-sftp",
 	}
 	op02Mode, previewMode := fixtureModes(os.Getenv("LBT173_BOOTSTRAP_PREVIEW_SMOKE") == "1")
+	transportMode := "0"
+	if os.Getenv("LBT175_BOOTSTRAP_PREVIEW_TRANSPORT") == "1" {
+		op02Mode, previewMode, transportMode = "0", "0", "1"
+	}
 	vars["LABBIT_KTCLOUD_OP02_TEST"] = op02Mode
 	vars["LABBIT_KTCLOUD_PREVIEW_SMOKE"] = previewMode
+	vars["LABBIT_KTCLOUD_PREVIEW_TRANSPORT_TEST"] = transportMode
 	var env strings.Builder
 	for k, v := range vars {
 		if strings.ContainsAny(v, "'\r\n") {
@@ -745,9 +750,9 @@ func archiveControl(ctx context.Context) error {
 func controlCommand(recovery, readOnly bool) string {
 	mode := ""
 	if recovery {
-		mode = "export LABBIT_KTCLOUD_OP02_TEST=0 LABBIT_KTCLOUD_PREVIEW_SMOKE=0 LBT145_CONTROL_RECOVERY=1 LBT145_CONTROL_RECOVERY_READ_ONLY=0; "
+		mode = "export LABBIT_KTCLOUD_OP02_TEST=0 LABBIT_KTCLOUD_PREVIEW_SMOKE=0 LABBIT_KTCLOUD_PREVIEW_TRANSPORT_TEST=0 LBT145_CONTROL_RECOVERY=1 LBT145_CONTROL_RECOVERY_READ_ONLY=0; "
 		if readOnly {
-			mode = "export LABBIT_KTCLOUD_OP02_TEST=0 LABBIT_KTCLOUD_PREVIEW_SMOKE=0 LBT145_CONTROL_RECOVERY=1 LBT145_CONTROL_RECOVERY_READ_ONLY=1; "
+			mode = "export LABBIT_KTCLOUD_OP02_TEST=0 LABBIT_KTCLOUD_PREVIEW_SMOKE=0 LABBIT_KTCLOUD_PREVIEW_TRANSPORT_TEST=0 LBT145_CONTROL_RECOVERY=1 LBT145_CONTROL_RECOVERY_READ_ONLY=1; "
 		}
 	}
 	return ". " + remoteControl + "/environment; cd " + remoteControl + "; " + mode + "umask 077; exec timeout --signal=TERM --kill-after=30s 45m ./control-harness"

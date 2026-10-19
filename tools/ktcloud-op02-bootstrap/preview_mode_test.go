@@ -14,7 +14,7 @@ func TestPreviewDeployModeAndRecoveryIsolation(t *testing.T) {
 	}
 	for _, readOnly := range []bool{false, true} {
 		command := controlCommand(true, readOnly)
-		for _, gate := range []string{"LABBIT_KTCLOUD_OP02_TEST=0", "LABBIT_KTCLOUD_PREVIEW_SMOKE=0", "LBT145_CONTROL_RECOVERY=1"} {
+		for _, gate := range []string{"LABBIT_KTCLOUD_OP02_TEST=0", "LABBIT_KTCLOUD_PREVIEW_SMOKE=0", "LABBIT_KTCLOUD_PREVIEW_TRANSPORT_TEST=0", "LBT145_CONTROL_RECOVERY=1"} {
 			if !strings.Contains(command, gate) {
 				t.Fatalf("recovery missing %s", gate)
 			}

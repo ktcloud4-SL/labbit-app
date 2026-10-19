@@ -1,0 +1,16 @@
+{
+  "packages": {
+    "pass": 9
+  },
+  "tests": {
+    "pass": 534,
+    "skip": 1
+  },
+  "skipped": [
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+      "test": "TestSymlinkRejectedAndExcludedFromTree"
+    }
+  ],
+  "failed": []
+}

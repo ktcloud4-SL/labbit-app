@@ -1,0 +1,4 @@
+Verified deployed labbit-connector-ktcloud SHA256: a55208bb895ac7c601a6d490c689a20d890e39a0d7ebef9f718e6d5a80a34dae
+Verified deployed lbt145-control-linux SHA256: 48f0e2c72e7f22d0909255553c9214ae9a2bfde3b1292bc5b417982ee4f3ed60
+Verified deployed labbit-workspace-sftp SHA256: ad2b6a9251b86755dbe46248099b03b1a58322656be778196a54f26b1761228a
+Deployment: production Connector and Control harness uploaded through pinned authenticated SSH; remote files protected

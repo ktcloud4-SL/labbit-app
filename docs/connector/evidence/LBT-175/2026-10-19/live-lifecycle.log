@@ -1,0 +1,31 @@
+Control evidence: CONTROL_FIXTURE_REGISTERED
+Control evidence: HELLO_HELLO_ACK_HEARTBEAT_PASS
+Production Provider query VALIDATE_CONNECTION PASS; items=0
+Control evidence: QUERY_VALIDATE_CONNECTION_PASS
+Production Provider query LIST_IMAGES PASS; items=12
+Control evidence: QUERY_LIST_IMAGES_PASS
+Production Provider query LIST_FLAVORS PASS; items=235
+Control evidence: QUERY_LIST_FLAVORS_PASS
+Control evidence: provision_SUCCEEDED
+Actual WSS PROVISION(g1): outcome=SUCCEEDED resources=5
+Control evidence: GENERATION1_MANAGEMENT_IP_PINNED_SSH_EGRESS_DENY_PASS
+Control evidence: GENERATION1_RECONCILE_PASS
+KT Preview transport g1: production Control OPEN/exact TLS Data ATTACH/Binary POST HTTP200, sequential TCP peak=1, duplicate/session isolation, CLOSE/retry, Gateway normal/error close, target/port/refused guards PASS; content withheld
+Control evidence: PREVIEW_TRANSPORT_G1_WSS_HTTP_TCP_BOUNDARIES_PASS
+Control evidence: reset_SUCCEEDED
+Actual WSS RESET(g2): outcome=SUCCEEDED resources=10
+Control evidence: GENERATION2_MANAGEMENT_IP_PINNED_SSH_EGRESS_DENY_PASS
+Control evidence: RESET_TARGET_CHANGED_OLD_ABSENT_NEW_PRESENT_PASS
+Control evidence: PREVIEW_TRANSPORT_RESET_ACTIVE_WSS_CLOSED_STALE_TARGET_REJECTED_PASS
+KT Preview transport g2: production Control OPEN/exact TLS Data ATTACH/Binary POST HTTP200, sequential TCP peak=1, duplicate/session isolation, CLOSE/retry, Gateway normal/error close, target/port/refused guards PASS; content withheld
+Control evidence: PREVIEW_TRANSPORT_G2_WSS_HTTP_TCP_BOUNDARIES_PASS
+Control evidence: empty-cleanup_SUCCEEDED
+Actual WSS CLEANUP(g2): outcome=SUCCEEDED resources=0
+Control evidence: PREVIEW_TRANSPORT_CLEANUP_ACTIVE_WSS_CLOSED_STALE_TARGET_REJECTED_PASS
+Control evidence: CANDIDATE_NOT_OWNED_OR_AUTODELETED_PASS
+Control evidence: cleanup_SUCCEEDED
+Actual WSS CLEANUP(g2): outcome=SUCCEEDED resources=5
+Control evidence: PREVIEW_TRANSPORT_DATA_DRAINED_CONTROL_CONTENT_SECRECY_PASS
+Control evidence: KT_PREVIEW_TRANSPORT_WSS_HTTP_LIFECYCLE_PASS_OWNED_LAB_RESIDUAL_0
+Control evidence: PREVIEW_PRODUCTION_CONNECTOR_GRACEFUL_SHUTDOWN_JOINED_PASS
+Production Connector shutdown: exited successfully within 5s; forcedKill=false

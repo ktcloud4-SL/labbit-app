@@ -1,0 +1,10 @@
+{
+  "packages": {
+    "pass": 1
+  },
+  "tests": {
+    "pass": 60
+  },
+  "skipped": [],
+  "failed": []
+}

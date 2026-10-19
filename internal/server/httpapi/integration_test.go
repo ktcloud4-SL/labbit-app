@@ -24,6 +24,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/auth"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/bootstrap"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/class"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/labspec"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
@@ -98,6 +99,7 @@ func newStackWith(t *testing.T, build func(hash repository.PasswordHash) []boots
 
 	s := &stack{pool: pool, clock: &clock{now: baseTime}, logs: &bytes.Buffer{}}
 	s.handler, err = httpapi.New(httpapi.Options{
+		Connectors:   connector.NewEnrollmentService(store, connector.NewRegistry(), s.clock.Now),
 		Auth:         auth.NewService(store, auth.Argon2id{}, s.clock.Now),
 		Classes:      class.NewService(store),
 		LabSpecs:     labspec.NewService(store),

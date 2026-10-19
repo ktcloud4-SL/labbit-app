@@ -98,7 +98,7 @@ Frontend는 Cookie를 직접 읽거나 localStorage/sessionStorage에 복사하�
 
 MVP Browser API는 same-origin /api/v1을 기본으로 하고 credentialed cross-origin CORS를 제공하지 않습니다.
 
-다음 unsafe method에는 Login을 포함해 source origin 검증을 적용합니다.
+다음 unsafe method에는 Login을 포함해 source origin 검증을 적용합니다. Cookie를 사용하지 않는 Installer Token-only Enrollment 예외는 `contracts/http/openapi.yaml`의 `POST /connector-enrollments`만 따릅니다.
 - POST
 - PUT
 - PATCH

@@ -10,7 +10,7 @@ const widths = [320, 375, 768]
 const screens = [
   ['/classes', '.class-grid', 'class-list'],
   ['/classes/class-kubernetes-basic', '.class-overview-card', 'class-detail'],
-  ['/lab-specs', 'main', 'labspec-list'],
+  ['/lab-specs', 'a[href="/lab-specs/new"]', 'labspec-list'],
   ['/lab-specs/new', 'form.labspec-form', 'labspec-new-form'],
 ]
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))

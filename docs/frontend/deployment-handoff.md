@@ -33,7 +33,7 @@ npm run build
 
 G1 packaging에서는 기존 `npm run build` 결과를 배포 입력으로 사용한다. 현재 `vite.config.ts`에서 `build.outDir`을 별도로 바꾸지 않으므로 기본 산출물은 `web/dist/`다.
 
-현재 `web/Dockerfile`은 Node 22 builder에서 `npm ci`/`npm run build` 후 `web/dist/`를 Nginx image로 옮기는 multi-stage 방식이며, `web/nginx.conf`가 컨테이너 포트 **8080**의 정적 SPA를 제공합니다. 실행 이미지는 `nginxinc/nginx-unprivileged:stable-alpine`이고 `USER 101:101`을 사용합니다. Web Service의 외부 포트 `80`과 컨테이너의 `targetPort: 8080`은 구분합니다. `/healthz`의 liveness/readiness Probe도 컨테이너 포트 `8080`을 사용해야 합니다. 배포 Image/Helm/Istio 구현은 Platform 담당 범위입니다. `npm run preview`는 로컬 확인용이며 production serving 계약으로 사용하지 않습니다.
+현재 `web/Dockerfile`은 Node 22 builder에서 `npm ci`/`npm run build` 후 `web/dist/`를 Nginx image로 옮기는 multi-stage 방식이며, `web/nginx.conf`가 컨테이너 포트 **8080**의 정적 SPA를 제공합니다. 실행 이미지는 `nginxinc/nginx-unprivileged:stable-alpine`이고 `USER 101:101`을 사용합니다. Web Service의 포트 `80`과 컨테이너의 `targetPort: 8080`은 구분합니다. `/healthz`의 liveness/readiness Probe도 컨테이너 포트 `8080`을 사용해야 합니다. 배포 Image/Helm/Istio 구현은 Platform 담당 범위입니다. `npm run preview`는 로컬 확인용이며 production serving 계약으로 사용하지 않습니다.
 
 ## 2. Production API mode
 

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -37,6 +37,7 @@ function mount(overrides: Partial<LabbitApi> = {}, isAdmin = true) {
 }
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
@@ -81,12 +82,23 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
       }),
     })
     await screen.findByText('등록된 Connector가 없습니다.')
-    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), { target: { value: 'VM' } })
-    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
-    expect(await screen.findByText(TOKEN)).toBeInTheDocument()
-    await waitFor(() => expect(screen.queryByText(TOKEN)).not.toBeInTheDocument(), { timeout: 2000 })
-    expect(screen.getByText('등록 토큰이 만료되었습니다. 필요한 경우 새 토큰을 발급해 주세요.')).toBeInTheDocument()
-    expect(JSON.stringify(client.getMutationCache().getAll().map((mutation) => mutation.state.data))).not.toContain(TOKEN)
+    // The expiry contract is time-based; a virtual clock avoids runner load
+    // causing an unrelated 2-second waitFor timeout on the CI host.
+    vi.useFakeTimers()
+    try {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), { target: { value: 'VM' } })
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+        await Promise.resolve()
+      })
+      expect(screen.getByText(TOKEN)).toBeInTheDocument()
+      await act(async () => { vi.advanceTimersByTime(651) })
+      expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+      expect(screen.getByText('등록 토큰이 만료되었습니다. 필요한 경우 새 토큰을 발급해 주세요.')).toBeInTheDocument()
+      expect(JSON.stringify(client.getMutationCache().getAll().map((mutation) => mutation.state.data))).not.toContain(TOKEN)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('ADMIN은 빈 목록과 Installer URL 대기 상태를 본다', async () => {

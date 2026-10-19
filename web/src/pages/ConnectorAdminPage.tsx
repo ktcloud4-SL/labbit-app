@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 import { ConnectorEnrollmentTokenPanel } from './ConnectorEnrollmentTokenPanel'
@@ -68,7 +68,7 @@ export function ConnectorAdminPage() {
   // a different screen after logout or navigation.
   useEffect(() => () => { requestEpoch.current += 1 }, [])
 
-  async function issueToken(event: React.FormEvent<HTMLFormElement>) {
+  async function issueToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (busy || issued) return
     if (!name.trim() || name.length > 200) {

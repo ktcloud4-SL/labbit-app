@@ -117,7 +117,7 @@ jobs:
           MIGRATE_JOB="environments/aws-seoul/apps/migration-job.yaml"
           if [ -f "$MIGRATE_JOB" ]; then
             sed -i -E "s|(image:[[:space:]]*ghcr\.io/ktcloud4-sl/backend:).*|\1${SHORT_TAG}|g" "$MIGRATE_JOB"
-            if ! grep -E -q "^[[:space:]]*image:[[:space:]]*ghcr\.io/ktcloud4-sl/backend:${SHORT_TAG}([[:space:]]*|$)" "$MIGRATE_JOB"; then
+            if ! grep -E -q "^[[:space:]]*image:[[:space:]]*ghcr\.io/ktcloud4-sl/backend:${SHORT_TAG}([[:space:]]|$)" "$MIGRATE_JOB"; then
               echo "::error::Failed to update migration-job image to ghcr.io/ktcloud4-sl/backend:${SHORT_TAG}"
               exit 1
             fi

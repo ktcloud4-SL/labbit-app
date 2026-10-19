@@ -1,0 +1,371 @@
+{
+  "base": "89a698dac50a8705ed305a5eccf94ee9505b033f",
+  "head": "ef921c106f621d1282c14e7e8b429cfda107e9c5",
+  "committedPRFiles": 56,
+  "localGoFilesAlreadyInPR": 2,
+  "newAuditFiles": 4,
+  "totalUniqueFiles": 60,
+  "unreviewedFiles": [],
+  "files": [
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/AUDIT.md",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/README.md",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/binary-manifest-final.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/binary-manifest.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/bootstrap-ledger.metadata.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/change-manifest.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/compiled-source-final.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/compiled-source.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/contracts-contracts-run.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/contracts-reset-schema-run.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/contracts.log",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/control-ledger.metadata.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/deployment-digests.log",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/final-inventory.metadata.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/final-residual.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/final-source.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/fixture-repeat.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/go-run-records.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/go-static-final.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/gofmt.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/linux-go-full-final.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/linux-go-full-initial.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/linux-initial-terminal-failure.log",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/linux-source-verification.log",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/linux-source.metadata.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/live-lifecycle.log",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/live-verification.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/phase-results.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/preparation-attempts.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/raw-evidence-digests.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/related-race.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/secret-scan.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/source-consistency.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/terminal-ownership-repeat.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/tested-source.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/validation-results.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/verify.py",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/web-build.log",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/web-lock-check.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/web-retry-web-build-run.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/web-retry-web-install-run.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/web-retry-web-lint-run.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/web-retry-web-lock-import-run.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/web-retry-web-test-run.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/web-retry-web-typecheck-run.json",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19/web-test.log",
+      "purpose": "Historical KT/automatic validation Evidence and reproducibility metadata",
+      "boundary": "raw-source identity/digests/counts/secrecy/resource cleanup; preserved unchanged",
+      "reviewed": true
+    },
+    {
+      "path": "internal/connector/terminal/data_connection_backpressure_test.go",
+      "purpose": "Terminal replacement worker drain/join regression",
+      "boundary": "old unread socket vs new connection lifecycle",
+      "reviewed": true
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/README.md",
+      "purpose": "Preview transport acceptance runbook",
+      "boundary": "fresh-exclusive gate and live-vs-synthetic scope",
+      "reviewed": true
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/main.go",
+      "purpose": "Wire opt-in transport across two-generation lifecycle",
+      "boundary": "operation gate/Reset/Cleanup/process lifetime",
+      "reviewed": true
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/preview_transport.go",
+      "purpose": "Synthetic fixture orchestration and exact HTTP oracle; local P2 EOF fix",
+      "boundary": "Control metadata/Data binary/SSH app/TCP ownership",
+      "reviewed": true
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/preview_transport_peer.go",
+      "purpose": "Authenticated synthetic Data WSS peer",
+      "boundary": "strict binding/queue limits/admission/shutdown join",
+      "reviewed": true
+    },
+    {
+      "path": "tools/ktcloud-d1-acceptance/preview_transport_test.go",
+      "purpose": "Fixture guards and new raw-stream regressions",
+      "boundary": "parser and real TLS WSS same/later-frame tails",
+      "reviewed": true
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/README.md",
+      "purpose": "Opt-in bootstrap operator instructions",
+      "boundary": "resource ownership/recovery boundary",
+      "reviewed": true
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/deploy.go",
+      "purpose": "Deploy transport acceptance flag",
+      "boundary": "immutable generated Connector config and fixture mode",
+      "reviewed": true
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/main.go",
+      "purpose": "Bootstrap mode gate/recovery isolation",
+      "boundary": "exclusive fresh two-generation lifecycle",
+      "reviewed": true
+    },
+    {
+      "path": "tools/ktcloud-op02-bootstrap/preview_mode_test.go",
+      "purpose": "Flag combination and recovery gate regressions",
+      "boundary": "invalid mode cannot create misleading acceptance",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19-p2/README.md",
+      "purpose": "A-F audit, traceability, finding resolution, explicit limits and reproduction",
+      "boundary": "Current P2 source and actual Linux automated checks/local fixture cleanup; historical KT/live results not relabeled; remote publication not authorized",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19-p2/source.json",
+      "purpose": "Exact local executed source delta, hashes and old/new binary identity",
+      "boundary": "Current P2 source and actual Linux automated checks/local fixture cleanup; historical KT/live results not relabeled; remote publication not authorized",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19-p2/validation.json",
+      "purpose": "Executed/failed/skip/raw digest records and independent review evidence",
+      "boundary": "Current P2 source and actual Linux automated checks/local fixture cleanup; historical KT/live results not relabeled; remote publication not authorized",
+      "reviewed": true
+    },
+    {
+      "path": "docs/connector/evidence/LBT-175/2026-10-19-p2/reviewed-files.json",
+      "purpose": "Complete reviewed file inventory and purposes",
+      "boundary": "Current P2 source and actual Linux automated checks/local fixture cleanup; historical KT/live results not relabeled; remote publication not authorized",
+      "reviewed": true
+    }
+  ]
+}

@@ -26,3 +26,15 @@ For a single VM-use-and-delete check, additionally set `LBT145_CONTROL_GENERATIO
 For an interrupted fixture, set `LBT145_CONTROL_RECOVERY=1`. Recovery reconciles the exact known IDs before issuing Cleanup and confirms absence afterward. Add `LBT145_CONTROL_RECOVERY_READ_ONLY=1` to observe all ledger IDs without issuing any mutation. Recovery success is **not** a replacement for the full two-generation acceptance result. The separately prepared Connector VM and its installation resources must also be cleaned and reconciled by their own ownership ledger.
 
 Execution evidence and current limitations are in [LBT-145](../../docs/connector/evidence/LBT-145/2026-10-07/README.md). LBT-16 owns joint Backend → CC-01 → OP-01 → KT Cloud C1 acceptance.
+
+For LBT-175's full Preview transport fixture, additionally set
+`LABBIT_KTCLOUD_PREVIEW_TRANSPORT_TEST=1`. This requires a fresh two-generation
+journal, with OP-02 and the earlier library-only Preview smoke disabled. The TLS
+Mock Gateway authenticates and checks the complete ATTACH binding, then relays
+binary HTTP through the production Connector process to a loopback HTTP app in
+each actual KT Workspace VM. It checks exact HTTP responses, sequential tunnels,
+duplicate OPEN/session isolation, CLOSE/retry, Gateway normal/error closure,
+port/target/refused guards, active Reset/Cleanup retirement, final TCP/Data drain
+and HTTP/credential exclusion from Control. Recovery must disable this mode.
+The fixture does not exercise the production SaaS Gateway, Backend authorization
+or Browser. See [LBT-175 execution and handoff](../../docs/connector/evidence/LBT-175/2026-10-19/README.md).

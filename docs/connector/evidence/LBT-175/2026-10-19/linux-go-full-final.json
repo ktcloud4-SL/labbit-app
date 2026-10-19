@@ -1,0 +1,69 @@
+{
+  "packages": {
+    "skip": 10,
+    "pass": 43
+  },
+  "tests": {
+    "pass": 3970,
+    "skip": 14
+  },
+  "skipped": [
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM2ControlWSSIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackFileTransportIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM1Integration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM2ProvisionIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackM3LifecycleIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackInternetPolicyIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTCloudD1ReadOnlyIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestKTCloudD1DisposableNetworkIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackPreviewForwardingIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackPTYCC02Integration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackTerminalC2Integration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackVMAccessIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackWorkspaceFileIntegration"
+    },
+    {
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "test": "TestOpenStackPreviewTransportIntegration"
+    }
+  ],
+  "failed": []
+}

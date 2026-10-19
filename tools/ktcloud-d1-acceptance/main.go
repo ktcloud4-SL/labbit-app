@@ -203,12 +203,16 @@ func run() (runErr error) {
 	journalPath = filepath.Join(workspace, "control-ledger.json")
 	recovery := os.Getenv("LBT145_CONTROL_RECOVERY") == "1"
 	previewSmoke := os.Getenv("LABBIT_KTCLOUD_PREVIEW_SMOKE") == "1"
+	previewTransport := os.Getenv("LABBIT_KTCLOUD_PREVIEW_TRANSPORT_TEST") == "1"
 	if err := validatePreviewScope(previewSmoke, op02Enabled(), generations, recovery); err != nil {
 		return err
 	}
-	strictRuntime := op02Enabled() || previewSmoke
+	if err := validatePreviewTransportScope(previewTransport, previewSmoke, op02Enabled(), generations, recovery); err != nil {
+		return err
+	}
+	strictRuntime := op02Enabled() || previewSmoke || previewTransport
 	runtimeStagePrefix := "OP02"
-	if previewSmoke {
+	if previewSmoke || previewTransport {
 		runtimeStagePrefix = "PREVIEW"
 	}
 	if op02Enabled() && (generations != 2 || recovery) {
@@ -255,6 +259,12 @@ func run() (runErr error) {
 		op02 = &op02Run{peer: peer}
 		handler = peer.handler(handler)
 		defer peer.close()
+	}
+	var transport *previewTransportRun
+	if previewTransport {
+		transport = newPreviewTransportRun(token)
+		handler = transport.peer.handler(handler)
+		defer transport.close()
 	}
 	service.Server = httptest.NewTLSServer(handler)
 	defer service.Close()
@@ -331,7 +341,7 @@ func run() (runErr error) {
 			return e
 		}
 	}
-	if previewSmoke {
+	if previewSmoke || previewTransport {
 		if e = requirePreviewCapability(hello); e != nil {
 			return e
 		}
@@ -444,6 +454,11 @@ func run() (runErr error) {
 			return e
 		}
 	}
+	if transport != nil {
+		if e = transport.normal(ctx, firstRefs, 1); e != nil {
+			return e
+		}
+	}
 	if op02 != nil {
 		if e = op02.normal(ctx, firstRefs, 1); e != nil {
 			return op02Error("generation1", e)
@@ -474,6 +489,11 @@ func run() (runErr error) {
 	}
 	if op02 != nil {
 		if e = op02.beforeMutation(ctx, serverRef(firstRefs), 1, protocol.TerminalReasonLabReset); e != nil {
+			return e
+		}
+	}
+	if transport != nil {
+		if e = transport.beforeMutation(ctx, serverRef(firstRefs), 1); e != nil {
 			return e
 		}
 	}
@@ -512,6 +532,14 @@ func run() (runErr error) {
 	}
 	if e = save("RESET_TARGET_CHANGED_OLD_ABSENT_NEW_PRESENT_PASS"); e != nil {
 		return e
+	}
+	if transport != nil {
+		if e = transport.afterMutation(ctx, oldServer, 1, "RESET"); e != nil {
+			return e
+		}
+		if e = transport.normal(ctx, secondRefs, 2); e != nil {
+			return e
+		}
 	}
 	if previewSmoke {
 		if e = provePreviewForwarding(ctx, secondRefs, 2, oldServer); e != nil {
@@ -556,8 +584,21 @@ func run() (runErr error) {
 			return e
 		}
 	}
+	if transport != nil {
+		if e = transport.beforeMutation(ctx, newServer, 2); e != nil {
+			return e
+		}
+	}
 	if _, e = mutate(ctx, protocol.MutationTypeCleanup, "empty-cleanup", 2, nil, []protocol.ProviderResourceRef{}); e != nil {
 		return e
+	}
+	if transport != nil {
+		if e = transport.afterMutation(ctx, newServer, 2, "CLEANUP"); e != nil {
+			return e
+		}
+		if e = transport.noTCP(ctx, newServer); e != nil {
+			return e
+		}
 	}
 	observations, e = reconcile(ctx, "candidate-remains", 2, secondRefs)
 	if e != nil {
@@ -587,7 +628,15 @@ func run() (runErr error) {
 			return e
 		}
 	}
+	if transport != nil {
+		if e = transport.finish(ctx, token); e != nil {
+			return e
+		}
+	}
 	journal.Passed = true
+	if previewTransport {
+		return save("KT_PREVIEW_TRANSPORT_WSS_HTTP_LIFECYCLE_PASS_OWNED_LAB_RESIDUAL_0")
+	}
 	if previewSmoke {
 		return save("KT_PREVIEW_FORWARDING_SMOKE_PASS_OWNED_LAB_RESIDUAL_0")
 	}

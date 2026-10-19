@@ -1,0 +1,6 @@
+{
+  "packageLockBefore": "a045e6377751d55539eb0d4d2c684220a6b7bb5b0c6e444d697904671cc99a87",
+  "packageLockAfter": "a045e6377751d55539eb0d4d2c684220a6b7bb5b0c6e444d697904671cc99a87",
+  "unchanged": true,
+  "adapter": "pnpm import of tracked npm lock; frozen install; generated pnpm lock removed"
+}

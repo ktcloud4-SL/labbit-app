@@ -1,0 +1,38 @@
+[
+  {
+    "file": "related-race.jsonl",
+    "sha256": "4d561c9d67bd881293b5f5bd04ff1cb13a3b7255b0e89ab08759b69bb85585e9",
+    "bytes": 564649,
+    "location": "protected ignored run directory or local audit output"
+  },
+  {
+    "file": "fixture-repeat.jsonl",
+    "sha256": "ec18388060046099db2df91ab4bc1addc2d5de6f3d513fca8805af6627094fec",
+    "bytes": 3695685,
+    "location": "protected ignored run directory or local audit output"
+  },
+  {
+    "file": "terminal-ownership-repeat.jsonl",
+    "sha256": "d92368b87e7f2d92ae4c545ff58fcc7eced9f6d8d4f45ea9ed6f733a40ada5aa",
+    "bytes": 80610,
+    "location": "protected ignored run directory or local audit output"
+  },
+  {
+    "file": "go-full-initial.jsonl",
+    "sha256": "d2665593601e9bf6ab9d7c01d1685b4f65c461c64dab5906ea35781be2e05115",
+    "bytes": 4472576,
+    "location": "protected ignored run directory or local audit output"
+  },
+  {
+    "file": "go-full.jsonl",
+    "sha256": "17c4854977889e21eeffe1717b3d2e05cf7f73d4dccd615aa09949eca55bd4f1",
+    "bytes": 4472231,
+    "location": "protected ignored run directory or local audit output"
+  },
+  {
+    "file": "tools-race-final.log",
+    "sha256": "70149355cdeec18ed4f8bffedf738ccf1b85c2a48f823f500b5cbf28d26c96b3",
+    "bytes": 151,
+    "location": "protected ignored run directory or local audit output"
+  }
+]

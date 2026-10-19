@@ -571,6 +571,10 @@ func main() {
 		fmt.Println("Explicit two-generation premerge fixture gate required")
 		os.Exit(1)
 	}
+	if os.Getenv("LBT173_BOOTSTRAP_PREVIEW_SMOKE") == "1" && os.Getenv("LBT175_BOOTSTRAP_PREVIEW_TRANSPORT") == "1" {
+		fmt.Println("Preview smoke and transport modes are exclusive")
+		os.Exit(1)
+	}
 	e := setup(ctx)
 	if e == nil {
 		switch phase {

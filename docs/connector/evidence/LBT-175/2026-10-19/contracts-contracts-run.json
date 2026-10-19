@@ -1,0 +1,9 @@
+{
+  "exitCode": 0,
+  "versions": {
+    "PyYAML": "6.0.3",
+    "jsonschema": "4.26.0",
+    "openapi-spec-validator": "0.9.0"
+  },
+  "scope": "OpenAPI and exact current workflow JSON Schema/runtime/migration scripts"
+}

@@ -1,0 +1,16 @@
+{
+  "command": [
+    "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+    "run",
+    "lint"
+  ],
+  "startedAt": "2026-10-19T00:27:59.927568+00:00",
+  "endedAt": "2026-10-19T00:28:30.858900+00:00",
+  "exitCode": 0,
+  "goEvents": {
+    "pass": 0,
+    "skip": 0,
+    "fail": 0,
+    "packagesPass": 0
+  }
+}

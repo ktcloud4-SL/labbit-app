@@ -1,0 +1,38 @@
+{
+  "deleted": true,
+  "resourceCount": 8,
+  "resources": [
+    {
+      "resourceType": "SERVER",
+      "providerIdSHA256": "f5a9b3140b0ee0170bcef1e1c0a9c57faf4a73f5fc66fa11642680cdeaf63089"
+    },
+    {
+      "resourceType": "KEYPAIR",
+      "providerIdSHA256": "2f6a41bd73387cc96d149ad3c8965956f0d25d3791a420cc9ed8b97021555fe6"
+    },
+    {
+      "resourceType": "PUBLIC_IP",
+      "providerIdSHA256": "94a8ede5f6e61c5734226c3d9f9653c113c8793d0929107c2c63881f587b4b82"
+    },
+    {
+      "resourceType": "FORWARD",
+      "providerIdSHA256": "db1207b8e708b540b5341171ef69d7bc77a9f7923a9cae9b6d57a6a3d2777521"
+    },
+    {
+      "resourceType": "VOLUME",
+      "providerIdSHA256": "5753ccd1f3daf6fe352e8a76652030fea5764d158b332a659472461a10f55ba3"
+    },
+    {
+      "resourceType": "POLICY",
+      "providerIdSHA256": "3e2db5dba021ab497bb981f5df8cfb2e0eda9369daee1b289357c211246d21c5"
+    },
+    {
+      "resourceType": "POLICY",
+      "providerIdSHA256": "ef5f1f98efea567f6f182e5b0c043f6d91a66800c92cb65e68b3f9706e7f0cc4"
+    },
+    {
+      "resourceType": "POLICY",
+      "providerIdSHA256": "8e2b56c4590a423a8adf0aa134573e51fe36210b3c2ea8f7279865d768a2b2f9"
+    }
+  ]
+}

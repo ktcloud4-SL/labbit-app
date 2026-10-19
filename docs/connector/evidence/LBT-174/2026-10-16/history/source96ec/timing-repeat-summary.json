@@ -1,0 +1,22 @@
+{
+  "testPass": 39,
+  "testFail": [
+    {
+      "Time": "2026-10-16T15:12:16.4553032+09:00",
+      "Action": "fail",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Test": "TestConnectorControlEventsPropagateTraceContext",
+      "Elapsed": 0.03
+    }
+  ],
+  "testSkip": [],
+  "packagePass": 1,
+  "packageFail": [
+    {
+      "Time": "2026-10-16T15:12:16.607395+09:00",
+      "Action": "fail",
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+      "Elapsed": 3.26
+    }
+  ]
+}

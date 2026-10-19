@@ -1,0 +1,14 @@
+[
+  {
+    "path": "runtime/README.md",
+    "role": "unchanged linked contract context; not one of the 37 changed files",
+    "rawSHA256": "1e5477955b0cee3a48d9f35a08dddf95e406297ba6d029de7e6462329dee93ea",
+    "artifact": "changed-source/runtime/README.md"
+  },
+  {
+    "path": "db/migrations/README.md",
+    "role": "unchanged linked contract context; not one of the 37 changed files",
+    "rawSHA256": "c15aba8a1d84b1a51c12e158fd87e59afc08b08ae360d1d00e513ffb8a739bd9",
+    "artifact": "changed-source/db/migrations/README.md"
+  }
+]

@@ -1,0 +1,74 @@
+{
+  "fetchedUTC": "2026-10-16T10:51:44.398Z",
+  "observedUTC": "2026-10-16T10:52:07.287975+00:00",
+  "jiraUpdated": "2026-10-16T14:59:23.423+0900",
+  "jiraCommentCount": 0,
+  "jiraDescriptionSame": true,
+  "pages": [
+    {
+      "id": "7241730",
+      "title": "D-18 · 실습망·VM 관리 접속 구조",
+      "version": 5,
+      "sameBody": true,
+      "sameVersion": true,
+      "bodySHA256": "dcc18fe2e7c1b64b8e243d5a14af4a8ee21b65bf0bc6f7a131c3e7a3bdc6ec6a"
+    },
+    {
+      "id": "7176194",
+      "title": "D-19 · 생성 기준 보존·Reset 재현 정책",
+      "version": 7,
+      "sameBody": true,
+      "sameVersion": true,
+      "bodySHA256": "1d02bf3b768add3c4f9eb73e8819df12ff33e7dd9b5db6d3fadd8050e53621e1"
+    },
+    {
+      "id": "6881283",
+      "title": "D-20 · Lab 작업 충돌·재시도·부분 실패 정책",
+      "version": 7,
+      "sameBody": true,
+      "sameVersion": true,
+      "bodySHA256": "1898c728de6edba33f9e0cb05e3aec30effe3da2150adfc3a009905e7dd52847"
+    },
+    {
+      "id": "9666637",
+      "title": "검증 설계 — 테스트 전략·추적성",
+      "version": 3,
+      "sameBody": true,
+      "sameVersion": true,
+      "bodySHA256": "06b414ddc18c18771d2002d0c659c6a438439299f7913f8b2029b1776fa62827"
+    },
+    {
+      "id": "6520866",
+      "title": "플랫폼 설계 — 인프라·배포·관측·복구",
+      "version": 27,
+      "sameBody": true,
+      "sameVersion": true,
+      "bodySHA256": "2cb28188f54626d3393be7ebaad12e0e546d0980406e688fc2f1e6d3680c92d3"
+    },
+    {
+      "id": "11075640",
+      "title": "결정 완료 사안",
+      "version": 11,
+      "sameBody": true,
+      "sameVersion": true,
+      "bodySHA256": "7a765adf9cc4abd7c840f43c7deff8e0d9b9cb653bba04b5cc854e374a521334"
+    },
+    {
+      "id": "18055175",
+      "title": "추가 결정 사안",
+      "version": 3,
+      "sameBody": true,
+      "sameVersion": true,
+      "bodySHA256": "ca719ec47acf197ce2081384bd8ef729ab325e997b6ccf53c54a1c4e73b3402e"
+    }
+  ],
+  "remoteMain": "1e2b9c20fa2cfd7d7d449c8abba8558b5a614df4",
+  "mainChangedFromReviewedIntegration": true,
+  "primaryHEAD": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "primaryOriginMainRef": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "primaryStagedFiles": [],
+  "sourceFiles": 521,
+  "sourceMismatch": [],
+  "sourceSHA256": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+  "scope": "Jira/Confluence GET and git ls-remote only; no fetch/ref updates, product edits, cloud changes or remote writes"
+}

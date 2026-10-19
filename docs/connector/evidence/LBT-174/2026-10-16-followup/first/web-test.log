@@ -1,0 +1,14 @@
+
+> @labbit/web@0.0.0 test
+> vitest run
+
+
+ RUN  v5.0.3 C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-connector-gates-20261015/web
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  14 passed (14)
+      Tests  188 passed (188)
+   Start at  15:49:08
+   Duration  40.97s (environment 79%, setup 16%, tests 2%, import 1%, transform 1%)
+

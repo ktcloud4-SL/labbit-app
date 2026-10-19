@@ -1,0 +1,213 @@
+package openstackprovider
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+	"golang.org/x/crypto/ssh"
+)
+
+type reviewWorkspaceResolver func(context.Context, vmaccess.Target) (vmaccess.Endpoint, error)
+
+func (f reviewWorkspaceResolver) ResolveVMAccess(ctx context.Context, target vmaccess.Target) (vmaccess.Endpoint, error) {
+	return f(ctx, target)
+}
+
+// The first exec acknowledges Start, then waits for release or channel close.
+// A sibling exec remains independently usable on the same SSH transport.
+func reviewWorkspaceExecPeer(t *testing.T) (vmaccess.Endpoint, <-chan struct{}, func(), <-chan struct{}) {
+	t.Helper()
+	keyFile := writeTestPrivateKey(t, "review-workspace-exec-client")
+	clientSigner, err := ssh.NewSignerFromKey(testPrivateKey("review-workspace-exec-client"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	hostSigner, err := ssh.NewSignerFromKey(testPrivateKey("review-workspace-exec-host"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := &ssh.ServerConfig{PublicKeyCallback: func(_ ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+		if !bytes.Equal(key.Marshal(), clientSigner.PublicKey().Marshal()) {
+			return nil, fmt.Errorf("unexpected fixture client key")
+		}
+		return nil, nil
+	}}
+	config.AddHostKey(hostSigner)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	started := make(chan struct{})
+	release := make(chan struct{})
+	closed := make(chan struct{})
+	var releaseOnce, startedOnce, closedOnce sync.Once
+	var connectionMu sync.Mutex
+	var connection net.Conn
+	finish := func() { releaseOnce.Do(func() { close(release) }) }
+	t.Cleanup(func() {
+		finish()
+		_ = listener.Close()
+		connectionMu.Lock()
+		if connection != nil {
+			_ = connection.Close()
+		}
+		connectionMu.Unlock()
+	})
+	go func() {
+		raw, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		connectionMu.Lock()
+		connection = raw
+		connectionMu.Unlock()
+		defer raw.Close()
+		server, channels, requests, err := ssh.NewServerConn(raw, config)
+		if err != nil {
+			return
+		}
+		defer server.Close()
+		go ssh.DiscardRequests(requests)
+		for next := range channels {
+			channel, requests, err := next.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				defer channel.Close()
+				for request := range requests {
+					if request.Type != "exec" {
+						_ = request.Reply(false, nil)
+						continue
+					}
+					var payload struct{ Command string }
+					if err := ssh.Unmarshal(request.Payload, &payload); err != nil {
+						_ = request.Reply(false, nil)
+						return
+					}
+					if err := request.Reply(true, nil); err != nil {
+						return
+					}
+					if payload.Command == "held-fixture" {
+						peerClosed := make(chan struct{})
+						// Start may send stdin EOF immediately. Only CHANNEL_CLOSE
+						// ends this request stream, so EOF is not close evidence.
+						go func() {
+							for range requests {
+							}
+							close(peerClosed)
+						}()
+						startedOnce.Do(func() { close(started) })
+						select {
+						case <-release:
+						case <-peerClosed:
+							closedOnce.Do(func() { close(closed) })
+							return
+						}
+						_, _ = io.WriteString(channel, "safe-stdout")
+						_, _ = io.WriteString(channel.Stderr(), "safe-stderr")
+					}
+					_, _ = channel.SendRequest("exit-status", false, ssh.Marshal(struct{ Status uint32 }{0}))
+					return
+				}
+			}()
+		}
+	}()
+	return vmaccess.Endpoint{ProviderConnectionID: "review-provider", Address: listener.Addr().String(), Username: "fixture-user", PrivateKeyFile: keyFile, HostKeyCallback: ssh.FixedHostKey(hostSigner.PublicKey())}, started, finish, closed
+}
+
+func TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit(t *testing.T) {
+	endpoint, started, finish, _ := reviewWorkspaceExecPeer(t)
+	target := vmaccess.Target{LabInstanceID: "review-lab", Generation: 1, VMKey: "workspace", ServerID: "review-server"}
+	manager := vmaccess.NewManager(reviewWorkspaceResolver(func(context.Context, vmaccess.Target) (vmaccess.Endpoint, error) { return endpoint, nil }), vmaccess.Config{SetupTimeout: time.Second})
+	t.Cleanup(func() { _ = manager.Close() })
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	type result struct {
+		output []byte
+		err    error
+	}
+	done := make(chan result, 1)
+	go func() {
+		output, err := workspaceFixtureOutput(t, ctx, manager, target, "held-fixture")
+		done <- result{output, err}
+	}()
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("fixture exec did not start")
+	}
+	siblingCtx, cancelSibling := context.WithTimeout(ctx, 300*time.Millisecond)
+	defer cancelSibling()
+	sibling, err := manager.OpenSession(siblingCtx, target)
+	if err != nil {
+		t.Fatalf("running fixture command retained SSH setup admission: %v", err)
+	}
+	defer sibling.Close()
+	if err := sibling.Setup(siblingCtx, func(raw *ssh.Session) error { return raw.Start("sibling-fixture") }); err != nil {
+		t.Fatalf("sibling setup blocked behind command lifetime: %v", err)
+	}
+	if err := sibling.Wait(); err != nil {
+		t.Fatalf("sibling command failed: %v", err)
+	}
+	finish()
+	select {
+	case got := <-done:
+		if got.err != nil || string(got.output) != "safe-stdoutsafe-stderr" {
+			t.Fatalf("fixture output was not complete after Wait: output=%q error=%v", got.output, got.err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("fixture command did not finish after release")
+	}
+}
+
+func TestReviewWorkspaceExecCancellationClosesExactSession(t *testing.T) {
+	endpoint, started, _, closed := reviewWorkspaceExecPeer(t)
+	target := vmaccess.Target{LabInstanceID: "review-lab", Generation: 1, VMKey: "workspace", ServerID: "review-server"}
+	manager := vmaccess.NewManager(reviewWorkspaceResolver(func(context.Context, vmaccess.Target) (vmaccess.Endpoint, error) { return endpoint, nil }), vmaccess.Config{SetupTimeout: time.Second})
+	t.Cleanup(func() { _ = manager.Close() })
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { _, err := workspaceFixtureOutput(t, ctx, manager, target, "held-fixture"); done <- err }()
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("fixture exec did not start")
+	}
+	cancel()
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("canceled command returned %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("fixture command did not return on cancellation")
+	}
+	select {
+	case <-closed:
+	case <-time.After(time.Second):
+		t.Fatal("cancellation did not close the command channel")
+	}
+	siblingCtx, cancelSibling := context.WithTimeout(context.Background(), time.Second)
+	defer cancelSibling()
+	sibling, err := manager.OpenSession(siblingCtx, target)
+	if err != nil {
+		t.Fatalf("cancellation damaged shared SSH transport: %v", err)
+	}
+	defer sibling.Close()
+	if err := sibling.Setup(siblingCtx, func(raw *ssh.Session) error { return raw.Start("sibling-fixture") }); err != nil {
+		t.Fatalf("sibling setup failed after cancellation: %v", err)
+	}
+	if err := sibling.Wait(); err != nil {
+		t.Fatalf("sibling failed after cancellation: %v", err)
+	}
+}

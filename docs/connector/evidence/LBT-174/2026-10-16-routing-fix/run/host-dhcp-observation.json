@@ -1,0 +1,43 @@
+{
+  "ObservedUTC": "2026-10-16T09:11:40.7748486Z",
+  "Administrator": false,
+  "ServiceName": "VMnetDHCP",
+  "ServiceStatus": "Running",
+  "ServiceStartType": "Automatic",
+  "ServiceMutationAttempted": false,
+  "ConfigSHA256": "B7BB6CA59B4C77D4DF7C1BEAE6AC7D2D0FC4E2DAB6976CB706CEA7F354327277",
+  "Scopes": [
+    {
+      "Subnet": "172.16.8.0",
+      "Netmask": "255.255.255.0"
+    }
+  ],
+  "Ranges": [
+    {
+      "Start": "172.16.8.128",
+      "End": "172.16.8.254"
+    }
+  ],
+  "Routers": [
+    "172.16.8.2",
+    "0.0.0.0"
+  ],
+  "HistoricalMatchingIPLeases": [
+    {
+      "IPAddress": "172.16.8.135",
+      "Starts": "5 2026/10/16 06:59:23",
+      "Ends": "5 2026/10/16 07:29:23",
+      "MACSHA256": "9140daef78cdcf0bfa23b96d0fabc0d02df5b6ce24ec3729aba694dae3b3366a",
+      "ExactGuestMACComparisonPerformed": false
+    },
+    {
+      "IPAddress": "172.16.8.135",
+      "Starts": "5 2026/10/16 08:43:22",
+      "Ends": "5 2026/10/16 09:13:22",
+      "MACSHA256": "bcd88f2e133a289829ea740043412653d7b69ffd7df63de234997814d461219d",
+      "ExactGuestMACComparisonPerformed": false
+    }
+  ],
+  "AdminStateFileExists": false,
+  "Limits": "Read-only host observation. IP/time/config correlation is strong competing-DHCP evidence; no stop comparison or exact guest MAC match. Missing Neutron DHCP ports alone does not exclude OVN."
+}

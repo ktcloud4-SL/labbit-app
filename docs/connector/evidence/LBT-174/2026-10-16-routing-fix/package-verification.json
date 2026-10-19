@@ -1,0 +1,23 @@
+{
+  "rawArtifacts": 199,
+  "rawErrors": [],
+  "frozenPackages": [
+    {
+      "folder": "2026-10-16-followup",
+      "files": 275,
+      "errors": []
+    },
+    {
+      "folder": "2026-10-16-network-race",
+      "files": 123,
+      "errors": []
+    }
+  ],
+  "sourceFiles": 520,
+  "sourceErrors": [],
+  "sourceSHA256": "86ec2c865b611a512eab3baabed7d238a102765d5095fd0c92a36372aba5b791",
+  "changedSourceFiles": 37,
+  "inventoryErrors": [],
+  "reconstructionErrors": [],
+  "goSourcesInEvidence": 0
+}

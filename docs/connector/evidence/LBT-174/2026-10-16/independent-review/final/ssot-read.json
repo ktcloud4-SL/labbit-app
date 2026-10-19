@@ -1,0 +1,90 @@
+{
+  "reviewedAt": "2026-10-16 KST",
+  "jira": {
+    "key": "LBT-174",
+    "updated": "2026-10-16T14:59:23.423+0900",
+    "status": "진행 중",
+    "comments": 0,
+    "descriptionUnchanged": true,
+    "url": "https://samsunglions.atlassian.net/browse/LBT-174"
+  },
+  "confluence": [
+    {
+      "id": "7241730",
+      "title": "D-18 · 실습망·VM 관리 접속 구조",
+      "version": {
+        "number": 5,
+        "message": "D-18 LabInstance별 실습망·Management Network·VM별 SSH/SFTP/Preview 접속 구조 확정",
+        "minorEdit": false,
+        "authorId": "712020:aaa28d25-701d-43db-bf3d-955085c038cc",
+        "createdAt": "2026-09-15T08:38:08.772Z",
+        "ncsStepVersion": "385"
+      },
+      "webUrl": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/7241730/D-18+VM"
+    },
+    {
+      "id": "11075640",
+      "title": "결정 완료 사안",
+      "version": {
+        "number": 11,
+        "message": "RESET 추가절을 참고용 요약으로 정리하고 03 의사결정 공식 D-26 원본 연결",
+        "minorEdit": false,
+        "authorId": "712020:3fb17f75-e32a-458c-8828-93888f428e6d",
+        "createdAt": "2026-10-06T07:20:45.681Z",
+        "ncsStepVersion": "1239"
+      },
+      "webUrl": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/11075640"
+    },
+    {
+      "id": "9666637",
+      "title": "검증 설계 — 테스트 전략·추적성",
+      "version": {
+        "number": 3,
+        "message": "2026-09-18 감사 반영: D-24 RPO/RTO 미확정 상태와 DR Drill 판정 기준 정합화",
+        "minorEdit": false,
+        "authorId": "712020:bf1a686b-f4f9-47fe-a32d-d7b983c49819",
+        "createdAt": "2026-09-18T03:46:00.988Z",
+        "ncsStepVersion": "548"
+      },
+      "webUrl": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/9666637"
+    },
+    {
+      "id": "6881283",
+      "title": "D-20 · Lab 작업 충돌·재시도·부분 실패 정책",
+      "version": {
+        "number": 7,
+        "message": "Operation Physical Schema를 Draft 상태로 정합화",
+        "minorEdit": false,
+        "authorId": "712020:aaa28d25-701d-43db-bf3d-955085c038cc",
+        "createdAt": "2026-09-17T09:03:18.111Z",
+        "ncsStepVersion": "432"
+      },
+      "webUrl": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/6881283/D-20+Lab"
+    },
+    {
+      "id": "18055175",
+      "title": "추가 결정 사안",
+      "version": {
+        "number": 3,
+        "message": "LBT-101 Preview 계약 결정 완료 반영",
+        "minorEdit": false,
+        "authorId": "712020:aaa28d25-701d-43db-bf3d-955085c038cc",
+        "createdAt": "2026-10-07T03:42:19.485Z",
+        "ncsStepVersion": "321"
+      },
+      "webUrl": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/18055175"
+    }
+  ],
+  "source": {
+    "base": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+    "head": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+    "aggregate": "956c7d6f3b87f6d49d1b842571124da4591db40f5bc15de5c6efce9d65fe98b9",
+    "goModuleFiles": 495,
+    "uncommitted": true
+  },
+  "reviewerActions": {
+    "sourceEdited": false,
+    "cloudCalled": false,
+    "remoteMutation": false
+  }
+}

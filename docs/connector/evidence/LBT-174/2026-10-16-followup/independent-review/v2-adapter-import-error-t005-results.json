@@ -1,0 +1,48 @@
+{
+  "fixture": "internal/connector/provider/openstack/workspace_file_integration_test.go",
+  "lf_sha256": "4c67194bedba84ee34afb523173b65851f19603fde2a0ab1af5bcbbef7f27a20",
+  "working_source_unchanged": true,
+  "probe": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt174-followup-independent-0051d8d\\review_workspace_exec_test.go",
+  "probe_lf_sha256": "d61d494f02a1af594f6b12d234ce9365779df5077a9e66d698541b234e9793e1",
+  "runs": [
+    {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-overlay",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt174-followup-independent-0051d8d\\before-t005-overlay.json",
+        "./internal/connector/provider/openstack",
+        "-run",
+        "^TestReviewWorkspaceExec",
+        "-count=3",
+        "-v",
+        "-timeout=60s"
+      ],
+      "exit": 1,
+      "expected_exit": 1,
+      "seconds": 1.012,
+      "log": "before-workspace-exec-race.log",
+      "sha256": "b4c2b4721d220d1ddf4bd4f849a8b5e302897f62c4e17bffd444fcb73649ce7f"
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "./internal/connector/provider/openstack",
+        "-run",
+        "^TestReviewWorkspaceExec",
+        "-count=10",
+        "-v",
+        "-timeout=60s"
+      ],
+      "exit": 0,
+      "expected_exit": 0,
+      "seconds": 14.227,
+      "log": "after-workspace-exec-race.log",
+      "sha256": "22941cc1f29c88782dd9455248e08ea8bb8bc0ffb0f03471fdff53e12cd19e9b"
+    }
+  ],
+  "scope": "Real loopback SSH peer; no cloud calls. Start acknowledgement and command exit separated by latch; sibling channel must start before first command release. Cancellation checks exact channel close and shared transport reuse."
+}

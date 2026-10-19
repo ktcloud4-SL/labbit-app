@@ -1,0 +1,392 @@
+{
+  "source": {
+    "files": 521,
+    "sourceSHA256": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+    "mismatches": 0
+  },
+  "childExitCode": 0,
+  "elapsedSeconds": 375.406,
+  "testPassEvents": 1,
+  "testSkip": 0,
+  "testFail": 0,
+  "routingChecks": {
+    "internet-first": [
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      }
+    ],
+    "after-reset-first": [
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      },
+      {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      }
+    ],
+    "after-reboot": {
+      "connectCode": 101,
+      "defaultCount": 0,
+      "targetRouteBeforeAfter": []
+    }
+  },
+  "renewals": {
+    "renew-lab-first": {
+      "renewedRoles": [
+        "lab",
+        "management"
+      ],
+      "leaseChanges": 2,
+      "probe": {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      }
+    },
+    "renew-management-first": {
+      "renewedRoles": [
+        "management",
+        "lab"
+      ],
+      "leaseChanges": 2,
+      "probe": {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      }
+    },
+    "after-reboot-renew-lab-first": {
+      "renewedRoles": [
+        "lab",
+        "management"
+      ],
+      "leaseChanges": 2,
+      "probe": {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      }
+    },
+    "after-reboot-renew-management-first": {
+      "renewedRoles": [
+        "management",
+        "lab"
+      ],
+      "leaseChanges": 2,
+      "probe": {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      }
+    },
+    "after-reset-renew-lab-first": {
+      "renewedRoles": [
+        "lab",
+        "management"
+      ],
+      "leaseChanges": 2,
+      "probe": {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      }
+    },
+    "after-reset-renew-management-first": {
+      "renewedRoles": [
+        "management",
+        "lab"
+      ],
+      "leaseChanges": 2,
+      "probe": {
+        "connectCode": 101,
+        "defaultCount": 0,
+        "targetRouteBeforeAfter": []
+      }
+    }
+  },
+  "actualRebootBootIDChangeAuthenticatedPinnedSSH": true,
+  "immutableResetGeneration2": true,
+  "trackedResourceAbsence": 14,
+  "managementSecurityGroupGETAbsence": true,
+  "keypairGETAbsence": true,
+  "PostgreSQL": "not used or stopped by this OFF run",
+  "nativeCI": "not executed by this OFF run; separate final ON run",
+  "scope": "Actual local OpenStack OFF IPv4 defaults and chosen external TCP target, with pinned SSH, reboot/renew/Reset. Not entire Browser/SaaS C3.",
+  "rawProvenance": [
+    {
+      "path": "off-lifecycle/internet-first-01.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/internet-first-02.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/internet-first-03.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/internet-first-04.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/internet-first-05.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/internet-first-06.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/internet-first-07.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/internet-first-08.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/internet-first-09.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/internet-first-10.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/internet-first-11.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/internet-first-12.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/after-reset-first-01.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/after-reset-first-02.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/after-reset-first-03.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/after-reset-first-04.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/after-reset-first-05.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/after-reset-first-06.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/after-reset-first-07.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/after-reset-first-08.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/after-reset-first-09.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/after-reset-first-10.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/after-reset-first-11.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/after-reset-first-12.log",
+      "bytes": 197,
+      "sha256": "b3c12105ffd887a34a7256c13b542f85ee1be4555c9210a817dc9ffc4baa53ec"
+    },
+    {
+      "path": "off-lifecycle/after-reboot.log",
+      "bytes": 197,
+      "sha256": "4d2cdd5ccc6d930e0eac76ff431d4350370c49d2549fb982598974a2dda37fa4"
+    },
+    {
+      "path": "off-lifecycle/renew-lab-first.log",
+      "bytes": 566,
+      "sha256": "00e9ac886f1a331fbda2c48a73b8c396e6407e6a9a2dbd3e8b8ed75ca2f20d65"
+    },
+    {
+      "path": "off-lifecycle/renew-management-first.log",
+      "bytes": 580,
+      "sha256": "181715a00c3a12a9c90f5376f9a634960f8e1baa13a1ed0ce1956b48d9840b7e"
+    },
+    {
+      "path": "off-lifecycle/after-reboot-renew-lab-first.log",
+      "bytes": 566,
+      "sha256": "00e9ac886f1a331fbda2c48a73b8c396e6407e6a9a2dbd3e8b8ed75ca2f20d65"
+    },
+    {
+      "path": "off-lifecycle/after-reboot-renew-management-first.log",
+      "bytes": 580,
+      "sha256": "181715a00c3a12a9c90f5376f9a634960f8e1baa13a1ed0ce1956b48d9840b7e"
+    },
+    {
+      "path": "off-lifecycle/after-reset-renew-lab-first.log",
+      "bytes": 566,
+      "sha256": "00e9ac886f1a331fbda2c48a73b8c396e6407e6a9a2dbd3e8b8ed75ca2f20d65"
+    },
+    {
+      "path": "off-lifecycle/after-reset-renew-management-first.log",
+      "bytes": 580,
+      "sha256": "181715a00c3a12a9c90f5376f9a634960f8e1baa13a1ed0ce1956b48d9840b7e"
+    },
+    {
+      "path": "off-lifecycle/probe-run-result.json",
+      "bytes": 1267,
+      "sha256": "f2ba6d5c263c18fe402a307b238efd5cc8e4bb1ef91983f9c7ffd8b3a8dd55b7"
+    },
+    {
+      "path": "off-lifecycle/probe-live.log",
+      "bytes": 17379,
+      "sha256": "c87b6bc6e2f0a425941088b83ca38c6d408cde7e936221910dbaff17ec9d766e"
+    }
+  ]
+}

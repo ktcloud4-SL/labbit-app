@@ -1,0 +1,4 @@
+=== RUN   TestTCPOpenTimeoutLateChannelAndSiblingIsolation
+--- PASS: TestTCPOpenTimeoutLateChannelAndSiblingIsolation (50.08s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess	51.658s

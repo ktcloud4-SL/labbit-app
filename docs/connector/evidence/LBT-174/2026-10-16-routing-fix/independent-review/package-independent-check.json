@@ -1,0 +1,53 @@
+{
+  "rawArtifactsReviewed": 195,
+  "gzipArtifacts": 75,
+  "markdownTransforms": 4,
+  "rawErrors": [],
+  "changedSourceFiles": 37,
+  "inventoryErrors": [],
+  "sourceReconstructedFromBasePlusExports": 520,
+  "sourceErrors": [],
+  "baseAbsentNewInputs": [
+    "internal/connector/preview/lifecycle_test.go",
+    "internal/connector/preview/upgrade_cancel_test.go",
+    "internal/connector/provider/openstack/integration_cleanup_test.go",
+    "internal/connector/provider/openstack/integration_diagnostic_test.go",
+    "internal/connector/provider/openstack/management_network.go",
+    "internal/connector/provider/openstack/management_network_test.go",
+    "internal/connector/provider/openstack/management_subnet_affinity_test.go",
+    "internal/connector/provider/openstack/preview_transport_export_test.go",
+    "internal/connector/provider/openstack/preview_transport_integration_test.go",
+    "internal/connector/provider/openstack/workspace_file_fixture_test.go",
+    "internal/connector/provider/openstack/workspace_file_integration_gate_test.go",
+    "internal/connector/wss/handler_preview.go",
+    "internal/connector/wss/preview_owner_test.go",
+    "internal/connector/wss/preview_replacement_test.go",
+    "internal/server/preview/previewtest/refused_other.go",
+    "internal/server/preview/previewtest/refused_test.go",
+    "internal/server/preview/previewtest/refused_windows.go",
+    "internal/server/realtime/trace_log_test.go"
+  ],
+  "contextErrors": [],
+  "frozenHistoricalPackages": [
+    {
+      "folder": "2026-10-16-followup",
+      "files": 275,
+      "errors": []
+    },
+    {
+      "folder": "2026-10-16-network-race",
+      "files": 123,
+      "errors": []
+    }
+  ],
+  "filesScreened": 245,
+  "heuristicCandidates": [],
+  "exactProtectedValueScreen": "Root reports7 values/no matches; reviewer inspected metadata and independently repeats only heuristic screen here.",
+  "localMarkdownLinkErrors": [],
+  "goSourcesInEvidence": 0,
+  "currentSealFiles": 244,
+  "currentSealErrors": [],
+  "currentUnsealedFiles": [],
+  "packageResealedOrModifiedByReviewer": false,
+  "boundary": "195-artifact snapshot; later reviewer-final additions require re-copy and hash/seal by root."
+}

@@ -1,0 +1,7 @@
+{
+  "Replace": {
+    "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-connector-gates-20261015\\internal\\connector\\provider\\openstack\\independent_management_observation_boundary_test.go": "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\lbt174-routing-postadmin-independent-20261016\\management_observation_boundary_test.go",
+    "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-connector-gates-20261015\\internal\\connector\\provider\\openstack\\topology.go": "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\lbt174-routing-postadmin-independent-20261016\\topology.go.before-observation-fix.txt",
+    "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-connector-gates-20261015\\internal\\connector\\provider\\openstack\\management_network.go": "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\lbt174-routing-postadmin-independent-20261016\\management_network.go.before-observation-fix.txt"
+  }
+}

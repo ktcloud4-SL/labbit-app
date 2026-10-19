@@ -1,0 +1,228 @@
+{
+  "recordedUTC": "2026-10-16T10:38:44.233441+00:00",
+  "sourceCount": 521,
+  "sourceSHA256": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+  "sourceMismatches": 0,
+  "runs": [
+    {
+      "name": "go-test",
+      "rawSHA256": "ea505d3fb4dd49e90fb5e22d9f51b23803506892c739c3c95793c61193843712",
+      "testPass": 3827,
+      "testFail": [],
+      "testSkip": [
+        "TestSymlinkRejectedAndExcludedFromTree",
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackFileTransportIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration",
+        "TestOpenStackPreviewForwardingIntegration",
+        "TestOpenStackPTYCC02Integration",
+        "TestOpenStackTerminalC2Integration",
+        "TestOpenStackVMAccessIntegration",
+        "TestOpenStackWorkspaceFileIntegration",
+        "TestOpenStackPreviewTransportIntegration"
+      ],
+      "packagePass": [
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/provider",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest",
+        "github.com/ktcloud4-SL/labbit-app/internal/jsonnum",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/heartbeat",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/protocol",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/mock",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/bootstrap",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/class",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/jsonnum",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/auth",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/preview",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/filetransport",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connector",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/livesession",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/operation",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/repository",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/terminal",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/previewsession",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability/tracing",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labspec",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile",
+        "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-op02-bootstrap",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+        "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/wss",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/app",
+        "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefs",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
+      ],
+      "packageFail": [],
+      "raceWarning": false,
+      "nonJSONLineCount": 0,
+      "runner": {
+        "name": "go-test",
+        "command": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+          "test",
+          "-count=1",
+          "-json",
+          "./..."
+        ],
+        "started": "2026-10-16T10:33:11.559622+00:00",
+        "ended": "2026-10-16T10:33:47.483170+00:00",
+        "seconds": 35.922,
+        "exitCode": 0,
+        "sourceSHA256": "0376a5453a02121e59c526681fe19b9f1ff65f7a273c9fc6e84d8334b4b531a2",
+        "sourceUnchanged": true
+      }
+    },
+    {
+      "name": "go-race",
+      "rawSHA256": "e4f5622b6acacbc15b80f4a6e76ed1c1b44cf47feaf5f4349c983194ee51ec63",
+      "testPass": 1443,
+      "testFail": [],
+      "testSkip": [
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackFileTransportIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+        "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration",
+        "TestOpenStackPreviewForwardingIntegration",
+        "TestOpenStackPTYCC02Integration",
+        "TestOpenStackTerminalC2Integration",
+        "TestOpenStackVMAccessIntegration",
+        "TestOpenStackWorkspaceFileIntegration",
+        "TestOpenStackPreviewTransportIntegration"
+      ],
+      "packagePass": [
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/preview",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/app",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/terminal",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/filetransport",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/wss",
+        "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance",
+        "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-op02-bootstrap",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest"
+      ],
+      "packageFail": [],
+      "raceWarning": false,
+      "nonJSONLineCount": 0,
+      "runner": {
+        "name": "go-race",
+        "command": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+          "test",
+          "-race",
+          "-json",
+          "-p=1",
+          "-count=1",
+          "./internal/connector/provider/openstack",
+          "./internal/connector/vmaccess",
+          "./internal/connector/preview",
+          "./internal/connector/app",
+          "./internal/connector/terminal",
+          "./internal/connector/filetransport",
+          "./internal/connector/wss",
+          "./tools/ktcloud-d1-acceptance",
+          "./tools/ktcloud-op02-bootstrap",
+          "./internal/server/realtime",
+          "./internal/server/preview/previewtest"
+        ],
+        "started": "2026-10-16T10:33:11.562662+00:00",
+        "ended": "2026-10-16T10:35:42.366298+00:00",
+        "seconds": 150.782,
+        "exitCode": 0,
+        "sourceSHA256": "0376a5453a02121e59c526681fe19b9f1ff65f7a273c9fc6e84d8334b4b531a2",
+        "sourceUnchanged": true
+      }
+    },
+    {
+      "name": "go-vet",
+      "runner": {
+        "name": "go-vet",
+        "command": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+          "vet",
+          "./..."
+        ],
+        "started": "2026-10-16T10:33:47.805852+00:00",
+        "ended": "2026-10-16T10:34:04.710539+00:00",
+        "seconds": 16.906,
+        "exitCode": 0,
+        "sourceSHA256": "0376a5453a02121e59c526681fe19b9f1ff65f7a273c9fc6e84d8334b4b531a2",
+        "sourceUnchanged": true
+      }
+    },
+    {
+      "name": "go-build",
+      "runner": {
+        "name": "go-build",
+        "command": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+          "build",
+          "./..."
+        ],
+        "started": "2026-10-16T10:34:05.004799+00:00",
+        "ended": "2026-10-16T10:34:11.731895+00:00",
+        "seconds": 6.719,
+        "exitCode": 0,
+        "sourceSHA256": "0376a5453a02121e59c526681fe19b9f1ff65f7a273c9fc6e84d8334b4b531a2",
+        "sourceUnchanged": true
+      }
+    },
+    {
+      "name": "go-race-server-preview",
+      "rawSHA256": "e084bbfe624196b2b8cde5b452ad754cc8d1c4597961c5f2db3d2b01ee7fbf50",
+      "testPass": 75,
+      "testSkip": [],
+      "testFail": [],
+      "packagePass": [
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview"
+      ],
+      "raceWarning": false,
+      "runner": {
+        "name": "go-race-server-preview",
+        "command": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+          "test",
+          "-race",
+          "-count=1",
+          "-json",
+          "./internal/server/preview"
+        ],
+        "started": "2026-10-16T10:38:32.260113+00:00",
+        "ended": "2026-10-16T10:38:55.647554+00:00",
+        "seconds": 23.391,
+        "exitCode": 0,
+        "sourceSHA256": "0376a5453a02121e59c526681fe19b9f1ff65f7a273c9fc6e84d8334b4b531a2",
+        "sourceUnchanged": true
+      }
+    }
+  ],
+  "updatedUTC": "2026-10-16T10:41:39.502911+00:00"
+}

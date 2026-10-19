@@ -1,0 +1,9 @@
+{
+  "base": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "archiveSHA256": "8396364b360ca867c770cfedb078cf29d9c9a9e112dfda948ad77d0512f08a84",
+  "patchSHA256": "8c93f9141bbfd992e2147818dda826a85f82b55333c59b4733fbd67ad792dc30",
+  "gitApplyExit": 0,
+  "gitApplyOutput": "",
+  "comparedFiles": 495,
+  "differences": []
+}

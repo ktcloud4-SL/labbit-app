@@ -1,0 +1,9 @@
+=== RUN   TestOpenStackPreviewTransportIntegration
+    preview_transport_integration_test.go:325: Control OPEN -> outbound Preview WSS -> exact ATTACH -> actual SSH forwarding -> VM HTTP 200 twice; sequential tunnel contract PASS
+    preview_transport_integration_test.go:408: Concurrent session isolation, Control CLOSE, actual PTY/SFTP after Preview close, APP_NOT_RUNNING/PORT_REJECTED/VM_UNREACHABLE PASS
+    preview_transport_integration_test.go:436: Actual Control Reset gen1->gen2 and Cleanup: old WSS closed, logical sessions removed, stale targets denied, fresh generation HTTP PASS
+    preview_transport_integration_test.go:446: Control contains lifecycle metadata only; HTTP/PTY bytes and synthetic credential not present PASS
+    preview_transport_export_test.go:62: Exact tracked Lab resource absence checks completed: entries=28
+--- PASS: TestOpenStackPreviewTransportIntegration (221.95s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	224.776s

@@ -1,0 +1,1 @@
+{"stage":"initial reviewer archive reader","exitCode":1,"classification":"reviewer method error only","reason":"Suffix heuristic matched four tested-source.json files including historical tracked Evidence; corrected to exact source/tested-source.json root. No archive extraction or source modification."}

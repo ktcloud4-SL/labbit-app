@@ -1,0 +1,139 @@
+=== RUN   TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit
+    review_workspace_exec_test.go:152: running fixture command retained SSH setup admission: VM SSH access is unavailable
+        context deadline exceeded
+--- FAIL: TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit (0.33s)
+=== RUN   TestReviewWorkspaceExecCancellationClosesExactSession
+==================
+WARNING: DATA RACE
+Write at 0x00c00000a228 by goroutine 74:
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.workspaceFixtureOutput.func1()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/workspace_file_integration_test.go:346 +0x72
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Session).Setup.func1()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:317 +0x5e
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).channelOperation.func1()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:375 +0xdb
+
+Previous read at 0x00c00000a228 by goroutine 58:
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.workspaceFixtureOutput()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/workspace_file_integration_test.go:349 +0x27e
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.workspaceFixtureOutput()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/workspace_file_integration_test.go:344 +0x264
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.dialSSH()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:480 +0x11b
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).acquire()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:130 +0x10a4
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).OpenSession()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:174 +0xf4
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).OpenSession()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:172 +0x8d
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.realOpenSession()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/vm_access_integration_test.go:177 +0xa4
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.workspaceFixtureOutput()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/workspace_file_integration_test.go:341 +0xdc
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.TestReviewWorkspaceExecCancellationClosesExactSession.func3()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/review_workspace_exec_test.go:180 +0xf6
+
+Goroutine 74 (running) created at:
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).channelOperation()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:373 +0x514
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Session).Setup()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:317 +0x272
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Session).Setup()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:309 +0xaa
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.workspaceFixtureOutput()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/workspace_file_integration_test.go:344 +0x264
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.dialSSH()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:480 +0x11b
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).acquire()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:130 +0x10a4
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).OpenSession()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:174 +0xf4
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).OpenSession()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:172 +0x8d
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.realOpenSession()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/vm_access_integration_test.go:177 +0xa4
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.workspaceFixtureOutput()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/workspace_file_integration_test.go:341 +0xdc
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.TestReviewWorkspaceExecCancellationClosesExactSession.func3()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/review_workspace_exec_test.go:180 +0xf6
+
+Goroutine 58 (finished) created at:
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.TestReviewWorkspaceExecCancellationClosesExactSession()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/review_workspace_exec_test.go:180 +0x60f
+  testing.tRunner()
+      C:/Users/user/AppData/Local/Programs/Go-1.27.1/go/src/testing/testing.go:2193 +0x1ca
+  testing.(*T).Run.gowrap1()
+      C:/Users/user/AppData/Local/Programs/Go-1.27.1/go/src/testing/testing.go:2258 +0x38
+==================
+    testing.go:1865: race detected during execution of test
+--- FAIL: TestReviewWorkspaceExecCancellationClosesExactSession (0.02s)
+=== RUN   TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit
+    review_workspace_exec_test.go:152: running fixture command retained SSH setup admission: VM SSH access is unavailable
+        context deadline exceeded
+--- FAIL: TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit (0.33s)
+=== RUN   TestReviewWorkspaceExecCancellationClosesExactSession
+--- PASS: TestReviewWorkspaceExecCancellationClosesExactSession (0.02s)
+=== RUN   TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit
+    review_workspace_exec_test.go:152: running fixture command retained SSH setup admission: VM SSH access is unavailable
+        context deadline exceeded
+==================
+WARNING: DATA RACE
+Read at 0x00c0002946a8 by goroutine 143:
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.workspaceFixtureOutput()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/workspace_file_integration_test.go:349 +0x27e
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.dialSSH()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:480 +0x11b
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).acquire()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:130 +0x10a4
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).OpenSession()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:174 +0xf4
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.realOpenSession()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/vm_access_integration_test.go:177 +0xa4
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.workspaceFixtureOutput()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/workspace_file_integration_test.go:341 +0xdc
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit.func3()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/review_workspace_exec_test.go:140 +0xed
+
+Previous write at 0x00c0002946a8 by goroutine 159:
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.workspaceFixtureOutput.func1()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/workspace_file_integration_test.go:346 +0x72
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Session).Setup.func1()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:317 +0x5e
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).channelOperation.func1()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:375 +0xdb
+
+Goroutine 143 (running) created at:
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/review_workspace_exec_test.go:139 +0x615
+  testing.tRunner()
+      C:/Users/user/AppData/Local/Programs/Go-1.27.1/go/src/testing/testing.go:2193 +0x1ca
+  testing.(*T).Run.gowrap1()
+      C:/Users/user/AppData/Local/Programs/Go-1.27.1/go/src/testing/testing.go:2258 +0x38
+
+Goroutine 159 (finished) created at:
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).channelOperation()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:373 +0x514
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Session).Setup()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:317 +0x272
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.workspaceFixtureOutput()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/workspace_file_integration_test.go:344 +0x264
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.dialSSH()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:480 +0x11b
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).acquire()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:130 +0x10a4
+  github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess.(*Manager).OpenSession()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/vmaccess/access.go:174 +0xf4
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.realOpenSession()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/vm_access_integration_test.go:177 +0xa4
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.workspaceFixtureOutput()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/workspace_file_integration_test.go:341 +0xdc
+  github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack.TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit.func3()
+      C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt174-followup-independent-0051d8d/after-source/internal/connector/provider/openstack/review_workspace_exec_test.go:140 +0xed
+==================
+    testing.go:1865: race detected during execution of test
+--- FAIL: TestReviewWorkspaceExecReleasesSetupAdmissionBeforeCommandExit (0.32s)
+=== RUN   TestReviewWorkspaceExecCancellationClosesExactSession
+--- PASS: TestReviewWorkspaceExecCancellationClosesExactSession (0.02s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	4.424s
+FAIL

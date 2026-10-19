@@ -1,0 +1,36 @@
+{
+  "startedUTC": "2026-10-16T07:49:28.790715+00:00",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-overlay",
+    "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt174-network-race-20261016\\linux-v3\\overlay.json",
+    "-json",
+    "-run",
+    "^TestLocalLinuxRaceAndInternetDiagnostics$",
+    "-count=1",
+    "-timeout=60m",
+    "./internal/connector/provider/openstack"
+  ],
+  "sourceBefore": {
+    "files": 502,
+    "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+    "mismatches": 0
+  },
+  "overlaySHA256": {
+    "overlay.json": "7f61fc8c04c5806090f0c50e6fe6634e808d636c7ebf04fdc5812bc91d0286ef",
+    "startup_observed.go": "caedccaaf5ccb4ab3dc6419df068d8ee73cbf4ffb407d908e38d44f16f7e5ee2",
+    "local_probe_test.go": "05accf72438eeef0338f3556563f4c40312bba709bd674d7035bf4e1006bcaac",
+    "linux_ci.sh": "a14d3e326f845d6a9cdd045716941c7e40fee44f3590bb444b12de718802bfbb"
+  },
+  "exitCode": 1,
+  "postgresQueryExit": 0,
+  "postgresStopExit": 0,
+  "finishedUTC": "2026-10-16T08:05:14.790990+00:00",
+  "elapsedSeconds": 945.985,
+  "sourceAfter": {
+    "files": 502,
+    "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+    "mismatches": 0
+  }
+}

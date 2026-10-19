@@ -1,0 +1,19 @@
+{
+  "name": "postgres-vet",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "vet",
+    "-tags=integration",
+    "./internal/postgres",
+    "./internal/postgres/postgrestest",
+    "./internal/server/app",
+    "./internal/server/auth",
+    "./internal/server/httpapi"
+  ],
+  "started": "2026-10-16T10:35:43.042522+00:00",
+  "ended": "2026-10-16T10:35:48.485712+00:00",
+  "seconds": 5.438,
+  "exitCode": 0,
+  "sourceSHA256": "3b11be5bd8a2e3985a0c855f35a8ebaf993c49a768a07bfc0b97cd8fd6ba79ab",
+  "sourceUnchanged": true
+}

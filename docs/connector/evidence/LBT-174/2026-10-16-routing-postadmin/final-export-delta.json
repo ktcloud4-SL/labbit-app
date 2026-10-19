@@ -1,0 +1,33 @@
+{
+  "recordedUTC": "2026-10-16T11:37:48.262474+00:00",
+  "reviewedRawArtifacts": 380,
+  "finalRawArtifacts": 386,
+  "unchangedRawArtifacts": 377,
+  "added": [
+    "independent-review/FINAL_AUDIT.md",
+    "independent-review/final-cloud-batch-verification.json",
+    "independent-review/final-reviewer-handoff.json",
+    "independent-review/package-independent-snapshot.json",
+    "independent-review/package-independent-verification.json",
+    "independent-review/verify_package_independent.py"
+  ],
+  "updated": [
+    {
+      "artifact": "independent-review/AUDIT_DRAFT.md",
+      "before": "4691f1b5b5f0ecf8038f5b47fd14d0389bdb4623e0fd4ccba61abec03a66a8a4",
+      "after": "e8f70ff8520d499bab3e1bdca90c71d72aed8ade7e8758b68565135324ff49e2"
+    },
+    {
+      "artifact": "independent-review/verify_cloud_batch.py",
+      "before": "b953fe4eed2f1338b01fd0202c45c20c32af81ea25742c76ff80ca410b3d2963",
+      "after": "92f56b22e11ad7d841f845a733f0afbc2a4caa015d383d6358efabc92f2c1864"
+    },
+    {
+      "artifact": "run/write_audit.py",
+      "before": "c5b47d9a8aefcc93c85dd488541532d89f93874b43e4bf865aac8ac630749e40",
+      "after": "c402868067e645e7bbec1fe65746dedb8d6e7a6089c0a963cdb4789ce842aaf8"
+    }
+  ],
+  "removed": [],
+  "scope": "Final reviewer reports/helpers plus root AUDIT generator update. No product/source/test execution log changes. Snapshot/raw scan remains independently recorded; final seal covers all added and updated report artifacts."
+}

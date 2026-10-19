@@ -1,0 +1,46 @@
+{
+  "scope": "Independent frozen 111-snapshot comparison; no product/cloud/remote mutation",
+  "rawArtifactsChecked": 111,
+  "externalRawAndArtifactErrors": [],
+  "recomputedTransformations": [
+    "run/linux-apt.log.gz",
+    "independent-review/README.md"
+  ],
+  "gzipArtifacts": 45,
+  "frozenFollowupFiles": 275,
+  "frozenFollowupHashMismatches": 0,
+  "markdownBrokenLinks": [],
+  "expectedFinalReportLinkPendingCopy": [
+    {
+      "file": "AUDIT.md",
+      "target": "independent-review/FINAL_AUDIT.md"
+    }
+  ],
+  "goFilesInNewEvidence": 0,
+  "heuristicTextFilesScanned": 118,
+  "heuristicSecretCandidates": [],
+  "secretBoundary": "Reviewer did not read protected input values. Root separately reports seven exact protected input comparisons with zero matches.",
+  "sourceFiles": 502,
+  "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+  "goInputSetMismatches": 0,
+  "wholeFeatureChangedGoFiles": 27,
+  "dependencyRuntimeContractDBWebCIDiff": "",
+  "stagedFiles": 0,
+  "nativeLinuxExactParents": 12,
+  "nativeLinuxTestPassEvents": 67,
+  "goListExit": 0,
+  "goListPackages": 53,
+  "lbt174EvidencePackages": [],
+  "nativeLinuxSummaryAndCleanupMatchRaw": true,
+  "nativeLinuxFailSkipRace": [
+    0,
+    0,
+    0
+  ],
+  "hostWrapperExits": {
+    "v1": 1,
+    "v2": 0,
+    "v3": 1
+  },
+  "pgFinalStatusBoundary": "Rechecked generated metadata and its capture script; no live PG query was made by reviewer"
+}

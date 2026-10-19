@@ -1,0 +1,17 @@
+{
+  "name": "go-race-server-preview",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-race",
+    "-count=1",
+    "-json",
+    "./internal/server/preview"
+  ],
+  "started": "2026-10-16T10:38:32.260113+00:00",
+  "ended": "2026-10-16T10:38:55.647554+00:00",
+  "seconds": 23.391,
+  "exitCode": 0,
+  "sourceSHA256": "0376a5453a02121e59c526681fe19b9f1ff65f7a273c9fc6e84d8334b4b531a2",
+  "sourceUnchanged": true
+}

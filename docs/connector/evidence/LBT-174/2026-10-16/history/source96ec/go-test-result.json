@@ -1,0 +1,16 @@
+{
+  "name": "go-test",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-count=1",
+    "-json",
+    "./..."
+  ],
+  "started": "2026-10-16T06:08:53.965533+00:00",
+  "ended": "2026-10-16T06:09:44.416405+00:00",
+  "seconds": 50.453,
+  "exitCode": 1,
+  "sourceSHA256": "96ec0a79b149ac980d55dd8434a639f38ffa4d5d7f4dd8b480c5d3304db87e44",
+  "sourceUnchanged": true
+}

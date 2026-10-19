@@ -1,0 +1,14 @@
+{
+  "name": "go-build",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "build",
+    "./..."
+  ],
+  "started": "2026-10-16T06:10:02.321815+00:00",
+  "ended": "2026-10-16T06:10:12.439913+00:00",
+  "seconds": 10.125,
+  "exitCode": 0,
+  "sourceSHA256": "96ec0a79b149ac980d55dd8434a639f38ffa4d5d7f4dd8b480c5d3304db87e44",
+  "sourceUnchanged": true
+}

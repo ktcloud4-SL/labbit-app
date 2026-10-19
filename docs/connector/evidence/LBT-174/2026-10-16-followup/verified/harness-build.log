@@ -1,0 +1,2 @@
+# github.com/ktcloud4-SL/labbit-app/internal/server/app
+internal\server\app\router_harness_plan.go:152:35: undefined: syscall.Stat_t

@@ -1,0 +1,40 @@
+package openstackprovider
+
+import (
+ "context"
+ "crypto/sha256"
+ "fmt"
+ "os"
+ "regexp"
+ "strings"
+ "testing"
+ "time"
+
+ "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
+)
+
+// Read-only association of current owned diagnostic ports and host lease records.
+func TestLocalReadOnlyLeaseAssociation(t *testing.T) {
+ ctx,cancel:=context.WithTimeout(context.Background(),30*time.Second);defer cancel()
+ a,err:=New(ctx,ConfigFromEnvironment());if err!=nil{t.Fatal("provider init failed")}
+ pages,err:=ports.List(a.network,ports.ListOpts{}).AllPages(ctx);if err!=nil{t.Fatal("port discovery failed")}
+ items,err:=ports.ExtractPorts(pages);if err!=nil{t.Fatal("port decode failed")}
+ raw,err:=os.ReadFile(`C:\ProgramData\VMware\vmnetdhcp.leases`);if err!=nil{t.Fatal("host lease read failed")}
+ leases:=regexp.MustCompile(`(?s)lease\s+([0-9.]+)\s*\{(.*?)\}`).FindAllStringSubmatch(string(raw),-1)
+ count:=0
+ for _,p:=range items {
+  if !strings.Contains(p.Name,"lbt174-race-")||!strings.HasSuffix(p.Name,"-management"){continue}
+  count++
+  matched:=0
+  for _,entry:=range leases {
+   if !strings.Contains(strings.ToLower(entry[2]),strings.ToLower(p.MACAddress)){continue}
+   // MAC and full provider IDs are not logged. Match MAC before accepting lease IP.
+   matched++
+   fixedMatch:=false;for _,ip:=range p.FixedIPs{if ip.IPAddress==entry[1]{fixedMatch=true}}
+   t.Logf("hostVMwareLeaseMACMatch=true fixedIPMatches=%t macSHA256=%x",fixedMatch,sha256.Sum256([]byte(strings.ToLower(p.MACAddress))))
+  }
+  t.Logf("ownedDiagnosticManagementPort=true matchingHostVMwareLeases=%d",matched)
+ }
+ fmt.Printf("READ_ONLY_DHCP_ASSOCIATION_PORTS=%d\n",count)
+ if count==0{t.Log("no live owned diagnostic Management port; no lease-origin conclusion")}
+}

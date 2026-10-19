@@ -1,0 +1,548 @@
+diff --git a/db/migrations/README.md b/db/migrations/README.md
+index 3de1ec6..e84ca7b 100644
+--- a/db/migrations/README.md
++++ b/db/migrations/README.md
+@@ -130,6 +130,8 @@ PostgreSQL polling Worker는 `operation_items`의 `PENDING` row를 `FOR UPDATE S
+ 
+ `lease_expires_at`은 같은 Provider Mutation을 즉시 다시 실행할 권한이 아닙니다. RUNNING 작업의 결과가 불명확해지면 D-20/D-24에 따라 `RECONCILING`으로 전환하고 Provider 현실을 먼저 확인합니다.
+ 
++LBT-179의 조회 전용 Reconciliation은 기존 `RECONCILING` 상태와 lease column을 재사용합니다. HOLD 시 owner를 해제하고 `lease_expires_at`을 다음 조회 가능 시각으로 둡니다. `dispatch_not_before`는 mutation 미전송 재선점에만 사용하며, Reconciliation은 mutation 재실행을 허용하지 않습니다. 새 Migration은 없습니다.
++
+ ### D-25: 비동기 Trace Context
+ 
+ `000006`은 `operations`에 nullable `text` 필드 두 개만 추가합니다. `operation_items`마다 원본 Context를 복제하거나 별도 Trace/Span 저장 테이블을 만들지 않습니다.
+diff --git a/docs/backend/README.md b/docs/backend/README.md
+index a8fafb8..f5e93b3 100644
+--- a/docs/backend/README.md
++++ b/docs/backend/README.md
+@@ -120,7 +120,8 @@ Provision/Reset/Cleanup 같은 durable Operation은 HTTP request lifetime 이후
+ - `internal/server/jsonnum`: JSON Schema 2020-12의 integer 규칙(1.0, 1e2도 integer, maximum 없음)을 lexical하게 판정하는 작은 leaf package입니다. Schema에 없는 상한을 만들지 않으려고 cols/rows 원문을 그대로 전달하는 데 씁니다.
+ - `internal/server/app`: `newControlStack`이 Auth, Class, Connector Control, Workspace file(`workspacefile.Service` + `filetransport.Broker`, api role만 필요)과(realtime role이 같은 process에 있을 때) Terminal Relay를 하나의 조립으로 묶습니다. Registry의 revoke observer 자리는 하나이므로 Terminal Data WSS와 File Data WSS에 함께 전달합니다. `Run`과 통합 test가 같은 조립을 씁니다. shutdown은 Relay가 active TerminalSession을 `SERVICE_RESTARTING`으로 종료해 Connector에 `TERMINAL_CLOSE`를 보낸 뒤에 Connector Control connection을 닫습니다. realtime role만 enabled된 process는 DB DSN 없이 시작하지만 Terminal route를 열지 않고 `/readyz`가 실패합니다. preview role도 같습니다. `api`와 `preview`가 같은 process에 있으면 `previewsession.Service`와 `preview.Gateway`를 함께 조립하고(서로를 필요로 하므로 `SetLifecycle`로 순환을 끊음), Registry의 revoke observer(Terminal/File/Preview에 함께 전달)와 `SessionObserver`(Control Session 교체·revoke → Gateway)를 연결하며 `applicationHandler`가 request Host로 Preview Origin 요청을 Gateway로 보냅니다(본 서비스 route에 도달하지 못함). shutdown은 Connector Control connection을 닫기 전에 Gateway가 active PreviewSession을 `SERVICE_RESTARTING`으로 끝내며 `PREVIEW_CLOSE`를 동기로 보냅니다. preview role이 enabled되면 허용 port, TTL, Origin template이 모두 있어야 시작하고(없거나 틀리면 실패) production에서는 https Origin이어야 하며 `LABBIT_PUBLIC_ORIGIN`과 separate-origin이면서 same-site여야 합니다(cross-site나 동일 origin은 fail-closed).
+ - `internal/observability/tracing`: SaaS의 OpenTelemetry SDK `TracerProvider`와 선택적 OTLP exporter(`grpc`, `http/protobuf`) 조립(LBT-144). SDK와 exporter module은 이 package와 `internal/server/app`만 import하며 제품 package는 `trace.Tracer`(API)와 `internal/observability/spanattr`의 attribute key만 씁니다. 아래 "Trace (OpenTelemetry) 구현"을 참고합니다.
+-- `internal/server/provision`: LBT-177의 Worker·Router·EventSink 실행 경로를 PROVISION/RESET/CLEANUP이 공유합니다. `repository.MutationWorkerStore`와 PostgreSQL writer는 RESET의 이전 generation 및 CLEANUP의 모든 잔여 generation에서 정확한 추적 ID를 읽고, 결과의 ownership·correlation·live lease를 transaction 안에서 재검증합니다. RESET은 기존 Connector Provider의 Snapshot Preflight를 재사용하며, 삭제 확인 전 generation을 유지합니다. CLEANUP은 등록된 Item을 독립 처리하고 실제 Resource 부재와 대상 집합이 확인된 경우에만 LabExecution을 종료합니다. Terminal/Live 종료는 `terminal.Service.CloseForLabMutation`, Preview 종료는 기존 Preview 경계를 호출합니다. 재현 불가 RESET은 기존 상태를 복원하고, UNKNOWN·전송 결과 불명·불완전한 성공 결과는 RECONCILING으로 보존합니다. 이 executor는 Reconciliation을 실행하지 않습니다.
++- `internal/server/provision`: LBT-177의 Worker·Router·EventSink 실행 경로를 PROVISION/RESET/CLEANUP이 공유합니다. `repository.MutationWorkerStore`와 PostgreSQL writer는 RESET의 이전 generation 및 CLEANUP의 모든 잔여 generation에서 정확한 추적 ID를 읽고, 결과의 ownership·correlation·live lease를 transaction 안에서 재검증합니다. RESET은 기존 Connector Provider의 Snapshot Preflight를 재사용하며, 삭제 확인 전 generation을 유지합니다. CLEANUP은 등록된 Item을 독립 처리하고 실제 Resource 부재와 대상 집합이 확인된 경우에만 LabExecution을 종료합니다. Terminal/Live 종료는 `terminal.Service.CloseForLabMutation`, Preview 종료는 기존 Preview 경계를 호출합니다. 재현 불가 RESET은 기존 상태를 복원하고, UNKNOWN·전송 결과 불명·불완전한 성공 결과는 RECONCILING으로 보존합니다.
++- LBT-179의 조회 전용 복구는 같은 Worker lifecycle·Router·transaction/lease fencing을 사용합니다. 구현은 `internal/postgres/reconciliation.go`와 `internal/server/provision/reconciliation.go`, 실행 경계는 `runtime/contract.yaml`의 `saas.worker`를 참조합니다.
+ - `internal/server/bootstrap`: D-11 trusted operator Bootstrap use case. Migration이 아닌 이 경로로 Organization/User/Local Account/Class/ClassMembership을 하나의 transaction으로 생성합니다. 실행 command는 아직 없으며 추가할 때는 Runtime Contract `artifacts`와의 정합성을 함께 확인합니다.
+ 
+ Repository는 Session 유효성, Class 접근 권한, 403/404를 판단하지 않고 저장된 값을 그대로 전달합니다. Transaction callback 안에서는 전달된 Repositories만 사용하고 Connector/OpenStack 같은 외부 I/O를 수행하지 않습니다.
+diff --git a/internal/postgres/reconciliation.go b/internal/postgres/reconciliation.go
+new file mode 100644
+index 0000000..b306e8f
+--- /dev/null
++++ b/internal/postgres/reconciliation.go
+@@ -0,0 +1,259 @@
++package postgres
++
++import (
++	"context"
++	"encoding/json"
++	"errors"
++	"time"
++
++	"github.com/google/uuid"
++	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
++)
++
++var _ repository.ReconciliationStore = (*Store)(nil)
++
++func (s *Store) ClaimReconciliation(ctx context.Context, owner uuid.UUID, duration time.Duration) (repository.OperationItemClaim, error) {
++	if owner == uuid.Nil || duration < time.Microsecond {
++		return repository.OperationItemClaim{}, invalidProvision()
++	}
++	var c repository.OperationItemClaim
++	err := s.inTransaction(ctx, func(ctx context.Context, q queries) error {
++		err := q.db.QueryRow(ctx, `SELECT i.id,i.operation_id FROM operation_items i
++ JOIN operations o ON o.id=i.operation_id AND o.organization_id=i.organization_id
++ WHERE i.status IN ('RUNNING','RECONCILING') AND i.finished_at IS NULL
++ AND (i.lease_expires_at IS NULL OR i.lease_expires_at<=clock_timestamp())
++ AND o.status IN ('RUNNING','RECONCILING') AND o.finished_at IS NULL
++ AND o.operation_type IN ('PROVISION','RESET','CLEANUP')
++ ORDER BY i.lease_expires_at NULLS FIRST,i.created_at,i.id LIMIT 1 FOR UPDATE OF i,o SKIP LOCKED`).Scan(&c.Item.ID, &c.Item.OperationID)
++		if err != nil {
++			return normalize("ClaimReconciliation", err)
++		}
++		c.Lease = repository.OperationItemLease{ItemID: c.Item.ID, Owner: owner}
++		err = q.db.QueryRow(ctx, `UPDATE operation_items SET status='RECONCILING',stage='RECONCILING',lease_owner=$2,
++ lease_expires_at=clock_timestamp()+$3::bigint*interval '1 microsecond' WHERE id=$1 RETURNING lease_expires_at`, c.Item.ID, owner.String(), duration.Microseconds()).Scan(&c.ExpiresAt)
++		if err != nil {
++			return normalize("ClaimReconciliation", err)
++		}
++		var at time.Time
++		if err = q.db.QueryRow(ctx, `SELECT clock_timestamp()`).Scan(&at); err != nil {
++			return normalize("ClaimReconciliation", err)
++		}
++		if err = q.aggregateProvision(ctx, c.Item.OperationID, at); err != nil {
++			return err
++		}
++		c.Operation, err = q.OperationByID(ctx, c.Item.OperationID)
++		c.Item.Status = "RECONCILING"
++		return err
++	})
++	if err != nil {
++		return repository.OperationItemClaim{}, err
++	}
++	return c, nil
++}
++
++func (s *Store) RenewReconciliation(ctx context.Context, lease repository.OperationItemLease, duration time.Duration) (time.Time, error) {
++	if duration < time.Microsecond {
++		return time.Time{}, invalidProvision()
++	}
++	var at time.Time
++	err := s.inTransaction(ctx, func(ctx context.Context, q queries) error {
++		if _, err := q.lockReconciliation(ctx, lease); err != nil {
++			return err
++		}
++		err := q.db.QueryRow(ctx, `UPDATE operation_items SET lease_expires_at=clock_timestamp()+$3::bigint*interval '1 microsecond'
++ WHERE id=$1 AND lease_owner=$2 AND lease_expires_at>clock_timestamp() RETURNING lease_expires_at`, lease.ItemID, lease.Owner.String(), duration.Microseconds()).Scan(&at)
++		if errors.Is(normalize("RenewReconciliation", err), repository.ErrNotFound) {
++			return repository.ErrOperationLeaseLost
++		}
++		return normalize("RenewReconciliation", err)
++	})
++	return at, err
++}
++
++// All reconciliation writes use the same product/parent locks and post-lock DB
++// clock fencing as the mutation writers. RESET may span both generations.
++func (q queries) lockReconciliation(ctx context.Context, lease repository.OperationItemLease) (repository.ProvisionDispatch, error) {
++	d := repository.ProvisionDispatch{Lease: lease}
++	if lease.ItemID == uuid.Nil || lease.Owner == uuid.Nil {
++		return d, repository.ErrOperationLeaseLost
++	}
++	err := q.db.QueryRow(ctx, `SELECT i.organization_id,i.operation_id,i.lab_instance_id,e.id,i.generation,
++ s.provider_connection_id,p.connector_id,s.snapshot,o.operation_type
++ FROM operation_items i JOIN operations o ON o.id=i.operation_id AND o.organization_id=i.organization_id
++ JOIN lab_instances li ON li.id=i.lab_instance_id AND li.organization_id=i.organization_id
++ JOIN lab_executions e ON e.id=li.lab_execution_id AND e.organization_id=i.organization_id
++ JOIN creation_snapshots s ON s.lab_execution_id=e.id AND s.organization_id=e.organization_id AND s.schema_version=1
++ JOIN provider_connections p ON p.id=s.provider_connection_id AND p.organization_id=s.organization_id
++ JOIN connectors c ON c.id=p.connector_id AND c.organization_id=p.organization_id
++ WHERE i.id=$1 AND i.lease_owner=$2 AND i.status='RECONCILING' AND i.finished_at IS NULL
++ AND o.status IN ('RUNNING','RECONCILING') AND o.finished_at IS NULL AND e.finished_at IS NULL AND c.revoked_at IS NULL
++ AND ((o.operation_type='PROVISION' AND o.lab_execution_id=e.id AND li.generation=i.generation)
++ OR (o.operation_type='RESET' AND o.lab_instance_id=li.id AND i.generation=li.generation+1)
++ OR (o.operation_type='CLEANUP' AND o.lab_execution_id=e.id AND i.generation=li.generation))
++ FOR UPDATE OF i,o,li,e FOR SHARE OF s,p,c`, lease.ItemID, lease.Owner.String()).Scan(&d.OrganizationID, &d.OperationID, &d.LabInstanceID, &d.LabExecutionID, &d.Generation, &d.ProviderConnectionID, &d.ConnectorID, &d.Snapshot, &d.MutationType)
++	if errors.Is(normalize("Reconciliation", err), repository.ErrNotFound) {
++		return d, repository.ErrOperationLeaseLost
++	}
++	if err != nil {
++		return d, normalize("Reconciliation", err)
++	}
++	var live bool
++	if err = q.db.QueryRow(ctx, `SELECT lease_expires_at>clock_timestamp() FROM operation_items WHERE id=$1`, lease.ItemID).Scan(&live); err != nil {
++		return d, normalize("Reconciliation", err)
++	}
++	if !live {
++		return d, repository.ErrOperationLeaseLost
++	}
++	var snapshotConnection struct {
++		ProviderConnectionID string `json:"providerConnectionId"`
++	}
++	if json.Unmarshal(d.Snapshot, &snapshotConnection) != nil || snapshotConnection.ProviderConnectionID != d.ProviderConnectionID.String() {
++		return d, invalidProvision()
++	}
++	return d, nil
++}
++
++func (q queries) reconciliationResources(ctx context.Context, d repository.ProvisionDispatch) ([]repository.ProvisionResource, error) {
++	// Include previously absent resources: a residual after CLEANUP must be observed.
++	rows, err := q.db.Query(ctx, `SELECT resource_type,provider_id,COALESCE(logical_name,''),generation,COALESCE(observed_state,'')
++ FROM provider_resources WHERE organization_id=$1 AND lab_instance_id=$2 AND provider_connection_id=$3 ORDER BY resource_type,provider_id FOR UPDATE`, d.OrganizationID, d.LabInstanceID, d.ProviderConnectionID)
++	if err != nil {
++		return nil, normalize("ReconciliationResources", err)
++	}
++	defer rows.Close()
++	refs := make([]repository.ProvisionResource, 0)
++	for rows.Next() {
++		var r repository.ProvisionResource
++		if err = rows.Scan(&r.Type, &r.ProviderID, &r.LogicalName, &r.Generation, &r.ObservedState); err != nil {
++			return nil, normalize("ReconciliationResources", err)
++		}
++		refs = append(refs, r)
++	}
++	return refs, normalize("ReconciliationResources", rows.Err())
++}
++func (s *Store) PrepareReconciliation(ctx context.Context, lease repository.OperationItemLease) (repository.ProvisionDispatch, error) {
++	var d repository.ProvisionDispatch
++	err := s.inTransaction(ctx, func(ctx context.Context, q queries) error {
++		var err error
++		d, err = q.lockReconciliation(ctx, lease)
++		if err != nil {
++			return err
++		}
++		d.Resources, err = q.reconciliationResources(ctx, d)
++		return err
++	})
++	if err != nil {
++		return repository.ProvisionDispatch{}, err
++	}
++	return d, nil
++}
++
++func (s *Store) WriteReconciliation(ctx context.Context, u repository.ReconciliationUpdate) error {
++	if u.RetryDelay < time.Microsecond {
++		return invalidProvision()
++	}
++	return s.inTransaction(ctx, func(ctx context.Context, q queries) error {
++		d, err := q.lockReconciliation(ctx, u.Dispatch.Lease)
++		if err != nil {
++			return err
++		}
++		if !sameProvisionDispatch(d, u.Dispatch) || d.MutationType != u.Dispatch.MutationType {
++			return invalidProvision()
++		}
++		refs, err := q.reconciliationResources(ctx, d)
++		if err != nil {
++			return err
++		}
++		// Require the prepared set to be unchanged. Ownership is never inferred from
++		// provider names/tags or a response's generation alone.
++		if len(refs) != len(u.Dispatch.Resources) {
++			return invalidProvision()
++		}
++		tracked := make(map[[2]string]repository.ProvisionResource, len(refs))
++		for i, r := range refs {
++			if r != u.Dispatch.Resources[i] {
++				return invalidProvision()
++			}
++			tracked[[2]string{r.Type, r.ProviderID}] = r
++		}
++		complete := !u.QueryFailed
++		var unsafe bool
++		if err = q.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM provider_resources WHERE lab_instance_id=$1 AND
++ (organization_id<>$2 OR provider_connection_id<>$3 OR generation>$4))`, d.LabInstanceID, d.OrganizationID, d.ProviderConnectionID, d.Generation).Scan(&unsafe); err != nil {
++			return normalize("Reconciliation", err)
++		}
++		complete = complete && !unsafe
++		seen := map[[2]string]bool{}
++		valid := make([]repository.ResourceObservation, 0, len(u.Observations))
++		// Validate the entire batch before persisting it. Contradictory/duplicate
++		// observations cannot partially overwrite a prior confirmed state.
++		for _, o := range u.Observations {
++			key := [2]string{o.Type, o.ProviderID}
++			r, known := tracked[key]
++			if o.Source != "KNOWN_RESOURCE" || !known {
++				complete = false
++				continue
++			}
++			if seen[key] || o.Generation != r.Generation || o.LogicalName != r.LogicalName ||
++				(o.Exists && (o.ObservedState == "" || o.ObservedState == "UNKNOWN" || absent(o.ObservedState))) ||
++				(!o.Exists && o.ObservedState != "" && !absent(o.ObservedState)) {
++				return invalidProvision()
++			}
++			seen[key] = true
++			valid = append(valid, o)
++			if o.Exists {
++				complete = false
++			}
++		}
++		if len(seen) != len(tracked) {
++			complete = false
++		}
++		var at time.Time
++		if err = q.db.QueryRow(ctx, `SELECT clock_timestamp()`).Scan(&at); err != nil {
++			return normalize("Reconciliation", err)
++		}
++		if !u.QueryFailed && !unsafe {
++			for _, o := range valid {
++				state, lifecycle := o.ObservedState, "PRESENT"
++				if !o.Exists {
++					state = "MISSING"
++					lifecycle = "MISSING"
++				}
++				_, err = q.db.Exec(ctx, `UPDATE provider_resources SET lifecycle_status=$6,observed_state=$7,last_observed_at=$8,updated_at=$8,deleted_at=CASE WHEN $6='PRESENT' THEN NULL ELSE deleted_at END
++ WHERE organization_id=$1 AND lab_instance_id=$2 AND provider_connection_id=$3 AND resource_type=$4 AND provider_id=$5`, d.OrganizationID, d.LabInstanceID, d.ProviderConnectionID, o.Type, o.ProviderID, lifecycle, state, at)
++				if err != nil {
++					return normalize("ReconciliationResource", err)
++				}
++			}
++		}
++		// Existence observations do not prove creation completeness/startup readiness.
++		// Only CLEANUP's complete absence proof can finish without another mutation.
++		status, stage := "RECONCILING", "HOLD"
++		var finished *time.Time
++		if complete && d.MutationType == "CLEANUP" {
++			status = "SUCCEEDED"
++			stage = "COMPLETED"
++			finished = &at
++		}
++		tag, err := q.db.Exec(ctx, `UPDATE operation_items SET status=$2,stage=$3,finished_at=$4,lease_owner=NULL,
++ lease_expires_at=CASE WHEN $2='RECONCILING' THEN clock_timestamp()+$5::bigint*interval '1 microsecond' ELSE NULL END,
++ error_code=CASE WHEN $2='RECONCILING' THEN 'reconciliation_hold' ELSE NULL END,
++ error_message=CASE WHEN $2='RECONCILING' THEN 'Operation outcome requires reconciliation' ELSE NULL END
++ WHERE id=$1 AND lease_expires_at>clock_timestamp()`, d.Lease.ItemID, status, stage, finished, u.RetryDelay.Microseconds())
++		if err != nil {
++			return normalize("Reconciliation", err)
++		}
++		if tag.RowsAffected() != 1 {
++			return repository.ErrOperationLeaseLost
++		}
++		if status == "SUCCEEDED" {
++			if _, err = q.db.Exec(ctx, `UPDATE lab_instances SET status='COMPLETED',updated_at=$2 WHERE id=$1`, d.LabInstanceID, at); err != nil {
++				return normalize("Reconciliation", err)
++			}
++		}
++		if d.MutationType == "CLEANUP" {
++			return q.aggregateMutation(ctx, d, at)
++		}
++		return q.aggregateProvision(ctx, d.OperationID, at)
++	})
++}
+diff --git a/internal/server/app/control_stack.go b/internal/server/app/control_stack.go
+index 9c8accc..aeb446f 100644
+--- a/internal/server/app/control_stack.go
++++ b/internal/server/app/control_stack.go
+@@ -134,7 +134,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
+ 	stack := &controlStack{Registry: registry, Router: router}
+ 	if opts.Worker {
+ 		stack.Provisions, err = provision.NewExecutor(provision.Options{
+-			Store: store, Mutations: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
++			Store: store, Mutations: store, Reconciliation: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
+ 			CloseForMutation: func(ctx context.Context, d repository.ProvisionDispatch) error {
+ 				reason := "LAB_RESET"
+ 				if d.MutationType == "CLEANUP" {
+diff --git a/internal/server/provision/executor.go b/internal/server/provision/executor.go
+index 41c856a..aba6f2d 100644
+--- a/internal/server/provision/executor.go
++++ b/internal/server/provision/executor.go
+@@ -28,6 +28,7 @@ type Router interface {
+ type Options struct {
+ 	Store            repository.ProvisionWorkerStore
+ 	Mutations        repository.MutationWorkerStore
++	Reconciliation   repository.ReconciliationStore
+ 	CloseForMutation func(context.Context, repository.ProvisionDispatch) error
+ 	Router           Router
+ 	Tracer           trace.Tracer
+@@ -53,9 +54,10 @@ type provisionKey struct {
+ }
+ 
+ type provisionInbox struct {
+-	ack      chan connector.OperationAckEvent
+-	rejected chan connector.OperationAckEvent
+-	result   chan connector.OperationResultEvent
++	ack       chan connector.OperationAckEvent
++	rejected  chan connector.OperationAckEvent
++	result    chan connector.OperationResultEvent
++	reconcile chan connector.ReconcileResultEvent
+ }
+ 
+ // The restricted store changes only claim eligibility; Worker.RunOne/Execute/
+@@ -95,6 +97,12 @@ func NewExecutor(opts Options) (*Executor, error) {
+ 	if opts.Mutations != nil {
+ 		claims = opts.Mutations
+ 	}
++	if opts.Reconciliation != nil {
++		if _, ok := opts.Router.(reconcileRouter); !ok {
++			return nil, operation.ErrInvalid
++		}
++		claims = reconciliationClaims{OperationWorkerStore: claims, store: opts.Reconciliation}
++	}
+ 	w, err := operation.NewWorker(operation.WorkerOptions{Store: claims, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Execute: p.execute})
+ 	if err != nil {
+ 		return nil, err
+@@ -149,6 +157,8 @@ func (p *Executor) HandleEvent(event connector.Event) {
+ 		routed = e.Routed
+ 	case connector.OperationResultEvent:
+ 		routed = e.Routed
++	case connector.ReconcileResultEvent:
++		routed = e.Routed
+ 	default:
+ 		return
+ 	}
+@@ -165,6 +175,11 @@ func (p *Executor) HandleEvent(event connector.Event) {
+ 	// authenticated and correlated these events; reply ID is checked again after
+ 	// Send returns, including ACK/RESULT received before the write returned.
+ 	switch e := event.(type) {
++	case connector.ReconcileResultEvent:
++		select {
++		case inbox.reconcile <- e:
++		default:
++		}
+ 	case connector.OperationAckEvent:
+ 		if !e.Payload.Accepted {
+ 			select {
+@@ -186,6 +201,9 @@ func (p *Executor) HandleEvent(event connector.Event) {
+ }
+ 
+ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemClaim) error {
++	if claim.Item.Status == "RECONCILING" {
++		return p.reconcile(ctx, claim)
++	}
+ 	var d repository.ProvisionDispatch
+ 	var err error
+ 	if claim.Operation.Type == "RESET" || claim.Operation.Type == "CLEANUP" {
+diff --git a/internal/server/provision/reconciliation.go b/internal/server/provision/reconciliation.go
+new file mode 100644
+index 0000000..b81ef11
+--- /dev/null
++++ b/internal/server/provision/reconciliation.go
+@@ -0,0 +1,114 @@
++package provision
++
++import (
++	"context"
++	"errors"
++	"time"
++
++	"github.com/google/uuid"
++	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
++	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
++	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
++)
++
++type reconcileRouter interface {
++	SendReconcileRequest(context.Context, connector.ReconcileRequest) (connector.SentMessage, error)
++	ForgetReconcile(uuid.UUID, string) bool
++}
++
++// This adapter reuses Worker.RunOne's commit, renewal, trace and cancellation
++// boundary. Reconciliation gets a new claim owner and cannot dispatch mutations.
++type reconciliationClaims struct {
++	repository.OperationWorkerStore
++	store repository.ReconciliationStore
++}
++
++func (s reconciliationClaims) ClaimOperationItem(ctx context.Context, owner uuid.UUID, duration time.Duration) (repository.OperationItemClaim, error) {
++	c, err := s.OperationWorkerStore.ClaimOperationItem(ctx, owner, duration)
++	if errors.Is(err, repository.ErrNotFound) {
++		return s.store.ClaimReconciliation(ctx, owner, duration)
++	}
++	return c, err
++}
++func (s reconciliationClaims) RenewOperationItemLease(ctx context.Context, lease repository.OperationItemLease, duration time.Duration) (time.Time, error) {
++	at, err := s.OperationWorkerStore.RenewOperationItemLease(ctx, lease, duration)
++	if errors.Is(err, repository.ErrOperationLeaseLost) {
++		return s.store.RenewReconciliation(ctx, lease, duration)
++	}
++	return at, err
++}
++
++func (p *Executor) reconcile(ctx context.Context, claim repository.OperationItemClaim) error {
++	d, err := p.opts.Reconciliation.PrepareReconciliation(ctx, claim.Lease)
++	if err != nil {
++		return err
++	}
++	router := p.opts.Router.(reconcileRouter)
++	corr := connector.Correlation{OperationID: d.OperationID.String(), LabInstanceID: d.LabInstanceID.String(), Generation: d.Generation}
++	key := provisionKey{d.ConnectorID, corr}
++	inbox := &provisionInbox{reconcile: make(chan connector.ReconcileResultEvent, 1)}
++	p.mu.Lock()
++	if p.pending[key] != nil {
++		p.mu.Unlock()
++		return repository.ErrConflict
++	}
++	p.pending[key] = inbox
++	p.mu.Unlock()
++	var sent connector.SentMessage
++	defer func() {
++		p.mu.Lock()
++		delete(p.pending, key)
++		p.mu.Unlock()
++		if sent.MessageID != "" {
++			router.ForgetReconcile(d.ConnectorID, sent.MessageID)
++		}
++	}()
++	refs := make([]protocol.ProviderResourceRef, 0, len(d.Resources))
++	for _, r := range d.Resources {
++		refs = append(refs, protocol.ProviderResourceRef{ResourceType: r.Type, ProviderID: r.ProviderID, Generation: r.Generation, LogicalName: r.LogicalName})
++	}
++	if _, err = p.worker.Renew(ctx, d.Lease); err != nil {
++		return err
++	}
++	discover := true
++	sent, err = router.SendReconcileRequest(ctx, connector.ReconcileRequest{ConnectorID: d.ConnectorID, RequestID: claim.Operation.RequestID, Correlation: corr,
++		Payload: protocol.ReconcileRequestPayload{KnownResources: refs, DiscoverCandidates: &discover}, Trace: connector.TraceFromContext(ctx)})
++	hold := func() error {
++		return p.opts.Reconciliation.WriteReconciliation(ctx, repository.ReconciliationUpdate{Dispatch: d, QueryFailed: true, RetryDelay: p.opts.DispatchRetryDelay})
++	}
++	if err != nil {
++		if ctx.Err() != nil {
++			return ctx.Err()
++		}
++		return hold()
++	}
++	ticker := time.NewTicker(p.opts.LeaseDuration / 3)
++	defer ticker.Stop()
++	timer := time.NewTimer(p.opts.ResultTimeout)
++	defer timer.Stop()
++	for {
++		select {
++		case <-ctx.Done():
++			return ctx.Err()
++		case <-ticker.C:
++			if _, err = p.worker.Renew(ctx, d.Lease); err != nil {
++				return err
++			}
++		case <-timer.C:
++			return hold()
++		case e := <-inbox.reconcile:
++			if e.RequestMessageID != sent.MessageID {
++				continue
++			}
++			u := repository.ReconciliationUpdate{Dispatch: d, QueryFailed: e.Payload.Error != nil, RetryDelay: p.opts.DispatchRetryDelay}
++			for _, o := range e.Payload.Observations {
++				u.Observations = append(u.Observations, repository.ResourceObservation{ProvisionResource: repository.ProvisionResource{Type: o.ResourceType, ProviderID: o.ProviderID, Generation: o.Generation, LogicalName: o.LogicalName, ObservedState: o.ObservedState}, Exists: o.Exists, Source: o.Source})
++			}
++			err = p.opts.Reconciliation.WriteReconciliation(ctx, u)
++			if errors.Is(err, repository.ErrConstraintViolation) {
++				return hold()
++			}
++			return err
++		}
++	}
++}
+diff --git a/internal/server/repository/reconciliation.go b/internal/server/repository/reconciliation.go
+new file mode 100644
+index 0000000..e7e2d5a
+--- /dev/null
++++ b/internal/server/repository/reconciliation.go
+@@ -0,0 +1,29 @@
++package repository
++
++import (
++	"context"
++	"github.com/google/uuid"
++	"time"
++)
++
++// ReconciliationStore claims observation work only. It never authorizes a
++// mutation replay, including when the original RUNNING lease has expired.
++type ReconciliationStore interface {
++	ClaimReconciliation(context.Context, uuid.UUID, time.Duration) (OperationItemClaim, error)
++	RenewReconciliation(context.Context, OperationItemLease, time.Duration) (time.Time, error)
++	PrepareReconciliation(context.Context, OperationItemLease) (ProvisionDispatch, error)
++	WriteReconciliation(context.Context, ReconciliationUpdate) error
++}
++
++type ResourceObservation struct {
++	ProvisionResource
++	Exists bool
++	Source string
++}
++
++type ReconciliationUpdate struct {
++	Dispatch     ProvisionDispatch
++	Observations []ResourceObservation
++	QueryFailed  bool
++	RetryDelay   time.Duration
++}
+diff --git a/runtime/contract.yaml b/runtime/contract.yaml
+index 0ae378e..36bfe31 100644
+--- a/runtime/contract.yaml
++++ b/runtime/contract.yaml
+@@ -288,8 +288,11 @@ saas:
+         - CLEANUP
+       authority_provider: >-
+         PROVISION/RESET/CLEANUP은 같은 process의 api role이 소유한 Connector Control Registry/Router로 실행합니다.
+-        worker role은 호환 PostgreSQL schema를 확인한 뒤 PENDING Item만 claim합니다.
+-        RUNNING/RECONCILING Item은 lease 만료나 재접속으로 다시 실행하지 않습니다.
++        worker role은 호환 PostgreSQL schema를 확인한 뒤 PENDING Item을 mutation 실행용으로 claim합니다.
++        만료된 RUNNING 및 RECONCILING Item은 새 lease로 조회 전용 Reconciliation을 수행하며 mutation을 다시 실행하지 않습니다.
++        저장된 exact ID·generation·제품 소유관계를 기존 RECONCILE_REQUEST/RESULT로 대조합니다.
++        불확실성·발견 후보는 RECONCILING/HOLD를 유지하고 자동 채택·삭제하지 않습니다.
++        CLEANUP의 전체 추적 자원 부재가 확인된 경우만 완료를 반영하며 PROVISION/RESET의 관측만으로 생성 완료나 READY를 추정하지 않습니다.
+       worker_without_api: >-
+         api 없이 worker만 enabled되면 작업을 claim하지 않고 /readyz가 실패합니다.
+         별도 worker process용 분산 Router나 internal routing RPC는 제공하지 않습니다.

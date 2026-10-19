@@ -1,0 +1,21 @@
+{
+  "command": [
+    "go",
+    "test",
+    "-race",
+    "-overlay",
+    "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\lbt174-network-race-independent-20261016\\failure-alias-overlay.json",
+    "-count=10",
+    "-run",
+    "^TestReviewInternetFailureAliases$",
+    "-v",
+    "./internal/connector/provider/openstack"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 16.422,
+  "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+  "sourceFiles": 502,
+  "matchesFinalManifest": true,
+  "sourceUnchanged": true,
+  "fixtureSHA256": "145b66b91aff5b8ed3dc6f6082ac97dd952ad0932727b79b4c550544aa98c6b2"
+}

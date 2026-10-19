@@ -1,0 +1,17 @@
+{
+  "name": "web-lint",
+  "command": [
+    "C:\\Users\\user\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback\\pnpm.cmd",
+    "--package=npm@10.9.2",
+    "dlx",
+    "npm",
+    "run",
+    "lint"
+  ],
+  "started": "2026-10-16T08:31:37.661122+00:00",
+  "ended": "2026-10-16T08:32:30.302921+00:00",
+  "seconds": 52.64,
+  "exitCode": 0,
+  "sourceSHA256": "caea2345390f417e96b764f4ab58f88c99dd96b402dce3bc20db5f0e7d2a5c67",
+  "sourceUnchanged": true
+}

@@ -1,0 +1,12 @@
+=== RUN   TestIndependentDirectControlReplacementRetiresOldIdleSession
+    zz_independent_idle_retirement_test.go:39: old idle logical session survived explicit Control replacement: count=1 destroyed=false
+--- FAIL: TestIndependentDirectControlReplacementRetiresOldIdleSession (0.04s)
+=== RUN   TestIndependentDirectControlReplacementRetiresOldIdleSession
+    zz_independent_idle_retirement_test.go:39: old idle logical session survived explicit Control replacement: count=1 destroyed=false
+--- FAIL: TestIndependentDirectControlReplacementRetiresOldIdleSession (0.00s)
+=== RUN   TestIndependentDirectControlReplacementRetiresOldIdleSession
+    zz_independent_idle_retirement_test.go:39: old idle logical session survived explicit Control replacement: count=1 destroyed=false
+--- FAIL: TestIndependentDirectControlReplacementRetiresOldIdleSession (0.00s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/wss	2.783s
+FAIL

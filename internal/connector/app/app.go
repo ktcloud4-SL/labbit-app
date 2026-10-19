@@ -214,6 +214,7 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 	handler := wss.NewHandler(p, sender)
 	handler.SetTerminalManager(sessionMgr, ptyFactory, termCfg)
 	var accessManager *vmaccess.Manager
+	var lifecycleProvider *accessLifecycleProvider
 	if _, ok := p.(vmaccess.Resolver); isProduction && !ok {
 		return nil, fmt.Errorf("Provider VM access resolver is required in production")
 	}
@@ -228,7 +229,8 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 		ptyFactory = func(string, string, int, int) (terminal.PTYChannel, error) {
 			return nil, vmaccess.ErrInvalidTarget
 		}
-		handler = wss.NewHandler(&accessLifecycleProvider{Provider: p, manager: accessManager}, sender)
+		lifecycleProvider = &accessLifecycleProvider{Provider: p, manager: accessManager}
+		handler = wss.NewHandler(lifecycleProvider, sender)
 		handler.SetTerminalManager(sessionMgr, ptyFactory, termCfg)
 		handler.SetVMPTYFactory(func(ctx context.Context, target vmaccess.Target, cols, rows int) (terminal.PTYChannel, error) {
 			return terminal.NewManagedSSHPTY(ctx, accessManager, target, cols, rows)
@@ -246,6 +248,9 @@ func buildConnector(p provider.Provider, sender wss.MessageSender, controlConfig
 	if forwarder != nil {
 		previewMgr = preview.NewSessionManager(forwarder, nil)
 		handler.SetPreviewManager(previewMgr, prevCfg)
+		if lifecycleProvider != nil {
+			lifecycleProvider.preview = previewMgr
+		}
 	}
 	if controlConfig != nil {
 		caps := make([]string, 0, len(controlConfig.Capabilities)+1)
@@ -369,7 +374,7 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
 		}
 		connectorApp.TerminalManager.Shutdown(protocol.TerminalReasonServiceRestart)
 		if connectorApp.PreviewManager != nil {
-			connectorApp.PreviewManager.CloseAll(protocol.PreviewReasonServiceRestart)
+			connectorApp.PreviewManager.Shutdown(protocol.PreviewReasonServiceRestart)
 		}
 		if connectorApp.VMAccess != nil {
 			_ = connectorApp.VMAccess.Close()

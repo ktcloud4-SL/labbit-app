@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -390,7 +389,7 @@ func (p *Peer) handleOpen(open Open) {
 	tcp, err := net.DialTimeout("tcp", addr, 2*time.Second)
 	if err != nil {
 		code := "VM_UNREACHABLE"
-		if errors.Is(err, syscall.ECONNREFUSED) {
+		if connectionRefused(err) {
 			code = "APP_NOT_RUNNING"
 		}
 		fail(code)

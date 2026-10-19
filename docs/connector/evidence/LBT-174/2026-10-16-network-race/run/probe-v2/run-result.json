@@ -1,0 +1,32 @@
+{
+  "startedUTC": "2026-10-16T07:48:26.021398+00:00",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-overlay",
+    "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt174-network-race-20261016\\probe-v2\\overlay.json",
+    "-json",
+    "-run",
+    "^TestLocalLinuxRaceAndInternetDiagnostics$",
+    "-count=1",
+    "-timeout=60m",
+    "./internal/connector/provider/openstack"
+  ],
+  "sourceBefore": {
+    "files": 502,
+    "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+    "mismatches": 0
+  },
+  "overlaySHA256": {
+    "overlay.json": "5ef1253796151901d2e5eb81e023716cfed07179969b8e21f499776e27997222",
+    "local_probe_test.go": "a568fb104ebdb1efeb99ddeafbbac961e09e38ac3a70be1d8c2087ab525fcfb0"
+  },
+  "exitCode": 0,
+  "finishedUTC": "2026-10-16T07:50:40.102746+00:00",
+  "elapsedSeconds": 134.062,
+  "sourceAfter": {
+    "files": 502,
+    "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+    "mismatches": 0
+  }
+}

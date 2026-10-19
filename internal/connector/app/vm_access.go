@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 )
@@ -27,6 +28,7 @@ func sshIdleTimeoutFromEnvironment() (time.Duration, error) {
 type accessLifecycleProvider struct {
 	provider.Provider
 	manager *vmaccess.Manager
+	preview *preview.SessionManager
 }
 
 func (p *accessLifecycleProvider) ProviderConnectionID() string {
@@ -60,6 +62,9 @@ func (p *accessLifecycleProvider) Reset(ctx context.Context, req provider.ResetR
 	result, err := p.Provider.Reset(ctx, req)
 	if lifecycleInvalidatesAccess(result, err) {
 		p.manager.InvalidateBefore(req.LabInstanceID, req.Generation)
+		if p.preview != nil {
+			p.preview.InvalidateBefore(req.LabInstanceID, req.Generation)
+		}
 	}
 	return result, err
 }
@@ -73,6 +78,9 @@ func (p *accessLifecycleProvider) Cleanup(ctx context.Context, req provider.Clea
 			}
 		}
 		p.manager.InvalidateBefore(req.LabInstanceID, generation+1)
+		if p.preview != nil {
+			p.preview.InvalidateBefore(req.LabInstanceID, generation+1)
+		}
 	}
 	return result, err
 }

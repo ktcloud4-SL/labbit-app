@@ -1,0 +1,14 @@
+{
+  "name": "go-vet",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "vet",
+    "./..."
+  ],
+  "started": "2026-10-16T07:25:23.839689+00:00",
+  "ended": "2026-10-16T07:25:39.280276+00:00",
+  "seconds": 15.453,
+  "exitCode": 0,
+  "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+  "sourceUnchanged": true
+}

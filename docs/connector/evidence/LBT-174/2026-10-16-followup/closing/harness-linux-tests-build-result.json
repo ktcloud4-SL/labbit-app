@@ -1,0 +1,18 @@
+{
+  "name": "harness-linux-tests-build",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-c",
+    "-tags=backend_router_harness integration",
+    "-o",
+    "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt174-followup-20261016\\closing\\harness-tests",
+    "./internal/server/app"
+  ],
+  "started": "2026-10-16T07:06:59.495662+00:00",
+  "ended": "2026-10-16T07:07:04.181645+00:00",
+  "seconds": 4.687,
+  "exitCode": 0,
+  "sourceSHA256": "5ea69fd1494db8b0e016df6ee9ff3c3f0416e874be26375c8cb60305ef9eb1d6",
+  "sourceUnchanged": true
+}

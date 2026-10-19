@@ -1,0 +1,387 @@
+{
+  "base": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "HEAD": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "branch": "codex/feat/LBT-174-preview-local-integration",
+  "sourceCount": 521,
+  "sourceSHA256": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+  "changedCount": 38,
+  "files": [
+    {
+      "path": "contracts/connector/README.md",
+      "status": "tracked diff",
+      "role": "production or contract",
+      "sha256CanonicalLF": "76f27045fc64dfc487646a0f2aa753b05724d6e8b39daeaff71bd5da41e962fa",
+      "tests": []
+    },
+    {
+      "path": "internal/connector/app/app.go",
+      "status": "tracked diff",
+      "role": "production or contract",
+      "sha256CanonicalLF": "a3891a59d0b714f13d7a20ad6237b7058ce1a9f382e581ee03b49c33b4d7b081",
+      "tests": []
+    },
+    {
+      "path": "internal/connector/app/vm_access.go",
+      "status": "tracked diff",
+      "role": "production or contract",
+      "sha256CanonicalLF": "67bbce0899b488dc159e28276315841b89050589751d41bf4b866c29c2dc5117",
+      "tests": []
+    },
+    {
+      "path": "internal/connector/app/vm_access_test.go",
+      "status": "tracked diff",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "8fb7f87b11e058770f7463f34adbe3965ff1bbcd8897bee0f6d4b7796a05605a",
+      "tests": [
+        "TestOperationResultInvalidatesObsoleteAccess",
+        "TestSSHIdleRuntimeDuration"
+      ]
+    },
+    {
+      "path": "internal/connector/preview/client.go",
+      "status": "tracked diff",
+      "role": "production or contract",
+      "sha256CanonicalLF": "decd833c003e3f1f43890a5d3f576c02739f484c7243c9a92a98e2fdf9d1d217",
+      "tests": []
+    },
+    {
+      "path": "internal/connector/preview/lifecycle_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "4d057ea1d4bbdea200af7736120ecf9c2bb72957d97fc6f31116375d81101fd4",
+      "tests": [
+        "TestPreviewLifecyclePendingOpenRetiredByClose",
+        "TestPreviewLifecycleStaleAttachCannotBindNewAttempt",
+        "TestPreviewLifecycleAttachReadCancellation",
+        "TestPreviewLifecycleCloseUnblocksBlockedWSSWriter",
+        "TestPreviewLifecycleConcurrentDuplicateAndActiveAttemptIsolation",
+        "TestPreviewLifecycleGenerationAndShutdownFencePending"
+      ]
+    },
+    {
+      "path": "internal/connector/preview/manager.go",
+      "status": "tracked diff",
+      "role": "production or contract",
+      "sha256CanonicalLF": "99a92f6f15898022941fa619b79e63c93d60c3d8ce92308ba95842a3bb94f831",
+      "tests": []
+    },
+    {
+      "path": "internal/connector/preview/session.go",
+      "status": "tracked diff",
+      "role": "production or contract",
+      "sha256CanonicalLF": "907e21fad01868739d1d5d05e28a0f8cfe257602ed924b0d89254c44a78fe52c",
+      "tests": []
+    },
+    {
+      "path": "internal/connector/preview/upgrade_cancel_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "98321cf231aa9e56d818520d4a31fac6917ddfbadb33bd8bab483c1cf99a1db6",
+      "tests": [
+        "TestPreviewLifecycleCancelClosesPendingHTTPUpgrade"
+      ]
+    },
+    {
+      "path": "internal/connector/provider/openstack/integration_cleanup_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "6fa56565daf223d0d620166d01ad1dfd371ba5162761fa2c416a6de4a04857eb",
+      "tests": [
+        "TestIntegrationCleanupConfirmsGETAbsence"
+      ]
+    },
+    {
+      "path": "internal/connector/provider/openstack/integration_diagnostic_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "f2301e5524ac7fa41537e621cda05a52cd1842a5c7b1ddcb2653637f01ae5f08",
+      "tests": [
+        "TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport"
+      ]
+    },
+    {
+      "path": "internal/connector/provider/openstack/integration_test.go",
+      "status": "tracked diff",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "53329a9251476929dd767e80959c4acf28caf2b3f60e19540241f6316368228f",
+      "tests": [
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration"
+      ]
+    },
+    {
+      "path": "internal/connector/provider/openstack/management_classless_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "e934ec6e28ee5dd982044ee7250c6efeb7618f11a0c504d8a9c53358d2247f4f",
+      "tests": [
+        "TestManagementDHCPClasslessRouteUsesValidatedSubnet",
+        "TestManagementPortRejectsAddressOutsideOriginalSubnet",
+        "TestManagementDHCPPolicyRejectsInvalidCIDRBeforePortAPI",
+        "TestManagementPortRejectsPolicyDriftAfterNova",
+        "TestManagementPortUsesValidatedObservation"
+      ]
+    },
+    {
+      "path": "internal/connector/provider/openstack/management_network.go",
+      "status": "untracked",
+      "role": "production or contract",
+      "sha256CanonicalLF": "2ce7df0ccbaab6dec443b9483721b17fdd801d623c80f6cf7de014e436fe779c",
+      "tests": []
+    },
+    {
+      "path": "internal/connector/provider/openstack/management_network_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "9f2cf550070da5a0fc715cbb9d9f1fb8fee8bb0a85bfb14e15978e580699dcd2",
+      "tests": [
+        "TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation",
+        "TestManagementDHCPPolicyAppliesToOnlyOwnedManagementPortAndPreservesUserData",
+        "TestManagementDHCPPolicyKeepsCreatedPortWhenProviderDropsOverride",
+        "TestManagementDHCPPolicyRejectsMalformedOptions",
+        "TestManagementDHCPPolicyResetPreflightRetainsExistingGeneration",
+        "TestManagementDHCPPolicyLookupFailureAndCancellationNeverMutate"
+      ]
+    },
+    {
+      "path": "internal/connector/provider/openstack/management_subnet_affinity_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "e5babaae1dff9afd9bb818ce510b9181fdfb2e43d10e7024d4531a59bc17e3c6",
+      "tests": [
+        "TestManagementPortDecodesPolicy",
+        "TestManagementSubnetAffinity"
+      ]
+    },
+    {
+      "path": "internal/connector/provider/openstack/port.go",
+      "status": "tracked diff",
+      "role": "production or contract",
+      "sha256CanonicalLF": "79311d3eb602cbf85c2e16b102b9b09080c24bada126eb164ca8b4f831422c29",
+      "tests": []
+    },
+    {
+      "path": "internal/connector/provider/openstack/preview_transport_export_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "95555bcf60ebc2c14e1465bd7c4af65ddaea25d47718cafc8cff42a4f33901d6",
+      "tests": []
+    },
+    {
+      "path": "internal/connector/provider/openstack/preview_transport_integration_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "5b05a40314e71a76410e040450fcaa0c15fda8a25b67f5f3c1768fb1bf2ca041",
+      "tests": [
+        "TestOpenStackPreviewTransportIntegration"
+      ]
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision.go",
+      "status": "tracked diff",
+      "role": "production or contract",
+      "sha256CanonicalLF": "9955f195cb0784a68f7af312088bd7e18b5452499282eb3e5370e924ceb3b21e",
+      "tests": []
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision_test.go",
+      "status": "tracked diff",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "1ee31c07ffa97c6e9d9c8f1c5c4fc22f8fe32fa2c84a48b31fe9f1749250a429",
+      "tests": [
+        "TestDispatchOperationProvisionCreatesDualNICServerAndTracksResources",
+        "TestPreflightQuotaAllowsAvailableCapacity",
+        "TestProvisionRejectsNonExternalOutboundNetworkBeforeMutation",
+        "TestProvisionRejectsInsufficientQuotaBeforeMutation",
+        "TestProvisionSupportsMultipleVMs",
+        "TestProvisionWithoutInternetDoesNotCreateRouter",
+        "TestProvisionWithoutInternetRejectsManagementSecurityGroupEgressBeforeMutation",
+        "TestProvisionServerCreateFailureIsUnknownWithPartialResources",
+        "TestProvisionRejectedServerCreateIsFailedWithPartialResources",
+        "TestProvisionRejectsInvalidSnapshotBeforeOpenStackCalls",
+        "TestProvisionRejectsCollidingDerivedVMNamesBeforeOpenStackCalls",
+        "TestProvisionRejectsUnreadableSSHPrivateKeyBeforeMutation",
+        "TestProvisionRejectsMismatchedSSHPrivateKeyBeforeMutation",
+        "TestValidateSSHCredentialRejectsMatchingNonEd25519Key",
+        "TestProvisionRejectsProviderConnectionMismatchBeforeOpenStackCalls",
+        "TestProvisionSSHTimeoutIsFailedAndPreservesActiveServer",
+        "TestProvisionWaitsForStartupCompletionBeforeSuccess",
+        "TestProvisionNameIsStableAndBounded"
+      ]
+    },
+    {
+      "path": "internal/connector/provider/openstack/topology.go",
+      "status": "tracked diff",
+      "role": "production or contract",
+      "sha256CanonicalLF": "38f5af2b15f4bc8f6521f802b219b7c12f5a126d2e29837f6e4fe9222d9441ac",
+      "tests": []
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_file_fixture_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "9cac44cd7fc667e89d61423cbc05eb3715c839ef320a29adc3034e0516214836",
+      "tests": [
+        "TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit",
+        "TestWorkspaceFixtureExecCancellationClosesExactSession"
+      ]
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_file_integration_gate_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "93187048c70c4259f4c2ed0c6b2eef6f9e8227c6cab6fb64b19fb1a99006658e",
+      "tests": [
+        "TestLinuxRegressionRequiresEveryRequestedTest"
+      ]
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_file_integration_test.go",
+      "status": "tracked diff",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "4c67194bedba84ee34afb523173b65851f19603fde2a0ab1af5bcbbef7f27a20",
+      "tests": [
+        "TestOpenStackWorkspaceFileIntegration"
+      ]
+    },
+    {
+      "path": "internal/connector/vmaccess/tcp_test.go",
+      "status": "tracked diff",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "c06d5eb59414df671585e5d5ed0f5ef024c760875264921f815aa34f09206776",
+      "tests": [
+        "TestTCPEOFDoesNotReleaseChannelBudgetBeforeSSHClose",
+        "TestTCPCloseUnblocksCallersAndBoundsNonCooperatingPeer",
+        "TestTCPSSHUnavailableAndHostPinFailureAreSafe",
+        "TestTCPSharedTransportExactDestinationAndIsolation",
+        "TestTCPValidationAndSafeErrors",
+        "TestTCPOpenTimeoutLateChannelAndSiblingIsolation",
+        "TestTCPCancelAndShutdownPendingOpen"
+      ]
+    },
+    {
+      "path": "internal/connector/wss/handler.go",
+      "status": "tracked diff",
+      "role": "production or contract",
+      "sha256CanonicalLF": "69c3d52e57c149fe96869d699530625a8839174966a58dc25f980f08a52fe2f5",
+      "tests": []
+    },
+    {
+      "path": "internal/connector/wss/handler_preview.go",
+      "status": "untracked",
+      "role": "production or contract",
+      "sha256CanonicalLF": "95e6168227fbe2cd8f40dfdfb461a7cf179427e8f58afd60b29597b035966f6b",
+      "tests": []
+    },
+    {
+      "path": "internal/connector/wss/handler_preview_test.go",
+      "status": "tracked diff",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "d9203ae8bb413465bbadb63d0e52f6edefd5e10891ae646655ea9a88d27971b6",
+      "tests": [
+        "TestHandler_PreviewOpenAndClose",
+        "TestHandler_PreviewOpen_SSHPort22_Rejected",
+        "TestHandler_PreviewOpen_Duplicate_Idempotent",
+        "TestHandler_PreviewOpen_Conflict_Rejected",
+        "TestHandler_PreviewOpen_MissingEndpoint_Fails",
+        "TestHandler_PreviewOpen_InvalidEnvelopeOrPayload_Fails",
+        "TestHandler_PreviewOpen_DialFailure_SafeErrorClassification",
+        "TestHandler_PreviewClose_StaleGeneration_Rejected",
+        "TestHandler_PreviewOpen_SequentialTunnel_NewOpenMessageID",
+        "TestHandler_PreviewOpen_NilPreviewManager_FailClosed",
+        "TestHandler_PreviewDataCredential_SyncWithControlReconnect",
+        "TestHandler_PreviewOpen_InitialAttachFailure_CleansUpLogicalSession",
+        "TestHandler_PreviewOpen_AttachTimeout_ReturnsUnavailableErrorCode",
+        "TestHandler_ControlTrustTermination_4001_CleansUpIdlePreviewSessions",
+        "TestHandler_ControlTrustTermination_4002_CleansUpIdlePreviewSessions",
+        "TestHandler_ControlNormalDisconnect_PreservesIdlePreviewSessions"
+      ]
+    },
+    {
+      "path": "internal/connector/wss/preview_owner_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "2c2c1cbd6ec7fd85508a57e8b6a98bb123992bb9a9a6b1cd36b1139a36180d79",
+      "tests": [
+        "TestPreviewOldControlEpochCannotUseNewCredential",
+        "TestPreviewControlCloseCancelsPendingOpenWithoutBlockingReader",
+        "TestPreviewResultWriteSurvivesTunnelCancellation",
+        "TestPreviewRetirementDoesNotCancelReplacementOwner",
+        "TestPreviewWorkerBoundAndRetirementRelease"
+      ]
+    },
+    {
+      "path": "internal/connector/wss/preview_replacement_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "f693ef9a1ad71316f91055bedf95e284f2e78f464dbecf53e7e0908615120e74",
+      "tests": [
+        "TestPreviewDirectControlReplacementRetiresOldIdleSession"
+      ]
+    },
+    {
+      "path": "internal/server/preview/previewtest/peer.go",
+      "status": "tracked diff",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "15f2a0382518ea8539b2d2a5cf14df9cb6415f128cce23e198c0b834a2a1a724",
+      "tests": []
+    },
+    {
+      "path": "internal/server/preview/previewtest/refused_other.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "75abff0493db026e00414f0f7626caa8444a4f25b393a6c00de12c1342c09d97",
+      "tests": []
+    },
+    {
+      "path": "internal/server/preview/previewtest/refused_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "f5dc95030323f9dbcf01b2a70b43c2c42c884e79d50a86299caa72b861780bb6",
+      "tests": [
+        "TestConnectionRefusedRecognizesClosedLoopbackPort",
+        "TestConnectionRefusedDoesNotMisclassifyOtherErrors"
+      ]
+    },
+    {
+      "path": "internal/server/preview/previewtest/refused_windows.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "162986a72a911dac7659504d13ee449d1800272094d68283e3edbaed9f7cd673",
+      "tests": []
+    },
+    {
+      "path": "internal/server/realtime/trace_log_test.go",
+      "status": "untracked",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "046735f223db318c6c7b15ecfe7dae6d935c4535c5f8b2cc2633e3d79168c678",
+      "tests": [
+        "TestControlLogTraceWaitsForFirstEvent",
+        "TestControlLogEventRejectsMalformedNonemptyJSON"
+      ]
+    },
+    {
+      "path": "internal/server/realtime/trace_propagation_test.go",
+      "status": "tracked diff",
+      "role": "test support or regression",
+      "sha256CanonicalLF": "586d9a02d167a22579c57ba244f1ff1e88b2d6de83892ed18ec1411a20a44f8b",
+      "tests": [
+        "TestBrowserControlEventsPropagateTheirOwnTraceContext",
+        "TestInvalidTraceContextDoesNotFailControlEventsAndIsNotEchoedOrLogged",
+        "TestConnectorControlEventsPropagateTraceContext",
+        "TestRejectedAttachEchoesTheRequestTraceContext",
+        "TestBinaryFramesNeverCarryTraceContext"
+      ]
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "status": "tracked diff",
+      "role": "production or contract",
+      "sha256CanonicalLF": "6689606f43a51948ae775ff2bffb98b0c3bd5dada5e863bd15a7535501643803",
+      "tests": []
+    }
+  ],
+  "Evidence": "historical Evidence excluded from code file list; original packages retained read-only, new postadmin packaging pending"
+}

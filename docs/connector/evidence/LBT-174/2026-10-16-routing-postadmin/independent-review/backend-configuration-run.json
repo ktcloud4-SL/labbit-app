@@ -1,0 +1,30 @@
+{
+  "startedUTC": "2026-10-16T10:23:02.295310+00:00",
+  "sourceBefore": {
+    "files": 520,
+    "sourceSHA256": "86ec2c865b611a512eab3baabed7d238a102765d5095fd0c92a36372aba5b791",
+    "mismatches": 0
+  },
+  "mode": "GET /agents typed allowlist only; initialization authentication; no mutation",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-overlay",
+    "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt174-routing-postadmin-independent-20261016\\backend-configuration-overlay.json",
+    "-json",
+    "-run",
+    "^TestIndependentReadOnlyDHCPBackendConfiguration$",
+    "-count=1",
+    "-timeout=45s",
+    "./internal/connector/provider/openstack"
+  ],
+  "testSHA256": "eb337a611df3b155666a6c62626d6752008070e377e8c4fb2c5df50a25fcb670",
+  "exitCode": 0,
+  "sourceAfter": {
+    "files": 520,
+    "sourceSHA256": "86ec2c865b611a512eab3baabed7d238a102765d5095fd0c92a36372aba5b791",
+    "mismatches": 0
+  },
+  "finishedUTC": "2026-10-16T10:23:10.026040+00:00",
+  "elapsedSeconds": 7.719
+}

@@ -1,0 +1,16 @@
+{
+  "exitCode": 1,
+  "elapsedSeconds": 7.328,
+  "expected": "invalid returned observation fails closed before SSH; loopback fault only",
+  "command": [
+    "C:/Users/user/AppData/Local/Programs/Go-1.27.1/go/bin/go.exe",
+    "test",
+    "-overlay",
+    "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\lbt174-routing-postadmin-independent-20261016\\management-observation-overlay.json",
+    "-run",
+    "^TestIndependentManagementReturnedObservationIsValidated$",
+    "-count=1",
+    "-timeout=30s",
+    "./internal/connector/provider/openstack"
+  ]
+}

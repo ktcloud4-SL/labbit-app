@@ -1,0 +1,144 @@
+{
+  "sourceFiles": 521,
+  "sourceSHA256": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31",
+  "currentSourceMismatch": [],
+  "childExit": 0,
+  "batchWrapperExit": 0,
+  "testPassEvents": 14,
+  "testParentPass": 12,
+  "parentNames": [
+    "TestOpenStackFileTransportIntegration",
+    "TestOpenStackInternetPolicyIntegration",
+    "TestOpenStackM1Integration",
+    "TestOpenStackM2ControlWSSIntegration",
+    "TestOpenStackM2ProvisionIntegration",
+    "TestOpenStackM3LifecycleIntegration",
+    "TestOpenStackPTYCC02Integration",
+    "TestOpenStackPreviewForwardingIntegration",
+    "TestOpenStackPreviewTransportIntegration",
+    "TestOpenStackTerminalC2Integration",
+    "TestOpenStackVMAccessIntegration",
+    "TestOpenStackWorkspaceFileIntegration"
+  ],
+  "testSkip": 0,
+  "testFail": 0,
+  "packagePass": 1,
+  "raceWarnings": 0,
+  "raceFlagUsed": false,
+  "requiredPreviewMarkers": [
+    "Control OPEN -> outbound Preview WSS -> exact ATTACH -> actual SSH forwarding -> VM HTTP 200 twice; sequential tunnel contract PASS",
+    "Concurrent session isolation, Control CLOSE, actual PTY/SFTP after Preview close, APP_NOT_RUNNING/PORT_REJECTED/VM_UNREACHABLE PASS",
+    "Actual Control Reset gen1->gen2 and Cleanup: old WSS closed, logical sessions removed, stale targets denied, fresh generation HTTP PASS",
+    "Control contains lifecycle metadata only; HTTP/PTY bytes and synthetic credential not present PASS"
+  ],
+  "linuxFilesystemExactPASSNames": [
+    "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink",
+    "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement",
+    "TestSymlinkRejectedAndExcludedFromTree",
+    "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+  ],
+  "previewTrackedLabAbsenceEntries": 28,
+  "auxiliaryCleanupMarkersByParent": {
+    "TestOpenStackFileTransportIntegration": {
+      "managementSGGETAbsence": true,
+      "keypairGETAbsence": true
+    },
+    "TestOpenStackInternetPolicyIntegration": {
+      "managementSGGETAbsence": true,
+      "keypairGETAbsence": true
+    },
+    "TestOpenStackM1Integration": {
+      "managementSGGETAbsence": false,
+      "keypairGETAbsence": false
+    },
+    "TestOpenStackM2ControlWSSIntegration": {
+      "managementSGGETAbsence": true,
+      "keypairGETAbsence": true
+    },
+    "TestOpenStackM2ProvisionIntegration": {
+      "managementSGGETAbsence": true,
+      "keypairGETAbsence": true
+    },
+    "TestOpenStackM3LifecycleIntegration": {
+      "managementSGGETAbsence": true,
+      "keypairGETAbsence": true
+    },
+    "TestOpenStackPTYCC02Integration": {
+      "managementSGGETAbsence": true,
+      "keypairGETAbsence": true
+    },
+    "TestOpenStackPreviewForwardingIntegration": {
+      "managementSGGETAbsence": true,
+      "keypairGETAbsence": true
+    },
+    "TestOpenStackPreviewTransportIntegration": {
+      "managementSGGETAbsence": true,
+      "keypairGETAbsence": true
+    },
+    "TestOpenStackTerminalC2Integration": {
+      "managementSGGETAbsence": true,
+      "keypairGETAbsence": true
+    },
+    "TestOpenStackVMAccessIntegration": {
+      "managementSGGETAbsence": true,
+      "keypairGETAbsence": true
+    },
+    "TestOpenStackWorkspaceFileIntegration": {
+      "managementSGGETAbsence": true,
+      "keypairGETAbsence": true
+    }
+  },
+  "linuxBinaries": {
+    "workspace-sftp": "d649b6f6fec7f98fca0d5fa3787a509aa51a53025738e02aa34e2eac96b37510",
+    "workspacefs-tests": "cd63904d1ec989744a747be9a27a5de4cf6adc40797adf116ee5260677c5ed99",
+    "provider-tests": "3a98c9ba8153d325674b8a289467c1bc2d963d0bbb9dae7a3eb794451ade834e",
+    "workspacefile-tests": "1edecb57bda0df5e9ac0bd155fcf85cbd4666ed0a61620adc24691ea0a0f9efd",
+    "credential-tests": "02ced6e8390f4c5e8f50e624430543de19631ffda6afd5d7208323e9c85125cc"
+  },
+  "linuxBinaryHashMismatches": [],
+  "linuxBinaryBuildMetadataSHA256": "8e6f389ec673f2b64afdf5334f387edc54353d9b97f30cfe8b0d9a3f78fd9c2a",
+  "actualRun": {
+    "name": "local-openstack-all",
+    "command": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "test",
+      "./internal/connector/provider/openstack",
+      "-run",
+      "^TestOpenStack",
+      "-json",
+      "-count=1",
+      "-timeout=120m"
+    ],
+    "started": "2026-10-16T10:57:27.279126+00:00",
+    "ended": "2026-10-16T11:30:28.979334+00:00",
+    "seconds": 1981.656,
+    "exitCode": 0,
+    "sourceSHA256": "0376a5453a02121e59c526681fe19b9f1ff65f7a273c9fc6e84d8334b4b531a2",
+    "sourceUnchanged": true
+  },
+  "batchWrapper": {
+    "startedUTC": "2026-10-16T10:57:26.467170+00:00",
+    "sourceBefore": {
+      "files": 521,
+      "sourceSHA256": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31"
+    },
+    "binarySHA256": {
+      "workspace-sftp": "d649b6f6fec7f98fca0d5fa3787a509aa51a53025738e02aa34e2eac96b37510",
+      "workspacefs-tests": "cd63904d1ec989744a747be9a27a5de4cf6adc40797adf116ee5260677c5ed99",
+      "provider-tests": "3a98c9ba8153d325674b8a289467c1bc2d963d0bbb9dae7a3eb794451ade834e",
+      "workspacefile-tests": "1edecb57bda0df5e9ac0bd155fcf85cbd4666ed0a61620adc24691ea0a0f9efd",
+      "credential-tests": "02ced6e8390f4c5e8f50e624430543de19631ffda6afd5d7208323e9c85125cc"
+    },
+    "exitCode": 0,
+    "finishedUTC": "2026-10-16T11:30:28.995951+00:00",
+    "sourceAfter": {
+      "files": 521,
+      "sourceSHA256": "7e8b2cac4e25d20bbb3d44b3a749cfcd0fe350689bf125fda18202bcbd722e31"
+    },
+    "sourceUnchanged": true
+  },
+  "rawSHA256": "3a985ada9a1a3f3b2235b20b15f63b6a2271edf81c0f35b52e6e42d074abe019",
+  "rawBytes": 52838,
+  "scope": "Actual local OpenStack/VM/SSH+Mock Control/Data Gateway 12 parent fixtures; Linux filesystem binaries are CGO0/non-race. Native C1 CGO1/race is separate. Whole SaaS/Browser C3 and KT are excluded.",
+  "cleanupBoundary": "Per-fixture known exact IDs and temporary Management SG/keypair GET absence; no claim all arbitrary cloud resources are absent."
+}

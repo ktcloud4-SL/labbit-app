@@ -1,0 +1,17 @@
+{
+  "name": "go-test-serial",
+  "command": [
+    "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+    "test",
+    "-p=1",
+    "-count=1",
+    "-json",
+    "./..."
+  ],
+  "started": "2026-10-16T06:16:21.054224+00:00",
+  "ended": "2026-10-16T06:20:04.671100+00:00",
+  "seconds": 223.625,
+  "exitCode": 0,
+  "sourceSHA256": "956c7d6f3b87f6d49d1b842571124da4591db40f5bc15de5c6efce9d65fe98b9",
+  "sourceUnchanged": true
+}

@@ -1,0 +1,92 @@
+package openstackprovider
+
+import (
+	"context"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
+)
+
+// Test-only exports let the external integration package compose the real App
+// without a production import cycle or a test-specific production entrypoint.
+type PreviewTransportFixture struct {
+	*Adapter
+	mu       sync.Mutex
+	tracked  []coreprovider.ResourceResult
+	Snapshot *protocol.CreationSnapshot
+}
+
+func NewPreviewTransportFixture(t *testing.T, ctx context.Context) *PreviewTransportFixture {
+	t.Helper()
+	a, err := New(ctx, ConfigFromEnvironment())
+	if err != nil {
+		t.Fatal("local Provider initialization failed")
+	}
+	images, err := a.ListImages(ctx)
+	if err != nil {
+		t.Fatal("image discovery failed")
+	}
+	flavors, err := a.ListFlavors(ctx)
+	if err != nil {
+		t.Fatal("flavor discovery failed")
+	}
+	networks, err := a.ListNetworks(ctx)
+	if err != nil {
+		t.Fatal("network discovery failed")
+	}
+	image := exactImage(t, images, environmentOrDefault("LABBIT_OPENSTACK_TEST_IMAGE", "ubuntu"))
+	flavor := exactFlavor(t, flavors, environmentOrDefault("LABBIT_OPENSTACK_TEST_FLAVOR", "m1.small"))
+	management := exactNetwork(t, networks, environmentOrDefault("LABBIT_OPENSTACK_TEST_MANAGEMENT_NETWORK", "sharednet1"))
+	keyFile := a.provision.SSHPrivateKeyFile
+	keypair := integrationKeyPairName(t, ctx, a, keyFile)
+	allowed := environmentOrDefault("LABBIT_OPENSTACK_TEST_SSH_CIDR", "172.16.8.1/32")
+	sg := integrationManagementSecurityGroup(t, ctx, a, allowed)
+	a.provision = normalizedProvisionConfig(ProvisionConfig{
+		ProviderConnectionID: "local-integration", ProjectID: integrationProjectID(t, a), ManagementNetworkID: management.ID,
+		ManagementSecurityGroupID: sg, KeyPairName: keypair, SSHAllowedCIDR: allowed,
+		LabSubnetCIDR: environmentOrDefault("LABBIT_OPENSTACK_TEST_LAB_CIDR", "198.20.0.0/24"),
+		SSHUsername:   a.provision.SSHUsername, SSHPrivateKeyFile: keyFile, SSHKnownHostsFile: t.TempDir() + "/known_hosts", PollInterval: 2 * time.Second,
+	})
+	f := &PreviewTransportFixture{Adapter: a, Snapshot: &protocol.CreationSnapshot{ProviderConnectionID: "local-integration", WorkspaceVMKey: "workspace",
+		VMs: []protocol.ResolvedVmSpec{{VMKey: "workspace", Role: "WORKSPACE", ImageID: image.ID, FlavorID: flavor.ID,
+			FlavorSpec: &protocol.ResolvedFlavorSpec{VCPUs: flavor.VCPUs, RAMMiB: flavor.RAMMiB, DiskGiB: flavor.DiskGiB}}}}}
+	t.Cleanup(func() {
+		f.mu.Lock()
+		resources := append([]coreprovider.ResourceResult(nil), f.tracked...)
+		f.mu.Unlock()
+		cleanupM2Resources(t, a, resources)
+		t.Logf("Exact tracked Lab resource absence checks completed: entries=%d", len(resources))
+	})
+	return f
+}
+func (f *PreviewTransportFixture) record(result coreprovider.OperationResult) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.tracked = append(f.tracked, result.ProviderResources...)
+}
+func (f *PreviewTransportFixture) Provision(ctx context.Context, req coreprovider.ProvisionRequest) (coreprovider.OperationResult, error) {
+	r, e := f.Adapter.Provision(ctx, req)
+	f.record(r)
+	return r, e
+}
+func (f *PreviewTransportFixture) Reset(ctx context.Context, req coreprovider.ResetRequest) (coreprovider.OperationResult, error) {
+	r, e := f.Adapter.Reset(ctx, req)
+	f.record(r)
+	return r, e
+}
+func (f *PreviewTransportFixture) Cleanup(ctx context.Context, req coreprovider.CleanupRequest) (coreprovider.OperationResult, error) {
+	r, e := f.Adapter.Cleanup(ctx, req)
+	f.record(r)
+	return r, e
+}
+func (f *PreviewTransportFixture) Target(t *testing.T, lab string, generation int64) vmaccess.Target {
+	t.Helper()
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return vmaccess.Target{LabInstanceID: lab, Generation: generation, VMKey: "workspace",
+		ServerID: providerResourceID(t, resourceResultsForGeneration(f.tracked, generation), coreprovider.ResourceTypeServer, "workspace")}
+}

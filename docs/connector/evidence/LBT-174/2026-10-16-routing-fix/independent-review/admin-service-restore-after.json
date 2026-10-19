@@ -1,0 +1,46 @@
+{
+  "SourceSHA256": "38988FAD706E748B3B642E41A779F674DC5A0750A9084FA8BEB25195C00A89F4",
+  "AdminGateOmittedForHarmlessStub": true,
+  "NativeServiceCmdletsMocked": true,
+  "Cases": [
+    {
+      "Mode": "prior-stopped-current-running",
+      "Exception": null,
+      "Service": {
+        "StopCalls": 1,
+        "SetCalls": 1,
+        "Status": "Stopped",
+        "StartCalls": 0,
+        "StartType": "Automatic"
+      },
+      "RealServiceOperations": 0,
+      "Passed": true
+    },
+    {
+      "Mode": "prior-running-current-stopped",
+      "Exception": null,
+      "Service": {
+        "StopCalls": 0,
+        "SetCalls": 1,
+        "Status": "Running",
+        "StartCalls": 1,
+        "StartType": "Automatic"
+      },
+      "RealServiceOperations": 0,
+      "Passed": true
+    },
+    {
+      "Mode": "configuration-drift",
+      "Exception": "저장 이후 DHCP 설정이 변경되어 자동 복구를 중단합니다.",
+      "Service": {
+        "StopCalls": 0,
+        "SetCalls": 0,
+        "Status": "Stopped",
+        "StartCalls": 0,
+        "StartType": "Disabled"
+      },
+      "RealServiceOperations": 0,
+      "Passed": true
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "scheduling_overlay": {
+    "path": "handler-retirement-scheduling-overlay.go",
+    "changes": "Only 20 ms scheduling delay immediately after authority lock release; no logic changed",
+    "normal_probe": "10/10 PASS",
+    "scheduled_probe": "3/3 FAIL expected"
+  },
+  "upgrade_cancel": {
+    "path": "snapshot/internal/connector/preview/zz_independent_upgrade_cancel_test.go",
+    "transport": "actual loopback HTTP socket; withheld Upgrade reply; no production overlay",
+    "probe": "3/3 FAIL expected"
+  },
+  "boundary_tests": "Preview/WSS/App normal and race: 3 packages PASS each",
+  "files": [
+    {
+      "path": "snapshot\\internal\\connector\\wss\\zz_independent_retirement_test.go",
+      "sha256": "1259c9ea53863ab68c420a2d8385a754c1bde1f1a92ec9b0bc3820d10632578b"
+    },
+    {
+      "path": "snapshot\\internal\\connector\\preview\\zz_independent_upgrade_cancel_test.go",
+      "sha256": "01e9e24c40ba4dd7af63db7ab1d892847e15ab2669df2a6c599f608ed7a87b40"
+    },
+    {
+      "path": "handler-retirement-scheduling-overlay.go",
+      "sha256": "406887f91bb1520772ddd02fdf7677fa7a085feb5f525113495959de5a9c6ff6"
+    }
+  ]
+}

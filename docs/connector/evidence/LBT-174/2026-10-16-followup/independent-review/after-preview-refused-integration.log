@@ -1,0 +1,12 @@
+=== RUN   TestPreviewCreateReportsAnApplicationThatIsNotListening
+--- PASS: TestPreviewCreateReportsAnApplicationThatIsNotListening (1.28s)
+=== RUN   TestPreviewCreateReportsAnApplicationThatIsNotListening
+--- PASS: TestPreviewCreateReportsAnApplicationThatIsNotListening (1.14s)
+=== RUN   TestPreviewCreateReportsAnApplicationThatIsNotListening
+--- PASS: TestPreviewCreateReportsAnApplicationThatIsNotListening (1.24s)
+=== RUN   TestPreviewCreateReportsAnApplicationThatIsNotListening
+--- PASS: TestPreviewCreateReportsAnApplicationThatIsNotListening (1.27s)
+=== RUN   TestPreviewCreateReportsAnApplicationThatIsNotListening
+--- PASS: TestPreviewCreateReportsAnApplicationThatIsNotListening (1.16s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/app	12.063s

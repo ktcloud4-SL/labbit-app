@@ -1,0 +1,145 @@
+package vmaccess
+
+import (
+	"context"
+	"errors"
+	"io"
+	"net"
+	"strings"
+	"sync"
+
+	"golang.org/x/crypto/ssh"
+)
+
+// ErrConnectionRefused distinguishes a reached VM with no listening app.
+var ErrConnectionRefused = errors.New("VM application connection refused")
+
+// Includes setup, stream pumps and channels awaiting the peer's SSH CLOSE.
+// Never accumulate unbounded channels/workers on a shared SSH transport.
+const maxTCPChannels = 16
+
+// DialTCP opens direct-tcpip to the VM's own loopback, never a supplied host.
+// Context bounds setup only; the returned connection owns its channel until
+// Close, transport failure, generation invalidation or Manager shutdown.
+func (m *Manager) DialTCP(ctx context.Context, target Target, port int) (net.Conn, error) {
+	if port < 1 || port > 65535 || port == 22 {
+		return nil, ErrInvalidTarget
+	}
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), m.config.SetupTimeout)
+	defer cancel()
+	c, err := m.acquire(ctx, target)
+	if err != nil {
+		return nil, err
+	}
+	releaseUser := sync.OnceFunc(func() { m.release(c) })
+	result, err := m.channelOperation(ctx, c, func() channelResult {
+		// Only an actual worker reserves a slot. Waiting canceled callers
+		// never allocate one; late successes retain theirs until SSH CLOSE.
+		m.mu.Lock()
+		if ctx.Err() != nil || c.retired || c.tcpChannels >= maxTCPChannels {
+			m.mu.Unlock()
+			return channelResult{err: ErrUnavailable}
+		}
+		c.tcpChannels++
+		m.mu.Unlock()
+		// RFC 4254 section 7.2: exact loopback destination, no caller host.
+		payload := struct {
+			Destination string
+			Port        uint32
+			Origin      string
+			OriginPort  uint32
+		}{"127.0.0.1", uint32(port), "0.0.0.0", 0}
+		channel, requests, err := c.client.OpenChannel("direct-tcpip", ssh.Marshal(payload))
+		if err != nil {
+			m.releaseTCP(c)
+			return channelResult{err: err}
+		}
+		closed := make(chan struct{})
+		go func() {
+			ssh.DiscardRequests(requests)
+			close(closed) // EOF alone does not release x/crypto's channel map.
+		}()
+		// Even a late success owns its slot until pumps and SSH channel exit.
+		return channelResult{conn: m.tcpStream(c, channel, closed, port, releaseUser)}
+	})
+	if ctx.Err() != nil || err != nil || result.err != nil {
+		m.discardResult(c, result)
+		releaseUser()
+		var refused *ssh.OpenChannelError
+		if ctx.Err() == nil && err == nil && errors.As(result.err, &refused) &&
+			refused.Reason == ssh.ConnectionFailed && strings.Contains(strings.ToLower(refused.Message), "connection refused") {
+			return nil, ErrConnectionRefused
+		}
+		return nil, m.connectionError(ctx, c)
+	}
+	m.mu.Lock()
+	err = m.targetErrorLocked(target)
+	if c.retired && err == nil {
+		err = ErrUnavailable
+	}
+	m.mu.Unlock()
+	if err != nil {
+		m.discardResult(c, result)
+		releaseUser()
+		return nil, err
+	}
+	return result.conn, nil
+}
+
+func (m *Manager) releaseTCP(c *connection) {
+	m.mu.Lock()
+	c.tcpChannels--
+	m.mu.Unlock()
+}
+
+// x/crypto's channel Close cannot interrupt a local Read without a peer CLOSE.
+// The pipe gives callers local cancellation/deadlines without retiring sibling
+// channels. At most maxTCPChannels channels/pump pairs belong to this transport;
+// idle expiry, invalidation and shutdown also reap non-cooperating peers.
+func (m *Manager) tcpStream(c *connection, raw io.ReadWriteCloser, closed <-chan struct{}, port int, release func()) net.Conn {
+	caller, bridge := net.Pipe()
+	stream := &tcpConnection{Conn: caller, bridge: bridge, raw: raw, manager: m, connection: c, port: port, release: release}
+	var pumps sync.WaitGroup
+	pumps.Add(2)
+	go func() {
+		defer pumps.Done()
+		_, _ = io.Copy(raw, bridge)
+		_ = stream.Close()
+	}()
+	go func() {
+		defer pumps.Done()
+		_, _ = io.Copy(bridge, raw)
+		_ = stream.Close()
+	}()
+	go func() { pumps.Wait(); <-closed; m.releaseTCP(c) }()
+	return stream
+}
+
+type tcpConnection struct {
+	net.Conn
+	bridge     net.Conn
+	raw        io.ReadWriteCloser
+	manager    *Manager
+	connection *connection
+	port       int
+	release    func()
+	once       sync.Once
+}
+
+// Close queues potentially blocking SSH writes without closing sibling channels.
+func (c *tcpConnection) Close() error {
+	c.once.Do(func() {
+		_ = c.Conn.Close()
+		_ = c.bridge.Close()
+		c.manager.mu.Lock()
+		c.manager.closeChannelLocked(c.connection, c.raw)
+		c.manager.mu.Unlock()
+		c.release()
+	})
+	return nil
+}
+
+func (c *tcpConnection) LocalAddr() net.Addr { return &net.TCPAddr{IP: net.IPv4zero} }
+func (c *tcpConnection) RemoteAddr() net.Addr {
+	return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: c.port}
+}

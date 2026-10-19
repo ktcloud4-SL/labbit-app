@@ -1,0 +1,13 @@
+{
+  "recordedUTC": "2026-10-16T08:07:28.661381+00:00",
+  "branch": "codex/feat/LBT-174-preview-local-integration",
+  "head": "0051d8d6803fd447f7b690dd895a0a928c3c7302",
+  "stagedFileCount": 0,
+  "goSourceChangedThisRequest": false,
+  "sourceSHA256": "a7d84f3071e07b5b92152743a96c58b92c288d58d912ceb6081bec221458fd51",
+  "nativeLinuxC1Gate": true,
+  "hostDiagnosticWrapperExit": 1,
+  "internetAvailabilityLimitationUnresolved": true,
+  "originalHistoricalCauseConfirmed": false,
+  "pushOrPRCreated": false
+}

@@ -20,6 +20,7 @@ describe('LBT-183 Connector installer guidance (UI only)', () => {
   it.each([
     'http://installer.example.test/install.sh',
     'https://user:password@installer.example.test/install.sh',
+    'https://installer.example.test/install.sh?token=do-not-copy',
     '/install.sh',
     'not-a-url',
   ])('보안 기준에 맞지 않는 URL %s을 복사 대상으로 표시하지 않는다', (url) => {

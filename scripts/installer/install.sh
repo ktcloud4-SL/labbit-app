@@ -25,6 +25,9 @@ RELEASE_BASE_URL="https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_
 LOCK_ACQUIRED=0
 SAVED_STTY=""
 TTY_DEV="${LABBIT_TTY_DEV:-/dev/tty}"
+ID_TMP=""
+CRED_TMP=""
+ENV_TMP=""
 
 cleanup() {
   if [ -n "${SAVED_STTY:-}" ] && [ -n "${TTY_DEV:-}" ]; then
@@ -45,8 +48,32 @@ cleanup() {
   if [ -n "${CHECKSUMS_TMP:-}" ] && [ -f "$CHECKSUMS_TMP" ]; then
     rm -f "$CHECKSUMS_TMP" 2>/dev/null || true
   fi
+  if [ -n "${ID_TMP:-}" ] && [ -f "$ID_TMP" ]; then
+    rm -f "$ID_TMP" 2>/dev/null || true
+  fi
+  if [ -n "${CRED_TMP:-}" ] && [ -f "$CRED_TMP" ]; then
+    rm -f "$CRED_TMP" 2>/dev/null || true
+  fi
+  if [ -n "${ENV_TMP:-}" ] && [ -f "$ENV_TMP" ]; then
+    rm -f "$ENV_TMP" 2>/dev/null || true
+  fi
 }
-trap cleanup EXIT INT TERM
+
+on_signal() {
+  sig="$1"
+  trap - EXIT INT TERM
+  cleanup
+  echo "::error::Installer interrupted by signal ${sig}." >&2
+  case "$sig" in
+    INT)  exit 130 ;;
+    TERM) exit 143 ;;
+    *)    exit 1 ;;
+  esac
+}
+
+trap cleanup EXIT
+trap 'on_signal INT' INT
+trap 'on_signal TERM' TERM
 
 # -------------------------------------------------------------
 # 1. Pre-flight Checks (System, Privileges, Dependencies, TTY)
@@ -289,33 +316,58 @@ echo "    Enrolled successfully! Assigned Connector ID: $CONNECTOR_ID"
 # -------------------------------------------------------------
 echo "==> [4/6] Setting up system user and protected directories..."
 
-# Create system user and group if not present
-if ! getent group "$CONNECTOR_GROUP" >/dev/null 2>&1; then
-  groupadd --system "$CONNECTOR_GROUP"
+save_enrolled_credentials() {
+  # Create system user and group if not present
+  if ! getent group "$CONNECTOR_GROUP" >/dev/null 2>&1; then
+    if ! groupadd --system "$CONNECTOR_GROUP"; then
+      return 1
+    fi
+  fi
+  if ! id -u "$CONNECTOR_USER" >/dev/null 2>&1; then
+    if ! useradd --system --no-create-home --gid "$CONNECTOR_GROUP" --shell /usr/sbin/nologin "$CONNECTOR_USER"; then
+      return 1
+    fi
+  fi
+
+  # Base configuration directory (/etc/labbit-connector: 0750, root:labbit)
+  if ! mkdir -p "$CONFIG_DIR" || ! chown "root:${CONNECTOR_GROUP}" "$CONFIG_DIR" || ! chmod 0750 "$CONFIG_DIR"; then
+    return 1
+  fi
+
+  # Write connector.id atomically (0640, root:labbit)
+  if ! ID_TMP="$(mktemp -p "$CONFIG_DIR")" || \
+     ! printf '%s\n' "$CONNECTOR_ID" > "$ID_TMP" || \
+     ! chmod 0640 "$ID_TMP" || \
+     ! chown "root:${CONNECTOR_GROUP}" "$ID_TMP" || \
+     ! mv -f "$ID_TMP" "$CONFIG_DIR/connector.id"; then
+    rm -f "${ID_TMP:-}" 2>/dev/null || true
+    ID_TMP=""
+    return 1
+  fi
+  ID_TMP=""
+
+  # Write credential atomically (0600, labbit:labbit)
+  if ! CRED_TMP="$(mktemp -p "$CONFIG_DIR")" || \
+     ! printf '%s\n' "$CONNECTOR_CREDENTIAL" > "$CRED_TMP" || \
+     ! chmod 0600 "$CRED_TMP" || \
+     ! chown "${CONNECTOR_USER}:${CONNECTOR_GROUP}" "$CRED_TMP" || \
+     ! mv -f "$CRED_TMP" "$CONFIG_DIR/credential"; then
+    rm -f "${CRED_TMP:-}" "$CONFIG_DIR/connector.id" 2>/dev/null || true
+    CRED_TMP=""
+    return 1
+  fi
+  CRED_TMP=""
+  unset CONNECTOR_CREDENTIAL
+  return 0
+}
+
+if ! save_enrolled_credentials; then
+  unset CONNECTOR_CREDENTIAL
+  echo "::error::Failed to securely save Connector credentials to $CONFIG_DIR (Token was already consumed)." >&2
+  echo "        Recovery steps: Check the Connector list in the Admin Web Console, revoke this Connector (ID: ${CONNECTOR_ID}), and issue a new Enrollment Token." >&2
+  echo "        복구 안내: 관리자 웹 콘솔의 커넥터 목록 확인 → 등록된 커넥터(ID: ${CONNECTOR_ID}) Revoke(폐기) → 신규 Token 발급 후 재설치" >&2
+  exit 1
 fi
-if ! id -u "$CONNECTOR_USER" >/dev/null 2>&1; then
-  useradd --system --no-create-home --gid "$CONNECTOR_GROUP" --shell /usr/sbin/nologin "$CONNECTOR_USER"
-fi
-
-# Base configuration directory (/etc/labbit-connector: 0750, root:labbit)
-mkdir -p "$CONFIG_DIR"
-chown "root:${CONNECTOR_GROUP}" "$CONFIG_DIR"
-chmod 0750 "$CONFIG_DIR"
-
-# Write connector.id atomically (0640, root:labbit)
-ID_TMP="$(mktemp -p "$CONFIG_DIR")"
-printf '%s\n' "$CONNECTOR_ID" > "$ID_TMP"
-chmod 0640 "$ID_TMP"
-chown "root:${CONNECTOR_GROUP}" "$ID_TMP"
-mv -f "$ID_TMP" "$CONFIG_DIR/connector.id"
-
-# Write credential atomically (0600, labbit:labbit)
-CRED_TMP="$(mktemp -p "$CONFIG_DIR")"
-printf '%s\n' "$CONNECTOR_CREDENTIAL" > "$CRED_TMP"
-chmod 0600 "$CRED_TMP"
-chown "${CONNECTOR_USER}:${CONNECTOR_GROUP}" "$CRED_TMP"
-mv -f "$CRED_TMP" "$CONFIG_DIR/credential"
-unset CONNECTOR_CREDENTIAL
 
 # -------------------------------------------------------------
 # 5. D-18 Local Management SSH Key & known_hosts Setup

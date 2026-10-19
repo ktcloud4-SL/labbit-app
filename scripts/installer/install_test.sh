@@ -616,6 +616,264 @@ EOF
   echo "PASS: Runbook upgrade SHA256SUMS verification command succeeded."
 }
 
+# Test 9: SIGTERM signal trap termination and lock cleanup regression check
+test_sigterm_termination_and_lock_cleanup() {
+  echo "--- Test 9: SIGTERM signal trap termination and lock cleanup ---"
+  local fake_bin="${TEST_ROOT}/bin_9"
+  setup_base_mocks "$fake_bin"
+
+  local sync_file="${TEST_ROOT}/sigterm_wait_ready"
+  local post_signal_marker="${TEST_ROOT}/sigterm_post_marker"
+  rm -f "$sync_file" "$post_signal_marker"
+
+  cat <<EOF > "${fake_bin}/curl"
+#!/bin/sh
+url=""
+out=""
+while [ \$# -gt 0 ]; do
+  case "\$1" in
+    -o) out="\$2"; shift 2 ;;
+    http*) url="\$1"; shift ;;
+    *) shift ;;
+  esac
+done
+case "\$url" in
+  */labbit-connector)
+    touch "${sync_file}"
+    # Sleep to allow test runner to send SIGTERM while curl is active
+    sleep 5
+    printf 'mock-connector-binary\n' > "\$out"
+    exit 0
+    ;;
+esac
+exit 1
+EOF
+  chmod +x "${fake_bin}/curl"
+
+  # Mock cp: if installer continues execution despite SIGTERM, this marker file would be created
+  cat <<EOF > "${fake_bin}/cp"
+#!/bin/sh
+touch "${post_signal_marker}"
+exit 0
+EOF
+  chmod +x "${fake_bin}/cp"
+
+  local mock_run="${TEST_ROOT}/run_9/systemd/system"
+  mkdir -p "$mock_run"
+  local mock_lock="${TEST_ROOT}/lock_9.d"
+  local mock_config="${TEST_ROOT}/etc_9"
+  local mock_bin="${TEST_ROOT}/usr_9/labbit-connector"
+  local mock_tty="${TEST_ROOT}/tty_9"
+  printf 'dummy-token\n' > "$mock_tty"
+
+  # Run installer in background
+  PATH="${fake_bin}:${PATH}" \
+    SYSTEMD_RUN_DIR="$mock_run" \
+    LABBIT_LOCK_DIR="$mock_lock" \
+    LABBIT_CONFIG_DIR="$mock_config" \
+    LABBIT_INSTALL_BIN="$mock_bin" \
+    LABBIT_TTY_DEV="$mock_tty" \
+    sh "$INSTALLER" > "${TEST_ROOT}/sigterm.log" 2>&1 &
+  local installer_pid=$!
+
+  # Wait until curl starts and lock is acquired
+  local elapsed=0
+  while [ ! -f "$sync_file" ] || [ ! -d "$mock_lock" ]; do
+    sleep 0.05
+    elapsed=$((elapsed + 1))
+    if [ "$elapsed" -gt 80 ]; then
+      echo "FAIL: Timed out waiting for installer to acquire lock and start download."
+      kill -9 "$installer_pid" 2>/dev/null || true
+      exit 1
+    fi
+  done
+
+  # Lock must be acquired by installer
+  if [ ! -d "$mock_lock" ]; then
+    echo "FAIL: Expected lock directory $mock_lock to exist while running."
+    exit 1
+  fi
+
+  # Send SIGTERM to the installer process
+  kill -TERM "$installer_pid"
+
+  # Wait for installer process to terminate and capture exit status
+  local term_exit=0
+  wait "$installer_pid" || term_exit=$?
+
+  # Check that exit status reflects SIGTERM (143)
+  if [ "$term_exit" -ne 143 ] && [ "$term_exit" -eq 0 ]; then
+    echo "FAIL: Expected non-zero/143 exit code on SIGTERM, got $term_exit"
+    exit 1
+  fi
+
+  # Verify lock directory was cleaned up
+  if [ -d "$mock_lock" ]; then
+    echo "FAIL: Lock directory $mock_lock was NOT cleaned up after SIGTERM!"
+    exit 1
+  fi
+
+  # Verify execution stopped and did not proceed to subsequent commands
+  if [ -f "$post_signal_marker" ]; then
+    echo "FAIL: Installer continued execution after SIGTERM (post_signal_marker was created)!"
+    exit 1
+  fi
+
+  # Verify log mentions signal interruption
+  if ! grep -q "interrupted by signal TERM" "${TEST_ROOT}/sigterm.log"; then
+    echo "FAIL: Expected 'interrupted by signal TERM' in log: $(cat "${TEST_ROOT}/sigterm.log")"
+    exit 1
+  fi
+
+  echo "PASS: SIGTERM termination and lock cleanup verified."
+}
+
+# Test 10: Credential save failure after enrollment recovery guidance check
+test_credential_save_failure_recovery_guidance() {
+  echo "--- Test 10: Credential save failure recovery guidance check ---"
+  local fake_bin="${TEST_ROOT}/bin_10"
+  setup_base_mocks "$fake_bin"
+
+  local dummy_bin_content="binary-payload-10-save-failure"
+  local expected_sha
+  expected_sha="$(printf '%s' "$dummy_bin_content" | sha256sum | awk '{print $1}')"
+
+  local captured_req="${TEST_ROOT}/req_10.json"
+  cat <<EOF > "${fake_bin}/curl"
+#!/bin/sh
+url=""
+out=""
+data_file=""
+write_code=0
+while [ \$# -gt 0 ]; do
+  case "\$1" in
+    -d)
+      if [ "\${2#@}" != "\$2" ]; then
+        data_file="\${2#@}"
+      fi
+      shift 2
+      ;;
+    -o) out="\$2"; shift 2 ;;
+    -w) write_code=1; shift 2 ;;
+    http*) url="\$1"; shift ;;
+    *) shift ;;
+  esac
+done
+case "\$url" in
+  */SHA256SUMS)
+    printf '%s  labbit-connector\n' "${expected_sha}" > "\$out"
+    exit 0
+    ;;
+  */labbit-connector)
+    printf '%s' "${dummy_bin_content}" > "\$out"
+    exit 0
+    ;;
+  */api/v1/connector-enrollments)
+    # SaaS consumed token and responded 201 Created successfully
+    printf '{"connectorId":"conn-save-fail-789","connectorCredential":"cred-secret-consumed-999"}\n' > "\$out"
+    if [ "\$write_code" -eq 1 ]; then
+      printf '201'
+    fi
+    exit 0
+    ;;
+esac
+exit 1
+EOF
+  chmod +x "${fake_bin}/curl"
+
+  # Override mktemp to fail when creating temp file in CONFIG_DIR to simulate filesystem write failure
+  cat <<'EOF' > "${fake_bin}/mktemp"
+#!/bin/sh
+for arg in "$@"; do
+  if echo "$arg" | grep -q "etc_10"; then
+    # Simulate write failure in config dir after enrollment
+    exit 1
+  fi
+done
+command -p mktemp "$@"
+EOF
+  chmod +x "${fake_bin}/mktemp"
+
+  local mock_run="${TEST_ROOT}/run_10/systemd/system"
+  mkdir -p "$mock_run"
+  local mock_lock="${TEST_ROOT}/lock_10.d"
+  local mock_config="${TEST_ROOT}/etc_10"
+  local mock_bin="${TEST_ROOT}/usr_10/labbit-connector"
+  local mock_service="${TEST_ROOT}/systemd_10/svc.service"
+  local mock_tty="${TEST_ROOT}/tty_10"
+
+  printf 'token-will-be-consumed\n' > "$mock_tty"
+  local out_fail
+  out_fail=$(PATH="${fake_bin}:${PATH}" \
+    SYSTEMD_RUN_DIR="$mock_run" \
+    LABBIT_SAAS_BASE_URL="https://saas.labbit.example.com" \
+    LABBIT_LOCK_DIR="$mock_lock" \
+    LABBIT_CONFIG_DIR="$mock_config" \
+    LABBIT_INSTALL_BIN="$mock_bin" \
+    LABBIT_SYSTEMD_SERVICE_FILE="$mock_service" \
+    LABBIT_TTY_DEV="$mock_tty" \
+    sh "$INSTALLER" 2>&1 || true)
+
+  # 1. Output must report failure to save credentials with notice that token was already consumed
+  if ! echo "$out_fail" | grep -q "Failed to securely save Connector credentials.*Token was already consumed"; then
+    echo "FAIL: Expected 'Failed to securely save Connector credentials (Token was already consumed)', got: $out_fail"
+    exit 1
+  fi
+
+  # 2. Output must provide explicit recovery guidance: check list -> revoke -> issue new token
+  if ! echo "$out_fail" | grep -q "Check the Connector list in the Admin Web Console" || \
+     ! echo "$out_fail" | grep -q "revoke this Connector" || \
+     ! echo "$out_fail" | grep -q "conn-save-fail-789"; then
+    echo "FAIL: Expected recovery guidance with Connector ID in output, got: $out_fail"
+    exit 1
+  fi
+
+  # 3. Credential secret must NEVER be leaked in output
+  if echo "$out_fail" | grep -q "cred-secret-consumed-999"; then
+    echo "FAIL: Secret credential leaked in error output!"
+    exit 1
+  fi
+
+  # 4. Also test failure when connector.id succeeds but credential atomic move fails
+  rm -f "${fake_bin}/mktemp"
+  cat <<'EOF' > "${fake_bin}/mv"
+#!/bin/sh
+for arg in "$@"; do
+  if echo "$arg" | grep -q "/credential$"; then
+    # Simulate atomic move failure specifically for credential file
+    exit 1
+  fi
+done
+command -p mv "$@"
+EOF
+  chmod +x "${fake_bin}/mv"
+
+  printf 'token-will-be-consumed-2\n' > "$mock_tty"
+  local out_fail_cred
+  out_fail_cred=$(PATH="${fake_bin}:${PATH}" \
+    SYSTEMD_RUN_DIR="$mock_run" \
+    LABBIT_SAAS_BASE_URL="https://saas.labbit.example.com" \
+    LABBIT_LOCK_DIR="$mock_lock" \
+    LABBIT_CONFIG_DIR="$mock_config" \
+    LABBIT_INSTALL_BIN="$mock_bin" \
+    LABBIT_SYSTEMD_SERVICE_FILE="$mock_service" \
+    LABBIT_TTY_DEV="$mock_tty" \
+    sh "$INSTALLER" 2>&1 || true)
+
+  if ! echo "$out_fail_cred" | grep -q "Failed to securely save Connector credentials.*Token was already consumed" || \
+     ! echo "$out_fail_cred" | grep -q "Revoke(폐기) → 신규 Token 발급"; then
+    echo "FAIL: Expected recovery guidance on credential move failure, got: $out_fail_cred"
+    exit 1
+  fi
+
+  if [ -f "${mock_config}/connector.id" ] || [ -f "${mock_config}/credential" ]; then
+    echo "FAIL: Partial connector.id or credential file was left behind after credential save failure!"
+    exit 1
+  fi
+
+  echo "PASS: Credential save failure recovery guidance and secret scrubbing verified."
+}
+
 test_non_root
 test_unsupported_os_and_arch
 test_concurrent_lock_ownership
@@ -624,5 +882,7 @@ test_tty_and_token_security
 test_existing_identity_and_service_protection
 test_full_enrollment_201_and_uncertain_outcome
 test_runbook_upgrade_checksum_command
+test_sigterm_termination_and_lock_cleanup
+test_credential_save_failure_recovery_guidance
 
 echo "==> All install.sh behavioral & regression tests passed successfully!"

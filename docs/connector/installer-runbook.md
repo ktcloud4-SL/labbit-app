@@ -162,3 +162,4 @@ sudo journalctl -u labbit-connector.service -n 30 --no-pager
 | `connector credential is required in production` | 자격증명 파일 누락 또는 경로 오류 | `/etc/labbit-connector/credential` 파일 존재 여부 및 `connector.env` 경로 확인 |
 | WSS 재연결 반복 (`재연결 대기`) | 아웃바운드 443 차단 또는 SaaS 서버 도메인/TLS 오류 | `curl -vk https://<SAAS_URL>`로 아웃바운드 HTTPS/TLS 연결 진단 |
 | `Existing Connector credentials or identity found` | 이미 `credential`, `connector.id` 또는 서비스 유닛이 존재하는 환경에서 재실행 | 기존 식별자 및 현재 서비스 상태(실행/중지) 보호를 위해 설치가 안전 중단됨. 바이너리 업그레이드나 서비스 재기동은 본 Runbook의 수동 절차 수행 |
+| `Failed to securely save Connector credentials (Token was already consumed)` | 토큰 소비 성공 후 로컬 설정 디렉터리 권한·디스크 오류 등으로 파일 저장 실패 | 관리자 웹 콘솔의 커넥터 목록 확인 → 등록된 커넥터(ID) Revoke(폐기) → 신규 Token 발급 후 재설치 |

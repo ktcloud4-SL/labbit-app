@@ -90,6 +90,16 @@ func TestInstallerScript_IntegrityAndHardeningRequirements(t *testing.T) {
 	if strings.Contains(content, "::warning::Release SHA256SUMS not found") {
 		t.Error("install.sh must not fail-open when SHA256SUMS is missing")
 	}
+
+	// 14. Must properly handle signals (SIGTERM, SIGINT) and exit cleanly to prevent execution after lock release
+	if !strings.Contains(content, "on_signal()") || !strings.Contains(content, "trap 'on_signal TERM' TERM") {
+		t.Error("install.sh must handle SIGTERM and SIGINT with on_signal to exit immediately upon signal")
+	}
+
+	// 15. Must provide recovery guidance when credential saving fails after successful token consumption
+	if !strings.Contains(content, "Failed to securely save Connector credentials") || !strings.Contains(content, "revoke this Connector") {
+		t.Error("install.sh must provide explicit recovery guidance (revoke -> reissue token) if credential saving fails after enrollment")
+	}
 }
 
 func TestRuntimeContract_ConnectorConfigModes(t *testing.T) {

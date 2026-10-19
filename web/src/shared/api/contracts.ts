@@ -231,3 +231,27 @@ export interface Operation {
   startedAt?: string
   finishedAt?: string
 }
+
+/** LBT-182 OpenAPI: source of truth is contracts/http/openapi.yaml */
+export interface ConnectorEnrollmentTokenIssued {
+  tokenId: ResourceId
+  enrollmentToken: string
+  expiresAt: string
+}
+
+export interface ConnectorSummary {
+  id: ResourceId
+  name: string
+  registrationStatus: 'REGISTERED' | 'REVOKED'
+  connectionStatus: 'NEVER_SEEN' | 'ONLINE' | 'OFFLINE' | 'REVOKED'
+  createdAt: string
+  revokedAt: string | null
+  lastSeenAt: string | null
+  lastConnectorVersion: string | null
+  lastRuntimeId: string | null
+}
+
+export interface ConnectorList {
+  items: ConnectorSummary[]
+  observedAt: string
+}

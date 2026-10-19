@@ -73,6 +73,7 @@ export function AppShell({ me, children }: AppShellProps) {
           </Link>
           <nav className="app-nav" aria-label="주요 메뉴">
             <Link to="/classes">수업</Link>
+            {me.organizationRole === 'ADMIN' && <Link to="/connectors">Connector 관리</Link>}
           </nav>
         </div>
 

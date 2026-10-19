@@ -1,5 +1,7 @@
 import type {
   ClassDetail,
+  ConnectorEnrollmentTokenIssued,
+  ConnectorList,
   ClassList,
   ClassMembershipList,
   CreateLabExecutionRequest,
@@ -52,6 +54,10 @@ export interface LabbitApi {
   login(credentials: LoginRequest): Promise<void>
   logout(): Promise<void>
   getMe(): Promise<Me>
+  listConnectors(): Promise<ConnectorList>
+  createConnectorEnrollmentToken(name: string): Promise<ConnectorEnrollmentTokenIssued>
+  cancelConnectorEnrollmentToken(tokenId: string): Promise<void>
+  revokeConnector(connectorId: string): Promise<void>
   listClasses(): Promise<ClassList>
   getClass(classId: string): Promise<ClassDetail>
   listClassMemberships(classId: string): Promise<ClassMembershipList>
@@ -133,6 +139,31 @@ export const httpLabbitApi: LabbitApi = {
 
   getMe() {
     return request<Me>('/me')
+  },
+
+  listConnectors() {
+    return request<ConnectorList>('/connectors')
+  },
+
+  createConnectorEnrollmentToken(name) {
+    return request<ConnectorEnrollmentTokenIssued>('/connectors/enrollment-tokens', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    })
+  },
+
+  cancelConnectorEnrollmentToken(tokenId) {
+    return request<void>(
+      `/connectors/enrollment-tokens/${encodeURIComponent(tokenId)}`,
+      { method: 'DELETE' },
+    )
+  },
+
+  revokeConnector(connectorId) {
+    return request<void>(
+      `/connectors/${encodeURIComponent(connectorId)}/revoke`,
+      { method: 'POST' },
+    )
   },
 
   listClasses() {

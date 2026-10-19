@@ -1,6 +1,6 @@
 # Frontend Deployment Handoff · G1 → Sprint 02
 
-> 최종 갱신: 2026-10-12 · `labbit-app` main의 Web build/Nginx, Browser Router, HTTP/WSS 계약 및 Jira LBT-36/74/26/53를 대조. 배포 계약은 10/08 기준선을 재검토했고 공개 HTTPS Browser 실측은 10/12 결과를 반영했다.
+> 최종 갱신: 2026-10-19 · 현재 Web Dockerfile/Nginx의 비루트 8080 계약을 재대조. 기존 10/12·10/16 Browser 결과는 당시 Evidence이며, #120 이후 실행 Pod 적용이나 READY VM E2E를 새로 검증한 기록은 아니다.
 >
 > 이 문서는 특정 `main` SHA에 고정하지 않고, 실제 `web/**` 변경이 생기면 build/runtime 입력을 다시 확인해 갱신한다.
 >
@@ -33,7 +33,7 @@ npm run build
 
 G1 packaging에서는 기존 `npm run build` 결과를 배포 입력으로 사용한다. 현재 `vite.config.ts`에서 `build.outDir`을 별도로 바꾸지 않으므로 기본 산출물은 `web/dist/`다.
 
-현재 `web/Dockerfile`은 Node 22 builder에서 `npm ci`/`npm run build` 후 `web/dist/`를 Nginx image로 옮기는 multi-stage 방식이며, `web/nginx.conf`가 포트 80의 정적 SPA를 제공합니다. 배포 Image/Helm/Istio 구현은 Platform 담당 범위입니다. `npm run preview`는 로컬 확인용이며 production serving 계약으로 사용하지 않습니다.
+현재 `web/Dockerfile`은 Node 22 builder에서 `npm ci`/`npm run build` 후 `web/dist/`를 Nginx image로 옮기는 multi-stage 방식이며, `web/nginx.conf`가 컨테이너 포트 **8080**의 정적 SPA를 제공합니다. 실행 이미지는 `nginxinc/nginx-unprivileged:stable-alpine`이고 `USER 101:101`을 사용합니다. Web Service의 외부 포트 `80`과 컨테이너의 `targetPort: 8080`은 구분합니다. `/healthz`의 liveness/readiness Probe도 컨테이너 포트 `8080`을 사용해야 합니다. 배포 Image/Helm/Istio 구현은 Platform 담당 범위입니다. `npm run preview`는 로컬 확인용이며 production serving 계약으로 사용하지 않습니다.
 
 ## 2. Production API mode
 
@@ -127,7 +127,7 @@ Platform packaging에서 현재 필요한 Frontend 입력은 다음과 같다.
 | Install | `npm ci` |
 | Production build | `npm run build` |
 | Build output | `web/dist/` (Vite 기본값, 현재 override 없음) |
-| Production serving | `web/Dockerfile`: Node 22 build → Nginx port 80 (`web/nginx.conf`), 배포/Helm 소유는 Platform |
+| Production serving | `web/Dockerfile`: Node 22 build → 비루트 Nginx container port 8080 / UID:GID 101:101 (`web/nginx.conf`), Service port 80 → targetPort 8080, Probe port 8080; 배포/Helm 소유는 Platform |
 | Production API mode | HTTP 고정 |
 | Browser API prefix | `/api/v1` · Web Nginx는 API 경로를 SPA fallback에서 제외 |
 | Cookie | `credentials: include` |
@@ -136,6 +136,22 @@ Platform packaging에서 현재 필요한 Frontend 입력은 다음과 같다.
 | Dev-only backend target | `LABBIT_DEV_BACKEND_URL` |
 | Frontend runtime secret | 현재 없음 |
 | Mock | Production에서는 사용하지 않음 |
+
+### 7.1 G3/G4 이전 Web 이미지·포트 조합 확인
+
+최신 비루트 이미지를 배포할 때는 이미지 tag만 갱신하지 않고 다음 입력을 함께 확인합니다.
+
+| 경계 | 현재 Web artifact 요구 | 확인할 배포 입력 |
+| --- | --- | --- |
+| 컨테이너 listener | `8080` | Service `targetPort: 8080` |
+| 정적 Web Service | Service port와 컨테이너 포트는 별개 | Gateway/Ingress는 Web Service port `80`을 계속 참조할 수 있음 |
+| Probe | `GET /healthz` on `8080` | liveness/readiness의 port |
+| 실행 사용자 | `101:101`, 비루트 | Pod/Container securityContext와 볼륨 권한 |
+| Browser API/WSS | same-origin `/api/v1`, `/realtime/v1/terminal` | SPA보다 우선하는 Backend route와 실제 Upgrade 응답 |
+
+2026-10-19 정적 대조에서 Local values는 최신 Web 이미지와 `targetPort/Probe 8080`을 사용하고, Seoul values는 과거 이미지 `sha-949c1a6`와 `targetPort/Probe 80`을 유지했습니다. 해당 과거 source의 Nginx는 `listen 80`이므로 **과거 이미지·포트 조합 자체를 장애라고 판정하지 않습니다**. 최신 비루트 이미지로 올리는 CD-07 작업에서는 포트·Probe·securityContext도 함께 대조해야 합니다. 이 설명은 live Pod/ALB health 확인이나 GitOps 변경이 아닙니다.
+
+실제 배포 기준선은 해당 환경의 GitOps revision·이미지 식별자와 실행 Pod/Argo 증거로 기록합니다. Local desired tag를 Seoul의 적용 버전으로 간주하거나, image tag 문자열만으로 실제 listener·배포 완료를 확정하지 않습니다. image digest 및 실제 설정 확인은 Platform 담당 범위입니다.
 
 ## 8. G1 Smoke에서 Frontend가 확인할 것
 

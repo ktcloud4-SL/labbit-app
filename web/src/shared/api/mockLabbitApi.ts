@@ -447,6 +447,28 @@ export const mockLabbitApi: LabbitApi = {
     return mockMe
   },
 
+  // No simulated Connector enrollment/heartbeat or SAMPLE tokens in mock mode.
+  // ADMIN flow requires actual LBT-182 Backend; existing dev mock user is MEMBER.
+  async listConnectors() {
+    requireSession()
+    throw new HttpError(403)
+  },
+
+  async createConnectorEnrollmentToken() {
+    requireSession()
+    throw new HttpError(403)
+  },
+
+  async cancelConnectorEnrollmentToken() {
+    requireSession()
+    throw new HttpError(403)
+  },
+
+  async revokeConnector() {
+    requireSession()
+    throw new HttpError(403)
+  },
+
   async listClasses() {
     requireSession()
     return {

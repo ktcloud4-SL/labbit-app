@@ -95,6 +95,11 @@ export class BrowserTerminalClient {
   }
 
   private handleMessage(data: unknown, sourceSocket: WebSocket) {
+    // A SESSION_ENDED frame is authoritative. Its terminal identity was
+    // checked before closing was set; any queued frames after it must not
+    // replace the ended UI state with a second protocol error or PTY output.
+    if (this.socket !== sourceSocket || this.closing) return
+
     if (typeof data === 'string') {
       let message: Record<string, unknown>
       try {
@@ -114,6 +119,22 @@ export class BrowserTerminalClient {
       }
 
       const type = message.type
+      if (
+        (type === 'TERMINAL_ATTACHED' || type === 'TERMINAL_SESSION_ENDED') &&
+        (!this.input || message.terminalSessionId !== this.input.terminalSessionId)
+      ) {
+        // The realtime schema scopes both lifecycle frames to one TerminalSession.
+        // Never let a mismatched frame attach or end the active Workspace PTY.
+        // No opaque IDs, tokens or frame bodies are included in the UI error.
+        this.handlers.onProtocolError({
+          code: 'PROTOCOL_ERROR',
+          message: 'Terminal 응답의 세션 식별자가 올바르지 않습니다.',
+          fatal: true,
+        })
+        this.failClosed(sourceSocket)
+        return
+      }
+
       const payload =
         message.payload && typeof message.payload === 'object'
           ? (message.payload as Record<string, unknown>)

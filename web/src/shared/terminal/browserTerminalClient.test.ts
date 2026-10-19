@@ -315,6 +315,7 @@ describe('BrowserTerminalClient', () => {
     socket.message(
       JSON.stringify({
         type: 'TERMINAL_ATTACHED',
+        terminalSessionId: 'terminal-session-1',
         payload: { resumed: false, historyAvailable: false },
       }),
     )
@@ -361,6 +362,7 @@ describe('BrowserTerminalClient', () => {
     socket.message(
       JSON.stringify({
         type: 'TERMINAL_ATTACHED',
+        terminalSessionId: 'terminal-session-1',
         payload: { resumed: false, historyAvailable: false },
       }),
     )
@@ -412,6 +414,7 @@ describe('BrowserTerminalClient', () => {
       socket.message(
         JSON.stringify({
           type: 'TERMINAL_ATTACHED',
+          terminalSessionId: 'terminal-session-1',
           payload: { resumed: false, historyAvailable: false },
         }),
       )
@@ -455,6 +458,7 @@ describe('BrowserTerminalClient', () => {
     socket.message(
       JSON.stringify({
         type: 'TERMINAL_ATTACHED',
+        terminalSessionId: 'terminal-session-1',
         payload: { resumed: false, historyAvailable: false },
       }),
     )
@@ -468,4 +472,129 @@ describe('BrowserTerminalClient', () => {
     expect(socket.readyState).toBe(FakeWebSocket.CLOSED)
     expect(client.sendInput('must-not-send')).toBe(false)
   })
+  it.each([
+    { type: 'TERMINAL_ATTACHED', terminalSessionId: 'different-session',
+      payload: { resumed: false, historyAvailable: false } },
+    { type: 'TERMINAL_ATTACHED',
+      payload: { resumed: false, historyAvailable: false } },
+    { type: 'TERMINAL_SESSION_ENDED', terminalSessionId: 'different-session',
+      payload: { reason: 'PTY_EXITED', exitCode: 0 } },
+    { type: 'TERMINAL_SESSION_ENDED',
+      payload: { reason: 'PTY_EXITED', exitCode: 0 } },
+  ])('세션 스코프가 일치하지 않는 $type 프레임을 거절하며 PTY 상태를 바꾸지 않는다', (message) => {
+    vi.stubGlobal('WebSocket', FakeWebSocket)
+    const onAttached = vi.fn()
+    const onEnded = vi.fn()
+    const onProtocolError = vi.fn()
+    const onClose = vi.fn()
+    const client = new BrowserTerminalClient({
+      onAttached, onEnded, onProtocolError, onClose, onOutput: vi.fn(),
+    })
+    client.connect({
+      terminalSessionId: 'terminal-session-1',
+      sessionToken: 'fixture-attach-token',
+      cols: 80,
+      rows: 24,
+    })
+    const socket = FakeWebSocket.instances[0]
+    socket.open()
+    socket.message(JSON.stringify(message))
+
+    expect(onAttached).not.toHaveBeenCalled()
+    expect(onEnded).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+    expect(onProtocolError).toHaveBeenCalledExactlyOnceWith({
+      code: 'PROTOCOL_ERROR',
+      message: 'Terminal 응답의 세션 식별자가 올바르지 않습니다.',
+      fatal: true,
+    })
+    expect(socket.readyState).toBe(FakeWebSocket.CLOSED)
+    expect(client.sendInput('do-not-send')).toBe(false)
+    expect(client.resize(120, 32)).toBe(false)
+  })
+
+  it('정상 attach 뒤 다른 세션의 종료 프레임도 현재 PTY를 종료시키지 않고 차단한다', () => {
+    vi.stubGlobal('WebSocket', FakeWebSocket)
+    const onAttached = vi.fn()
+    const onEnded = vi.fn()
+    const onProtocolError = vi.fn()
+    const client = new BrowserTerminalClient({
+      onAttached, onEnded, onProtocolError, onClose: vi.fn(), onOutput: vi.fn(),
+    })
+    client.connect({
+      terminalSessionId: 'terminal-session-1',
+      sessionToken: 'fixture-attach-token',
+      cols: 80,
+      rows: 24,
+    })
+    const socket = FakeWebSocket.instances[0]
+    socket.open()
+    socket.message(JSON.stringify({
+      type: 'TERMINAL_ATTACHED',
+      terminalSessionId: 'terminal-session-1',
+      payload: { resumed: false, historyAvailable: false },
+    }))
+    expect(onAttached).toHaveBeenCalledOnce()
+    socket.message(JSON.stringify({
+      type: 'TERMINAL_SESSION_ENDED',
+      terminalSessionId: 'different-session',
+      payload: { reason: 'LAB_CLEANUP' },
+    }))
+    expect(onEnded).not.toHaveBeenCalled()
+    expect(onProtocolError).toHaveBeenCalledOnce()
+    expect(socket.readyState).toBe(FakeWebSocket.CLOSED)
+    expect(client.sendInput('do-not-send')).toBe(false)
+  })
+
+  it('정상 TERMINAL_SESSION_ENDED 이후 늦은 중복 종료/이진 출력은 authoritative UI를 바꾸지 않는다', () => {
+    vi.stubGlobal('WebSocket', FakeWebSocket)
+    const onAttached = vi.fn()
+    const onEnded = vi.fn()
+    const onOutput = vi.fn()
+    const onProtocolError = vi.fn()
+    const onClose = vi.fn()
+    const client = new BrowserTerminalClient({
+      onAttached, onEnded, onOutput, onProtocolError, onClose,
+    })
+    client.connect({
+      terminalSessionId: 'terminal-session-1',
+      sessionToken: 'fixture-attach-token',
+      cols: 80,
+      rows: 24,
+    })
+    const socket = FakeWebSocket.instances[0]
+    socket.open()
+    socket.message(JSON.stringify({
+      type: 'TERMINAL_ATTACHED',
+      terminalSessionId: 'terminal-session-1',
+      payload: { resumed: false, historyAvailable: false },
+    }))
+    expect(onAttached).toHaveBeenCalledOnce()
+    socket.message(JSON.stringify({
+      type: 'TERMINAL_SESSION_ENDED',
+      terminalSessionId: 'terminal-session-1',
+      payload: { reason: 'PTY_EXITED', exitCode: 17 },
+    }))
+    expect(onEnded).toHaveBeenCalledExactlyOnceWith({ reason: 'PTY_EXITED', exitCode: 17 })
+
+    socket.message(JSON.stringify({
+      type: 'TERMINAL_SESSION_ENDED',
+      terminalSessionId: 'terminal-session-1',
+      payload: { reason: 'PTY_EXITED' },
+    }))
+    socket.message(JSON.stringify({
+      type: 'TERMINAL_SESSION_ENDED',
+      terminalSessionId: 'different-session',
+      payload: { reason: 'LAB_CLEANUP' },
+    }))
+    socket.message(new Uint8Array([1, 2, 3]).buffer)
+    socket.remoteClose(1000)
+
+    expect(onEnded).toHaveBeenCalledTimes(1)
+    expect(onProtocolError).not.toHaveBeenCalled()
+    expect(onOutput).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+    expect(client.sendInput('should-not-send')).toBe(false)
+  })
+
 })

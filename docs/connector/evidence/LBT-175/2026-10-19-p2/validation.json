@@ -1,0 +1,1236 @@
+{
+  "recordedAt": "2026-10-19T01:52:39.323770+00:00",
+  "source": "source.json",
+  "verdict": "PR121-F01 resolved. Current-source Linux whole-Go fmt/vet/test/build and previous regression/Web/contracts checks passed; independent whole-diff and final Linux/Evidence review found no additional confirmed defect. Proposed PR change scope is ready; 14 cloud-gate skips, Windows POSIX failures, no Linux race rerun, no new KT/remote CI and SaaS/Browser C3 follow-up remain explicit.",
+  "environment": {
+    "go": "go1.27.1 windows/amd64",
+    "race": "CGO_ENABLED=1, GCC",
+    "linuxCrossBuild": "linux/amd64 CGO_ENABLED=0, -mod=readonly -buildvcs=false",
+    "WSLDistributionAvailable": false,
+    "dockerCLIAvailable": false,
+    "linuxRerun": {
+      "CGO_ENABLED": "0",
+      "GOARCH": "amd64",
+      "GOOS": "linux",
+      "GOVERSION": "go1.27.1"
+    }
+  },
+  "runs": {
+    "regressionRed": {
+      "exitCode": 1,
+      "scope": "expected RED; 7 failing negative leaf cases plus 2 parent failures",
+      "localRawPath": "regression-red.jsonl",
+      "bytes": 17930,
+      "sha256": "7f77348b976a2395fee8f79a5fac2c15da9aff14bd0710abf79c372ba39645da",
+      "testEvents": {
+        "pass": 5,
+        "fail": 9
+      },
+      "packageEvents": {
+        "fail": 1
+      },
+      "skippedTests": [],
+      "failedTests": [
+        {
+          "package": "tools/ktcloud-d1-acceptance",
+          "test": "TestPreviewTransportResultsAndHTTPAreExact/trailing_bytes"
+        },
+        {
+          "package": "tools/ktcloud-d1-acceptance",
+          "test": "TestPreviewTransportResultsAndHTTPAreExact/second_response"
+        },
+        {
+          "package": "tools/ktcloud-d1-acceptance",
+          "test": "TestPreviewTransportResultsAndHTTPAreExact/trailing_bytes_beyond_reader_buffer"
+        },
+        {
+          "package": "tools/ktcloud-d1-acceptance",
+          "test": "TestPreviewTransportResultsAndHTTPAreExact"
+        },
+        {
+          "package": "tools/ktcloud-d1-acceptance",
+          "test": "TestPreviewTransportHTTPRejectsTrailingDataFrames/trailing_bytes_in_same_frame"
+        },
+        {
+          "package": "tools/ktcloud-d1-acceptance",
+          "test": "TestPreviewTransportHTTPRejectsTrailingDataFrames/trailing_bytes_in_later_frame"
+        },
+        {
+          "package": "tools/ktcloud-d1-acceptance",
+          "test": "TestPreviewTransportHTTPRejectsTrailingDataFrames/second_response_in_same_frame"
+        },
+        {
+          "package": "tools/ktcloud-d1-acceptance",
+          "test": "TestPreviewTransportHTTPRejectsTrailingDataFrames/second_response_in_later_frame"
+        },
+        {
+          "package": "tools/ktcloud-d1-acceptance",
+          "test": "TestPreviewTransportHTTPRejectsTrailingDataFrames"
+        }
+      ],
+      "timedOut": false,
+      "testedSource": {
+        "head": "ef921c106f621d1282c14e7e8b429cfda107e9c5",
+        "state": "Before implementation fix: HEAD fixture implementation plus newly added current regression test file",
+        "implementationSHA256LF": "66f35c21182c3fb0a9b846325d5b166193fde4bd026ef795657e1df6c5d91f0e",
+        "testSHA256LF": "4fe16b134df97be30064cf8dd7a720cb3c9588d259fd7239117b088ce624d652"
+      }
+    },
+    "regressionGreenRace20": {
+      "exitCode": 0,
+      "scope": "new fixture code; 20 repeats",
+      "localRawPath": "regression-green.jsonl",
+      "bytes": 300252,
+      "sha256": "4c7aea1df3ec73a9b1cb504f7e2c99005c4dbfd55141057c5f13cef77721c828",
+      "testEvents": {
+        "pass": 280
+      },
+      "packageEvents": {
+        "pass": 1
+      },
+      "skippedTests": [],
+      "failedTests": [],
+      "timedOut": false
+    },
+    "wholeGoWindows": {
+      "exitCode": 1,
+      "scope": "existing POSIX CIDR baseline failures and 5m timeout; NOT PASS",
+      "localRawPath": "basic-retry/go-unit.log",
+      "bytes": 3907264,
+      "sha256": "d6b7aa8ed822bfdf20211f39115b70921a3f51f0a463837ea7e09b43a6965ce4",
+      "testEvents": {
+        "pass": 3467,
+        "skip": 8,
+        "fail": 20
+      },
+      "packageEvents": {
+        "skip": 11,
+        "pass": 42,
+        "fail": 1
+      },
+      "skippedTests": [
+        {
+          "package": "internal/connector/workspacefile",
+          "test": "TestSymlinkRejectedAndExcludedFromTree"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ControlWSSIntegration"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestOpenStackFileTransportIntegration"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestOpenStackM1Integration"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ProvisionIntegration"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestOpenStackM3LifecycleIntegration"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestOpenStackInternetPolicyIntegration"
+        },
+        {
+          "package": "tools/dev-auth-class-fixture",
+          "test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+        }
+      ],
+      "failedTests": [
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/invalid_config"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/foreign_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolIsolationResetAndRestart"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/skip_shared"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/all_overlap"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/unknown_CIDR"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/pending_unmapped_Tier"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory"
+        }
+      ],
+      "timedOut": true
+    },
+    "relatedIncludingProviderWindows": {
+      "exitCode": 1,
+      "scope": "same existing POSIX CIDR failure; NOT PASS",
+      "localRawPath": "related/related-race.log",
+      "bytes": 685729,
+      "sha256": "4a2b781a70867a14a8cbfd1fb0edb9b8870be8a86e7284d46ca19712553c4a99",
+      "testEvents": {
+        "pass": 598,
+        "skip": 6,
+        "fail": 20
+      },
+      "packageEvents": {
+        "pass": 8,
+        "fail": 1
+      },
+      "skippedTests": [
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ControlWSSIntegration"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestOpenStackFileTransportIntegration"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestOpenStackM1Integration"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ProvisionIntegration"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestOpenStackM3LifecycleIntegration"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestOpenStackInternetPolicyIntegration"
+        }
+      ],
+      "failedTests": [
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/invalid_config"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/foreign_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolIsolationResetAndRestart"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/skip_shared"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/all_overlap"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/unknown_CIDR"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/pending_unmapped_Tier"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory"
+        }
+      ],
+      "timedOut": true
+    },
+    "relatedSupportedRace": {
+      "exitCode": 0,
+      "scope": "10 packages; provider excluded explicitly due recorded POSIX baseline failure",
+      "localRawPath": "related-supported/related-race.log",
+      "bytes": 646372,
+      "sha256": "74274c5dc15630ab5c8fd74b344c05656ad731a47114c80bb30f68547eea4e3c",
+      "testEvents": {
+        "pass": 614,
+        "skip": 1
+      },
+      "packageEvents": {
+        "pass": 10
+      },
+      "skippedTests": [
+        {
+          "package": "internal/connector/workspacefile",
+          "test": "TestSymlinkRejectedAndExcludedFromTree"
+        }
+      ],
+      "failedTests": [],
+      "timedOut": false
+    },
+    "fixtureRace20": {
+      "exitCode": 0,
+      "scope": "all tests in both fixture packages, 20 repeats",
+      "localRawPath": "fixture-repeat.jsonl",
+      "bytes": 3882922,
+      "sha256": "3f073935ceaaefedf5cdb976c277c6ecbc37edcdd4f269c39a94851a11734ef1",
+      "testEvents": {
+        "pass": 3580
+      },
+      "packageEvents": {
+        "pass": 2
+      },
+      "skippedTests": [],
+      "failedTests": [],
+      "timedOut": false
+    },
+    "latestMainIntegrationRace": {
+      "exitCode": 0,
+      "scope": "10 packages; actual uncommitted fix overlaid on latest main merge tree",
+      "localRawPath": "integration-race.jsonl",
+      "bytes": 1532621,
+      "sha256": "dffca2a668edb09766a8be97d1455dff8bd0bfbc03f5140a215ba7eb1b1cfdf6",
+      "testEvents": {
+        "pass": 1374
+      },
+      "packageEvents": {
+        "pass": 10
+      },
+      "skippedTests": [],
+      "failedTests": [],
+      "timedOut": false
+    },
+    "independentFramingRace3": {
+      "exitCode": 0,
+      "scope": "custom ContentLength/HTTP1.0/chunked/trailer/NUL/truncated/second response plus TLS WSS",
+      "localRawPath": "independent-framing-race3.jsonl",
+      "bytes": 54908,
+      "sha256": "4611a934627e31530cb0847275b9bdc2866d31a6f0cc19667a39ac577981794a",
+      "testEvents": {
+        "pass": 51
+      },
+      "packageEvents": {
+        "pass": 1
+      },
+      "skippedTests": [],
+      "failedTests": [],
+      "timedOut": false
+    },
+    "independentOldBaselineWindows": {
+      "exitCode": 1,
+      "scope": "old HEAD plus main, no P2 fix: same platform failure reproduced",
+      "localRawPath": "independent-baseline-windows-cidr.jsonl",
+      "bytes": 18769,
+      "sha256": "225125807a1cc0b747e89c63e7b63af8a175dbc7e226464cabe51c551945c54a",
+      "testEvents": {
+        "fail": 11,
+        "pass": 1
+      },
+      "packageEvents": {
+        "fail": 1
+      },
+      "skippedTests": [],
+      "failedTests": [
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock"
+        },
+        {
+          "package": "internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty"
+        }
+      ],
+      "timedOut": false
+    }
+  },
+  "checks": {
+    "gofmt": {
+      "checked": 528,
+      "lineEndings": "LF-normalized",
+      "unformatted": [],
+      "exitCode": 0
+    },
+    "vet": {
+      "command": [
+        "go",
+        "vet",
+        "-mod=readonly",
+        "./..."
+      ],
+      "startedAt": "2026-10-19T01:15:09.516743+00:00",
+      "endedAt": "2026-10-19T01:15:12.813707+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    },
+    "contracts": {
+      "exitCode": 0,
+      "versions": {
+        "PyYAML": "6.0.3",
+        "jsonschema": "4.26.0",
+        "openapi-spec-validator": "0.9.0"
+      },
+      "scope": "OpenAPI and exact current workflow JSON Schema/runtime/migration scripts"
+    },
+    "resetSchema": {
+      "command": [
+        "python",
+        "REPO\\contracts\\connector\\tests\\test_reset_schema.py",
+        "-v"
+      ],
+      "startedAt": "2026-10-19T01:16:02.277896+00:00",
+      "endedAt": "2026-10-19T01:16:02.598075+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    },
+    "webTypecheck": {
+      "command": [
+        "pnpm",
+        "run",
+        "typecheck"
+      ],
+      "startedAt": "2026-10-19T01:15:30.756340+00:00",
+      "endedAt": "2026-10-19T01:15:35.562670+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    },
+    "webLint": {
+      "command": [
+        "pnpm",
+        "run",
+        "lint"
+      ],
+      "startedAt": "2026-10-19T01:15:35.563740+00:00",
+      "endedAt": "2026-10-19T01:15:39.277383+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    },
+    "webTest": {
+      "command": [
+        "pnpm",
+        "run",
+        "test"
+      ],
+      "startedAt": "2026-10-19T01:15:39.278926+00:00",
+      "endedAt": "2026-10-19T01:15:51.461893+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      },
+      "observedTests": 217,
+      "observedFiles": 16
+    },
+    "webBuild": {
+      "command": [
+        "pnpm",
+        "run",
+        "build"
+      ],
+      "startedAt": "2026-10-19T01:15:51.476094+00:00",
+      "endedAt": "2026-10-19T01:15:52.531305+00:00",
+      "exitCode": 0,
+      "goEvents": {
+        "pass": 0,
+        "skip": 0,
+        "fail": 0,
+        "packagesPass": 0
+      }
+    },
+    "webLock": {
+      "packageLockBefore": "a045e6377751d55539eb0d4d2c684220a6b7bb5b0c6e444d697904671cc99a87",
+      "packageLockAfter": "a045e6377751d55539eb0d4d2c684220a6b7bb5b0c6e444d697904671cc99a87",
+      "unchanged": true,
+      "adapter": "pnpm import of tracked npm lock; frozen install; generated pnpm lock removed"
+    },
+    "wholeGoBuild": {
+      "command": [
+        "go",
+        "build",
+        "-mod=readonly",
+        "./..."
+      ],
+      "exitCode": 0,
+      "stdout": {
+        "localRawPath": "go-build.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "localRawPath": "go-build.stderr.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "crossBuild": {
+      "exitCode": 0,
+      "commandEntry": "docs/connector/evidence/LBT-151/2026-10-14/validate.py build",
+      "binaries": [
+        "labbit-connector-ktcloud",
+        "lbt145-control-linux",
+        "labbit-workspace-sftp",
+        "bootstrap.exe"
+      ]
+    }
+  },
+  "preparationAttempts": [
+    {
+      "step": "basic initial",
+      "exitCode": 1,
+      "reason": "reused LBT151 module has executable import side effects; unsupported basic mode before tests; initial source snapshots preserved in basic/"
+    },
+    {
+      "step": "contracts initial",
+      "exitCode": 1,
+      "reason": "external helper still referenced nested module attribute; failed before contract validation; snapshots preserved in contracts/"
+    },
+    {
+      "step": "contracts retry",
+      "exitCode": 1,
+      "reason": "validator dependency search path missing; no contract assertion executed; snapshots preserved in contracts-retry/"
+    },
+    {
+      "step": "contracts final",
+      "exitCode": 0,
+      "reason": "existing pinned validator directory explicitly selected"
+    },
+    {
+      "step": "independent overlay initial two attempts",
+      "reason": "ASCII path encoding prevented custom test discovery; only existing WSS tests ran; not counted as custom coverage",
+      "logs": [
+        "independent-overlay-initial-existing-wss-only.jsonl",
+        "independent-overlay-ascii-path-existing-wss-only.jsonl"
+      ]
+    }
+  ],
+  "review": {
+    "agent": "/root/pr121_p2_final_review",
+    "independentOfImplementation": true,
+    "finding": "PR121-F01 resolved; no additional confirmed finding within reviewed scope",
+    "rawRecords": [
+      {
+        "name": "independent-framing-race3.jsonl",
+        "bytes": 54908,
+        "sha256": "4611a934627e31530cb0847275b9bdc2866d31a6f0cc19667a39ac577981794a",
+        "goSummary": {
+          "tests": {
+            "pass": 51
+          },
+          "packages": {
+            "pass": 1
+          },
+          "executedTestRoots": [
+            "TestIndependentReviewHTTPFramingEOF",
+            "TestPreviewTransportHTTPRejectsTrailingDataFrames"
+          ]
+        }
+      },
+      {
+        "name": "independent-overlay.json",
+        "bytes": 276,
+        "sha256": "3b8bb55e1a0016c7ec6c0583bca663b97e84c9cddcfee75583e1d8712809f351"
+      },
+      {
+        "name": "independent-combined_test.go",
+        "bytes": 14426,
+        "sha256": "9562d5e721d1a6a5a3dc1f7807fcb44ca800a3ad212e02e6982024b9c3fb96ab"
+      },
+      {
+        "name": "independent-http-framing_test.go",
+        "bytes": 1783,
+        "sha256": "b134468d45faf50dcb5aca467d981bec0acb9cd6e936bb7ef064915c08430026"
+      },
+      {
+        "name": "independent-overlay-initial-existing-wss-only.jsonl",
+        "bytes": 21211,
+        "sha256": "bb1350e773afa9e0fc11b41211ab3df16a36094cf43e0901014c8106605d37e0",
+        "goSummary": {
+          "tests": {
+            "pass": 18
+          },
+          "packages": {
+            "pass": 1
+          },
+          "executedTestRoots": [
+            "TestPreviewTransportHTTPRejectsTrailingDataFrames"
+          ]
+        }
+      },
+      {
+        "name": "independent-overlay-ascii-path-existing-wss-only.jsonl",
+        "bytes": 21205,
+        "sha256": "de8fb5e5541e97370f3ccc2a54147fa8c8eff5621376fa86a08d4800176bad7d",
+        "goSummary": {
+          "tests": {
+            "pass": 18
+          },
+          "packages": {
+            "pass": 1
+          },
+          "executedTestRoots": [
+            "TestPreviewTransportHTTPRejectsTrailingDataFrames"
+          ]
+        }
+      },
+      {
+        "name": "independent-baseline-windows-cidr.jsonl",
+        "bytes": 18769,
+        "sha256": "225125807a1cc0b747e89c63e7b63af8a175dbc7e226464cabe51c551945c54a",
+        "goSummary": {
+          "tests": {
+            "fail": 11,
+            "pass": 1
+          },
+          "packages": {
+            "fail": 1
+          },
+          "executedTestRoots": [
+            "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty"
+          ]
+        }
+      },
+      {
+        "name": "independent-fixture-race3.tool-output.txt",
+        "bytes": 417,
+        "sha256": "d44e8d5296d3f28cfa27420c69f39c589bef9c421c868ef980cdfd3cc472f21f"
+      },
+      {
+        "name": "independent-history-evidence.json",
+        "bytes": 12820,
+        "sha256": "ecef40e51e15cbbe2723538f610e3457418d1c30502742918ddff8c11a53eb4e"
+      },
+      {
+        "name": "independent-artifact-check.json",
+        "bytes": 3551,
+        "sha256": "b27bf3053dc61836f9f4c8724027cbbe08a8655b48127911d170e26408387f9d"
+      }
+    ],
+    "report": {
+      "localRawPath": "reviewer.txt",
+      "bytes": 7478,
+      "sha256": "43dbf0b9c3726794ff4aca36fded7a078a7f2dec60872ec8593cb54c7eac68f6"
+    },
+    "finalAddendumReview": {
+      "complete": true,
+      "localRawPath": "final-addendum-review.txt",
+      "bytes": 3055,
+      "sha256": "3fc34880f12bcbd5c700bbe1198f24f22658b241f929845621de962aa28a8180",
+      "result": "All 4 new Evidence files re-reviewed; source530, reviewed60, all9 raw runs and secret scan consistent; no additional confirmed finding. README completion wording subsequently changed to past tense only."
+    },
+    "linuxFinalReview": {
+      "complete": true,
+      "agent": "/root/pr121_p2_final_review",
+      "independentOfImplementation": true,
+      "compiledCanonicalSHA256": "7ca6d5cebf5b1332ec0e9ae7b5012238abb9b37b98bff928ca2b3ef508bf4869",
+      "rawRootRelativeToWorkspace": "tmp/pr121-linux-rerun-20261019",
+      "rawRecords": [
+        {
+          "localRawPath": "final-independent-review.txt",
+          "bytes": 7224,
+          "sha256": "9c1aa5c62d4f1fd919de794c1c4990cffe0c291c7f372dfcf176076d9594abcc"
+        },
+        {
+          "localRawPath": "attempt02/independent-prepared-check.json",
+          "bytes": 2080,
+          "sha256": "3dc875a0e29ae75245f1b1e79aa34c0c3218936326bfa4beba030ba7f8737103"
+        },
+        {
+          "localRawPath": "attempt02/independent-execution-check.json",
+          "bytes": 12987,
+          "sha256": "1ba1c8fbc984046a574b6d8eb479d9e23acb8c5e6003965a0f14ecbe1fe8cdf5"
+        },
+        {
+          "localRawPath": "attempt02/independent-final-evidence-check.json",
+          "bytes": 2591,
+          "sha256": "a98b102a245ecda716e73d7ecef46b3e7d4be85f4393feb16b0834bb0bfa9ced"
+        }
+      ],
+      "result": "Additional confirmed defects: 0. Linux actual events3979/14skip/0fail; all20 Windows failing cases and timeout root PASS on Linux; all14 P2 root/subtest events PASS; 33 raw record hashes, current530 inputs, archive654, both fixture cleanup and final baseline checked; current60-file secret scan clean."
+    }
+  },
+  "limits": [
+    "Counts include parent/subtests and repeated events, not unique testcase totals.",
+    "Whole Windows Go failed in unchanged provider code (0700/0600 and directory fsync); timeout and failures retained.",
+    "Cross-build is not Linux runtime execution. Historical Linux/KT and old remote CI do not verify new uncommitted fixture.",
+    "Disposable LOCAL Linux fixtures were created and GET-absence cleanup verified. No new KT Cloud resources; SaaS/Browser C3 remains separate."
+  ],
+  "linuxRerun": {
+    "recordedAt": "2026-10-19T01:49:52.692119+00:00",
+    "scope": "Current uncommitted P2 source; complete Go checks in disposable LOCAL Linux VM; not a KT Cloud acceptance rerun",
+    "metadata": {
+      "cloudCredentialsForwarded": false,
+      "commands": [
+        {
+          "argv": [
+            "gofmt",
+            "-l",
+            "<528 Go files>"
+          ],
+          "elapsedSeconds": 1.754,
+          "exitCode": 0,
+          "phase": "fmt"
+        },
+        {
+          "argv": [
+            "go",
+            "vet",
+            "-mod=readonly",
+            "./..."
+          ],
+          "elapsedSeconds": 299.849,
+          "exitCode": 0,
+          "phase": "vet"
+        },
+        {
+          "argv": [
+            "go",
+            "test",
+            "-mod=readonly",
+            "-json",
+            "-count=1",
+            "-timeout=5m",
+            "./..."
+          ],
+          "elapsedSeconds": 155.715,
+          "exitCode": 0,
+          "phase": "test"
+        },
+        {
+          "argv": [
+            "go",
+            "build",
+            "-mod=readonly",
+            "./..."
+          ],
+          "elapsedSeconds": 17.014,
+          "exitCode": 0,
+          "phase": "build"
+        }
+      ],
+      "compiledCanonicalSHA256": "7ca6d5cebf5b1332ec0e9ae7b5012238abb9b37b98bff928ca2b3ef508bf4869",
+      "compiledFiles": 530,
+      "environment": {
+        "CGO_ENABLED": "0",
+        "GOFLAGS": "-p=2",
+        "GOMAXPROCS": "2",
+        "GOPROXY": "off",
+        "GOSUMDB": "off",
+        "GOTOOLCHAIN": "local",
+        "LABBIT_OPENSTACK_INTEGRATION": "0"
+      },
+      "finishedAt": "2026-10-19T01:49:09.745446+00:00",
+      "goEnv": {
+        "CGO_ENABLED": "0",
+        "GOARCH": "amd64",
+        "GOOS": "linux",
+        "GOVERSION": "go1.27.1"
+      },
+      "goVersion": "go version go1.27.1 linux/amd64",
+      "head": "ef921c106f621d1282c14e7e8b429cfda107e9c5",
+      "passed": true,
+      "race": false,
+      "sourceFilesRawVerified": 654,
+      "sourceStableAfterChecks": true,
+      "sourceTransform": "CRLF to LF for Go/mod inputs after raw hashes verified",
+      "startedAt": "2026-10-19T01:41:14.614927+00:00",
+      "system": "Linux-6.8.0-117-generic-x86_64-with-glibc2.39",
+      "uploadHashesVerified": {
+        "compiled-manifest.json": "8688b73aa4053c0d6f5925a3255ae6b3a7434df038edfb9004e07dff20fd5ca5",
+        "go-linux.tar.gz": "9a1fb9e97ec4484178e72b348944d23ebd2c09507124a5c9048316e37766c9d5",
+        "linux_driver.py": "3305c1a8bef3112879796938e202ad805f422327239bc7de1a3ece8111666a1c",
+        "modules.tar.gz": "2575ea1053d5cb6fd4aa05339ecc6327bcea3e55ecb30e78a75554a618bbbea3",
+        "source-manifest.json": "16f9025d7291b3882a7ade1626b995e18c1f558786db3e83d989ba42c204c00b",
+        "source.tar.gz": "1f966225692a194dda384b4d65899cad5988f5297466fb8c4adb8e2c6138bb1f"
+      }
+    },
+    "testEvents": {
+      "pass": 3979,
+      "skip": 14
+    },
+    "packageEvents": {
+      "skip": 10,
+      "pass": 43
+    },
+    "skippedTests": [
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM2ControlWSSIntegration",
+        "reason": [
+          "control_wss_integration_test.go:22: set LABBIT_OPENSTACK_M2_WSS_TEST=1 for Provision or LABBIT_OPENSTACK_M3_WSS_TEST=1 for the full WSS lifecycle"
+        ]
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackFileTransportIntegration",
+        "reason": [
+          "file_transport_integration_test.go:85: set LABBIT_OPENSTACK_FILE_TRANSPORT_TEST=1 for disposable local OpenStack File acceptance"
+        ]
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM1Integration",
+        "reason": [
+          "integration_test.go:36: set LABBIT_OPENSTACK_INTEGRATION=1 to run against a local OpenStack cloud"
+        ]
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM2ProvisionIntegration",
+        "reason": [
+          "integration_test.go:75: set LABBIT_OPENSTACK_M2_TEST=1 to create and clean one real Provision topology"
+        ]
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM3LifecycleIntegration",
+        "reason": [
+          "integration_test.go:164: set LABBIT_OPENSTACK_M3_TEST=1 to run Provision, Reset, Reconcile, and Cleanup against a local OpenStack cloud"
+        ]
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackInternetPolicyIntegration",
+        "reason": [
+          "integration_test.go:302: set LABBIT_OPENSTACK_INTERNET_POLICY_TEST=1 to verify real Internet ON/OFF reachability"
+        ]
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudD1ReadOnlyIntegration",
+        "reason": [
+          "ktcloud_d1_integration_test.go:15: set LABBIT_KTCLOUD_D1_INTEGRATION=1 explicitly for real KT D1 read-only checks"
+        ]
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudD1DisposableNetworkIntegration",
+        "reason": [
+          "ktcloud_d1_network_integration_test.go:21: set LABBIT_KTCLOUD_D1_NETWORK_MUTATION_TEST=1 explicitly for disposable NSM mutations"
+        ]
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackPreviewForwardingIntegration",
+        "reason": [
+          "preview_forwarding_integration_test.go:26: set LABBIT_OPENSTACK_PREVIEW_TEST=1 for disposable local OpenStack forwarding acceptance"
+        ]
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackPTYCC02Integration",
+        "reason": [
+          "pty_cc02_integration_test.go:27: set LABBIT_OPENSTACK_PTY_CC02_TEST=1 for real local OpenStack PTY/CC-02 acceptance"
+        ]
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackTerminalC2Integration",
+        "reason": [
+          "terminal_c2_integration_test.go:717: set LABBIT_OPENSTACK_TERMINAL_C2_TEST=1 for real local OpenStack Terminal C2 full-stack acceptance"
+        ]
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackVMAccessIntegration",
+        "reason": [
+          "vm_access_integration_test.go:23: set LABBIT_OPENSTACK_VM_ACCESS_TEST=1 for real local OpenStack VM access acceptance"
+        ]
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackWorkspaceFileIntegration",
+        "reason": [
+          "workspace_file_integration_test.go:27: set LABBIT_OPENSTACK_WORKSPACE_FILE_TEST=1 for disposable local OpenStack acceptance"
+        ]
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackPreviewTransportIntegration",
+        "reason": [
+          "preview_transport_integration_test.go:247: set LABBIT_OPENSTACK_PREVIEW_TRANSPORT_TEST=1 for disposable local OpenStack Preview transport acceptance"
+        ]
+      }
+    ],
+    "testlessPackageCount": 10,
+    "sourceArchiveSHA256": "1f966225692a194dda384b4d65899cad5988f5297466fb8c4adb8e2c6138bb1f",
+    "sourceFilesRawVerified": 654,
+    "rawRootRelativeToWorkspace": "tmp/pr121-linux-rerun-20261019",
+    "rawRecords": [
+      {
+        "localRawPath": "attempt02/results/build.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "localRawPath": "attempt02/results/build.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "localRawPath": "attempt02/results/fmt.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "localRawPath": "attempt02/results/fmt.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "localRawPath": "attempt02/results/metadata.json",
+        "bytes": 2320,
+        "sha256": "9b8c2ae97b9f50749602ee3d6e1c6f5c915f8ec85d913915d6e2292002497ed1"
+      },
+      {
+        "localRawPath": "attempt02/results/test.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "localRawPath": "attempt02/results/test.stdout",
+        "bytes": 4398434,
+        "sha256": "dafd3f815929e09f333d340b3cc69c2b3db3e5627f9f9733b929c5449fa493fd"
+      },
+      {
+        "localRawPath": "attempt02/results/vet.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "localRawPath": "attempt02/results/vet.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "localRawPath": "local-discovery.jsonl",
+        "bytes": 1969,
+        "sha256": "4ccf081627c7098687b9d778369c69bd83a8423595455d9fb4ff12d2f4b432e4"
+      },
+      {
+        "localRawPath": "local-discovery-02.jsonl",
+        "bytes": 1941,
+        "sha256": "4af6bec3e8cd461f0bdb6c833b50cea3b440ce7078782b81340c420a49caf9c7"
+      },
+      {
+        "localRawPath": "local-discovery-final.jsonl",
+        "bytes": 1941,
+        "sha256": "8f4385a38bee88b994daca62235f962184fa0e6a4d2492e72b40d752d768cb91"
+      },
+      {
+        "localRawPath": "fixture-run.jsonl",
+        "bytes": 5951,
+        "sha256": "f8d2f82728306d626507888c346b74e838f121dbebecac92f87f5669dc49d1c4"
+      },
+      {
+        "localRawPath": "fixture-exit.json",
+        "bytes": 77,
+        "sha256": "4a02e18be23ca51fb1ad64d021654238fd24034c37536da3f9b0540e80783a37"
+      },
+      {
+        "localRawPath": "linux-driver.log",
+        "bytes": 736,
+        "sha256": "44ea5e8bc82fb886d9544a4e970f1763b9fc400fd4a62580b907df10822330b6"
+      },
+      {
+        "localRawPath": "dependency-preparation-note.json",
+        "bytes": 219,
+        "sha256": "29a791ee7e0f683982e86dc100135d7337c30804aca554828ae152fb544c221b"
+      },
+      {
+        "localRawPath": "source-manifest.json",
+        "bytes": 77885,
+        "sha256": "9aa9a3df22fee9e6e302b56c946ebe1af6b18cc1a1a8bb55ddb3dcd6243ac79e"
+      },
+      {
+        "localRawPath": "compiled-manifest.json",
+        "bytes": 63499,
+        "sha256": "8688b73aa4053c0d6f5925a3255ae6b3a7434df038edfb9004e07dff20fd5ca5"
+      },
+      {
+        "localRawPath": "upload-manifest.json",
+        "bytes": 554,
+        "sha256": "4c5ff299850f1faf8b158e6d4dbc7ae982ea8050e200453f5f6a70de04e5c452"
+      },
+      {
+        "localRawPath": "prepared.json",
+        "bytes": 64001,
+        "sha256": "5a26a4d285377dc0c94685be0bad21288c923482c9a0166a204aa734f4c71c71"
+      },
+      {
+        "localRawPath": "attempt02/fixture-run.jsonl",
+        "bytes": 3407,
+        "sha256": "b46dabb19a94082e1e23c40ce11a8c2fd9762293394f49c91b74c0ec02052e23"
+      },
+      {
+        "localRawPath": "attempt02/fixture-exit.json",
+        "bytes": 77,
+        "sha256": "88e133043a005088adeaecf0c912cdcad48cc8226bf24408266c93d17d2117df"
+      },
+      {
+        "localRawPath": "attempt02/linux-driver.log",
+        "bytes": 106,
+        "sha256": "791d69d347b5369d68b8e824daa9a91b9b271b4f6506179a6f171a407b3d5490"
+      },
+      {
+        "localRawPath": "attempt02/source-manifest.json",
+        "bytes": 79069,
+        "sha256": "16f9025d7291b3882a7ade1626b995e18c1f558786db3e83d989ba42c204c00b"
+      },
+      {
+        "localRawPath": "attempt02/compiled-manifest.json",
+        "bytes": 63499,
+        "sha256": "8688b73aa4053c0d6f5925a3255ae6b3a7434df038edfb9004e07dff20fd5ca5"
+      },
+      {
+        "localRawPath": "attempt02/upload-manifest.json",
+        "bytes": 554,
+        "sha256": "1cc48c62214ec4148a76f69e41ae2bb78238aba94c225609f9264b53f7f7985a"
+      },
+      {
+        "localRawPath": "attempt02/linux_driver.py",
+        "bytes": 4146,
+        "sha256": "3305c1a8bef3112879796938e202ad805f422327239bc7de1a3ece8111666a1c"
+      },
+      {
+        "localRawPath": "attempt02/harness_test.go.txt",
+        "bytes": 6458,
+        "sha256": "15bd67285bb088220d737c0081cd80fe59121058518be29c5312856b3d884cf1"
+      },
+      {
+        "localRawPath": "attempt02/integration_overlay_test.go",
+        "bytes": 41147,
+        "sha256": "2d48614b15806f59673d5cddb15990a00029d0f1102b748daf0b4c80efe0a93e"
+      },
+      {
+        "localRawPath": "attempt02/overlay.json",
+        "bytes": 281,
+        "sha256": "da08af8e3f63c95e8a876a20f16162ffc95c03310b21667f0965cad3cd07bbee"
+      },
+      {
+        "localRawPath": "attempt02/inspection-run.jsonl",
+        "bytes": 153,
+        "sha256": "a407bc4c39678d08cb744811a727461dd658b4eab5d80a2f3f0235a84c229133"
+      },
+      {
+        "localRawPath": "attempt02/inspection-run-02.jsonl",
+        "bytes": 1943,
+        "sha256": "8cf0091d6e43147adc39d411c00bd602ecda881b2a846dad52d8c3ad4712b35e"
+      },
+      {
+        "localRawPath": "attempt02/vm-inspection.private.txt",
+        "bytes": 890,
+        "sha256": "9a5b992496d14a646774390a2d022b712b1199461962e10c1b857a410ea76e67"
+      }
+    ],
+    "cleanup": [
+      {
+        "fixtureAttempt": "fixture-run.jsonl",
+        "trackedLabResourcesGETAbsent": 7,
+        "managementSecurityGroupGETAbsent": true,
+        "keypairGETAbsent": true
+      },
+      {
+        "fixtureAttempt": "attempt02/fixture-run.jsonl",
+        "trackedLabResourcesGETAbsent": 7,
+        "managementSecurityGroupGETAbsent": true,
+        "keypairGETAbsent": true
+      }
+    ],
+    "preparationAttempts": [
+      {
+        "stage": "initial read-only local discovery",
+        "exitCode": 1,
+        "reason": "authentication timed out during startup; retry passed; original log retained"
+      },
+      {
+        "stage": "dependency staging",
+        "reason": "go mod download all added 139 checksum lines; exact pre-download go.sum restored from verified source archive; no dependency diff"
+      },
+      {
+        "stage": "Linux fixture attempt01",
+        "exitCode": 1,
+        "suiteStarted": false,
+        "sourceArchiveSHA256": "667c0ae0420e32d562c87d19e9725cc0c0100abd33e824fa0dd4e73fb282515b",
+        "rawSourceFiles": 648,
+        "reason": "source archive excluded 6 historical compiled Go fixture files; preflight FileNotFoundError; all owned fixture resources deleted"
+      },
+      {
+        "stage": "read-only execution monitor initial",
+        "exitCode": 1,
+        "reason": "Go inspection helper invoked outside repository module; corrected working directory; retry passed; no source or cloud mutation"
+      },
+      {
+        "stage": "Linux fixture attempt02",
+        "exitCode": 0,
+        "reason": "654 raw files and all 530 compiled inputs included; archive, raw source, LF canonical and post-check source verified"
+      }
+    ],
+    "limits": [
+      "CGO_ENABLED=0 whole Go run; Linux race was not run in this invocation. Prior Windows race and independent framing checks remain separate.",
+      "Cloud-gated tests skip without opt-in credentials; automated test success is not a new KT/SaaS/Browser/PostgreSQL integration result.",
+      "Initial Windows POSIX CIDR failures remain in original logs; no security invariant weakened or new test skip introduced."
+    ]
+  }
+}

@@ -183,10 +183,94 @@ func TestPreviewTransportResultsAndHTTPAreExact(t *testing.T) {
 		{"exact", valid, true}, {"truncated", valid[:len(valid)-1], false},
 		{"status", bytes.Replace(valid, []byte("200 OK"), []byte("503 Unavailable"), 1), false},
 		{"wrong body", bytes.Replace(valid, []byte("LBT175-RESPONSE:"), []byte("WRONG0-RESPONSE:"), 1), false},
+		{"trailing bytes", append(bytes.Clone(valid), []byte("UNEXPECTED-TRAILER")...), false},
+		{"second response", append(bytes.Clone(valid), []byte("HTTP/1.1 503 Unavailable\r\nContent-Length: 0\r\n\r\n")...), false},
+		{"trailing bytes beyond reader buffer", append(bytes.Clone(valid), bytes.Repeat([]byte("unexpected"), 1024)...), false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if err := validatePreviewTransportHTTP(tc.raw); (err == nil) != tc.good {
 				t.Fatalf("exact HTTP assertion: %v", err)
+			}
+		})
+	}
+}
+
+func TestPreviewTransportHTTPRejectsTrailingDataFrames(t *testing.T) {
+	want := append([]byte("LBT175-RESPONSE:"), previewRequestBody...)
+	valid := append([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n", len(want))), want...)
+	tail := []byte("UNEXPECTED-TRAILER")
+	second := []byte("HTTP/1.1 503 Unavailable\r\nContent-Length: 0\r\n\r\n")
+	for _, tc := range []struct {
+		name   string
+		frames [][]byte
+		good   bool
+	}{
+		{"exact fragmented response", [][]byte{valid[:13], valid[13:73], valid[73:]}, true},
+		{"trailing bytes in same frame", [][]byte{append(bytes.Clone(valid), tail...)}, false},
+		{"trailing bytes in later frame", [][]byte{valid, tail}, false},
+		{"second response in same frame", [][]byte{append(bytes.Clone(valid), second...)}, false},
+		{"second response in later frame", [][]byte{valid, second}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g, url, d := transportTestPeer(t)
+			open := transportTestOpen()
+			p := g.plan(open, false)
+			c, _, err := d.Dial(url, http.Header{"Authorization": []string{"Bearer synthetic-token"}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer c.Close()
+			_ = c.SetReadDeadline(time.Now().Add(5 * time.Second))
+			_ = c.SetWriteDeadline(time.Now().Add(5 * time.Second))
+			if err = c.WriteJSON(transportTestAttach(open)); err != nil {
+				t.Fatal(err)
+			}
+			var ack protocol.PreviewAttachedMessage
+			if err = c.ReadJSON(&ack); err != nil {
+				t.Fatal(err)
+			}
+			// Synthetic Connector: consume the request, then send raw HTTP bytes
+			// across real authenticated TLS Data WSS frames and a normal EOF.
+			exchange := make(chan error, 1)
+			go func() {
+				exchange <- func() error {
+					var request []byte
+					for !bytes.HasSuffix(request, previewRequestBody) {
+						kind, raw, err := c.ReadMessage()
+						if err != nil {
+							return err
+						}
+						if kind != websocket.BinaryMessage || len(request)+len(raw) > 8192 {
+							return fmt.Errorf("invalid synthetic HTTP request framing/budget")
+						}
+						request = append(request, raw...)
+					}
+					for _, frame := range tc.frames {
+						if err := c.WriteMessage(websocket.BinaryMessage, frame); err != nil {
+							return err
+						}
+					}
+					if err := c.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Now().Add(time.Second)); err != nil {
+						return err
+					}
+					_, _, err := c.ReadMessage()
+					if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+						return fmt.Errorf("synthetic Data WSS did not close normally")
+					}
+					return nil
+				}()
+			}()
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			err = previewTransportHTTP(ctx, p)
+			if exchangeErr := <-exchange; exchangeErr != nil {
+				t.Fatal(exchangeErr)
+			}
+			if (err == nil) != tc.good {
+				t.Fatalf("HTTP stream assertion: %v", err)
+			}
+			if err != nil && (strings.Contains(err.Error(), string(tail)) || strings.Contains(err.Error(), "HTTP/1.1")) {
+				t.Fatal("HTTP response contents leaked in validation error")
 			}
 		})
 	}

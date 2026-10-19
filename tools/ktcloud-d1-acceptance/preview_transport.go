@@ -130,7 +130,8 @@ func previewTransportHTTP(ctx context.Context, p *previewTransportPlan) error {
 }
 
 func validatePreviewTransportHTTP(raw []byte) error {
-	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(raw)), nil)
+	reader := bufio.NewReader(bytes.NewReader(raw))
+	response, err := http.ReadResponse(reader, nil)
 	if err != nil {
 		return errors.New("Preview HTTP response invalid; contents withheld")
 	}
@@ -139,6 +140,11 @@ func validatePreviewTransportHTTP(raw []byte) error {
 	want := append([]byte("LBT175-RESPONSE:"), previewRequestBody...)
 	if err != nil || response.StatusCode != 200 || !bytes.Equal(body, want) {
 		return errors.New("Preview HTTP exact response assertion failed; contents withheld")
+	}
+	// This fixture sends one Connection: close request. Content-Length can end
+	// the body before the raw Data stream ends; no trailing bytes may pass.
+	if _, err := reader.Peek(1); err != io.EOF {
+		return errors.New("Preview HTTP response has trailing data; contents withheld")
 	}
 	return nil
 }

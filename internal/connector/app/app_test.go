@@ -98,6 +98,92 @@ func TestRunControl_KeepsWSSConnectedWhenProviderAuthenticationFails(t *testing.
 	}
 }
 
+func TestRunControl_ProductionMode_StartsAndRemainsOnlineWithoutProvider(t *testing.T) {
+	mockSaaS := mock.NewMockSaaS("connector-token")
+	defer mockSaaS.Close()
+
+	// Installer-prepared production environment: known_hosts initialized, but NO OpenStack provider configured.
+	tmpDir := t.TempDir()
+	knownHostsFile := filepath.Join(tmpDir, "known_hosts")
+	if err := os.WriteFile(knownHostsFile, []byte("# empty known_hosts from installer\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("LABBIT_ENVIRONMENT", "production")
+	t.Setenv("LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE", knownHostsFile)
+
+	// Provider Connection is empty / unconfigured
+	lazy := newLazyProvider("", func(context.Context) (runtimeProvider, error) {
+		return nil, errors.New("provider unconfigured")
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	done := make(chan error, 1)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	go func() {
+		done <- runControl(ctx, wss.Config{
+			BaseURL:          mockSaaS.URL(),
+			Credential:       "connector-token",
+			RuntimeID:        "runtime-prod-without-provider",
+			ConnectorVersion: "connector-v0.1.0-test",
+			AllowInsecure:    true,
+		}, lazy, "connector-prod-1", logger)
+	}()
+
+	// 1. Verify HELLO sent with injected connectorVersion and WSS connected
+	helloRaw := waitForMessageType(t, mockSaaS, protocol.MessageTypeHello, 2*time.Second)
+	var helloEnvelope struct {
+		Payload struct {
+			ConnectorVersion string `json:"connectorVersion"`
+		} `json:"payload"`
+	}
+	if err := json.Unmarshal(helloRaw, &helloEnvelope); err != nil {
+		t.Fatal(err)
+	}
+	if helloEnvelope.Payload.ConnectorVersion != "connector-v0.1.0-test" {
+		t.Fatalf("HELLO connectorVersion = %q, want %q", helloEnvelope.Payload.ConnectorVersion, "connector-v0.1.0-test")
+	}
+
+	// 2. Request Provider operation; must fail safe without dropping Control connection
+	request := protocol.ProviderRequestMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:      protocol.MessageTypeProviderRequest,
+			MessageID: "provider-req-empty-provider",
+			SentAt:    time.Now().UTC(),
+		},
+		Payload: protocol.ProviderRequestPayload{
+			RequestType:          protocol.ProviderRequestValidateConnection,
+			ProviderConnectionID: "unconfigured-connection",
+		},
+	}
+	if err := mockSaaS.SendRaw(request); err != nil {
+		t.Fatalf("SendRaw() error = %v", err)
+	}
+	rawResp := waitForMessageType(t, mockSaaS, protocol.MessageTypeProviderResponse, 2*time.Second)
+	var response protocol.ProviderResponseMessage
+	if err := json.Unmarshal(rawResp, &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Payload.Outcome != protocol.OutcomeFailed || response.Payload.Error == nil || response.Payload.Error.Code != "ERR_INFRA_OPENSTACK" {
+		t.Fatalf("PROVIDER_RESPONSE = %+v", response.Payload)
+	}
+
+	// 3. Control WSS connection must still be active and online
+	if mockSaaS.ActiveConn() == nil {
+		t.Fatal("Control WSS disconnected unexpectedly after Provider failure")
+	}
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("runControl() error = %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("runControl did not stop after cancellation")
+	}
+}
+
 func waitForMessageType(t *testing.T, mockSaaS *mock.MockSaaS, messageType string, timeout time.Duration) []byte {
 	t.Helper()
 	deadline := time.Now().Add(timeout)

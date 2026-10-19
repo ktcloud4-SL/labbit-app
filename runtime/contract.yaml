@@ -569,7 +569,7 @@ connector:
       secret: false
       note: "파일에는 Connector Credential 원문이 들어 있으며 고객 환경 Secret 경계 안에 유지해야 합니다."
     LABBIT_PROVIDER_CONFIG_FILE:
-      required: true
+      required_when: "OpenStack Provider operations are enabled"
       secret: false
       note: >-
         고객 환경에만 존재하는 Provider 설정 파일 경로입니다. 파일에 OpenStack Credential이
@@ -578,15 +578,15 @@ connector:
         Keystone v3 토큰 API를 사용하며 Compute/Image는 공식 Gateway Endpoint를 사용합니다.
         이 Endpoint 호환 처리는 Neutron과 KT Tier를 같은 API로 간주하지 않습니다.
     OS_CLOUD:
-      required: true
+      required_when: "OpenStack Provider operations are enabled"
       secret: false
       note: "LABBIT_PROVIDER_CONFIG_FILE 안에서 사용할 OpenStack cloud 이름입니다."
     LABBIT_PROVIDER_CONNECTION_ID:
-      required: true
+      required_when: "OpenStack Provider operations are enabled"
       secret: false
       note: "이 Connector 설정이 담당하는 SaaS ProviderConnection ID이며 CreationSnapshot의 연결 affinity를 검증합니다."
     OS_PROJECT_ID:
-      required: true
+      required_when: "OpenStack Provider operations are enabled"
       secret: false
       note: "Nova/Neutron quota preflight에 사용하는 현재 Provider project ID입니다."
     LABBIT_OPENSTACK_MANAGEMENT_NETWORK_ID:
@@ -601,11 +601,11 @@ connector:
       secret: false
       note: "CreationSnapshot.internetOutbound=true일 때 필수이며 generation별 Lab Router의 external gateway입니다."
     LABBIT_OPENSTACK_KEYPAIR_NAME:
-      required: true
+      required_when: "OpenStack Provider operations are enabled"
       secret: false
       note: "D-18의 Connector 전용 공용 Ed25519 관리 keypair 이름입니다. 설치/등록 단계가 생성한 public key를 Nova에 등록하며, Lab Provision/Reset/Cleanup은 이 keypair를 생성·회전·삭제하지 않고 local private key와의 일치만 검증합니다."
     LABBIT_OPENSTACK_SSH_ALLOWED_CIDR:
-      required: true
+      required_when: "OpenStack Provider operations are enabled"
       secret: false
       note: "Connector의 SSH 접근만 허용하는 IPv4 CIDR입니다. 표준 OpenStack은 공용 Management SG에 사용하고 KT D1은 Connector Tier 안의 Connector 주소 /32를 NSM 정책 source로 사용합니다."
     LABBIT_KTCLOUD_CONNECTOR_TIER_ID:
@@ -617,37 +617,25 @@ connector:
       secret: false
       note: "Lab VM 전용 Management Tier에 사용할 미사용 IPv4 /24입니다. Lab CIDR 및 기존 Tier와 겹치면 생성 전에 거절합니다. 현재 KT D1 호환 범위는 Linux 50 GiB 부팅 볼륨, VM 한 대, internetOutbound=false이며 표준 Neutron Management/SG/External Network 변수는 비워야 합니다."
     LABBIT_OPENSTACK_LAB_SUBNET_CIDR:
-      required: true
+      required_when: "OpenStack Provider operations are enabled"
       secret: false
     LABBIT_OPENSTACK_SSH_USERNAME:
-      required: true
+      required_when: "OpenStack Provider operations are enabled"
       secret: false
+      default: "ubuntu"
       note: "D-18의 Connector→VM SSH Ready 확인에 필수입니다. 이미지에 맞는 관리 사용자 이름이며 Terminal 사용자 입력과 분리합니다."
     LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE:
-      required: true
-      secret: false
+      required_when: "OpenStack Provider operations are enabled"
+      secret: true
       note: "D-18에 따라 Connector 설치/등록 단계가 생성한 Ed25519 관리 private key 파일 경로입니다. 파일은 Connector 로컬 Secret 경계에만 두고 log/중앙 SaaS로 보내지 않습니다."
     LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE:
-      required: true
+      required_when: "production terminal sessions or VM access operations are enabled"
       secret: false
-      note: "모든 Provision의 SSH Ready 확인에 필수입니다. 동적 VM host key를 ProviderConnection+Server ID 단위 TOFU로 고정하고 이후 불일치를 거부하는 Connector 로컬 파일 경로입니다."
+      note: "모든 Provision의 SSH Ready 확인 및 VM SSH Host Key 검증용 known_hosts 파일 경로입니다. 동적 VM host key를 ProviderConnection+Server ID 단위 TOFU로 고정하고 이후 불일치를 거부하는 Connector 로컬 파일 경로입니다. 프로덕션 환경에서 필수입니다."
     LABBIT_LOG_LEVEL:
       required: false
       secret: false
       default: "info"
-    LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE:
-      required_when: "production terminal sessions are enabled"
-      secret: false
-      note: "OpenStack VM SSH Host Key 검증용 known_hosts 파일 경로입니다. 프로덕션 환경에서 필수입니다."
-    LABBIT_OPENSTACK_SSH_USERNAME:
-      required: false
-      secret: false
-      default: "ubuntu"
-      note: "OpenStack VM SSH 접속에 사용할 기본 사용자 계정입니다."
-    LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE:
-      required_when: "production terminal sessions are enabled with private key auth"
-      secret: true
-      note: "OpenStack VM SSH 접속에 사용할 Private Key 파일 경로입니다."
     LABBIT_OPENSTACK_SSH_IDLE_TIMEOUT:
       required: false
       secret: false

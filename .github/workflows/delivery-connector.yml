@@ -1,0 +1,72 @@
+name: Deliver Connector Binary Release
+
+on:
+  push:
+    tags:
+      - 'connector-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release-linux-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify release tag points to main history
+        if: startsWith(github.ref, 'refs/tags/connector-v')
+        shell: bash
+        run: |
+          if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
+            echo "::error::Release tag must point to a commit in main history"
+            exit 1
+          fi
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Build Linux amd64 Binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG_NAME="${GITHUB_REF_NAME}"
+          if [ -z "${TAG_NAME}" ] || [ "${TAG_NAME}" = "main" ]; then
+            TAG_NAME="connector-v0.0.0-dev"
+          fi
+          COMMIT_SHA="${GITHUB_SHA}"
+          echo "Building binary for tag=${TAG_NAME}, sha=${COMMIT_SHA}"
+
+          mkdir -p dist
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
+            -ldflags "-s -w -X github.com/ktcloud4-SL/labbit-app/internal/connector/version.Version=${TAG_NAME} -X github.com/ktcloud4-SL/labbit-app/internal/connector/version.CommitSHA=${COMMIT_SHA}" \
+            -o dist/labbit-connector ./cmd/labbit-connector
+
+          # Package archive
+          ARCHIVE_NAME="labbit-connector-${TAG_NAME}-linux-amd64.tar.gz"
+          tar -czf "dist/${ARCHIVE_NAME}" -C dist labbit-connector
+
+          # Checksum generation
+          cd dist
+          sha256sum "labbit-connector" "${ARCHIVE_NAME}" > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/connector-v')
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          gh release create "${TAG_NAME}" \
+            dist/labbit-connector \
+            dist/labbit-connector-${TAG_NAME}-linux-amd64.tar.gz \
+            dist/SHA256SUMS \
+            --title "Labbit Connector ${TAG_NAME}" \
+            --notes "Labbit Connector ${TAG_NAME} linux/amd64 binary release and verified checksums."

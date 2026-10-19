@@ -446,7 +446,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
 
   // TerminalSession responses contain an attach token. Invoke the API directly
   // so React Query's mutation cache never retains a second copy of that secret.
-  // Resume storage remains the existing 60-second reconnect boundary.
+  // The existing sessionStorage state is retained for page-refresh reconnect.
   async function createTerminal() {
     if (status === 'creating' || status === 'connecting' || status === 'closing') return
 

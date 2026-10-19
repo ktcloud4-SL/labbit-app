@@ -11,6 +11,7 @@ import { ConnectorAdminPage } from './ConnectorAdminPage'
 
 const ADMIN = { ...mockMe, organizationRole: 'ADMIN' as const }
 const TOKEN = 'fixture-enrollment-token-not-secret'
+const FUTURE_EXPIRY = new Date(Date.now() + 15 * 60_000).toISOString()
 
 function mount(overrides: Partial<LabbitApi> = {}, isAdmin = true) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
@@ -49,6 +50,45 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     expect(screen.queryByRole('button', { name: '일회용 토큰 발급' })).not.toBeInTheDocument()
   })
 
+  it('목록 상태는 서버 관측값을 15초 간격으로 재조회하도록 설정한다', async () => {
+    const { client } = mount()
+    await screen.findByText('등록된 Connector가 없습니다.')
+    expect(screen.getByText(/15초 간격으로 서버 상태를 확인합니다/)).toBeInTheDocument()
+    const query = client.getQueryCache().getAll().find((item) => item.queryKey[0] === 'connectors')
+    expect(query?.options.refetchInterval).toBe(15_000)
+  })
+
+  it('이미 만료된 토큰 응답은 화면·Query cache에 노출하지 않는다', async () => {
+    const { client } = mount({
+      createConnectorEnrollmentToken: async () => ({
+        tokenId: 'expired-1', enrollmentToken: TOKEN,
+        expiresAt: new Date(Date.now() - 1000).toISOString(),
+      }),
+    })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), { target: { value: 'VM' } })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('만료 시각이 유효하지 않습니다')
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    expect(JSON.stringify(client.getQueryCache().getAll().map((query) => query.state.data))).not.toContain(TOKEN)
+  })
+
+  it('발급 후 만료되면 화면의 토큰 원문을 자동 제거하고 재발급을 안내한다', async () => {
+    const { client } = mount({
+      createConnectorEnrollmentToken: async () => ({
+        tokenId: 'short-ttl', enrollmentToken: TOKEN,
+        expiresAt: new Date(Date.now() + 650).toISOString(),
+      }),
+    })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), { target: { value: 'VM' } })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(await screen.findByText(TOKEN)).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText(TOKEN)).not.toBeInTheDocument(), { timeout: 2000 })
+    expect(screen.getByText('등록 토큰이 만료되었습니다. 필요한 경우 새 토큰을 발급해 주세요.')).toBeInTheDocument()
+    expect(JSON.stringify(client.getMutationCache().getAll().map((mutation) => mutation.state.data))).not.toContain(TOKEN)
+  })
+
   it('ADMIN은 빈 목록과 Installer URL 대기 상태를 본다', async () => {
     mount()
     expect(await screen.findByText('등록된 Connector가 없습니다.')).toBeInTheDocument()
@@ -57,7 +97,7 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
   })
 
   it('일회용 발급 Token은 React Query cache에 넣지 않고 화면 종료 뒤 제거한다', async () => {
-    const create = vi.fn(async () => ({ tokenId: 'issued-1', enrollmentToken: TOKEN, expiresAt: '2026-10-19T01:00:00Z' }))
+    const create = vi.fn(async () => ({ tokenId: 'issued-1', enrollmentToken: TOKEN, expiresAt: FUTURE_EXPIRY }))
     const { client } = mount({ createConnectorEnrollmentToken: create })
     await screen.findByText('등록된 Connector가 없습니다.')
     fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), { target: { value: 'KT D1 Admin VM' } })
@@ -73,7 +113,7 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
   it('Token 취소는 원문이 아닌 tokenId로 요청하고 원문을 화면에서 지운다', async () => {
     const cancel = vi.fn(async () => undefined)
     mount({
-      createConnectorEnrollmentToken: async () => ({ tokenId: 'issued-1', enrollmentToken: TOKEN, expiresAt: '2026-10-19T01:00:00Z' }),
+      createConnectorEnrollmentToken: async () => ({ tokenId: 'issued-1', enrollmentToken: TOKEN, expiresAt: FUTURE_EXPIRY }),
       cancelConnectorEnrollmentToken: cancel,
     })
     await screen.findByText('등록된 Connector가 없습니다.')

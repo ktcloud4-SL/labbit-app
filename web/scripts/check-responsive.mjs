@@ -146,12 +146,35 @@ async function testScreen(cdp, base, screen, viewport) {
   }
   if (!ready) throw new Error(label + ' did not render in disposable Mock mode')
   await sleep(180)
-  const dimensions = await cdp.evaluate('({ width: innerWidth, client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth })')
+  // Check controls as well as root scrollWidth. An overflow:hidden wrapper can
+  // clip an interactive control without ever increasing root scrollWidth.
+  // Collect geometry only: never inspect visible text, inputs, tokens, or responses.
+  const dimensions = await cdp.evaluate(`(() => {
+    const root = document.documentElement
+    const controls = [...document.querySelectorAll('a[href], button, input, select, textarea, [role="button"]')]
+    const offscreen = controls.flatMap((el) => {
+      const bounds = el.getBoundingClientRect()
+      if (bounds.width < 1 || bounds.height < 1) return []
+      const style = getComputedStyle(el)
+      if (style.display === 'none' || style.visibility === 'hidden') return []
+      for (let ancestor = el.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        if (ancestor.hidden || ancestor.getAttribute('aria-hidden') === 'true') return []
+        const ancestorStyle = getComputedStyle(ancestor)
+        if (ancestorStyle.display === 'none' || ancestorStyle.visibility === 'hidden') return []
+      }
+      if (bounds.left >= -2 && bounds.right <= root.clientWidth + 2) return []
+      return [{ tag: el.localName, left: Math.round(bounds.left), right: Math.round(bounds.right) }]
+    })
+    return { width: innerWidth, client: root.clientWidth, scroll: root.scrollWidth, offscreen: offscreen.slice(0, 5) }
+  })()`)
   const overflow = dimensions.scroll - dimensions.client
   if (dimensions.width !== viewport || overflow > 2 || overflow < 0) {
     throw new Error(label + ' @' + viewport + 'px: actual width ' + dimensions.width + ', overflow ' + overflow + 'px')
   }
-  console.log('PASS ' + label + ' @' + viewport + 'px root overflow ' + overflow + 'px')
+  if (dimensions.offscreen.length) {
+    throw new Error(label + ' @' + viewport + 'px: offscreen interactive controls ' + JSON.stringify(dimensions.offscreen))
+  }
+  console.log('PASS ' + label + ' @' + viewport + 'px root overflow ' + overflow + 'px, controls inside viewport')
 }
 
 async function main() {

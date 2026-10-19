@@ -1,7 +1,7 @@
 import { FitAddon } from '@xterm/addon-fit'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import {
   useCallback,
   useEffect,
@@ -142,7 +142,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
   })
 
   useEffect(() => () => {
-    // Mutation callbacks can outlive this panel or its Workspace generation.
+    // In-flight session requests can outlive this panel or its Workspace generation.
     createSequenceRef.current += 1
   }, [labInstanceId, generation])
 
@@ -444,36 +444,37 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     [],
   )
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const targetVmKey =
-        selectedVmKey || targetsQuery.data?.workspaceVmKey || ''
+  // TerminalSession responses contain an attach token. Invoke the API directly
+  // so React Query's mutation cache never retains a second copy of that secret.
+  // The existing sessionStorage state is retained for page-refresh reconnect.
+  async function createTerminal() {
+    if (status === 'creating' || status === 'connecting' || status === 'closing') return
+
+    const sequence = ++createSequenceRef.current
+    suppressReconnectRef.current = true
+    clearRetryTimer()
+    setStatus('creating')
+    setStatusMessage('TerminalSession과 PTY를 준비하고 있습니다.')
+    setResumed(false)
+
+    const terminal = ensureTerminal()
+    terminal?.reset()
+    terminal?.clear()
+
+    try {
+      const targetVmKey = selectedVmKey || targetsQuery.data?.workspaceVmKey || ''
       if (!targetVmKey) {
         throw new Error('Terminal target이 선택되지 않았습니다.')
       }
 
       const size = terminalSize()
-      return api.createTerminalSession(labInstanceId, {
+      const session = await api.createTerminalSession(labInstanceId, {
         targetVmKey,
         cols: size.cols,
         rows: size.rows,
       })
-    },
-    onMutate: () => {
-      const sequence = ++createSequenceRef.current
-      suppressReconnectRef.current = true
-      clearRetryTimer()
-      setStatus('creating')
-      setStatusMessage('TerminalSession과 PTY를 준비하고 있습니다.')
-      setResumed(false)
-
-      const terminal = ensureTerminal()
-      terminal?.reset()
-      terminal?.clear()
-      return sequence
-    },
-    onSuccess: (session, _variables, sequence) => {
       if (sequence !== createSequenceRef.current) return
+
       if (session.generation !== generation) {
         invalidateResume()
         setStatus('error')
@@ -496,8 +497,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
       reconnectStartedAtRef.current = null
       suppressReconnectRef.current = false
       connectSocket(state, false)
-    },
-    onError: (error, _variables, sequence) => {
+    } catch (error) {
       if (sequence !== createSequenceRef.current) return
       invalidateResume()
       if (error instanceof HttpError && error.status === 401) {
@@ -506,8 +506,8 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
       }
       setStatus('error')
       setStatusMessage(httpTerminalError(error))
-    },
-  })
+    }
+  }
 
   async function closeTerminal() {
     const state = resumeRef.current
@@ -636,7 +636,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
                 status === 'connecting' ||
                 status === 'closing'
               }
-              onClick={() => createMutation.mutate()}
+              onClick={() => void createTerminal()}
             >
               {status === 'creating' || status === 'connecting'
                 ? '연결 중...'

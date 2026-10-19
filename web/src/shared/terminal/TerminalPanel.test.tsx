@@ -173,7 +173,7 @@ describe('TerminalPanel create lifecycle', () => {
   })
 
   it('creates and attaches normally under StrictMode', async () => {
-    const { pending, start } = setup()
+    const { pending, start, queryClient } = setup()
     await start()
     await act(async () => { pending.resolve(session()) })
     await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1))
@@ -181,5 +181,7 @@ describe('TerminalPanel create lifecycle', () => {
     expect(screen.getByText('연결됨')).toBeInTheDocument()
     expect(JSON.parse(FakeWebSocket.instances[0].sent[0]).type).toBe('TERMINAL_ATTACH')
     expect(readTerminalResumeState({ labInstanceId: 'synthetic-lab', generation: 1 })?.terminalSessionId).toBe('synthetic-session-1')
+    // The session token is needed for reconnect, not for Query's mutation cache.
+    expect(queryClient.getMutationCache().getAll()).toHaveLength(0)
   })
 })

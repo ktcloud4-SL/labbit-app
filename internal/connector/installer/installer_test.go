@@ -67,9 +67,9 @@ func TestInstallerScript_IntegrityAndHardeningRequirements(t *testing.T) {
 		t.Error("install.sh must initialize D-18 Ed25519 key pair and known_hosts")
 	}
 
-	// 11. Must protect existing credentials and identity
-	if !strings.Contains(content, "Existing Connector credentials found") {
-		t.Error("install.sh must protect and preserve existing credentials")
+	// 11. Must protect existing credentials, connector.id, and service state without restarting
+	if !strings.Contains(content, "Existing Connector credentials or identity found") {
+		t.Error("install.sh must protect and preserve existing credentials and identity")
 	}
 
 	// 12. Must align with LBT-182 SaaS Enrollment API contract (POST /api/v1/connector-enrollments, enrollmentToken, connectorId, connectorCredential)
@@ -81,6 +81,14 @@ func TestInstallerScript_IntegrityAndHardeningRequirements(t *testing.T) {
 	}
 	if !strings.Contains(content, `parse_json "connectorId"`) || !strings.Contains(content, `parse_json "connectorCredential"`) {
 		t.Error("install.sh must parse connectorId and connectorCredential from enrollment response")
+	}
+
+	// 13. Must enforce lock ownership (LOCK_ACQUIRED) and fail-closed SHA256SUMS verification
+	if !strings.Contains(content, "LOCK_ACQUIRED=1") {
+		t.Error("install.sh must track LOCK_ACQUIRED so only the lock owner removes LOCK_DIR")
+	}
+	if strings.Contains(content, "::warning::Release SHA256SUMS not found") {
+		t.Error("install.sh must not fail-open when SHA256SUMS is missing")
 	}
 }
 
@@ -141,25 +149,53 @@ func TestRuntimeContract_ConnectorConfigModes(t *testing.T) {
 	}
 }
 
-func TestInstallerScript_ShellSyntaxCheck(t *testing.T) {
-	var bashPath string
-	// On Windows, prefer Git bash over Windows WSL stub
+func findBash(t *testing.T) string {
+	t.Helper()
 	gitBash := `C:\Program Files\Git\bin\bash.exe`
 	if _, statErr := os.Stat(gitBash); statErr == nil {
-		bashPath = gitBash
-	} else if p, err := exec.LookPath("bash"); err == nil {
-		bashPath = p
-	} else {
-		t.Skip("bash not found on system; skipping syntax check")
+		return gitBash
+	}
+	if p, err := exec.LookPath("bash"); err == nil {
+		return p
+	}
+	t.Skip("bash not found on system; skipping shell execution")
+	return ""
+}
+
+func TestInstallerScript_ShellSyntaxAndBehavioralSuite(t *testing.T) {
+	bashPath := findBash(t)
+	tmpDir := t.TempDir()
+
+	for _, name := range []string{"install.sh", "install_test.sh"} {
+		src := filepath.Join("..", "..", "..", "scripts", "installer", name)
+		raw, err := os.ReadFile(src)
+		if err != nil {
+			t.Fatalf("failed to read %s: %v", src, err)
+		}
+		lf := strings.ReplaceAll(string(raw), "\r\n", "\n")
+		dst := filepath.Join(tmpDir, name)
+		if err := os.WriteFile(dst, []byte(lf), 0755); err != nil {
+			t.Fatalf("failed to write %s: %v", dst, err)
+		}
 	}
 
-	scriptPath := filepath.Join("..", "..", "..", "scripts", "installer", "install.sh")
-	cmd := exec.Command(bashPath, "-n", scriptPath)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
+	// 1. Syntax check
+	syntaxCmd := exec.Command(bashPath, "-n", filepath.Join(tmpDir, "install.sh"))
+	if output, err := syntaxCmd.CombinedOutput(); err != nil {
 		if strings.Contains(string(output), "WSL") {
 			t.Skipf("skipping syntax check: WSL bash stub returned %s", string(output))
 		}
-		t.Fatalf("bash -n syntax validation failed for %s: %v\nOutput: %s", scriptPath, err, string(output))
+		t.Fatalf("bash -n syntax validation failed: %v\nOutput: %s", err, string(output))
+	}
+
+	// 2. Full behavioral & regression shell test suite execution
+	suiteCmd := exec.Command(bashPath, filepath.Join(tmpDir, "install_test.sh"))
+	output, err := suiteCmd.CombinedOutput()
+	t.Logf("install_test.sh output:\n%s", string(output))
+	if err != nil {
+		if strings.Contains(string(output), "WSL") {
+			t.Skipf("skipping behavioral suite: WSL bash stub returned %s", string(output))
+		}
+		t.Fatalf("install_test.sh behavioral suite failed: %v\nOutput:\n%s", err, string(output))
 	}
 }

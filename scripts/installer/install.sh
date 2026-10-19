@@ -22,8 +22,15 @@ EXPECTED_SHA256="${LABBIT_CONNECTOR_EXPECTED_SHA256:-}"
 GITHUB_REPO="${LABBIT_GITHUB_REPO:-ktcloud4-SL/labbit-app}"
 RELEASE_BASE_URL="https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}"
 
+LOCK_ACQUIRED=0
+SAVED_STTY=""
+TTY_DEV="${LABBIT_TTY_DEV:-/dev/tty}"
+
 cleanup() {
-  if [ -d "$LOCK_DIR" ]; then
+  if [ -n "${SAVED_STTY:-}" ] && [ -n "${TTY_DEV:-}" ]; then
+    stty "$SAVED_STTY" < "$TTY_DEV" 2>/dev/null || stty echo < "$TTY_DEV" 2>/dev/null || true
+  fi
+  if [ "${LOCK_ACQUIRED:-0}" = "1" ] && [ -d "$LOCK_DIR" ]; then
     rmdir "$LOCK_DIR" 2>/dev/null || true
   fi
   if [ -n "${ENROLL_TMP:-}" ] && [ -f "$ENROLL_TMP" ]; then
@@ -34,6 +41,9 @@ cleanup() {
   fi
   if [ -n "${DOWNLOAD_TMP:-}" ] && [ -f "$DOWNLOAD_TMP" ]; then
     rm -f "$DOWNLOAD_TMP" 2>/dev/null || true
+  fi
+  if [ -n "${CHECKSUMS_TMP:-}" ] && [ -f "$CHECKSUMS_TMP" ]; then
+    rm -f "$CHECKSUMS_TMP" 2>/dev/null || true
   fi
 }
 trap cleanup EXIT INT TERM
@@ -73,7 +83,7 @@ if ! command -v systemctl >/dev/null 2>&1 || [ ! -d "$SYSTEMD_RUN_DIR" ]; then
 fi
 
 # Check required utilities
-for cmd in curl sha256sum ssh-keygen; do
+for cmd in curl sha256sum ssh-keygen stty; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "::error::Required utility '$cmd' is not installed. Please install it and retry." >&2
     exit 1
@@ -86,43 +96,57 @@ if ! command -v python3 >/dev/null 2>&1 && ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
-# Single execution lock
+# Reject environment variable token injection (strictly forbidden by security contract)
+if [ -n "${LABBIT_ENROLLMENT_TOKEN:-}" ]; then
+  echo "::error::Passing enrollment token via LABBIT_ENROLLMENT_TOKEN environment variable is prohibited." >&2
+  echo "        Unset LABBIT_ENROLLMENT_TOKEN and enter the token interactively via /dev/tty." >&2
+  exit 1
+fi
+
+# Single execution lock (only the acquiring process may remove LOCK_DIR on exit)
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   echo "::error::Another instance of the Labbit Connector installer is currently running ($LOCK_DIR)." >&2
   exit 1
 fi
+LOCK_ACQUIRED=1
 
-# Check TTY for interactive token input BEFORE downloading or altering anything
-TTY_DEV=""
-if [ -c /dev/tty ]; then
-  TTY_DEV="/dev/tty"
-elif [ -t 0 ]; then
-  TTY_DEV="/dev/stdin"
-fi
-
-# If already installed and active, protect existing identity and prevent accidental overwrite
+# Protect existing credentials, connector.id, and service state without restarting or overwriting
+EXISTING_CRED=0
+EXISTING_ID=0
+EXISTING_UNIT=0
+SERVICE_ACTIVE=0
 if [ -f "$CONFIG_DIR/credential" ] && [ -s "$CONFIG_DIR/credential" ]; then
-  echo "==> Existing Connector credentials found in $CONFIG_DIR/credential."
-  if systemctl is-active --quiet labbit-connector.service; then
-    echo "==> Labbit Connector service is already running. Existing identity preserved."
-    echo "    To upgrade the binary or service, consult the manual upgrade runbook."
-    exit 0
-  else
-    echo "==> Connector is enrolled but service is inactive. Re-starting service..."
-    systemctl restart labbit-connector.service
-    exit 0
-  fi
+  EXISTING_CRED=1
+fi
+if [ -f "$CONFIG_DIR/connector.id" ] && [ -s "$CONFIG_DIR/connector.id" ]; then
+  EXISTING_ID=1
+fi
+if [ -f "$SYSTEMD_SERVICE_FILE" ]; then
+  EXISTING_UNIT=1
+fi
+if systemctl is-active --quiet labbit-connector.service 2>/dev/null; then
+  SERVICE_ACTIVE=1
 fi
 
-# If non-interactive and no credential exists, fail early before secrets are requested
-if [ -z "$TTY_DEV" ] && [ -z "${LABBIT_ENROLLMENT_TOKEN:-}" ]; then
-  echo "::error::Interactive TTY not detected and LABBIT_ENROLLMENT_TOKEN is not provided." >&2
-  echo "        Enrollment requires interactive token input via /dev/tty." >&2
+if [ "$EXISTING_CRED" -eq 1 ] || [ "$EXISTING_ID" -eq 1 ] || [ "$EXISTING_UNIT" -eq 1 ] || [ "$SERVICE_ACTIVE" -eq 1 ]; then
+  echo "::error::Existing Connector credentials or identity found (credential=${EXISTING_CRED}, connector.id=${EXISTING_ID}, service_unit=${EXISTING_UNIT}, active=${SERVICE_ACTIVE})." >&2
+  echo "        Existing credentials, connector.id, and service state are preserved without modification or automatic restart." >&2
+  echo "        To upgrade the binary or manage the service, consult the manual upgrade runbook." >&2
+  exit 1
+fi
+
+# Verify interactive TTY accessibility and stty capability BEFORE downloading or altering anything
+if [ ! -r "$TTY_DEV" ] || [ ! -w "$TTY_DEV" ]; then
+  echo "::error::Interactive TTY ($TTY_DEV) is not accessible. Enrollment requires interactive token input via /dev/tty." >&2
+  exit 1
+fi
+if ! stty -g < "$TTY_DEV" >/dev/null 2>&1; then
+  echo "::error::Interactive TTY ($TTY_DEV) does not support stty terminal control. Cannot safely mask token input." >&2
   exit 1
 fi
 
 # -------------------------------------------------------------
-# 2. Download Binary & Checksum Verification
+# 2. Download Binary & Checksum Verification (Fail-Closed)
 # -------------------------------------------------------------
 echo "==> [2/6] Downloading Labbit Connector binary (${RELEASE_TAG})..."
 DOWNLOAD_TMP="$(mktemp)"
@@ -144,22 +168,27 @@ if [ -n "$EXPECTED_SHA256" ]; then
   fi
   echo "    SHA256 verified successfully against pinned checksum: $ACTUAL_SHA256"
 else
-  # Fetch official SHA256SUMS from the release
+  # Fetch official SHA256SUMS from the release (fail-closed if unavailable or mismatched)
   CHECKSUMS_TMP="$(mktemp)"
   chmod 0600 "$CHECKSUMS_TMP"
-  if curl -fsSL "${RELEASE_BASE_URL}/SHA256SUMS" -o "$CHECKSUMS_TMP" 2>/dev/null; then
-    EXPECTED_FROM_FILE="$(grep -w "labbit-connector" "$CHECKSUMS_TMP" | awk '{print $1}' | head -n1)"
+  if ! curl -fsSL "${RELEASE_BASE_URL}/SHA256SUMS" -o "$CHECKSUMS_TMP" 2>/dev/null; then
     rm -f "$CHECKSUMS_TMP"
-    if [ -n "$EXPECTED_FROM_FILE" ] && [ "$ACTUAL_SHA256" = "$EXPECTED_FROM_FILE" ]; then
-      echo "    SHA256 verified successfully against release SHA256SUMS: $ACTUAL_SHA256"
-    else
-      echo "::error::SHA256 mismatch against release SHA256SUMS! Got: $ACTUAL_SHA256." >&2
-      exit 1
-    fi
-  else
-    rm -f "$CHECKSUMS_TMP"
-    echo "::warning::Release SHA256SUMS not found; proceeding with downloaded binary hash: $ACTUAL_SHA256"
+    CHECKSUMS_TMP=""
+    echo "::error::Failed to download release SHA256SUMS from ${RELEASE_BASE_URL}/SHA256SUMS. Aborting installation (fail-closed)." >&2
+    exit 1
   fi
+  EXPECTED_FROM_FILE="$(awk '$2 == "labbit-connector" || $2 == "*labbit-connector" {print $1}' "$CHECKSUMS_TMP" | head -n1)"
+  rm -f "$CHECKSUMS_TMP"
+  CHECKSUMS_TMP=""
+  if [ -z "$EXPECTED_FROM_FILE" ]; then
+    echo "::error::Release SHA256SUMS did not contain a valid entry for labbit-connector. Aborting installation." >&2
+    exit 1
+  fi
+  if [ "$ACTUAL_SHA256" != "$EXPECTED_FROM_FILE" ]; then
+    echo "::error::SHA256 mismatch against release SHA256SUMS! Expected: $EXPECTED_FROM_FILE, Got: $ACTUAL_SHA256." >&2
+    exit 1
+  fi
+  echo "    SHA256 verified successfully against release SHA256SUMS: $ACTUAL_SHA256"
 fi
 
 # Install binary to /usr/local/bin
@@ -176,15 +205,28 @@ echo "    Installed binary to $INSTALL_BIN"
 # -------------------------------------------------------------
 echo "==> [3/6] Requesting Enrollment Token..."
 ENROLLMENT_TOKEN=""
-if [ -n "${LABBIT_ENROLLMENT_TOKEN:-}" ]; then
-  ENROLLMENT_TOKEN="$LABBIT_ENROLLMENT_TOKEN"
-elif [ -n "$TTY_DEV" ]; then
-  printf "Enter Labbit Connector Enrollment Token: " > "$TTY_DEV"
-  stty -echo < "$TTY_DEV" 2>/dev/null || true
-  read -r ENROLLMENT_TOKEN < "$TTY_DEV"
-  stty echo < "$TTY_DEV" 2>/dev/null || true
-  printf "\n" > "$TTY_DEV"
+SAVED_STTY="$(stty -g < "$TTY_DEV" 2>/dev/null)" || {
+  echo "::error::Failed to save terminal state from $TTY_DEV." >&2
+  exit 1
+}
+printf "Enter Labbit Connector Enrollment Token: " >> "$TTY_DEV"
+if ! stty -echo < "$TTY_DEV" 2>/dev/null; then
+  stty "$SAVED_STTY" < "$TTY_DEV" 2>/dev/null || true
+  SAVED_STTY=""
+  printf "\n" >> "$TTY_DEV" 2>/dev/null || true
+  echo "::error::Failed to disable terminal echo (stty -echo) on $TTY_DEV. Aborting token input." >&2
+  exit 1
 fi
+if ! IFS= read -r ENROLLMENT_TOKEN < "$TTY_DEV"; then
+  stty "$SAVED_STTY" < "$TTY_DEV" 2>/dev/null || stty echo < "$TTY_DEV" 2>/dev/null || true
+  SAVED_STTY=""
+  printf "\n" >> "$TTY_DEV" 2>/dev/null || true
+  echo "::error::Failed to read enrollment token from $TTY_DEV." >&2
+  exit 1
+fi
+stty "$SAVED_STTY" < "$TTY_DEV" 2>/dev/null || stty echo < "$TTY_DEV" 2>/dev/null || true
+SAVED_STTY=""
+printf "\n" >> "$TTY_DEV"
 
 if [ -z "$ENROLLMENT_TOKEN" ]; then
   echo "::error::Enrollment token cannot be empty." >&2
@@ -209,29 +251,34 @@ HTTP_STATUS="$(curl -s -w "%{http_code}" \
 rm -f "$ENROLL_TMP"
 ENROLL_TMP=""
 
-if [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "201" ]; then
-  echo "::error::Connector enrollment failed with HTTP status $HTTP_STATUS." >&2
-  echo "        Please check that your enrollment token is valid, unconsumed, and not expired." >&2
+if [ "$HTTP_STATUS" = "401" ] || [ "$HTTP_STATUS" = "400" ] || [ "$HTTP_STATUS" = "403" ] || [ "$HTTP_STATUS" = "422" ]; then
+  echo "::error::Connector enrollment was rejected by SaaS (HTTP $HTTP_STATUS: invalid_enrollment_token)." >&2
+  echo "        Please verify that your enrollment token is valid, unconsumed, and not expired, or issue a new token in the Web Console." >&2
+  exit 1
+elif [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "201" ]; then
+  echo "::error::Connector enrollment outcome is UNCERTAIN due to transport/server failure (HTTP $HTTP_STATUS)." >&2
+  echo "        DO NOT blindly retry with the same token. Check the Connector list in the Admin Web Console, revoke any partially enrolled Connector, and issue a new token." >&2
   exit 1
 fi
 
-# Secure JSON extraction using python3 or jq (no grep/sed for credentials)
+# Secure JSON extraction using python3 or jq via stdin (no grep/sed for credentials)
 parse_json() {
   field="$1"
-  if command -v python3 >/dev/null 2>&1; then
-    python3 -c "import sys, json; data=json.load(open('$HTTP_RESPONSE_FILE')); print(data.get('$field', ''))"
+  if command -v jq >/dev/null 2>&1; then
+    jq -r --arg f "$field" '.[$f] // empty' < "$HTTP_RESPONSE_FILE"
   else
-    jq -r --arg f "$field" '.[$f] // empty' "$HTTP_RESPONSE_FILE"
+    python3 -c "import sys, json; data=json.load(sys.stdin); val=data.get(sys.argv[1], ''); print(val if isinstance(val, str) else '')" "$field" < "$HTTP_RESPONSE_FILE"
   fi
 }
 
-CONNECTOR_ID="$(parse_json "connectorId")"
-CONNECTOR_CREDENTIAL="$(parse_json "connectorCredential")"
+CONNECTOR_ID="$(parse_json "connectorId" 2>/dev/null || true)"
+CONNECTOR_CREDENTIAL="$(parse_json "connectorCredential" 2>/dev/null || true)"
 rm -f "$HTTP_RESPONSE_FILE"
 HTTP_RESPONSE_FILE=""
 
 if [ -z "$CONNECTOR_ID" ] || [ -z "$CONNECTOR_CREDENTIAL" ]; then
-  echo "::error::Enrollment response did not contain required connectorId and connectorCredential." >&2
+  echo "::error::Enrollment response did not contain required connectorId and connectorCredential (outcome UNCERTAIN)." >&2
+  echo "        Check the Connector list in the Admin Web Console, revoke any partially enrolled Connector, and issue a new token." >&2
   exit 1
 fi
 

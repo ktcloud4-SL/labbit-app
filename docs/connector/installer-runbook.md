@@ -19,11 +19,13 @@
 
 ### 2.1 한 줄 설치 (권장)
 
-Labbit 웹 콘솔에서 제공하는 명령을 복사하여 고객사 Linux VM에서 실행합니다.
+Labbit 웹 콘솔에서 안내된 설치 스크립트를 내려받아 실행합니다. 다운로드 실패 시 빈 입력으로 `sh`가 성공 종료(exit 0)되는 문제를 방지하기 위해 임시 파일 다운로드 후 `&&`로 연결해 실행합니다.
 
 ```bash
-curl -fsSL https://install.labbit.example/install.sh | sudo sh
+curl -fsSL https://install.labbit.example/install.sh -o install.sh && sudo sh ./install.sh
 ```
+
+> 파이프라인(`|`) 형태로 실행해야 하는 경우에는 반드시 `bash -o pipefail -c 'curl -fsSL https://install.labbit.example/install.sh | sudo sh'`와 같이 다운로드 실패가 즉시 전달되도록 실행하십시오.
 
 ### 2.2 수동 다운로드 및 검토 후 설치 (보안 대안)
 
@@ -40,9 +42,9 @@ sudo ./install.sh
 ```
 
 ### 2.3 설치 과정 요약
-1. **사전 검사**: root 권한, OS(Linux), 아키텍처(amd64), systemd, 필수 유틸리티, 대화형 TTY 유무 확인.
-2. **바이너리 다운로드 및 무결성 검증**: GitHub Releases에서 고정 버전의 바이너리를 다운로드하고 SHA256 체크섬을 검증하여 `/usr/local/bin/labbit-connector`에 배치.
-3. **토큰 입력 및 단회성 Enrollment**: `/dev/tty`에서 입력 마스킹(echo-off) 상태로 1회용 토큰을 입력받아 SaaS Enrollment API (`POST /api/v1/connector-enrollments`) 호출.
+1. **사전 검사**: root 권한, OS(Linux), 아키텍처(amd64), systemd, 필수 유틸리티(`curl`, `sha256sum`, `ssh-keygen`, `stty`), 대화형 `/dev/tty` 접근 및 `stty` 제어 가능 여부 확인.
+2. **바이너리 다운로드 및 무결성 검증(Fail-Closed)**: GitHub Releases에서 고정 버전의 바이너리와 `SHA256SUMS`를 다운로드하고 SHA256 체크섬을 검증하여 일치할 때만 `/usr/local/bin/labbit-connector`에 배치.
+3. **토큰 입력 및 단회성 Enrollment**: `/dev/tty`에서 입력 마스킹(`stty -echo`) 상태로 1회용 토큰을 입력받아 SaaS Enrollment API (`POST /api/v1/connector-enrollments`, 요청 필드 `enrollmentToken`) 호출 및 `connectorId`·`connectorCredential` 수신.
 4. **로컬 보안 저장소 구성**:
    * 시스템 계정 `labbit` (non-root) 생성
    * `/etc/labbit-connector/` (권한: `0750`, 소유자: `root:labbit`)
@@ -87,12 +89,15 @@ sudo journalctl -u labbit-connector.service -f -o cat
 1. **새 바이너리 다운로드 및 체크섬 검증**:
    ```bash
    TARGET_VERSION="connector-v0.2.0"
-   curl -fsSL "https://github.com/ktcloud4-SL/labbit-app/releases/download/${TARGET_VERSION}/labbit-connector" -o /tmp/labbit-connector-new
-   curl -fsSL "https://github.com/ktcloud4-SL/labbit-app/releases/download/${TARGET_VERSION}/SHA256SUMS" -o /tmp/SHA256SUMS
+   UPGRADE_DIR="$(mktemp -d)"
+   curl -fsSL "https://github.com/ktcloud4-SL/labbit-app/releases/download/${TARGET_VERSION}/labbit-connector" -o "${UPGRADE_DIR}/labbit-connector"
+   curl -fsSL "https://github.com/ktcloud4-SL/labbit-app/releases/download/${TARGET_VERSION}/SHA256SUMS" -o "${UPGRADE_DIR}/SHA256SUMS"
 
-   # 체크섬 검증
-   cd /tmp
-   grep "labbit-connector" SHA256SUMS | sha256sum --check
+   # 체크섬 검증 (SHA256SUMS 내 단일 바이너리 항목만 정확히 추출하여 다운로드한 파일과 대조)
+   (
+     cd "${UPGRADE_DIR}"
+     awk '$2 == "labbit-connector" || $2 == "*labbit-connector"' SHA256SUMS | sha256sum --check --strict
+   )
    ```
 
 2. **기존 바이너리 백업**:
@@ -107,9 +112,10 @@ sudo journalctl -u labbit-connector.service -f -o cat
 
 4. **바이너리 원자적 교체 및 권한 설정**:
    ```bash
-   sudo mv /tmp/labbit-connector-new /usr/local/bin/labbit-connector
+   sudo mv "${UPGRADE_DIR}/labbit-connector" /usr/local/bin/labbit-connector
    sudo chmod 0755 /usr/local/bin/labbit-connector
    sudo chown root:root /usr/local/bin/labbit-connector
+   rm -rf "${UPGRADE_DIR}"
    ```
 
 5. **서비스 재기동 및 관측**:
@@ -149,9 +155,10 @@ sudo journalctl -u labbit-connector.service -n 30 --no-pager
 
 | 증상 | 원인 | 조치 방법 |
 | :--- | :--- | :--- |
-| `Interactive TTY not detected` | 파이프라인이나 백그라운드 스크립트에서 실행 시 TTY 없음 | 대화형 쉘에서 직접 `install.sh` 실행 또는 `LABBIT_ENROLLMENT_TOKEN` 환경변수 주입 |
-| `Connector enrollment failed with HTTP status 401/403` | 토큰 만료 또는 이미 소비된 일회용 토큰 | Labbit 웹 콘솔(관리자)에서 새 Enrollment Token을 발급받아 재입력 |
-| `SHA256 mismatch` | 다운로드 중 패킷 유실 또는 손상 | 네트워크 상태 확인 후 재실행. 지속될 경우 GitHub Release SHA256SUMS 확인 |
+| `Interactive TTY (/dev/tty) is not accessible` | 비대화형 백그라운드 세션에서 실행하여 `/dev/tty` 제어 불가 | 반드시 대화형 터미널(`/dev/tty` 접근 및 `stty -echo` 가능 환경)에서 실행 (환경변수/CLI 인자 주입 금지) |
+| `Connector enrollment was rejected by SaaS (HTTP 401: invalid_enrollment_token)` | 토큰 만료, 오타 또는 이미 소비된 일회용 토큰 | Labbit 웹 콘솔(조직 ADMIN)에서 새 Enrollment Token을 발급받아 재실행 |
+| `Connector enrollment outcome is UNCERTAIN` | Enrollment 요청 중 네트워크 단절·타임아웃·응답 유실 | 동일 토큰으로 임의 재시도 금지. Labbit 웹 콘솔에서 Connector 목록을 조회하여 불완전 등록된 항목이 있으면 폐기(Revoke)한 뒤 새 Enrollment Token을 발급받아 재설치 |
+| `Failed to download release SHA256SUMS` / `SHA256 mismatch` | 체크섬 파일 조회 실패 또는 바이너리 해시 불일치 | Fail-closed 정책에 의해 설치가 즉시 중단됨. 아웃바운드 네트워크 및 GitHub Release `SHA256SUMS` 확인 후 재시도 |
 | `connector credential is required in production` | 자격증명 파일 누락 또는 경로 오류 | `/etc/labbit-connector/credential` 파일 존재 여부 및 `connector.env` 경로 확인 |
 | WSS 재연결 반복 (`재연결 대기`) | 아웃바운드 443 차단 또는 SaaS 서버 도메인/TLS 오류 | `curl -vk https://<SAAS_URL>`로 아웃바운드 HTTPS/TLS 연결 진단 |
-| `Existing Connector credentials found` | 이미 설치 및 등록된 환경에서 재실행 | 기존 식별자 보호 정책에 따라 무단 재등록이 방지됨. 업그레이드는 수동 바이너리 교체 수행 |
+| `Existing Connector credentials or identity found` | 이미 `credential`, `connector.id` 또는 서비스 유닛이 존재하는 환경에서 재실행 | 기존 식별자 및 현재 서비스 상태(실행/중지) 보호를 위해 설치가 안전 중단됨. 바이너리 업그레이드나 서비스 재기동은 본 Runbook의 수동 절차 수행 |

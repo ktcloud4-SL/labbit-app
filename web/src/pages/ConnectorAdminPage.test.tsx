@@ -5,13 +5,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { HttpError } from '../shared/api/httpClient'
 import { LabbitApiProvider } from '../shared/api/LabbitApiProvider'
+import type { LabbitApi } from '../shared/api/labbitApi'
 import { mockLabbitApi, mockMe } from '../shared/api/mockLabbitApi'
 import { ConnectorAdminPage } from './ConnectorAdminPage'
 
 const ADMIN = { ...mockMe, organizationRole: 'ADMIN' as const }
 const TOKEN = 'fixture-enrollment-token-not-secret'
 
-function mount(overrides: Partial<typeof mockLabbitApi> = {}, isAdmin = true) {
+function mount(overrides: Partial<LabbitApi> = {}, isAdmin = true) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   const listConnectors = vi.fn(async () => ({
     observedAt: '2026-10-19T00:00:00Z',

@@ -8,6 +8,7 @@ import {
 
 import { ClassDetailPage } from '../pages/ClassDetailPage'
 import { ClassListPage } from '../pages/ClassListPage'
+import { ConnectorAdminPage } from '../pages/ConnectorAdminPage'
 import { LabExecutionPage } from '../pages/LabExecutionPage'
 import { LabPage } from '../pages/LabPage'
 import { LabSpecEditorPage } from '../pages/LabSpecEditorPage'
@@ -63,6 +64,7 @@ export const appRoutes: RouteObject[] = [
   { path: '/', element: <Navigate to="/classes" replace /> },
   { path: '/login', element: <LoginPage /> },
   { path: '/classes', element: protectedRoute(<ClassListPage />) },
+  { path: '/connectors', element: protectedRoute(<ConnectorAdminPage />) },
   { path: '/classes/:classId', element: protectedRoute(<ClassDetailPage />) },
   { path: '/classes/:classId/provision', element: protectedRoute(<ProvisionPage />) },
   { path: '/classes/:classId/lab', element: protectedRoute(<LabPage />) },

@@ -53,6 +53,9 @@ export function ConnectorAdminPage() {
     queryFn: () => api.listConnectors(),
     enabled: isAdmin,
     retry: false,
+    // Server computes ONLINE/OFFLINE from real heartbeat; never infer from HELLO.
+    // Poll only while the page is active, preserving the observedAt timestamp.
+    refetchInterval: 15_000,
   })
 
   const [name, setName] = useState('')
@@ -67,6 +70,32 @@ export function ConnectorAdminPage() {
   // Each unmount invalidates late issuance: it cannot re-expose a secret in
   // a different screen after logout or navigation.
   useEffect(() => () => { requestEpoch.current += 1 }, [])
+
+  useEffect(() => {
+    if (!issued) return
+    const expiresAt = Date.parse(issued.expiresAt)
+    if (!Number.isFinite(expiresAt)) {
+      setIssued(null)
+      setActionError('토큰 만료 정보를 확인할 수 없습니다. 새 토큰을 발급해 주세요.')
+      return
+    }
+    const expireToken = () => {
+      if (Date.now() >= expiresAt) {
+        // Drop the secret from React state. Server-side expiry is authoritative.
+        // The browser must never attempt token renewal or consumption.
+        setIssued(null)
+        setActionNotice('등록 토큰이 만료되었습니다. 필요한 경우 새 토큰을 발급해 주세요.')
+      }
+    }
+    const timeout = window.setTimeout(expireToken, Math.max(0, expiresAt - Date.now()))
+    window.addEventListener('focus', expireToken)
+    document.addEventListener('visibilitychange', expireToken)
+    return () => {
+      window.clearTimeout(timeout)
+      window.removeEventListener('focus', expireToken)
+      document.removeEventListener('visibilitychange', expireToken)
+    }
+  }, [issued])
 
   async function issueToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -83,6 +112,10 @@ export function ConnectorAdminPage() {
       // Do not use useMutation here: Query's mutation cache could retain the raw token.
       const result = await api.createConnectorEnrollmentToken(name)
       if (requestEpoch.current !== epoch) return
+      if (!Number.isFinite(Date.parse(result.expiresAt)) || Date.parse(result.expiresAt) <= Date.now()) {
+        setActionError('발급된 토큰의 만료 시각이 유효하지 않습니다. 새 토큰을 발급해 주세요.')
+        return
+      }
       setIssued(result)
       setName('')
     } catch (error) {
@@ -214,6 +247,7 @@ export function ConnectorAdminPage() {
             disabled={connectorsQuery.isFetching}
           >{connectorsQuery.isFetching ? '조회 중...' : '상태 새로고침'}</button>
         </div>
+        <p className="muted">화면이 활성화된 동안 15초 간격으로 서버 상태를 확인합니다. 표시된 ONLINE은 마지막 서버 관측값입니다.</p>
         {connectorsQuery.isPending ? (
           <LoadingState label="Connector 목록을 불러오는 중..." />
         ) : connectorsQuery.error ? (

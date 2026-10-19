@@ -279,4 +279,52 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     expect(screen.queryByText('Connector를 폐기했습니다. 상태를 다시 조회합니다.')).not.toBeInTheDocument()
   })
 
+  it('토큰 취소 요청에서 세션 401이 나면 비밀값 화면을 닫고 로그인으로 이동한다', async () => {
+    const cancel = vi.fn(async () => { throw new HttpError(401) })
+    const { router, client } = mount({
+      createConnectorEnrollmentToken: async () => ({
+        tokenId: 'cancel-401',
+        enrollmentToken: TOKEN,
+        expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+      }),
+      cancelConnectorEnrollmentToken: cancel,
+    })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'Mock-only VM' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    await screen.findByText(TOKEN)
+    fireEvent.click(screen.getByRole('button', { name: '등록 토큰 취소' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
+    expect(cancel).toHaveBeenCalledWith('cancel-401')
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    expect(screen.queryByText('등록 토큰을 취소했습니다.')).not.toBeInTheDocument()
+    expect(JSON.stringify(client.getMutationCache().getAll().map((mutation) => mutation.state.data))).not.toContain(TOKEN)
+  })
+
+  it('Connector Revoke 요청에서 세션 401이 나면 성공 표시 없이 로그인으로 이동한다', async () => {
+    const revoke = vi.fn(async () => { throw new HttpError(401) })
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const { router } = mount({
+      listConnectors: async () => ({
+        observedAt: '2026-10-19T00:00:00Z',
+        items: [{
+          id: 'connector-session-expired',
+          name: 'Fixture connector',
+          registrationStatus: 'REGISTERED' as const,
+          connectionStatus: 'OFFLINE' as const,
+          createdAt: '2026-10-19T00:00:00Z',
+          revokedAt: null, lastSeenAt: null, lastConnectorVersion: null, lastRuntimeId: null,
+        }],
+      }),
+      revokeConnector: revoke,
+    })
+    await screen.findByText('Control OFFLINE')
+    fireEvent.click(screen.getByRole('button', { name: 'Connector 폐기' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
+    expect(revoke).toHaveBeenCalledWith('connector-session-expired')
+    expect(screen.queryByText('Connector를 폐기했습니다. 상태를 다시 조회합니다.')).not.toBeInTheDocument()
+  })
+
 })

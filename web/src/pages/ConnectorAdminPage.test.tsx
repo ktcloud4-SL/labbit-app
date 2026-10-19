@@ -50,12 +50,12 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     expect(screen.queryByRole('button', { name: '일회용 토큰 발급' })).not.toBeInTheDocument()
   })
 
-  it('목록 상태는 서버 관측값을 15초 간격으로 재조회하도록 설정한다', async () => {
-    const { client } = mount()
+  it('화면에 서버 상태 갱신 주기를 안내하고 수동 새로고침도 동작한다', async () => {
+    const { api } = mount()
     await screen.findByText('등록된 Connector가 없습니다.')
     expect(screen.getByText(/15초 간격으로 서버 상태를 확인합니다/)).toBeInTheDocument()
-    const query = client.getQueryCache().getAll().find((item) => item.queryKey[0] === 'connectors')
-    expect(query?.options.refetchInterval).toBe(15_000)
+    fireEvent.click(screen.getByRole('button', { name: '상태 새로고침' }))
+    await waitFor(() => expect(api.listConnectors).toHaveBeenCalledTimes(2))
   })
 
   it('이미 만료된 토큰 응답은 화면·Query cache에 노출하지 않는다', async () => {

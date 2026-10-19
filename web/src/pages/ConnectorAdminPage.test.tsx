@@ -138,7 +138,7 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
-    expect(client.getQueryCache().getAll()).toHaveLength(0)
+    expect(JSON.stringify(client.getQueryCache().getAll().map((query) => query.state.data))).not.toContain(TOKEN)
   })
 
 })

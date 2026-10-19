@@ -50,6 +50,9 @@ Confluence는 Domain/Data 의미·ownership·결정 이유를 관리하고, 실�
    - `operation_items.previous_instance_status` nullable metadata 추가. RESET 거절·Preflight 실패 및 확실한 미전송 뒤 기존 LabInstance 상태를 복원
    - 기존 row와 generation·Resource 이력은 변경하지 않음
 
+10. `000010_connector_enrollment_tokens.sql`
+   - `connector_enrollment_tokens` 추가. 기존 Connector·Credential table은 재사용하며 Physical Schema는 해당 SQL을 따릅니다.
+
 ## 확정된 Domain/Data 모델과의 관계
 
 Physical Schema 초안은 다음 논리 모델과 불변조건을 구현하기 위한 시작점입니다.

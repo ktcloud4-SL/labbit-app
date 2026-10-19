@@ -268,6 +268,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	registry.SetRevokeObserver(observers)
 
 	stack.API, err = httpapi.New(httpapi.Options{
+		Connectors:    connector.NewEnrollmentService(store, registry, nil),
 		Auth:          authService,
 		Classes:       class.NewService(store),
 		LabSpecs:      labspec.NewService(store),
@@ -288,6 +289,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	stack.ConnectorControl, err = connectorwss.New(connectorwss.Options{
 		Auth:       connectorService,
 		Heartbeats: connectorService,
+		Hellos:     connectorService,
 		Registry:   registry,
 		Router:     router,
 		Logger:     logger,

@@ -49,6 +49,7 @@ type Classes interface {
 
 // Options는 Handler 구성이다.
 type Options struct {
+	Connectors Connectors
 	Auth       Authenticator
 	Classes    Classes
 	Operations Operations
@@ -74,6 +75,7 @@ type Options struct {
 }
 
 type api struct {
+	connectors    Connectors
 	auth          Authenticator
 	classes       Classes
 	labSpecs      LabSpecs
@@ -127,7 +129,7 @@ func New(opts Options) (http.Handler, error) {
 		liveSessions = unavailableLiveSessions{}
 	}
 
-	a := &api{operations: opts.Operations, labExecutions: opts.LabExecutions, auth: opts.Auth, classes: opts.Classes, labSpecs: opts.LabSpecs, terminals: terminals, files: files, previews: previews, liveSessions: liveSessions, origin: origin, logger: logger}
+	a := &api{connectors: opts.Connectors, operations: opts.Operations, labExecutions: opts.LabExecutions, auth: opts.Auth, classes: opts.Classes, labSpecs: opts.LabSpecs, terminals: terminals, files: files, previews: previews, liveSessions: liveSessions, origin: origin, logger: logger}
 	mux := http.NewServeMux()
 	routes := make(map[string]string)
 	handle := func(pattern string, handler http.Handler) {
@@ -135,6 +137,11 @@ func New(opts Options) (http.Handler, error) {
 		_, route, _ := strings.Cut(pattern, " ")
 		routes[pattern] = route
 	}
+	handle("POST /api/v1/connectors/enrollment-tokens", a.authenticated(http.HandlerFunc(a.issueConnectorToken)))
+	handle("DELETE /api/v1/connectors/enrollment-tokens/{tokenId}", a.authenticated(http.HandlerFunc(a.cancelConnectorToken)))
+	handle("POST /api/v1/connector-enrollments", http.HandlerFunc(a.enrollConnector))
+	handle("GET /api/v1/connectors", a.authenticated(http.HandlerFunc(a.listConnectors)))
+	handle("POST /api/v1/connectors/{connectorId}/revoke", a.authenticated(http.HandlerFunc(a.revokeConnector)))
 	handle("POST /api/v1/auth/login", http.HandlerFunc(a.login))
 	handle("POST /api/v1/auth/logout", a.authenticated(http.HandlerFunc(a.logout)))
 	handle("GET /api/v1/operations/{operationId}", a.authenticated(http.HandlerFunc(a.getOperation)))
@@ -184,6 +191,11 @@ func noStore(next http.Handler) http.Handler {
 // 인증보다 먼저 실행하므로 거절된 요청은 Session 조회나 Cookie 변경을 일으키지 않는다.
 func (a *api) originGuard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// This exact Token-only route never uses a Browser Principal or Cookie.
+		if r.Method == http.MethodPost && r.URL.Path == "/api/v1/connector-enrollments" {
+			next.ServeHTTP(w, r)
+			return
+		}
 		switch r.Method {
 		case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
 			if !sourceAllowed(a.origin, r.Header) {

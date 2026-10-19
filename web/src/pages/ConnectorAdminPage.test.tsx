@@ -82,7 +82,7 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     fireEvent.click(screen.getByRole('button', { name: '등록 토큰 취소' }))
     await waitFor(() => expect(cancel).toHaveBeenCalledWith('issued-1'))
     await waitFor(() => expect(screen.queryByText(TOKEN)).not.toBeInTheDocument())
-    expect(screen.getByRole('status')).toHaveTextContent('등록 토큰을 취소했습니다')
+    expect(screen.getByText('등록 토큰을 취소했습니다.')).toBeInTheDocument()
   })
 
   it('서버 상태 NEVER_SEEN을 ONLINE으로 추정하지 않고 Provider READY는 미확인으로 표시한다', async () => {

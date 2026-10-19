@@ -40,7 +40,7 @@ func TestConnectorEnrollmentHTTPContractAndRecovery(t *testing.T) {
 	send := func(method, path, body string) *httptest.ResponseRecorder {
 		return s.send(method, path, body, withCookie(cookie), withHeader("Origin", trustedOrigin), withHeader("Content-Type", "application/json"))
 	}
-	issued := connectorJSON(t, send("POST", "/api/v1/connectors/enrollment-tokens", `{"name":"Customer Linux"}`), 201)
+	issued := connectorJSON(t, send("POST", "/api/v1/connectors/enrollment-tokens", `{"name":"고객사 Linux 연결기 🐰"}`), 201)
 	token := issued["enrollmentToken"].(string)
 	id := issued["tokenId"].(string)
 	expires, err := time.Parse(time.RFC3339Nano, issued["expiresAt"].(string))
@@ -60,7 +60,7 @@ func TestConnectorEnrollmentHTTPContractAndRecovery(t *testing.T) {
 	}
 	list = connectorJSON(t, send("GET", "/api/v1/connectors", ""), 200)
 	item := list["items"].([]any)[0].(map[string]any)
-	if item["id"] != connectorID || item["name"] != "Customer Linux" || item["registrationStatus"] != "REGISTERED" || item["connectionStatus"] != "NEVER_SEEN" || item["lastSeenAt"] != nil || item["lastConnectorVersion"] != nil || item["lastRuntimeId"] != nil || item["revokedAt"] != nil {
+	if item["id"] != connectorID || item["name"] != "고객사 Linux 연결기 🐰" || item["registrationStatus"] != "REGISTERED" || item["connectionStatus"] != "NEVER_SEEN" || item["lastSeenAt"] != nil || item["lastConnectorVersion"] != nil || item["lastRuntimeId"] != nil || item["revokedAt"] != nil {
 		t.Fatal("new Connector response differs from contract")
 	}
 	replay := connectorJSON(t, s.send("POST", "/api/v1/connector-enrollments", body, withHeader("Content-Type", "application/json")), 401)
@@ -198,5 +198,27 @@ func TestConnectorHTTPRejectsMalformedBodiesAndExpiredTokens(t *testing.T) {
 	s.clock.now = s.clock.now.Add(connector.EnrollmentTokenLifetime)
 	if r := s.send("POST", "/api/v1/connector-enrollments", string(body), withHeader("Content-Type", "application/json")); r.Code != 401 {
 		t.Fatal("expired accepted")
+	}
+}
+
+func TestConnectorEnrollmentTokenRejectsNULNames(t *testing.T) {
+	s := newStack(t)
+	cookie := issuedToken(t, s.login("alice", password))
+	for _, name := range []string{"\x00", "\x00a", "a\x00", "고객\x00연결기"} {
+		t.Run(fmt.Sprintf("%q", name), func(t *testing.T) {
+			body, err := json.Marshal(map[string]string{"name": name})
+			if err != nil {
+				t.Fatal(err)
+			}
+			response := s.send("POST", "/api/v1/connectors/enrollment-tokens", string(body),
+				withCookie(cookie), withHeader("Origin", trustedOrigin), withHeader("Content-Type", "application/json"))
+			problem := connectorJSON(t, response, http.StatusBadRequest)
+			if problem["code"] != "invalid_request" {
+				t.Fatalf("error code = %v, want invalid_request", problem["code"])
+			}
+			if n := s.count(t, `SELECT count(*) FROM connector_enrollment_tokens`); n != 0 {
+				t.Fatalf("NUL name created enrollment token: count=%d", n)
+			}
+		})
 	}
 }

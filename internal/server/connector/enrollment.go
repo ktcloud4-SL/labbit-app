@@ -101,7 +101,7 @@ func (s *EnrollmentService) Issue(ctx context.Context, user repository.User, nam
 	if err := admin(user); err != nil {
 		return IssuedEnrollmentToken{}, err
 	}
-	if !utf8.ValidString(name) || strings.TrimSpace(name) == "" || utf8.RuneCountInString(name) > 200 {
+	if !utf8.ValidString(name) || strings.ContainsRune(name, 0) || strings.TrimSpace(name) == "" || utf8.RuneCountInString(name) > 200 {
 		return IssuedEnrollmentToken{}, ErrInvalidName
 	}
 	token := EnrollmentToken(newEnrollmentSecret())

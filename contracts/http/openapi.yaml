@@ -1858,7 +1858,9 @@ components:
           minLength: 1
           maxLength: 200
           pattern: '\S'
-          description: 표시 이름. Unicode 공백만 있는 이름은 거절하고 입력 문자열을 그대로 저장합니다.
+          not:
+            pattern: '\u0000'
+          description: 표시 이름. NUL 문자와 Unicode 공백만 있는 이름은 거절하고 입력 문자열을 그대로 저장합니다.
 
     ConnectorEnrollmentTokenIssued:
       type: object

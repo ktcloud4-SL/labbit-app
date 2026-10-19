@@ -1,0 +1,39 @@
+{
+    "deleted":  true,
+    "stage":  "BOOTSTRAP_CLEANUP_CONFIRMED",
+    "resourceCount":  8,
+    "resources":  [
+                      {
+                          "resourceType":  "SERVER",
+                          "providerIdSHA256":  "a068de15aac10bc011a683b4fb15d753b0f8fbfa21854e6fc99f922debc669bf"
+                      },
+                      {
+                          "resourceType":  "KEYPAIR",
+                          "providerIdSHA256":  "df124736b962ecb7e3990c3e149ba8905c948243d2e47746ea2cf77c04af34e1"
+                      },
+                      {
+                          "resourceType":  "PUBLIC_IP",
+                          "providerIdSHA256":  "043460451de4655aae6f48bcf23f635be683b9abe3c1ddbe09040c39db27fe6d"
+                      },
+                      {
+                          "resourceType":  "FORWARD",
+                          "providerIdSHA256":  "f14de2d98a3cd487d292f2c173c08135ed5f8bbc742afb25fca72c00d6e8cd72"
+                      },
+                      {
+                          "resourceType":  "VOLUME",
+                          "providerIdSHA256":  "4ee337b17bd56e73caf21d056035fe9190e105b3ce6ba5bc30e5af67821e8933"
+                      },
+                      {
+                          "resourceType":  "POLICY",
+                          "providerIdSHA256":  "5461f6d6efa21b4af42008175614782d81439bcab11562ee579452daded0d9e4"
+                      },
+                      {
+                          "resourceType":  "POLICY",
+                          "providerIdSHA256":  "757ffc671863a1dfdf4e39f687e86b993c80b3ef13b20fb9a4b6b64772a99b7a"
+                      },
+                      {
+                          "resourceType":  "POLICY",
+                          "providerIdSHA256":  "1a3d4c32f560d7f17defca162ee463cf77976426652efc1ed1049156e87635b2"
+                      }
+                  ]
+}

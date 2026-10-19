@@ -705,6 +705,17 @@ func TestTerminalC2_FullStackLoopback(t *testing.T) {
 	t.Log("Scenario 3: PTY Close & Safe Resource Release PASS")
 }
 
+func init() {
+	if os.Getenv("LABBIT_KTCLOUD_D1_CONTROL_TEST") == "1" && len(os.Args) == 1 {
+		_ = os.Setenv("LABBIT_OPENSTACK_TERMINAL_C2_TEST", "1")
+		if dir := strings.TrimSpace(os.Getenv("LBT145_CONTROL_DIRECTORY")); dir != "" {
+			_ = os.Setenv("LABBIT_C2_LEDGER_FILE", dir+"/control-ledger.json")
+			_ = os.Setenv("LABBIT_C2_CONNECTOR_LOG_FILE", dir+"/connector.log")
+		}
+		os.Args = []string{os.Args[0], "-test.v", "-test.run", "^Test(TerminalC2_FullStackLoopback|OpenStackTerminalC2Integration)$"}
+	}
+}
+
 // TestOpenStackTerminalC2Integration verifies the complete End-to-End round trip:
 // Browser WebSocket ↔ SaaS Terminal Relay ↔ Connector Transport ↔ Real OpenStack VM PTY.
 // It exercises:
@@ -717,7 +728,7 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 		t.Skip("set LABBIT_OPENSTACK_TERMINAL_C2_TEST=1 for real local OpenStack Terminal C2 full-stack acceptance")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 
 	// 1. Initialize Real OpenStack Provider and discover test resources.
@@ -733,36 +744,134 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Flavor discovery failed: %v", err)
 	}
-	networks, err := a.ListNetworks(ctx)
-	if err != nil {
-		t.Fatalf("Network discovery failed: %v", err)
+
+	var image coreprovider.Image
+	var flavor coreprovider.Flavor
+	if a.ktNetwork != nil {
+		image = exactImage(t, images, environmentOrDefault("LABBIT_OPENSTACK_TEST_IMAGE", "os-ubuntu24.04-image-20260929"))
+		flavor = exactFlavor(t, flavors, environmentOrDefault("LABBIT_OPENSTACK_TEST_FLAVOR", "2x4.itl"))
+		a.provision.ProjectID = integrationProjectID(t, a)
+		if strings.TrimSpace(a.provision.ProviderConnectionID) == "" {
+			a.provision.ProviderConnectionID = "local-integration"
+		}
+		if strings.TrimSpace(a.provision.SSHKnownHostsFile) == "" {
+			a.provision.SSHKnownHostsFile = t.TempDir() + "/known_hosts"
+		}
+		a.provision.PollInterval = 2 * time.Second
+		a.provision = normalizedProvisionConfig(a.provision)
+	} else {
+		networks, err := a.ListNetworks(ctx)
+		if err != nil {
+			t.Fatalf("Network discovery failed: %v", err)
+		}
+		image = exactImage(t, images, environmentOrDefault("LABBIT_OPENSTACK_TEST_IMAGE", "ubuntu"))
+		flavor = exactFlavor(t, flavors, environmentOrDefault("LABBIT_OPENSTACK_TEST_FLAVOR", "m1.small"))
+		management := exactNetwork(t, networks, environmentOrDefault("LABBIT_OPENSTACK_TEST_MANAGEMENT_NETWORK", "sharednet1"))
+		keyFile := a.provision.SSHPrivateKeyFile
+		keyPair := integrationKeyPairName(t, ctx, a, keyFile)
+		allowedCIDR := environmentOrDefault("LABBIT_OPENSTACK_TEST_SSH_CIDR", "172.16.8.1/32")
+		managementSG := integrationManagementSecurityGroup(t, ctx, a, allowedCIDR)
+
+		a.provision = normalizedProvisionConfig(ProvisionConfig{
+			ProviderConnectionID:      "local-integration",
+			ProjectID:                 integrationProjectID(t, a),
+			ManagementNetworkID:       management.ID,
+			ManagementSecurityGroupID: managementSG,
+			KeyPairName:               keyPair,
+			SSHAllowedCIDR:            allowedCIDR,
+			LabSubnetCIDR:             environmentOrDefault("LABBIT_OPENSTACK_TEST_LAB_CIDR", "198.20.0.0/24"),
+			SSHUsername:               a.provision.SSHUsername,
+			SSHPrivateKeyFile:         keyFile,
+			SSHKnownHostsFile:         t.TempDir() + "/known_hosts",
+			PollInterval:              2 * time.Second,
+		})
 	}
-
-	image := exactImage(t, images, environmentOrDefault("LABBIT_OPENSTACK_TEST_IMAGE", "ubuntu"))
-	flavor := exactFlavor(t, flavors, environmentOrDefault("LABBIT_OPENSTACK_TEST_FLAVOR", "m1.small"))
-	management := exactNetwork(t, networks, environmentOrDefault("LABBIT_OPENSTACK_TEST_MANAGEMENT_NETWORK", "sharednet1"))
-	keyFile := a.provision.SSHPrivateKeyFile
-	keyPair := integrationKeyPairName(t, ctx, a, keyFile)
-	allowedCIDR := environmentOrDefault("LABBIT_OPENSTACK_TEST_SSH_CIDR", "172.16.8.1/32")
-	managementSG := integrationManagementSecurityGroup(t, ctx, a, allowedCIDR)
-
-	a.provision = normalizedProvisionConfig(ProvisionConfig{
-		ProviderConnectionID:      "local-integration",
-		ProjectID:                 integrationProjectID(t, a),
-		ManagementNetworkID:       management.ID,
-		ManagementSecurityGroupID: managementSG,
-		KeyPairName:               keyPair,
-		SSHAllowedCIDR:            allowedCIDR,
-		LabSubnetCIDR:             environmentOrDefault("LABBIT_OPENSTACK_TEST_LAB_CIDR", "198.20.0.0/24"),
-		SSHUsername:               a.provision.SSHUsername,
-		SSHPrivateKeyFile:         keyFile,
-		SSHKnownHostsFile:         t.TempDir() + "/known_hosts",
-		PollInterval:              2 * time.Second,
-	})
 
 	labID := "lbt22-" + integrationRunID(t)
 	var tracked []coreprovider.ResourceResult
+	var logLines []string
+	writeC2Log := func(entry string) {
+		logLines = append(logLines, time.Now().UTC().Format(time.RFC3339)+" "+entry)
+		logPath := strings.TrimSpace(os.Getenv("LABBIT_C2_CONNECTOR_LOG_FILE"))
+		if logPath == "" {
+			return
+		}
+		_ = os.WriteFile(logPath, []byte(strings.Join(logLines, "\n")+"\n"), 0600)
+	}
+	writeC2Ledger := func(stage string) {
+		writeC2Log("stage=" + stage)
+		ledgerPath := strings.TrimSpace(os.Getenv("LABBIT_C2_LEDGER_FILE"))
+		if ledgerPath == "" {
+			return
+		}
+		protoRes := make([]protocol.ProviderResourceResult, 0, len(tracked))
+		for _, r := range tracked {
+			protoRes = append(protoRes, protocol.ProviderResourceResult{
+				ProviderResourceRef: protocol.ProviderResourceRef{
+					ResourceType: r.ResourceType,
+					ProviderID:   r.ProviderID,
+					Generation:   r.Generation,
+					LogicalName:  r.LogicalName,
+				},
+				ObservedState: r.ObservedState,
+			})
+		}
+		payload, err := json.MarshalIndent(map[string]any{
+			"labInstanceId": labID,
+			"stage":         stage,
+			"resources":     protoRes,
+		}, "", "  ")
+		if err == nil {
+			_ = os.WriteFile(ledgerPath, append(payload, '\n'), 0600)
+		}
+	}
+	writeC2Ledger("C2_FIXTURE_INITIALIZED")
 	t.Cleanup(func() {
+		if a.ktNetwork != nil {
+			if len(tracked) == 0 {
+				return
+			}
+			cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cleanupCancel()
+			refs := resourceRefs(tracked, 1)
+			cleanupRes, cleanupErr := a.Cleanup(cleanupCtx, coreprovider.CleanupRequest{
+				Correlation: coreprovider.Correlation{
+					OperationID:   labID + "-cleanup",
+					LabInstanceID: labID,
+					Generation:    1,
+				},
+				ProviderResources: refs,
+			})
+			if len(cleanupRes.ProviderResources) > 0 {
+				tracked = cleanupRes.ProviderResources
+			}
+			writeC2Ledger("CLEANUP_" + string(cleanupRes.Outcome))
+			if cleanupErr != nil || cleanupRes.Outcome != coreprovider.OutcomeSucceeded {
+				t.Errorf("KT Cloud C2 Cleanup failed: outcome=%s err=%v", cleanupRes.Outcome, cleanupErr)
+				return
+			}
+			recRes, recErr := a.Reconcile(cleanupCtx, coreprovider.ReconcileRequest{
+				Correlation: coreprovider.Correlation{
+					OperationID:   labID + "-reconcile-final",
+					LabInstanceID: labID,
+					Generation:    1,
+				},
+				KnownResources:     refs,
+				DiscoverCandidates: true,
+			})
+			if recErr != nil || recRes.Error != nil || len(recRes.Observations) != len(refs) {
+				t.Errorf("KT Cloud C2 final Reconcile failed: obs=%d err=%v", len(recRes.Observations), recErr)
+				return
+			}
+			for _, obs := range recRes.Observations {
+				if obs.Exists || obs.ObservedState != stateAbsent || obs.Source != coreprovider.SourceKnownResource {
+					t.Errorf("KT Cloud C2 residual resource remains: type=%s state=%s exists=%t", obs.ResourceType, obs.ObservedState, obs.Exists)
+				}
+			}
+			writeC2Ledger("CLEANUP_AND_FINAL_RECONCILE_ABSENT")
+			t.Logf("Tracked resource absence verified after C2 test: distinctResources=%d residual=0", len(refs))
+			return
+		}
 		cleanupM2Resources(t, a, tracked)
 		t.Logf("Tracked resource absence verified after C2 test: distinctResources=%d", len(tracked))
 	})
@@ -775,7 +884,7 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 			Generation:    1,
 		},
 		CreationSnapshot: coreprovider.CreationSnapshot{
-			ProviderConnectionID: "local-integration",
+			ProviderConnectionID: a.provision.ProviderConnectionID,
 			WorkspaceVMKey:       "workspace",
 			VMs: []coreprovider.VMSpec{{
 				VMKey: "workspace", Role: "WORKSPACE",
@@ -785,10 +894,11 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 		},
 	})
 	tracked = append(tracked, result.ProviderResources...)
+	writeC2Ledger("PROVISION_" + string(result.Outcome))
 	if err != nil || result.Outcome != coreprovider.OutcomeSucceeded {
 		t.Fatalf("Provision failed: outcome=%s err=%v", result.Outcome, err)
 	}
-	t.Log("OP-01 Provision ACTIVE and authenticated SSH ready for C2")
+	t.Logf("OP-01 Provision ACTIVE and authenticated SSH ready for C2: resources=%d", len(result.ProviderResources))
 
 	target := vmaccess.Target{
 		LabInstanceID: labID,
@@ -833,14 +943,14 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 	}
 	defer controlHandler.Close()
 
-	// Use shortened 5-second grace for integration test (production default is 60s).
+	// Use shortened 15-second grace for integration test (production default is 60s).
 	relay, err := realtime.New(realtime.Options{
 		Control:       auth,
 		Connectors:    auth,
 		AllowOrigin:   func(origin string) bool { return origin == trustedWebOrigin },
-		Grace:         5 * time.Second,
-		AttachTimeout: 5 * time.Second,
-		WriteTimeout:  5 * time.Second,
+		Grace:         15 * time.Second,
+		AttachTimeout: 10 * time.Second,
+		WriteTimeout:  10 * time.Second,
 	})
 	if err != nil {
 		t.Fatalf("realtime.New failed: %v", err)
@@ -873,7 +983,7 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 		t.Fatalf("Connector SendHello failed: %v", err)
 	}
 
-	sessions := terminal.NewSessionManager(5*time.Second, nil)
+	sessions := terminal.NewSessionManager(15*time.Second, nil)
 	defer sessions.CloseAll(protocol.TerminalReasonServiceRestart)
 
 	connectorHandler := wss.NewHandler(a, controlClient)
@@ -885,7 +995,7 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 		Credential:    c2Credential,
 		RuntimeID:     "c2-connector-runtime",
 		AllowInsecure: true,
-		DialTimeout:   5 * time.Second,
+		DialTimeout:   10 * time.Second,
 	})
 
 	listenCtx, stopListen := context.WithCancel(ctx)
@@ -956,13 +1066,13 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 	}
 
 	// Wait for Connector to attach Data WSS and return TERMINAL_OPEN_RESULT.
-	openResult := sink.waitForOpenResult(t, c2SessionID, 10*time.Second)
+	openResult := sink.waitForOpenResult(t, c2SessionID, 30*time.Second)
 	if openResult.Payload.Outcome != serverconnector.TerminalOutcomeSucceeded {
 		t.Fatalf("TERMINAL_OPEN did not succeed: outcome=%s", openResult.Payload.Outcome)
 	}
 
 	// Activate terminal session in Relay.
-	if err := relay.Activate(c2SessionID, time.Now().Add(5*time.Second)); err != nil {
+	if err := relay.Activate(c2SessionID, time.Now().Add(10*time.Second)); err != nil {
 		t.Fatalf("relay.Activate failed: %v", err)
 	}
 
@@ -991,10 +1101,11 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 
 	// Stdin / Stdout verification through real VM PTY.
 	browser.writeBinary([]byte("printf 'LBT22-C2-MARKER:%s\\n' 'E2E_ROUNDTRIP_SUCCESS'\n"))
-	out := browser.readBinaryUntil("LBT22-C2-MARKER:E2E_ROUNDTRIP_SUCCESS", 10*time.Second)
+	out := browser.readBinaryUntil("LBT22-C2-MARKER:E2E_ROUNDTRIP_SUCCESS", 15*time.Second)
 	if !strings.Contains(out, "E2E_ROUNDTRIP_SUCCESS") {
 		t.Fatalf("expected stdout marker not received")
 	}
+	writeC2Ledger("SCENARIO_1A_IO_ROUNDTRIP_PASS")
 	t.Log("Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Real VM PTY I/O PASS")
 
 	// Terminal Resize verification.
@@ -1009,11 +1120,12 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 		},
 	})
 
-	browser.writeBinary([]byte("printf 'LBT22-SIZE:%s\\n' \"$(stty size)\"\n"))
-	sizeOut := browser.readBinaryUntil("LBT22-SIZE:40 120", 10*time.Second)
+	browser.writeBinary([]byte("for i in $(seq 1 50); do s=$(stty size); if [ \"$s\" = \"40 120\" ]; then printf 'LBT22-SIZE:%s\\n' \"$s\"; break; fi; sleep 0.1; done\n"))
+	sizeOut := browser.readBinaryUntil("LBT22-SIZE:40 120", 15*time.Second)
 	if !strings.Contains(sizeOut, "40 120") {
 		t.Fatalf("expected resized stty size '40 120' marker not received (received_len=%d)", len(sizeOut))
 	}
+	writeC2Ledger("SCENARIO_1B_RESIZE_PASS")
 	t.Log("Scenario 1B: Terminal RESIZE (120x40 -> stty 40 120) PASS")
 
 	// -------------------------------------------------------------------------
@@ -1022,7 +1134,7 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 	// Set an environment variable in the shell to verify state preservation.
 	browser.writeBinary([]byte("export LBT22_PRESERVED_STATE='C2_RECONNECT_OK'\n"))
 	browser.writeBinary([]byte("printf 'LBT22-STATE-SET:%s\\n' 'DONE'\n"))
-	_ = browser.readBinaryUntil("LBT22-STATE-SET:DONE", 5*time.Second)
+	_ = browser.readBinaryUntil("LBT22-STATE-SET:DONE", 10*time.Second)
 
 	// Simulate sudden browser network disconnection.
 	browser.close()
@@ -1073,10 +1185,11 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 
 	// Verify the shell environment and state were preserved across reconnect.
 	browser2.writeBinary([]byte("printf 'LBT22-STATE-ECHO:%s\\n' \"$LBT22_PRESERVED_STATE\"\n"))
-	reconnectOut := browser2.readBinaryUntil("LBT22-STATE-ECHO:C2_RECONNECT_OK", 10*time.Second)
+	reconnectOut := browser2.readBinaryUntil("LBT22-STATE-ECHO:C2_RECONNECT_OK", 15*time.Second)
 	if !strings.Contains(reconnectOut, "C2_RECONNECT_OK") {
 		t.Fatalf("preserved state not found after reconnect (received_len=%d)", len(reconnectOut))
 	}
+	writeC2Ledger("SCENARIO_2_RECONNECT_STATE_PRESERVED_PASS")
 	t.Log("Scenario 2: Browser Reconnect within Grace Period & State Preservation PASS")
 
 	// -------------------------------------------------------------------------
@@ -1085,7 +1198,7 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 	// Exiting the remote shell should terminate the PTY and notify Relay and SaaS.
 	browser2.writeBinary([]byte("exit 0\n"))
 
-	endedEvent := sink.waitForEnded(t, c2SessionID, 10*time.Second)
+	endedEvent := sink.waitForEnded(t, c2SessionID, 15*time.Second)
 	if endedEvent.Correlation.TerminalSessionID != c2SessionID {
 		t.Fatalf("expected ended event for session %s, got %s", c2SessionID, endedEvent.Correlation.TerminalSessionID)
 	}
@@ -1098,5 +1211,6 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 	if sessions.ActiveCount() != 0 {
 		t.Fatalf("expected 0 active sessions after shell exit, got %d", sessions.ActiveCount())
 	}
+	writeC2Ledger("SCENARIO_3_SHELL_EXIT_AND_TERMINAL_ENDED_PASS")
 	t.Log("Scenario 3: Shell Exit, Safe TERMINAL_ENDED, and Resource Release PASS")
 }

@@ -119,3 +119,5 @@ ok      github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack 
     - `clouds.yaml`에 `ktcloud-d1` alias, Identity Endpoint v3, Project ID (`a4dce102c4af4fd09cb65970593e17ba`) 및 CA Trust 정상 구성.
 - **후속 Acceptance 계획**:
   - 본 PR #103은 C2 프로토콜 파이프라인의 사전 루프백 하네스 구축을 목적으로 하며, 코드가 머지된 후 실제 KT Cloud OpenStack VM과의 실환경 통합 검증(실제 Linux bash 셸 종료, VM 프로세스/네트워크 자원 해제)은 LBT-22 최종 Acceptance 단계에서 `LABBIT_OPENSTACK_TERMINAL_C2_TEST=1` 플래그로 공동 진행하여 완료 처리할 예정입니다.
+  - **실환경 Acceptance 완료 증적 (2026-10-19)**: 실제 KT Cloud D1 Workspace VM(`os-ubuntu24.04-image-20260929`, `2x4.itl`) 대상 C2 전 구간 실증 및 잔여 클라우드 자원 0건(`residual = 0`) 확인 결과는 [`../2026-10-19/README.md`](../2026-10-19/README.md)에 기록되었습니다.
+

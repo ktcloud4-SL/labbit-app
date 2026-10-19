@@ -1,0 +1,82 @@
+{
+  "issue": "LBT-22",
+  "summary": "[C2] VM Access / Terminal 공동 통합 (KT Cloud D1 실환경 VM Acceptance)",
+  "dri": "이주희",
+  "date": "2026-10-19",
+  "baseCommit": "2b0a39dd95a72213cb73145fd9d32fa5208bf52e",
+  "branch": "test/LBT-22-ktcloud-c2-acceptance",
+  "status": "REAL_VM_C2_ACCEPTANCE_PASS",
+  "scope": {
+    "loopback_test": "PASS (0.02s, Mock Echo PTY)",
+    "real_vm_c2": "PASS (262.10s, KT Cloud D1 Workspace VM SSH/PTY + Full Cleanup/Reconcile residual=0)"
+  },
+  "binaries_sha256": {
+    "bootstrap.exe": "1616af91b543a694836443d6fa9beeeb4ee30cb168a316a6fb34c01e5663efbe",
+    "labbit-connector-ktcloud": "74b3874ee94386caebdd0420e60010f6d472407a0adfca2e12328dd4e8e77c18",
+    "lbt145-control-linux": "c5c84ab350ca22a4ec18c85615c33f69bcae70469b53eb721c5da4e98e5de9a5",
+    "labbit-workspace-sftp": "71eda845b08547ba12d3a632ab2351f590bc6f43d2902331a1eb9b832a290f1b"
+  },
+  "results": {
+    "gofmt_check": "PASS",
+    "go_vet": "PASS",
+    "go_build": "PASS",
+    "loopback_test": {
+      "name": "TestTerminalC2_FullStackLoopback",
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "status": "PASS",
+      "duration_seconds": 0.02
+    },
+    "real_vm_c2_test": {
+      "name": "TestOpenStackTerminalC2Integration",
+      "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+      "status": "PASS",
+      "env_flag": "LABBIT_OPENSTACK_TERMINAL_C2_TEST=1",
+      "duration_seconds": 262.1,
+      "vm_profile": {
+        "image": "os-ubuntu24.04-image-20260929",
+        "flavor": "2x4.itl",
+        "vcpus": 2,
+        "ram_mib": 4096,
+        "root_volume_gib": 50,
+        "lab_cidr": "172.25.240.0/24",
+        "management_cidr": "172.25.241.0/24"
+      },
+      "scenarios": [
+        {
+          "id": "OP-01-PROVISION",
+          "name": "KT Cloud D1 Workspace VM Provision (5 Owned Resources) & Pinned SSH Readiness",
+          "status": "PASS"
+        },
+        {
+          "id": "1A",
+          "name": "Browser WSS ↔ SaaS Relay ↔ Connector Transport ↔ Real KT Cloud VM SSH/PTY I/O Roundtrip",
+          "status": "PASS"
+        },
+        {
+          "id": "1B",
+          "name": "Terminal RESIZE Control Frame (80x24 -> 120x40) & Real Linux VM Kernel PTY stty size ('40 120') Verification",
+          "status": "PASS"
+        },
+        {
+          "id": "2",
+          "name": "Browser Unclean Disconnect, DETACHED Grace Period, Reconnect (resumed=true), and Remote Bash Shell Environment State Preservation",
+          "status": "PASS"
+        },
+        {
+          "id": "3",
+          "name": "Remote Shell exit 0, Safe TERMINAL_ENDED Propagation, Session Release (ActiveCount=0), and Full 5-Resource Cleanup & Final Reconcile (residual=0)",
+          "status": "PASS"
+        }
+      ]
+    },
+    "resource_cleanup": {
+      "lab_resources_created": 5,
+      "lab_resources_deleted": 5,
+      "bootstrap_resources_created": 8,
+      "bootstrap_resources_deleted": 8,
+      "owned_residual_total": 0,
+      "seven_kind_baseline_preserved": true,
+      "status": "ALL_TRACKED_IDS_CONFIRMED_ABSENT"
+    }
+  }
+}

@@ -53,12 +53,14 @@ export class BrowserTerminalClient {
   private attached = false
   private closing = false
   private input: BrowserTerminalConnectInput | null = null
+  private attachMessageId: string | null = null
 
   constructor(private readonly handlers: BrowserTerminalClientHandlers) {}
 
   connect(input: BrowserTerminalConnectInput) {
     this.disconnect()
     this.input = input
+    this.attachMessageId = null
     this.attached = false
     this.closing = false
 
@@ -69,15 +71,13 @@ export class BrowserTerminalClient {
     socket.addEventListener('open', () => {
       if (this.socket !== socket || this.closing) return
 
-      socket.send(
-        JSON.stringify(
-          controlEnvelope('TERMINAL_ATTACH', input.terminalSessionId, {
-            sessionToken: input.sessionToken,
-            cols: input.cols,
-            rows: input.rows,
-          }),
-        ),
-      )
+      const attach = controlEnvelope('TERMINAL_ATTACH', input.terminalSessionId, {
+        sessionToken: input.sessionToken,
+        cols: input.cols,
+        rows: input.rows,
+      })
+      this.attachMessageId = attach.messageId
+      socket.send(JSON.stringify(attach))
     })
 
     socket.addEventListener('message', (event) => {
@@ -90,6 +90,7 @@ export class BrowserTerminalClient {
       this.socket = null
       this.attached = false
       this.input = null
+      this.attachMessageId = null
       if (!this.closing) this.handlers.onClose(event)
     })
   }
@@ -141,6 +142,18 @@ export class BrowserTerminalClient {
           : {}
 
       if (type === 'TERMINAL_ATTACHED') {
+        // Backend binds ATTACHED to the exact ATTACH request messageId.
+        // A stale or unsolicited ACK must not enable PTY input.
+        if (!this.attachMessageId || message.replyToMessageId !== this.attachMessageId) {
+          this.handlers.onProtocolError({
+            code: 'PROTOCOL_ERROR',
+            message: 'Terminal 연결 확인 응답이 현재 요청과 일치하지 않습니다.',
+            fatal: true,
+          })
+          this.failClosed(sourceSocket)
+          return
+        }
+        this.attachMessageId = null
         this.attached = true
         this.handlers.onAttached({
           resumed: payload.resumed === true,
@@ -224,6 +237,7 @@ export class BrowserTerminalClient {
     this.socket = null
     this.attached = false
     this.input = null
+    this.attachMessageId = null
 
     if (
       sourceSocket.readyState === WebSocket.OPEN ||
@@ -260,6 +274,7 @@ export class BrowserTerminalClient {
     this.socket = null
     this.attached = false
     this.input = null
+    this.attachMessageId = null
 
     if (
       socket &&

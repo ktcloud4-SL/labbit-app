@@ -110,6 +110,7 @@ describe('BrowserTerminalClient', () => {
       JSON.stringify({
         type: 'TERMINAL_ATTACHED',
         terminalSessionId: 'terminal-session-1',
+        replyToMessageId: JSON.parse(String(socket.sent[0])).messageId,
         payload: {
           resumed: false,
           historyAvailable: false,
@@ -148,6 +149,7 @@ describe('BrowserTerminalClient', () => {
       JSON.stringify({
         type: 'TERMINAL_ATTACHED',
         terminalSessionId: 'terminal-session-1',
+        replyToMessageId: JSON.parse(String(socket.sent[0])).messageId,
         payload: {
           resumed: true,
           historyAvailable: false,
@@ -208,6 +210,7 @@ describe('BrowserTerminalClient', () => {
       JSON.stringify({
         type: 'TERMINAL_ATTACHED',
         terminalSessionId: 'terminal-session-1',
+        replyToMessageId: JSON.parse(String(first.sent[0])).messageId,
         payload: {
           resumed: false,
           historyAvailable: false,
@@ -264,6 +267,7 @@ describe('BrowserTerminalClient', () => {
       JSON.stringify({
         type: 'TERMINAL_ATTACHED',
         terminalSessionId: 'terminal-session-1',
+        replyToMessageId: JSON.parse(String(socket.sent[0])).messageId,
         payload: {
           resumed: false,
           historyAvailable: false,
@@ -316,6 +320,7 @@ describe('BrowserTerminalClient', () => {
       JSON.stringify({
         type: 'TERMINAL_ATTACHED',
         terminalSessionId: 'terminal-session-1',
+        replyToMessageId: JSON.parse(String(socket.sent[0])).messageId,
         payload: { resumed: false, historyAvailable: false },
       }),
     )
@@ -363,6 +368,7 @@ describe('BrowserTerminalClient', () => {
       JSON.stringify({
         type: 'TERMINAL_ATTACHED',
         terminalSessionId: 'terminal-session-1',
+        replyToMessageId: JSON.parse(String(socket.sent[0])).messageId,
         payload: { resumed: false, historyAvailable: false },
       }),
     )
@@ -415,6 +421,7 @@ describe('BrowserTerminalClient', () => {
         JSON.stringify({
           type: 'TERMINAL_ATTACHED',
           terminalSessionId: 'terminal-session-1',
+          replyToMessageId: JSON.parse(String(socket.sent[0])).messageId,
           payload: { resumed: false, historyAvailable: false },
         }),
       )
@@ -459,6 +466,7 @@ describe('BrowserTerminalClient', () => {
       JSON.stringify({
         type: 'TERMINAL_ATTACHED',
         terminalSessionId: 'terminal-session-1',
+        replyToMessageId: JSON.parse(String(socket.sent[0])).messageId,
         payload: { resumed: false, historyAvailable: false },
       }),
     )
@@ -532,6 +540,7 @@ describe('BrowserTerminalClient', () => {
     socket.message(JSON.stringify({
       type: 'TERMINAL_ATTACHED',
       terminalSessionId: 'terminal-session-1',
+      replyToMessageId: JSON.parse(String(socket.sent[0])).messageId,
       payload: { resumed: false, historyAvailable: false },
     }))
     expect(onAttached).toHaveBeenCalledOnce()
@@ -567,6 +576,7 @@ describe('BrowserTerminalClient', () => {
     socket.message(JSON.stringify({
       type: 'TERMINAL_ATTACHED',
       terminalSessionId: 'terminal-session-1',
+      replyToMessageId: JSON.parse(String(socket.sent[0])).messageId,
       payload: { resumed: false, historyAvailable: false },
     }))
     expect(onAttached).toHaveBeenCalledOnce()
@@ -596,5 +606,45 @@ describe('BrowserTerminalClient', () => {
     expect(onClose).not.toHaveBeenCalled()
     expect(client.sendInput('should-not-send')).toBe(false)
   })
+
+  it.each(['missing', 'different', 'stale'] as const)(
+    'TERMINAL_ATTACHED with %s replyToMessageId cannot attach or send PTY input',
+    (caseName) => {
+      vi.stubGlobal('WebSocket', FakeWebSocket)
+      const onAttached = vi.fn()
+      const onProtocolError = vi.fn()
+      const client = new BrowserTerminalClient({
+        onAttached, onProtocolError,
+        onOutput: vi.fn(), onEnded: vi.fn(), onClose: vi.fn(),
+      })
+      client.connect({
+        terminalSessionId: 'terminal-session-1',
+        sessionToken: 'fixture-token',
+        cols: 80,
+        rows: 24,
+      })
+      const socket = FakeWebSocket.instances[0]
+      socket.open()
+      const attach = JSON.parse(String(socket.sent[0])) as { messageId: string }
+      const replyToMessageId =
+        caseName === 'missing' ? undefined :
+          caseName === 'different' ? 'different-request' : attach.messageId + '-stale'
+      socket.message(JSON.stringify({
+        type: 'TERMINAL_ATTACHED',
+        terminalSessionId: 'terminal-session-1',
+        ...(replyToMessageId ? { replyToMessageId } : {}),
+        payload: { resumed: false, historyAvailable: false },
+      }))
+
+      expect(onAttached).not.toHaveBeenCalled()
+      expect(onProtocolError).toHaveBeenCalledWith({
+        code: 'PROTOCOL_ERROR',
+        message: 'Terminal 연결 확인 응답이 현재 요청과 일치하지 않습니다.',
+        fatal: true,
+      })
+      expect(socket.readyState).toBe(FakeWebSocket.CLOSED)
+      expect(client.sendInput('must-not-send')).toBe(false)
+    },
+  )
 
 })

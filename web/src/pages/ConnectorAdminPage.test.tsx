@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import type { ConnectorEnrollmentTokenIssued } from '../shared/api/contracts'
 import { HttpError } from '../shared/api/httpClient'
 import { LabbitApiProvider } from '../shared/api/LabbitApiProvider'
 import type { LabbitApi } from '../shared/api/labbitApi'
@@ -191,6 +192,139 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
     expect(JSON.stringify(client.getQueryCache().getAll().map((query) => query.state.data))).not.toContain(TOKEN)
+  })
+
+  it('화면 이탈 뒤 늦게 도착한 발급 응답의 Token은 다시 표시되거나 Query cache에 남지 않는다', async () => {
+    let completeIssue: ((result: ConnectorEnrollmentTokenIssued) => void) | undefined
+    const issue = vi.fn(() => new Promise<ConnectorEnrollmentTokenIssued>((resolve) => {
+      completeIssue = resolve
+    }))
+    const { router, client } = mount({ createConnectorEnrollmentToken: issue })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'Only fixture VM' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(issue).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('link', { name: '← 수업 목록' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/classes'))
+    await act(async () => {
+      completeIssue?.({
+        tokenId: 'late-response-id',
+        enrollmentToken: TOKEN,
+        expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+      })
+      await Promise.resolve()
+    })
+
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    expect(JSON.stringify(client.getQueryCache().getAll().map((query) => query.state.data))).not.toContain(TOKEN)
+    expect(JSON.stringify(client.getMutationCache().getAll().map((mutation) => mutation.state.data))).not.toContain(TOKEN)
+  })
+
+  it('서버 목록 401은 빈 Connector 목록 대신 로그인 화면으로 보낸다', async () => {
+    const { router } = mount({
+      listConnectors: async () => { throw new HttpError(401) },
+    })
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
+    expect(screen.queryByText('등록된 Connector가 없습니다.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '일회용 토큰 발급' })).not.toBeInTheDocument()
+  })
+
+  it('토큰 취소 403은 성공으로 위장하지 않고 안전한 안내를 표시한다', async () => {
+    const cancel = vi.fn(async () => { throw new HttpError(403) })
+    mount({
+      createConnectorEnrollmentToken: async () => ({
+        tokenId: 'issue-403', enrollmentToken: TOKEN,
+        expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+      }),
+      cancelConnectorEnrollmentToken: cancel,
+    })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'Test-only VM' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    await screen.findByText(TOKEN)
+    fireEvent.click(screen.getByRole('button', { name: '등록 토큰 취소' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('관리자 권한이 없거나 요청이 거부됐습니다.')
+    expect(cancel).toHaveBeenCalledWith('issue-403')
+    expect(screen.queryByText('등록 토큰을 취소했습니다.')).not.toBeInTheDocument()
+  })
+
+  it('Connector Revoke 403은 폐기 완료로 표시하지 않고 기존 목록을 유지한다', async () => {
+    const revokeConnector = vi.fn(async () => { throw new HttpError(403) })
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    mount({
+      listConnectors: async () => ({
+        observedAt: '2026-10-19T00:00:00Z',
+        items: [{
+          id: 'connector-403', name: 'Fixture connector',
+          registrationStatus: 'REGISTERED' as const,
+          connectionStatus: 'OFFLINE' as const,
+          createdAt: '2026-10-19T00:00:00Z',
+          revokedAt: null, lastSeenAt: null, lastConnectorVersion: null, lastRuntimeId: null,
+        }],
+      }),
+      revokeConnector,
+    })
+    await screen.findByText('Control OFFLINE')
+    fireEvent.click(screen.getByRole('button', { name: 'Connector 폐기' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('관리자 권한이 없거나 요청이 거부됐습니다.')
+    expect(revokeConnector).toHaveBeenCalledWith('connector-403')
+    expect(screen.getByText('Fixture connector')).toBeInTheDocument()
+    expect(screen.queryByText('Connector를 폐기했습니다. 상태를 다시 조회합니다.')).not.toBeInTheDocument()
+  })
+
+  it('토큰 취소 요청에서 세션 401이 나면 비밀값 화면을 닫고 로그인으로 이동한다', async () => {
+    const cancel = vi.fn(async () => { throw new HttpError(401) })
+    const { router, client } = mount({
+      createConnectorEnrollmentToken: async () => ({
+        tokenId: 'cancel-401',
+        enrollmentToken: TOKEN,
+        expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+      }),
+      cancelConnectorEnrollmentToken: cancel,
+    })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'Mock-only VM' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    await screen.findByText(TOKEN)
+    fireEvent.click(screen.getByRole('button', { name: '등록 토큰 취소' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
+    expect(cancel).toHaveBeenCalledWith('cancel-401')
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    expect(screen.queryByText('등록 토큰을 취소했습니다.')).not.toBeInTheDocument()
+    expect(JSON.stringify(client.getMutationCache().getAll().map((mutation) => mutation.state.data))).not.toContain(TOKEN)
+  })
+
+  it('Connector Revoke 요청에서 세션 401이 나면 성공 표시 없이 로그인으로 이동한다', async () => {
+    const revoke = vi.fn(async () => { throw new HttpError(401) })
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const { router } = mount({
+      listConnectors: async () => ({
+        observedAt: '2026-10-19T00:00:00Z',
+        items: [{
+          id: 'connector-session-expired',
+          name: 'Fixture connector',
+          registrationStatus: 'REGISTERED' as const,
+          connectionStatus: 'OFFLINE' as const,
+          createdAt: '2026-10-19T00:00:00Z',
+          revokedAt: null, lastSeenAt: null, lastConnectorVersion: null, lastRuntimeId: null,
+        }],
+      }),
+      revokeConnector: revoke,
+    })
+    await screen.findByText('Control OFFLINE')
+    fireEvent.click(screen.getByRole('button', { name: 'Connector 폐기' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
+    expect(revoke).toHaveBeenCalledWith('connector-session-expired')
+    expect(screen.queryByText('Connector를 폐기했습니다. 상태를 다시 조회합니다.')).not.toBeInTheDocument()
   })
 
 })

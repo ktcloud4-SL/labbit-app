@@ -44,8 +44,17 @@ class FakeWebSocket extends EventTarget {
   attach() {
     this.readyState = 1
     this.dispatchEvent(new Event('open'))
+    const attach = JSON.parse(this.sent[0]) as {
+      terminalSessionId: string
+      messageId: string
+    }
     this.dispatchEvent(new MessageEvent('message', {
-      data: JSON.stringify({ type: 'TERMINAL_ATTACHED', payload: { resumed: false } }),
+      data: JSON.stringify({
+        type: 'TERMINAL_ATTACHED',
+        terminalSessionId: attach.terminalSessionId,
+        replyToMessageId: attach.messageId,
+        payload: { resumed: false, historyAvailable: false },
+      }),
     }))
   }
 }

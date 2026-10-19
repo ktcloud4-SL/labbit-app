@@ -17,6 +17,7 @@ function publicHttpsUrl(raw: string | undefined): string | null {
       !parsed.hostname ||
       parsed.username ||
       parsed.password ||
+      parsed.search ||
       parsed.hash
     ) {
       return null

@@ -86,27 +86,54 @@ jobs:
           SHORT_TAG="sha-$(echo ${{ github.sha }} | cut -c1-7)"
           git clone https://x-access-token:${{ secrets.GITOPS_PAT }}@github.com/ktcloud4-SL/labbit-gitops.git /tmp/labbit-gitops
           cd /tmp/labbit-gitops
+          # 1. Local (기존 main 코드 복원: 필수)
           TARGET_FILE="environments/local/apps/backend-values.yaml"
-
           if command -v yq >/dev/null 2>&1; then
             yq -i ".image.tag = \"${SHORT_TAG}\"" "$TARGET_FILE"
           else
             sed -i -E "s|([[:space:]]*tag:[[:space:]]*).*|\1\"${SHORT_TAG}\"|g" "$TARGET_FILE"
           fi
-
           if ! grep -q "tag: \"${SHORT_TAG}\"" "$TARGET_FILE"; then
             echo "::error::Failed to update image tag in $TARGET_FILE to $SHORT_TAG"
             exit 1
+          fi
+          git add "$TARGET_FILE"
+          # 2. AWS Seoul (추가: 파일이 있으면 갱신)
+          AWS_FILE="environments/aws-seoul/apps/backend-values.yaml"
+          if [ -f "$AWS_FILE" ]; then
+            if command -v yq >/dev/null 2>&1; then
+              yq -i ".image.tag = \"${SHORT_TAG}\"" "$AWS_FILE"
+            else
+              sed -i -E "s|([[:space:]]*tag:[[:space:]]*).*|\1\"${SHORT_TAG}\"|g" "$AWS_FILE"
+            fi
+            if ! grep -q "tag: \"${SHORT_TAG}\"" "$AWS_FILE"; then
+              echo "::error::Failed to update image tag in $AWS_FILE to $SHORT_TAG"
+              exit 1
+            fi
+            git add "$AWS_FILE"
+            echo "Updated backend tag in $AWS_FILE to $SHORT_TAG"
+          fi
+          # 3. AWS Migration Job (추가: 파일이 있으면 갱신)
+          MIGRATE_JOB="environments/aws-seoul/apps/migration-job.yaml"
+          if [ -f "$MIGRATE_JOB" ]; then
+            sed -i -E "s|(image:[[:space:]]*ghcr\.io/ktcloud4-sl/backend:).*|\1${SHORT_TAG}|g" "$MIGRATE_JOB"
+            if ! grep -E -q "^[[:space:]]*image:[[:space:]]*ghcr\.io/ktcloud4-sl/backend:${SHORT_TAG}([[:space:]]|$)" "$MIGRATE_JOB"; then
+              echo "::error::Failed to update migration-job image to ghcr.io/ktcloud4-sl/backend:${SHORT_TAG}"
+              exit 1
+            fi
+            git add "$MIGRATE_JOB"
+            echo "Updated migration-job image tag to $SHORT_TAG"
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          if git diff --quiet; then
+          if git diff --cached --quiet; then
             echo "No changes to commit (tag already up-to-date)"
           else
-            git add "$TARGET_FILE"
             git commit -m "chore(backend): [LBT-32] backend 이미지 태그 자동 업데이트 (${SHORT_TAG})"
+
+  
 
             max_retries=5
             retry_count=0

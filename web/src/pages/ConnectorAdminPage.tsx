@@ -74,11 +74,8 @@ export function ConnectorAdminPage() {
   useEffect(() => {
     if (!issued) return
     const expiresAt = Date.parse(issued.expiresAt)
-    if (!Number.isFinite(expiresAt)) {
-      setIssued(null)
-      setActionError('토큰 만료 정보를 확인할 수 없습니다. 새 토큰을 발급해 주세요.')
-      return
-    }
+    // Invalid/expired response timestamps were already rejected in issueToken.
+    if (!Number.isFinite(expiresAt)) return
     const expireToken = () => {
       if (Date.now() >= expiresAt) {
         // Drop the secret from React state. Server-side expiry is authoritative.

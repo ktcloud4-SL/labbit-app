@@ -136,6 +136,7 @@ export function TerminalPanel({ labInstanceId, generation, classId, isInstructor
       : 'VM을 선택하고 터미널 연결을 시작하세요.',
   )
   const [resumed, setResumed] = useState(false)
+  const [attachedSessionId, setAttachedSessionId] = useState<string | null>(null)
   const [authExpired, setAuthExpired] = useState(false)
 
   const targetsQuery = useQuery({
@@ -261,6 +262,7 @@ export function TerminalPanel({ labInstanceId, generation, classId, isInstructor
     (state: TerminalResumeState) => {
       if (suppressReconnectRef.current) return
 
+      setAttachedSessionId(null)
       const startedAt = reconnectStartedAtRef.current ?? Date.now()
       reconnectStartedAtRef.current = startedAt
       const elapsed = Date.now() - startedAt
@@ -309,6 +311,7 @@ export function TerminalPanel({ labInstanceId, generation, classId, isInstructor
 
           reconnectStartedAtRef.current = null
           setStatus('attached')
+          setAttachedSessionId(state.terminalSessionId)
           setResumed(result.resumed)
           setStatusMessage(
             result.resumed
@@ -326,6 +329,7 @@ export function TerminalPanel({ labInstanceId, generation, classId, isInstructor
 
           suppressReconnectRef.current = true
           invalidateResume()
+          setAttachedSessionId(null)
           setStatus('ended')
           setStatusMessage(
             event.exitCode === undefined
@@ -357,6 +361,7 @@ export function TerminalPanel({ labInstanceId, generation, classId, isInstructor
         },
         onClose(event) {
           if (sequence !== connectionSequenceRef.current) return
+          setAttachedSessionId(null)
 
           const decision = decideTerminalClose(event.code)
 
@@ -457,6 +462,7 @@ export function TerminalPanel({ labInstanceId, generation, classId, isInstructor
     suppressReconnectRef.current = true
     clearRetryTimer()
     setStatus('creating')
+    setAttachedSessionId(null)
     setStatusMessage('TerminalSession과 PTY를 준비하고 있습니다.')
     setResumed(false)
 
@@ -513,6 +519,7 @@ export function TerminalPanel({ labInstanceId, generation, classId, isInstructor
   }
 
   async function closeTerminal() {
+    setAttachedSessionId(null)
     const state = resumeRef.current
     suppressReconnectRef.current = true
     clearRetryTimer()
@@ -603,7 +610,7 @@ export function TerminalPanel({ labInstanceId, generation, classId, isInstructor
           {isInstructor && classId && (
             <LiveInstructorControls
               classId={classId}
-              sourceTerminalSessionId={status === 'attached' ? resumeRef.current?.terminalSessionId ?? null : null}
+              sourceTerminalSessionId={status === 'attached' ? attachedSessionId : null}
             />
           )}
           <span

@@ -125,11 +125,46 @@ function LiveReadOnlyTerminal({ liveSessionId, classId }: {
   )
 }
 
+function deniesPreviouslyVerifiedLive(error: unknown) {
+  return error instanceof HttpError && [401, 403, 404].includes(error.status)
+}
+
+function isTransientLiveLookupFailure(error: unknown) {
+  return Boolean(error) && (!(error instanceof HttpError) || error.status === 503)
+}
+
 export function LiveStudentPanel({ classId }: { classId: string }) {
   const api = useLabbitApi()
+  const queryClient = useQueryClient()
+  const queryKey = labbitQueryKeys.activeLiveSession(classId)
+  // Keep the currently subscribed, verified Live across transient HTTP failures.
+  // A rejected session must not be revived from React Query's retained data.
+  const [lastVerified, setLastVerified] = useState<{
+    classId: string
+    sessionId: string | null
+  }>(() => {
+    const cached = queryClient.getQueryState<{ id: string }>(queryKey)
+    return {
+      classId,
+      sessionId: cached?.status === 'success' ? cached.data?.id ?? null : null,
+    }
+  })
   const query = useQuery({
-    queryKey: labbitQueryKeys.activeLiveSession(classId),
-    queryFn: () => api.getActiveLiveSession(classId),
+    queryKey,
+    queryFn: async ({ signal }) => {
+      try {
+        const session = await api.getActiveLiveSession(classId)
+        if (!signal.aborted) setLastVerified({ classId, sessionId: session.id })
+        return session
+      } catch (error) {
+        // Latch revocation at the response boundary, including back-to-back
+        // 403/404 -> 503 replies without an intervening React render.
+        if (!signal.aborted && deniesPreviouslyVerifiedLive(error)) {
+          setLastVerified({ classId, sessionId: null })
+        }
+        throw error
+      }
+    },
     retry: false,
     refetchInterval: 15_000,
   })
@@ -137,8 +172,15 @@ export function LiveStudentPanel({ classId }: { classId: string }) {
     return <LoginRedirect reason="sessionExpired" />
   }
   const empty = query.error instanceof HttpError && query.error.status === 404
+  const transient = isTransientLiveLookupFailure(query.error)
+  // After a revocation, retained Query.data is never a source of authority.
+  // On a transient refetch failure only the last explicitly verified ID may
+  // keep the existing viewer mounted (not a new unverified session).
+  const activeId = query.error
+    ? (transient && lastVerified.classId === classId ? lastVerified.sessionId : null)
+    : query.data?.id ?? null
   const liveState = query.isPending ? 'loading' : empty ? 'empty' :
-    query.error ? 'error' : query.data ? 'active' : 'idle'
+    activeId ? 'active' : query.error ? 'error' : 'idle'
   return (
     <section className="live-class-panel" data-live-state={liveState} aria-label="강사 Live 화면">
       <h2>강사 화면 공유</h2>
@@ -146,10 +188,15 @@ export function LiveStudentPanel({ classId }: { classId: string }) {
         <p className="muted">강사 Live 공유를 확인하고 있습니다.</p>
       ) : empty ? (
         <p className="muted">진행 중인 강사 화면 공유가 없습니다. 시작하면 자동으로 표시됩니다.</p>
+      ) : activeId ? (
+        <>
+          {query.error && (
+            <p role="alert">Live 상태 재확인이 일시적으로 실패했습니다. 기존 읽기 전용 연결을 유지합니다.</p>
+          )}
+          <LiveReadOnlyTerminal key={activeId} liveSessionId={activeId} classId={classId} />
+        </>
       ) : query.error ? (
         <p role="alert">Live 화면 공유를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.</p>
-      ) : query.data ? (
-        <LiveReadOnlyTerminal key={query.data.id} liveSessionId={query.data.id} classId={classId} />
       ) : null}
     </section>
   )

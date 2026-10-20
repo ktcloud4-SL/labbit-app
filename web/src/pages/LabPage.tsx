@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useBlocker, useParams } from 'react-router-dom'
 
 import type { ClassDetail } from '../shared/api/contracts'
@@ -34,9 +34,8 @@ export function LabPage() {
   // Generation changes must not silently discard dirty editor drafts or a PUT.
   const [retainedWorkspaceDraft, setRetainedWorkspaceDraft] = useState<WorkspaceDraftBackup | null>(null)
   const [retainedFileSavePending, setRetainedFileSavePending] = useState(false)
-  // Updated before each READY/non-READY branch returns. In-flight PUT
-  // callbacks from an unmounted Editor consult this shared current scope.
-  const currentWorkspace = useRef<{ labInstanceId: string; generation: number; ready: boolean } | null>(null)
+  // Late PUT callbacks from an unmounted Editor consult the live Class query,
+  // not the generation that was current when the Editor first rendered.
   const dirty = retainedWorkspaceDraft !== null
   // Own the navigation/unload barrier above WorkspaceFilePanels. The panel
   // unmounts while a LabInstance is PROVISIONING or missing, but the user
@@ -87,14 +86,6 @@ export function LabPage() {
     refetchInterval: (query) =>
       classReadinessPollingInterval(query.state.data, query.state.error),
   })
-
-  currentWorkspace.current = classQuery.data?.myLabInstance
-    ? {
-        labInstanceId: classQuery.data.myLabInstance.id,
-        generation: classQuery.data.myLabInstance.generation,
-        ready: !classQuery.error && classQuery.data.myLabInstance.status === 'READY',
-      }
-    : null
 
   if (!resolvedClassId) {
     return (
@@ -259,10 +250,15 @@ export function LabPage() {
           onRetainedDraftChange={setRetainedWorkspaceDraft}
           retainedSavePending={retainedFileSavePending}
           onRetainedSavePendingChange={setRetainedFileSavePending}
-          isCurrentWorkspace={(id, expectedGeneration) =>
-            currentWorkspace.current?.ready === true &&
-            currentWorkspace.current.labInstanceId === id &&
-            currentWorkspace.current.generation === expectedGeneration}
+          isCurrentWorkspace={(id, expectedGeneration) => {
+            const current = queryClient.getQueryState<ClassDetail>(
+              labbitQueryKeys.classDetail(resolvedClassId),
+            )
+            return current?.status === 'success' &&
+              current.data?.myLabInstance?.status === 'READY' &&
+              current.data.myLabInstance.id === id &&
+              current.data.myLabInstance.generation === expectedGeneration
+          }}
         />
 
         <section className="workspace-panel workspace-preview">

@@ -47,10 +47,14 @@ afterEach(() => {
 describe('LBT-183 Connector admin screen contract-only UI', () => {
   it('MEMBER는 관리자 메뉴/등록 API 대신 권한 없음 상태만 본다', async () => {
     const list = vi.fn()
+    const url = 'https://raw.githubusercontent.com/ktcloud4-SL/labbit-app/main/scripts/installer/install.sh'
+    vi.stubEnv('VITE_LABBIT_APPROVED_INSTALLER_URL', url)
     mount({ listConnectors: list }, false)
     expect(await screen.findByRole('alert')).toHaveTextContent('Organization ADMIN')
     expect(list).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: '일회용 토큰 발급' })).not.toBeInTheDocument()
+    expect(screen.queryByText(url)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Installer 주소 복사' })).not.toBeInTheDocument()
   })
 
   it('화면에 서버 상태 갱신 주기를 안내하고 수동 새로고침도 동작한다', async () => {
@@ -111,7 +115,7 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
   })
 
   it('승인된 공개 HTTPS Installer URL이 빌드 설정에 있으면 ADMIN 안내에서만 표시한다', async () => {
-    const url = 'https://installer.example.test/install.sh'
+    const url = 'https://raw.githubusercontent.com/ktcloud4-SL/labbit-app/main/scripts/installer/install.sh'
     vi.stubEnv('VITE_LABBIT_APPROVED_INSTALLER_URL', url)
     mount()
     expect(await screen.findByText('등록된 Connector가 없습니다.')).toBeInTheDocument()

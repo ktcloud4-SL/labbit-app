@@ -10,7 +10,7 @@ RUN npm ci
 COPY . .
 
 # PUBLIC Vite config is baked into dist at IMAGE BUILD TIME. The default is
-# intentionally empty until LBT-181 approves the Installer HTTPS URL.
+# intentionally empty for unconfigured builds; Web delivery supplies the approved URL.
 # Do not pass enrollment tokens, credentials or other secrets as build args.
 ARG VITE_LABBIT_APPROVED_INSTALLER_URL=""
 ENV VITE_LABBIT_APPROVED_INSTALLER_URL=${VITE_LABBIT_APPROVED_INSTALLER_URL}

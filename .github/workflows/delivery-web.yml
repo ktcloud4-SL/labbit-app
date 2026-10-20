@@ -20,6 +20,9 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/web
+  # Approved script address handed off on 2026-10-20. This is a public, mutable
+  # main-branch script address; it does not certify SaaS/VM installation readiness.
+  APPROVED_INSTALLER_URL: https://raw.githubusercontent.com/ktcloud4-SL/labbit-app/main/scripts/installer/install.sh
 
 jobs:
   build-and-push:
@@ -63,6 +66,8 @@ jobs:
         with:
           context: ./web
           file: ./web/Dockerfile
+          build-args: |
+            VITE_LABBIT_APPROVED_INSTALLER_URL=${{ env.APPROVED_INSTALLER_URL }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -133,6 +138,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      matrix:
+        include:
+          - profile: unconfigured
+            installer_url: ''
+          - profile: synthetic
+            installer_url: https://installer.example.test/install.sh
 
     steps:
       - name: Checkout repository
@@ -148,10 +160,10 @@ jobs:
         with:
           context: ./web
           file: ./web/Dockerfile
-          # PR-only synthetic PUBLIC fixture. Not passed to the production
-          # build-and-push job; official URL still requires LBT-181 approval.
+          # Test the safe empty default and a PR-only PUBLIC fixture. Neither
+          # PR image is published; production has its own approved build arg.
           build-args: |
-            VITE_LABBIT_APPROVED_INSTALLER_URL=https://installer.example.test/install.sh
+            VITE_LABBIT_APPROVED_INSTALLER_URL=${{ matrix.installer_url }}
           push: false
           load: true
           tags: labbit-web:pr
@@ -159,15 +171,25 @@ jobs:
 
       - name: Smoke test unprivileged Web image
         shell: bash
+        env:
+          EXPECTED_INSTALLER_URL: ${{ matrix.installer_url }}
         run: |
           docker run -d --name labbit-web-smoke --cap-drop=ALL --security-opt=no-new-privileges -p 127.0.0.1:18080:8080 labbit-web:pr
           trap 'docker logs labbit-web-smoke || true; docker rm -f labbit-web-smoke >/dev/null 2>&1 || true' EXIT
           test "$(docker exec labbit-web-smoke id -u)" = 101
-          # Proves Docker ARG -> builder ENV -> Vite dist, not only Vitest mocking.
-          # Fixture is synthetic, PR-only, and the image is never pushed.
-          if ! docker exec labbit-web-smoke sh -c 'grep -rFq "https://installer.example.test/install.sh" /usr/share/nginx/html/assets'; then
-            echo "::error::Installer public URL was not embedded into PR Web bundle"
-            exit 1
+          if [ -n "$EXPECTED_INSTALLER_URL" ]; then
+            # Proves Docker ARG -> builder ENV -> actual Vite dist.
+            docker exec -e INSTALLER_URL="$EXPECTED_INSTALLER_URL" labbit-web-smoke \
+              sh -c 'grep -rFq -- "$INSTALLER_URL" /usr/share/nginx/html/assets'
+          else
+            # An empty build must not accidentally inherit either configured URL.
+            for installer_url in 'https://installer.example.test/install.sh' "$APPROVED_INSTALLER_URL"; do
+              if docker exec -e INSTALLER_URL="$installer_url" labbit-web-smoke \
+                sh -c 'grep -rFq -- "$INSTALLER_URL" /usr/share/nginx/html/assets'; then
+                echo "::error::Unconfigured PR bundle unexpectedly contains an installer URL"
+                exit 1
+              fi
+            done
           fi
           for attempt in {1..30}; do
             if curl -fsS http://127.0.0.1:18080/healthz | grep -qx 'OK'; then
@@ -178,3 +200,21 @@ jobs:
             sleep 1
           done
           exit 1
+
+      - name: Reject unsafe installer Docker build argument
+        if: matrix.profile == 'synthetic'
+        shell: bash
+        run: |
+          log_file="$(mktemp)"
+          trap 'rm -f "$log_file"' EXIT
+          if docker buildx build --target builder --progress plain \
+            --build-arg VITE_LABBIT_APPROVED_INSTALLER_URL=http://installer.example.test/install.sh \
+            --file web/Dockerfile web >"$log_file" 2>&1; then
+            echo "::error::Unsafe installer URL unexpectedly passed Docker build"
+            exit 1
+          fi
+          if ! grep -Fq 'Invalid public VITE_LABBIT_APPROVED_INSTALLER_URL' "$log_file"; then
+            cat "$log_file"
+            echo "::error::Docker failed before exercising the installer URL guard"
+            exit 1
+          fi

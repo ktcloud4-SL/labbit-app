@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { validateInstallerBuildEnv } from './validate-installer-build-env.mjs'
 

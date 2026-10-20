@@ -13,7 +13,7 @@ import { getWorkspaceEditState } from './workspaceEditState'
 const labId = 'lab-instance-file-boundary'
 const path = 'README.md'
 const tree = { path: '', items: [{ name: path, path, kind: 'file' as const }] }
-const document = { file: { path, content: '# authorized content\n' }, etag: '"revision-1"' }
+const workspaceDocument = { file: { path, content: '# authorized content\n' }, etag: '"revision-1"' }
 
 function mount(overrides: Partial<typeof mockLabbitApi>) {
   const api = { ...mockLabbitApi, ...overrides }
@@ -59,11 +59,11 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
       listWorkspaceFiles: async () => tree,
       readWorkspaceFile: async () => {
         if (denied) throw new HttpError(status)
-        return document
+        return workspaceDocument
       },
     })
     fireEvent.click(await screen.findByRole('button', { name: /README.md/ }))
-    expect(await screen.findByLabelText('파일 편집기')).toHaveValue(document.file.content)
+    expect(await screen.findByLabelText('파일 편집기')).toHaveValue(workspaceDocument.file.content)
     denied = true
     await act(async () => {
       await client.invalidateQueries({ queryKey: labbitQueryKeys.workspaceFile(labId, 1, path) })
@@ -71,7 +71,7 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
     expect(screen.queryByLabelText('파일 편집기')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '파일 다시 읽기' })).toBeInTheDocument()
-    expect(client.getQueryData(labbitQueryKeys.workspaceFile(labId, 1, path))).toEqual(document)
+    expect(client.getQueryData(labbitQueryKeys.workspaceFile(labId, 1, path))).toEqual(workspaceDocument)
   })
 
   it('Tree 403 hides an already open Editor and retains draft until a fresh authorized File GET', async () => {
@@ -121,7 +121,7 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
       listWorkspaceFiles: async () => tree,
       readWorkspaceFile: async () => {
         if (fileDenied) throw new HttpError(409)
-        return document
+        return workspaceDocument
       },
     })
     fireEvent.click(await screen.findByRole('button', { name: /README.md/ }))
@@ -153,7 +153,7 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
       listWorkspaceFiles: async () => tree,
       readWorkspaceFile: async () => {
         if (unavailable) throw new HttpError(503)
-        return document
+        return workspaceDocument
       },
     })
     fireEvent.click(await screen.findByRole('button', { name: /README.md/ }))

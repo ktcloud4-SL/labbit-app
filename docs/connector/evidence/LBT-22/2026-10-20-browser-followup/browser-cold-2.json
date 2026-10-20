@@ -1,0 +1,22 @@
+{
+  "at": "2026-10-20T05:06:25.392Z",
+  "idleSince": "2026-10-20T05:05:12.448Z",
+  "expectedRenderedSize": {
+    "cols": 174,
+    "rows": 9
+  },
+  "kernelSizes": [
+    {
+      "cols": 174,
+      "rows": 9
+    }
+  ],
+  "measureCharacters": 32,
+  "message": "터미널에 연결되었습니다.",
+  "nonceRendered": true,
+  "status": "연결됨",
+  "viewport": {
+    "height": 884,
+    "width": 1304
+  }
+}

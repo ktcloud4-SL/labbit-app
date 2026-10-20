@@ -1,0 +1,23 @@
+{
+  "startedAt": "2026-10-20T05:01:18.203Z",
+  "observedAt": "2026-10-20T05:01:51.580Z",
+  "scenario": "cold_transport_student_1",
+  "expectedRenderedSize": {
+    "cols": 174,
+    "rows": 9
+  },
+  "kernelSizes": [
+    {
+      "cols": 174,
+      "rows": 9
+    }
+  ],
+  "measureCharacters": 32,
+  "message": "터미널에 연결되었습니다.",
+  "nonceRendered": true,
+  "status": "연결됨",
+  "viewport": {
+    "height": 884,
+    "width": 1304
+  }
+}

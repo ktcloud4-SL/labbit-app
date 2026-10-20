@@ -1,0 +1,33 @@
+{
+  "checkedAt": "2026-10-20T05:15:38.023152+00:00",
+  "scope": "C2 only; C3/G3/G4 not run",
+  "newTerminalSessions": 34,
+  "newCreatedAttachedEndedSetsEqual": true,
+  "newTerminalFailureEvents": 0,
+  "browserReopensWithFreshVmOutputAndDimensions": 30,
+  "coldSshCandidateRuns": 2,
+  "providerResolves": 50,
+  "providerHttp200": 100,
+  "studentAndTeacherPtyShellsRemaining": 0,
+  "temporarySshPolicyAbsent": true,
+  "remoteTemporaryProbeBinaryAndDirectoryAbsent": true,
+  "localEvidenceProbeBinaryRetained": true,
+  "browserCaseToSessionIdDirectMappingCollected": false,
+  "temporaryRepositoryTestRemoved": true,
+  "newOpsPodCreated": false,
+  "cloudInventoryExactlyMatchesPriorRetainedFixture": true,
+  "counts": {
+    "servers": 3,
+    "volumes": 3,
+    "tiers": 7,
+    "firewallPolicies": 5
+  },
+  "retainedOwnedResourceCount": 10,
+  "retentionPurpose": "Existing user G3/G4 follow-up environment; no readiness verdict for these gates",
+  "productSource13FilesUnchanged": true,
+  "runtimeConfigAndConsumedPoolUnchanged": true,
+  "deployedBinaryUnchanged": true,
+  "historicalOpenFailedRootCauseConfirmed": false,
+  "historicalOpenFailedFixVerified": false,
+  "userRequestedC2FullClosure": false
+}

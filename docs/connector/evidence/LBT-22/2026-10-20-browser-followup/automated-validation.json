@@ -1,0 +1,157 @@
+{
+  "recordedAt": "2026-10-20T05:27:52.880512+00:00",
+  "base": "9172e050f5660c80b84ba70d52f0c549d8f032d9",
+  "goVersion": "go version go1.27.1 windows/amd64",
+  "nodeVersion": "v24.19.0",
+  "initialRuns": [
+    {
+      "name": "linux-provider-compile",
+      "exit": 0,
+      "seconds": 5.08
+    },
+    {
+      "name": "web-typecheck",
+      "exit": 0,
+      "seconds": 5.97
+    },
+    {
+      "name": "linux-provider-mkdir",
+      "exit": 0,
+      "seconds": 2.22
+    },
+    {
+      "name": "web-lint",
+      "exit": 0,
+      "seconds": 11.08
+    },
+    {
+      "name": "web-test",
+      "exit": 0,
+      "seconds": 13.65
+    },
+    {
+      "name": "web-build",
+      "exit": 0,
+      "seconds": 0.54
+    },
+    {
+      "name": "linux-provider-upload",
+      "exit": 0,
+      "seconds": 39.91
+    },
+    {
+      "name": "go-test-windows-except-provider",
+      "exit": 0,
+      "seconds": 51.35
+    },
+    {
+      "name": "go-vet",
+      "exit": 0,
+      "seconds": 3.69
+    },
+    {
+      "name": "linux-provider-test",
+      "exit": 1,
+      "seconds": 11.29
+    },
+    {
+      "name": "linux-provider-cleanup",
+      "exit": 0,
+      "seconds": 2.21
+    },
+    {
+      "name": "go-build",
+      "exit": 0,
+      "seconds": 4.69
+    },
+    {
+      "name": "gofmt-check",
+      "exit": 0,
+      "seconds": 0.16
+    }
+  ],
+  "finalProviderRuns": [
+    {
+      "name": "linux-provider-retry-compile",
+      "exit": 0,
+      "seconds": 2.25
+    },
+    {
+      "name": "linux-provider-retry-mkdir",
+      "exit": 0,
+      "seconds": 2.09
+    },
+    {
+      "name": "linux-provider-retry-upload",
+      "exit": 0,
+      "seconds": 16.48
+    },
+    {
+      "name": "linux-provider-retry-unpack",
+      "exit": 0,
+      "seconds": 2.42
+    },
+    {
+      "name": "linux-provider-retry-test",
+      "exit": 0,
+      "seconds": 11.33
+    },
+    {
+      "name": "linux-loopback-repeat30",
+      "exit": 0,
+      "seconds": 3.64
+    },
+    {
+      "name": "linux-provider-retry-cleanup",
+      "exit": 0,
+      "seconds": 2.21
+    }
+  ],
+  "providerLinuxBinarySHA256": "8ca0271c1943d6cac6b13d8d6e16f48cd0a1cbd65e74cb860ea7fb8ca9a74cdc",
+  "providerLinuxPassedTestsIncludingSubtests": 561,
+  "providerLinuxSkippedOptInTests": [
+    "TestOpenStackM2ControlWSSIntegration",
+    "TestOpenStackFileTransportIntegration",
+    "TestOpenStackM1Integration",
+    "TestOpenStackM2ProvisionIntegration",
+    "TestOpenStackM3LifecycleIntegration",
+    "TestOpenStackInternetPolicyIntegration",
+    "TestKTCloudD1ReadOnlyIntegration",
+    "TestKTCloudD1DisposableNetworkIntegration",
+    "TestOpenStackPreviewForwardingIntegration",
+    "TestOpenStackPTYCC02Integration",
+    "TestOpenStackTerminalC2Integration",
+    "TestOpenStackVMAccessIntegration",
+    "TestOpenStackWorkspaceFileIntegration",
+    "TestOpenStackPreviewTransportIntegration"
+  ],
+  "loopbackRepeatedCount": 30,
+  "webFiles": 23,
+  "webTests": 286,
+  "installedWebToolVersions": {
+    "typescript": "6.0.3",
+    "eslint": "10.12.0",
+    "vitest": "5.0.3",
+    "vite": "8.3.4"
+  },
+  "webDependencyLimitation": "Reused installed node_modules. Vitest5.0.3 differs from manifest/lock5.0.5; npm ci was not rerun. Web sources/dependencies unchanged in this PR; these checks are supplemental, exact lockfile CI remains required.",
+  "goCoverageScope": "All standard Go packages: Windows go test excluding provider/openstack PASS; provider/openstack crosscompiled from final source and run on Linux PASS. Does not claim single-platform go test ./... was executed.",
+  "fixtureFinding": "Initial provider Linux run failed existing TestTerminalC2_FullStackLoopback on ErrNotReady before server MarkReady. Final test-only readiness helper fixes the fixture precondition; full Provider and 30 loopback repeats PASS.",
+  "afterFinalFixtureChange": "go vet provider package and gofmt repeated successfully. Final Linux compile includes both helper call sites. Remaining source unchanged since full vet/build/windows tests.",
+  "notExecuted": [
+    "PostgreSQL integration build-tag tests",
+    "Opt-in OpenStack external integration tests",
+    "Exact final PR binary live deployment",
+    "C3/G3/G4",
+    "Long soak / grace-expiry60s"
+  ],
+  "liveEvidenceSeparate": true,
+  "remoteTestBinaryAndDirectoryRemoved": true,
+  "formatValidation": {
+    "initialLog": "gofmt-check.txt contains534 paths due Windows CRLF. Exit0 of gofmt -l alone was not evidence of format PASS; initial log retained.",
+    "finalCheck": "All546 tracked .go files copied as canonicalLF, each verified equal to Git index blob SHA1. gofmt -l across these files returned exit0 AND empty stdout. No product changes required.",
+    "indexBlobsVerified": 546,
+    "gofmtExit": 0,
+    "gofmtStdoutEmpty": true
+  }
+}

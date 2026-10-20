@@ -77,7 +77,7 @@ func newSSHSessionPTY(session *ssh.Session, client *ssh.Client, closeChannel fun
 
 	if err := session.RequestPty("xterm-256color", rows, cols, modes); err != nil {
 		_ = session.Close()
-		return nil, fmt.Errorf("failed to request pty: %w", err)
+		return nil, vmaccess.Diagnose(vmaccess.StagePTYRequest, err, time.Time{})
 	}
 
 	stdin, err := session.StdinPipe()
@@ -95,7 +95,7 @@ func newSSHSessionPTY(session *ssh.Session, client *ssh.Client, closeChannel fun
 		_ = stdout.Close()
 		_ = output.Close()
 		_ = session.Close()
-		return nil, fmt.Errorf("failed to start shell: %w", err)
+		return nil, vmaccess.Diagnose(vmaccess.StageShellStart, err, time.Time{})
 	}
 
 	pty := &SSHPTY{

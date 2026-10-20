@@ -388,8 +388,8 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
 	})
 	defer shutdown()
 	handler := connectorApp.Handler
-	handler.SetOnError(func(error) {
-		logger.Warn("Connector Control 메시지 처리 실패", "connector_id", connectorID)
+	handler.SetOnError(func(err error) {
+		logControlError(logger, connectorID, err)
 	})
 	supervisor := wss.NewSupervisor(config, handler, wss.NewDefaultBackoffPolicy())
 	supervisor.SetOnShutdown(shutdown)

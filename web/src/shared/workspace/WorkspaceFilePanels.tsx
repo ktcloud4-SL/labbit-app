@@ -466,7 +466,7 @@ export function WorkspaceFilePanels({
       <aside className="workspace-panel workspace-files">
         <div className="workspace-panel-heading">
           <strong>파일</strong>
-          <span>{directoryPath || 'Workspace root'}</span>
+          <span>{treeAccessChanged ? '접근 확인 필요' : directoryPath || 'Workspace root'}</span>
         </div>
 
         <div className="workspace-file-browser">
@@ -529,7 +529,7 @@ export function WorkspaceFilePanels({
       <section className="workspace-panel workspace-editor">
         <div className="workspace-panel-heading">
           <strong>Editor</strong>
-          <span>{selectedFilePath || '파일을 선택하세요'}</span>
+          <span>{(selectedAccessChanged || needsFreshFileRead) ? '접근 확인 필요' : selectedFilePath || '파일을 선택하세요'}</span>
         </div>
 
         {!selectedFilePath && (

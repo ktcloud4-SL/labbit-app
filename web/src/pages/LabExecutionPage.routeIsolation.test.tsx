@@ -146,6 +146,36 @@ describe('LBT-53 execution destructive action route isolation', () => {
     expect(cleanupLabExecution).toHaveBeenCalledWith('execution-a', expect.any(String))
   })
 
+
+  it('Cleanup 확인 후 사전 GET 지연 중 B로 이동하면 A의 파괴적 POST를 새로 시작하지 않는다', async () => {
+    let finishGet!: (value: LabExecution) => void
+    const pendingGet = new Promise<LabExecution>((resolve) => { finishGet = resolve })
+    let readsA = 0
+    const getLabExecution = vi.fn(async (id: string) => {
+      if (id !== 'execution-a') return executionFor(id)
+      readsA += 1
+      return readsA === 1 ? executionFor(id) : pendingGet
+    })
+    const { router, cleanupLabExecution } = mount(undefined, { getLabExecution })
+    expect(await screen.findByText('execution-a')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '전체 실습 정리' }))
+    fireEvent.click(screen.getByRole('button', { name: '정리 시작' }))
+    await waitFor(() => expect(getLabExecution).toHaveBeenCalledTimes(2))
+    expect(cleanupLabExecution).not.toHaveBeenCalled()
+
+    await goToExecutionB(router)
+    await act(async () => {
+      finishGet(executionFor('execution-a'))
+      await pendingGet
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(router.state.location.pathname).toBe('/lab-executions/execution-b')
+    expect(cleanupLabExecution).not.toHaveBeenCalled()
+    expect(screen.queryByText('Operation destination')).not.toBeInTheDocument()
+  })
+
   it('Cleanup 확인 후 서버가 CLEANING_UP으로 바뀌었으면 POST하지 않고 상태를 다시 읽는다', async () => {
     let isCleaning = false
     const { cleanupLabExecution } = mount(undefined, {

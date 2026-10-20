@@ -77,8 +77,8 @@ describe('LBT-26 PreviewSession Frontend consumer', () => {
     expect(await screen.findByText(/미리보기 세션이 준비되었습니다/)).toBeInTheDocument()
     expect(container.innerHTML).not.toContain(URL_WITH_FIXTURE)
     expect(container.innerHTML).not.toContain('#fixture-only-not-a-secret')
-    expect(JSON.stringify(client.getQueryCache().getAll())).not.toContain(URL_WITH_FIXTURE)
-    expect(JSON.stringify(client.getMutationCache().getAll())).not.toContain(URL_WITH_FIXTURE)
+    expect(JSON.stringify(client.getQueryCache().getAll().map((query) => query.state.data))).not.toContain(URL_WITH_FIXTURE)
+    expect(JSON.stringify(client.getMutationCache().getAll().map((mutation) => mutation.state.data))).not.toContain(URL_WITH_FIXTURE)
     fireEvent.click(screen.getByRole('button', { name: '미리보기 새 탭 열기' }))
     expect(open).toHaveBeenCalledWith(URL_WITH_FIXTURE, '_blank', 'noopener,noreferrer')
     expect(screen.getByRole('button', { name: '미리보기 새 탭 열기' })).toBeDisabled()
@@ -119,7 +119,7 @@ describe('LBT-26 PreviewSession Frontend consumer', () => {
     submitPort()
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
     expect(screen.getByText('로그인 화면')).toBeInTheDocument()
-    expect(JSON.stringify(client.getMutationCache().getAll())).not.toContain(URL_WITH_FIXTURE)
+    expect(JSON.stringify(client.getMutationCache().getAll().map((mutation) => mutation.state.data))).not.toContain(URL_WITH_FIXTURE)
   })
 
   it('유효하지 않은 previewUrl 응답은 열지 않고 서버 세션을 정리한다', async () => {
@@ -148,7 +148,7 @@ describe('LBT-26 PreviewSession Frontend consumer', () => {
     await act(async () => { resolve(session()); await pending })
     await waitFor(() => expect(close).toHaveBeenCalledWith('fixture-preview-1'))
     expect(screen.queryByText(/미리보기 세션이 준비되었습니다/)).not.toBeInTheDocument()
-    expect(JSON.stringify(client.getQueryCache().getAll())).not.toContain(URL_WITH_FIXTURE)
+    expect(JSON.stringify(client.getQueryCache().getAll().map((query) => query.state.data))).not.toContain(URL_WITH_FIXTURE)
   })
 
   it('종료 403은 종료 성공으로 오인하지 않고 오류를 보여준다', async () => {

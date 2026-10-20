@@ -342,6 +342,17 @@ export function WorkspaceFilePanels({
     (treeQuery.error instanceof HttpError && treeQuery.error.status === 401) ||
     (fileQuery.error instanceof HttpError && fileQuery.error.status === 401)
 
+  // React Query retains the last successful result after a failed refetch.
+  // 403/404/409 are authoritative permission, identity or generation changes:
+  // never render cached file names/content alongside those failures.
+  // For transient transport errors, preserve unsaved editor drafts.
+  const treeAccessChanged =
+    treeQuery.error instanceof HttpError &&
+    [403, 404, 409].includes(treeQuery.error.status)
+  const fileAccessChanged =
+    fileQuery.error instanceof HttpError &&
+    [403, 404, 409].includes(fileQuery.error.status)
+
   if (authExpired) {
     return <LoginRedirect reason="sessionExpired" />
   }
@@ -412,13 +423,13 @@ export function WorkspaceFilePanels({
             />
           )}
 
-          {treeQuery.data && treeQuery.data.items.length === 0 && (
+          {treeQuery.data && !treeAccessChanged && treeQuery.data.items.length === 0 && (
             <div className="workspace-file-state">
               <p>이 폴더에는 표시할 파일이 없습니다.</p>
             </div>
           )}
 
-          {treeQuery.data && treeQuery.data.items.length > 0 && (
+          {treeQuery.data && !treeAccessChanged && treeQuery.data.items.length > 0 && (
             <div className="workspace-file-list" role="list" aria-label="Workspace 파일 목록">
               {treeQuery.data.items.map((entry) => (
                 <button
@@ -475,7 +486,7 @@ export function WorkspaceFilePanels({
           />
         )}
 
-        {selectedFilePath && fileQuery.data && (
+        {selectedFilePath && fileQuery.data && !fileAccessChanged && (
           <WorkspaceFileEditor
             key={`${fileQuery.data.file.path}:${fileQuery.data.etag}:${fileQuery.dataUpdatedAt}`}
             labInstanceId={labInstanceId}

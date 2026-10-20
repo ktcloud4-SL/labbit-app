@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -134,6 +134,125 @@ describe('LBT-26 instructor Live controls', () => {
     await query.invalidateQueries({ queryKey: ['classes', 'class-a', 'live-session'] })
     await waitFor(() => expect(screen.queryByRole('button', { name: '공유 종료' })).not.toBeInTheDocument())
     expect(screen.queryByText('공유 상태 확인 불가 · 마지막 세션 종료 가능')).not.toBeInTheDocument()
+  })
+
+  it.each<[number, '503' | 'network']>([
+    [403, '503'],
+    [404, '503'],
+    [403, 'network'],
+    [404, 'network'],
+  ])('does not revive a rejected Live after %i then %s, including remount, until a fresh success', async (status, failure) => {
+    let lookupFailure: Error | null = null
+    const getActiveLiveSession = vi.fn(async () => {
+      if (lookupFailure) throw lookupFailure
+      return live
+    })
+    const closeLiveSession = vi.fn(async () => {})
+    const { query, view, api } = mount(
+      <LiveInstructorControls classId="class-a" sourceTerminalSessionId="terminal-a" />,
+      { getActiveLiveSession, closeLiveSession },
+    )
+    const queryKey = ['classes', 'class-a', 'live-session']
+    const refresh = () => act(async () => { await query.invalidateQueries({ queryKey }) })
+    expect(await screen.findByRole('button', { name: '공유 종료' })).toBeEnabled()
+
+    lookupFailure = new HttpError(status)
+    await refresh()
+    await waitFor(() => expect(screen.queryByRole('button', { name: '공유 종료' })).not.toBeInTheDocument())
+
+    lookupFailure = failure === '503' ? new HttpError(503) : new TypeError('Network unavailable')
+    await refresh()
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(failure === '503'
+      ? 'Live 서비스를 현재 사용할 수 없습니다.'
+      : 'Live 요청을 처리하지 못했습니다. 다시 확인해 주세요.'))
+    expect(screen.queryByRole('button', { name: '공유 종료' })).not.toBeInTheDocument()
+    expect(screen.queryByText('공유 상태 확인 불가 · 마지막 세션 종료 가능')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '화면 공유 시작' })).toBeDisabled()
+    expect(closeLiveSession).not.toHaveBeenCalled()
+
+    // Retained Query data must not regain authority when the controls remount.
+    const callsBeforeRemount = getActiveLiveSession.mock.calls.length
+    view.rerender(<MemoryRouter><QueryClientProvider client={query}>
+      <LabbitApiProvider api={api}>
+        <LiveInstructorControls key="remounted" classId="class-a" sourceTerminalSessionId="terminal-a" />
+      </LabbitApiProvider>
+    </QueryClientProvider></MemoryRouter>)
+    await waitFor(() => expect(getActiveLiveSession).toHaveBeenCalledTimes(callsBeforeRemount + 1))
+    await waitFor(() => expect(query.getQueryState(queryKey)?.fetchStatus).toBe('idle'))
+    expect(screen.queryByRole('button', { name: '공유 종료' })).not.toBeInTheDocument()
+
+    // A new 200 may re-authorize even the same ID, including later best-effort STOP.
+    lookupFailure = null
+    await refresh()
+    expect(await screen.findByRole('button', { name: '공유 종료' })).toBeEnabled()
+    lookupFailure = new HttpError(503)
+    await refresh()
+    expect(await screen.findByText('공유 상태 확인 불가 · 마지막 세션 종료 가능')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '공유 종료' }))
+    await waitFor(() => expect(closeLiveSession).toHaveBeenCalledExactlyOnceWith('live-a'))
+  })
+
+  it.each([403, 404])('keeps a %i denial effective when subsequent failures are batched before render', async (status) => {
+    let lookupFailure: Error | null = null
+    const { query } = mount(
+      <LiveInstructorControls classId="class-a" sourceTerminalSessionId="terminal-a" />,
+      { getActiveLiveSession: async () => {
+        if (lookupFailure) throw lookupFailure
+        return live
+      } },
+    )
+    expect(await screen.findByRole('button', { name: '공유 종료' })).toBeEnabled()
+    await act(async () => {
+      lookupFailure = new HttpError(status)
+      await query.invalidateQueries()
+      lookupFailure = new HttpError(503)
+      await query.invalidateQueries()
+    })
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Live 서비스를 현재 사용할 수 없습니다.'))
+    expect(screen.queryByRole('button', { name: '공유 종료' })).not.toBeInTheDocument()
+  })
+
+  it('keeps a newly created Live stoppable when the first follow-up lookup is unavailable', async () => {
+    let created = false
+    const closeLiveSession = vi.fn(async () => {})
+    mount(<LiveInstructorControls classId="class-a" sourceTerminalSessionId="terminal-a" />, {
+      getActiveLiveSession: async () => { throw new HttpError(created ? 503 : 404) },
+      createLiveSession: async () => { created = true; return live },
+      closeLiveSession,
+    })
+    await waitFor(() => expect(screen.getByRole('button', { name: '화면 공유 시작' })).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', { name: '화면 공유 시작' }))
+    expect(await screen.findByText('공유 상태 확인 불가 · 마지막 세션 종료 가능')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '공유 종료' }))
+    await waitFor(() => expect(closeLiveSession).toHaveBeenCalledExactlyOnceWith('live-a'))
+  })
+
+  it('ignores a cancelled lookup that resolves after a later authoritative denial', async () => {
+    let lookup: 'success' | 'pending' | 'denied' | 'unavailable' = 'success'
+    let resolveLookup!: (session: LiveSession) => void
+    const { query } = mount(
+      <LiveInstructorControls classId="class-a" sourceTerminalSessionId="terminal-a" />,
+      { getActiveLiveSession: async () => {
+        if (lookup === 'pending') return new Promise<LiveSession>(resolve => { resolveLookup = resolve })
+        if (lookup === 'denied') throw new HttpError(403)
+        if (lookup === 'unavailable') throw new HttpError(503)
+        return live
+      } },
+    )
+    expect(await screen.findByRole('button', { name: '공유 종료' })).toBeEnabled()
+    lookup = 'pending'
+    const pendingRefresh = query.invalidateQueries()
+    await waitFor(() => expect(resolveLookup).toBeDefined())
+    await act(async () => { await query.cancelQueries() })
+    lookup = 'denied'
+    await act(async () => { await query.invalidateQueries() })
+    await waitFor(() => expect(screen.queryByRole('button', { name: '공유 종료' })).not.toBeInTheDocument())
+
+    await act(async () => { resolveLookup(live); await pendingRefresh })
+    lookup = 'unavailable'
+    await act(async () => { await query.invalidateQueries() })
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Live 서비스를 현재 사용할 수 없습니다.'))
+    expect(screen.queryByRole('button', { name: '공유 종료' })).not.toBeInTheDocument()
   })
 
   it('does not allow starting a new Live when Class already has an active one', async () => {

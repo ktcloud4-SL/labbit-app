@@ -15,6 +15,10 @@ function httpLiveError(error: unknown) {
   return 'Live 요청을 처리하지 못했습니다. 다시 확인해 주세요.'
 }
 
+function rejectsPreviousLive(error: unknown) {
+  return error instanceof HttpError && [401, 403, 404].includes(error.status)
+}
+
 export function LiveInstructorControls({
   classId,
   sourceTerminalSessionId,
@@ -27,21 +31,42 @@ export function LiveInstructorControls({
   const [authExpired, setAuthExpired] = useState(false)
   const [closedSessionId, setClosedSessionId] = useState<string | null>(null)
   const queryKey = labbitQueryKeys.activeLiveSession(classId)
+  const [lastVerified, setLastVerified] = useState<{
+    classId: string
+    session: LiveSession | undefined
+  }>(() => {
+    const cached = queryClient.getQueryState<LiveSession>(queryKey)
+    return { classId, session: cached?.status === 'success' ? cached.data : undefined }
+  })
   const activeQuery = useQuery({
     queryKey,
-    queryFn: () => api.getActiveLiveSession(classId),
+    queryFn: async ({ signal }) => {
+      try {
+        const session = await api.getActiveLiveSession(classId)
+        if (!signal.aborted) setLastVerified({ classId, session })
+        return session
+      } catch (error) {
+        // Record the denial at the response boundary, even when a subsequent
+        // failure replaces Query.error before React commits an intermediate UI.
+        if (!signal.aborted && rejectsPreviousLive(error)) {
+          setLastVerified({ classId, session: undefined })
+        }
+        throw error
+      }
+    },
     retry: false,
     refetchInterval: 15_000,
   })
 
   const lookupError = activeQuery.error
   const noActive = lookupError instanceof HttpError && lookupError.status === 404
-  const forbidden = lookupError instanceof HttpError && [401, 403, 404].includes(lookupError.status)
+  const forbidden = rejectsPreviousLive(lookupError)
   // On a transient lookup failure, we cannot claim the sharing is active.
   // But preserve the last verified ID for an explicit best-effort STOP.
   // Never offer STOP for an auth failure, forbidden membership, or confirmed 404.
   const uncertain = Boolean(lookupError) && !forbidden
-  const queriedActive = forbidden ? undefined : activeQuery.data
+  const fallback = lastVerified.classId === classId ? lastVerified.session : undefined
+  const queriedActive = forbidden ? undefined : lookupError ? fallback : activeQuery.data
   const active = queriedActive?.id === closedSessionId ? undefined : queriedActive
 
   async function act(action: 'start' | 'stop') {
@@ -58,6 +83,7 @@ export function LiveInstructorControls({
           setMessage('Live 응답 대상이 현재 Class·Terminal과 다릅니다. 새로 확인해 주세요.')
         } else {
           setClosedSessionId(null)
+          setLastVerified({ classId, session: created })
           queryClient.setQueryData(queryKey, created)
           setMessage('학생에게 현재 이후의 터미널 출력만 공유합니다.')
         }

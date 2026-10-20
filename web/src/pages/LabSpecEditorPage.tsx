@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom'
 
 import type { LabSpecMappingOptionsList, LabSpecWrite, VmRoleSpec } from '../shared/api/contracts'
 import { LabSpecMappingFields, type MappingCandidate } from './LabSpecMappingFields'
@@ -564,6 +564,9 @@ export function LabSpecEditorPage() {
   // A cached 412 draft is tied to the source LabSpec and its ETag.
   // It is never automatically submitted with a newer server ETag.
   const [draftBackup, setDraftBackup] = useState<LabSpecDraftBackup | null>(null)
+  const [dirtyRoute, setDirtyRoute] = useState<string | null>(null)
+  const allowSavedNavigationRef = useRef(false)
+  const currentRoute = resolvedLabSpecId || 'new-lab-spec'
 
   const meQuery = useQuery({
     queryKey: labbitQueryKeys.me,
@@ -592,13 +595,14 @@ export function LabSpecEditorPage() {
   })
 
   const captureDraft = useCallback((form: LabSpecWrite) => {
+    setDirtyRoute(currentRoute)
     if (!resolvedLabSpecId) return
     setDraftBackup({
       labSpecId: resolvedLabSpecId,
       etag: labSpecQuery.data?.etag,
       form,
     })
-  }, [resolvedLabSpecId, labSpecQuery.data?.etag])
+  }, [currentRoute, resolvedLabSpecId, labSpecQuery.data?.etag])
 
   const saveMutation = useMutation({
     mutationFn: async (input: LabSpecWrite) => {
@@ -620,7 +624,9 @@ export function LabSpecEditorPage() {
       }
     },
     onSuccess: async (result) => {
+      allowSavedNavigationRef.current = true
       setDraftBackup(null)
+      setDirtyRoute(null)
       await queryClient.invalidateQueries({ queryKey: labbitQueryKeys.labSpecs })
 
       if (result.mode === 'create') {
@@ -641,6 +647,40 @@ export function LabSpecEditorPage() {
       }
     },
   })
+
+  const hasUnsavedWork = dirtyRoute === currentRoute || saveMutation.isPending
+  const navigationBlocker = useBlocker(
+    ({ nextLocation }) =>
+      hasUnsavedWork && !allowSavedNavigationRef.current &&
+      nextLocation.pathname !== '/login',
+  )
+
+  useEffect(() => {
+    if (!hasUnsavedWork) return
+    const preventUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', preventUnload)
+    return () => window.removeEventListener('beforeunload', preventUnload)
+  }, [hasUnsavedWork])
+
+  useEffect(() => {
+    if (navigationBlocker.state !== 'blocked') return
+    if (saveMutation.isPending) {
+      navigationBlocker.reset()
+      return
+    }
+    if (window.confirm('저장되지 않은 LabSpec 변경이 있습니다. 버리고 이동할까요?')) {
+      queueMicrotask(() => {
+        setDraftBackup(null)
+        setDirtyRoute(null)
+        navigationBlocker.proceed()
+      })
+      return
+    }
+    navigationBlocker.reset()
+  }, [navigationBlocker, saveMutation.isPending])
 
   if (meQuery.isPending || (!isNew && labSpecQuery.isPending)) {
     return (
@@ -793,7 +833,10 @@ export function LabSpecEditorPage() {
             : null
         }
         onDraftChange={captureDraft}
-        onDiscardRetainedDraft={() => setDraftBackup(null)}
+        onDiscardRetainedDraft={() => {
+          setDraftBackup(null)
+          setDirtyRoute(null)
+        }}
         onSubmit={(input) => {
           saveMutation.reset()
           saveMutation.mutate(input)

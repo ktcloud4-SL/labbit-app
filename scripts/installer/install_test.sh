@@ -308,13 +308,25 @@ test_tty_and_token_security() {
   expected_sha="$(printf '%s' "$dummy_bin_content" | sha256sum | awk '{print $1}')"
   cat <<EOF > "${fake_bin}/curl"
 #!/bin/sh
+out=""
+url=""
 while [ \$# -gt 0 ]; do
-  if [ "\$1" = "-o" ]; then
-    printf '%s' "$dummy_bin_content" > "\$2"
-    exit 0
-  fi
-  shift
+  case "\$1" in
+    -o) out="\$2"; shift 2 ;;
+    http*) url="\$1"; shift ;;
+    *) shift ;;
+  esac
 done
+case "\$url" in
+  */SHA256SUMS)
+    printf '%s  labbit-connector\n' "$expected_sha" > "\$out"
+    exit 0
+    ;;
+  */labbit-connector)
+    printf '%s' "$dummy_bin_content" > "\$out"
+    exit 0
+    ;;
+esac
 exit 0
 EOF
   chmod +x "${fake_bin}/curl"
@@ -490,6 +502,7 @@ EOF
     LABBIT_CONFIG_DIR="${TEST_ROOT}/etc_7a" \
     LABBIT_INSTALL_BIN="${TEST_ROOT}/usr_7a/labbit-connector" \
     LABBIT_SYSTEMD_SERVICE_FILE="${TEST_ROOT}/systemd_7/svc_a.service" \
+    LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
     LABBIT_TTY_DEV="$mock_tty" \
     sh "$INSTALLER" 2>&1 || true)
   if ! echo "$out_uncertain" | grep -q "outcome is UNCERTAIN" || ! echo "$out_uncertain" | grep -q "DO NOT blindly retry"; then
@@ -508,6 +521,7 @@ EOF
     LABBIT_CONFIG_DIR="${TEST_ROOT}/etc_7b" \
     LABBIT_INSTALL_BIN="${TEST_ROOT}/usr_7b/labbit-connector" \
     LABBIT_SYSTEMD_SERVICE_FILE="${TEST_ROOT}/systemd_7/svc_b.service" \
+    LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
     LABBIT_TTY_DEV="$mock_tty" \
     sh "$INSTALLER" 2>&1 || true)
   if ! echo "$out_401" | grep -q "invalid_enrollment_token"; then
@@ -544,6 +558,7 @@ EOF
     LABBIT_CONFIG_DIR="$mock_config" \
     LABBIT_INSTALL_BIN="$mock_bin" \
     LABBIT_SYSTEMD_SERVICE_FILE="$mock_service" \
+    LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
     LABBIT_TTY_DEV="$mock_tty" \
     sh "$INSTALLER" 2>&1)
 
@@ -811,6 +826,7 @@ EOF
     LABBIT_CONFIG_DIR="$mock_config" \
     LABBIT_INSTALL_BIN="$mock_bin" \
     LABBIT_SYSTEMD_SERVICE_FILE="$mock_service" \
+    LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
     LABBIT_TTY_DEV="$mock_tty" \
     sh "$INSTALLER" 2>&1 || true)
 
@@ -857,6 +873,7 @@ EOF
     LABBIT_CONFIG_DIR="$mock_config" \
     LABBIT_INSTALL_BIN="$mock_bin" \
     LABBIT_SYSTEMD_SERVICE_FILE="$mock_service" \
+    LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
     LABBIT_TTY_DEV="$mock_tty" \
     sh "$INSTALLER" 2>&1 || true)
 
@@ -910,6 +927,155 @@ test_insecure_http_url_rejection() {
 
   echo "PASS: Insecure HTTP protocol and non-https schemes correctly rejected."
 }
+
+# --- Test 12: Approved Release SHA256 Pinned Verification & Attack Defense ---
+test_default_approved_sha256_verification() {
+  echo "--- Test 12: Approved Release SHA256 Pinned Verification & Attack Defense ---"
+  local fake_bin="${TEST_ROOT}/bin_12"
+  setup_base_mocks "$fake_bin"
+
+  local approved_sha="742ac899d880b538ea56161394a857dc52bd4aa954858db0425073c039ad7346"
+  local mock_run="${TEST_ROOT}/run_12/systemd/system"
+  mkdir -p "$mock_run"
+  local mock_tty="${TEST_ROOT}/tty_12"
+  # Provide empty token so installer safely stops at Step 3 after installing binary
+  printf '\n' > "$mock_tty"
+
+  # Case 12A: Approved binary and matching release SHA256SUMS succeeds in default execution
+  cat <<EOF > "${fake_bin}/curl"
+#!/bin/sh
+out=""
+url=""
+while [ \$# -gt 0 ]; do
+  case "\$1" in
+    -o) out="\$2"; shift 2 ;;
+    http*) url="\$1"; shift ;;
+    *) shift ;;
+  esac
+done
+case "\$url" in
+  */SHA256SUMS)
+    printf '%s  labbit-connector\n' "$approved_sha" > "\$out"
+    exit 0
+    ;;
+  */labbit-connector)
+    printf 'approved-binary-payload' > "\$out"
+    exit 0
+    ;;
+esac
+exit 0
+EOF
+  chmod +x "${fake_bin}/curl"
+
+  cat <<EOF > "${fake_bin}/sha256sum"
+#!/bin/sh
+echo "${approved_sha}  \$1"
+exit 0
+EOF
+  chmod +x "${fake_bin}/sha256sum"
+
+  # Run installer with default parameters (no LABBIT_CONNECTOR_EXPECTED_SHA256 override)
+  local out_success
+  out_success=$(PATH="${fake_bin}:${PATH}" \
+    SYSTEMD_RUN_DIR="$mock_run" \
+    LABBIT_LOCK_DIR="${TEST_ROOT}/lock_12a.d" \
+    LABBIT_CONFIG_DIR="${TEST_ROOT}/etc_12a" \
+    LABBIT_INSTALL_BIN="${TEST_ROOT}/usr_12a/labbit-connector" \
+    LABBIT_TTY_DEV="$mock_tty" \
+    sh "$INSTALLER" 2>&1 || true)
+
+  if ! echo "$out_success" | grep -q "SHA256 verified successfully against approved pinned checksum"; then
+    echo "FAIL: Expected approved checksum verification success in default execution, got: $out_success"
+    exit 1
+  fi
+  if [ ! -f "${TEST_ROOT}/usr_12a/labbit-connector" ]; then
+    echo "FAIL: Approved binary was NOT installed to INSTALL_BIN!"
+    exit 1
+  fi
+  echo "PASS: Case 12A - Approved pinned checksum successfully verified and binary installed in default execution."
+
+  # Case 12B: Tampered binary with legitimate release SHA256SUMS fails on release SHA256SUMS check
+  cat <<EOF > "${fake_bin}/sha256sum"
+#!/bin/sh
+echo "0000000000000000000000000000000000000000000000000000000000000000  \$1"
+exit 0
+EOF
+  chmod +x "${fake_bin}/sha256sum"
+
+  local out_mismatch_single
+  out_mismatch_single=$(PATH="${fake_bin}:${PATH}" \
+    SYSTEMD_RUN_DIR="$mock_run" \
+    LABBIT_LOCK_DIR="${TEST_ROOT}/lock_12b.d" \
+    LABBIT_CONFIG_DIR="${TEST_ROOT}/etc_12b" \
+    LABBIT_INSTALL_BIN="${TEST_ROOT}/usr_12b/labbit-connector" \
+    LABBIT_TTY_DEV="$mock_tty" \
+    sh "$INSTALLER" 2>&1 || true)
+
+  if ! echo "$out_mismatch_single" | grep -q "SHA256 mismatch against release SHA256SUMS"; then
+    echo "FAIL: Expected release SHA256SUMS mismatch failure, got: $out_mismatch_single"
+    exit 1
+  fi
+  if [ -f "${TEST_ROOT}/usr_12b/labbit-connector" ]; then
+    echo "FAIL: Tampered binary was installed!"
+    exit 1
+  fi
+  echo "PASS: Case 12B - Tampered binary aborted on release SHA256SUMS check."
+
+  # Case 12C: ATTACK SCENARIO - Attacker replaced BOTH binary AND SHA256SUMS on GitHub release!
+  # In this scenario, SHA256SUMS matches the tampered binary, but does NOT match approved pinned checksum.
+  local tampered_hash="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  cat <<EOF > "${fake_bin}/curl"
+#!/bin/sh
+out=""
+url=""
+while [ \$# -gt 0 ]; do
+  case "\$1" in
+    -o) out="\$2"; shift 2 ;;
+    http*) url="\$1"; shift ;;
+    *) shift ;;
+  esac
+done
+case "\$url" in
+  */SHA256SUMS)
+    # Attacker modified SHA256SUMS to match the tampered binary
+    printf '%s  labbit-connector\n' "$tampered_hash" > "\$out"
+    exit 0
+    ;;
+  */labbit-connector)
+    printf 'tampered-payload' > "\$out"
+    exit 0
+    ;;
+esac
+exit 0
+EOF
+  chmod +x "${fake_bin}/curl"
+
+  cat <<EOF > "${fake_bin}/sha256sum"
+#!/bin/sh
+echo "${tampered_hash}  \$1"
+exit 0
+EOF
+  chmod +x "${fake_bin}/sha256sum"
+
+  local out_attack
+  out_attack=$(PATH="${fake_bin}:${PATH}" \
+    SYSTEMD_RUN_DIR="$mock_run" \
+    LABBIT_LOCK_DIR="${TEST_ROOT}/lock_12c.d" \
+    LABBIT_CONFIG_DIR="${TEST_ROOT}/etc_12c" \
+    LABBIT_INSTALL_BIN="${TEST_ROOT}/usr_12c/labbit-connector" \
+    LABBIT_TTY_DEV="$mock_tty" \
+    sh "$INSTALLER" 2>&1 || true)
+
+  if ! echo "$out_attack" | grep -q "SHA256 mismatch against approved release checksum"; then
+    echo "FAIL: Expected approved checksum mismatch abort when both binary and SHA256SUMS are modified, got: $out_attack"
+    exit 1
+  fi
+  if [ -f "${TEST_ROOT}/usr_12c/labbit-connector" ]; then
+    echo "FAIL: Tampered binary was installed despite approved pinned checksum mismatch!"
+    exit 1
+  fi
+  echo "PASS: Case 12C - Dual-tampering attack defense verified (aborted on approved pinned checksum mismatch)."
+}
 test_non_root
 test_unsupported_os_and_arch
 test_concurrent_lock_ownership
@@ -921,5 +1087,6 @@ test_runbook_upgrade_checksum_command
 test_sigterm_termination_and_lock_cleanup
 test_credential_save_failure_recovery_guidance
 test_insecure_http_url_rejection
+test_default_approved_sha256_verification
 
 echo "==> All install.sh behavioral & regression tests passed successfully!"

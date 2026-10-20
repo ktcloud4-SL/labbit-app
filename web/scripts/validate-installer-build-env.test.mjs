@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { validateInstallerBuildEnv } from './validate-installer-build-env.mjs'
 
-const script = fileURLToPath(new URL('./validate-installer-build-env.mjs', import.meta.url))
+const script = resolve(process.cwd(), 'scripts/validate-installer-build-env.mjs')
 const fixture = 'https://installer.example.test/connectors/install.sh'
 
 describe('LBT-183 public Installer URL build-time safety', () => {

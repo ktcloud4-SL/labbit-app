@@ -518,6 +518,84 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
     expect(readCount).toBe(3)
   })
 
+  it('retains an old LabInstance draft on instance replacement until explicit discard', async () => {
+    let activeLabId = labId
+    const api = {
+      ...mockLabbitApi,
+      getClass: async (): Promise<ClassDetail> => ({
+        id: 'class-a', name: 'Instance swap test', myRole: 'STUDENT',
+        activeLabExecution: { id: 'execution-a', status: 'ACTIVE' },
+        myLabInstance: { id: activeLabId, userId: 'student-a', generation: 1, status: 'READY' },
+      }),
+      listWorkspaceFiles: async () => tree,
+      readWorkspaceFile: async () => workspaceDocument,
+    }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
+    const router = createMemoryRouter([
+      { path: '/classes/:classId/lab', element: <LabPage /> },
+    ], { initialEntries: ['/classes/class-a/lab'] })
+    render(<QueryClientProvider client={client}>
+      <LabbitApiProvider api={api}><RouterProvider router={router} /></LabbitApiProvider>
+    </QueryClientProvider>)
+
+    fireEvent.click(await screen.findByRole('button', { name: /README.md/ }))
+    fireEvent.change(await screen.findByLabelText('파일 편집기'), {
+      target: { value: '# unsaved previous instance draft' },
+    })
+    expect(getWorkspaceEditState().dirty).toBe(true)
+
+    activeLabId = 'replacement-lab-instance'
+    await act(async () => { await client.invalidateQueries({ queryKey: labbitQueryKeys.classDetail('class-a') }) })
+    const discard = await screen.findByRole('button', { name: '이전 LabInstance 수정본 버리기' })
+    expect(screen.queryByLabelText('파일 편집기')).not.toBeInTheDocument()
+    expect(document.body.textContent).not.toContain('# unsaved previous instance draft')
+    expect(getWorkspaceEditState().dirty).toBe(true)
+
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
+    fireEvent.click(discard)
+    expect(screen.getByRole('button', { name: '이전 LabInstance 수정본 버리기' })).toBeInTheDocument()
+    expect(getWorkspaceEditState().dirty).toBe(true)
+    fireEvent.click(discard)
+    expect(confirm).toHaveBeenCalledTimes(2)
+    expect(await screen.findByLabelText('파일 편집기')).toHaveValue(workspaceDocument.file.content)
+    expect(getWorkspaceEditState().dirty).toBe(false)
+    fireEvent.change(screen.getByLabelText('파일 편집기'), { target: { value: '# new instance edit' } })
+    expect(getWorkspaceEditState().dirty).toBe(true)
+  })
+
+  it('discards a confirmed SPA exit draft when the same LabPage serves another Class', async () => {
+    const api = {
+      ...mockLabbitApi,
+      getClass: async (id: string): Promise<ClassDetail> => ({
+        id, name: 'Class ' + id, myRole: 'STUDENT',
+        activeLabExecution: { id: 'execution-' + id, status: 'ACTIVE' },
+        myLabInstance: { id: 'lab-' + id, userId: 'student-a', generation: 1, status: 'READY' },
+      }),
+      listWorkspaceFiles: async () => tree,
+      readWorkspaceFile: async () => workspaceDocument,
+    }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
+    const router = createMemoryRouter([
+      { path: '/classes/:classId/lab', element: <LabPage /> },
+    ], { initialEntries: ['/classes/class-a/lab'] })
+    render(<QueryClientProvider client={client}>
+      <LabbitApiProvider api={api}><RouterProvider router={router} /></LabbitApiProvider>
+    </QueryClientProvider>)
+
+    fireEvent.click(await screen.findByRole('button', { name: /README.md/ }))
+    fireEvent.change(await screen.findByLabelText('파일 편집기'), {
+      target: { value: '# discarded old class edit' },
+    })
+    expect(getWorkspaceEditState().dirty).toBe(true)
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    await act(async () => { await router.navigate('/classes/class-b/lab') })
+    expect(await screen.findByRole('heading', { name: 'Class class-b' })).toBeInTheDocument()
+    expect(confirm).toHaveBeenCalledTimes(1)
+    expect(getWorkspaceEditState().dirty).toBe(false)
+    expect(screen.queryByRole('button', { name: '이전 LabInstance 수정본 버리기' })).not.toBeInTheDocument()
+    expect(document.body.textContent).not.toContain('# discarded old class edit')
+  })
+
   it('keeps an unsaved editor draft during a transient 503 refetch failure', async () => {
     let unavailable = false
     const { client } = mount({

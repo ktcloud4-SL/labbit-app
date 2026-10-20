@@ -189,11 +189,14 @@ function LabExecutionForId({ executionId }: { executionId: string }) {
     actionTriggerRef.current = null
   }
 
+  const mutationPending = mutation.isPending
+  const resetMutation = mutation.reset
+
   // Any refreshed role/status/instance invalidating an open confirmation
   // invalidates the confirmation itself, including its idempotency key.
   // A later restoration of the old state must not resurrect that dialog.
   useEffect(() => {
-    if (!pendingAction || mutation.isPending) return
+    if (!pendingAction || mutationPending) return
 
     const execution = executionQuery.data
     const invalidRole = classQuery.data && classQuery.data.myRole !== 'INSTRUCTOR'
@@ -210,11 +213,15 @@ function LabExecutionForId({ executionId }: { executionId: string }) {
     )
 
     if (invalidRole || invalidTarget) {
-      mutation.reset()
-      setPendingAction(null)
-      actionTriggerRef.current = null
+      // Defer a state update until after the effect, and guard against a
+      // different confirmation having opened before this callback runs.
+      queueMicrotask(() => {
+        setPendingAction((current) => current === pendingAction ? null : current)
+        resetMutation()
+        actionTriggerRef.current = null
+      })
     }
-  }, [pendingAction, classQuery.data, executionQuery.data, mutation.isPending, mutation.reset])
+  }, [pendingAction, classQuery.data, executionQuery.data, mutationPending, resetMutation])
 
   if (!resolvedExecutionId) {
     return (

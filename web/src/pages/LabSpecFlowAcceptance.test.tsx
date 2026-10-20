@@ -358,6 +358,51 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     expect(unload.defaultPrevented).toBe(true)
   })
 
+
+  it('LabSpec PUT 대기 중에는 추가 편집을 막아 뒤늦은 저장 완료로 입력이 유실되지 않게 한다', async () => {
+    const candidate = mockLabSpecMappingOptions.items[0]
+    const original: LabSpec = {
+      id: 'lab-spec-saving',
+      ownerUserId: mockMe.id,
+      name: 'Before save',
+      vms: [{
+        role: 'control', imageRef: candidate.images[0].id,
+        sizeRef: candidate.flavors[0].id, count: 1,
+      }],
+      workspaceVm: { role: 'control', instanceIndex: 0 },
+      internetOutbound: true,
+    }
+    let finishSave!: (value: { labSpec: LabSpec; etag: string }) => void
+    const pendingSave = new Promise<{ labSpec: LabSpec; etag: string }>((resolve) => {
+      finishSave = resolve
+    })
+    const updateLabSpec = vi.fn(async () => pendingSave)
+    mountLabSpecFlow(
+      {
+        getLabSpec: async () => ({ labSpec: original, etag: '"v1"' }),
+        updateLabSpec,
+      },
+      '/lab-specs/lab-spec-saving',
+      <LabSpecEditorPage />,
+    )
+    expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('Before save')
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'Submitted edit' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
+    await waitFor(() => expect(updateLabSpec).toHaveBeenCalledTimes(1))
+    expect(screen.getByRole('textbox', { name: '이름' })).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: 'Role' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'VM 역할 추가' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '저장 중...' })).toBeDisabled()
+    await act(async () => {
+      finishSave({ labSpec: { ...original, name: 'Submitted edit' }, etag: '"v2"' })
+      await pendingSave
+    })
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('Submitted edit'))
+    expect(screen.getByRole('textbox', { name: '이름' })).toBeEnabled()
+  })
+
   it('LabSpec 조회 403이면 상세 내용을 렌더하지 않고 목록 복귀를 안내한다', async () => {
     const updateLabSpec = vi.fn(async () => {
       throw new Error('접근 거부 상태에서 쓰기를 호출하면 안 됨')

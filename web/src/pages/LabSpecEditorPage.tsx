@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import type { LabSpecMappingOptionsList, LabSpecWrite, VmRoleSpec } from '../shared/api/contracts'
@@ -50,6 +50,12 @@ function providerForInitial(
     : ''
 }
 
+interface LabSpecDraftBackup {
+  labSpecId: string
+  etag?: string
+  form: LabSpecWrite
+}
+
 interface LabSpecFormProps {
   mappingOptions: LabSpecMappingOptionsList
   mappingError?: 'forbidden' | 'unavailable'
@@ -61,6 +67,9 @@ interface LabSpecFormProps {
   forbiddenMessage: string
   onSubmit: (input: LabSpecWrite) => void
   onReload: () => void
+  onDraftChange: (draft: LabSpecWrite) => void
+  retainedDraft: LabSpecWrite | null
+  onDiscardRetainedDraft: () => void
 }
 
 function LabSpecForm({
@@ -74,8 +83,17 @@ function LabSpecForm({
   forbiddenMessage,
   onSubmit,
   onReload,
+  onDraftChange,
+  retainedDraft,
+  onDiscardRetainedDraft,
 }: LabSpecFormProps) {
   const [form, setForm] = useState<LabSpecWrite>(initial)
+  const initialFingerprint = JSON.stringify(initial)
+  // Keep the latest user changes above this ETag-keyed form. A background
+  // refetch or explicit 412 reload must not silently discard the draft.
+  useEffect(() => {
+    if (JSON.stringify(form) !== initialFingerprint) onDraftChange(form)
+  }, [form, initialFingerprint, onDraftChange])
   const [validationError, setValidationError] = useState<string | null>(null)
   const [chosenProviderConnectionId, setProviderConnectionId] = useState(
     () => providerForInitial(initial, mappingOptions),
@@ -227,6 +245,35 @@ function LabSpecForm({
             : mappingError === 'unavailable'
               ? 'Image/Size Mapping 후보를 불러오지 못했습니다. 기존 실습 정의는 읽기 전용으로 확인할 수 있지만 수정·저장할 수 없습니다.'
               : '다른 강사가 소유한 실습 정의입니다. 현재 계정에서는 내용을 확인만 할 수 있습니다.'}
+        </div>
+      )}
+
+      {retainedDraft && (
+        <div className="notice-card notice-warning" role="status">
+          서버에서 갱신된 LabSpec을 표시하고 있습니다. 이전 미저장 수정본은 메모리에 보관했습니다.
+          최신 내용을 확인한 뒤 수정본을 복원할 수 있지만, 복원하면 현재 표시된 입력값이 바뀝니다.
+          <div className="form-actions">
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={saving || readOnly}
+              onClick={() => {
+                setForm(retainedDraft)
+                setValidationError(null)
+                onDiscardRetainedDraft()
+              }}
+            >
+              이전 수정본 복원
+            </button>
+            <button
+              className="text-button"
+              type="button"
+              disabled={saving}
+              onClick={onDiscardRetainedDraft}
+            >
+              이전 수정본 버리기
+            </button>
+          </div>
         </div>
       )}
 
@@ -514,6 +561,9 @@ export function LabSpecEditorPage() {
   const { labSpecId } = useParams()
   const isNew = !labSpecId
   const resolvedLabSpecId = labSpecId ?? ''
+  // A cached 412 draft is tied to the source LabSpec and its ETag.
+  // It is never automatically submitted with a newer server ETag.
+  const [draftBackup, setDraftBackup] = useState<LabSpecDraftBackup | null>(null)
 
   const meQuery = useQuery({
     queryKey: labbitQueryKeys.me,
@@ -541,6 +591,15 @@ export function LabSpecEditorPage() {
     retry: false,
   })
 
+  const captureDraft = useCallback((form: LabSpecWrite) => {
+    if (!resolvedLabSpecId) return
+    setDraftBackup({
+      labSpecId: resolvedLabSpecId,
+      etag: labSpecQuery.data?.etag,
+      form,
+    })
+  }, [resolvedLabSpecId, labSpecQuery.data?.etag])
+
   const saveMutation = useMutation({
     mutationFn: async (input: LabSpecWrite) => {
       if (isNew) {
@@ -561,6 +620,7 @@ export function LabSpecEditorPage() {
       }
     },
     onSuccess: async (result) => {
+      setDraftBackup(null)
       await queryClient.invalidateQueries({ queryKey: labbitQueryKeys.labSpecs })
 
       if (result.mode === 'create') {
@@ -726,6 +786,14 @@ export function LabSpecEditorPage() {
             ? 'LabSpec을 생성할 권한이 없습니다.'
             : '이 LabSpec을 수정할 권한이 없습니다.'
         }
+        retainedDraft={
+          draftBackup?.labSpecId === resolvedLabSpecId &&
+          draftBackup.etag !== versionedLabSpec?.etag
+            ? draftBackup.form
+            : null
+        }
+        onDraftChange={captureDraft}
+        onDiscardRetainedDraft={() => setDraftBackup(null)}
         onSubmit={(input) => {
           saveMutation.reset()
           saveMutation.mutate(input)

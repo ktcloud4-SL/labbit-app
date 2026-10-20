@@ -357,9 +357,12 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
       internetOutbound: true,
     }
     let revision = 1
-    const updateLabSpec = vi.fn(async (_id: string, input: LabSpecWrite, _etag: string) => ({
-      labSpec: { ...original, ...input }, etag: '"v3"',
-    }))
+    const updateLabSpec = vi.fn(async (id: string, input: LabSpecWrite, etag: string) => {
+      if (id !== 'spec-cross-provider' || etag !== '"v2"') {
+        throw new Error('Expected update against latest LabSpec ETag')
+      }
+      return { labSpec: { ...original, ...input }, etag: '"v3"' }
+    })
     const { client } = mountLabSpecFlow(
       {
         getLabSpec: async () => ({

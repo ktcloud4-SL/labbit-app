@@ -190,6 +190,10 @@ export class BrowserTerminalClient {
       return
     }
 
+    // No PTY output may reach xterm before the server confirms the current
+    // TerminalSession attach. This also avoids decoding unexpected Blob data.
+    if (!this.attached) return
+
     if (
       data instanceof ArrayBuffer ||
       Object.prototype.toString.call(data) === '[object ArrayBuffer]'

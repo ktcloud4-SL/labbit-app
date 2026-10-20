@@ -124,6 +124,50 @@ describe('BrowserTerminalClient', () => {
     })
   })
 
+  it('ATTACHED 확인 전 Binary/Blob OUTPUT을 버리고 확인 후의 새 출력만 전달한다', () => {
+    vi.stubGlobal('WebSocket', FakeWebSocket)
+
+    const onOutput = vi.fn()
+    const onAttached = vi.fn()
+    const client = new BrowserTerminalClient({
+      onAttached,
+      onOutput,
+      onEnded: vi.fn(),
+      onProtocolError: vi.fn(),
+      onClose: vi.fn(),
+    })
+
+    client.connect({
+      terminalSessionId: 'terminal-session-1',
+      sessionToken: 'fixture-attach-token',
+      cols: 80,
+      rows: 24,
+    })
+    const socket = FakeWebSocket.instances[0]
+    socket.open()
+
+    // A misordered upstream Binary frame must not be rendered before auth.
+    socket.message(new Uint8Array([0x1b, 0x5b, 0x32, 0x4a]).buffer)
+    socket.message(new Uint8Array([0x41, 0x42]))
+    const blob = new Blob(['pre-attach'])
+    const decode = vi.spyOn(blob, 'arrayBuffer')
+    socket.message(blob)
+    expect(onOutput).not.toHaveBeenCalled()
+    expect(decode).not.toHaveBeenCalled()
+    expect(client.sendInput('must-not-send')).toBe(false)
+
+    socket.message(JSON.stringify({
+      type: 'TERMINAL_ATTACHED',
+      terminalSessionId: 'terminal-session-1',
+      replyToMessageId: JSON.parse(String(socket.sent[0])).messageId,
+      payload: { resumed: false, historyAvailable: false },
+    }))
+    expect(onAttached).toHaveBeenCalledOnce()
+    socket.message(new Uint8Array([0x41, 0x42]).buffer)
+    expect(onOutput).toHaveBeenCalledTimes(1)
+    expect([...onOutput.mock.calls[0][0]]).toEqual([0x41, 0x42])
+  })
+
   it('attach 이후 Binary INPUT/OUTPUT과 TERMINAL_RESIZE를 사용한다', () => {
     vi.stubGlobal('WebSocket', FakeWebSocket)
 

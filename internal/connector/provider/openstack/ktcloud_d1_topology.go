@@ -1,6 +1,8 @@
 package openstackprovider
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -17,6 +19,27 @@ import (
 	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 )
 
+// cloud-init transparently restores gzip user-data before processing it. Keep
+// the immutable StartupScript bytes intact while using this transport format
+// for KT D1's compute gateway.
+func ktCloudCompressedUserData(content []byte) ([]byte, error) {
+	if len(content) == 0 {
+		return nil, nil
+	}
+	var buffer bytes.Buffer
+	writer := gzip.NewWriter(&buffer)
+	if _, err := writer.Write(content); err != nil {
+		return nil, ErrInvalidResourceSpec
+	}
+	if err := writer.Close(); err != nil {
+		return nil, ErrInvalidResourceSpec
+	}
+	if base64.StdEncoding.EncodedLen(buffer.Len()) > 2048 {
+		return nil, ErrInvalidResourceSpec
+	}
+	return buffer.Bytes(), nil
+}
+
 func (a *Adapter) validateProvisionSettings(config ProvisionConfig, snapshot coreprovider.CreationSnapshot) error {
 	if a.ktNetwork == nil {
 		if config.KTCloudConnectorTierID != "" || config.KTCloudManagementCIDR != "" {
@@ -30,8 +53,10 @@ func (a *Adapter) validateProvisionSettings(config ProvisionConfig, snapshot cor
 	if len(snapshot.VMs) != 1 || snapshot.InternetOutbound || config.ProjectID == "" || config.KTCloudConnectorTierID == "" || a.volume == nil || config.ManagementNetworkID != "" || config.ManagementSecurityGroupID != "" || config.ExternalNetworkID != "" || le != nil || me != nil || se != nil || !lab.Addr().Is4() || !management.Addr().Is4() || !source.Addr().Is4() || lab.Bits() != 24 || management.Bits() != 24 || source.Bits() != 32 || lab != lab.Masked() || management != management.Masked() || lab.Overlaps(management) || config.ProviderConnectionID == "" || snapshot.ProviderConnectionID != config.ProviderConnectionID || config.KeyPairName == "" || config.SSHUsername == "" || config.SSHPrivateKeyFile == "" || config.SSHKnownHostsFile == "" {
 		return ErrProvisionConfig
 	}
-	if snapshot.StartupScript != nil && base64.StdEncoding.EncodedLen(len(snapshot.StartupScript.Content)) > 2048 {
-		return ErrProvisionConfig
+	if snapshot.StartupScript != nil {
+		if _, err := ktCloudCompressedUserData([]byte(snapshot.StartupScript.Content)); err != nil {
+			return ErrProvisionConfig
+		}
 	}
 	return nil
 }

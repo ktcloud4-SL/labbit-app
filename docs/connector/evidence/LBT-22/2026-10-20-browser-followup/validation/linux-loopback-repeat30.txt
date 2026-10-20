@@ -1,0 +1,181 @@
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.08s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.05s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.06s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.05s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.07s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.05s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.06s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.06s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.05s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.03s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.03s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.03s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.03s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+PASS

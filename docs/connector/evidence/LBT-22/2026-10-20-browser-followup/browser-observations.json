@@ -1,0 +1,966 @@
+[
+  {
+    "case": "teacher-A-roundtrip",
+    "at": "2026-10-20T04:23:24.074Z",
+    "sessionId": "98839398-4065-4996-8da4-e27ce0c1d7b8",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "case": "teacher-B-roundtrip",
+    "at": "2026-10-20T04:24:25.959Z",
+    "sessionId": "eec5c557-42cb-49ff-93a4-bc5089ed5c5b",
+    "expectedRenderedSize": {
+      "cols": 171,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 171,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  },
+  {
+    "case": "teacher-B-state-after-A-close",
+    "at": "2026-10-20T04:24:51.918Z",
+    "expectedRenderedSize": {
+      "cols": 171,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 171,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  },
+  {
+    "case": "teacher-A2-fresh-shell",
+    "sessionId": "309b88b3-3290-40cc-9b9c-45523419f2c8",
+    "at": "2026-10-20T04:25:26.630Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "case": "teacher-B-resumed-state-resize",
+    "sessionId": "eec5c557-42cb-49ff-93a4-bc5089ed5c5b",
+    "at": "2026-10-20T04:26:59.562Z",
+    "expectedRenderedSize": {
+      "cols": 140,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 140,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "기존 TerminalSession과 같은 PTY에 다시 연결되었습니다. 끊긴 동안의 출력은 재생되지 않습니다.",
+    "nonceRendered": true,
+    "status": "연결됨 · resumed",
+    "viewport": {
+      "height": 780,
+      "width": 1060
+    }
+  },
+  {
+    "case": "teacher-A2-remote-exit7",
+    "at": "2026-10-20T04:26:59.562Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널 세션이 종료되었습니다. (PTY_EXITED, exit 7)",
+    "nonceRendered": true,
+    "status": "종료됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "case": "teacher-B-resize-1420",
+    "at": "2026-10-20T04:27:21.521Z",
+    "expectedRenderedSize": {
+      "cols": 191,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 140,
+        "rows": 9
+      },
+      {
+        "cols": 191,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "기존 TerminalSession과 같은 PTY에 다시 연결되었습니다. 끊긴 동안의 출력은 재생되지 않습니다.",
+    "nonceRendered": true,
+    "status": "연결됨 · resumed",
+    "viewport": {
+      "height": 820,
+      "width": 1420
+    }
+  },
+  {
+    "case": "teacher-repeat-open",
+    "attempt": 1,
+    "at": "2026-10-20T04:27:24.841Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [],
+    "measureCharacters": 32,
+    "message": "터미널 WebSocket에 연결하고 있습니다.",
+    "nonceRendered": true,
+    "status": "연결 중",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "case": "teacher-repeat-open-roundtrip",
+    "attempt": 1,
+    "at": "2026-10-20T04:27:50.988Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "case": "teacher-repeat-open-roundtrip",
+    "attempt": 2,
+    "at": "2026-10-20T04:28:03.822Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "case": "teacher-repeat-open-roundtrip",
+    "attempt": 3,
+    "at": "2026-10-20T04:28:08.169Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "case": "teacher-repeat-open-observation",
+    "attempt": 4,
+    "at": "2026-10-20T04:28:11.866Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [],
+    "measureCharacters": 32,
+    "message": "터미널 WebSocket에 연결하고 있습니다.",
+    "nonceRendered": true,
+    "status": "연결 중",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "case": "teacher-repeat-4-final-confirmation",
+    "at": "2026-10-20T04:29:09.253Z",
+    "sessionId": "cfc625d8-ca25-472f-98e2-0a70d2b26bb1",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-A-initial",
+    "observedAt": "2026-10-20T04:34:09.982Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-B-initial",
+    "observedAt": "2026-10-20T04:34:40.073Z",
+    "expectedRenderedSize": {
+      "cols": 171,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 171,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  },
+  {
+    "label": "student-B-after-A-close",
+    "observedAt": "2026-10-20T04:35:02.062Z",
+    "expectedRenderedSize": {
+      "cols": 171,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 171,
+        "rows": 9
+      },
+      {
+        "cols": 171,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  },
+  {
+    "label": "student-A2-fresh-isolated-shell",
+    "observedAt": "2026-10-20T04:35:24.653Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-1",
+    "observedAt": "2026-10-20T04:35:36.978Z",
+    "uiWaitFailed": true,
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [],
+    "measureCharacters": 32,
+    "message": "터미널 WebSocket에 연결하고 있습니다.",
+    "nonceRendered": false,
+    "status": "연결 중",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-1-final",
+    "observedAt": "2026-10-20T04:36:22.203Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-2-final",
+    "observedAt": "2026-10-20T04:36:46.146Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-3",
+    "observedAt": "2026-10-20T04:36:49.962Z",
+    "uiWaitFailed": true,
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [],
+    "measureCharacters": 32,
+    "message": "터미널 WebSocket에 연결하고 있습니다.",
+    "nonceRendered": false,
+    "status": "연결 중",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-3-final",
+    "observedAt": "2026-10-20T04:37:07.580Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-4-final",
+    "observedAt": "2026-10-20T04:37:28.160Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-5",
+    "observedAt": "2026-10-20T04:37:32.944Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-6",
+    "observedAt": "2026-10-20T04:37:37.494Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-7",
+    "observedAt": "2026-10-20T04:37:42.593Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-8",
+    "observedAt": "2026-10-20T04:37:49.029Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-9",
+    "observedAt": "2026-10-20T04:37:53.765Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-10",
+    "observedAt": "2026-10-20T04:37:58.649Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-11",
+    "observedAt": "2026-10-20T04:38:03.077Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-12",
+    "observedAt": "2026-10-20T04:39:14.352Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-13",
+    "observedAt": "2026-10-20T04:39:19.132Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-14",
+    "observedAt": "2026-10-20T04:39:23.828Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-15",
+    "observedAt": "2026-10-20T04:39:28.708Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-16",
+    "observedAt": "2026-10-20T04:39:35.611Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-17",
+    "observedAt": "2026-10-20T04:39:39.984Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-18",
+    "observedAt": "2026-10-20T04:39:44.555Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-19",
+    "observedAt": "2026-10-20T04:39:49.687Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-repeat-20",
+    "observedAt": "2026-10-20T04:39:54.792Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "label": "student-B-survived-20-other-shells",
+    "observedAt": "2026-10-20T04:40:15.565Z",
+    "expectedRenderedSize": {
+      "cols": 171,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 171,
+        "rows": 9
+      },
+      {
+        "cols": 171,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "기존 TerminalSession과 같은 PTY에 다시 연결되었습니다. 끊긴 동안의 출력은 재생되지 않습니다.",
+    "nonceRendered": true,
+    "status": "연결됨 · resumed",
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  },
+  {
+    "label": "student-B-same-session-resume",
+    "observedAt": "2026-10-20T04:40:58.832Z",
+    "expectedRenderedSize": {
+      "cols": 171,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 171,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "기존 TerminalSession과 같은 PTY에 다시 연결되었습니다. 끊긴 동안의 출력은 재생되지 않습니다.",
+    "nonceRendered": true,
+    "status": "연결됨 · resumed",
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  },
+  {
+    "label": "student-B-resize-small",
+    "observedAt": "2026-10-20T04:41:03.688Z",
+    "expectedRenderedSize": {
+      "cols": 140,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 171,
+        "rows": 9
+      },
+      {
+        "cols": 140,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "기존 TerminalSession과 같은 PTY에 다시 연결되었습니다. 끊긴 동안의 출력은 재생되지 않습니다.",
+    "nonceRendered": true,
+    "status": "연결됨 · resumed",
+    "viewport": {
+      "height": 780,
+      "width": 1060
+    }
+  },
+  {
+    "label": "student-B-resize-large",
+    "observedAt": "2026-10-20T04:41:10.335Z",
+    "expectedRenderedSize": {
+      "cols": 191,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 140,
+        "rows": 9
+      },
+      {
+        "cols": 191,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "기존 TerminalSession과 같은 PTY에 다시 연결되었습니다. 끊긴 동안의 출력은 재생되지 않습니다.",
+    "nonceRendered": true,
+    "status": "연결됨 · resumed",
+    "viewport": {
+      "height": 820,
+      "width": 1420
+    }
+  },
+  {
+    "label": "student-B-remote-exit-7",
+    "observedAt": "2026-10-20T04:41:24.398Z",
+    "expectedRenderedSize": {
+      "cols": 191,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 140,
+        "rows": 9
+      },
+      {
+        "cols": 191,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널 세션이 종료되었습니다. (PTY_EXITED, exit 7)",
+    "nonceRendered": false,
+    "status": "종료됨",
+    "viewport": {
+      "height": 820,
+      "width": 1420
+    }
+  }
+]

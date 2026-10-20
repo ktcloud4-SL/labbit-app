@@ -6,6 +6,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
@@ -45,6 +46,7 @@ func (a *Adapter) ResolveServerAddress(ctx context.Context, targetVmKey, serverI
 // ResolveVMAccess includes the Control envelope's LabInstance/generation affinity
 // in the existing Provider-owned Server and management NIC validation.
 func (a *Adapter) ResolveVMAccess(ctx context.Context, target vmaccess.Target) (vmaccess.Endpoint, error) {
+	started := time.Now()
 	if strings.TrimSpace(target.LabInstanceID) == "" || target.Generation < 1 || strings.TrimSpace(target.VMKey) == "" || strings.TrimSpace(target.ServerID) == "" {
 		return vmaccess.Endpoint{}, vmaccess.ErrInvalidTarget
 	}
@@ -54,11 +56,15 @@ func (a *Adapter) ResolveVMAccess(ctx context.Context, target vmaccess.Target) (
 		if errors.Is(err, vmaccess.ErrInvalidTarget) || errors.Is(err, ErrResourceOwnership) {
 			kind = vmaccess.ErrInvalidTarget
 		}
-		return vmaccess.Endpoint{}, safeContextError(ctx, kind)
+		stage := vmaccess.StageResolveManagement
+		if errors.Is(err, ErrServerGet) {
+			stage = vmaccess.StageResolveServer
+		}
+		return vmaccess.Endpoint{}, vmaccess.Diagnose(stage, safeContextError(ctx, kind), started)
 	}
 	callback, err := a.SSHHostKeyCallback(ctx, target.ServerID)
 	if err != nil {
-		return vmaccess.Endpoint{}, safeContextError(ctx, vmaccess.ErrUnavailable)
+		return vmaccess.Endpoint{}, vmaccess.Diagnose(vmaccess.StageHostPin, safeContextError(ctx, vmaccess.ErrUnavailable), started)
 	}
 	return vmaccess.Endpoint{
 		ProviderConnectionID: a.provision.ProviderConnectionID,

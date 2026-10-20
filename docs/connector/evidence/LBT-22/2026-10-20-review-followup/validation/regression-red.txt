@@ -1,0 +1,6 @@
+=== RUN   TestKTCloudCompressibleStartupPassesPreflightAndServerCreate
+    ktcloud_userdata_test.go:131: long compressible startup must pass preflight: OpenStack Provision config is invalid
+--- FAIL: TestKTCloudCompressibleStartupPassesPreflightAndServerCreate (0.00s)
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	3.633s
+FAIL

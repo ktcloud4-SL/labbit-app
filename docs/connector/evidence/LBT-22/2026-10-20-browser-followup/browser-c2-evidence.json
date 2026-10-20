@@ -1,0 +1,333 @@
+{
+  "recordedAt": "2026-10-20T03:49:21.948Z",
+  "scope": "C2 actual Browser on prepared student VM; no C3 or G3/G4 verdict",
+  "executionId": "1f670adf-ff9b-4ad1-88b5-77c849b3c33c",
+  "instanceId": "ee63c707-3ef9-4492-ae74-5eab90474694",
+  "serverId": "27412c58-60bd-4b37-9bbd-78365be6681d",
+  "generation": 1,
+  "sessionIds": {
+    "A": "32e6155b-8fae-44ea-b449-355e1426efc5",
+    "B": "6a9475f6-5735-4929-98ff-7b8d6a82d3ce",
+    "A2FailedOpen": "3fdc3246-0bae-40fe-a4f8-8d156bf6fe5b",
+    "A3RemoteExit": "7bcb248b-fb63-4939-b77d-ef96ede099c2"
+  },
+  "observations": [
+    {
+      "scenario": "A-initial-roundtrip",
+      "observedAt": "2026-10-20T03:45:35.783Z",
+      "expectedRenderedSize": {
+        "cols": 171,
+        "rows": 9
+      },
+      "kernelSizes": [
+        {
+          "cols": 171,
+          "rows": 9
+        }
+      ],
+      "measureCharacters": 32,
+      "message": "터미널에 연결되었습니다.",
+      "nonceRendered": true,
+      "status": "연결됨",
+      "viewport": {
+        "height": 900,
+        "width": 1280
+      },
+      "accepted": true,
+      "probePredicate": "Fresh output marker observed AND read-only guest stty size equals rendered terminal size",
+      "renderedMatchesKernel": true
+    },
+    {
+      "scenario": "A-browser-resize-1",
+      "observedAt": "2026-10-20T03:45:46.156Z",
+      "expectedRenderedSize": {
+        "cols": 131,
+        "rows": 9
+      },
+      "kernelSizes": [
+        {
+          "cols": 171,
+          "rows": 9
+        },
+        {
+          "cols": 131,
+          "rows": 9
+        }
+      ],
+      "measureCharacters": 32,
+      "message": "터미널에 연결되었습니다.",
+      "nonceRendered": true,
+      "status": "연결됨",
+      "viewport": {
+        "height": 700,
+        "width": 1000
+      },
+      "accepted": true,
+      "probePredicate": "Fresh output marker observed AND read-only guest stty size equals rendered terminal size",
+      "renderedMatchesKernel": true
+    },
+    {
+      "scenario": "A-state-isolation",
+      "observedAt": "2026-10-20T03:46:39.720Z",
+      "expectedRenderedSize": {
+        "cols": 131,
+        "rows": 9
+      },
+      "kernelSizes": [
+        {
+          "cols": 171,
+          "rows": 9
+        },
+        {
+          "cols": 131,
+          "rows": 9
+        }
+      ],
+      "measureCharacters": 32,
+      "message": "터미널에 연결되었습니다.",
+      "nonceRendered": true,
+      "status": "연결됨",
+      "viewport": {
+        "height": 700,
+        "width": 1000
+      },
+      "accepted": true,
+      "probePredicate": "Peer B shell variable absent AND own A shell variable nonempty",
+      "isolation": {
+        "peerStateAbsent": true,
+        "ownStatePresent": true
+      }
+    },
+    {
+      "scenario": "B-state-isolation",
+      "observedAt": "2026-10-20T03:46:39.740Z",
+      "expectedRenderedSize": {
+        "cols": 194,
+        "rows": 9
+      },
+      "kernelSizes": [],
+      "measureCharacters": 32,
+      "message": "터미널에 연결되었습니다.",
+      "nonceRendered": true,
+      "status": "연결됨",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "ownNonceRendered": true,
+      "accepted": true,
+      "probePredicate": "Peer A shell variable absent",
+      "isolation": {
+        "peerStateAbsent": true
+      }
+    },
+    {
+      "scenario": "A-grace-resume-state-preserved",
+      "observedAt": "2026-10-20T03:47:16.279Z",
+      "expectedRenderedSize": {
+        "cols": 131,
+        "rows": 9
+      },
+      "kernelSizes": [],
+      "measureCharacters": 32,
+      "message": "기존 TerminalSession과 같은 PTY에 다시 연결되었습니다. 끊긴 동안의 출력은 재생되지 않습니다.",
+      "nonceRendered": false,
+      "status": "연결됨 · resumed",
+      "viewport": {
+        "height": 700,
+        "width": 1000
+      },
+      "accepted": false,
+      "exclusion": "Input target was outside the visible terminal; invalid state-preservation probe. B same-ID reconnect provides valid replacement."
+    },
+    {
+      "scenario": "A-explicit-close",
+      "observedAt": "2026-10-20T03:47:27.356Z",
+      "expectedRenderedSize": {
+        "cols": 131,
+        "rows": 9
+      },
+      "kernelSizes": [],
+      "measureCharacters": 32,
+      "message": "터미널을 종료했습니다.",
+      "status": "종료됨",
+      "viewport": {
+        "height": 700,
+        "width": 1000
+      },
+      "accepted": true,
+      "probePredicate": "Explicit browser close; corroborated by DB ENDED/SESSION_CLOSED"
+    },
+    {
+      "scenario": "B-survives-A-close",
+      "observedAt": "2026-10-20T03:47:27.376Z",
+      "expectedRenderedSize": {
+        "cols": 194,
+        "rows": 9
+      },
+      "kernelSizes": [],
+      "measureCharacters": 32,
+      "message": "터미널에 연결되었습니다.",
+      "nonceRendered": true,
+      "status": "연결됨",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "accepted": true,
+      "probePredicate": "Own B shell variable equals its original value",
+      "isolation": {
+        "ownStatePreserved": true
+      }
+    },
+    {
+      "scenario": "B-browser-resize-1",
+      "observedAt": "2026-10-20T03:47:44.617Z",
+      "expectedRenderedSize": {
+        "cols": 145,
+        "rows": 9
+      },
+      "kernelSizes": [
+        {
+          "cols": 145,
+          "rows": 9
+        }
+      ],
+      "measureCharacters": 32,
+      "message": "터미널에 연결되었습니다.",
+      "nonceRendered": true,
+      "status": "연결됨",
+      "viewport": {
+        "height": 800,
+        "width": 1100
+      },
+      "accepted": true,
+      "probePredicate": "Fresh output marker observed AND read-only guest stty size equals rendered terminal size",
+      "renderedMatchesKernel": true
+    },
+    {
+      "scenario": "B-browser-resize-2",
+      "observedAt": "2026-10-20T03:48:06.377Z",
+      "expectedRenderedSize": {
+        "cols": 182,
+        "rows": 9
+      },
+      "kernelSizes": [
+        {
+          "cols": 145,
+          "rows": 9
+        },
+        {
+          "cols": 182,
+          "rows": 9
+        }
+      ],
+      "measureCharacters": 32,
+      "message": "터미널에 연결되었습니다.",
+      "nonceRendered": true,
+      "status": "연결됨",
+      "viewport": {
+        "height": 900,
+        "width": 1360
+      },
+      "accepted": true,
+      "probePredicate": "Fresh output marker observed AND read-only guest stty size equals rendered terminal size",
+      "renderedMatchesKernel": true
+    },
+    {
+      "scenario": "A3-remote-shell-exit",
+      "observedAt": "2026-10-20T03:48:19.575Z",
+      "message": "터미널 세션이 종료되었습니다. (PTY_EXITED, exit 7)",
+      "status": "종료됨",
+      "accepted": true
+    },
+    {
+      "scenario": "B-survives-A3-shell-exit",
+      "observedAt": "2026-10-20T03:48:19.592Z",
+      "expectedRenderedSize": {
+        "cols": 182,
+        "rows": 9
+      },
+      "kernelSizes": [
+        {
+          "cols": 145,
+          "rows": 9
+        },
+        {
+          "cols": 182,
+          "rows": 9
+        }
+      ],
+      "measureCharacters": 32,
+      "message": "터미널에 연결되었습니다.",
+      "nonceRendered": true,
+      "status": "연결됨",
+      "viewport": {
+        "height": 900,
+        "width": 1360
+      },
+      "accepted": true,
+      "probePredicate": "Own B shell variable equals its original value",
+      "isolation": {
+        "ownStatePreserved": true
+      }
+    },
+    {
+      "scenario": "B-grace-resume-shell-state-preserved",
+      "observedAt": "2026-10-20T03:48:58.278Z",
+      "expectedRenderedSize": {
+        "cols": 182,
+        "rows": 9
+      },
+      "kernelSizes": [],
+      "measureCharacters": 32,
+      "message": "기존 TerminalSession과 같은 PTY에 다시 연결되었습니다. 끊긴 동안의 출력은 재생되지 않습니다.",
+      "nonceRendered": true,
+      "status": "연결됨 · resumed",
+      "viewport": {
+        "height": 900,
+        "width": 1360
+      },
+      "accepted": true,
+      "probePredicate": "Own B shell variable equals its original value AND peer A shell variable absent",
+      "isolation": {
+        "ownStatePreserved": true,
+        "peerStateAbsent": true
+      }
+    },
+    {
+      "scenario": "B-explicit-close",
+      "observedAt": "2026-10-20T03:49:21.932Z",
+      "message": "터미널을 종료했습니다.",
+      "status": "종료됨",
+      "accepted": true,
+      "probePredicate": "Explicit browser close; corroborated by DB ENDED/SESSION_CLOSED"
+    }
+  ],
+  "invalidObservation": {
+    "scenario": "A-grace-resume-state-preserved",
+    "result": "Not counted: probe input target was outside viewport; input helper corrected to scroll and check visible bounds. Repeated successfully with B-grace-resume-shell-state-preserved."
+  },
+  "failedAttempt": {
+    "session": "A2FailedOpen",
+    "outcome": "OPEN_FAILED",
+    "UI": "503-class generic terminal access unavailable; a new session A3 succeeded",
+    "rootCause": "Not confirmed; do not attribute to dual-default solely from correlation"
+  },
+  "wireMetadata": {
+    "endpoint": "wss://jinwook.store/realtime/v1/terminal",
+    "origin": "https://jinwook.store",
+    "subprotocol": "labbit.terminal.v1 per deployed-client source",
+    "browserAttached": true,
+    "http101": "Inferred from successful browser WebSocket attachment; wire status not directly captured",
+    "rawFramesCaptured": false
+  },
+  "transcriptPersisted": false,
+  "tokensOrSecretsPersisted": false,
+  "ptyCountScope": "Guest pts/* TTYs carrying bash/sh/dash/zsh; not total SSH channels or arbitrary PTY file descriptors",
+  "resumeDurationSeconds": {
+    "A": 10.069572,
+    "B": 9.199856,
+    "grace": 60
+  }
+}

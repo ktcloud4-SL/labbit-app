@@ -1,0 +1,63 @@
+{
+  "base": "9172e050f5660c80b84ba70d52f0c549d8f032d9",
+  "branch": "codex/fix/LBT-22-c2-ktcloud-acceptance",
+  "scope": "13 product/test files promoted onto latest main plus C2 fixture readiness test fix; docs excluded to avoid self-reference",
+  "files": {
+    "internal/connector/app/app.go": {
+      "workingBytesSHA256": "f34eecebba3cd6cb20787f6e6ecb97cfcb79fab482a32bf60286ea71fc5d74ae",
+      "gitBlob": "1ebe335d33e604368cc1bf33611ea022d45d193e"
+    },
+    "internal/connector/app/control_error.go": {
+      "workingBytesSHA256": "03c72fba53463c93c92ee48fb653d2f717f87222a1825558b6607d64245c92dc",
+      "gitBlob": "285f91729c518881710b6ffcfd555eaf7a6ec212"
+    },
+    "internal/connector/app/control_error_test.go": {
+      "workingBytesSHA256": "9613009d5fdcddc86d21d2fc00677e4ba56fca5612a4e548bf41c2f3c43412ec",
+      "gitBlob": "150a37a629578cecfd301c7724bcdac53e18ee20"
+    },
+    "internal/connector/provider/openstack/ktcloud_d1_topology.go": {
+      "workingBytesSHA256": "2d8c7d8b698e8725d27e5fa978d0cdfe79967dee92b3d953345cb400c1c89f5c",
+      "gitBlob": "cffc0780b4040a4a03adb346d43beef90473e57a"
+    },
+    "internal/connector/provider/openstack/ktcloud_userdata_test.go": {
+      "workingBytesSHA256": "b3c636988311fba6e52422228b3d3ab1baa3baab2ee00ce595722f4d4b93704d",
+      "gitBlob": "ac468eaa40ea22320fa630b820875864dd36defd"
+    },
+    "internal/connector/provider/openstack/server.go": {
+      "workingBytesSHA256": "c0f5b69e862aed9de60499304e0ad4a42525ec0226fcfd376309cb981f85c987",
+      "gitBlob": "6b73c8c7ff1f1720bd7b0dc70162020955af42ce"
+    },
+    "internal/connector/provider/openstack/terminal_c2_integration_test.go": {
+      "workingBytesSHA256": "cd1d506529a3ebae8a0244fdc3d557d9ddd4591224db0913c521b595d97aeda0",
+      "gitBlob": "5ca851a4bb25f769f09afab0dd607860c871f8d5"
+    },
+    "internal/connector/provider/openstack/terminal_target.go": {
+      "workingBytesSHA256": "587256bb3f110ceaef6e9731b05924799bdf90fe5741cef6849098e7acd23721",
+      "gitBlob": "2a660d7cec82b9520f262a80106911f1b93a551b"
+    },
+    "internal/connector/terminal/ssh_pty.go": {
+      "workingBytesSHA256": "6989ff609e58c0fe96827d05eb564ddbb807846f9b76c4d27313ce87c9efc8c9",
+      "gitBlob": "16cd66074cf5f741cb3a2503efb0eb17f2c3cfeb"
+    },
+    "internal/connector/vmaccess/access.go": {
+      "workingBytesSHA256": "41bc97e709cab2b614516fd3bae3c39ae565cad4074243db2402ff319f434bad",
+      "gitBlob": "8babfbeef2f50e1d45d604fd9e7c75c124f7fc0d"
+    },
+    "internal/connector/vmaccess/diagnostic.go": {
+      "workingBytesSHA256": "18fc8d23a38401c412bb967863c1361b2991fe937c4931598ea4bd41cb022fd6",
+      "gitBlob": "2933ebfe242335046bd9b6087ee6f30438f258f3"
+    },
+    "internal/connector/vmaccess/diagnostic_test.go": {
+      "workingBytesSHA256": "7229ed269248b343af9be84e7b43603402f7abf6edf3fad83d0a84de39628c4a",
+      "gitBlob": "9cae8671e3bed3db2b8494dffbe18ab3813010bd"
+    },
+    "internal/connector/wss/handler.go": {
+      "workingBytesSHA256": "dd090eb60210141ef1db9b1c5ffb3f8310700422be60defb04fcc49b340d47b9",
+      "gitBlob": "f50ab5c28d33b57062326004ecfb296d988be602"
+    },
+    "internal/connector/wss/terminal_failure.go": {
+      "workingBytesSHA256": "da13557cdf8d7ed4cb5fe641b71cc48cc2874a91cbf9a9d2acb5140f8e553f08",
+      "gitBlob": "85af8d6b9a623d3366631a7512be2c2bb4ee5493"
+    }
+  }
+}

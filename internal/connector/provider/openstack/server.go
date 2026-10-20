@@ -97,6 +97,10 @@ func (a *Adapter) EnsureServer(
 	}
 	serverOpts := servers.CreateOpts{Name: name, ImageRef: imageID, FlavorRef: flavorID, Networks: networks, UserData: append([]byte(nil), spec.UserData...), Metadata: cloneStringMap(spec.Metadata)}
 	if len(networkIDs) != 0 {
+		serverOpts.UserData, err = ktCloudCompressedUserData(spec.UserData)
+		if err != nil {
+			return coreprovider.ResourceResult{}, servers.Server{}, err
+		}
 		serverOpts.ImageRef = ""
 		serverOpts.AvailabilityZone = "DX-M1"
 		serverOpts.BlockDevice = []servers.BlockDevice{{SourceType: servers.SourceImage, UUID: imageID, DestinationType: servers.DestinationVolume, BootIndex: 0, VolumeSize: 50, DeleteOnTermination: true}}

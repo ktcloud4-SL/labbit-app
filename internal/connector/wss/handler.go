@@ -1200,7 +1200,7 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 			}
 			_ = sender.SendMessage(ctx, failResult)
 		}
-		return fmt.Errorf("failed to get/create terminal session: %w", err)
+		return terminalOpenFailure(openMsg.TerminalSessionID, err)
 	}
 
 	// 5. Terminal Data WSS 동기식 Dial 및 Attach (Reviewer 3번 지적 사항: attach 완료 전에는 SUCCEEDED 금지)
@@ -1234,7 +1234,7 @@ func (h *Handler) handleTerminalOpen(ctx context.Context, env protocol.BaseEnvel
 				}
 				_ = sender.SendMessage(ctx, failResult)
 			}
-			return fmt.Errorf("failed to attach terminal data WSS: %w", attachErr)
+			return terminalOpenFailure(openMsg.TerminalSessionID, vmaccess.Diagnose(vmaccess.StageDataAttach, attachErr, time.Time{}))
 		}
 
 		// 6. Attach 성공 후에만 백그라운드 스트리밍 시작 및 TERMINAL_OPEN_RESULT (SUCCEEDED) 회신

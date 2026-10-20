@@ -8,7 +8,13 @@ RUN npm ci
 
 # 소스 복사 및 정적 파일 빌드 (dist 생성)
 COPY . .
-RUN npm run build
+
+# PUBLIC Vite config is baked into dist at IMAGE BUILD TIME. The default is
+# intentionally empty until LBT-181 approves the Installer HTTPS URL.
+# Do not pass enrollment tokens, credentials or other secrets as build args.
+ARG VITE_LABBIT_APPROVED_INSTALLER_URL=""
+ENV VITE_LABBIT_APPROVED_INSTALLER_URL=${VITE_LABBIT_APPROVED_INSTALLER_URL}
+RUN node scripts/validate-installer-build-env.mjs && npm run build
 
 # 2단계: 비루트 Nginx 실행 환경
 FROM nginxinc/nginx-unprivileged:stable-alpine

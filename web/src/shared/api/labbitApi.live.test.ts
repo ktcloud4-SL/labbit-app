@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { HttpError } from './httpClient'
 import { httpLabbitApi } from './labbitApi'
 import { mockCredentials, mockLabbitApi, resetMockApiSession } from './mockLabbitApi'
 

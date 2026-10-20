@@ -57,6 +57,7 @@ interface WorkspaceFileAccessGate {
 function workspaceWideAccessChange(error: unknown) {
   return error instanceof HttpError &&
     (error.status === 409 ||
+      (error.status === 404 && error.problem?.code === 'not_found') ||
       (error.status === 403 && error.problem?.code !== 'file_permission_denied'))
 }
 
@@ -759,6 +760,9 @@ export function WorkspaceFilePanels({
                 if (window.confirm(
                   '미저장 수정본을 다시 편집기에 불러옵니다. 서버 파일의 버전이 달라졌을 수 있으니 저장 전에 반드시 내용을 비교해 주세요.',
                 )) {
+                  // Only explicit restoration adopts the currently verified
+                  // generation/revision; a late old-generation PUT cannot.
+                  setDraftBackup({ ...draftBackup, generation, sourceEtag: fileQuery.data.etag })
                   setRestoredDraft({ scope, path: selectedFilePath, content: draftBackup.content })
                   setEditorDirty(draftBackup.content !== fileQuery.data.file.content)
                   setRestoreEpoch((epoch) => epoch + 1)

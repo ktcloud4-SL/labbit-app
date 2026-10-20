@@ -189,7 +189,9 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
   })
 
 
-  it('blocks cached file B after workspace-wide 409 on A until a fresh B GET succeeds', async () => {
+  it.each([
+    [409, 'workspace_target_changed'], [404, 'not_found'],
+  ] as const)('blocks cached file B after workspace-wide %i %s on A until a fresh B GET succeeds', async (status, code) => {
     const entries = { path: '', items: [
       { name: 'A.md', path: 'A.md', kind: 'file' as const },
       { name: 'B.md', path: 'B.md', kind: 'file' as const },
@@ -201,9 +203,9 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
     const { client } = mount({
       listWorkspaceFiles: async () => entries,
       readWorkspaceFile: async (_id, filePath) => {
-        if (filePath === 'A.md' && denyA) throw new HttpError(409, {
-          type: 'about:blank', title: 'Conflict', status: 409,
-          code: 'workspace_target_changed', requestId: 'fixture',
+        if (filePath === 'A.md' && denyA) throw new HttpError(status, {
+          type: 'about:blank', title: 'Workspace access changed', status,
+          code, requestId: 'fixture',
         })
         if (filePath === 'B.md') {
           if (delayB) return new Promise<typeof workspaceDocument>((resolve) => { resumeB = resolve })
@@ -258,7 +260,9 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
     expect(readTree.mock.calls.filter(([, dir]) => dir === '').length).toBeGreaterThan(1)
   })
 
-  it('does not global-revoke unrelated files for specific file_permission_denied 403', async () => {
+  it.each([
+    [403, 'file_permission_denied'], [404, 'path_not_found'],
+  ] as const)('does not global-revoke unrelated files for specific %i %s', async (status, code) => {
     const entries = { path: '', items: [
       { name: 'A.md', path: 'A.md', kind: 'file' as const },
       { name: 'B.md', path: 'B.md', kind: 'file' as const },
@@ -267,9 +271,9 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
     const { client } = mount({
       listWorkspaceFiles: async () => entries,
       readWorkspaceFile: async (_id, filePath) => {
-        if (forbidden && filePath === 'A.md') throw new HttpError(403, {
-          type: 'about:blank', title: 'Forbidden', status: 403,
-          code: 'file_permission_denied', requestId: 'fixture',
+        if (forbidden && filePath === 'A.md') throw new HttpError(status, {
+          type: 'about:blank', title: 'Path access changed', status,
+          code, requestId: 'fixture',
         })
         return { file: { path: filePath, content: filePath }, etag: '"ok"' }
       },
@@ -289,6 +293,7 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
   it('retains dirty draft across LabPage READY generation change and explicit recovery only', async () => {
     let generation = 1
     let status: 'READY' | 'PROVISIONING' = 'READY'
+    const saveWorkspaceFile = vi.fn(async () => ({ file: { path }, etag: '"g2-saved"' }))
     const classDetail = (): ClassDetail => ({
       id: 'class-a', name: 'Workspace Test', myRole: 'STUDENT',
       activeLabExecution: { id: 'execution-a', status: 'ACTIVE' },
@@ -301,6 +306,7 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
         file: { path, content: generation === 1 ? '# old server content' : '# new generation content' },
         etag: generation === 1 ? '"g1"' : '"g2"',
       }),
+      saveWorkspaceFile,
     }
     const client = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
     const router = createMemoryRouter([
@@ -329,6 +335,17 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
     fireEvent.click(screen.getByRole('button', { name: '미저장 수정본 복원' }))
     expect(await screen.findByLabelText('파일 편집기')).toHaveValue('# unpublished generation one changes')
     expect(getWorkspaceEditState().dirty).toBe(true)
+    // Explicit restoration must rebind the backup to the freshly read scope
+    // and ETag, even if the user does not type again before saving.
+    fireEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() => expect(saveWorkspaceFile).toHaveBeenCalledWith(
+      labId, path, '# unpublished generation one changes', '"g2"',
+    ))
+    await waitFor(() => expect(getWorkspaceEditState()).toEqual({ dirty: false, savePending: false }))
+    expect(screen.getByLabelText('파일 편집기')).toHaveValue('# unpublished generation one changes')
+    expect(screen.getByText('저장됨')).toBeInTheDocument()
+    expect(screen.queryByText(/이전 generation 1의 미저장 수정본/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '미저장 수정본 복원' })).not.toBeInTheDocument()
   })
 
   it('blocks a remounted Editor while an earlier PUT is in flight after a Tree denial', async () => {

@@ -9,6 +9,7 @@ import type {
   OperationAccepted,
 } from '../shared/api/contracts'
 import { LabbitApiProvider } from '../shared/api/LabbitApiProvider'
+import { labbitQueryKeys } from '../shared/api/labbitApi'
 import { mockLabbitApi, mockMe } from '../shared/api/mockLabbitApi'
 import { LabExecutionPage } from './LabExecutionPage'
 
@@ -36,6 +37,7 @@ function mount(
     operationId: 'cleanup-operation',
     target: { type: 'LAB_EXECUTION', id: 'execution-a' },
   }),
+  overrides: Partial<typeof mockLabbitApi> = {},
 ) {
   const cleanupLabExecution = vi.fn(cleanupImpl)
   const resetLabInstance = vi.fn(async (id: string) => ({
@@ -59,6 +61,7 @@ function mount(
     }),
     cleanupLabExecution,
     resetLabInstance,
+    ...overrides,
   }
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -79,7 +82,7 @@ function mount(
       </LabbitApiProvider>
     </QueryClientProvider>,
   )
-  return { router, cleanupLabExecution, resetLabInstance }
+  return { router, client, cleanupLabExecution, resetLabInstance }
 }
 
 async function goToExecutionB(router: ReturnType<typeof mount>['router']) {
@@ -142,4 +145,82 @@ describe('LBT-53 execution destructive action route isolation', () => {
     expect(cleanupLabExecution).toHaveBeenCalledTimes(1)
     expect(cleanupLabExecution).toHaveBeenCalledWith('execution-a', expect.any(String))
   })
+
+  it('Cleanup 확인 후 서버가 CLEANING_UP으로 바뀌었으면 POST하지 않고 상태를 다시 읽는다', async () => {
+    let isCleaning = false
+    const { cleanupLabExecution } = mount(undefined, {
+      getLabExecution: async (id) => ({
+        ...executionFor(id),
+        status: isCleaning ? 'CLEANING_UP' : 'ACTIVE',
+      }),
+    })
+    expect(await screen.findByText('execution-a')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '전체 실습 정리' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    isCleaning = true
+    fireEvent.click(screen.getByRole('button', { name: '정리 시작' }))
+    await waitFor(() => {
+      expect(cleanupLabExecution).not.toHaveBeenCalled()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+    expect(screen.getByText('정리 중')).toBeInTheDocument()
+  })
+
+  it('Cleanup 확인 당시 강사였어도 POST 전 서버 역할이 STUDENT라면 403 차단한다', async () => {
+    let role: ClassDetail['myRole'] = 'INSTRUCTOR'
+    const { cleanupLabExecution } = mount(undefined, {
+      getClass: async (id) => ({ id, name: `Class ${id}`, myRole: role }),
+    })
+    expect(await screen.findByText('execution-a')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '전체 실습 정리' }))
+    role = 'STUDENT'
+    fireEvent.click(screen.getByRole('button', { name: '정리 시작' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('권한이 없습니다')
+    expect(cleanupLabExecution).not.toHaveBeenCalled()
+  })
+
+  it('Reset 확인 후 LabInstance generation이 변경됐으면 이전 대상으로 POST하지 않는다', async () => {
+    let generation = 1
+    const { resetLabInstance } = mount(undefined, {
+      getLabExecution: async (id) => ({
+        ...executionFor(id),
+        labInstances: executionFor(id).labInstances.map((instance) => ({
+          ...instance,
+          generation,
+        })),
+      }),
+    })
+    expect(await screen.findByText('execution-a')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '초기화' }))
+    generation = 2
+    fireEvent.click(screen.getByRole('button', { name: '초기화 시작' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(resetLabInstance).not.toHaveBeenCalled()
+  })
+
+  it('이미 연 Cleanup 확인창은 강사 권한 회수 후 복구되어도 다시 나타나지 않는다', async () => {
+    const { client } = mount()
+    expect(await screen.findByText('execution-a')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '전체 실습 정리' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    act(() => {
+      client.setQueryData(labbitQueryKeys.classDetail('class-execution-a'), {
+        id: 'class-execution-a',
+        name: 'Class class-execution-a',
+        myRole: 'STUDENT',
+      } satisfies ClassDetail)
+    })
+    expect(await screen.findByText('INSTRUCTOR만 실습 운영 화면에 접근할 수 있습니다.')).toBeInTheDocument()
+    act(() => {
+      client.setQueryData(labbitQueryKeys.classDetail('class-execution-a'), {
+        id: 'class-execution-a',
+        name: 'Class class-execution-a',
+        myRole: 'INSTRUCTOR',
+      } satisfies ClassDetail)
+    })
+    await waitFor(() => expect(screen.getByText('execution-a')).toBeInTheDocument())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
 })

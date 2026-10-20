@@ -1,0 +1,42 @@
+{
+    "labInstanceIdSHA256":  "78c425bd0aa03de00c1ffb194908c51aec150d6e72f75b398f608db9ee3c27cd",
+    "stage":  "CLEANUP_AND_FINAL_RECONCILE_ABSENT",
+    "resourceCount":  5,
+    "resources":  [
+                      {
+                          "resourceType":  "SERVER",
+                          "providerIdSHA256":  "a3e9d308f880ff7ab5417951f016afbf42a5778d45824af53aae3abd546ff1f6",
+                          "generation":  1,
+                          "logicalName":  "workspace",
+                          "observedState":  "DELETED"
+                      },
+                      {
+                          "resourceType":  "VOLUME",
+                          "providerIdSHA256":  "4611dcfdb1b6e279f5f7d29f6d1b9920d22159a53ad21ac391105c15e1e19b08",
+                          "generation":  1,
+                          "logicalName":  "workspace:root-volume",
+                          "observedState":  "DELETED"
+                      },
+                      {
+                          "resourceType":  "KT_FIREWALL_POLICY",
+                          "providerIdSHA256":  "ac2fc7f682e0e4e38f6a5c75cc65a7f7f8b1e2e02fc98993626ab98b2aac8422",
+                          "generation":  1,
+                          "logicalName":  "workspace:management-ssh",
+                          "observedState":  "DELETED"
+                      },
+                      {
+                          "resourceType":  "KT_TIER",
+                          "providerIdSHA256":  "5dd533dfaca4c48507a21c88d1434f48b65ab083bf166f804d89730f653dfb0b",
+                          "generation":  1,
+                          "logicalName":  "lab-tier",
+                          "observedState":  "DELETED"
+                      },
+                      {
+                          "resourceType":  "KT_TIER",
+                          "providerIdSHA256":  "432901fb755ec4a734fe49ac52ea8b2cb2a4d1aa5bf85adc05937ac01a8824f3",
+                          "generation":  1,
+                          "logicalName":  "workspace:management-tier",
+                          "observedState":  "DELETED"
+                      }
+                  ]
+}

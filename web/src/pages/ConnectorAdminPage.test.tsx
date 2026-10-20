@@ -277,7 +277,8 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     })
     await waitFor(() => expect(screen.queryByText(TOKEN)).not.toBeInTheDocument())
     expect(screen.queryByRole('button', { name: '토큰 복사' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeEnabled()
+    expect(screen.getByRole('textbox', { name: 'Connector 이름' })).toHaveValue('')
+    expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeDisabled()
   })
 
   it('발급 요청 중 ADMIN Principal이 바뀌면 이전 조직의 늦은 Secret 응답을 버린다', async () => {
@@ -302,7 +303,7 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     })
     // Query observer notifications are async: wait for the new scope to mount
     // before completing the previous scope's in-flight request.
-    await waitFor(() => expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeInTheDocument())
     await act(async () => {
       resolveIssue?.({
         tokenId: 'old-principal-response',
@@ -313,7 +314,8 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     })
     expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '토큰 복사' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeEnabled()
+    expect(screen.getByRole('textbox', { name: 'Connector 이름' })).toHaveValue('')
+    expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeDisabled()
     expect(JSON.stringify(client.getQueryCache().getAll().map((q) => q.state.data))).not.toContain(TOKEN)
     expect(JSON.stringify(client.getMutationCache().getAll().map((q) => q.state.data))).not.toContain(TOKEN)
   })
@@ -340,9 +342,10 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
 
     act(() => { client.setQueryData(labbitQueryKeys.me, ADMIN) })
-    await waitFor(() => expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeInTheDocument())
     expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeEnabled()
+    expect(screen.getByRole('textbox', { name: 'Connector 이름' })).toHaveValue('')
+    expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeDisabled()
   })
 
   it('서버 목록 401은 빈 Connector 목록 대신 로그인 화면으로 보낸다', async () => {

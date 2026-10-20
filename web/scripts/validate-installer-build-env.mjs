@@ -26,7 +26,7 @@ export function validateInstallerBuildEnv(raw = '') {
 
 // Docker builder uses this entrypoint before Vite can embed any configuration.
 // Log only a generic error; do not echo potentially confidential inputs.
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     validateInstallerBuildEnv(process.env.VITE_LABBIT_APPROVED_INSTALLER_URL ?? '')
   } catch {

@@ -69,8 +69,12 @@ export function LabPage() {
     if (window.confirm('저장되지 않은 변경이 있습니다. 변경 내용을 버리고 페이지를 이동할까요?')) {
       // The same LabPage instance can survive a /classes/:classId/lab route change.
       // Discard explicitly before proceeding so its old Class draft cannot linger.
-      setRetainedWorkspaceDraft(null)
-      navigationBlocker.proceed()
+      // Defer the state update out of this synchronization effect. The
+      // confirmed transition still discards its draft before proceeding.
+      queueMicrotask(() => {
+        setRetainedWorkspaceDraft(null)
+        navigationBlocker.proceed()
+      })
       return
     }
     navigationBlocker.reset()

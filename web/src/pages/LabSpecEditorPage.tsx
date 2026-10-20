@@ -545,7 +545,7 @@ function LabSpecForm({
           <Link className="secondary-link" to="/lab-specs">
             취소
           </Link>
-          <button className="primary-button" type="submit" disabled={saving || requireEtag}>
+          <button className="primary-button" type="submit" disabled={saving || requireEtag || Boolean(retainedDraft)}>
             {saving ? '저장 중...' : '실습 정의 저장'}
           </button>
         </div>

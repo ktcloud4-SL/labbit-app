@@ -368,6 +368,156 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
     expect(saveWorkspaceFile).toHaveBeenCalledTimes(1)
   })
 
+  it('preserves the previous-generation draft when its in-flight PUT finishes after Reset', async () => {
+    let generation = 1
+    let status: 'READY' | 'PROVISIONING' = 'READY'
+    let completePut!: (result: { file: { path: string }; etag: string }) => void
+    const saveWorkspaceFile = vi.fn(() => new Promise<{ file: { path: string }; etag: string }>(
+      (resolve) => { completePut = resolve },
+    ))
+    const api = {
+      ...mockLabbitApi,
+      getClass: async (): Promise<ClassDetail> => ({
+        id: 'class-a', name: 'Reset test', myRole: 'STUDENT',
+        activeLabExecution: { id: 'execution-a', status: 'ACTIVE' },
+        myLabInstance: { id: labId, userId: 'student-a', generation, status },
+      }),
+      listWorkspaceFiles: async () => tree,
+      readWorkspaceFile: async () => ({
+        file: { path, content: generation === 1 ? '# gen1' : '# gen2' },
+        etag: generation === 1 ? '"g1"' : '"g2"',
+      }),
+      saveWorkspaceFile,
+    }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
+    const router = createMemoryRouter([
+      { path: '/classes/:classId/lab', element: <LabPage /> },
+    ], { initialEntries: ['/classes/class-a/lab'] })
+    render(<QueryClientProvider client={client}>
+      <LabbitApiProvider api={api}><RouterProvider router={router} /></LabbitApiProvider>
+    </QueryClientProvider>)
+
+    fireEvent.click(await screen.findByRole('button', { name: /README.md/ }))
+    fireEvent.change(await screen.findByLabelText('파일 편집기'), {
+      target: { value: '# gen1 pending put' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() => expect(saveWorkspaceFile).toHaveBeenCalledTimes(1))
+    expect(getWorkspaceEditState().savePending).toBe(true)
+
+    status = 'PROVISIONING'
+    await act(async () => { await client.invalidateQueries({ queryKey: labbitQueryKeys.classDetail('class-a') }) })
+    expect(await screen.findByText(/실습 환경을 준비하고 있습니다/)).toBeInTheDocument()
+    expect(getWorkspaceEditState().savePending).toBe(true)
+    expect(getWorkspaceEditState().dirty).toBe(true)
+
+    generation = 2
+    status = 'READY'
+    await act(async () => { await client.invalidateQueries({ queryKey: labbitQueryKeys.classDetail('class-a') }) })
+    expect(await screen.findByText(/이전 generation 1의 미저장 수정본/)).toBeInTheDocument()
+
+    await act(async () => completePut({ file: { path }, etag: '"gen1-saved"' }))
+    await waitFor(() => expect(getWorkspaceEditState().savePending).toBe(false))
+    expect(getWorkspaceEditState().dirty).toBe(true)
+    expect(screen.getByText(/이전 generation 1의 미저장 수정본/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('파일 편집기')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '현재 generation에서 해당 파일 확인' }))
+    expect(await screen.findByRole('button', { name: '미저장 수정본 복원' })).toBeInTheDocument()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    fireEvent.click(screen.getByRole('button', { name: '미저장 수정본 복원' }))
+    expect(await screen.findByLabelText('파일 편집기')).toHaveValue('# gen1 pending put')
+    expect(saveWorkspaceFile).toHaveBeenCalledTimes(1)
+  })
+
+  it('protects a dirty draft from route exit and browser reload during non-READY LabPage', async () => {
+    let status: 'READY' | 'PROVISIONING' = 'READY'
+    const api = {
+      ...mockLabbitApi,
+      getClass: async (): Promise<ClassDetail> => ({
+        id: 'class-a', name: 'Navigation test', myRole: 'STUDENT',
+        activeLabExecution: { id: 'execution-a', status: 'ACTIVE' },
+        myLabInstance: { id: labId, userId: 'student-a', generation: 1, status },
+      }),
+      listWorkspaceFiles: async () => tree,
+      readWorkspaceFile: async () => workspaceDocument,
+    }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
+    const router = createMemoryRouter([
+      { path: '/classes/:classId/lab', element: <LabPage /> },
+      { path: '/classes/:classId', element: <div>Class detail destination</div> },
+    ], { initialEntries: ['/classes/class-a/lab'] })
+    render(<QueryClientProvider client={client}>
+      <LabbitApiProvider api={api}><RouterProvider router={router} /></LabbitApiProvider>
+    </QueryClientProvider>)
+
+    fireEvent.click(await screen.findByRole('button', { name: /README.md/ }))
+    fireEvent.change(await screen.findByLabelText('파일 편집기'), {
+      target: { value: '# unsaved during provisioning' },
+    })
+    status = 'PROVISIONING'
+    await act(async () => { await client.invalidateQueries({ queryKey: labbitQueryKeys.classDetail('class-a') }) })
+    expect(await screen.findByText(/실습 환경을 준비하고 있습니다/)).toBeInTheDocument()
+    expect(getWorkspaceEditState().dirty).toBe(true)
+
+    const beforeUnload = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(beforeUnload)
+    expect(beforeUnload.defaultPrevented).toBe(true)
+
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
+    fireEvent.click(screen.getByRole('link', { name: /수업 상세/ }))
+    await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1))
+    expect(screen.getByText(/실습 환경을 준비하고 있습니다/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('link', { name: /수업 상세/ }))
+    expect(await screen.findByText('Class detail destination')).toBeInTheDocument()
+    expect(confirm).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not treat a pre-revocation delayed File GET as a fresh authorized reread', async () => {
+    let readCount = 0
+    let denyTree = false
+    let finishStaleRead!: (value: typeof workspaceDocument) => void
+    const { client } = mount({
+      listWorkspaceFiles: async () => {
+        if (denyTree) throw new HttpError(409)
+        return tree
+      },
+      readWorkspaceFile: async () => {
+        readCount += 1
+        if (readCount === 2) {
+          return new Promise<typeof workspaceDocument>((resolve) => { finishStaleRead = resolve })
+        }
+        return workspaceDocument
+      },
+    })
+    fireEvent.click(await screen.findByRole('button', { name: /README.md/ }))
+    expect(await screen.findByLabelText('파일 편집기')).toHaveValue(workspaceDocument.file.content)
+
+    act(() => {
+      void client.invalidateQueries({ queryKey: labbitQueryKeys.workspaceFile(labId, 1, path) })
+    })
+    await waitFor(() => expect(finishStaleRead).toBeDefined())
+
+    denyTree = true
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: labbitQueryKeys.workspaceFileTree(labId, 1, '') })
+    })
+    expect(screen.queryByLabelText('파일 편집기')).not.toBeInTheDocument()
+    await act(async () => { finishStaleRead(workspaceDocument) })
+    expect(screen.queryByLabelText('파일 편집기')).not.toBeInTheDocument()
+
+    denyTree = false
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: labbitQueryKeys.workspaceFileTree(labId, 1, '') })
+    })
+    expect(await screen.findByRole('button', { name: '파일 접근 다시 확인' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('파일 편집기')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '파일 접근 다시 확인' }))
+    expect(await screen.findByLabelText('파일 편집기')).toHaveValue(workspaceDocument.file.content)
+    expect(readCount).toBe(3)
+  })
+
   it('keeps an unsaved editor draft during a transient 503 refetch failure', async () => {
     let unavailable = false
     const { client } = mount({

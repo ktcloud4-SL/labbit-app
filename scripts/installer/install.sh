@@ -17,8 +17,13 @@ CONNECTOR_GROUP="${LABBIT_CONNECTOR_GROUP:-labbit}"
 
 # Release Configuration
 DEFAULT_RELEASE_TAG="connector-v0.1.0"
+DEFAULT_EXPECTED_SHA256="742ac899d880b538ea56161394a857dc52bd4aa954858db0425073c039ad7346"
 RELEASE_TAG="${LABBIT_CONNECTOR_RELEASE_TAG:-$DEFAULT_RELEASE_TAG}"
-EXPECTED_SHA256="${LABBIT_CONNECTOR_EXPECTED_SHA256:-}"
+if [ "$RELEASE_TAG" != "$DEFAULT_RELEASE_TAG" ]; then
+  # For non-default release tags, only enforce pinned SHA256 if explicitly provided
+  DEFAULT_EXPECTED_SHA256=""
+fi
+EXPECTED_SHA256="${LABBIT_CONNECTOR_EXPECTED_SHA256:-$DEFAULT_EXPECTED_SHA256}"
 GITHUB_REPO="${LABBIT_GITHUB_REPO:-ktcloud4-SL/labbit-app}"
 RELEASE_BASE_URL="https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}"
 
@@ -203,34 +208,36 @@ fi
 echo "==> [2/6] Verifying binary integrity (SHA256)..."
 ACTUAL_SHA256="$(sha256sum "$DOWNLOAD_TMP" | awk '{print $1}')"
 
-if [ -n "$EXPECTED_SHA256" ]; then
-  if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
-    echo "::error::SHA256 mismatch! Expected: $EXPECTED_SHA256, Got: $ACTUAL_SHA256." >&2
-    exit 1
-  fi
-  echo "    SHA256 verified successfully against pinned checksum: $ACTUAL_SHA256"
-else
-  # Fetch official SHA256SUMS from the release (fail-closed if unavailable or mismatched)
-  CHECKSUMS_TMP="$(mktemp)"
-  chmod 0600 "$CHECKSUMS_TMP"
-  if ! curl -fsSL "${RELEASE_BASE_URL}/SHA256SUMS" -o "$CHECKSUMS_TMP" 2>/dev/null; then
-    rm -f "$CHECKSUMS_TMP"
-    CHECKSUMS_TMP=""
-    echo "::error::Failed to download release SHA256SUMS from ${RELEASE_BASE_URL}/SHA256SUMS. Aborting installation (fail-closed)." >&2
-    exit 1
-  fi
-  EXPECTED_FROM_FILE="$(awk '$2 == "labbit-connector" || $2 == "*labbit-connector" {print $1}' "$CHECKSUMS_TMP" | head -n1)"
+# 1. Fetch official SHA256SUMS from the release (fail-closed if unavailable or malformed)
+CHECKSUMS_TMP="$(mktemp)"
+chmod 0600 "$CHECKSUMS_TMP"
+if ! curl -fsSL "${RELEASE_BASE_URL}/SHA256SUMS" -o "$CHECKSUMS_TMP" 2>/dev/null; then
   rm -f "$CHECKSUMS_TMP"
   CHECKSUMS_TMP=""
-  if [ -z "$EXPECTED_FROM_FILE" ]; then
-    echo "::error::Release SHA256SUMS did not contain a valid entry for labbit-connector. Aborting installation." >&2
+  echo "::error::Failed to download release SHA256SUMS from ${RELEASE_BASE_URL}/SHA256SUMS. Aborting installation (fail-closed)." >&2
+  exit 1
+fi
+EXPECTED_FROM_FILE="$(awk '$2 == "labbit-connector" || $2 == "*labbit-connector" {print $1}' "$CHECKSUMS_TMP" | head -n1)"
+rm -f "$CHECKSUMS_TMP"
+CHECKSUMS_TMP=""
+if [ -z "$EXPECTED_FROM_FILE" ]; then
+  echo "::error::Release SHA256SUMS did not contain a valid entry for labbit-connector. Aborting installation." >&2
+  exit 1
+fi
+if [ "$ACTUAL_SHA256" != "$EXPECTED_FROM_FILE" ]; then
+  echo "::error::SHA256 mismatch against release SHA256SUMS! Expected: $EXPECTED_FROM_FILE, Got: $ACTUAL_SHA256." >&2
+  exit 1
+fi
+echo "    SHA256 verified successfully against release SHA256SUMS: $ACTUAL_SHA256"
+
+# 2. Enforce approved pinned checksum verification (fail-closed if binary and SHA256SUMS were modified together on release)
+if [ -n "$EXPECTED_SHA256" ]; then
+  if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+    echo "::error::SHA256 mismatch against approved release checksum! Expected: $EXPECTED_SHA256, Got: $ACTUAL_SHA256." >&2
+    echo "        Even if release SHA256SUMS matches the binary, the downloaded binary does not match the approved cryptographic hash." >&2
     exit 1
   fi
-  if [ "$ACTUAL_SHA256" != "$EXPECTED_FROM_FILE" ]; then
-    echo "::error::SHA256 mismatch against release SHA256SUMS! Expected: $EXPECTED_FROM_FILE, Got: $ACTUAL_SHA256." >&2
-    exit 1
-  fi
-  echo "    SHA256 verified successfully against release SHA256SUMS: $ACTUAL_SHA256"
+  echo "    SHA256 verified successfully against approved pinned checksum: $ACTUAL_SHA256"
 fi
 
 # Install binary to /usr/local/bin

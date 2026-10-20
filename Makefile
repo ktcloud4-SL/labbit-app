@@ -94,5 +94,9 @@ connector:
 	LABBIT_ENVIRONMENT=development \
 	$(GO) run ./cmd/labbit-connector
 
+# Linux amd64 Release Binary 로컬 빌드 타겟
+connector-linux-amd64:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -trimpath -o dist/labbit-connector ./cmd/labbit-connector
+
 web:
 	cd web && $(NPM) run dev

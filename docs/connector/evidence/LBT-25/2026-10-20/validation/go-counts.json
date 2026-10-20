@@ -1,0 +1,61 @@
+{
+  "testActions": {
+    "run": 3451,
+    "output": 7346,
+    "pass": 3449,
+    "skip": 2,
+    "pause": 193,
+    "cont": 193
+  },
+  "packageActions": {
+    "start": 54,
+    "output": 97,
+    "skip": 11,
+    "pass": 43
+  },
+  "skips": [
+    {
+      "Package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector"
+    },
+    {
+      "Package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate"
+    },
+    {
+      "Package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-server"
+    },
+    {
+      "Package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-workspace-sftp"
+    },
+    {
+      "Package": "github.com/ktcloud4-SL/labbit-app/db/migrations"
+    },
+    {
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/version"
+    },
+    {
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr"
+    },
+    {
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+      "Test": "TestSymlinkRejectedAndExcludedFromTree"
+    },
+    {
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest"
+    },
+    {
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution/labexecutiontest"
+    },
+    {
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest"
+    },
+    {
+      "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest"
+    },
+    {
+      "Package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+      "Test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+    }
+  ],
+  "excludedPackage": "internal/connector/provider/openstack (Windows directory fsync unsupported)",
+  "notRun": "build-tag integration and real provider opt-ins"
+}

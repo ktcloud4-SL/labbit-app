@@ -1,0 +1,1 @@
+{"observedAt": "2026-10-20T05:53:46.385282+00:00", "login": {"at": "2026-10-20T05:53:46.385246+00:00", "status": 204, "contentType": null, "code": null, "bodyBytes": 0}, "bodyCookieCredentialPersisted": false, "create": {"at": "2026-10-20T05:53:47.534220+00:00", "status": 502, "contentType": "application/problem+json", "code": "preview_app_not_running", "bodyBytes": 223}}

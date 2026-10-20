@@ -1,0 +1,277 @@
+[
+  {
+    "path": "api-app-not-running.json",
+    "canonicalLFBytes": 375,
+    "canonicalLFSHA256": "21ceced07417b68983d079ccce1bcf6372a4cd70d9483d7628523ddb769bb57a"
+  },
+  {
+    "path": "api-initial.json",
+    "canonicalLFBytes": 0,
+    "canonicalLFSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "api-internal-initial.json",
+    "canonicalLFBytes": 375,
+    "canonicalLFSHA256": "21ceced07417b68983d079ccce1bcf6372a4cd70d9483d7628523ddb769bb57a"
+  },
+  {
+    "path": "api-matrix.json",
+    "canonicalLFBytes": 4943,
+    "canonicalLFSHA256": "d1d7143638972c47e11bb94492f512fa7efa5844edba4ccb7b8e60d652768526"
+  },
+  {
+    "path": "api-matrix.py",
+    "canonicalLFBytes": 4930,
+    "canonicalLFSHA256": "905acf56c4c0a170de43ed43a4be775d70d47a0e81b4b4bb73af7d24b0e5bc9c"
+  },
+  {
+    "path": "api-probe.py",
+    "canonicalLFBytes": 1852,
+    "canonicalLFSHA256": "50a40dd581dbef14e996824d8b6338219bdb5a8c98dc00b58b03b3c6c538c893"
+  },
+  {
+    "path": "backend-after-internal.json",
+    "canonicalLFBytes": 553,
+    "canonicalLFSHA256": "8d28fac9938e2cf1769bc58c9c4b232de5ecf64bcadb09306e36766214fcbdf7"
+  },
+  {
+    "path": "backend-browser-retry.json",
+    "canonicalLFBytes": 2517,
+    "canonicalLFSHA256": "5a0c8f679de3939c1a2f6ba14db4d0e7d05bda0a1fc8ecf9b6cc0c7525bebd07"
+  },
+  {
+    "path": "backend-final.json",
+    "canonicalLFBytes": 12554,
+    "canonicalLFSHA256": "cd11fc808c44cec17ed22c06a61f2199b946fb9e9320e5cab2818a57cd746568"
+  },
+  {
+    "path": "backend-initial.json",
+    "canonicalLFBytes": 553,
+    "canonicalLFSHA256": "23655a0b28e0efc91f771954a2ad943d3844781760ccca070b2dd93cc7c5dec4"
+  },
+  {
+    "path": "backend-with-failures.json",
+    "canonicalLFBytes": 9223,
+    "canonicalLFSHA256": "0b9f51fce8cb47d5c4f02e78d26cc784de98e624c9a6190be1de3f8b567eca49"
+  },
+  {
+    "path": "browser-evidence.json",
+    "canonicalLFBytes": 1375,
+    "canonicalLFSHA256": "0ed6b0e1ae954982dc7f4f1034b07aba25a99c6b33912729f8f53a82e3101c15"
+  },
+  {
+    "path": "browser-initial-error.png",
+    "canonicalLFBytes": 58368,
+    "canonicalLFSHA256": "0c328c69f8e554f108b6162b48812bd48a6dfcbd473825e98064cd5656f23996"
+  },
+  {
+    "path": "browser-preview-ready.png",
+    "canonicalLFBytes": 63461,
+    "canonicalLFSHA256": "a0192843bd62a45159e8dedcc6fa58d0a71dca1dffad4330bdfd80b4d5fbbcd2"
+  },
+  {
+    "path": "check-publication-tools.py",
+    "canonicalLFBytes": 3300,
+    "canonicalLFSHA256": "b94a262a943c662538322c2ba24448e25ae4e171983148e745e24c1a5543c29c"
+  },
+  {
+    "path": "EXECUTION_AUDIT.md",
+    "canonicalLFBytes": 9260,
+    "canonicalLFSHA256": "5ff3f4c67e7e709b43ce0accded02198dce1c82562132711850df7776d5bf747"
+  },
+  {
+    "path": "go-test.jsonl",
+    "canonicalLFBytes": 998658,
+    "canonicalLFSHA256": "15ef4912a09a8b6c6bcf8c8a0654c9a58080f77b4531855362483114866abe43"
+  },
+  {
+    "path": "http-routing.json",
+    "canonicalLFBytes": 443,
+    "canonicalLFSHA256": "3e48bfcf195e9bfa28c5778646a05a6136b93e0bc3367bc1be0fbf59625bea4a"
+  },
+  {
+    "path": "original-export.json",
+    "canonicalLFBytes": 9901,
+    "canonicalLFSHA256": "a47787fc03e167b1064e2c347579304523164b8c32174106d9477f75c4bd1df8"
+  },
+  {
+    "path": "postconditions.json",
+    "canonicalLFBytes": 323,
+    "canonicalLFSHA256": "5bc607ba2857d2116e2f86a434c186b4dfa6640114d04b1c271daab38fe67d6e"
+  },
+  {
+    "path": "PRE_MERGE_AUDIT.md",
+    "canonicalLFBytes": 14880,
+    "canonicalLFSHA256": "6308e267d0293a6598c1d2d3aff8e0de82d05da97a06c5e97e48cd9896a77147"
+  },
+  {
+    "path": "read-backend.py",
+    "canonicalLFBytes": 4414,
+    "canonicalLFSHA256": "70a9755ba893a32227d6d6bf725f61b711c461bb05753fae2ffb9d95a90e4b13"
+  },
+  {
+    "path": "read-http-routing.py",
+    "canonicalLFBytes": 966,
+    "canonicalLFSHA256": "dac6addb784d22831d1fa458080eee99d7df58711bbf148f19ec957e3d08115b"
+  },
+  {
+    "path": "read-postconditions.py",
+    "canonicalLFBytes": 834,
+    "canonicalLFSHA256": "764d4a646412a5a4b2ddbde3a5518426a60ad71e26846b7706026c7025f3b09b"
+  },
+  {
+    "path": "read-workspace-metadata.py",
+    "canonicalLFBytes": 1543,
+    "canonicalLFSHA256": "29a2f0d776dec42c46e4fdb58baec1856004653d6ef4a4b2f05d876541619da7"
+  },
+  {
+    "path": "README.md",
+    "canonicalLFBytes": 19688,
+    "canonicalLFSHA256": "b483d2c1734e57f51306a63de92432a7c36c170dae41985ee54869c2868678af"
+  },
+  {
+    "path": "REVIEW_FIX_AUDIT.md",
+    "canonicalLFBytes": 11543,
+    "canonicalLFSHA256": "b8880c6876092d32e9e9c6b81c248e6967be927c04f2778692f568d128631898"
+  },
+  {
+    "path": "run-admin.py",
+    "canonicalLFBytes": 536,
+    "canonicalLFSHA256": "04dc263ba7668f1a32685f608faa05199ed81b03cbb8591e49e98e20340022ff"
+  },
+  {
+    "path": "run-internal-api.py",
+    "canonicalLFBytes": 1295,
+    "canonicalLFSHA256": "4349910b2856a812654407618a34350ea20ae5cc5de25067b0d36ea7e7ec6022"
+  },
+  {
+    "path": "run-matrix.py",
+    "canonicalLFBytes": 1275,
+    "canonicalLFSHA256": "0890ec8ceea87091d51c7c2ed85857a6086ee971387a5efee5968678908d7efe"
+  },
+  {
+    "path": "run-owned-api.py",
+    "canonicalLFBytes": 1195,
+    "canonicalLFSHA256": "2c767982f8d59487d9f429244180ac51caf0ba972d863dce96b3e7cebf3f3472"
+  },
+  {
+    "path": "run-private-collector.py",
+    "canonicalLFBytes": 2302,
+    "canonicalLFSHA256": "4be6f4e964a24fe2b93b7c1877b8f8b5e7a9d58fcc379fc1681e73020db024f8"
+  },
+  {
+    "path": "run_output.py",
+    "canonicalLFBytes": 695,
+    "canonicalLFSHA256": "310a50f5665911fc0028530f9ec07b9d53002db928b08ced906eb1eea2594f70"
+  },
+  {
+    "path": "test-private-collector.py",
+    "canonicalLFBytes": 7998,
+    "canonicalLFSHA256": "0a76f735e44a2fa1804339e35330b970cf1332e8830a845c75f22ca71f850865"
+  },
+  {
+    "path": "validation/go-build.txt",
+    "canonicalLFBytes": 0,
+    "canonicalLFSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "validation/go-counts.json",
+    "canonicalLFBytes": 1837,
+    "canonicalLFSHA256": "93ada0bb6d19c33b0d62a2181a66498cd86b76239e2d9f479d6846faa0452dc4"
+  },
+  {
+    "path": "validation/go-mod-download.txt",
+    "canonicalLFBytes": 0,
+    "canonicalLFSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "validation/go-test-windows-except-provider.txt",
+    "canonicalLFBytes": 3837765,
+    "canonicalLFSHA256": "ceb2f86fca1c2d82a822398b95c8d91455bfa4791efe0785a092cdd3d8f7c2ce"
+  },
+  {
+    "path": "validation/go-vet.txt",
+    "canonicalLFBytes": 0,
+    "canonicalLFSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "validation/helper-checks.json",
+    "canonicalLFBytes": 673,
+    "canonicalLFSHA256": "4f129ba43169daee6bb95eca5633bf4925da87799d9b70205affcb6d40ad835a"
+  },
+  {
+    "path": "validation/log-export.json",
+    "canonicalLFBytes": 2617,
+    "canonicalLFSHA256": "a83644cbe0573d0444dc095274c3560a046c2fbf8431114356bfd8678abad30d"
+  },
+  {
+    "path": "validation/private-collector-summary.json",
+    "canonicalLFBytes": 1153,
+    "canonicalLFSHA256": "bcc00920fa6c9bb6f3b11a1b68bf901ad587e6ddb52b805d3e8d50a9dd57d66f"
+  },
+  {
+    "path": "validation/private-collector-tests.txt",
+    "canonicalLFBytes": 1178,
+    "canonicalLFSHA256": "4125904c3bcad74caf07646205c4a31e0658dbef281bf6a07c39bc9bcb0b8f06"
+  },
+  {
+    "path": "validation/source-correspondence.json",
+    "canonicalLFBytes": 603,
+    "canonicalLFSHA256": "72d853742f35aad78311b4e447265e4f662f0c18f35eb52c7bce1fc6421aa96b"
+  },
+  {
+    "path": "validation/summary-go.json",
+    "canonicalLFBytes": 622,
+    "canonicalLFSHA256": "27f229a817d86cf8ce9006a3b5d546319c12a47d51abca16779293823e7d4091"
+  },
+  {
+    "path": "validation/summary-web.json",
+    "canonicalLFBytes": 673,
+    "canonicalLFSHA256": "612ed8e2ce334b5a0337b6e081dad4e5b5f570552ea31aab5e5c0e35f92d58b5"
+  },
+  {
+    "path": "validation/web-build.txt",
+    "canonicalLFBytes": 711,
+    "canonicalLFSHA256": "3a10e3a7eb20b8431bbed3fbe6be680392b026062fac30bb14dda7143413f823"
+  },
+  {
+    "path": "validation/web-installed-versions.txt",
+    "canonicalLFBytes": 74,
+    "canonicalLFSHA256": "36ed234a8a267c3f2720ade1c194c1d8d58064bbaaea7622fc123f0a3d8f9ada"
+  },
+  {
+    "path": "validation/web-lint.txt",
+    "canonicalLFBytes": 0,
+    "canonicalLFSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "validation/web-test.txt",
+    "canonicalLFBytes": 661,
+    "canonicalLFSHA256": "5e673902316759c95a897eb6cbcf92f7b523f87eaeadf5eb9ce5b5776e605d2e"
+  },
+  {
+    "path": "validation/web-typecheck.txt",
+    "canonicalLFBytes": 0,
+    "canonicalLFSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "verification-summary.json",
+    "canonicalLFBytes": 433,
+    "canonicalLFSHA256": "7534879acd762d23cd70de7135929d514ea16c13d7ec9564580df60a71357efc"
+  },
+  {
+    "path": "verify-evidence.py",
+    "canonicalLFBytes": 3111,
+    "canonicalLFSHA256": "568af38166f96b4fa76d352e7753eccfbb22ecc44f4363a4a5277379367cbd52"
+  },
+  {
+    "path": "verify-package.py",
+    "canonicalLFBytes": 3964,
+    "canonicalLFSHA256": "b195c51de06e14aabe16c43f18a02c46f34e8574bf53ab72aee5ea0d91a87beb"
+  },
+  {
+    "path": "workspace-metadata.json",
+    "canonicalLFBytes": 599,
+    "canonicalLFSHA256": "19135c9a9453ea14469922819f6bfbf4772a1841f0d00507be2b1f83a494ecbc"
+  }
+]

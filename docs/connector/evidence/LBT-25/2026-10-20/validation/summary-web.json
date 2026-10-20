@@ -1,0 +1,28 @@
+{
+  "at": "2026-10-20T07:30:43.911800+00:00",
+  "baseCommit": "b5090bbe981d5b18b8c503851dbbd7567002153a",
+  "results": [
+    {
+      "name": "web-typecheck",
+      "exitCode": 0
+    },
+    {
+      "name": "web-lint",
+      "exitCode": 0
+    },
+    {
+      "name": "web-test",
+      "exitCode": 0
+    },
+    {
+      "name": "web-build",
+      "exitCode": 0
+    },
+    {
+      "name": "web-installed-versions",
+      "exitCode": 0
+    }
+  ],
+  "providerRuntimeTests": "Not executed on Windows; Linux source unchanged from merged PR137. Real-provider opt-ins not run.",
+  "webDependencies": "Reused existing C2 node_modules; versions saved, exact-lock CI remains separate."
+}

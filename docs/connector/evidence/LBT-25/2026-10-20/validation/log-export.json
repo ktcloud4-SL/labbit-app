@@ -1,0 +1,68 @@
+{
+  "normalization": "LF, trailing line whitespace and final blank lines removed; no other edits",
+  "files": [
+    {
+      "path": "go-build.txt",
+      "rawBytes": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "publishedBytes": 0,
+      "publishedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "go-mod-download.txt",
+      "rawBytes": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "publishedBytes": 0,
+      "publishedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "go-test-windows-except-provider.txt",
+      "rawBytes": 3837765,
+      "rawSHA256": "ceb2f86fca1c2d82a822398b95c8d91455bfa4791efe0785a092cdd3d8f7c2ce",
+      "publishedBytes": 3837765,
+      "publishedSHA256": "ceb2f86fca1c2d82a822398b95c8d91455bfa4791efe0785a092cdd3d8f7c2ce"
+    },
+    {
+      "path": "go-vet.txt",
+      "rawBytes": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "publishedBytes": 0,
+      "publishedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "web-build.txt",
+      "rawBytes": 712,
+      "rawSHA256": "ce421d7069ed47e30fec5e842de6393e554447636a3d1ab46316db5dab96933b",
+      "publishedBytes": 711,
+      "publishedSHA256": "3a10e3a7eb20b8431bbed3fbe6be680392b026062fac30bb14dda7143413f823"
+    },
+    {
+      "path": "web-installed-versions.txt",
+      "rawBytes": 74,
+      "rawSHA256": "36ed234a8a267c3f2720ade1c194c1d8d58064bbaaea7622fc123f0a3d8f9ada",
+      "publishedBytes": 74,
+      "publishedSHA256": "36ed234a8a267c3f2720ade1c194c1d8d58064bbaaea7622fc123f0a3d8f9ada"
+    },
+    {
+      "path": "web-lint.txt",
+      "rawBytes": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "publishedBytes": 0,
+      "publishedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "web-test.txt",
+      "rawBytes": 662,
+      "rawSHA256": "0da7401db0aaa9a33dd60c0fab2e0496404711f410e52d489ddd8aa76c4ce69d",
+      "publishedBytes": 661,
+      "publishedSHA256": "5e673902316759c95a897eb6cbcf92f7b523f87eaeadf5eb9ce5b5776e605d2e"
+    },
+    {
+      "path": "web-typecheck.txt",
+      "rawBytes": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "publishedBytes": 0,
+      "publishedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

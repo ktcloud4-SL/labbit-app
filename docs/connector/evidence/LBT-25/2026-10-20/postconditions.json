@@ -1,0 +1,1 @@
+{"at": "2026-10-20T05:59:14.354907+00:00", "images": [{"pod": "backend-57c8d75498-9hz2s", "images": ["ghcr.io/ktcloud4-sl/backend:sha-e0caea4"]}, {"pod": "web-7bbf9f4b87-ts5qb", "images": ["ghcr.io/ktcloud4-sl/web:sha-9172e05"]}], "temporaryPortForwardStillRunning": false, "cloudMutationsPerformedByThisCollector": false}

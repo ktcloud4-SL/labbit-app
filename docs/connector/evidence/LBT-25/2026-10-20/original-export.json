@@ -1,0 +1,227 @@
+{
+  "source": "outputs/c3-acceptance-20261020; immutable actual run retained locally",
+  "originalManifestVerifiedEntries": 43,
+  "excluded": [
+    "__pycache__ (generated machine-specific bytecode)",
+    "original manifest is replaced by this raw-to-LF export record and final package-manifest.json"
+  ],
+  "files": [
+    {
+      "path": "api-app-not-running.json",
+      "originalBytes": 375,
+      "originalSHA256": "21ceced07417b68983d079ccce1bcf6372a4cd70d9483d7628523ddb769bb57a",
+      "exportCanonicalLFBytes": 375,
+      "exportCanonicalLFSHA256": "21ceced07417b68983d079ccce1bcf6372a4cd70d9483d7628523ddb769bb57a"
+    },
+    {
+      "path": "api-initial.json",
+      "originalBytes": 0,
+      "originalSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exportCanonicalLFBytes": 0,
+      "exportCanonicalLFSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "api-internal-initial.json",
+      "originalBytes": 375,
+      "originalSHA256": "21ceced07417b68983d079ccce1bcf6372a4cd70d9483d7628523ddb769bb57a",
+      "exportCanonicalLFBytes": 375,
+      "exportCanonicalLFSHA256": "21ceced07417b68983d079ccce1bcf6372a4cd70d9483d7628523ddb769bb57a"
+    },
+    {
+      "path": "api-matrix.json",
+      "originalBytes": 4943,
+      "originalSHA256": "d1d7143638972c47e11bb94492f512fa7efa5844edba4ccb7b8e60d652768526",
+      "exportCanonicalLFBytes": 4943,
+      "exportCanonicalLFSHA256": "d1d7143638972c47e11bb94492f512fa7efa5844edba4ccb7b8e60d652768526"
+    },
+    {
+      "path": "api-matrix.py",
+      "originalBytes": 4930,
+      "originalSHA256": "905acf56c4c0a170de43ed43a4be775d70d47a0e81b4b4bb73af7d24b0e5bc9c",
+      "exportCanonicalLFBytes": 4930,
+      "exportCanonicalLFSHA256": "905acf56c4c0a170de43ed43a4be775d70d47a0e81b4b4bb73af7d24b0e5bc9c"
+    },
+    {
+      "path": "api-probe.py",
+      "originalBytes": 1852,
+      "originalSHA256": "50a40dd581dbef14e996824d8b6338219bdb5a8c98dc00b58b03b3c6c538c893",
+      "exportCanonicalLFBytes": 1852,
+      "exportCanonicalLFSHA256": "50a40dd581dbef14e996824d8b6338219bdb5a8c98dc00b58b03b3c6c538c893"
+    },
+    {
+      "path": "backend-after-internal.json",
+      "originalBytes": 553,
+      "originalSHA256": "8d28fac9938e2cf1769bc58c9c4b232de5ecf64bcadb09306e36766214fcbdf7",
+      "exportCanonicalLFBytes": 553,
+      "exportCanonicalLFSHA256": "8d28fac9938e2cf1769bc58c9c4b232de5ecf64bcadb09306e36766214fcbdf7"
+    },
+    {
+      "path": "backend-browser-retry.json",
+      "originalBytes": 2517,
+      "originalSHA256": "5a0c8f679de3939c1a2f6ba14db4d0e7d05bda0a1fc8ecf9b6cc0c7525bebd07",
+      "exportCanonicalLFBytes": 2517,
+      "exportCanonicalLFSHA256": "5a0c8f679de3939c1a2f6ba14db4d0e7d05bda0a1fc8ecf9b6cc0c7525bebd07"
+    },
+    {
+      "path": "backend-final.json",
+      "originalBytes": 12554,
+      "originalSHA256": "cd11fc808c44cec17ed22c06a61f2199b946fb9e9320e5cab2818a57cd746568",
+      "exportCanonicalLFBytes": 12554,
+      "exportCanonicalLFSHA256": "cd11fc808c44cec17ed22c06a61f2199b946fb9e9320e5cab2818a57cd746568"
+    },
+    {
+      "path": "backend-initial.json",
+      "originalBytes": 553,
+      "originalSHA256": "23655a0b28e0efc91f771954a2ad943d3844781760ccca070b2dd93cc7c5dec4",
+      "exportCanonicalLFBytes": 553,
+      "exportCanonicalLFSHA256": "23655a0b28e0efc91f771954a2ad943d3844781760ccca070b2dd93cc7c5dec4"
+    },
+    {
+      "path": "backend-with-failures.json",
+      "originalBytes": 9223,
+      "originalSHA256": "0b9f51fce8cb47d5c4f02e78d26cc784de98e624c9a6190be1de3f8b567eca49",
+      "exportCanonicalLFBytes": 9223,
+      "exportCanonicalLFSHA256": "0b9f51fce8cb47d5c4f02e78d26cc784de98e624c9a6190be1de3f8b567eca49"
+    },
+    {
+      "path": "browser-evidence.json",
+      "originalBytes": 1375,
+      "originalSHA256": "0ed6b0e1ae954982dc7f4f1034b07aba25a99c6b33912729f8f53a82e3101c15",
+      "exportCanonicalLFBytes": 1375,
+      "exportCanonicalLFSHA256": "0ed6b0e1ae954982dc7f4f1034b07aba25a99c6b33912729f8f53a82e3101c15"
+    },
+    {
+      "path": "browser-initial-error.png",
+      "originalBytes": 58368,
+      "originalSHA256": "0c328c69f8e554f108b6162b48812bd48a6dfcbd473825e98064cd5656f23996",
+      "exportCanonicalLFBytes": 58368,
+      "exportCanonicalLFSHA256": "0c328c69f8e554f108b6162b48812bd48a6dfcbd473825e98064cd5656f23996"
+    },
+    {
+      "path": "browser-preview-ready.png",
+      "originalBytes": 63461,
+      "originalSHA256": "a0192843bd62a45159e8dedcc6fa58d0a71dca1dffad4330bdfd80b4d5fbbcd2",
+      "exportCanonicalLFBytes": 63461,
+      "exportCanonicalLFSHA256": "a0192843bd62a45159e8dedcc6fa58d0a71dca1dffad4330bdfd80b4d5fbbcd2"
+    },
+    {
+      "path": "go-test.jsonl",
+      "originalBytes": 1002543,
+      "originalSHA256": "abd232b120b500a4f28cd7c21c8aa1a1c845bfe8206d6f88328b0cd7c135fb51",
+      "exportCanonicalLFBytes": 998658,
+      "exportCanonicalLFSHA256": "15ef4912a09a8b6c6bcf8c8a0654c9a58080f77b4531855362483114866abe43"
+    },
+    {
+      "path": "http-routing.json",
+      "originalBytes": 443,
+      "originalSHA256": "3e48bfcf195e9bfa28c5778646a05a6136b93e0bc3367bc1be0fbf59625bea4a",
+      "exportCanonicalLFBytes": 443,
+      "exportCanonicalLFSHA256": "3e48bfcf195e9bfa28c5778646a05a6136b93e0bc3367bc1be0fbf59625bea4a"
+    },
+    {
+      "path": "postconditions.json",
+      "originalBytes": 323,
+      "originalSHA256": "5bc607ba2857d2116e2f86a434c186b4dfa6640114d04b1c271daab38fe67d6e",
+      "exportCanonicalLFBytes": 323,
+      "exportCanonicalLFSHA256": "5bc607ba2857d2116e2f86a434c186b4dfa6640114d04b1c271daab38fe67d6e"
+    },
+    {
+      "path": "PRE_MERGE_AUDIT.md",
+      "originalBytes": 8933,
+      "originalSHA256": "e0e41af25de67b9f905852928bac5bf3431dbc6933441960fcb434f5d1547d89",
+      "exportCanonicalLFBytes": 8933,
+      "exportCanonicalLFSHA256": "e0e41af25de67b9f905852928bac5bf3431dbc6933441960fcb434f5d1547d89"
+    },
+    {
+      "path": "read-backend.py",
+      "originalBytes": 4414,
+      "originalSHA256": "70a9755ba893a32227d6d6bf725f61b711c461bb05753fae2ffb9d95a90e4b13",
+      "exportCanonicalLFBytes": 4414,
+      "exportCanonicalLFSHA256": "70a9755ba893a32227d6d6bf725f61b711c461bb05753fae2ffb9d95a90e4b13"
+    },
+    {
+      "path": "read-http-routing.py",
+      "originalBytes": 966,
+      "originalSHA256": "dac6addb784d22831d1fa458080eee99d7df58711bbf148f19ec957e3d08115b",
+      "exportCanonicalLFBytes": 966,
+      "exportCanonicalLFSHA256": "dac6addb784d22831d1fa458080eee99d7df58711bbf148f19ec957e3d08115b"
+    },
+    {
+      "path": "read-postconditions.py",
+      "originalBytes": 834,
+      "originalSHA256": "764d4a646412a5a4b2ddbde3a5518426a60ad71e26846b7706026c7025f3b09b",
+      "exportCanonicalLFBytes": 834,
+      "exportCanonicalLFSHA256": "764d4a646412a5a4b2ddbde3a5518426a60ad71e26846b7706026c7025f3b09b"
+    },
+    {
+      "path": "read-workspace-metadata.py",
+      "originalBytes": 1553,
+      "originalSHA256": "d1d15d0de579c9366f6984d6315398eaede554578b410c1eeccba475335e285c",
+      "exportCanonicalLFBytes": 1553,
+      "exportCanonicalLFSHA256": "d1d15d0de579c9366f6984d6315398eaede554578b410c1eeccba475335e285c"
+    },
+    {
+      "path": "README.md",
+      "originalBytes": 11405,
+      "originalSHA256": "1cde6fc5defa830075f23f1aa475a90b3df138f27c88c5bf8ba7ca3143a9ee1f",
+      "exportCanonicalLFBytes": 11405,
+      "exportCanonicalLFSHA256": "1cde6fc5defa830075f23f1aa475a90b3df138f27c88c5bf8ba7ca3143a9ee1f"
+    },
+    {
+      "path": "run-admin.py",
+      "originalBytes": 400,
+      "originalSHA256": "b1291b53c4c2b3e2dbb8b76afff0b469ee9b443f0e4127f9c7c0c1fb4dcab9a5",
+      "exportCanonicalLFBytes": 400,
+      "exportCanonicalLFSHA256": "b1291b53c4c2b3e2dbb8b76afff0b469ee9b443f0e4127f9c7c0c1fb4dcab9a5"
+    },
+    {
+      "path": "run-internal-api.py",
+      "originalBytes": 1288,
+      "originalSHA256": "5f019ada1817ec4160b7b756dea18bf8aca732282699f8b564d9a8b6fb28df7a",
+      "exportCanonicalLFBytes": 1288,
+      "exportCanonicalLFSHA256": "5f019ada1817ec4160b7b756dea18bf8aca732282699f8b564d9a8b6fb28df7a"
+    },
+    {
+      "path": "run-matrix.py",
+      "originalBytes": 1131,
+      "originalSHA256": "0db81bbf1ccf5f7a0c764081886f515b39c04e4fda351d75cf6204043bb01288",
+      "exportCanonicalLFBytes": 1131,
+      "exportCanonicalLFSHA256": "0db81bbf1ccf5f7a0c764081886f515b39c04e4fda351d75cf6204043bb01288"
+    },
+    {
+      "path": "run-owned-api.py",
+      "originalBytes": 1157,
+      "originalSHA256": "1e170abf678ad87d2c82d01a9ec8f6c54eda7d242f9fca71a518efb850c0eb4f",
+      "exportCanonicalLFBytes": 1157,
+      "exportCanonicalLFSHA256": "1e170abf678ad87d2c82d01a9ec8f6c54eda7d242f9fca71a518efb850c0eb4f"
+    },
+    {
+      "path": "run-private-collector.py",
+      "originalBytes": 1045,
+      "originalSHA256": "067c2933c9596f963583a1544d962a3d1e80ac7df37fb9e346fe5a4a723ae041",
+      "exportCanonicalLFBytes": 1045,
+      "exportCanonicalLFSHA256": "067c2933c9596f963583a1544d962a3d1e80ac7df37fb9e346fe5a4a723ae041"
+    },
+    {
+      "path": "verification-summary.json",
+      "originalBytes": 446,
+      "originalSHA256": "515ae3e450bbc48b65f1dfe667da0d181898e5b699f0f6f2ffb2727b0cebee34",
+      "exportCanonicalLFBytes": 433,
+      "exportCanonicalLFSHA256": "7534879acd762d23cd70de7135929d514ea16c13d7ec9564580df60a71357efc"
+    },
+    {
+      "path": "verify-evidence.py",
+      "originalBytes": 2940,
+      "originalSHA256": "443c2a8304f4e6c3fce255bd8d885fe7fe26b8aca7acef75e34b6c657529d405",
+      "exportCanonicalLFBytes": 2940,
+      "exportCanonicalLFSHA256": "443c2a8304f4e6c3fce255bd8d885fe7fe26b8aca7acef75e34b6c657529d405"
+    },
+    {
+      "path": "workspace-metadata.json",
+      "originalBytes": 599,
+      "originalSHA256": "19135c9a9453ea14469922819f6bfbf4772a1841f0d00507be2b1f83a494ecbc",
+      "exportCanonicalLFBytes": 599,
+      "exportCanonicalLFSHA256": "19135c9a9453ea14469922819f6bfbf4772a1841f0d00507be2b1f83a494ecbc"
+    }
+  ]
+}

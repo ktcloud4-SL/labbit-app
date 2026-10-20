@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useBlocker, useParams } from 'react-router-dom'
 
 import type { ClassDetail } from '../shared/api/contracts'
 import { HttpError } from '../shared/api/httpClient'
@@ -17,6 +17,7 @@ import { TerminalPanel } from '../shared/terminal/TerminalPanel'
 import { PreviewPanel } from '../shared/preview/PreviewPanel'
 import { WorkspaceFilePanels } from '../shared/workspace/WorkspaceFilePanels'
 import type { WorkspaceDraftBackup } from '../shared/workspace/WorkspaceFilePanels'
+import { clearWorkspaceEditState, setWorkspaceEditState } from '../shared/workspace/workspaceEditState'
 
 const roleLabel = (role: string) => {
   if (role === 'INSTRUCTOR') return '강사'
@@ -33,6 +34,45 @@ export function LabPage() {
   // Generation changes must not silently discard dirty editor drafts or a PUT.
   const [retainedWorkspaceDraft, setRetainedWorkspaceDraft] = useState<WorkspaceDraftBackup | null>(null)
   const [retainedFileSavePending, setRetainedFileSavePending] = useState(false)
+  // Updated before each READY/non-READY branch returns. In-flight PUT
+  // callbacks from an unmounted Editor consult this shared current scope.
+  const currentWorkspace = useRef<{ labInstanceId: string; generation: number; ready: boolean } | null>(null)
+  const dirty = retainedWorkspaceDraft !== null
+  // Own the navigation/unload barrier above WorkspaceFilePanels. The panel
+  // unmounts while a LabInstance is PROVISIONING or missing, but the user
+  // must still be able to decide whether to discard their in-memory draft.
+  const navigationBlocker = useBlocker(
+    ({ nextLocation }) => (dirty || retainedFileSavePending) && nextLocation.pathname !== '/login',
+  )
+
+  useEffect(() => {
+    setWorkspaceEditState({ dirty, savePending: retainedFileSavePending })
+  }, [dirty, retainedFileSavePending])
+
+  useEffect(() => () => clearWorkspaceEditState(), [])
+
+  useEffect(() => {
+    if (!dirty && !retainedFileSavePending) return
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty, retainedFileSavePending])
+
+  useEffect(() => {
+    if (navigationBlocker.state !== 'blocked') return
+    if (retainedFileSavePending) {
+      navigationBlocker.reset()
+      return
+    }
+    if (window.confirm('저장되지 않은 Workspace 수정본이 있습니다. 버리고 페이지를 이동할까요?')) {
+      navigationBlocker.proceed()
+      return
+    }
+    navigationBlocker.reset()
+  }, [navigationBlocker, retainedFileSavePending])
 
   const classQuery = useQuery({
     queryKey: labbitQueryKeys.classDetail(resolvedClassId),
@@ -47,6 +87,14 @@ export function LabPage() {
     refetchInterval: (query) =>
       classReadinessPollingInterval(query.state.data, query.state.error),
   })
+
+  currentWorkspace.current = classQuery.data?.myLabInstance
+    ? {
+        labInstanceId: classQuery.data.myLabInstance.id,
+        generation: classQuery.data.myLabInstance.generation,
+        ready: !classQuery.error && classQuery.data.myLabInstance.status === 'READY',
+      }
+    : null
 
   if (!resolvedClassId) {
     return (
@@ -162,6 +210,10 @@ export function LabPage() {
         <section className={'notice-card ' + (isError ? 'notice-error' : 'notice-warning')}>
           <strong>{title}</strong>
           <p className="muted">{description}</p>
+          {(dirty || retainedFileSavePending) && (
+            <p role="status">Workspace에 저장되지 않은 수정본 또는 진행 중인 저장 요청이 있어
+              이 화면을 벗어나기 전 확인이 필요합니다. 새로고침하면 메모리 수정본은 사라집니다.</p>
+          )}
           {classDetail.activeLabExecution && (
             <Link
               className="secondary-link"
@@ -207,6 +259,10 @@ export function LabPage() {
           onRetainedDraftChange={setRetainedWorkspaceDraft}
           retainedSavePending={retainedFileSavePending}
           onRetainedSavePendingChange={setRetainedFileSavePending}
+          isCurrentWorkspace={(id, expectedGeneration) =>
+            currentWorkspace.current?.ready === true &&
+            currentWorkspace.current.labInstanceId === id &&
+            currentWorkspace.current.generation === expectedGeneration}
         />
 
         <section className="workspace-panel workspace-preview">

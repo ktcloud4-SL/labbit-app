@@ -207,7 +207,7 @@ export function PreviewPanel({ labInstanceId, generation }: PreviewPanelProps) {
   const busy = status === 'creating' || status === 'closing'
   return (
     <div className="workspace-preview-control">
-      <form noValidate onSubmit={(event) => void create(event)}>
+      <form className="workspace-preview-form" noValidate onSubmit={(event) => void create(event)}>
         <label htmlFor={portInputId}>애플리케이션 포트</label>
         <input
           id={portInputId}

@@ -28,8 +28,6 @@ export function AppShell({ me, children }: AppShellProps) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      clearTerminalResumeState()
-
       try {
         await api.logout()
       } catch (error) {
@@ -40,6 +38,9 @@ export function AppShell({ me, children }: AppShellProps) {
       }
     },
     onSuccess: () => {
+      // Keep the reconnect grant after a transient logout failure; only clear
+      // it once logout succeeded (or the server confirmed an expired session).
+      clearTerminalResumeState()
       queryClient.clear()
       const state: LoginLocationState = { signedOut: true }
       navigate('/login', { replace: true, state })

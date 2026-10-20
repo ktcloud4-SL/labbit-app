@@ -140,15 +140,15 @@ export function LiveStudentPanel({ classId }: { classId: string }) {
   return (
     <section className="live-class-panel" aria-label="강사 Live 화면">
       <h2>강사 화면 공유</h2>
-      {query.data ? (
-        <LiveReadOnlyTerminal key={query.data.id} liveSessionId={query.data.id} classId={classId} />
-      ) : query.isPending ? (
+      {query.isPending ? (
         <p className="muted">강사 Live 공유를 확인하고 있습니다.</p>
       ) : empty ? (
         <p className="muted">진행 중인 강사 화면 공유가 없습니다. 시작하면 자동으로 표시됩니다.</p>
-      ) : (
+      ) : query.error ? (
         <p role="alert">Live 화면 공유를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.</p>
-      )}
+      ) : query.data ? (
+        <LiveReadOnlyTerminal key={query.data.id} liveSessionId={query.data.id} classId={classId} />
+      ) : null}
     </section>
   )
 }

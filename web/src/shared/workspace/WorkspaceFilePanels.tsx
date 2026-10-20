@@ -294,7 +294,8 @@ export function WorkspaceFilePanels({
   const [savePending, setSavePending] = useState(false)
   // In-memory only; never render, persist or log denied Workspace file bytes.
   const [draftBackup, setDraftBackup] = useState<WorkspaceDraftBackup | null>(null)
-  const [restoredDraft, setRestoredDraft] = useState<{ content: string; nonce: number } | null>(null)
+  const [restoredDraft, setRestoredDraft] = useState<string | null>(null)
+  const [restoreEpoch, setRestoreEpoch] = useState(0)
   const hasUnsavedChanges = editorDirty || draftBackup !== null
 
   useEffect(() => {
@@ -387,6 +388,11 @@ export function WorkspaceFilePanels({
     fileQuery.error instanceof HttpError &&
     [403, 404, 409].includes(fileQuery.error.status)
   const selectedAccessChanged = treeAccessChanged || fileAccessChanged
+  // After Tree/File access denial, require a newer successful File GET.
+  // Otherwise a successful Tree retry could reveal an older cached Editor.
+  const lastAccessErrorAt = Math.max(treeQuery.errorUpdatedAt, fileQuery.errorUpdatedAt)
+  const needsFreshFileRead = Boolean(selectedFilePath) && lastAccessErrorAt > 0 &&
+    fileQuery.dataUpdatedAt <= lastAccessErrorAt
   const backupForSelected = draftBackup?.labInstanceId === labInstanceId &&
     draftBackup?.generation === generation && draftBackup?.path === selectedFilePath
 
@@ -533,7 +539,16 @@ export function WorkspaceFilePanels({
           </p>
         )}
 
-        {selectedFilePath && fileQuery.data && !selectedAccessChanged && backupForSelected && !editorDirty && (
+        {selectedFilePath && !selectedAccessChanged && needsFreshFileRead && (
+          <div className="workspace-file-state" role="status">
+            <p>이전 접근 오류 이후 파일 내용을 다시 확인해야 합니다.</p>
+            <button className="workspace-file-action" type="button"
+              disabled={fileQuery.isFetching}
+              onClick={() => void fileQuery.refetch()}>파일 접근 다시 확인</button>
+          </div>
+        )}
+
+        {selectedFilePath && fileQuery.data && !selectedAccessChanged && !needsFreshFileRead && backupForSelected && !editorDirty && (
           <div className="workspace-file-state" role="status">
             <p>이전에 저장하지 못한 수정본이 있습니다. 최신 파일과 비교한 뒤 복원하거나 버려 주세요.</p>
             <button className="workspace-file-action" type="button"
@@ -541,7 +556,8 @@ export function WorkspaceFilePanels({
                 if (window.confirm(
                   '미저장 수정본을 다시 편집기에 불러옵니다. 서버 파일의 버전이 달라졌을 수 있으니 저장 전에 반드시 내용을 비교해 주세요.',
                 )) {
-                  setRestoredDraft({ content: draftBackup.content, nonce: Date.now() })
+                  setRestoredDraft(draftBackup.content)
+                  setRestoreEpoch((epoch) => epoch + 1)
                 }
               }}>미저장 수정본 복원</button>
             <button className="workspace-file-action" type="button"
@@ -554,16 +570,17 @@ export function WorkspaceFilePanels({
           </div>
         )}
 
-        {selectedFilePath && fileQuery.data && !selectedAccessChanged && (
+        {selectedFilePath && fileQuery.data && !selectedAccessChanged && !needsFreshFileRead && (
           <WorkspaceFileEditor
-            key={`${fileQuery.data.file.path}:${fileQuery.data.etag}:${fileQuery.dataUpdatedAt}:${restoredDraft?.nonce ?? 0}`}
+            key={`${fileQuery.data.file.path}:${fileQuery.data.etag}:${fileQuery.dataUpdatedAt}:${restoreEpoch}`}
             labInstanceId={labInstanceId}
             generation={generation}
             versionedFile={fileQuery.data}
             onDirtyChange={setEditorDirty}
             onSavePendingChange={setSavePending}
-            restoredDraft={restoredDraft?.content}
+            restoredDraft={restoredDraft ?? undefined}
             onDraftChange={(content, sourceEtag) => {
+              if (content === null) setRestoredDraft(null)
               setDraftBackup(content === null ? null : {
                 labInstanceId,
                 generation,

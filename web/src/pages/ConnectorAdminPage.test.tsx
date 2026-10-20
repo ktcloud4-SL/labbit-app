@@ -275,7 +275,7 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
         organization: { id: 'org-b-fixture', name: 'Organization B' },
       })
     })
-    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText(TOKEN)).not.toBeInTheDocument())
     expect(screen.queryByRole('button', { name: '토큰 복사' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeEnabled()
   })
@@ -300,6 +300,9 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
         organization: { id: 'other-org', name: 'Other Organization' },
       })
     })
+    // Query observer notifications are async: wait for the new scope to mount
+    // before completing the previous scope's in-flight request.
+    await waitFor(() => expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeEnabled())
     await act(async () => {
       resolveIssue?.({
         tokenId: 'old-principal-response',
@@ -333,10 +336,11 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     act(() => {
       client.setQueryData(labbitQueryKeys.me, { ...ADMIN, organizationRole: 'MEMBER' })
     })
-    expect(screen.getByRole('alert')).toHaveTextContent('Organization ADMIN')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Organization ADMIN')
     expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
 
     act(() => { client.setQueryData(labbitQueryKeys.me, ADMIN) })
+    await waitFor(() => expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeEnabled())
     expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeEnabled()
   })

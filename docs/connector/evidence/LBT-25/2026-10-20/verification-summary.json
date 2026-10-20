@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-20T06:03:22.107482+00:00",
+  "apiCaseCount": 39,
+  "expectedStatusesMatched": true,
+  "knownCreatedAndClosedIdCount": 5,
+  "browserFreshGetAndTTLAndCloseConfirmed": true,
+  "goTestsPassIncludingSubtests": 964,
+  "goTestFail": 0,
+  "goTestSkip": 0,
+  "temporaryPortForwardAbsent": true,
+  "helpersCompile": true,
+  "exactPasswordAndPrivateKeyAndBootstrapFragmentScanPassed": true,
+  "noProductSourceChanges": true
+}

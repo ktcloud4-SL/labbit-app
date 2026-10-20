@@ -1,0 +1,38 @@
+{
+  "observedOn": "2026-10-20",
+  "origin": "https://jinwook.store",
+  "initialAttempt": {
+    "uiGeneric503or504": true,
+    "backendEventAt": "2026-10-20T05:40:39.054860336Z",
+    "connectorCode": "VM_UNREACHABLE",
+    "rootCauseUnconfirmed": true
+  },
+  "ttlSession": {
+    "id": "23ff705e-ac7a-434c-9416-29a998c95055",
+    "createdAt": "2026-10-20T05:50:11.066408851Z",
+    "bootstrapExchangedAt": "2026-10-20T05:50:21.856676582Z",
+    "initialAppGet": true,
+    "postRoundTrip": true,
+    "postAt": "2026-10-20T05:50:46.914Z",
+    "expiredBackendAt": "2026-10-20T05:55:11.068623008Z",
+    "newGetAt": "2026-10-20T05:56:02.731Z",
+    "newGetStatus401": true,
+    "newGetCode": "preview_unauthenticated",
+    "uiExpired": true
+  },
+  "explicitCloseSession": {
+    "sessionId": "f7949dc7-d9db-4010-956c-cc76dd02ecf9",
+    "postRoundTrip": true,
+    "postAt": "2026-10-20T05:57:03.805Z",
+    "freshGet": true,
+    "getAt": "2026-10-20T05:57:06.553Z",
+    "afterClose": {
+      "at": "2026-10-20T05:57:22.676Z",
+      "status401": true,
+      "unauthenticated": true
+    }
+  },
+  "port22UIRejected": true,
+  "bodyCookieCredentialPersisted": false,
+  "observationCaveat": "reload on a POST document retained the prior view; only explicit goto observations are counted as fresh GET. Initial API probe file was overwritten; no reconstruction of its original bytes is claimed."
+}

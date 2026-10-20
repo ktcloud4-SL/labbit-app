@@ -1,0 +1,20 @@
+{
+  "freshExclusiveOutputAndExistingBytesPreserved": true,
+  "packageAndDescendantRejected": true,
+  "fiveWrappersRejectExistingBeforeCredentialsOrSSH": true,
+  "historicalWriterDisabledWithoutWrites": true,
+  "offlineVerifierReadOnlyAndNoBytecode": true,
+  "offlineVerifierOutput": {
+    "packageHashesAndFileSetMatched": true,
+    "apiExpectedStatuses": 39,
+    "knownCreatedEqualsClosed": 5,
+    "historicalGoTestPassIncludingSubtests": 964,
+    "historicalGoPackages": 7,
+    "goFail": 0,
+    "goSkip": 0,
+    "readOnly": true,
+    "helpersASTParse": true,
+    "privateKeyAndBootstrapFragmentScanPassed": true
+  },
+  "tamperedEvidenceRejectedOriginalUnchanged": true
+}

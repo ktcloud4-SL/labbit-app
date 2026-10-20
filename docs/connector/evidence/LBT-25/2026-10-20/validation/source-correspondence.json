@@ -1,0 +1,17 @@
+{
+  "historicalTestedSource": "d21ee48394eea59d65755a67be18f8bb5a21fbd9",
+  "publicationBase": "b5090bbe981d5b18b8c503851dbbd7567002153a",
+  "pathsCompared": [
+    "internal/server/preview",
+    "internal/server/previewsession",
+    "internal/server/httpapi/preview.go",
+    "internal/connector/preview",
+    "internal/connector/vmaccess",
+    "internal/connector/wss",
+    "internal/connector/app",
+    "contracts",
+    "runtime"
+  ],
+  "diffBytes": 0,
+  "actualDeployment": "Historical Backend e0caea4 / Web 9172e05 / preceding C2 connector hash only; not a live deployment of the publication base"
+}

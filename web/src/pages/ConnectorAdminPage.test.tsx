@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ConnectorEnrollmentTokenIssued } from '../shared/api/contracts'
 import { HttpError } from '../shared/api/httpClient'
 import { LabbitApiProvider } from '../shared/api/LabbitApiProvider'
-import type { LabbitApi } from '../shared/api/labbitApi'
+import { labbitQueryKeys, type LabbitApi } from '../shared/api/labbitApi'
 import { mockLabbitApi, mockMe } from '../shared/api/mockLabbitApi'
 import { ConnectorAdminPage } from './ConnectorAdminPage'
 

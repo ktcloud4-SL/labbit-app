@@ -280,7 +280,7 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     await act(async () => {
       await client.invalidateQueries({ queryKey: labbitQueryKeys.labSpec('lab-spec-refresh') })
     })
-    expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('Updated remotely')
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('Updated remotely'))
     expect(screen.getByRole('status')).toHaveTextContent('이전 미저장 수정본은 메모리에 보관했습니다')
     expect(updateLabSpec).not.toHaveBeenCalled()
 
@@ -317,7 +317,7 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     await act(async () => {
       await client.invalidateQueries({ queryKey: labbitQueryKeys.labSpec('spec-discard') })
     })
-    expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('New server')
+    await waitFor(() => expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('New server'))
     fireEvent.click(screen.getByRole('button', { name: '이전 수정본 버리기' }))
     expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('New server')
     expect(screen.queryByText(/이전 미저장 수정본은 메모리에 보관했습니다/)).not.toBeInTheDocument()

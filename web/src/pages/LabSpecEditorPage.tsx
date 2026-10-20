@@ -624,12 +624,13 @@ export function LabSpecEditorPage() {
       }
     },
     onSuccess: async (result) => {
-      allowSavedNavigationRef.current = true
       setDraftBackup(null)
       setDirtyRoute(null)
       await queryClient.invalidateQueries({ queryKey: labbitQueryKeys.labSpecs })
 
       if (result.mode === 'create') {
+        // Only the successful create navigates away automatically.
+        allowSavedNavigationRef.current = true
         navigate(`/lab-specs/${encodeURIComponent(result.labSpec.id)}`, {
           replace: true,
         })

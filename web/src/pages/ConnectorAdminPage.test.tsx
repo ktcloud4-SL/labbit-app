@@ -40,6 +40,7 @@ function mount(overrides: Partial<LabbitApi> = {}, isAdmin = true) {
 afterEach(() => {
   vi.useRealTimers()
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
   vi.restoreAllMocks()
 })
 
@@ -107,6 +108,26 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     expect(await screen.findByText('등록된 Connector가 없습니다.')).toBeInTheDocument()
     expect(screen.getByText(/Installer 배포 주소가 아직 확정되지 않았습니다/)).toBeInTheDocument()
     expect(screen.getByText(/발급된 토큰은 실제 Installer 등록이 완료되기 전까지 목록에 포함되지 않습니다/)).toBeInTheDocument()
+  })
+
+  it('승인된 공개 HTTPS Installer URL이 빌드 설정에 있으면 ADMIN 안내에서만 표시한다', async () => {
+    const url = 'https://installer.example.test/install.sh'
+    vi.stubEnv('VITE_LABBIT_APPROVED_INSTALLER_URL', url)
+    mount()
+    expect(await screen.findByText('등록된 Connector가 없습니다.')).toBeInTheDocument()
+    expect(screen.getByText(url)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Installer 주소 복사' })).toBeEnabled()
+    expect(screen.queryByText(/Installer 배포 주소가 아직 확정되지 않았습니다/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/curl -fsSL/)).not.toBeInTheDocument()
+  })
+
+  it('공개 설정값이 비승인 형식 또는 토큰 query를 포함하면 복사 UI를 노출하지 않는다', async () => {
+    vi.stubEnv('VITE_LABBIT_APPROVED_INSTALLER_URL', 'https://installer.example.test/install.sh?token=fixture')
+    mount()
+    expect(await screen.findByText('등록된 Connector가 없습니다.')).toBeInTheDocument()
+    expect(screen.getByText(/Installer 배포 주소가 아직 확정되지 않았습니다/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Installer 주소 복사' })).not.toBeInTheDocument()
+    expect(document.body.innerHTML).not.toContain('token=fixture')
   })
 
   it('일회용 발급 Token은 React Query cache에 넣지 않고 화면 종료 뒤 제거한다', async () => {

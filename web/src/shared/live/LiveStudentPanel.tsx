@@ -137,8 +137,10 @@ export function LiveStudentPanel({ classId }: { classId: string }) {
     return <LoginRedirect reason="sessionExpired" />
   }
   const empty = query.error instanceof HttpError && query.error.status === 404
+  const liveState = query.isPending ? 'loading' : empty ? 'empty' :
+    query.error ? 'error' : query.data ? 'active' : 'idle'
   return (
-    <section className="live-class-panel" aria-label="강사 Live 화면">
+    <section className="live-class-panel" data-live-state={liveState} aria-label="강사 Live 화면">
       <h2>강사 화면 공유</h2>
       {query.isPending ? (
         <p className="muted">강사 Live 공유를 확인하고 있습니다.</p>

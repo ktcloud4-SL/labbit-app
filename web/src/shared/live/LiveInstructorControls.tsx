@@ -33,8 +33,9 @@ export function LiveInstructorControls({
     refetchInterval: 15_000,
   })
 
-  const active = activeQuery.data
   const noActive = activeQuery.error instanceof HttpError && activeQuery.error.status === 404
+  // A failed refetch can retain stale successful data; never act on it.
+  const active = activeQuery.error ? undefined : activeQuery.data
 
   async function act(action: 'start' | 'stop') {
     if (pendingRef.current || activeQuery.isPending) return

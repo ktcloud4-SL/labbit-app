@@ -362,8 +362,7 @@ export function WorkspaceFilePanels({
         '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 페이지를 이동할까요?',
       )
     ) {
-      setDraftBackup(null)
-      setRestoredDraft(null)
+      // Navigation unmounts the panel, clearing the in-memory draft.
       navigationBlocker.proceed()
       return
     }
@@ -546,7 +545,7 @@ export function WorkspaceFilePanels({
           </div>
         )}
 
-        {selectedFilePath && fileQuery.data && !selectedAccessChanged && !needsFreshFileRead && backupForSelected && !editorDirty && (
+        {selectedFilePath && fileQuery.data && !selectedAccessChanged && !needsFreshFileRead && backupForSelected && restoredDraft === null && !editorDirty && (
           <div className="workspace-file-state" role="status">
             <p>이전에 저장하지 못한 수정본이 있습니다. 최신 파일과 비교한 뒤 복원하거나 버려 주세요.</p>
             <button className="workspace-file-action" type="button"

@@ -3,6 +3,8 @@
  * The Vite bundle exposes VITE_* values to the browser. Never include secrets.
  * Empty means LBT-181 has not yet approved an installer URL (safe default).
  */
+import { pathToFileURL } from 'node:url'
+
 export function validateInstallerBuildEnv(raw = '') {
   if (raw === '') return
   if (raw !== raw.trim() || /[\s\\]/u.test(raw)) {

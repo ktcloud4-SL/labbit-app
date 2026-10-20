@@ -98,9 +98,9 @@ func (m *Manager) acquire(ctx context.Context, target Target) (*connection, erro
 	endpoint, err := m.resolver.ResolveVMAccess(ctx, target)
 	if err != nil {
 		if errors.Is(err, ErrInvalidTarget) {
-			return nil, safeError(ctx, ErrInvalidTarget)
+			return nil, Diagnose(StageResolveManagement, errors.Join(err, safeError(ctx, ErrInvalidTarget)), time.Time{})
 		}
-		return nil, safeError(ctx, ErrUnavailable)
+		return nil, Diagnose(StageResolveManagement, errors.Join(err, safeError(ctx, ErrUnavailable)), time.Time{})
 	}
 	if endpoint.ProviderConnectionID == "" || endpoint.Address == "" || endpoint.Username == "" || endpoint.PrivateKeyFile == "" || endpoint.HostKeyCallback == nil {
 		return nil, ErrUnavailable
@@ -169,6 +169,7 @@ func (m *Manager) acquire(ctx context.Context, target Target) (*connection, erro
 
 // OpenSession opens an independent PTY/SFTP channel on the shared transport.
 func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, error) {
+	started := time.Now()
 	ctx, cancel := context.WithTimeout(ctx, m.config.SetupTimeout)
 	defer cancel()
 	c, err := m.acquire(ctx, target)
@@ -184,7 +185,7 @@ func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, err
 	if ctx.Err() != nil || err != nil || result.err != nil {
 		m.closeChannel(c, result.closer())
 		m.release(c)
-		return nil, m.connectionError(ctx, c)
+		return nil, Diagnose(StageChannelOpen, errors.Join(m.connectionError(ctx, c), err, result.err), started)
 	}
 	m.mu.Lock()
 	err = m.targetErrorLocked(target)
@@ -306,6 +307,7 @@ func (s *Session) Close() error {
 }
 
 func (s *Session) Setup(ctx context.Context, setup func(*ssh.Session) error) error {
+	started := time.Now()
 	ctx, cancel := context.WithTimeout(ctx, s.manager.config.SetupTimeout)
 	defer cancel()
 	s.manager.mu.Lock()
@@ -317,7 +319,7 @@ func (s *Session) Setup(ctx context.Context, setup func(*ssh.Session) error) err
 	result, err := s.manager.channelOperation(ctx, s.connection, func() channelResult { return channelResult{err: setup(s.Session)} })
 	if ctx.Err() != nil || err != nil || result.err != nil {
 		_ = s.Close()
-		return s.manager.connectionError(ctx, s.connection)
+		return Diagnose(StagePTYRequest, errors.Join(s.manager.connectionError(ctx, s.connection), err, result.err), started)
 	}
 	s.manager.mu.Lock()
 	err = s.manager.targetErrorLocked(s.connection.target)
@@ -469,28 +471,38 @@ func safeError(ctx context.Context, fallback error) error {
 }
 
 func dialSSH(ctx context.Context, endpoint Endpoint) (*ssh.Client, error) {
+	started := time.Now()
 	key, err := os.ReadFile(endpoint.PrivateKeyFile)
 	if err != nil {
-		return nil, ErrUnavailable
+		return nil, Diagnose(StagePrivateKey, err, started)
 	}
 	signer, err := ssh.ParsePrivateKey(key)
 	if err != nil {
-		return nil, ErrUnavailable
+		return nil, Diagnose(StagePrivateKey, err, started)
 	}
 	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", endpoint.Address)
 	if err != nil {
-		return nil, safeError(ctx, ErrUnavailable)
+		return nil, Diagnose(StageDial, errors.Join(err, safeError(ctx, ErrUnavailable)), started)
 	}
 	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = conn.SetDeadline(deadline)
 	}
+	pinFailed := false
 	cc, channels, requests, err := ssh.NewClientConn(conn, endpoint.Address, &ssh.ClientConfig{
-		User: endpoint.Username, Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)}, HostKeyCallback: endpoint.HostKeyCallback,
+		User: endpoint.Username, Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)}, HostKeyCallback: func(host string, remote net.Addr, key ssh.PublicKey) error {
+			err := endpoint.HostKeyCallback(host, remote, key)
+			pinFailed = err != nil
+			return err
+		},
 	})
 	if !stop() || ctx.Err() != nil || err != nil {
 		_ = conn.Close()
-		return nil, safeError(ctx, ErrUnavailable)
+		stage := StageHandshake
+		if pinFailed {
+			stage = StageHostPin
+		}
+		return nil, Diagnose(stage, errors.Join(err, safeError(ctx, ErrUnavailable)), started)
 	}
 	if err := conn.SetDeadline(time.Time{}); err != nil {
 		_ = conn.Close()

@@ -64,6 +64,18 @@ export interface VersionedWorkspaceFileSaved {
   etag: string
 }
 
+export interface CreatePreviewSessionRequest {
+  targetPort: number
+}
+
+export interface PreviewSession {
+  id: ResourceId
+  targetPort: number
+  /** One-time bootstrap credential may be in fragment: never persist or log this URL. */
+  previewUrl: string
+  expiresAt: string
+}
+
 export interface TerminalTarget {
   vmKey: string
   role: string
@@ -80,6 +92,13 @@ export interface CreateTerminalSessionRequest {
   targetVmKey: string
   cols: number
   rows: number
+}
+
+export interface LiveSession {
+  id: ResourceId
+  classId: ResourceId
+  sourceTerminalSessionId: ResourceId
+  createdAt: string
 }
 
 export interface TerminalSession {

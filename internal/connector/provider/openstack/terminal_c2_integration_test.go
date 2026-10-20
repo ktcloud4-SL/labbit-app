@@ -413,6 +413,23 @@ func (p *c2ResizeAwarePTY) Resize(cols, rows int) error {
 // TestTerminalC2_FullStackLoopback verifies the complete C2 full-stack round trip
 // (Browser WSS ↔ SaaS Relay ↔ Connector Transport ↔ Echo PTY) in an automated loopback test
 // without requiring real cloud credentials.
+func waitC2ProtocolReady(t *testing.T, router *serverconnector.Router, connectorID uuid.UUID) {
+	t.Helper()
+	// Receiving HELLO_ACK does not mean the server has installed its route yet.
+	// Wait for that fixture precondition without sending or retrying a command.
+	readyDeadline := time.Now().Add(2 * time.Second)
+	for {
+		err := router.Registry().WithReadyRoute(connectorID, func(serverconnector.Session, serverconnector.Route) error { return nil })
+		if err == nil {
+			return
+		}
+		if !errors.Is(err, serverconnector.ErrNotReady) || time.Now().After(readyDeadline) {
+			t.Fatalf("Connector protocol-ready route unavailable: %v", err)
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
 func TestTerminalC2_FullStackLoopback(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -488,6 +505,7 @@ func TestTerminalC2_FullStackLoopback(t *testing.T) {
 	if _, err := controlClient.SendHello(ctx); err != nil {
 		t.Fatalf("Connector SendHello failed: %v", err)
 	}
+	waitC2ProtocolReady(t, router, connectorID)
 
 	sessions := terminal.NewSessionManager(2*time.Second, nil)
 	defer sessions.CloseAll(protocol.TerminalReasonServiceRestart)
@@ -863,10 +881,16 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 				t.Errorf("KT Cloud C2 final Reconcile failed: obs=%d err=%v", len(recRes.Observations), recErr)
 				return
 			}
+			hasResidual := false
 			for _, obs := range recRes.Observations {
 				if obs.Exists || obs.ObservedState != stateAbsent || obs.Source != coreprovider.SourceKnownResource {
+					hasResidual = true
 					t.Errorf("KT Cloud C2 residual resource remains: type=%s state=%s exists=%t", obs.ResourceType, obs.ObservedState, obs.Exists)
 				}
+			}
+			if hasResidual {
+				writeC2Ledger("CLEANUP_AND_FINAL_RECONCILE_RESIDUAL_DETECTED")
+				return
 			}
 			writeC2Ledger("CLEANUP_AND_FINAL_RECONCILE_ABSENT")
 			t.Logf("Tracked resource absence verified after C2 test: distinctResources=%d residual=0", len(refs))
@@ -982,6 +1006,8 @@ func TestOpenStackTerminalC2Integration(t *testing.T) {
 	if _, err := controlClient.SendHello(ctx); err != nil {
 		t.Fatalf("Connector SendHello failed: %v", err)
 	}
+
+	waitC2ProtocolReady(t, router, connectorID)
 
 	sessions := terminal.NewSessionManager(15*time.Second, nil)
 	defer sessions.CloseAll(protocol.TerminalReasonServiceRestart)

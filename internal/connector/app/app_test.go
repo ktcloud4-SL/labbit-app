@@ -17,6 +17,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	openstackprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/wss"
@@ -86,6 +87,92 @@ func TestRunControl_KeepsWSSConnectedWhenProviderAuthenticationFails(t *testing.
 	}
 	if attempts != 1 {
 		t.Fatalf("Provider initialization attempts = %d, want 1", attempts)
+	}
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("runControl() error = %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("runControl did not stop after cancellation")
+	}
+}
+
+func TestRunControl_ProductionMode_StartsAndRemainsOnlineWithoutProvider(t *testing.T) {
+	mockSaaS := mock.NewMockSaaS("connector-token")
+	defer mockSaaS.Close()
+
+	// Installer-prepared production environment: known_hosts initialized, but NO OpenStack provider configured.
+	tmpDir := t.TempDir()
+	knownHostsFile := filepath.Join(tmpDir, "known_hosts")
+	if err := os.WriteFile(knownHostsFile, []byte("# empty known_hosts from installer\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("LABBIT_ENVIRONMENT", "production")
+	t.Setenv("LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE", knownHostsFile)
+
+	// Provider Connection is empty / unconfigured
+	lazy := newLazyProvider("", func(context.Context) (runtimeProvider, error) {
+		return nil, errors.New("provider unconfigured")
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	done := make(chan error, 1)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	go func() {
+		done <- runControl(ctx, wss.Config{
+			BaseURL:          mockSaaS.URL(),
+			Credential:       "connector-token",
+			RuntimeID:        "runtime-prod-without-provider",
+			ConnectorVersion: "connector-v0.1.0-test",
+			AllowInsecure:    true,
+		}, lazy, "connector-prod-1", logger)
+	}()
+
+	// 1. Verify HELLO sent with injected connectorVersion and WSS connected
+	helloRaw := waitForMessageType(t, mockSaaS, protocol.MessageTypeHello, 2*time.Second)
+	var helloEnvelope struct {
+		Payload struct {
+			ConnectorVersion string `json:"connectorVersion"`
+		} `json:"payload"`
+	}
+	if err := json.Unmarshal(helloRaw, &helloEnvelope); err != nil {
+		t.Fatal(err)
+	}
+	if helloEnvelope.Payload.ConnectorVersion != "connector-v0.1.0-test" {
+		t.Fatalf("HELLO connectorVersion = %q, want %q", helloEnvelope.Payload.ConnectorVersion, "connector-v0.1.0-test")
+	}
+
+	// 2. Request Provider operation; must fail safe without dropping Control connection
+	request := protocol.ProviderRequestMessage{
+		BaseEnvelope: protocol.BaseEnvelope{
+			Type:      protocol.MessageTypeProviderRequest,
+			MessageID: "provider-req-empty-provider",
+			SentAt:    time.Now().UTC(),
+		},
+		Payload: protocol.ProviderRequestPayload{
+			RequestType:          protocol.ProviderRequestValidateConnection,
+			ProviderConnectionID: "unconfigured-connection",
+		},
+	}
+	if err := mockSaaS.SendRaw(request); err != nil {
+		t.Fatalf("SendRaw() error = %v", err)
+	}
+	rawResp := waitForMessageType(t, mockSaaS, protocol.MessageTypeProviderResponse, 2*time.Second)
+	var response protocol.ProviderResponseMessage
+	if err := json.Unmarshal(rawResp, &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Payload.Outcome != protocol.OutcomeFailed || response.Payload.Error == nil || response.Payload.Error.Code != "ERR_INFRA_OPENSTACK" {
+		t.Fatalf("PROVIDER_RESPONSE = %+v", response.Payload)
+	}
+
+	// 3. Control WSS connection must still be active and online
+	if mockSaaS.ActiveConn() == nil {
+		t.Fatal("Control WSS disconnected unexpectedly after Provider failure")
 	}
 
 	cancel()
@@ -446,4 +533,101 @@ func TestBuildConnector_Production_Preview_FailClosed_And_Capabilities(t *testin
 		workspaceProvider.validated[0] != target || workspaceProvider.resolved[0] != target || app2.PreviewManager.Count() != 0 {
 		t.Fatal("Production Preview bypassed validated VMAccess or registered a failed tunnel")
 	}
+}
+
+func TestConnectorRuntimeContract_ConfigProfiles(t *testing.T) {
+	tmpDir := t.TempDir()
+	credFile := filepath.Join(tmpDir, "credential")
+	if err := os.WriteFile(credFile, []byte("secret-connector-cred\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	knownHostsFile := filepath.Join(tmpDir, "known_hosts")
+	if err := os.WriteFile(knownHostsFile, []byte("# known_hosts\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Profile 1: Provider unconfigured initial Control WSS ONLINE
+	t.Run("ProviderUnconfigured_ControlWSSOnly", func(t *testing.T) {
+		t.Setenv("LABBIT_ENVIRONMENT", "production")
+		t.Setenv("LABBIT_SAAS_BASE_URL", "https://saas.example.com")
+		t.Setenv("LABBIT_CONNECTOR_ID", "conn-unconfigured")
+		t.Setenv("LABBIT_CONNECTOR_CREDENTIAL_FILE", credFile)
+		t.Setenv("LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE", knownHostsFile)
+		t.Setenv(openstackprovider.EnvProviderConfigFile, "")
+		t.Setenv(openstackprovider.EnvCloudName, "")
+		t.Setenv(openstackprovider.EnvLabSubnetCIDR, "")
+		t.Setenv(openstackprovider.EnvKTCloudCIDRPairs, "")
+
+		ctrlCfg, err := controlConfigFromEnvironment()
+		if err != nil {
+			t.Fatalf("controlConfigFromEnvironment failed without Provider config: %v", err)
+		}
+		if ctrlCfg.BaseURL != "https://saas.example.com" {
+			t.Fatalf("unexpected BaseURL: %s", ctrlCfg.BaseURL)
+		}
+		provCfg := openstackprovider.ConfigFromEnvironment()
+		if provCfg.File != "" || provCfg.CloudName != "" {
+			t.Fatalf("expected empty Provider config in unconfigured mode, got %+v", provCfg)
+		}
+	})
+
+	// Profile 2: Standard OpenStack configuration
+	t.Run("StandardOpenStackProfile", func(t *testing.T) {
+		t.Setenv(openstackprovider.EnvProviderConfigFile, "/etc/labbit-connector/clouds.yaml")
+		t.Setenv(openstackprovider.EnvCloudName, "openstack-prod")
+		t.Setenv(openstackprovider.EnvProviderConnection, "prov-conn-std")
+		t.Setenv(openstackprovider.EnvProjectID, "proj-1")
+		t.Setenv(openstackprovider.EnvManagementNetwork, "mgmt-net-1")
+		t.Setenv(openstackprovider.EnvManagementSecurityGroup, "mgmt-sg-1")
+		t.Setenv(openstackprovider.EnvLabSubnetCIDR, "10.20.30.0/24")
+		t.Setenv(openstackprovider.EnvKTCloudCIDRPairs, "")
+		t.Setenv(openstackprovider.EnvKTCloudCIDRStateDir, "")
+
+		provCfg := openstackprovider.ConfigFromEnvironment()
+		if provCfg.Provision.ManagementNetworkID != "mgmt-net-1" ||
+			provCfg.Provision.ManagementSecurityGroupID != "mgmt-sg-1" ||
+			provCfg.Provision.LabSubnetCIDR != "10.20.30.0/24" ||
+			provCfg.Provision.KTCloudCIDRPairs != "" {
+			t.Fatalf("unexpected Standard OpenStack config: %+v", provCfg.Provision)
+		}
+	})
+
+	// Profile 3A: KT D1 without LABBIT_KTCLOUD_CIDR_PAIRS (single static CIDR)
+	t.Run("KTD1_SingleStaticCIDR", func(t *testing.T) {
+		t.Setenv(openstackprovider.EnvProviderConfigFile, "/etc/labbit-connector/clouds.yaml")
+		t.Setenv(openstackprovider.EnvCloudName, "kt-d1")
+		t.Setenv(openstackprovider.EnvKTCloudConnectorTier, "tier-conn-1")
+		t.Setenv(openstackprovider.EnvKTCloudManagementCIDR, "172.25.201.0/24")
+		t.Setenv(openstackprovider.EnvLabSubnetCIDR, "172.25.200.0/24")
+		t.Setenv(openstackprovider.EnvKTCloudCIDRPairs, "")
+		t.Setenv(openstackprovider.EnvKTCloudCIDRStateDir, "")
+
+		provCfg := openstackprovider.ConfigFromEnvironment()
+		if provCfg.Provision.KTCloudConnectorTierID != "tier-conn-1" ||
+			provCfg.Provision.KTCloudManagementCIDR != "172.25.201.0/24" ||
+			provCfg.Provision.LabSubnetCIDR != "172.25.200.0/24" ||
+			provCfg.Provision.KTCloudCIDRPairs != "" {
+			t.Fatalf("unexpected KT D1 single static CIDR config: %+v", provCfg.Provision)
+		}
+	})
+
+	// Profile 3B: KT D1 with LABBIT_KTCLOUD_CIDR_PAIRS (pooled CIDR pairs; LABBIT_OPENSTACK_LAB_SUBNET_CIDR & LABBIT_KTCLOUD_MANAGEMENT_CIDR omitted)
+	t.Run("KTD1_PooledCIDRPairs", func(t *testing.T) {
+		stateDir := filepath.Join(tmpDir, "cidr-state")
+		t.Setenv(openstackprovider.EnvProviderConfigFile, "/etc/labbit-connector/clouds.yaml")
+		t.Setenv(openstackprovider.EnvCloudName, "kt-d1")
+		t.Setenv(openstackprovider.EnvKTCloudConnectorTier, "tier-conn-1")
+		t.Setenv(openstackprovider.EnvKTCloudManagementCIDR, "")
+		t.Setenv(openstackprovider.EnvLabSubnetCIDR, "")
+		t.Setenv(openstackprovider.EnvKTCloudCIDRPairs, `[{"lab":"172.25.240.0/24","management":"172.25.241.0/24"}]`)
+		t.Setenv(openstackprovider.EnvKTCloudCIDRStateDir, stateDir)
+
+		provCfg := openstackprovider.ConfigFromEnvironment()
+		if provCfg.Provision.KTCloudCIDRPairs == "" ||
+			provCfg.Provision.KTCloudCIDRStateDir != stateDir ||
+			provCfg.Provision.LabSubnetCIDR != "" ||
+			provCfg.Provision.KTCloudManagementCIDR != "" {
+			t.Fatalf("unexpected KT D1 pooled CIDR pairs config: %+v", provCfg.Provision)
+		}
+	})
 }

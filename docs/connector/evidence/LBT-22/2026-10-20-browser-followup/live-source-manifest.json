@@ -1,0 +1,25 @@
+{
+  "observedAt": "2026-10-20T04:43:39.150246+00:00",
+  "branch": "codex/feat/LBT-25-preview-c3-e2e",
+  "head": "bfd3e9a93b302b1ed7327cd2bfdb21acaafaf157",
+  "observedOriginMain": "9172e050f5660c80b84ba70d52f0c549d8f032d9",
+  "status": "M internal/connector/app/app.go\n M internal/connector/provider/openstack/ktcloud_d1_topology.go\n M internal/connector/provider/openstack/server.go\n M internal/connector/provider/openstack/terminal_target.go\n M internal/connector/terminal/ssh_pty.go\n M internal/connector/vmaccess/access.go\n M internal/connector/wss/handler.go\n?? internal/connector/app/control_error.go\n?? internal/connector/app/control_error_test.go\n?? internal/connector/provider/openstack/ktcloud_userdata_test.go\n?? internal/connector/vmaccess/diagnostic.go\n?? internal/connector/vmaccess/diagnostic_test.go\n?? internal/connector/wss/terminal_failure.go",
+  "files": {
+    "internal/connector/app/app.go": "f232a59c701360566baa73be4c56ab5c05fc96d20817d012de8b88896c378483",
+    "internal/connector/app/control_error.go": "03c72fba53463c93c92ee48fb653d2f717f87222a1825558b6607d64245c92dc",
+    "internal/connector/app/control_error_test.go": "9613009d5fdcddc86d21d2fc00677e4ba56fca5612a4e548bf41c2f3c43412ec",
+    "internal/connector/provider/openstack/ktcloud_d1_topology.go": "5df1fd9a992f98168575ef3ce049d75aa2c6d3b84695fbb75670c5b25f4caa5a",
+    "internal/connector/provider/openstack/ktcloud_userdata_test.go": "b3c636988311fba6e52422228b3d3ab1baa3baab2ee00ce595722f4d4b93704d",
+    "internal/connector/provider/openstack/server.go": "f74134efdbeec7d5cd4cfdf0a1414caf7412402a9bd5c9b9d5cfa7e8334b1f43",
+    "internal/connector/provider/openstack/terminal_target.go": "074198f7e2662e83d836d41fc75fdd61872b4114a5089853342dcc40a114ef93",
+    "internal/connector/terminal/ssh_pty.go": "afc694e82d42a480e50f2aba971deb04c0d7d389c6b587c4c0afeaa70e8a8e2c",
+    "internal/connector/vmaccess/access.go": "b38d9c546dc98b28bfc1b40536285957f145e34959fb33279ef4a56829ab6854",
+    "internal/connector/vmaccess/diagnostic.go": "18fc8d23a38401c412bb967863c1361b2991fe937c4931598ea4bd41cb022fd6",
+    "internal/connector/vmaccess/diagnostic_test.go": "7229ed269248b343af9be84e7b43603402f7abf6edf3fad83d0a84de39628c4a",
+    "internal/connector/wss/handler.go": "01f6ae2d535f9424a017d62d608be7fc122c9d1240e79fb0caa116a0f6cf7ac2",
+    "internal/connector/wss/terminal_failure.go": "da13557cdf8d7ed4cb5fe641b71cc48cc2874a91cbf9a9d2acb5140f8e553f08"
+  },
+  "connectorBuildSHA256": "defdf9aab33dc00d914dd8744dcc1e0e7405ceead2c69b9551f3533f4e539cc2",
+  "linuxProviderTestSHA256": "1d4572d54b0a121efa292cc11b7b4fb05c1fbdfb2c53af9e768daa822eb08680",
+  "wholeBaseToHeadBranchReviewed": false
+}

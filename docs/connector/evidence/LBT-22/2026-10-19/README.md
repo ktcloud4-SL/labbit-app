@@ -8,6 +8,7 @@
 - **선행 루프백 검증**: [2026-10-15 사전 루프백 Evidence](../2026-10-15/README.md) ([PR #103](https://github.com/ktcloud4-SL/labbit-app/pull/103))
 - **최종 판정**: **PASS (`REAL_VM_C2_ACCEPTANCE_PASS`)**
   - KT Cloud D1 실환경에서 실제 Ubuntu 24.04 Workspace VM(`os-ubuntu24.04-image-20260929`, `2x4.itl`)을 프로비저닝하고, **`Browser WebSocket (/realtime/v1/terminal) ↔ SaaS Terminal Relay ↔ Connector Control/Data WSS ↔ 실제 KT Cloud VM SSH/PTY (Linux bash)`** 전 구간 종단(E2E) 왕복 및 수명주기 시나리오 4종을 모두 통과했습니다.
+  - *(참고)* 본 통합 검증 하네스의 Browser Client는 Go WebSocket 테스트 클라이언트이며, SaaS Relay는 `httptest.NewServer` 기반의 동일 Relay/Router 파이프라인으로 구동되었습니다. (실제 배포 브라우저/SaaS 연동은 PR #137 자료 참조)
   - 검증 종료 후 실습 VM 소유 리소스 5종(`SERVER`, `VOLUME`, `KT_FIREWALL_POLICY`, `KT_TIER` 2개)과 Bootstrap 소유 리소스 8종(총 13개)을 모두 삭제하고, 최종 Reconcile 및 7종 Inventory 대조 결과 **`ownedResidualTotal = 0` (`ALL_TRACKED_IDS_CONFIRMED_ABSENT`, `baselinePreserved = true`)**임을 확인했습니다.
 
 ---

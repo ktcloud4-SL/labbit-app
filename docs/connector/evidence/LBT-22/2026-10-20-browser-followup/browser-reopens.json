@@ -1,0 +1,662 @@
+[
+  {
+    "i": 0,
+    "at": "2026-10-20T05:03:14.087Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 1,
+    "at": "2026-10-20T05:03:19.536Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 2,
+    "at": "2026-10-20T05:03:24.328Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 3,
+    "at": "2026-10-20T05:03:29.415Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 4,
+    "at": "2026-10-20T05:03:34.384Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 5,
+    "at": "2026-10-20T05:07:11.374Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 6,
+    "at": "2026-10-20T05:07:16.248Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 7,
+    "at": "2026-10-20T05:07:21.131Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 8,
+    "at": "2026-10-20T05:07:25.904Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 9,
+    "at": "2026-10-20T05:07:30.693Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 10,
+    "at": "2026-10-20T05:07:49.079Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 11,
+    "at": "2026-10-20T05:07:54.725Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 12,
+    "at": "2026-10-20T05:07:59.697Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 13,
+    "at": "2026-10-20T05:08:06.084Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 14,
+    "at": "2026-10-20T05:08:10.940Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 15,
+    "at": "2026-10-20T05:09:11.618Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 16,
+    "at": "2026-10-20T05:09:16.508Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 17,
+    "at": "2026-10-20T05:09:21.612Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 18,
+    "at": "2026-10-20T05:09:26.388Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 19,
+    "at": "2026-10-20T05:09:31.265Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 20,
+    "at": "2026-10-20T05:09:48.403Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 21,
+    "at": "2026-10-20T05:09:53.265Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 22,
+    "at": "2026-10-20T05:09:58.022Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 23,
+    "at": "2026-10-20T05:10:03.251Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 24,
+    "at": "2026-10-20T05:10:08.034Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 25,
+    "at": "2026-10-20T05:10:35.134Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 26,
+    "at": "2026-10-20T05:10:39.907Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 27,
+    "at": "2026-10-20T05:10:44.664Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 28,
+    "at": "2026-10-20T05:10:49.748Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  },
+  {
+    "i": 29,
+    "at": "2026-10-20T05:10:54.510Z",
+    "expectedRenderedSize": {
+      "cols": 174,
+      "rows": 9
+    },
+    "kernelSizes": [
+      {
+        "cols": 174,
+        "rows": 9
+      }
+    ],
+    "measureCharacters": 32,
+    "message": "터미널에 연결되었습니다.",
+    "nonceRendered": true,
+    "status": "연결됨",
+    "viewport": {
+      "height": 884,
+      "width": 1304
+    }
+  }
+]

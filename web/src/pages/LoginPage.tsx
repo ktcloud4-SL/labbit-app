@@ -6,6 +6,7 @@ import { shouldShowMockAccountHint } from '../shared/api/apiMode'
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
+import { clearTerminalResumeState } from '../shared/terminal/terminalResumeStorage'
 import {
   isSafeInternalPath,
   type LoginLocationState,
@@ -35,6 +36,11 @@ export function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: async () => {
       await api.login({ username, password })
+
+      // A successful login replaces the server-side identity, even when the
+      // following /me verification fails. Never carry an old user's Terminal
+      // resume grant into the new account.
+      clearTerminalResumeState()
 
       // Login 성공 시 server-side Session은 새 사용자 문맥으로 교체된다.
       // /me 검증이 실패하더라도 이전 사용자의 query cache가 남지 않게 먼저 제거한다.

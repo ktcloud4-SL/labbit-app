@@ -3,7 +3,7 @@
   "summary": "[C2] VM Access / Terminal 공동 통합 (KT Cloud D1 실환경 VM Acceptance)",
   "dri": "이주희",
   "date": "2026-10-19",
-  "baseCommit": "2b0a39dd95a72213cb73145fd9d32fa5208bf52e",
+  "baseCommit": "2b0a39d3f41eef15cf0476d56e41b949a948fb6a",
   "branch": "test/LBT-22-ktcloud-c2-acceptance",
   "status": "REAL_VM_C2_ACCEPTANCE_PASS",
   "scope": {

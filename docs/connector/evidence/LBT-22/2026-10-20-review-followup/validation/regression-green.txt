@@ -1,0 +1,14 @@
+=== RUN   TestKTCloudCompressedUserDataRejectsFinalTransportOverflow
+--- PASS: TestKTCloudCompressedUserDataRejectsFinalTransportOverflow (0.00s)
+=== RUN   TestKTCloudCompressibleStartupPassesPreflightAndServerCreate
+--- PASS: TestKTCloudCompressibleStartupPassesPreflightAndServerCreate (0.00s)
+=== RUN   TestKTCloudServerPreservesStartupScriptThroughCompressedUserData
+=== RUN   TestKTCloudServerPreservesStartupScriptThroughCompressedUserData/#00
+=== RUN   TestKTCloudServerPreservesStartupScriptThroughCompressedUserData/#!/bin/sh_true_
+=== RUN   TestKTCloudServerPreservesStartupScriptThroughCompressedUserData/#!/bin/sh_printf_'%s'_'<form_method="post">한글</form>'_
+--- PASS: TestKTCloudServerPreservesStartupScriptThroughCompressedUserData (0.00s)
+    --- PASS: TestKTCloudServerPreservesStartupScriptThroughCompressedUserData/#00 (0.00s)
+    --- PASS: TestKTCloudServerPreservesStartupScriptThroughCompressedUserData/#!/bin/sh_true_ (0.00s)
+    --- PASS: TestKTCloudServerPreservesStartupScriptThroughCompressedUserData/#!/bin/sh_printf_'%s'_'<form_method="post">한글</form>'_ (0.00s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack	3.645s

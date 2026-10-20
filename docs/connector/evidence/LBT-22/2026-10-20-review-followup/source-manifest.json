@@ -1,0 +1,202 @@
+{
+  "base": "9172e050f5660c80b84ba70d52f0c549d8f032d9",
+  "parentHead": "d21ee48394eea59d65755a67be18f8bb5a21fbd9",
+  "branch": "codex/fix/LBT-22-c2-ktcloud-acceptance",
+  "testedAt": "2026-10-20 Asia/Seoul",
+  "normalization": "CRLF to LF only; canonical SHA256 and Git blob SHA1 identify tested working source, not a deployed binary",
+  "sourceFiles": [
+    {
+      "path": "internal/connector/app/app.go",
+      "canonicalSha256": "c213e669feccc0982251dd6e177b575a95cac4e8c6ef79d36dfe2da74d95951b",
+      "gitBlobSha1": "1ebe335d33e604368cc1bf33611ea022d45d193e"
+    },
+    {
+      "path": "internal/connector/app/control_error.go",
+      "canonicalSha256": "03c72fba53463c93c92ee48fb653d2f717f87222a1825558b6607d64245c92dc",
+      "gitBlobSha1": "285f91729c518881710b6ffcfd555eaf7a6ec212"
+    },
+    {
+      "path": "internal/connector/app/control_error_test.go",
+      "canonicalSha256": "9613009d5fdcddc86d21d2fc00677e4ba56fca5612a4e548bf41c2f3c43412ec",
+      "gitBlobSha1": "150a37a629578cecfd301c7724bcdac53e18ee20"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_topology.go",
+      "canonicalSha256": "e58b36238fedb0302026e88ea7ce8b3119f3fc84852e39320cb9a08462c53994",
+      "gitBlobSha1": "780e36a9359baaa744c4b348f0bd09c67e4b16fd"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_userdata_test.go",
+      "canonicalSha256": "3fe55014ed8cb339ff26d8f2c8630ed71ceba47045cd5c6d2d252f7bac48b4c0",
+      "gitBlobSha1": "d8f598e693859cb542e34913f6b6431bb87f817e"
+    },
+    {
+      "path": "internal/connector/provider/openstack/server.go",
+      "canonicalSha256": "f74134efdbeec7d5cd4cfdf0a1414caf7412402a9bd5c9b9d5cfa7e8334b1f43",
+      "gitBlobSha1": "6b73c8c7ff1f1720bd7b0dc70162020955af42ce"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_c2_integration_test.go",
+      "canonicalSha256": "cd1d506529a3ebae8a0244fdc3d557d9ddd4591224db0913c521b595d97aeda0",
+      "gitBlobSha1": "5ca851a4bb25f769f09afab0dd607860c871f8d5"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target.go",
+      "canonicalSha256": "074198f7e2662e83d836d41fc75fdd61872b4114a5089853342dcc40a114ef93",
+      "gitBlobSha1": "2a660d7cec82b9520f262a80106911f1b93a551b"
+    },
+    {
+      "path": "internal/connector/terminal/ssh_pty.go",
+      "canonicalSha256": "afc694e82d42a480e50f2aba971deb04c0d7d389c6b587c4c0afeaa70e8a8e2c",
+      "gitBlobSha1": "16cd66074cf5f741cb3a2503efb0eb17f2c3cfeb"
+    },
+    {
+      "path": "internal/connector/vmaccess/access.go",
+      "canonicalSha256": "b38d9c546dc98b28bfc1b40536285957f145e34959fb33279ef4a56829ab6854",
+      "gitBlobSha1": "8babfbeef2f50e1d45d604fd9e7c75c124f7fc0d"
+    },
+    {
+      "path": "internal/connector/vmaccess/diagnostic.go",
+      "canonicalSha256": "18fc8d23a38401c412bb967863c1361b2991fe937c4931598ea4bd41cb022fd6",
+      "gitBlobSha1": "2933ebfe242335046bd9b6087ee6f30438f258f3"
+    },
+    {
+      "path": "internal/connector/vmaccess/diagnostic_test.go",
+      "canonicalSha256": "7229ed269248b343af9be84e7b43603402f7abf6edf3fad83d0a84de39628c4a",
+      "gitBlobSha1": "9cae8671e3bed3db2b8494dffbe18ab3813010bd"
+    },
+    {
+      "path": "internal/connector/wss/handler.go",
+      "canonicalSha256": "01f6ae2d535f9424a017d62d608be7fc122c9d1240e79fb0caa116a0f6cf7ac2",
+      "gitBlobSha1": "f50ab5c28d33b57062326004ecfb296d988be602"
+    },
+    {
+      "path": "internal/connector/wss/terminal_failure.go",
+      "canonicalSha256": "da13557cdf8d7ed4cb5fe641b71cc48cc2874a91cbf9a9d2acb5140f8e553f08",
+      "gitBlobSha1": "85af8d6b9a623d3366631a7512be2c2bb4ee5493"
+    }
+  ],
+  "baseToWorkingTrackedChanges": [
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/PRE_MERGE_AUDIT.md",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/README.md",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/automated-validation.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/backend-current-lifecycle.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/backend-historical-openfailed.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/both-readiness-after-route.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/browser-B-survives-final.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/browser-c2-evidence.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/browser-cold-1.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/browser-cold-2.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/browser-observations.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/browser-reopens.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/final-postconditions.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/final-safe-failures.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/final-session-summary.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/independent-review.md",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/live-evidence-sha256.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/live-source-manifest.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/pr-source-manifest.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/probe-cleanup.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/provider-probe-summary.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/student-final-pty-zero.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/teacher-after-reboot-probe2.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/teacher-final-pty-zero.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/teacher-route-after.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/temporary-ssh-delete.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/validation/go-build.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/validation/go-test-windows-except-provider.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/validation/go-vet.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/validation/gofmt-canonical-check.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/validation/gofmt-check.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/validation/linux-loopback-repeat30.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/validation/linux-provider-retry-cleanup.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/validation/linux-provider-retry-test.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/validation/linux-provider-test.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/validation/web-build.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/validation/web-lint.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/validation/web-test.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-browser-followup/validation/web-typecheck.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/PRE_MERGE_AUDIT.md",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/README.md",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/independent-review.md",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/source-manifest.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/go-build.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/go-test-windows-except-provider.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/go-vet.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/gofmt-canonical.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/gofmt-summary.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/linux-provider-cleanup.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/linux-provider-compile.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/linux-provider-mkdir.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/linux-provider-test.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/linux-provider-upload.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/regression-green.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/regression-red.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/test-results.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/web-build.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/web-installed-versions.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/web-lint.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/web-test.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/web-typecheck.txt",
+    "internal/connector/app/app.go",
+    "internal/connector/app/control_error.go",
+    "internal/connector/app/control_error_test.go",
+    "internal/connector/provider/openstack/ktcloud_d1_topology.go",
+    "internal/connector/provider/openstack/ktcloud_userdata_test.go",
+    "internal/connector/provider/openstack/server.go",
+    "internal/connector/provider/openstack/terminal_c2_integration_test.go",
+    "internal/connector/provider/openstack/terminal_target.go",
+    "internal/connector/terminal/ssh_pty.go",
+    "internal/connector/vmaccess/access.go",
+    "internal/connector/vmaccess/diagnostic.go",
+    "internal/connector/vmaccess/diagnostic_test.go",
+    "internal/connector/wss/handler.go",
+    "internal/connector/wss/terminal_failure.go"
+  ],
+  "followupUntrackedEvidence": [
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/PRE_MERGE_AUDIT.md",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/README.md",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/independent-review.md",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/source-manifest.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/go-build.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/go-test-windows-except-provider.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/go-vet.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/gofmt-canonical.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/gofmt-summary.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/linux-provider-cleanup.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/linux-provider-compile.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/linux-provider-mkdir.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/linux-provider-test.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/linux-provider-upload.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/log-normalization.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/regression-green.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/regression-red.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/test-results.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/web-build.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/web-installed-versions.json",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/web-lint.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/web-test.txt",
+    "docs/connector/evidence/LBT-22/2026-10-20-review-followup/validation/web-typecheck.txt"
+  ],
+  "historicalEvidenceUnchanged": true,
+  "providerResults": {
+    "passIncludingSubtests": 562,
+    "skip": 14,
+    "skippedNames": [
+      "TestOpenStackM2ControlWSSIntegration",
+      "TestOpenStackFileTransportIntegration",
+      "TestOpenStackM1Integration",
+      "TestOpenStackM2ProvisionIntegration",
+      "TestOpenStackM3LifecycleIntegration",
+      "TestOpenStackInternetPolicyIntegration",
+      "TestKTCloudD1ReadOnlyIntegration",
+      "TestKTCloudD1DisposableNetworkIntegration",
+      "TestOpenStackPreviewForwardingIntegration",
+      "TestOpenStackPTYCC02Integration",
+      "TestOpenStackTerminalC2Integration",
+      "TestOpenStackVMAccessIntegration",
+      "TestOpenStackWorkspaceFileIntegration",
+      "TestOpenStackPreviewTransportIntegration"
+    ]
+  }
+}

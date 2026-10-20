@@ -9,6 +9,7 @@ import type {
   LabExecution,
   LabSpecWrite,
   LoginRequest,
+  LiveSession,
   Me,
   Operation,
   TerminalSession,
@@ -243,7 +244,14 @@ let operations = new Map<string, Operation>()
 let operationReads = new Map<string, number>()
 let nextExecutionId = 1
 let nextTerminalSessionId = 1
+let nextPreviewSessionId = 1
+const activePreviewSessions = new Set<string>()
 const closedTerminalSessions = new Set<string>()
+const terminalClassById = new Map<string, string>()
+let nextLiveSessionId = 1
+const activeLiveByClass = new Map<string, LiveSession>()
+const closedLiveSessionIds = new Set<string>()
+const liveClassById = new Map<string, string>()
 
 const initialWorkspaceFiles = new Map<string, string>([
   ['README.md', '# Kubernetes Basic\n'],
@@ -306,7 +314,14 @@ function resetMockData() {
   operationReads = new Map()
   nextExecutionId = 1
   nextTerminalSessionId = 1
+  nextPreviewSessionId = 1
   closedTerminalSessions.clear()
+  activePreviewSessions.clear()
+  terminalClassById.clear()
+  nextLiveSessionId = 1
+  activeLiveByClass.clear()
+  closedLiveSessionIds.clear()
+  liveClassById.clear()
   workspaceFiles = new Map(initialWorkspaceFiles)
   workspaceFileVersions = new Map(
     [...initialWorkspaceFiles.keys()].map((path) => [path, 1]),
@@ -800,6 +815,32 @@ export const mockLabbitApi: LabbitApi = {
     }
   },
 
+  // Synthetic fixture only: Mock port 3000 is not the product's allowed-port policy.
+  async createPreviewSession(labInstanceId, input) {
+    requireSession()
+    requireOwnedReadyWorkspace(labInstanceId)
+    if (!Number.isInteger(input.targetPort) || input.targetPort < 1 || input.targetPort > 65535) {
+      throw new HttpError(400)
+    }
+    if (input.targetPort !== 3000) throw new HttpError(403)
+
+    const id = `mock-preview-session-${nextPreviewSessionId++}`
+    activePreviewSessions.add(id)
+    return {
+      id,
+      targetPort: input.targetPort,
+      // Non-production synthetic credential, never used against a real Preview host.
+      previewUrl: `https://${id}.preview.example.test/__labbit/bootstrap#fixture-bootstrap-only`,
+      expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+    }
+  },
+
+  async closePreviewSession(previewSessionId) {
+    requireSession()
+    if (!activePreviewSessions.has(previewSessionId)) throw new HttpError(404)
+    activePreviewSessions.delete(previewSessionId)
+  },
+
   async listTerminalTargets(labInstanceId) {
     requireSession()
     return terminalTargetsFor(labInstanceId)
@@ -807,12 +848,72 @@ export const mockLabbitApi: LabbitApi = {
 
   async createTerminalSession(labInstanceId, input) {
     requireSession()
-    return createMockTerminalSession(labInstanceId, input)
+    const session = createMockTerminalSession(labInstanceId, input)
+    const execution = labExecutions.find((item) =>
+      item.labInstances.some((instance) => instance.id === labInstanceId),
+    )
+    if (execution) terminalClassById.set(session.id, execution.classId)
+    return session
   },
 
   async closeTerminalSession(terminalSessionId) {
     requireSession()
     closedTerminalSessions.add(terminalSessionId)
+    terminalClassById.delete(terminalSessionId)
+    for (const [classId, live] of activeLiveByClass) {
+      if (live.sourceTerminalSessionId === terminalSessionId) {
+        activeLiveByClass.delete(classId)
+        closedLiveSessionIds.add(live.id)
+      }
+    }
+  },
+
+  async getActiveLiveSession(classId) {
+    requireSession()
+    if (!mockClassDetails[classId]) throw new HttpError(404)
+    const live = activeLiveByClass.get(classId)
+    if (!live) throw new HttpError(404) // OpenAPI: no active LiveSession is 404.
+    return { ...live }
+  },
+
+  async createLiveSession(terminalSessionId) {
+    requireSession()
+    const classId = terminalClassById.get(terminalSessionId)
+    if (!classId || closedTerminalSessions.has(terminalSessionId)) {
+      throw new HttpError(409)
+    }
+    const classDetail = mockClassDetails[classId]
+    if (!classDetail || classDetail.myRole !== 'INSTRUCTOR') {
+      throw new HttpError(403)
+    }
+    if (activeLiveByClass.has(classId)) throw new HttpError(409)
+
+    const live: LiveSession = {
+      id: `mock-live-session-${nextLiveSessionId++}`,
+      classId,
+      sourceTerminalSessionId: terminalSessionId,
+      createdAt: new Date().toISOString(),
+    }
+    activeLiveByClass.set(classId, live)
+    liveClassById.set(live.id, classId)
+    return { ...live }
+  },
+
+  async closeLiveSession(liveSessionId) {
+    requireSession()
+    const classId = liveClassById.get(liveSessionId)
+    if (!classId) throw new HttpError(404)
+
+    // Resolve the *current* caller's class role, including on idempotent
+    // close. A leaked/guessed Live ID alone must not authorize a mutation.
+    const classDetail = await mockLabbitApi.getClass(classId)
+    if (classDetail.myRole !== 'INSTRUCTOR') throw new HttpError(403)
+    if (closedLiveSessionIds.has(liveSessionId)) return
+
+    const active = activeLiveByClass.get(classId)
+    if (!active || active.id !== liveSessionId) throw new HttpError(404)
+    activeLiveByClass.delete(classId)
+    closedLiveSessionIds.add(liveSessionId)
   },
 
   async listWorkspaceFiles(labInstanceId, path = '') {

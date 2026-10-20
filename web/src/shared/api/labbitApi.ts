@@ -5,8 +5,10 @@ import type {
   ClassList,
   ClassMembershipList,
   CreateLabExecutionRequest,
+  CreatePreviewSessionRequest,
   CreateTerminalSessionRequest,
   LabExecution,
+  LiveSession,
   LabSpec,
   LabSpecList,
   LabSpecMappingOptionsList,
@@ -15,6 +17,7 @@ import type {
   Me,
   Operation,
   OperationAccepted,
+  PreviewSession,
   TerminalSession,
   TerminalTargetList,
   VersionedLabSpec,
@@ -33,6 +36,7 @@ export const labbitQueryKeys = {
   labSpecMappingOptions: (organizationId: string, userId: string) =>
     ['lab-specs', 'mapping-options', organizationId, userId] as const,
   labSpec: (labSpecId: string) => ['lab-specs', labSpecId] as const,
+  activeLiveSession: (classId: string) => ['classes', classId, 'live-session'] as const,
   labExecution: (labExecutionId: string) =>
     ['lab-executions', labExecutionId] as const,
   operation: (operationId: string) => ['operations', operationId] as const,
@@ -85,12 +89,20 @@ export interface LabbitApi {
     idempotencyKey: string,
   ): Promise<OperationAccepted>
   getOperation(operationId: string): Promise<Operation>
+  createPreviewSession(
+    labInstanceId: string,
+    input: CreatePreviewSessionRequest,
+  ): Promise<PreviewSession>
+  closePreviewSession(previewSessionId: string): Promise<void>
   listTerminalTargets(labInstanceId: string): Promise<TerminalTargetList>
   createTerminalSession(
     labInstanceId: string,
     input: CreateTerminalSessionRequest,
   ): Promise<TerminalSession>
   closeTerminalSession(terminalSessionId: string): Promise<void>
+  getActiveLiveSession(classId: string): Promise<LiveSession>
+  createLiveSession(terminalSessionId: string): Promise<LiveSession>
+  closeLiveSession(liveSessionId: string): Promise<void>
   listWorkspaceFiles(
     labInstanceId: string,
     path?: string,
@@ -271,6 +283,24 @@ export const httpLabbitApi: LabbitApi = {
     return request<Operation>(`/operations/${encodeURIComponent(operationId)}`)
   },
 
+  createPreviewSession(labInstanceId, input) {
+    // previewUrl carries one-time bootstrap material; callers must not cache the result.
+    return request<PreviewSession>(
+      `/lab-instances/${encodeURIComponent(labInstanceId)}/preview-sessions`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ targetPort: input.targetPort }),
+      },
+    )
+  },
+
+  closePreviewSession(previewSessionId) {
+    return request<void>(
+      `/preview-sessions/${encodeURIComponent(previewSessionId)}`,
+      { method: 'DELETE' },
+    )
+  },
+
   listTerminalTargets(labInstanceId) {
     return request<TerminalTargetList>(
       `/lab-instances/${encodeURIComponent(labInstanceId)}/terminal-targets`,
@@ -293,6 +323,24 @@ export const httpLabbitApi: LabbitApi = {
       {
         method: 'DELETE',
       },
+    )
+  },
+
+  getActiveLiveSession(classId) {
+    return request<LiveSession>(`/classes/${encodeURIComponent(classId)}/live-session`)
+  },
+
+  createLiveSession(terminalSessionId) {
+    return request<LiveSession>(
+      `/terminal-sessions/${encodeURIComponent(terminalSessionId)}/live-sessions`,
+      { method: 'POST' },
+    )
+  },
+
+  closeLiveSession(liveSessionId) {
+    return request<void>(
+      `/live-sessions/${encodeURIComponent(liveSessionId)}`,
+      { method: 'DELETE' },
     )
   },
 

@@ -19,6 +19,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/version"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/wss"
@@ -338,7 +339,7 @@ func Run(ctx context.Context) error {
 		return openstackprovider.New(factoryContext, openstackprovider.ConfigFromEnvironment())
 	})
 
-	logger.Info("Labbit Connector 시작", "connector_id", connectorID)
+	logger.Info("Labbit Connector 시작", "connector_id", connectorID, "version", config.ConnectorVersion)
 	return runControl(ctx, config, lazy, connectorID, logger)
 }
 
@@ -347,10 +348,15 @@ func controlConfigFromEnvironment() (wss.Config, error) {
 	if connectorID == "" {
 		return wss.Config{}, fmt.Errorf("LABBIT_CONNECTOR_ID is required")
 	}
+	connectorVer := strings.TrimSpace(os.Getenv("LABBIT_CONNECTOR_VERSION"))
+	if connectorVer == "" {
+		connectorVer = version.Version
+	}
 	config := wss.Config{
-		BaseURL:        strings.TrimSpace(os.Getenv("LABBIT_SAAS_BASE_URL")),
-		CredentialFile: strings.TrimSpace(os.Getenv("LABBIT_CONNECTOR_CREDENTIAL_FILE")),
-		RuntimeID:      uuid.NewString(),
+		BaseURL:          strings.TrimSpace(os.Getenv("LABBIT_SAAS_BASE_URL")),
+		CredentialFile:   strings.TrimSpace(os.Getenv("LABBIT_CONNECTOR_CREDENTIAL_FILE")),
+		RuntimeID:        uuid.NewString(),
+		ConnectorVersion: connectorVer,
 	}
 	if _, err := config.ResolveEndpoint(); err != nil {
 		return wss.Config{}, fmt.Errorf("invalid Connector Control endpoint configuration: %w", err)
@@ -382,8 +388,8 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
 	})
 	defer shutdown()
 	handler := connectorApp.Handler
-	handler.SetOnError(func(error) {
-		logger.Warn("Connector Control 메시지 처리 실패", "connector_id", connectorID)
+	handler.SetOnError(func(err error) {
+		logControlError(logger, connectorID, err)
 	})
 	supervisor := wss.NewSupervisor(config, handler, wss.NewDefaultBackoffPolicy())
 	supervisor.SetOnShutdown(shutdown)

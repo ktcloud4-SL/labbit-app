@@ -1,0 +1,22 @@
+{
+  "at": "2026-10-20T05:10:55.336Z",
+  "scenario": "B_survives_all_30_A_reopens",
+  "expectedRenderedSize": {
+    "cols": 171,
+    "rows": 9
+  },
+  "kernelSizes": [
+    {
+      "cols": 171,
+      "rows": 9
+    }
+  ],
+  "measureCharacters": 32,
+  "message": "기존 TerminalSession과 같은 PTY에 다시 연결되었습니다. 끊긴 동안의 출력은 재생되지 않습니다.",
+  "nonceRendered": true,
+  "status": "연결됨 · resumed",
+  "viewport": {
+    "height": 720,
+    "width": 1280
+  }
+}

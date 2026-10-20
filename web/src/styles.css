@@ -634,6 +634,72 @@ a {
 .workspace-preview {
   grid-row: 1;
   grid-column: 3;
+  overflow-y: auto;
+}
+
+.workspace-preview-control {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 14px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.workspace-preview-form {
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-preview-form label {
+  font-weight: 800;
+}
+
+.workspace-preview-form input {
+  min-width: 0;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid #d7dce7;
+  border-radius: 8px;
+}
+
+.workspace-preview-form input:focus-visible {
+  outline: 3px solid rgba(88, 80, 200, 0.16);
+  border-color: #5850c8;
+}
+
+.workspace-preview-control button {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid #5850c8;
+  border-radius: 8px;
+  background: #5850c8;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.workspace-preview-control button.secondary-button {
+  background: #fff;
+  color: #5148bb;
+}
+
+.workspace-preview-control button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.workspace-preview-control [role="status"] {
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-preview-control [role="status"] p,
+.workspace-preview-control > p {
+  margin: 0;
 }
 
 .workspace-terminal {
@@ -1826,4 +1892,21 @@ a {
     border-radius: 16px;
     padding: 22px;
   }
+}
+
+/* LBT-26: student receives only read-only xterm output, never input controls. */
+.terminal-live-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.terminal-live-message { color: #e1d9af; font-size: 11px; max-width: 260px; }
+.live-class-panel { margin-top: 18px; padding: 18px; background: #fff; border: 1px solid #e3e7ee; border-radius: 12px; }
+.live-class-panel h2 { font-size: 17px; margin: 0 0 12px; }
+.live-viewer { background: #202531; color: #e7ebf2; border-radius: 8px; overflow: hidden; }
+.live-viewer-toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding: 10px 12px; border-bottom: 1px solid #353b48; }
+.live-viewer-toolbar strong { font-size: 13px; }
+.live-viewer-message { padding: 7px 12px; font-size: 12px; margin: 0; }
+.live-viewer-terminal { min-height: 240px; height: 240px; padding: 8px; background: #171b23; }
+.live-viewer > .muted { color: #b7bdc9; padding: 8px 12px; font-size: 11px; }
+@media (max-width: 720px) {
+  .terminal-live-controls { width: 100%; }
+  .live-class-panel { padding: 12px; }
+  .live-viewer-terminal { min-height: 200px; height: 200px; }
 }

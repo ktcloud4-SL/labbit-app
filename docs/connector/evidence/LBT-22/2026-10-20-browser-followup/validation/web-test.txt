@@ -1,0 +1,14 @@
+
+ RUN  v5.0.3 C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-c2-pr-20261020/web
+
+
+ Test Files  23 passed (23)
+      Tests  286 passed (286)
+   Start at  14:22:37
+   Duration  12.80s (environment 67%, setup 13%, tests 13%, transform 4%, import 3%)
+
+Environment  jsdom was created 23 times · 73.47s total, 67% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package

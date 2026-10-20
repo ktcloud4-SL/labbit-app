@@ -1,0 +1,54 @@
+?   	github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector	[no test files]
+?   	github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate	[no test files]
+?   	github.com/ktcloud4-SL/labbit-app/cmd/labbit-server	[no test files]
+?   	github.com/ktcloud4-SL/labbit-app/cmd/labbit-workspace-sftp	[no test files]
+?   	github.com/ktcloud4-SL/labbit-app/db/migrations	[no test files]
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/app	7.079s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/filetransport	3.451s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/heartbeat	1.075s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/installer	42.777s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/mock	2.154s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/preview	2.561s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/protocol	1.296s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/provider	1.110s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/terminal	20.769s
+?   	github.com/ktcloud4-SL/labbit-app/internal/connector/version	[no test files]
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess	4.699s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile	2.698s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefs	15.282s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/connector/wss	7.505s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/jsonnum	1.059s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/observability	2.109s
+?   	github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr	[no test files]
+ok  	github.com/ktcloud4-SL/labbit-app/internal/observability/tracing	4.235s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/postgres	2.014s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest	1.914s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/app	2.655s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/auth	1.570s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/bootstrap	1.059s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/class	0.960s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/connector	1.924s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss	19.181s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/filetransport	3.092s
+?   	github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest	[no test files]
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/httpapi	2.251s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/jsonnum	0.878s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/labexecution	2.988s
+?   	github.com/ktcloud4-SL/labbit-app/internal/server/labexecution/labexecutiontest	[no test files]
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/labspec	2.372s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/livesession	1.450s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/operation	1.118s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/preview	4.365s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest	1.021s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/previewsession	1.990s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/provision	1.365s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/realtime	12.807s
+?   	github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest	[no test files]
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/repository	0.968s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/terminal	1.322s
+?   	github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest	[no test files]
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext	0.862s
+ok  	github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile	1.377s
+ok  	github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture	2.469s
+ok  	github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance	7.446s
+ok  	github.com/ktcloud4-SL/labbit-app/tools/ktcloud-op02-bootstrap	2.065s

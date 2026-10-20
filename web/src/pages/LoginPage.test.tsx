@@ -1,15 +1,32 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { HttpError } from '../shared/api/httpClient'
 import { LabbitApiProvider } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
 import { mockLabbitApi, mockMe } from '../shared/api/mockLabbitApi'
+import { saveTerminalResumeState } from '../shared/terminal/terminalResumeStorage'
 import { LoginPage } from './LoginPage'
 
 describe('LoginPage', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear()
+    saveTerminalResumeState({
+      labInstanceId: 'prior-user-lab',
+      generation: 1,
+      terminalSessionId: 'prior-user-terminal',
+      sessionToken: 'synthetic-prior-user-token',
+      tokenExpiresAt: '2099-01-01T00:00:00Z',
+    })
+  })
+
+  afterEach(() => {
+    window.sessionStorage.clear()
+    vi.restoreAllMocks()
+  })
+
   it('로그인 consumer가 HttpError 401을 반환하면 자격 증명 오류로 안내한다', async () => {
     const queryClient = new QueryClient()
     const api = {
@@ -50,6 +67,8 @@ describe('LoginPage', () => {
     expect(
       await screen.findByText('사용자 이름 또는 비밀번호를 확인해 주세요.'),
     ).toBeInTheDocument()
+    // The server did not establish a new identity on a failed login.
+    expect(window.sessionStorage.getItem('labbit.terminal.resume.v1')).not.toBeNull()
   })
 
   it('Login 성공 뒤 /me 401은 잘못된 비밀번호로 오인하지 않고 이전 사용자 cache를 제거한다', async () => {
@@ -109,6 +128,8 @@ describe('LoginPage', () => {
     ).not.toBeInTheDocument()
     expect(queryClient.getQueryData(labbitQueryKeys.me)).toBeUndefined()
     expect(queryClient.getQueryData(labbitQueryKeys.classes)).toBeUndefined()
+    // A successful login replaced the server identity before /me returned 401.
+    expect(window.sessionStorage.getItem('labbit.terminal.resume.v1')).toBeNull()
   })
 
   it('직접 재로그인 성공 시 이전 사용자 query cache를 제거하고 새 me만 저장한다', async () => {
@@ -177,5 +198,6 @@ describe('LoginPage', () => {
     expect(queryClient.getQueryData(labbitQueryKeys.me)).toEqual(nextMe)
     expect(queryClient.getQueryData(labbitQueryKeys.classes)).toBeUndefined()
     expect(queryClient.getQueryData(labbitQueryKeys.labSpecs)).toBeUndefined()
+    expect(window.sessionStorage.getItem('labbit.terminal.resume.v1')).toBeNull()
   })
 })

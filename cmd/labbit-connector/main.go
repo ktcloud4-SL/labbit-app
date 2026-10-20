@@ -2,16 +2,26 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/app"
+	"github.com/ktcloud4-SL/labbit-app/internal/connector/version"
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 )
 
 func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "--version", "-v", "-version", "version":
+			fmt.Printf("labbit-connector %s (commit: %s)\n", version.Version, version.CommitSHA)
+			return
+		}
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 

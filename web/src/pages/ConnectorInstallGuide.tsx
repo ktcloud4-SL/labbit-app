@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { normalizeInstallerUrl } from '../shared/installer/installerUrl.mjs'
 
 interface ConnectorInstallGuideProps {
   /**
@@ -8,26 +9,6 @@ interface ConnectorInstallGuideProps {
   approvedInstallerUrl?: string
 }
 
-function publicHttpsUrl(raw: string | undefined): string | null {
-  if (!raw) return null
-  try {
-    const parsed = new URL(raw)
-    if (
-      parsed.protocol !== 'https:' ||
-      !parsed.hostname ||
-      parsed.username ||
-      parsed.password ||
-      parsed.search ||
-      parsed.hash
-    ) {
-      return null
-    }
-    return parsed.toString()
-  } catch {
-    return null
-  }
-}
-
 /**
  * Informational UI only. No mock enrollment states or executable shell
  * pipeline; the LBT-181 release owner must approve actual customer commands.
@@ -35,7 +16,7 @@ function publicHttpsUrl(raw: string | undefined): string | null {
 export function ConnectorInstallGuide({
   approvedInstallerUrl,
 }: ConnectorInstallGuideProps) {
-  const url = publicHttpsUrl(approvedInstallerUrl)
+  const url = normalizeInstallerUrl(approvedInstallerUrl)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
 
   async function copyUrl() {
@@ -77,6 +58,7 @@ export function ConnectorInstallGuide({
           <p className="muted">
             설치 전 스크립트와 고정 Binary 버전·체크섬을 확인하세요. 자동 실행 대신
             파일을 내려받아 내용을 검토한 뒤 승인된 운영 절차로 실행할 수 있습니다.
+            설치에 사용할 실제 SaaS HTTPS 접속 주소도 담당자에게 확인해 주세요.
           </p>
         </>
       ) : (

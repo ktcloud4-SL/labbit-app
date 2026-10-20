@@ -21,6 +21,8 @@ interface WorkspaceFilePanelsProps {
   generation: number
   retainedDraft?: WorkspaceDraftBackup | null
   onRetainedDraftChange?: Dispatch<SetStateAction<WorkspaceDraftBackup | null>>
+  retainedSavePending?: boolean
+  onRetainedSavePendingChange?: Dispatch<SetStateAction<boolean>>
 }
 
 export interface WorkspaceDraftBackup {
@@ -300,19 +302,27 @@ export function WorkspaceFilePanels({
   generation,
   retainedDraft,
   onRetainedDraftChange,
+  retainedSavePending,
+  onRetainedSavePendingChange,
 }: WorkspaceFilePanelsProps) {
   const api = useLabbitApi()
   const [directoryPath, setDirectoryPath] = useState('')
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null)
   const [editorDirty, setEditorDirty] = useState(false)
-  const [savePending, setSavePending] = useState(false)
+  const [internalSavePending, setInternalSavePending] = useState(false)
+  const savePending = onRetainedSavePendingChange ? Boolean(retainedSavePending) : internalSavePending
+  const setSavePending = onRetainedSavePendingChange ?? setInternalSavePending
   // In-memory only; never render, persist or log denied Workspace file bytes.
   const [internalDraftBackup, setInternalDraftBackup] = useState<WorkspaceDraftBackup | null>(null)
   // LabPage owns this volatile draft across generation changes and READY/RESET
   // branch transitions. Isolated component consumers use the internal fallback.
   const draftBackup = onRetainedDraftChange ? retainedDraft ?? null : internalDraftBackup
   const setDraftBackup = onRetainedDraftChange ?? setInternalDraftBackup
-  const [restoredDraft, setRestoredDraft] = useState<string | null>(null)
+  const [restoredDraft, setRestoredDraft] = useState<{
+    scope: string
+    path: string
+    content: string
+  } | null>(null)
   const [restoreEpoch, setRestoreEpoch] = useState(0)
   const [workspaceGate, setWorkspaceGate] = useState<{
     scope: string
@@ -466,6 +476,8 @@ export function WorkspaceFilePanels({
   const currentWorkspaceDraft = draftBackup?.labInstanceId === labInstanceId
   const previousGenerationDraft = currentWorkspaceDraft && draftBackup.generation !== generation
   const backupForSelected = currentWorkspaceDraft && draftBackup.path === selectedFilePath
+  const restoredForSelected = restoredDraft?.scope === scope && restoredDraft?.path === selectedFilePath
+    ? restoredDraft.content : null
 
   if (authExpired) {
     return <LoginRedirect reason="sessionExpired" />
@@ -650,7 +662,7 @@ export function WorkspaceFilePanels({
           </div>
         )}
 
-        {selectedFilePath && fileQuery.data && !selectedAccessChanged && !needsFreshFileRead && backupForSelected && restoredDraft === null && !editorDirty && !savePending && (
+        {selectedFilePath && fileQuery.data && !selectedAccessChanged && !needsFreshFileRead && backupForSelected && restoredForSelected === null && !editorDirty && !savePending && (
           <div className="workspace-file-state" role="status">
             <p>이전에 저장하지 못한 수정본이 있습니다. 최신 파일과 비교한 뒤 복원하거나 버려 주세요.</p>
             <button className="workspace-file-action" type="button"
@@ -658,7 +670,7 @@ export function WorkspaceFilePanels({
                 if (window.confirm(
                   '미저장 수정본을 다시 편집기에 불러옵니다. 서버 파일의 버전이 달라졌을 수 있으니 저장 전에 반드시 내용을 비교해 주세요.',
                 )) {
-                  setRestoredDraft(draftBackup.content)
+                  setRestoredDraft({ scope, path: selectedFilePath, content: draftBackup.content })
                   setEditorDirty(draftBackup.content !== fileQuery.data.file.content)
                   setRestoreEpoch((epoch) => epoch + 1)
                 }
@@ -673,7 +685,8 @@ export function WorkspaceFilePanels({
           </div>
         )}
 
-        {selectedFilePath && fileQuery.data && !selectedAccessChanged && !needsFreshFileRead && (
+        {selectedFilePath && fileQuery.data && !selectedAccessChanged && !needsFreshFileRead &&
+          (!previousGenerationDraft || restoredForSelected !== null) && (
           <WorkspaceFileEditor
             key={`${labInstanceId}:${generation}:${fileQuery.data.file.path}:${fileQuery.data.etag}:${fileQuery.dataUpdatedAt}:${restoreEpoch}`}
             labInstanceId={labInstanceId}
@@ -682,7 +695,7 @@ export function WorkspaceFilePanels({
             onDirtyChange={setEditorDirty}
             onSavePendingChange={setSavePending}
             savePending={savePending}
-            restoredDraft={restoredDraft ?? undefined}
+            restoredDraft={restoredForSelected ?? undefined}
             onDraftChange={(content, sourceEtag) => {
               if (content === null) setRestoredDraft(null)
               setDraftBackup(content === null ? null : {

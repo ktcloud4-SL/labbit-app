@@ -24,6 +24,12 @@ function statusLabel(status: string) {
 
 // A Backend Problem Details forbidden code is an authorization decision.
 // Do not infer a changed ADMIN role from an unstructured proxy/origin 403.
+// Validate the response timestamp outside the component's render scope.
+function tokenExpiryInvalid(expiresAt: string): boolean {
+  const expiresAtMs = Date.parse(expiresAt)
+  return !Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()
+}
+
 function isManagementForbidden(error: unknown): boolean {
   return error instanceof HttpError && error.status === 403 && error.problem?.code === 'forbidden'
 }
@@ -151,7 +157,7 @@ function ConnectorAdminForPrincipal({
       // Do not use useMutation here: Query's mutation cache could retain the raw token.
       const result = await api.createConnectorEnrollmentToken(name)
       if (requestEpoch.current !== epoch) return
-      if (!Number.isFinite(Date.parse(result.expiresAt)) || Date.parse(result.expiresAt) <= Date.now()) {
+      if (tokenExpiryInvalid(result.expiresAt)) {
         setActionError('발급된 토큰의 만료 시각이 유효하지 않습니다. 새 토큰을 발급해 주세요.')
         return
       }

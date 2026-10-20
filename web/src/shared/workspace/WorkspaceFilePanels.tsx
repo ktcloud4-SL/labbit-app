@@ -301,6 +301,39 @@ function WorkspaceFileEditor({
   )
 }
 
+// Only standalone usage registers this blocker. A real LabPage owns the sole
+// router blocker for both READY and non-READY states; registering two blockers
+// would let the later (inactive) one override its navigation policy.
+function StandaloneWorkspaceNavigationGuard({
+  hasUnsavedChanges,
+  savePending,
+}: {
+  hasUnsavedChanges: boolean
+  savePending: boolean
+}) {
+  const blocker = useBlocker(
+    ({ nextLocation }) =>
+      (hasUnsavedChanges || savePending) && nextLocation.pathname !== '/login',
+  )
+
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return
+    if (savePending) {
+      blocker.reset()
+      return
+    }
+    if (window.confirm(
+      '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 페이지를 이동할까요?',
+    )) {
+      blocker.proceed()
+      return
+    }
+    blocker.reset()
+  }, [blocker, savePending])
+
+  return null
+}
+
 export function WorkspaceFilePanels({
   labInstanceId,
   generation,
@@ -442,32 +475,6 @@ export function WorkspaceFilePanels({
     return () => window.removeEventListener('beforeunload', warn)
   }, [draftBackup, ownedByLabPage])
 
-  const navigationBlocker = useBlocker(
-    ({ nextLocation }) =>
-      !ownedByLabPage && (hasUnsavedChanges || savePending) && nextLocation.pathname !== '/login',
-  )
-
-  useEffect(() => {
-    if (ownedByLabPage || navigationBlocker.state !== 'blocked') return
-
-    if (savePending) {
-      navigationBlocker.reset()
-      return
-    }
-
-    if (
-      window.confirm(
-        '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 페이지를 이동할까요?',
-      )
-    ) {
-      // Navigation unmounts the panel, clearing the in-memory draft.
-      navigationBlocker.proceed()
-      return
-    }
-
-    navigationBlocker.reset()
-  }, [navigationBlocker, savePending, ownedByLabPage])
-
   const authExpired =
     (treeQuery.error instanceof HttpError && treeQuery.error.status === 401) ||
     (fileQuery.error instanceof HttpError && fileQuery.error.status === 401)
@@ -539,6 +546,12 @@ export function WorkspaceFilePanels({
 
   return (
     <>
+      {!ownedByLabPage && (
+        <StandaloneWorkspaceNavigationGuard
+          hasUnsavedChanges={hasUnsavedChanges}
+          savePending={savePending}
+        />
+      )}
       <aside className="workspace-panel workspace-files">
         <div className="workspace-panel-heading">
           <strong>파일</strong>

@@ -1,10 +1,10 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 import { ConnectorEnrollmentTokenPanel } from './ConnectorEnrollmentTokenPanel'
 import { ConnectorInstallGuide } from './ConnectorInstallGuide'
-import type { ConnectorEnrollmentTokenIssued } from '../shared/api/contracts'
+import type { ConnectorEnrollmentTokenIssued, Me } from '../shared/api/contracts'
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
@@ -39,12 +39,28 @@ function errorMessage(error: unknown, action: string) {
  */
 export function ConnectorAdminPage() {
   const api = useLabbitApi()
-  const queryClient = useQueryClient()
   const meQuery = useQuery({
     queryKey: labbitQueryKeys.me,
     queryFn: () => api.getMe(),
     retry: false,
   })
+  const me = meQuery.data
+  // React Router may keep /connectors mounted while the auth principal or
+  // organization changes. A one-time enrollment secret must never cross
+  // those boundaries, including late responses from the previous principal.
+  const principalKey = me
+    ? JSON.stringify([me.organization.id, me.id, me.organizationRole])
+    : 'no-principal'
+  return <ConnectorAdminForPrincipal key={principalKey} meQuery={meQuery} />
+}
+
+function ConnectorAdminForPrincipal({
+  meQuery,
+}: {
+  meQuery: Pick<UseQueryResult<Me>, 'data' | 'error' | 'isPending'>
+}) {
+  const api = useLabbitApi()
+  const queryClient = useQueryClient()
   const me = meQuery.data
   const isAdmin = me?.organizationRole === 'ADMIN'
   const connectorsKey = ['connectors', me?.organization.id, me?.id] as const

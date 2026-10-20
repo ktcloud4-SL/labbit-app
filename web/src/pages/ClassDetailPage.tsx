@@ -10,6 +10,7 @@ import {
   retryPendingClassReadiness,
 } from '../shared/workspace/classReadinessPolling'
 import { LoginRedirect } from '../shared/ui/LoginRedirect'
+import { LiveStudentPanel } from '../shared/live/LiveStudentPanel'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
@@ -209,6 +210,8 @@ export function ClassDetailPage() {
           )}
         </div>
       </section>
+
+      {!isInstructor && <LiveStudentPanel classId={classDetail.id} />}
 
       {classDetail.myLabInstance && !isWorkspaceReady && (
         <section

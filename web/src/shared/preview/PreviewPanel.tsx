@@ -99,21 +99,14 @@ export function PreviewPanel({ labInstanceId, generation }: PreviewPanelProps) {
   useEffect(() => {
     if (!session) return
     const remaining = Date.parse(session.expiresAt) - Date.now()
-    if (remaining <= 0) {
-      previewUrlRef.current = null
-      sessionIdRef.current = null
-      setCanOpen(false)
-      setSession(null)
-      setStatus('expired')
-      return
-    }
+    // Run expiry via timer, not synchronous setState in the effect body.
     const timer = window.setTimeout(() => {
       previewUrlRef.current = null
       sessionIdRef.current = null
       setCanOpen(false)
       setSession(null)
       setStatus('expired')
-    }, Math.min(remaining, 2_147_483_647))
+    }, Math.max(0, Math.min(remaining, 2_147_483_647)))
     return () => window.clearTimeout(timer)
   }, [session])
 

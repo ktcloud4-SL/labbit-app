@@ -95,6 +95,47 @@ describe('LBT-26 instructor Live controls', () => {
     await waitFor(() => expect(closeLiveSession).toHaveBeenCalledWith('live-a'))
   })
 
+  it('keeps a best-effort STOP after transient 503 without claiming an active status', async () => {
+    let lookupFails = false
+    const getActiveLiveSession = vi.fn(async () => {
+      if (lookupFails) throw new HttpError(503)
+      return live
+    })
+    const closeLiveSession = vi.fn(async () => {})
+    const { query } = mount(
+      <LiveInstructorControls classId="class-a" sourceTerminalSessionId="terminal-a" />,
+      { getActiveLiveSession, closeLiveSession },
+    )
+    expect(await screen.findByRole('button', { name: '공유 종료' })).toBeEnabled()
+
+    lookupFails = true
+    await query.invalidateQueries({ queryKey: ['classes', 'class-a', 'live-session'] })
+    expect(await screen.findByText(/공유 상태 확인 불가/)).toBeInTheDocument()
+    expect(screen.queryByText('화면 공유 중')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '화면 공유 시작' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '공유 종료' }))
+    await waitFor(() => expect(closeLiveSession).toHaveBeenCalledWith('live-a'))
+    await waitFor(() => expect(screen.queryByRole('button', { name: '공유 종료' })).not.toBeInTheDocument())
+  })
+
+  it.each([403, 404])('never exposes stale STOP after an authoritative %i lookup failure', async (status) => {
+    let denied = false
+    const { query } = mount(
+      <LiveInstructorControls classId="class-a" sourceTerminalSessionId="terminal-a" />,
+      {
+        getActiveLiveSession: async () => {
+          if (denied) throw new HttpError(status)
+          return live
+        },
+      },
+    )
+    expect(await screen.findByRole('button', { name: '공유 종료' })).toBeEnabled()
+    denied = true
+    await query.invalidateQueries({ queryKey: ['classes', 'class-a', 'live-session'] })
+    await waitFor(() => expect(screen.queryByRole('button', { name: '공유 종료' })).not.toBeInTheDocument())
+    expect(screen.queryByText('공유 상태 확인 불가 · 마지막 세션 종료 가능')).not.toBeInTheDocument()
+  })
+
   it('does not allow starting a new Live when Class already has an active one', async () => {
     const createLiveSession = vi.fn(async () => live)
     mount(<LiveInstructorControls classId="class-a" sourceTerminalSessionId="terminal-b" />,

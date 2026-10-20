@@ -308,6 +308,99 @@ describe('LBT-26 student read-only Class Live', () => {
     expect(screen.queryByLabelText('강사 화면 읽기 전용 출력')).not.toBeInTheDocument()
   })
 
+  it.each(['503', 'network'] as const)(
+    'preserves subscribed student Live WSS and receives output after transient %s refetch failure',
+    async (failure) => {
+      vi.stubGlobal('WebSocket', FakeSocket)
+      let unavailable = false
+      const { query } = mount(<LiveStudentPanel classId="class-a" />, {
+        getActiveLiveSession: async () => {
+          if (unavailable) {
+            if (failure === '503') throw new HttpError(503)
+            throw new TypeError('Network offline')
+          }
+          return live
+        },
+      })
+      await waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+      const ws = FakeSocket.instances[0]
+      ws.open()
+      ws.ack()
+      expect(await screen.findByText('읽기 전용 연결됨')).toBeInTheDocument()
+      const viewer = screen.getByLabelText('강사 화면 읽기 전용 출력')
+
+      unavailable = true
+      await act(async () => { await query.invalidateQueries() })
+      expect(await screen.findByRole('alert')).toHaveTextContent('기존 읽기 전용 연결을 유지합니다.')
+      expect(screen.getByLabelText('강사 화면 읽기 전용 출력')).toBe(viewer)
+      expect(FakeSocket.instances).toHaveLength(1)
+      expect(ws.readyState).toBe(1)
+
+      ws.message(new Uint8Array([77]).buffer)
+      await waitFor(() => expect(mockTerminalWrite).toHaveBeenCalledOnce())
+      expect(mockTerminalWrite).toHaveBeenCalledWith(new Uint8Array([77]))
+    },
+  )
+
+  it.each([403, 404])(
+    'disconnects student Live after %i and never revives stale Viewer on a following 503',
+    async (status) => {
+      vi.stubGlobal('WebSocket', FakeSocket)
+      let failure: Error | null = null
+      const { query } = mount(<LiveStudentPanel classId="class-a" />, {
+        getActiveLiveSession: async () => {
+          if (failure) throw failure
+          return live
+        },
+      })
+      await waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+      const ws = FakeSocket.instances[0]
+      ws.open()
+      ws.ack()
+      expect(await screen.findByText('읽기 전용 연결됨')).toBeInTheDocument()
+
+      failure = new HttpError(status)
+      await act(async () => { await query.invalidateQueries() })
+      await waitFor(() => expect(screen.queryByLabelText('강사 화면 읽기 전용 출력')).not.toBeInTheDocument())
+      expect(ws.readyState).toBe(3)
+
+      failure = new HttpError(503)
+      await act(async () => { await query.invalidateQueries() })
+      expect(screen.queryByLabelText('강사 화면 읽기 전용 출력')).not.toBeInTheDocument()
+      expect(FakeSocket.instances).toHaveLength(1)
+      expect(screen.queryByText('읽기 전용 연결됨')).not.toBeInTheDocument()
+
+      // A new authorized GET 200, not a transient error or cached data, can
+      // establish a fresh blank/no-history subscription.
+      failure = null
+      await act(async () => { await query.invalidateQueries() })
+      await waitFor(() => expect(FakeSocket.instances).toHaveLength(2))
+      expect(FakeSocket.instances[1]).not.toBe(ws)
+    },
+  )
+
+  it('does not revive student Live if 403 and 503 complete before React renders', async () => {
+    vi.stubGlobal('WebSocket', FakeSocket)
+    let failure: Error | null = null
+    const { query } = mount(<LiveStudentPanel classId="class-a" />, {
+      getActiveLiveSession: async () => {
+        if (failure) throw failure
+        return live
+      },
+    })
+    await waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const ws = FakeSocket.instances[0]
+    await act(async () => {
+      failure = new HttpError(403)
+      await query.invalidateQueries()
+      failure = new HttpError(503)
+      await query.invalidateQueries()
+    })
+    expect(screen.queryByLabelText('강사 화면 읽기 전용 출력')).not.toBeInTheDocument()
+    expect(ws.readyState).toBe(3)
+    expect(FakeSocket.instances).toHaveLength(1)
+  })
+
   it('denies invalid class membership without opening live socket', async () => {
     vi.stubGlobal('WebSocket', FakeSocket)
     mount(<LiveStudentPanel classId="class-a" />, {

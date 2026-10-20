@@ -282,7 +282,8 @@ export function ConnectorAdminPage() {
           </>
         )}
       </section>
-      <ConnectorInstallGuide />
+      {/* Public, build-time-only configuration: no installer URL is trusted until LBT-181 approves it. */}
+      <ConnectorInstallGuide approvedInstallerUrl={import.meta.env.VITE_LABBIT_APPROVED_INSTALLER_URL} />
     </main>
   )
 }

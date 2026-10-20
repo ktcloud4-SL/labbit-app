@@ -25,10 +25,24 @@ export class HttpError extends Error {
   }
 }
 
+export class ApiResponseFormatError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly contentType: string | null,
+  ) {
+    super('API 응답이 JSON 형식이 아닙니다.')
+    this.name = 'ApiResponseFormatError'
+  }
+}
+
 const API_BASE_URL = '/api/v1'
 
 function isJsonContentType(contentType: string | null) {
-  return Boolean(contentType && (contentType.includes('application/json') || contentType.includes('+json')))
+  const mediaType = contentType?.split(';', 1)[0].trim().toLowerCase()
+  return (
+    mediaType === 'application/json' ||
+    Boolean(mediaType && /^[^\\s/]+\\/[^\\s/]+\\+json$/.test(mediaType))
+  )
 }
 
 async function readProblem(response: Response): Promise<ProblemDetails | undefined> {
@@ -64,6 +78,13 @@ export async function requestWithMetadata<T>(
 
   if (!response.ok) {
     throw new HttpError(response.status, await readProblem(response))
+  }
+
+  // A misrouted /api/v1 request can receive 200 text/html from the SPA.
+  // Reject even JSON-shaped bodies with an incorrect media type; do not record
+  // or parse the response body when the API contract is already violated.
+  if (response.status !== 204 && !isJsonContentType(response.headers.get('content-type'))) {
+    throw new ApiResponseFormatError(response.status, response.headers.get('content-type'))
   }
 
   const data =

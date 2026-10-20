@@ -46,7 +46,7 @@ describe('LBT-26 LiveSession OpenAPI HTTP consumer', () => {
 
     await expect(httpLabbitApi.createLiveSession('terminal/a')).resolves.toEqual(live)
     await httpLabbitApi.closeLiveSession('live/a')
-    expect(fetch.mock.calls.map(([url, opts]: [string, RequestInit]) => ({
+    expect((fetch.mock.calls as Array<[string, RequestInit]>).map(([url, opts]) => ({
       url,
       method: opts.method,
       credentials: opts.credentials,

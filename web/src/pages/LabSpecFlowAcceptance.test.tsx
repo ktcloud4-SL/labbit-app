@@ -291,6 +291,128 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     expect(updateLabSpec).not.toHaveBeenCalled()
   })
 
+  it('ETag 변경 시 복원 선택 전 새 서버 폼 편집을 잠가 오래된 미저장 초안을 보호한다', async () => {
+    const candidate = mockLabSpecMappingOptions.items[0]
+    let revision = 1
+    const { client } = mountLabSpecFlow(
+      {
+        getLabSpec: async () => ({
+          labSpec: {
+            id: 'spec-lock',
+            ownerUserId: mockMe.id,
+            name: revision === 1 ? 'Old original' : 'New remote version',
+            vms: [{
+              role: 'control', imageRef: candidate.images[0].id,
+              sizeRef: candidate.flavors[0].id, count: 1,
+            }],
+            workspaceVm: { role: 'control', instanceIndex: 0 },
+            internetOutbound: true,
+          },
+          etag: revision === 1 ? '"v1"' : '"v2"',
+        }),
+      },
+      '/lab-specs/spec-lock',
+      <LabSpecEditorPage />,
+    )
+    expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('Old original')
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'My old unsaved draft' },
+    })
+
+    revision = 2
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: labbitQueryKeys.labSpec('spec-lock') })
+    })
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('New remote version'),
+    )
+    expect(screen.getByRole('status')).toHaveTextContent('이전 미저장 수정본은 메모리에 보관했습니다')
+    expect(screen.getByRole('textbox', { name: '이름' })).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: 'Role' })).toBeDisabled()
+    expect(screen.getByRole('combobox', { name: 'Provider 연결' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'VM 역할 추가' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '실습 정의 저장' })).toBeDisabled()
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'Attempted overwrite' },
+    })
+    expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('New remote version')
+    expect(screen.getByRole('status')).toHaveTextContent('이전 미저장 수정본은 메모리에 보관했습니다')
+
+    fireEvent.click(screen.getByRole('button', { name: '이전 수정본 복원' }))
+    expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('My old unsaved draft')
+    expect(screen.getByRole('textbox', { name: '이름' })).toBeEnabled()
+  })
+
+  it('ETag 변경 후 다른 Provider의 이전 수정본을 복원하면 Provider와 VM 참조를 함께 복원한다', async () => {
+    const [providerA, providerB] = mockLabSpecMappingOptions.items
+    const original: LabSpec = {
+      id: 'spec-cross-provider',
+      ownerUserId: mockMe.id,
+      name: 'Provider B original',
+      vms: [{
+        role: 'control', imageRef: providerB.images[0].id,
+        sizeRef: providerB.flavors[0].id, count: 1,
+      }],
+      workspaceVm: { role: 'control', instanceIndex: 0 },
+      internetOutbound: true,
+    }
+    let revision = 1
+    const updateLabSpec = vi.fn(async (_id: string, input: LabSpecWrite, _etag: string) => ({
+      labSpec: { ...original, ...input }, etag: '"v3"',
+    }))
+    const { client } = mountLabSpecFlow(
+      {
+        getLabSpec: async () => ({
+          labSpec: revision === 1 ? original : {
+            ...original,
+            name: 'Provider A remote',
+            vms: [{
+              role: 'control', imageRef: providerA.images[0].id,
+              sizeRef: providerA.flavors[0].id, count: 1,
+            }],
+          },
+          etag: revision === 1 ? '"v1"' : '"v2"',
+        }),
+        updateLabSpec,
+      },
+      '/lab-specs/spec-cross-provider',
+      <LabSpecEditorPage />,
+    )
+    expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('Provider B original')
+    expect(screen.getByRole('combobox', { name: 'Provider 연결' })).toHaveValue(providerB.providerConnectionId)
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'My Provider B draft' },
+    })
+
+    revision = 2
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: labbitQueryKeys.labSpec('spec-cross-provider') })
+    })
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('Provider A remote'),
+    )
+    expect(screen.getByRole('combobox', { name: 'Provider 연결' })).toHaveValue(providerA.providerConnectionId)
+
+    fireEvent.click(screen.getByRole('button', { name: '이전 수정본 복원' }))
+    expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('My Provider B draft')
+    expect(screen.getByRole('combobox', { name: 'Provider 연결' })).toHaveValue(providerB.providerConnectionId)
+    expect(screen.getByRole('combobox', { name: 'Image 참조' })).toHaveValue(providerB.images[0].id)
+    expect(screen.getByRole('combobox', { name: 'Size 참조' })).toHaveValue(providerB.flavors[0].id)
+
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
+    await waitFor(() => expect(updateLabSpec).toHaveBeenCalledTimes(1))
+    expect(updateLabSpec).toHaveBeenCalledWith(
+      'spec-cross-provider',
+      expect.objectContaining({
+        name: 'My Provider B draft',
+        vms: [expect.objectContaining({
+          imageRef: providerB.images[0].id, sizeRef: providerB.flavors[0].id,
+        })],
+      }),
+      '"v2"',
+    )
+  })
+
   it('ETag 변경 후 이전 수정본 버리기를 선택하면 최신 서버 입력을 유지한다', async () => {
     const candidate = mockLabSpecMappingOptions.items[0]
     let revision = 1

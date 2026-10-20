@@ -17,6 +17,7 @@ const json = (data: unknown, status = 200) =>
   })
 
 afterEach(() => {
+  vi.restoreAllMocks()
   vi.unstubAllGlobals()
   resetMockApiSession()
 })
@@ -115,6 +116,26 @@ describe('LBT-26 LiveSession isolated mock lifecycle', () => {
       .rejects.toMatchObject({ status: 404 })
     const renewed = await mockLabbitApi.createLiveSession(source.id)
     expect(renewed.id).not.toBe(created.id)
+  })
+
+  it('requires current instructor membership to close a Live, including idempotent close', async () => {
+    const source = await createInstructorTerminal()
+    const created = await mockLabbitApi.createLiveSession(source.id)
+    const original = await mockLabbitApi.getClass(created.classId)
+    const getClass = vi.spyOn(mockLabbitApi, 'getClass')
+      .mockResolvedValue({ ...original, myRole: 'STUDENT' })
+    await expect(mockLabbitApi.closeLiveSession(created.id))
+      .rejects.toMatchObject({ status: 403 })
+    await expect(mockLabbitApi.getActiveLiveSession(created.classId))
+      .resolves.toEqual(created)
+
+    getClass.mockRestore()
+    await expect(mockLabbitApi.closeLiveSession(created.id)).resolves.toBeUndefined()
+    getClass.mockResolvedValue({ ...original, myRole: 'STUDENT' })
+    await expect(mockLabbitApi.closeLiveSession(created.id))
+      .rejects.toMatchObject({ status: 403 })
+    getClass.mockRestore()
+    await expect(mockLabbitApi.closeLiveSession(created.id)).resolves.toBeUndefined()
   })
 
   it('closing the source terminal ends Live but does not invent a second source', async () => {

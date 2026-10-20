@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import type { ClassDetail } from '../shared/api/contracts'
@@ -15,6 +16,7 @@ import { LoadingState } from '../shared/ui/LoadingState'
 import { TerminalPanel } from '../shared/terminal/TerminalPanel'
 import { PreviewPanel } from '../shared/preview/PreviewPanel'
 import { WorkspaceFilePanels } from '../shared/workspace/WorkspaceFilePanels'
+import type { WorkspaceDraftBackup } from '../shared/workspace/WorkspaceFilePanels'
 
 const roleLabel = (role: string) => {
   if (role === 'INSTRUCTOR') return '강사'
@@ -27,6 +29,10 @@ export function LabPage() {
   const queryClient = useQueryClient()
   const { classId } = useParams()
   const resolvedClassId = classId ?? ''
+  // Keep only in volatile React memory, above the READY / RESET render split.
+  // Generation changes must not silently discard dirty editor drafts or a PUT.
+  const [retainedWorkspaceDraft, setRetainedWorkspaceDraft] = useState<WorkspaceDraftBackup | null>(null)
+  const [retainedFileSavePending, setRetainedFileSavePending] = useState(false)
 
   const classQuery = useQuery({
     queryKey: labbitQueryKeys.classDetail(resolvedClassId),
@@ -194,9 +200,13 @@ export function LabPage() {
 
       <section className="workspace-shell" aria-label="Lab Workspace Shell">
         <WorkspaceFilePanels
-          key={`${labInstance.id}:${labInstance.generation}`}
           labInstanceId={labInstance.id}
           generation={labInstance.generation}
+          retainedDraft={retainedWorkspaceDraft?.labInstanceId === labInstance.id
+            ? retainedWorkspaceDraft : null}
+          onRetainedDraftChange={setRetainedWorkspaceDraft}
+          retainedSavePending={retainedFileSavePending}
+          onRetainedSavePendingChange={setRetainedFileSavePending}
         />
 
         <section className="workspace-panel workspace-preview">

@@ -132,6 +132,22 @@ describe('LBT-26 student read-only Class Live', () => {
     expect(screen.getByText(/입력·크기 변경·강사 Terminal 종료는 지원하지 않습니다/)).toBeInTheDocument()
   })
 
+  it('removes a formerly active student Live on later 404 rather than showing stale WSS', async () => {
+    vi.stubGlobal('WebSocket', FakeSocket)
+    let exists = true
+    const { query } = mount(<LiveStudentPanel classId="class-a" />, {
+      getActiveLiveSession: async () => {
+        if (!exists) throw new HttpError(404)
+        return live
+      },
+    })
+    await waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    exists = false
+    await query.invalidateQueries()
+    expect(await screen.findByText(/진행 중인 강사 화면 공유가 없습니다/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('강사 화면 읽기 전용 출력')).not.toBeInTheDocument()
+  })
+
   it('denies invalid class membership without opening live socket', async () => {
     vi.stubGlobal('WebSocket', FakeSocket)
     mount(<LiveStudentPanel classId="class-a" />, {

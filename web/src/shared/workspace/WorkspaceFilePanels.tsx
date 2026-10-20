@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { useBlocker } from 'react-router-dom'
 
@@ -324,6 +324,9 @@ export function WorkspaceFilePanels({
     content: string
   } | null>(null)
   const [restoreEpoch, setRestoreEpoch] = useState(0)
+  // Request-start epochs prevent pre-revocation GET responses from
+  // authorizing another cached path after the workspace target has changed.
+  const workspaceRequestEpoch = useRef(0)
   const [workspaceGate, setWorkspaceGate] = useState<{
     scope: string
     verifiedTrees: string[]
@@ -355,14 +358,16 @@ export function WorkspaceFilePanels({
       directoryPath,
     ),
     queryFn: async () => {
+      const startedAtEpoch = workspaceRequestEpoch.current
       try {
         const result = await api.listWorkspaceFiles(labInstanceId, directoryPath)
-        setWorkspaceGate((previous) => previous?.scope === scope
+        if (startedAtEpoch === workspaceRequestEpoch.current) setWorkspaceGate((previous) => previous?.scope === scope
           ? { ...previous, verifiedTrees: [...new Set([...previous.verifiedTrees, directoryPath])] }
           : previous)
         return result
       } catch (error) {
         if (workspaceWideAccessChange(error)) {
+          workspaceRequestEpoch.current += 1
           setWorkspaceGate({ scope, verifiedTrees: [], verifiedFiles: [] })
         }
         if (error instanceof HttpError && [403, 404, 409].includes(error.status) && selectedFilePath) {
@@ -382,9 +387,10 @@ export function WorkspaceFilePanels({
       selectedPath,
     ),
     queryFn: async () => {
+      const startedAtEpoch = workspaceRequestEpoch.current
       try {
         const result = await api.readWorkspaceFile(labInstanceId, selectedPath)
-        setWorkspaceGate((previous) => previous?.scope === scope
+        if (startedAtEpoch === workspaceRequestEpoch.current) setWorkspaceGate((previous) => previous?.scope === scope
           ? { ...previous, verifiedFiles: [...new Set([...previous.verifiedFiles, selectedPath])] }
           : previous)
         setRequiresFreshRead((previous) =>
@@ -395,6 +401,7 @@ export function WorkspaceFilePanels({
         return result
       } catch (error) {
         if (workspaceWideAccessChange(error)) {
+          workspaceRequestEpoch.current += 1
           setWorkspaceGate({ scope, verifiedTrees: [], verifiedFiles: [] })
         }
         if (error instanceof HttpError && [403, 404, 409].includes(error.status)) {

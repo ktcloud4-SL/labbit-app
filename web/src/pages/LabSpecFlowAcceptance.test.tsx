@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { LabSpec, LabSpecWrite } from '../shared/api/contracts'
 import { LabbitApiProvider } from '../shared/api/LabbitApiProvider'
+import { labbitQueryKeys } from '../shared/api/labbitApi'
 import { HttpError } from '../shared/api/httpClient'
 import {
   mockLabbitApi,
@@ -45,7 +46,7 @@ function mountLabSpecFlow(
       </LabbitApiProvider>
     </QueryClientProvider>,
   )
-  return { router }
+  return { router, client }
 }
 
 describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
@@ -230,8 +231,96 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     fireEvent.click(screen.getByRole('button', { name: '최신 내용 다시 불러오기' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Changed elsewhere' })).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('Changed elsewhere')
+    expect(screen.getByRole('status')).toHaveTextContent('이전 미저장 수정본은 메모리에 보관했습니다')
     expect(getLabSpec).toHaveBeenCalledTimes(2)
     expect(updateLabSpec).toHaveBeenCalledTimes(1)
+    // Do not silently re-submit the old draft. Reinstating it must be explicit.
+    fireEvent.click(screen.getByRole('button', { name: '이전 수정본 복원' }))
+    expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('My concurrent edit')
+    expect(screen.queryByText(/이전 미저장 수정본은 메모리에 보관했습니다/)).not.toBeInTheDocument()
+    expect(updateLabSpec).toHaveBeenCalledTimes(1)
+  })
+
+
+  it('백그라운드 ETag 변경 시에도 편집본을 유지하고 서버 최신본과 분리해 선택적으로 복원한다', async () => {
+    const candidate = mockLabSpecMappingOptions.items[0]
+    const original: LabSpec = {
+      id: 'lab-spec-refresh',
+      ownerUserId: mockMe.id,
+      name: 'Initial remote',
+      vms: [{
+        role: 'control',
+        imageRef: candidate.images[0].id,
+        sizeRef: candidate.flavors[0].id,
+        count: 1,
+      }],
+      workspaceVm: { role: 'control', instanceIndex: 0 },
+      internetOutbound: true,
+    }
+    let revision = 1
+    const updateLabSpec = vi.fn(async () => { throw new Error('Should not auto-save') })
+    const { client } = mountLabSpecFlow(
+      {
+        getLabSpec: async () => ({
+          labSpec: { ...original, name: revision === 1 ? 'Initial remote' : 'Updated remotely' },
+          etag: revision === 1 ? '"etag-1"' : '"etag-2"',
+        }),
+        updateLabSpec,
+      },
+      '/lab-specs/lab-spec-refresh',
+      <LabSpecEditorPage />,
+    )
+    expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('Initial remote')
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'My unsaved draft' },
+    })
+    expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('My unsaved draft')
+
+    revision = 2
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: labbitQueryKeys.labSpec('lab-spec-refresh') })
+    })
+    expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('Updated remotely')
+    expect(screen.getByRole('status')).toHaveTextContent('이전 미저장 수정본은 메모리에 보관했습니다')
+    expect(updateLabSpec).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: '이전 수정본 복원' }))
+    expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('My unsaved draft')
+    expect(updateLabSpec).not.toHaveBeenCalled()
+  })
+
+  it('ETag 변경 후 이전 수정본 버리기를 선택하면 최신 서버 입력을 유지한다', async () => {
+    const candidate = mockLabSpecMappingOptions.items[0]
+    let revision = 1
+    const { client } = mountLabSpecFlow(
+      {
+        getLabSpec: async () => ({
+          labSpec: {
+            id: 'spec-discard',
+            ownerUserId: mockMe.id,
+            name: revision === 1 ? 'Old server' : 'New server',
+            vms: [{ role: 'control', imageRef: candidate.images[0].id, sizeRef: candidate.flavors[0].id, count: 1 }],
+            workspaceVm: { role: 'control', instanceIndex: 0 },
+            internetOutbound: true,
+          },
+          etag: revision === 1 ? '"v1"' : '"v2"',
+        }),
+      },
+      '/lab-specs/spec-discard',
+      <LabSpecEditorPage />,
+    )
+    expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('Old server')
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'Draft to discard' },
+    })
+    revision = 2
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: labbitQueryKeys.labSpec('spec-discard') })
+    })
+    expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('New server')
+    fireEvent.click(screen.getByRole('button', { name: '이전 수정본 버리기' }))
+    expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('New server')
+    expect(screen.queryByText(/이전 미저장 수정본은 메모리에 보관했습니다/)).not.toBeInTheDocument()
   })
 
   it('LabSpec 조회 403이면 상세 내용을 렌더하지 않고 목록 복귀를 안내한다', async () => {

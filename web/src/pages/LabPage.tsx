@@ -13,6 +13,7 @@ import { LoginRedirect } from '../shared/ui/LoginRedirect'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 import { TerminalPanel } from '../shared/terminal/TerminalPanel'
+import { PreviewPanel } from '../shared/preview/PreviewPanel'
 import { WorkspaceFilePanels } from '../shared/workspace/WorkspaceFilePanels'
 
 const roleLabel = (role: string) => {
@@ -203,13 +204,11 @@ export function LabPage() {
             <strong>미리보기</strong>
             <span>Web Preview</span>
           </div>
-          <div className="workspace-placeholder">
-            <span className="workspace-placeholder-mark" aria-hidden="true">↗</span>
-            <p>실행 중인 미리보기가 없습니다.</p>
-            <small>
-              실습 애플리케이션의 미리보기가 준비되면 이 영역에서 바로 확인할 수 있습니다.
-            </small>
-          </div>
+          <PreviewPanel
+            key={`${labInstance.id}:${labInstance.generation}`}
+            labInstanceId={labInstance.id}
+            generation={labInstance.generation}
+          />
         </section>
 
         <section className="workspace-panel workspace-terminal">

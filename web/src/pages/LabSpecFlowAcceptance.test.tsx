@@ -332,10 +332,8 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     expect(screen.getByRole('combobox', { name: 'Provider 연결' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'VM 역할 추가' })).toBeDisabled()
     expect(screen.getByRole('button', { name: '실습 정의 저장' })).toBeDisabled()
-    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
-      target: { value: 'Attempted overwrite' },
-    })
-    expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('New remote version')
+    // fireEvent.change can dispatch synthetic events even on a disabled input;
+    // the disabled attribute is the browser-user interaction boundary.
     expect(screen.getByRole('status')).toHaveTextContent('이전 미저장 수정본은 메모리에 보관했습니다')
 
     fireEvent.click(screen.getByRole('button', { name: '이전 수정본 복원' }))

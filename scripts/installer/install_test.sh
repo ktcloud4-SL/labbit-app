@@ -1056,14 +1056,19 @@ EOF
   chmod +x "${fake_bin}/curl"
 
   local out_attack
+  local attack_status=0
   out_attack=$(PATH="${fake_bin}:${PATH}" \
     SYSTEMD_RUN_DIR="$mock_run" \
     LABBIT_LOCK_DIR="${TEST_ROOT}/lock_12c.d" \
     LABBIT_CONFIG_DIR="${TEST_ROOT}/etc_12c" \
     LABBIT_INSTALL_BIN="${TEST_ROOT}/usr_12c/labbit-connector" \
     LABBIT_TTY_DEV="$mock_tty" \
-    sh "$INSTALLER" 2>&1 || true)
+    sh "$INSTALLER" 2>&1) || attack_status=$?
 
+  if [ "$attack_status" -eq 0 ]; then
+    echo "FAIL: Installer exited successfully despite approved SHA256 mismatch. Output: $out_attack"
+    exit 1
+  fi
   if ! echo "$out_attack" | grep -q "SHA256 mismatch against approved release checksum"; then
     echo "FAIL: Expected approved checksum mismatch abort when both binary and SHA256SUMS are modified, got: $out_attack"
     exit 1

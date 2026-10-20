@@ -294,6 +294,11 @@ export function WorkspaceFilePanels({
   const [draftBackup, setDraftBackup] = useState<WorkspaceDraftBackup | null>(null)
   const [restoredDraft, setRestoredDraft] = useState<string | null>(null)
   const [restoreEpoch, setRestoreEpoch] = useState(0)
+  const [requiresFreshRead, setRequiresFreshRead] = useState<{
+    labInstanceId: string
+    generation: number
+    path: string
+  } | null>(null)
   const hasUnsavedChanges = editorDirty || draftBackup !== null
 
   useEffect(() => {
@@ -313,7 +318,16 @@ export function WorkspaceFilePanels({
       generation,
       directoryPath,
     ),
-    queryFn: () => api.listWorkspaceFiles(labInstanceId, directoryPath),
+    queryFn: async () => {
+      try {
+        return await api.listWorkspaceFiles(labInstanceId, directoryPath)
+      } catch (error) {
+        if (error instanceof HttpError && [403, 404, 409].includes(error.status) && selectedFilePath) {
+          setRequiresFreshRead({ labInstanceId, generation, path: selectedFilePath })
+        }
+        throw error
+      }
+    },
     retry: false,
   })
 
@@ -324,7 +338,22 @@ export function WorkspaceFilePanels({
       generation,
       selectedPath,
     ),
-    queryFn: () => api.readWorkspaceFile(labInstanceId, selectedPath),
+    queryFn: async () => {
+      try {
+        const result = await api.readWorkspaceFile(labInstanceId, selectedPath)
+        setRequiresFreshRead((previous) =>
+          previous?.labInstanceId === labInstanceId &&
+          previous?.generation === generation &&
+          previous?.path === selectedPath ? null : previous,
+        )
+        return result
+      } catch (error) {
+        if (error instanceof HttpError && [403, 404, 409].includes(error.status)) {
+          setRequiresFreshRead({ labInstanceId, generation, path: selectedPath })
+        }
+        throw error
+      }
+    },
     enabled: Boolean(selectedFilePath),
     retry: false,
     // 편집 중 자동 refetch가 Editor를 새 revision으로 remount해
@@ -385,11 +414,12 @@ export function WorkspaceFilePanels({
     fileQuery.error instanceof HttpError &&
     [403, 404, 409].includes(fileQuery.error.status)
   const selectedAccessChanged = treeAccessChanged || fileAccessChanged
-  // After Tree/File access denial, require a newer successful File GET.
-  // Otherwise a successful Tree retry could reveal an older cached Editor.
-  const lastAccessErrorAt = Math.max(treeQuery.errorUpdatedAt, fileQuery.errorUpdatedAt)
-  const needsFreshFileRead = Boolean(selectedFilePath) && lastAccessErrorAt > 0 &&
-    fileQuery.dataUpdatedAt <= lastAccessErrorAt
+  // An authoritative 403/404/409 latches a fresh-read gate until the selected
+  // File GET really succeeds. Transient 503 failures do not set this latch.
+  const needsFreshFileRead = Boolean(selectedFilePath) &&
+    requiresFreshRead?.labInstanceId === labInstanceId &&
+    requiresFreshRead?.generation === generation &&
+    requiresFreshRead?.path === selectedFilePath
   const backupForSelected = draftBackup?.labInstanceId === labInstanceId &&
     draftBackup?.generation === generation && draftBackup?.path === selectedFilePath
 

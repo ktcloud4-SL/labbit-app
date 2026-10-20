@@ -200,6 +200,11 @@ export function PreviewPanel({ labInstanceId, generation }: PreviewPanelProps) {
       if (sequence !== requestSequenceRef.current) return
       if (cause instanceof HttpError && cause.status === 401) {
         setAuthExpired(true)
+      } else if (cause instanceof HttpError && cause.status === 404) {
+        // The server no longer knows this session (for example after restart).
+        sessionIdRef.current = null
+        setSession(null)
+        setStatus('idle')
       } else {
         setStatus('ready')
         setError(safePreviewError(cause))

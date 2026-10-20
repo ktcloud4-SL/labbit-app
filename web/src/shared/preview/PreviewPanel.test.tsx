@@ -111,6 +111,31 @@ describe('LBT-26 PreviewSession Frontend consumer', () => {
     expect(screen.getByRole('button', { name: '미리보기 시작' })).toBeEnabled()
   })
 
+  it('명시 종료 404는 로컬 세션을 정리하고 새 미리보기를 생성할 수 있다', async () => {
+    const createPreviewSession = vi.fn()
+      .mockResolvedValueOnce(session())
+      .mockResolvedValueOnce({ ...session(), id: 'fixture-preview-2' })
+    const closePreviewSession = vi.fn(async () => { throw new HttpError(404) })
+    mount({ createPreviewSession, closePreviewSession })
+
+    submitPort()
+    await screen.findByText(/미리보기 세션이 준비되었습니다/)
+    fireEvent.click(screen.getByRole('button', { name: '미리보기 종료' }))
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '미리보기 시작' })).toBeEnabled())
+    expect(closePreviewSession).toHaveBeenCalledWith('fixture-preview-1')
+    expect(screen.queryByText(/미리보기 세션이 준비되었습니다/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '미리보기 새 탭 열기' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: '애플리케이션 포트' })).toBeEnabled()
+
+    submitPort()
+    await screen.findByText(/미리보기 세션이 준비되었습니다/)
+    expect(createPreviewSession).toHaveBeenCalledTimes(2)
+    expect(createPreviewSession).toHaveBeenLastCalledWith('fixture-lab', { targetPort: 3000 })
+    expect(screen.getByRole('button', { name: '미리보기 새 탭 열기' })).toBeEnabled()
+  })
+
   it('실행 중인 앱이 없는 502를 내부 메시지 노출 없이 설명한다', async () => {
     mount({
       createPreviewSession: async () => {

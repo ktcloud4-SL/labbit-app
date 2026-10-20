@@ -1,0 +1,33 @@
+{
+  "at": "2026-10-20T08:31:51.032039+00:00",
+  "preFixHead": "a1821a2cc6118c6b1eb3508a3f426f792de8fb71",
+  "tests": 8,
+  "fail": 0,
+  "skip": 0,
+  "executionBoundary": "Fake local files/subprocess/HTTP only; no SSH or real Cloud API",
+  "historicalOutputFilesUnchanged": [
+    "api-app-not-running.json",
+    "api-initial.json",
+    "api-internal-initial.json",
+    "api-matrix.json",
+    "backend-after-internal.json",
+    "backend-browser-retry.json",
+    "backend-final.json",
+    "backend-initial.json",
+    "backend-with-failures.json",
+    "browser-evidence.json",
+    "browser-initial-error.png",
+    "browser-preview-ready.png",
+    "go-test.jsonl",
+    "http-routing.json",
+    "original-export.json",
+    "postconditions.json",
+    "verification-summary.json",
+    "workspace-metadata.json"
+  ],
+  "testedSourcesCanonicalLFSHA256": {
+    "run-private-collector.py": "4be6f4e964a24fe2b93b7c1877b8f8b5e7a9d58fcc379fc1681e73020db024f8",
+    "read-workspace-metadata.py": "29a2f0d776dec42c46e4fdb58baec1856004653d6ef4a4b2f05d876541619da7",
+    "test-private-collector.py": "0a76f735e44a2fa1804339e35330b970cf1332e8830a845c75f22ca71f850865"
+  }
+}

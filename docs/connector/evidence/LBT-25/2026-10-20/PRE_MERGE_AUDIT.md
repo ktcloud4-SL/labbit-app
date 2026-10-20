@@ -1,5 +1,7 @@
 # LBT-25 / C3 publication pre-merge audit — 2026-10-20
 
+This is the initial publication audit, retained as history. PR139 review5582498019 subsequently identified an excessive Credential-transfer/recipient-approval gap that this audit missed. The correction and current review verdict are recorded in [REVIEW_FIX_AUDIT.md](REVIEW_FIX_AUDIT.md); the initial verdict below is not a disposition of that later finding.
+
 Verdict: **PR possible for this evidence-only scope; no remaining blocking finding**. This reviews the evidence publication PR. Historical execution acceptance is preserved separately in EXECUTION_AUDIT.md. No new live mutation was performed for packaging.
 
 ## Review boundary and latest requirements

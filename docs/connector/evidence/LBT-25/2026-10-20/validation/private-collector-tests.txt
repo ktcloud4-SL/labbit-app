@@ -1,0 +1,13 @@
+test_http_failure_suppresses_credential_error_text (__main__.CollectorTests.test_http_failure_suppresses_credential_error_text) ... ok
+test_local_auth_and_read_only_inventory_with_safe_metadata (__main__.CollectorTests.test_local_auth_and_read_only_inventory_with_safe_metadata) ... ok
+test_local_input_failure_does_not_persist_source_excerpt (__main__.CollectorTests.test_local_input_failure_does_not_persist_source_excerpt) ... ok
+test_missing_required_field_fails_closed (__main__.CollectorTests.test_missing_required_field_fails_closed) ... ok
+test_only_required_fields_and_default_domain (__main__.CollectorTests.test_only_required_fields_and_default_domain) ... ok
+test_protected_files_are_filtered_before_local_child (__main__.CollectorTests.test_protected_files_are_filtered_before_local_child) ... ok
+test_unsupported_consumer_rejected_before_protected_read (__main__.CollectorTests.test_unsupported_consumer_rejected_before_protected_read) ... ok
+test_wrong_project_prevents_resource_queries (__main__.CollectorTests.test_wrong_project_prevents_resource_queries) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.016s
+
+OK

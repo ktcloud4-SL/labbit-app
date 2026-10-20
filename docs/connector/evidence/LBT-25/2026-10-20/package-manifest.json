@@ -101,8 +101,8 @@
   },
   {
     "path": "PRE_MERGE_AUDIT.md",
-    "canonicalLFBytes": 14520,
-    "canonicalLFSHA256": "d088c1ed656222c4562efc28902a2d4702f4984208939913b345fd0f39131b28"
+    "canonicalLFBytes": 14880,
+    "canonicalLFSHA256": "6308e267d0293a6598c1d2d3aff8e0de82d05da97a06c5e97e48cd9896a77147"
   },
   {
     "path": "read-backend.py",
@@ -121,13 +121,18 @@
   },
   {
     "path": "read-workspace-metadata.py",
-    "canonicalLFBytes": 1553,
-    "canonicalLFSHA256": "d1d15d0de579c9366f6984d6315398eaede554578b410c1eeccba475335e285c"
+    "canonicalLFBytes": 1543,
+    "canonicalLFSHA256": "29a2f0d776dec42c46e4fdb58baec1856004653d6ef4a4b2f05d876541619da7"
   },
   {
     "path": "README.md",
-    "canonicalLFBytes": 16552,
-    "canonicalLFSHA256": "f5aa38af271356bd66c87737043bb396fb60f8a2289e6012f0a2a0d832890f5b"
+    "canonicalLFBytes": 19688,
+    "canonicalLFSHA256": "b483d2c1734e57f51306a63de92432a7c36c170dae41985ee54869c2868678af"
+  },
+  {
+    "path": "REVIEW_FIX_AUDIT.md",
+    "canonicalLFBytes": 11543,
+    "canonicalLFSHA256": "b8880c6876092d32e9e9c6b81c248e6967be927c04f2778692f568d128631898"
   },
   {
     "path": "run-admin.py",
@@ -151,13 +156,18 @@
   },
   {
     "path": "run-private-collector.py",
-    "canonicalLFBytes": 1179,
-    "canonicalLFSHA256": "9a28b4811b68ca34f7653fd5f47d20ff449a2b29b8a4f345492f9facea99faa5"
+    "canonicalLFBytes": 2302,
+    "canonicalLFSHA256": "4be6f4e964a24fe2b93b7c1877b8f8b5e7a9d58fcc379fc1681e73020db024f8"
   },
   {
     "path": "run_output.py",
     "canonicalLFBytes": 695,
     "canonicalLFSHA256": "310a50f5665911fc0028530f9ec07b9d53002db928b08ced906eb1eea2594f70"
+  },
+  {
+    "path": "test-private-collector.py",
+    "canonicalLFBytes": 7998,
+    "canonicalLFSHA256": "0a76f735e44a2fa1804339e35330b970cf1332e8830a845c75f22ca71f850865"
   },
   {
     "path": "validation/go-build.txt",
@@ -193,6 +203,16 @@
     "path": "validation/log-export.json",
     "canonicalLFBytes": 2617,
     "canonicalLFSHA256": "a83644cbe0573d0444dc095274c3560a046c2fbf8431114356bfd8678abad30d"
+  },
+  {
+    "path": "validation/private-collector-summary.json",
+    "canonicalLFBytes": 1153,
+    "canonicalLFSHA256": "bcc00920fa6c9bb6f3b11a1b68bf901ad587e6ddb52b805d3e8d50a9dd57d66f"
+  },
+  {
+    "path": "validation/private-collector-tests.txt",
+    "canonicalLFBytes": 1178,
+    "canonicalLFSHA256": "4125904c3bcad74caf07646205c4a31e0658dbef281bf6a07c39bc9bcb0b8f06"
   },
   {
     "path": "validation/source-correspondence.json",

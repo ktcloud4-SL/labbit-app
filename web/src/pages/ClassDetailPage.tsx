@@ -211,7 +211,7 @@ export function ClassDetailPage() {
         </div>
       </section>
 
-      {!isInstructor && <LiveStudentPanel classId={classDetail.id} />}
+      {!isInstructor && <LiveStudentPanel key={classDetail.id} classId={classDetail.id} />}
 
       {classDetail.myLabInstance && !isWorkspaceReady && (
         <section

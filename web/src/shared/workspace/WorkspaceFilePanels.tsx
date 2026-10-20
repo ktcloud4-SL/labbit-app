@@ -42,6 +42,7 @@ interface WorkspaceFileEditorProps {
   onSavePendingChange(pending: boolean): void
   savePending: boolean
   onDraftChange(content: string | null, sourceEtag: string): void
+  onSaveAccepted(content: string, sourceEtag: string): void
   restoredDraft?: string
 }
 
@@ -161,6 +162,7 @@ function WorkspaceFileEditor({
   onSavePendingChange,
   savePending,
   onDraftChange,
+  onSaveAccepted,
   restoredDraft,
 }: WorkspaceFileEditorProps) {
   const api = useLabbitApi()
@@ -181,8 +183,9 @@ function WorkspaceFileEditor({
       setEtag(saved.etag)
       setSavedContent(draft)
       setSaveError(null)
-      onDirtyChange(false)
-      onDraftChange(null, etag)
+      // A PUT can settle after the Editor has unmounted or after generation
+      // changed. The parent must verify the saved scope before clearing backup.
+      onSaveAccepted(draft, etag)
     },
     onError: (error) => {
       setSaveError(error)
@@ -308,6 +311,8 @@ export function WorkspaceFilePanels({
   const api = useLabbitApi()
   const [directoryPath, setDirectoryPath] = useState('')
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null)
+  const activeEditorScope = useRef({ labInstanceId, generation, path: selectedFilePath })
+  activeEditorScope.current = { labInstanceId, generation, path: selectedFilePath }
   const [editorDirty, setEditorDirty] = useState(false)
   const [internalSavePending, setInternalSavePending] = useState(false)
   const savePending = onRetainedSavePendingChange ? Boolean(retainedSavePending) : internalSavePending
@@ -339,16 +344,17 @@ export function WorkspaceFilePanels({
   } | null>(null)
   const scope = `${labInstanceId}:${generation}`
   const hasUnsavedChanges = editorDirty || draftBackup !== null
+  const ownedByLabPage = Boolean(onRetainedDraftChange && onRetainedSavePendingChange)
 
   useEffect(() => {
-    setWorkspaceEditState({ dirty: hasUnsavedChanges, savePending })
-  }, [hasUnsavedChanges, savePending])
+    if (!ownedByLabPage) setWorkspaceEditState({ dirty: hasUnsavedChanges, savePending })
+  }, [hasUnsavedChanges, savePending, ownedByLabPage])
 
   useEffect(
     () => () => {
-      clearWorkspaceEditState()
+      if (!ownedByLabPage) clearWorkspaceEditState()
     },
-    [],
+    [ownedByLabPage],
   )
 
   const treeQuery = useQuery({
@@ -357,15 +363,16 @@ export function WorkspaceFilePanels({
       generation,
       directoryPath,
     ),
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const startedAtEpoch = workspaceRequestEpoch.current
       try {
         const result = await api.listWorkspaceFiles(labInstanceId, directoryPath)
-        if (startedAtEpoch === workspaceRequestEpoch.current) setWorkspaceGate((previous) => previous?.scope === scope
+        if (!signal.aborted && startedAtEpoch === workspaceRequestEpoch.current) setWorkspaceGate((previous) => previous?.scope === scope
           ? { ...previous, verifiedTrees: [...new Set([...previous.verifiedTrees, directoryPath])] }
           : previous)
         return result
       } catch (error) {
+        if (signal.aborted) throw error
         if (workspaceWideAccessChange(error)) {
           workspaceRequestEpoch.current += 1
           setWorkspaceGate({ scope, verifiedTrees: [], verifiedFiles: [] })
@@ -386,20 +393,22 @@ export function WorkspaceFilePanels({
       generation,
       selectedPath,
     ),
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const startedAtEpoch = workspaceRequestEpoch.current
       try {
         const result = await api.readWorkspaceFile(labInstanceId, selectedPath)
-        if (startedAtEpoch === workspaceRequestEpoch.current) setWorkspaceGate((previous) => previous?.scope === scope
+        const validRead = !signal.aborted && startedAtEpoch === workspaceRequestEpoch.current
+        if (validRead) setWorkspaceGate((previous) => previous?.scope === scope
           ? { ...previous, verifiedFiles: [...new Set([...previous.verifiedFiles, selectedPath])] }
           : previous)
-        setRequiresFreshRead((previous) =>
+        if (validRead) setRequiresFreshRead((previous) =>
           previous?.labInstanceId === labInstanceId &&
           previous?.generation === generation &&
           previous?.path === selectedPath ? null : previous,
         )
         return result
       } catch (error) {
+        if (signal.aborted) throw error
         if (workspaceWideAccessChange(error)) {
           workspaceRequestEpoch.current += 1
           setWorkspaceGate({ scope, verifiedTrees: [], verifiedFiles: [] })
@@ -420,22 +429,22 @@ export function WorkspaceFilePanels({
 
   // The editor may unmount on access loss, but drafts still need unload protection.
   useEffect(() => {
-    if (!draftBackup) return
+    if (ownedByLabPage || !draftBackup) return
     const warn = (event: BeforeUnloadEvent) => {
       event.preventDefault()
       event.returnValue = ''
     }
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
-  }, [draftBackup])
+  }, [draftBackup, ownedByLabPage])
 
   const navigationBlocker = useBlocker(
     ({ nextLocation }) =>
-      (hasUnsavedChanges || savePending) && nextLocation.pathname !== '/login',
+      !ownedByLabPage && (hasUnsavedChanges || savePending) && nextLocation.pathname !== '/login',
   )
 
   useEffect(() => {
-    if (navigationBlocker.state !== 'blocked') return
+    if (ownedByLabPage || navigationBlocker.state !== 'blocked') return
 
     if (savePending) {
       navigationBlocker.reset()
@@ -453,7 +462,7 @@ export function WorkspaceFilePanels({
     }
 
     navigationBlocker.reset()
-  }, [navigationBlocker, savePending])
+  }, [navigationBlocker, savePending, ownedByLabPage])
 
   const authExpired =
     (treeQuery.error instanceof HttpError && treeQuery.error.status === 401) ||
@@ -712,6 +721,20 @@ export function WorkspaceFilePanels({
                 content,
                 sourceEtag,
               })
+            }}
+            onSaveAccepted={(savedContent, sourceEtag) => {
+              const active = activeEditorScope.current
+              if (active.labInstanceId !== labInstanceId ||
+                  active.generation !== generation ||
+                  active.path !== fileQuery.data.file.path) return
+              setDraftBackup((previous) =>
+                previous?.labInstanceId === labInstanceId &&
+                previous.generation === generation &&
+                previous.path === fileQuery.data.file.path &&
+                previous.sourceEtag === sourceEtag &&
+                previous.content === savedContent ? null : previous)
+              setEditorDirty(false)
+              setRestoredDraft(null)
             }}
             onReload={() => fileQuery.refetch()}
           />

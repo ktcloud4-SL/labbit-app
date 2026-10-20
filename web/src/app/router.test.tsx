@@ -192,6 +192,9 @@ function createApi(overrides: Partial<LabbitApi> = {}): LabbitApi {
       tokenExpiresAt: '2026-10-03T00:00:00Z',
     }),
     closeTerminalSession: async () => {},
+    getActiveLiveSession: async () => { throw new HttpError(404) },
+    createLiveSession: async () => { throw new HttpError(409) },
+    closeLiveSession: async () => {},
     listWorkspaceFiles: async (_labInstanceId, path = '') => ({
       path,
       items: [

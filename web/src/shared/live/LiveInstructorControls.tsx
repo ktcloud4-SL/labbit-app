@@ -33,9 +33,14 @@ export function LiveInstructorControls({
     refetchInterval: 15_000,
   })
 
-  const noActive = activeQuery.error instanceof HttpError && activeQuery.error.status === 404
-  // A failed refetch can retain stale successful data; never act on it.
-  const active = activeQuery.error ? undefined : activeQuery.data
+  const lookupError = activeQuery.error
+  const noActive = lookupError instanceof HttpError && lookupError.status === 404
+  const forbidden = lookupError instanceof HttpError && [401, 403, 404].includes(lookupError.status)
+  // On a transient lookup failure, we cannot claim the sharing is active.
+  // But preserve the last verified ID for an explicit best-effort STOP.
+  // Never offer STOP for an auth failure, forbidden membership, or confirmed 404.
+  const uncertain = Boolean(lookupError) && !forbidden
+  const active = forbidden ? undefined : activeQuery.data
 
   async function act(action: 'start' | 'stop') {
     if (pendingRef.current || activeQuery.isPending) return
@@ -77,7 +82,9 @@ export function LiveInstructorControls({
     <div className="terminal-live-controls" aria-label="강사 Live 공유">
       {active ? (
         <>
-          <span className="terminal-status terminal-status-success">화면 공유 중</span>
+          <span className={uncertain ? 'terminal-status' : 'terminal-status terminal-status-success'}>
+            {uncertain ? '공유 상태 확인 불가 · 마지막 세션 종료 가능' : '화면 공유 중'}
+          </span>
           <button className="terminal-button terminal-button-danger" type="button"
             disabled={busy} onClick={() => void act('stop')}>공유 종료</button>
         </>

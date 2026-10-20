@@ -66,7 +66,7 @@ export function LabPage() {
       navigationBlocker.reset()
       return
     }
-    if (window.confirm('저장되지 않은 Workspace 수정본이 있습니다. 버리고 페이지를 이동할까요?')) {
+    if (window.confirm('저장되지 않은 변경이 있습니다. 변경 내용을 버리고 페이지를 이동할까요?')) {
       navigationBlocker.proceed()
       return
     }

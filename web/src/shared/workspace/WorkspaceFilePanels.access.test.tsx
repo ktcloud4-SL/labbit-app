@@ -147,6 +147,40 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
     expect(getWorkspaceEditState().dirty).toBe(false)
   })
 
+  it('does not release pending PUT barrier when a Tree 403 unmounts the saving Editor', async () => {
+    let treeDenied = false
+    let finishSave!: (result: { file: { path: string }; etag: string }) => void
+    const saveWorkspaceFile = vi.fn(() => new Promise<{ file: { path: string }; etag: string }>((resolve) => {
+      finishSave = resolve
+    }))
+    const { client } = mount({
+      listWorkspaceFiles: async () => {
+        if (treeDenied) throw new HttpError(403)
+        return tree
+      },
+      readWorkspaceFile: async () => workspaceDocument,
+      saveWorkspaceFile,
+    })
+
+    fireEvent.click(await screen.findByRole('button', { name: /README.md/ }))
+    fireEvent.change(await screen.findByLabelText('파일 편집기'), {
+      target: { value: '# pending save edit' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() => expect(getWorkspaceEditState().savePending).toBe(true))
+    treeDenied = true
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: labbitQueryKeys.workspaceFileTree(labId, 1, '') })
+    })
+    expect(screen.queryByLabelText('파일 편집기')).not.toBeInTheDocument()
+    expect(getWorkspaceEditState().savePending).toBe(true)
+    expect(saveWorkspaceFile).toHaveBeenCalledTimes(1)
+
+    await act(async () => finishSave({ file: { path }, etag: '"revision-2"' }))
+    await waitFor(() => expect(getWorkspaceEditState().savePending).toBe(false))
+    expect(saveWorkspaceFile).toHaveBeenCalledTimes(1)
+  })
+
   it('keeps an unsaved editor draft during a transient 503 refetch failure', async () => {
     let unavailable = false
     const { client } = mount({

@@ -501,6 +501,9 @@ export function WorkspaceFilePanels({
     requiresFreshRead?.generation === generation &&
     requiresFreshRead?.path === selectedFilePath)
   const currentWorkspaceDraft = draftBackup?.labInstanceId === labInstanceId
+  // A reset or new execution may replace the entire LabInstance, not just its
+  // generation. Do not silently hide or overwrite a draft from that instance.
+  const previousInstanceDraft = draftBackup !== null && !currentWorkspaceDraft
   const previousGenerationDraft = currentWorkspaceDraft && draftBackup.generation !== generation
   const backupForSelected = currentWorkspaceDraft && draftBackup.path === selectedFilePath
   const restoredForSelected = restoredDraft?.scope === scope && restoredDraft?.path === selectedFilePath
@@ -657,6 +660,21 @@ export function WorkspaceFilePanels({
           />
         )}
 
+        {previousInstanceDraft && (
+          <div className="workspace-file-state" role="status">
+            <p>이전 LabInstance의 미저장 수정본이 메모리에 보관되어 있습니다.
+              현재 실습 환경에는 자동으로 적용되지 않습니다.</p>
+            <button className="workspace-file-action" type="button" disabled={savePending}
+              onClick={() => {
+                if (window.confirm('이전 LabInstance의 미저장 수정본을 버릴까요?')) {
+                  setDraftBackup(null)
+                  setRestoredDraft(null)
+                  setEditorDirty(false)
+                }
+              }}>이전 LabInstance 수정본 버리기</button>
+          </div>
+        )}
+
         {previousGenerationDraft && (
           <div className="workspace-file-state" role="status">
             <p>이전 generation {draftBackup.generation}의 미저장 수정본이 메모리에 보관되어 있습니다.
@@ -719,7 +737,7 @@ export function WorkspaceFilePanels({
         )}
 
         {selectedFilePath && fileQuery.data && !selectedAccessChanged && !needsFreshFileRead &&
-          (!previousGenerationDraft || restoredForSelected !== null) && (
+          !previousInstanceDraft && (!previousGenerationDraft || restoredForSelected !== null) && (
           <WorkspaceFileEditor
             key={`${labInstanceId}:${generation}:${fileQuery.data.file.path}:${fileQuery.data.etag}:${fileQuery.dataUpdatedAt}:${restoreEpoch}`}
             labInstanceId={labInstanceId}

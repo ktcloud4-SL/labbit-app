@@ -20,6 +20,14 @@ interface WorkspaceFilePanelsProps {
   generation: number
 }
 
+interface WorkspaceDraftBackup {
+  labInstanceId: string
+  generation: number
+  path: string
+  content: string
+  sourceEtag: string
+}
+
 interface WorkspaceFileEditorProps {
   labInstanceId: string
   generation: number
@@ -27,6 +35,8 @@ interface WorkspaceFileEditorProps {
   onReload(): Promise<unknown>
   onDirtyChange(dirty: boolean): void
   onSavePendingChange(pending: boolean): void
+  onDraftChange(content: string | null, sourceEtag: string): void
+  restoredDraft?: string
 }
 
 function parentDirectory(path: string) {
@@ -137,9 +147,11 @@ function WorkspaceFileEditor({
   onReload,
   onDirtyChange,
   onSavePendingChange,
+  onDraftChange,
+  restoredDraft,
 }: WorkspaceFileEditorProps) {
   const api = useLabbitApi()
-  const [draft, setDraft] = useState(versionedFile.file.content)
+  const [draft, setDraft] = useState(restoredDraft ?? versionedFile.file.content)
   const [savedContent, setSavedContent] = useState(versionedFile.file.content)
   const [etag, setEtag] = useState(versionedFile.etag)
   const [saveError, setSaveError] = useState<unknown>(null)
@@ -157,6 +169,7 @@ function WorkspaceFileEditor({
       setSavedContent(draft)
       setSaveError(null)
       onDirtyChange(false)
+      onDraftChange(null, etag)
     },
     onError: (error) => {
       setSaveError(error)
@@ -177,8 +190,10 @@ function WorkspaceFileEditor({
   )
 
   useEffect(() => {
-    onDirtyChange(false)
-  }, [onDirtyChange, versionedFile.etag, versionedFile.file.path])
+    onDirtyChange(dirty)
+  }, [onDirtyChange, dirty])
+
+  useEffect(() => () => onDirtyChange(false), [onDirtyChange])
 
   useEffect(() => {
     if (!dirty) return
@@ -235,6 +250,7 @@ function WorkspaceFileEditor({
                 ) {
                   return
                 }
+                onDraftChange(null, etag)
                 void onReload()
               }}
             >
@@ -254,6 +270,7 @@ function WorkspaceFileEditor({
           const next = event.target.value
           setDraft(next)
           onDirtyChange(next !== savedContent)
+          onDraftChange(next === savedContent ? null : next, etag)
           if (saveError) setSaveError(null)
         }}
       />
@@ -275,10 +292,14 @@ export function WorkspaceFilePanels({
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null)
   const [editorDirty, setEditorDirty] = useState(false)
   const [savePending, setSavePending] = useState(false)
+  // In-memory only; never render, persist or log denied Workspace file bytes.
+  const [draftBackup, setDraftBackup] = useState<WorkspaceDraftBackup | null>(null)
+  const [restoredDraft, setRestoredDraft] = useState<{ content: string; nonce: number } | null>(null)
+  const hasUnsavedChanges = editorDirty || draftBackup !== null
 
   useEffect(() => {
-    setWorkspaceEditState({ dirty: editorDirty, savePending })
-  }, [editorDirty, savePending])
+    setWorkspaceEditState({ dirty: hasUnsavedChanges, savePending })
+  }, [hasUnsavedChanges, savePending])
 
   useEffect(
     () => () => {
@@ -313,9 +334,20 @@ export function WorkspaceFilePanels({
     refetchOnReconnect: false,
   })
 
+  // The editor may unmount on access loss, but drafts still need unload protection.
+  useEffect(() => {
+    if (!draftBackup) return
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [draftBackup])
+
   const navigationBlocker = useBlocker(
     ({ nextLocation }) =>
-      (editorDirty || savePending) && nextLocation.pathname !== '/login',
+      (hasUnsavedChanges || savePending) && nextLocation.pathname !== '/login',
   )
 
   useEffect(() => {
@@ -331,6 +363,8 @@ export function WorkspaceFilePanels({
         '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 페이지를 이동할까요?',
       )
     ) {
+      setDraftBackup(null)
+      setRestoredDraft(null)
       navigationBlocker.proceed()
       return
     }
@@ -352,6 +386,9 @@ export function WorkspaceFilePanels({
   const fileAccessChanged =
     fileQuery.error instanceof HttpError &&
     [403, 404, 409].includes(fileQuery.error.status)
+  const selectedAccessChanged = treeAccessChanged || fileAccessChanged
+  const backupForSelected = draftBackup?.labInstanceId === labInstanceId &&
+    draftBackup?.generation === generation && draftBackup?.path === selectedFilePath
 
   if (authExpired) {
     return <LoginRedirect reason="sessionExpired" />
@@ -359,10 +396,13 @@ export function WorkspaceFilePanels({
 
   function canLeaveEditor() {
     if (savePending) return false
-    if (!editorDirty) return true
-    return window.confirm(
+    if (!hasUnsavedChanges) return true
+    if (!window.confirm(
       '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 다른 파일로 이동할까요?',
-    )
+    )) return false
+    setDraftBackup(null)
+    setRestoredDraft(null)
+    return true
   }
 
   function openEntry(entry: WorkspaceFileEntry) {
@@ -486,14 +526,52 @@ export function WorkspaceFilePanels({
           />
         )}
 
-        {selectedFilePath && fileQuery.data && !fileAccessChanged && (
+        {selectedFilePath && selectedAccessChanged && backupForSelected && (
+          <p className="workspace-file-state" role="status">
+            미저장 수정본을 이 탭의 메모리에 임시 보관했습니다.
+            접근 권한을 다시 확인한 후 복원할 수 있습니다. 새로고침하면 사라집니다.
+          </p>
+        )}
+
+        {selectedFilePath && fileQuery.data && !selectedAccessChanged && backupForSelected && !editorDirty && (
+          <div className="workspace-file-state" role="status">
+            <p>이전에 저장하지 못한 수정본이 있습니다. 최신 파일과 비교한 뒤 복원하거나 버려 주세요.</p>
+            <button className="workspace-file-action" type="button"
+              onClick={() => {
+                if (window.confirm(
+                  '미저장 수정본을 다시 편집기에 불러옵니다. 서버 파일의 버전이 달라졌을 수 있으니 저장 전에 반드시 내용을 비교해 주세요.',
+                )) {
+                  setRestoredDraft({ content: draftBackup.content, nonce: Date.now() })
+                }
+              }}>미저장 수정본 복원</button>
+            <button className="workspace-file-action" type="button"
+              onClick={() => {
+                if (window.confirm('복원하지 않은 미저장 수정본을 버릴까요?')) {
+                  setDraftBackup(null)
+                  setRestoredDraft(null)
+                }
+              }}>수정본 버리기</button>
+          </div>
+        )}
+
+        {selectedFilePath && fileQuery.data && !selectedAccessChanged && (
           <WorkspaceFileEditor
-            key={`${fileQuery.data.file.path}:${fileQuery.data.etag}:${fileQuery.dataUpdatedAt}`}
+            key={`${fileQuery.data.file.path}:${fileQuery.data.etag}:${fileQuery.dataUpdatedAt}:${restoredDraft?.nonce ?? 0}`}
             labInstanceId={labInstanceId}
             generation={generation}
             versionedFile={fileQuery.data}
             onDirtyChange={setEditorDirty}
             onSavePendingChange={setSavePending}
+            restoredDraft={restoredDraft?.content}
+            onDraftChange={(content, sourceEtag) => {
+              setDraftBackup(content === null ? null : {
+                labInstanceId,
+                generation,
+                path: fileQuery.data.file.path,
+                content,
+                sourceEtag,
+              })
+            }}
             onReload={() => fileQuery.refetch()}
           />
         )}

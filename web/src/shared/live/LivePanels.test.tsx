@@ -31,7 +31,7 @@ class FakeSocket extends EventTarget {
   readyState = 0
   sent: string[] = []
   binaryType = 'blob'
-  constructor(_url: string, _protocol: string) {
+  constructor() {
     super()
     FakeSocket.instances.push(this)
   }
@@ -75,15 +75,15 @@ describe('LBT-26 instructor Live controls', () => {
       if (!active) throw new HttpError(404)
       return active
     })
-    const createLiveSession = vi.fn(async (_id: string) => { active = live; return live })
-    const closeLiveSession = vi.fn(async (_id: string) => { active = null })
-    const { view } = mount(<LiveInstructorControls classId="class-a" sourceTerminalSessionId={null} />,
+    const createLiveSession = vi.fn(async () => { active = live; return live })
+    const closeLiveSession = vi.fn(async () => { active = null })
+    const { view, api, query } = mount(<LiveInstructorControls classId="class-a" sourceTerminalSessionId={null} />,
       { getActiveLiveSession, createLiveSession, closeLiveSession })
 
     const start = await screen.findByRole('button', { name: '화면 공유 시작' })
     await waitFor(() => expect(start).toBeDisabled())
-    view.rerender(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <LabbitApiProvider api={{ ...mockLabbitApi, getActiveLiveSession, createLiveSession, closeLiveSession }}>
+    view.rerender(<MemoryRouter><QueryClientProvider client={query}>
+      <LabbitApiProvider api={api}>
         <LiveInstructorControls classId="class-a" sourceTerminalSessionId="terminal-a" />
       </LabbitApiProvider>
     </QueryClientProvider></MemoryRouter>)

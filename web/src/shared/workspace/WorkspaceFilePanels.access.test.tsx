@@ -255,7 +255,7 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
     expect(screen.getByRole('button', { name: '파일 목록 접근 다시 확인' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '파일 목록 접근 다시 확인' }))
     expect(await screen.findByRole('button', { name: 'docs' })).toBeInTheDocument()
-    expect(readTree.mock.calls.filter(([_, dir]) => dir === '').length).toBeGreaterThan(1)
+    expect(readTree.mock.calls.filter(([, dir]) => dir === '').length).toBeGreaterThan(1)
   })
 
   it('does not global-revoke unrelated files for specific file_permission_denied 403', async () => {

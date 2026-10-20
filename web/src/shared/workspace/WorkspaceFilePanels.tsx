@@ -189,10 +189,8 @@ function WorkspaceFileEditor({
     [onSavePendingChange],
   )
 
-  useEffect(() => {
-    onDirtyChange(dirty)
-  }, [onDirtyChange, dirty])
-
+  // Parent dirty state is updated by user edits, explicit restoration and save.
+  // Avoid cascading React state updates from a child effect.
   useEffect(() => () => onDirtyChange(false), [onDirtyChange])
 
   useEffect(() => {
@@ -557,6 +555,7 @@ export function WorkspaceFilePanels({
                   '미저장 수정본을 다시 편집기에 불러옵니다. 서버 파일의 버전이 달라졌을 수 있으니 저장 전에 반드시 내용을 비교해 주세요.',
                 )) {
                   setRestoredDraft(draftBackup.content)
+                  setEditorDirty(draftBackup.content !== fileQuery.data.file.content)
                   setRestoreEpoch((epoch) => epoch + 1)
                 }
               }}>미저장 수정본 복원</button>

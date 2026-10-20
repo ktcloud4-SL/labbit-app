@@ -1,15 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { ClassDetail } from '../shared/api/contracts'
+import type { ClassDetail, OperationAccepted } from '../shared/api/contracts'
 import { LabbitApiProvider } from '../shared/api/LabbitApiProvider'
 import { mockLabbitApi, mockMe } from '../shared/api/mockLabbitApi'
 import { ProvisionPage } from './ProvisionPage'
 
-function mount() {
-  const createLabExecution = vi.fn(mockLabbitApi.createLabExecution)
+function mount(createImpl = mockLabbitApi.createLabExecution) {
+  const createLabExecution = vi.fn(createImpl)
   const api = {
     ...mockLabbitApi,
     getMe: async () => mockMe,
@@ -30,7 +30,10 @@ function mount() {
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
   })
   const router = createMemoryRouter(
-    [{ path: '/classes/:classId/provision', element: <ProvisionPage /> }],
+    [
+      { path: '/classes/:classId/provision', element: <ProvisionPage /> },
+      { path: '/operations/:operationId', element: <p>Operation screen</p> },
+    ],
     { initialEntries: ['/classes/class-a/provision'] },
   )
   render(
@@ -83,4 +86,26 @@ describe('ProvisionPage Class navigation isolation', () => {
     expect(screen.getByRole('combobox', { name: 'LabSpec' })).toHaveValue('')
     expect(screen.getByRole('checkbox', { name: /Student class-a/ })).not.toBeChecked()
   })
+  it('Class A 제출을 시작한 뒤 B로 이동하면 지연된 A 성공 응답이 B를 다른 Operation으로 이동시키지 않는다', async () => {
+    let complete!: (value: OperationAccepted) => void
+    const pending = new Promise<OperationAccepted>((resolve) => { complete = resolve })
+    const { router, createLabExecution } = mount(async () => pending)
+    await selectProvisionInputs()
+    fireEvent.click(screen.getByRole('button', { name: '생성 내용 확인' }))
+    fireEvent.click(screen.getByRole('button', { name: '환경 생성 시작' }))
+    await waitFor(() => expect(createLabExecution).toHaveBeenCalledTimes(1))
+
+    await act(async () => { await router.navigate('/classes/class-b/provision') })
+    expect(await screen.findByRole('heading', { name: 'Class class-b · 새 환경 생성' })).toBeInTheDocument()
+
+    await act(async () => {
+      complete({ operationId: 'old-class-a-op', target: { type: 'LAB_EXECUTION', id: 'execution-a' } })
+      await pending
+    })
+
+    expect(router.state.location.pathname).toBe('/classes/class-b/provision')
+    expect(screen.queryByText('Operation screen')).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'LabSpec' })).toHaveValue('')
+  })
+
 })

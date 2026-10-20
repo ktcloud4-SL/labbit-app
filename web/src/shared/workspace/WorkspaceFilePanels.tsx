@@ -314,7 +314,9 @@ export function WorkspaceFilePanels({
   const [directoryPath, setDirectoryPath] = useState('')
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null)
   const activeEditorScope = useRef({ labInstanceId, generation, path: selectedFilePath })
-  activeEditorScope.current = { labInstanceId, generation, path: selectedFilePath }
+  useEffect(() => {
+    activeEditorScope.current = { labInstanceId, generation, path: selectedFilePath }
+  }, [labInstanceId, generation, selectedFilePath])
   const [editorDirty, setEditorDirty] = useState(false)
   const [internalSavePending, setInternalSavePending] = useState(false)
   const savePending = onRetainedSavePendingChange ? Boolean(retainedSavePending) : internalSavePending

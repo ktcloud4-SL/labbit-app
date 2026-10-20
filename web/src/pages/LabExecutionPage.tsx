@@ -11,7 +11,7 @@ import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
 type PendingAction =
-  | { type: 'RESET'; labInstanceId: string; username: string; idempotencyKey: string }
+  | { type: 'RESET'; labInstanceId: string; username: string; generation: number; idempotencyKey: string }
   | { type: 'CLEANUP'; idempotencyKey: string }
   | null
 
@@ -118,8 +118,37 @@ function LabExecutionForId({ executionId }: { executionId: string }) {
 
   const mutation = useMutation({
     mutationFn: async (action: Exclude<PendingAction, null>) => {
+      // Destructive confirmation may sit open while a teacher loses access
+      // or the LabExecution changes server-side. Check fresh GET responses
+      // before performing any Reset/Cleanup POST. Backend remains final arbiter.
+      const latest = await api.getLabExecution(resolvedExecutionId)
+      if (
+        latest.id !== resolvedExecutionId ||
+        !executionQuery.data ||
+        latest.classId !== executionQuery.data.classId
+      ) {
+        throw new HttpError(409)
+      }
+      const latestClass = await api.getClass(latest.classId)
+      if (latestClass.myRole !== 'INSTRUCTOR') throw new HttpError(403)
+
       if (action.type === 'RESET') {
+        const target = latest.labInstances.find(
+          (instance) => instance.id === action.labInstanceId,
+        )
+        if (
+          latest.status !== 'ACTIVE' ||
+          !target ||
+          target.userId === latest.instructorUserId ||
+          (target.status !== 'READY' && target.status !== 'ERROR') ||
+          target.generation !== action.generation
+        ) {
+          throw new HttpError(409)
+        }
         return api.resetLabInstance(action.labInstanceId, action.idempotencyKey)
+      }
+      if (latest.status !== 'ACTIVE' && latest.status !== 'ERROR') {
+        throw new HttpError(409)
       }
       return api.cleanupLabExecution(resolvedExecutionId, action.idempotencyKey)
     },
@@ -159,6 +188,33 @@ function LabExecutionForId({ executionId }: { executionId: string }) {
     setPendingAction(null)
     actionTriggerRef.current = null
   }
+
+  // Any refreshed role/status/instance invalidating an open confirmation
+  // invalidates the confirmation itself, including its idempotency key.
+  // A later restoration of the old state must not resurrect that dialog.
+  useEffect(() => {
+    if (!pendingAction || mutation.isPending) return
+
+    const execution = executionQuery.data
+    const invalidRole = classQuery.data && classQuery.data.myRole !== 'INSTRUCTOR'
+    const invalidTarget = execution && (
+      pendingAction.type === 'CLEANUP'
+        ? execution.status !== 'ACTIVE' && execution.status !== 'ERROR'
+        : execution.status !== 'ACTIVE' ||
+          !execution.labInstances.some((instance) =>
+            instance.id === pendingAction.labInstanceId &&
+            instance.generation === pendingAction.generation &&
+            instance.userId !== execution.instructorUserId &&
+            (instance.status === 'READY' || instance.status === 'ERROR'),
+          )
+    )
+
+    if (invalidRole || invalidTarget) {
+      mutation.reset()
+      setPendingAction(null)
+      actionTriggerRef.current = null
+    }
+  }, [pendingAction, classQuery.data, executionQuery.data, mutation.isPending, mutation.reset])
 
   if (!resolvedExecutionId) {
     return (
@@ -404,6 +460,7 @@ function LabExecutionForId({ executionId }: { executionId: string }) {
                               type: 'RESET',
                               labInstanceId: labInstance.id,
                               username,
+                              generation: labInstance.generation,
                               idempotencyKey: createIdempotencyKey(),
                             },
                             event.currentTarget,

@@ -20,11 +20,19 @@ function createIdempotencyKey() {
 }
 
 export function ProvisionPage() {
+  const { classId } = useParams()
+  const resolvedClassId = classId ?? ''
+
+  // React Router can retain this route component across /classes/A/provision
+  // → /classes/B/provision. Never carry A's draft or confirmed operation
+  // inputs into B's mutation context.
+  return <ProvisionPageForClass key={resolvedClassId} resolvedClassId={resolvedClassId} />
+}
+
+function ProvisionPageForClass({ resolvedClassId }: { resolvedClassId: string }) {
   const api = useLabbitApi()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { classId } = useParams()
-  const resolvedClassId = classId ?? ''
   const [labSpecId, setLabSpecId] = useState('')
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([])
   const [validationError, setValidationError] = useState<string | null>(null)

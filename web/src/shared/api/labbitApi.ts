@@ -5,6 +5,7 @@ import type {
   ClassList,
   ClassMembershipList,
   CreateLabExecutionRequest,
+  CreatePreviewSessionRequest,
   CreateTerminalSessionRequest,
   LabExecution,
   LabSpec,
@@ -15,6 +16,7 @@ import type {
   Me,
   Operation,
   OperationAccepted,
+  PreviewSession,
   TerminalSession,
   TerminalTargetList,
   VersionedLabSpec,
@@ -85,6 +87,11 @@ export interface LabbitApi {
     idempotencyKey: string,
   ): Promise<OperationAccepted>
   getOperation(operationId: string): Promise<Operation>
+  createPreviewSession(
+    labInstanceId: string,
+    input: CreatePreviewSessionRequest,
+  ): Promise<PreviewSession>
+  closePreviewSession(previewSessionId: string): Promise<void>
   listTerminalTargets(labInstanceId: string): Promise<TerminalTargetList>
   createTerminalSession(
     labInstanceId: string,
@@ -269,6 +276,24 @@ export const httpLabbitApi: LabbitApi = {
 
   getOperation(operationId) {
     return request<Operation>(`/operations/${encodeURIComponent(operationId)}`)
+  },
+
+  createPreviewSession(labInstanceId, input) {
+    // previewUrl carries one-time bootstrap material; callers must not cache the result.
+    return request<PreviewSession>(
+      `/lab-instances/${encodeURIComponent(labInstanceId)}/preview-sessions`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ targetPort: input.targetPort }),
+      },
+    )
+  },
+
+  closePreviewSession(previewSessionId) {
+    return request<void>(
+      `/preview-sessions/${encodeURIComponent(previewSessionId)}`,
+      { method: 'DELETE' },
+    )
   },
 
   listTerminalTargets(labInstanceId) {

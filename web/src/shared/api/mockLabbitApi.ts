@@ -243,6 +243,8 @@ let operations = new Map<string, Operation>()
 let operationReads = new Map<string, number>()
 let nextExecutionId = 1
 let nextTerminalSessionId = 1
+let nextPreviewSessionId = 1
+const activePreviewSessions = new Set<string>()
 const closedTerminalSessions = new Set<string>()
 
 const initialWorkspaceFiles = new Map<string, string>([
@@ -306,7 +308,9 @@ function resetMockData() {
   operationReads = new Map()
   nextExecutionId = 1
   nextTerminalSessionId = 1
+  nextPreviewSessionId = 1
   closedTerminalSessions.clear()
+  activePreviewSessions.clear()
   workspaceFiles = new Map(initialWorkspaceFiles)
   workspaceFileVersions = new Map(
     [...initialWorkspaceFiles.keys()].map((path) => [path, 1]),
@@ -798,6 +802,32 @@ export const mockLabbitApi: LabbitApi = {
         id: labInstanceId,
       },
     }
+  },
+
+  // Synthetic fixture only: Mock port 3000 is not the product's allowed-port policy.
+  async createPreviewSession(labInstanceId, input) {
+    requireSession()
+    requireOwnedReadyWorkspace(labInstanceId)
+    if (!Number.isInteger(input.targetPort) || input.targetPort < 1 || input.targetPort > 65535) {
+      throw new HttpError(400)
+    }
+    if (input.targetPort !== 3000) throw new HttpError(403)
+
+    const id = `mock-preview-session-${nextPreviewSessionId++}`
+    activePreviewSessions.add(id)
+    return {
+      id,
+      targetPort: input.targetPort,
+      // Non-production synthetic credential, never used against a real Preview host.
+      previewUrl: `https://${id}.preview.example.test/__labbit/bootstrap#fixture-bootstrap-only`,
+      expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+    }
+  },
+
+  async closePreviewSession(previewSessionId) {
+    requireSession()
+    if (!activePreviewSessions.has(previewSessionId)) throw new HttpError(404)
+    activePreviewSessions.delete(previewSessionId)
   },
 
   async listTerminalTargets(labInstanceId) {

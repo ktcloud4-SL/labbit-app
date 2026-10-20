@@ -167,6 +167,8 @@ function createApi(overrides: Partial<LabbitApi> = {}): LabbitApi {
       },
     }),
     getOperation: async () => operationFixture,
+    createPreviewSession: async () => { throw new HttpError(503) },
+    closePreviewSession: async () => {},
     listTerminalTargets: async () => ({
       generation: 1,
       workspaceVmKey: 'vm-control-opaque',

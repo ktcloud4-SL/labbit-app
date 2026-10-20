@@ -20,10 +20,10 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/web
-  # Script URL handed off by LBT-181; PR-only fixture pending binary trust approval.
-  # Production must remain unconfigured until the approved binary SHA256 or
-  # accepted immutable/provenance evidence is handed off and reviewed.
-  CANDIDATE_INSTALLER_URL: https://raw.githubusercontent.com/ktcloud4-SL/labbit-app/e0caea4f3191e9109171c02581d498f48e4c9887/scripts/installer/install.sh
+  # LBT-181 PR #138 pins the approved connector-v0.1.0 binary SHA256 in
+  # the default install path; matching/mismatching evidence accompanies that commit.
+  # This public URL change requires CODEOWNER re-review before merge/publication.
+  APPROVED_INSTALLER_URL: https://raw.githubusercontent.com/ktcloud4-SL/labbit-app/c91d5a4aa7a3ddfcccc1360830092829c22e569f/scripts/installer/install.sh
 
 jobs:
   build-and-push:
@@ -67,10 +67,10 @@ jobs:
         with:
           context: ./web
           file: ./web/Dockerfile
-          # P1 release trust hold: never publish the candidate installer URL.
-          # Empty PUBLIC config preserves the existing unavailable guidance.
+          # Commit-pinned script with the owner-provided binary trust baseline.
+          # SaaS endpoint and real installation acceptance are separate.
           build-args: |
-            VITE_LABBIT_APPROVED_INSTALLER_URL=
+            VITE_LABBIT_APPROVED_INSTALLER_URL=${{ env.APPROVED_INSTALLER_URL }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -148,7 +148,7 @@ jobs:
             installer_url: ''
           - profile: synthetic
             installer_url: https://installer.example.test/install.sh
-          - profile: candidate
+          - profile: approved
             installer_url: ''
 
     steps:
@@ -165,10 +165,10 @@ jobs:
         with:
           context: ./web
           file: ./web/Dockerfile
-          # Test empty, synthetic, and the handed-off candidate PUBLIC value.
+          # Test empty, synthetic, and the handed-off approved PUBLIC value.
           # No PR image is published or passed to GitOps.
           build-args: |
-            VITE_LABBIT_APPROVED_INSTALLER_URL=${{ matrix.profile == 'candidate' && env.CANDIDATE_INSTALLER_URL || matrix.installer_url }}
+            VITE_LABBIT_APPROVED_INSTALLER_URL=${{ matrix.profile == 'approved' && env.APPROVED_INSTALLER_URL || matrix.installer_url }}
           push: false
           load: true
           tags: labbit-web:pr
@@ -177,7 +177,7 @@ jobs:
       - name: Smoke test unprivileged Web image
         shell: bash
         env:
-          EXPECTED_INSTALLER_URL: ${{ matrix.profile == 'candidate' && env.CANDIDATE_INSTALLER_URL || matrix.installer_url }}
+          EXPECTED_INSTALLER_URL: ${{ matrix.profile == 'approved' && env.APPROVED_INSTALLER_URL || matrix.installer_url }}
         run: |
           docker run -d --name labbit-web-smoke --cap-drop=ALL --security-opt=no-new-privileges -p 127.0.0.1:18080:8080 labbit-web:pr
           trap 'docker logs labbit-web-smoke || true; docker rm -f labbit-web-smoke >/dev/null 2>&1 || true' EXIT
@@ -188,7 +188,7 @@ jobs:
               sh -c 'grep -rFq -- "$INSTALLER_URL" /usr/share/nginx/html/assets'
           else
             # An empty build must not accidentally inherit either configured URL.
-            for installer_url in 'https://installer.example.test/install.sh' "$CANDIDATE_INSTALLER_URL"; do
+            for installer_url in 'https://installer.example.test/install.sh' "$APPROVED_INSTALLER_URL"; do
               if docker exec -e INSTALLER_URL="$installer_url" labbit-web-smoke \
                 sh -c 'grep -rFq -- "$INSTALLER_URL" /usr/share/nginx/html/assets'; then
                 echo "::error::Unconfigured PR bundle unexpectedly contains an installer URL"

@@ -188,6 +188,98 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     expect(await screen.findByText('Connector 목록에 접근할 권한이 없습니다.')).toBeInTheDocument()
     expect(screen.queryByText('등록된 Connector가 없습니다.')).not.toBeInTheDocument()
   })
+  it('Backend forbidden이 stale /me ADMIN 캐시와 겹쳐도 이전 발급 토큰을 숨긴다', async () => {
+    let denied = false
+    const listConnectors = vi.fn(async () => {
+      if (denied) {
+        throw new HttpError(403, {
+          type: 'about:blank', title: 'Forbidden', status: 403,
+          code: 'forbidden', requestId: 'role-changed-mock',
+        })
+      }
+      return { observedAt: '2026-10-19T00:00:00Z', items: [] }
+    })
+    const { client } = mount({
+      listConnectors,
+      createConnectorEnrollmentToken: async () => ({
+        tokenId: 'role-change-fixture',
+        enrollmentToken: TOKEN,
+        expiresAt: FUTURE_EXPIRY,
+      }),
+    })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'Fixture only' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(await screen.findByText(TOKEN)).toBeInTheDocument()
+
+    denied = true
+    fireEvent.click(screen.getByRole('button', { name: '상태 새로고침' }))
+    expect(await screen.findByText('Connector 목록에 접근할 권한이 없습니다.')).toBeInTheDocument()
+    expect(client.getQueryData(labbitQueryKeys.me)).toMatchObject({ organizationRole: 'ADMIN' })
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '토큰 복사' })).not.toBeInTheDocument()
+  })
+
+  it('발급 후 503 일시 오류는 권한 회수로 취급하지 않아 이전 토큰을 보존한다', async () => {
+    let transient = false
+    const listConnectors = vi.fn(async () => {
+      if (transient) throw new HttpError(503)
+      return { observedAt: '2026-10-19T00:00:00Z', items: [] }
+    })
+    mount({
+      listConnectors,
+      createConnectorEnrollmentToken: async () => ({
+        tokenId: 'transient-503-fixture',
+        enrollmentToken: TOKEN,
+        expiresAt: FUTURE_EXPIRY,
+      }),
+    })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'Fixture only' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(await screen.findByText(TOKEN)).toBeInTheDocument()
+
+    transient = true
+    fireEvent.click(screen.getByRole('button', { name: '상태 새로고침' }))
+    expect(await screen.findByText('Connector 상태를 불러오지 못했습니다.')).toBeInTheDocument()
+    expect(screen.getByText(TOKEN)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '토큰 복사' })).toBeInTheDocument()
+  })
+
+  it('토큰 취소에서 Backend forbidden이면 기존 원문과 복사 UI를 지운다', async () => {
+    const cancelConnectorEnrollmentToken = vi.fn(async () => {
+      throw new HttpError(403, {
+        type: 'about:blank', title: 'Forbidden', status: 403,
+        code: 'forbidden', requestId: 'cancel-role-change-mock',
+      })
+    })
+    mount({
+      createConnectorEnrollmentToken: async () => ({
+        tokenId: 'cancel-forbidden-fixture',
+        enrollmentToken: TOKEN,
+        expiresAt: FUTURE_EXPIRY,
+      }),
+      cancelConnectorEnrollmentToken,
+    })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'Fixture only' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(await screen.findByText(TOKEN)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '등록 토큰 취소' }))
+    expect(await screen.findByText('Connector 목록에 접근할 권한이 없습니다.')).toBeInTheDocument()
+    expect(cancelConnectorEnrollmentToken).toHaveBeenCalledWith('cancel-forbidden-fixture')
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '토큰 복사' })).not.toBeInTheDocument()
+    expect(screen.queryByText('등록 토큰을 취소했습니다.')).not.toBeInTheDocument()
+  })
+
   it('명시적 확인 없이 Connector 폐기를 요청하지 않으며 확인한 경우만 Revoke한다', async () => {
     const revokeConnector = vi.fn(async () => undefined)
     const connector = {

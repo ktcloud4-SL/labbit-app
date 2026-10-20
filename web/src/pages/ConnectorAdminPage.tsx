@@ -22,6 +22,12 @@ function statusLabel(status: string) {
   }
 }
 
+// A Backend Problem Details forbidden code is an authorization decision.
+// Do not infer a changed ADMIN role from an unstructured proxy/origin 403.
+function isManagementForbidden(error: unknown): boolean {
+  return error instanceof HttpError && error.status === 403 && error.problem?.code === 'forbidden'
+}
+
 function errorMessage(error: unknown, action: string) {
   if (error instanceof HttpError) {
     if (error.status === 403) return '관리자 권한이 없거나 요청이 거부됐습니다.'
@@ -64,24 +70,44 @@ function ConnectorAdminForPrincipal({
   const me = meQuery.data
   const isAdmin = me?.organizationRole === 'ADMIN'
   const connectorsKey = ['connectors', me?.organization.id, me?.id] as const
-  const connectorsQuery = useQuery({
-    queryKey: connectorsKey,
-    queryFn: () => api.listConnectors(),
-    enabled: isAdmin,
-    retry: false,
-    // Server computes ONLINE/OFFLINE from real heartbeat; never infer from HELLO.
-    // Poll only while the page is active, preserving the observedAt timestamp.
-    refetchInterval: 15_000,
-  })
-
   const [name, setName] = useState('')
   const [issued, setIssued] = useState<ConnectorEnrollmentTokenIssued | null>(null)
   const [pending, setPending] = useState<'issue' | 'cancel' | string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [actionNotice, setActionNotice] = useState<string | null>(null)
   const [authExpired, setAuthExpired] = useState(false)
+  const [accessDenied, setAccessDenied] = useState(false)
   const requestEpoch = useRef(0)
   const busy = pending !== null
+
+  function rejectManagementAccess() {
+    // /me can still contain a stale ADMIN principal after the Backend begins
+    // returning forbidden. Drop the one-time secret and cancel late issuance.
+    requestEpoch.current += 1
+    setIssued(null)
+    setPending(null)
+    setActionError(null)
+    setAccessDenied(true)
+    void queryClient.invalidateQueries({ queryKey: labbitQueryKeys.me })
+  }
+
+  const connectorsQuery = useQuery({
+    queryKey: connectorsKey,
+    queryFn: async () => {
+      try {
+        return await api.listConnectors()
+      } catch (error) {
+        if (isManagementForbidden(error)) rejectManagementAccess()
+        throw error
+      }
+    },
+    enabled: isAdmin && !accessDenied,
+    retry: false,
+    // Server computes ONLINE/OFFLINE from real heartbeat; never infer from HELLO.
+    // Poll only while the page is active, preserving the observedAt timestamp.
+    refetchInterval: 15_000,
+  })
+  const managementForbidden = accessDenied || isManagementForbidden(connectorsQuery.error)
 
   // Each unmount invalidates late issuance: it cannot re-expose a secret in
   // a different screen after logout or navigation.
@@ -134,6 +160,7 @@ function ConnectorAdminForPrincipal({
     } catch (error) {
       if (requestEpoch.current !== epoch) return
       if (error instanceof HttpError && error.status === 401) setAuthExpired(true)
+      else if (isManagementForbidden(error)) rejectManagementAccess()
       else setActionError(errorMessage(error, '등록 토큰 발급'))
     } finally {
       if (requestEpoch.current === epoch) setPending(null)
@@ -154,6 +181,7 @@ function ConnectorAdminForPrincipal({
     } catch (error) {
       if (requestEpoch.current !== epoch) return
       if (error instanceof HttpError && error.status === 401) setAuthExpired(true)
+      else if (isManagementForbidden(error)) rejectManagementAccess()
       else setActionError(errorMessage(error, '등록 토큰 취소'))
     } finally {
       if (requestEpoch.current === epoch) setPending(null)
@@ -174,6 +202,7 @@ function ConnectorAdminForPrincipal({
     } catch (error) {
       if (requestEpoch.current !== epoch) return
       if (error instanceof HttpError && error.status === 401) setAuthExpired(true)
+      else if (isManagementForbidden(error)) rejectManagementAccess()
       else setActionError(errorMessage(error, 'Connector 폐기'))
     } finally {
       if (requestEpoch.current === epoch) setPending(null)
@@ -200,6 +229,11 @@ function ConnectorAdminForPrincipal({
       <p role="alert">Connector 관리는 Organization ADMIN만 이용할 수 있습니다.</p>
       <Link to="/classes">수업 목록으로 돌아가기</Link>
     </main>
+  }
+
+  if (managementForbidden) {
+    // Fail closed even if /me has not yet refreshed after a role downgrade.
+    return <main className="app-page"><ErrorState message="Connector 목록에 접근할 권한이 없습니다." /></main>
   }
 
   return (

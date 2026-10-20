@@ -100,6 +100,11 @@ func TestInstallerScript_IntegrityAndHardeningRequirements(t *testing.T) {
 	if !strings.Contains(content, "Failed to securely save Connector credentials") || !strings.Contains(content, "revoke this Connector") {
 		t.Error("install.sh must provide explicit recovery guidance (revoke -> reissue token) if credential saving fails after enrollment")
 	}
+
+	// 16. Must enforce HTTPS for LABBIT_SAAS_BASE_URL to prevent plaintext token/credential leakage
+	if !strings.Contains(content, "Insecure HTTP protocol is not permitted") {
+		t.Error("install.sh must enforce HTTPS for LABBIT_SAAS_BASE_URL and reject http:// protocol")
+	}
 }
 
 func TestRuntimeContract_ConnectorConfigModes(t *testing.T) {

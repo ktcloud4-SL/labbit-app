@@ -80,6 +80,21 @@ trap 'on_signal TERM' TERM
 # -------------------------------------------------------------
 echo "==> [1/6] Running pre-flight system checks..."
 
+# Validate SaaS Base URL (Enforce HTTPS to prevent plain-text token transmission)
+case "$LABBIT_SAAS_BASE_URL" in
+  https://*|https://)
+    ;;
+  http://*|http://)
+    echo "::error::Insecure HTTP protocol is not permitted for LABBIT_SAAS_BASE_URL ($LABBIT_SAAS_BASE_URL)." >&2
+    echo "        Enrollment token and credentials require transport encryption. Please use an https:// URL." >&2
+    exit 1
+    ;;
+  *)
+    echo "::error::Invalid LABBIT_SAAS_BASE_URL scheme ($LABBIT_SAAS_BASE_URL). URL must start with 'https://'." >&2
+    exit 1
+    ;;
+esac
+
 # Check Root Privileges
 if [ "$(id -u)" -ne 0 ]; then
   echo "::error::This installer must be run as root. Please run with sudo or as root user." >&2

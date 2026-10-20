@@ -874,6 +874,42 @@ EOF
   echo "PASS: Credential save failure recovery guidance and secret scrubbing verified."
 }
 
+
+# --- Test 11: Insecure HTTP SaaS URL rejection (HTTPS enforcement) ---
+test_insecure_http_url_rejection() {
+  echo "--- Test 11: Insecure HTTP SaaS URL rejection (HTTPS enforcement) ---"
+  local fake_bin="${TEST_ROOT}/bin_11"
+  setup_base_mocks "$fake_bin"
+
+  local mock_run="${TEST_ROOT}/run_11/systemd/system"
+  mkdir -p "$mock_run"
+
+  # 1. Plain HTTP URL must be rejected immediately
+  local out_http
+  out_http=$(PATH="${fake_bin}:${PATH}" \
+    SYSTEMD_RUN_DIR="$mock_run" \
+    LABBIT_SAAS_BASE_URL="http://insecure-saas.labbit.example.com" \
+    sh "$INSTALLER" 2>&1 || true)
+
+  if ! echo "$out_http" | grep -q "Insecure HTTP protocol is not permitted"; then
+    echo "FAIL: Expected error for http:// SaaS URL, got: $out_http"
+    exit 1
+  fi
+
+  # 2. Invalid non-https URL scheme (e.g. ftp:// or arbitrary string) must also be rejected
+  local out_invalid
+  out_invalid=$(PATH="${fake_bin}:${PATH}" \
+    SYSTEMD_RUN_DIR="$mock_run" \
+    LABBIT_SAAS_BASE_URL="ftp://insecure-saas.labbit.example.com" \
+    sh "$INSTALLER" 2>&1 || true)
+
+  if ! echo "$out_invalid" | grep -q "Invalid LABBIT_SAAS_BASE_URL scheme"; then
+    echo "FAIL: Expected scheme error for ftp:// SaaS URL, got: $out_invalid"
+    exit 1
+  fi
+
+  echo "PASS: Insecure HTTP protocol and non-https schemes correctly rejected."
+}
 test_non_root
 test_unsupported_os_and_arch
 test_concurrent_lock_ownership
@@ -884,5 +920,6 @@ test_full_enrollment_201_and_uncertain_outcome
 test_runbook_upgrade_checksum_command
 test_sigterm_termination_and_lock_cleanup
 test_credential_save_failure_recovery_guidance
+test_insecure_http_url_rejection
 
 echo "==> All install.sh behavioral & regression tests passed successfully!"

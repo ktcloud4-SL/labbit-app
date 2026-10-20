@@ -220,6 +220,8 @@ export function LabPage() {
             key={`${labInstance.id}:${labInstance.generation}`}
             labInstanceId={labInstance.id}
             generation={labInstance.generation}
+            classId={classDetail.id}
+            isInstructor={classDetail.myRole === 'INSTRUCTOR'}
           />
         </section>
       </section>

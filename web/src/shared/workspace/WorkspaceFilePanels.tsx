@@ -23,6 +23,7 @@ interface WorkspaceFilePanelsProps {
   onRetainedDraftChange?: Dispatch<SetStateAction<WorkspaceDraftBackup | null>>
   retainedSavePending?: boolean
   onRetainedSavePendingChange?: Dispatch<SetStateAction<boolean>>
+  isCurrentWorkspace?: (id: string, generation: number) => boolean
 }
 
 export interface WorkspaceDraftBackup {
@@ -307,6 +308,7 @@ export function WorkspaceFilePanels({
   onRetainedDraftChange,
   retainedSavePending,
   onRetainedSavePendingChange,
+  isCurrentWorkspace,
 }: WorkspaceFilePanelsProps) {
   const api = useLabbitApi()
   const [directoryPath, setDirectoryPath] = useState('')
@@ -724,6 +726,10 @@ export function WorkspaceFilePanels({
             }}
             onSaveAccepted={(savedContent, sourceEtag) => {
               const active = activeEditorScope.current
+              // The Editor may already be unmounted during LabPage PROVISIONING.
+              // Its local ref alone cannot tell whether the page changed
+              // generations; defer to the current parent Workspace identity.
+              if (isCurrentWorkspace && !isCurrentWorkspace(labInstanceId, generation)) return
               if (active.labInstanceId !== labInstanceId ||
                   active.generation !== generation ||
                   active.path !== fileQuery.data.file.path) return

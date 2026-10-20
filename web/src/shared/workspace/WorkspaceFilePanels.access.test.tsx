@@ -356,7 +356,7 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
       await client.invalidateQueries({ queryKey: labbitQueryKeys.workspaceFileTree(labId, 1, '') })
     })
     treeDenied = false
-    fireEvent.click(screen.getByRole('button', { name: '파일 목록 다시 불러오기' }))
+    fireEvent.click(await screen.findByRole('button', { name: '파일 목록 다시 불러오기' }))
     expect(await screen.findByRole('button', { name: '파일 접근 다시 확인' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '파일 접근 다시 확인' }))
     const save = await screen.findByRole('button', { name: '저장 중...' })
@@ -594,6 +594,78 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
     expect(getWorkspaceEditState().dirty).toBe(false)
     expect(screen.queryByRole('button', { name: '이전 LabInstance 수정본 버리기' })).not.toBeInTheDocument()
     expect(document.body.textContent).not.toContain('# discarded old class edit')
+  })
+
+  it.each([
+    [403, 'tree'], [403, 'editor'], [409, 'tree'], [409, 'editor'],
+  ] as const)('retains workspace-wide %i across LabPage route remount until fresh %s GET', async (status, boundary) => {
+    const entries = { path: '', items: ['A.md', 'B.md'].map((filePath) => ({
+      path: filePath, name: filePath, kind: 'file' as const,
+    })) }
+    const cachedB = { file: { path: 'B.md', content: '# synthetic cached B' }, etag: '"B-old"' }
+    const freshB = { file: { path: 'B.md', content: '# freshly authorized B' }, etag: '"B-new"' }
+    let denied = false
+    let delay = false
+    let finishTree!: (value: typeof entries) => void
+    let finishFile!: (value: typeof freshB) => void
+    const api = {
+      ...mockLabbitApi,
+      getClass: async (): Promise<ClassDetail> => ({
+        id: 'class-remount', name: 'Route remount boundary', myRole: 'STUDENT',
+        activeLabExecution: { id: 'execution-remount', status: 'ACTIVE' },
+        myLabInstance: { id: labId, userId: 'student-a', status: 'READY', generation: 1 },
+      }),
+      listWorkspaceFiles: async () => {
+        if (delay) return new Promise<typeof entries>((resolve) => { finishTree = resolve })
+        return entries
+      },
+      readWorkspaceFile: async (_id: string, filePath: string) => {
+        if (delay) return new Promise<typeof freshB>((resolve) => { finishFile = resolve })
+        if (denied && filePath === 'A.md') throw new HttpError(status, {
+          type: 'about:blank', title: 'Workspace access changed', status,
+          code: status === 409 ? 'workspace_target_changed' : 'forbidden', requestId: 'fixture-remount',
+        })
+        return filePath === 'B.md' ? cachedB : { file: { path: filePath, content: '# file A' }, etag: '"A-1"' }
+      },
+    }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
+    const router = createMemoryRouter([
+      { path: '/classes/:classId/lab', element: <LabPage /> },
+      { path: '/classes/:classId', element: <div>Remount class detail</div> },
+    ], { initialEntries: ['/classes/class-remount/lab'] })
+    render(<QueryClientProvider client={client}>
+      <LabbitApiProvider api={api}><RouterProvider router={router} /></LabbitApiProvider>
+    </QueryClientProvider>)
+    try {
+      fireEvent.click(await screen.findByRole('button', { name: 'B.md' }))
+      expect(await screen.findByLabelText('파일 편집기')).toHaveValue(cachedB.file.content)
+      fireEvent.click(screen.getByRole('button', { name: 'A.md' }))
+      await waitFor(() => expect(screen.getByLabelText('파일 편집기')).toHaveValue('# file A'))
+      denied = true
+      await act(async () => { await client.invalidateQueries({ queryKey: labbitQueryKeys.workspaceFile(labId, 1, 'A.md') }) })
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'B.md' })).not.toBeInTheDocument())
+      expect(screen.queryByLabelText('파일 편집기')).not.toBeInTheDocument()
+
+      await act(async () => { await router.navigate('/classes/class-remount') })
+      expect(await screen.findByText('Remount class detail')).toBeInTheDocument()
+      delay = true
+      await act(async () => { await router.navigate('/classes/class-remount/lab') })
+      await waitFor(() => expect(finishTree).toBeDefined())
+      if (boundary === 'tree') {
+        expect(screen.queryByRole('button', { name: 'B.md' })).not.toBeInTheDocument()
+      }
+      // Authorizing the root directory must not authorize the cached B bytes.
+      await act(async () => { finishTree(entries) })
+      fireEvent.click(await screen.findByRole('button', { name: 'B.md' }))
+      await waitFor(() => expect(finishFile).toBeDefined())
+      expect(client.getQueryData(labbitQueryKeys.workspaceFile(labId, 1, 'B.md'))).toEqual(cachedB)
+      expect(screen.queryByLabelText('파일 편집기')).not.toBeInTheDocument()
+      await act(async () => { finishFile(freshB) })
+      expect(await screen.findByLabelText('파일 편집기')).toHaveValue(freshB.file.content)
+    } finally {
+      cleanup()
+      client.clear()
+    }
   })
 
   it('keeps an unsaved editor draft during a transient 503 refetch failure', async () => {

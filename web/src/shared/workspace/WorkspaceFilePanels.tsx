@@ -1,5 +1,5 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { useBlocker } from 'react-router-dom'
 
@@ -45,6 +45,13 @@ interface WorkspaceFileEditorProps {
   onDraftChange(content: string | null, sourceEtag: string): void
   onSaveAccepted(content: string, sourceEtag: string): void
   restoredDraft?: string
+}
+
+interface WorkspaceFileAccessGate {
+  scope: string
+  epoch: number
+  verifiedTrees: string[]
+  verifiedFiles: string[]
 }
 
 function workspaceWideAccessChange(error: unknown) {
@@ -344,6 +351,7 @@ export function WorkspaceFilePanels({
   isCurrentWorkspace,
 }: WorkspaceFilePanelsProps) {
   const api = useLabbitApi()
+  const queryClient = useQueryClient()
   const [directoryPath, setDirectoryPath] = useState('')
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null)
   const activeEditorScope = useRef({ labInstanceId, generation, path: selectedFilePath })
@@ -366,14 +374,33 @@ export function WorkspaceFilePanels({
     content: string
   } | null>(null)
   const [restoreEpoch, setRestoreEpoch] = useState(0)
-  // Request-start epochs prevent pre-revocation GET responses from
-  // authorizing another cached path after the workspace target has changed.
-  const workspaceRequestEpoch = useRef(0)
-  const [workspaceGate, setWorkspaceGate] = useState<{
-    scope: string
-    verifiedTrees: string[]
-    verifiedFiles: string[]
-  } | null>(null)
+  // Access metadata must live as long as the QueryClient's file caches, not
+  // just this panel: route/READY remounts cannot restore revoked cached bytes.
+  // This disabled query performs no IO and contains no file contents. Logout
+  // clears it with the rest of the QueryClient; no browser storage is used.
+  const workspaceAccessKey = ['workspace-file-access', labInstanceId, generation] as const
+  useQuery<WorkspaceFileAccessGate | null>({
+    queryKey: workspaceAccessKey,
+    queryFn: skipToken,
+    initialData: null,
+    enabled: false,
+    subscribed: false,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
+  // Denial must hide cached bytes synchronously; query observer notifications
+  // are batched and may otherwise leave the old content visible for a frame.
+  const subscribeAccess = useCallback((notify: () => void) =>
+    queryClient.getQueryCache().subscribe(({ query }) => {
+      const key = query.queryKey
+      if (key[0] === 'workspace-file-access' && key[1] === labInstanceId && key[2] === generation) notify()
+    }), [queryClient, labInstanceId, generation])
+  const readAccess = useCallback(() => queryClient.getQueryData<WorkspaceFileAccessGate | null>(
+    ['workspace-file-access', labInstanceId, generation],
+  ) ?? null, [queryClient, labInstanceId, generation])
+  const workspaceGate = useSyncExternalStore(subscribeAccess, readAccess, () => null)
+  const requestEpoch = () =>
+    queryClient.getQueryData<WorkspaceFileAccessGate | null>(workspaceAccessKey)?.epoch ?? 0
   const [requiresFreshRead, setRequiresFreshRead] = useState<{
     labInstanceId: string
     generation: number
@@ -401,18 +428,25 @@ export function WorkspaceFilePanels({
       directoryPath,
     ),
     queryFn: async ({ signal }) => {
-      const startedAtEpoch = workspaceRequestEpoch.current
+      const startedAtEpoch = requestEpoch()
       try {
         const result = await api.listWorkspaceFiles(labInstanceId, directoryPath)
-        if (!signal.aborted && startedAtEpoch === workspaceRequestEpoch.current) setWorkspaceGate((previous) => previous?.scope === scope
-          ? { ...previous, verifiedTrees: [...new Set([...previous.verifiedTrees, directoryPath])] }
-          : previous)
+        if (!signal.aborted && startedAtEpoch === requestEpoch() &&
+            queryClient.getQueryData<WorkspaceFileAccessGate | null>(workspaceAccessKey)?.scope === scope) {
+          // Publish the newly authorized response before opening its gate;
+          // otherwise a metadata notification could expose the old response.
+          queryClient.setQueryData(labbitQueryKeys.workspaceFileTree(labInstanceId, generation, directoryPath), result)
+          queryClient.setQueryData<WorkspaceFileAccessGate | null>(workspaceAccessKey, (previous) => previous
+            ? { ...previous, verifiedTrees: [...new Set([...previous.verifiedTrees, directoryPath])] }
+            : previous)
+        }
         return result
       } catch (error) {
         if (signal.aborted) throw error
         if (workspaceWideAccessChange(error)) {
-          workspaceRequestEpoch.current += 1
-          setWorkspaceGate({ scope, verifiedTrees: [], verifiedFiles: [] })
+          queryClient.setQueryData<WorkspaceFileAccessGate>(workspaceAccessKey, (previous) => ({
+            scope, epoch: (previous?.epoch ?? 0) + 1, verifiedTrees: [], verifiedFiles: [],
+          }))
         }
         if (error instanceof HttpError && [403, 404, 409].includes(error.status) && selectedFilePath) {
           setRequiresFreshRead({ labInstanceId, generation, path: selectedFilePath })
@@ -431,13 +465,16 @@ export function WorkspaceFilePanels({
       selectedPath,
     ),
     queryFn: async ({ signal }) => {
-      const startedAtEpoch = workspaceRequestEpoch.current
+      const startedAtEpoch = requestEpoch()
       try {
         const result = await api.readWorkspaceFile(labInstanceId, selectedPath)
-        const validRead = !signal.aborted && startedAtEpoch === workspaceRequestEpoch.current
-        if (validRead) setWorkspaceGate((previous) => previous?.scope === scope
-          ? { ...previous, verifiedFiles: [...new Set([...previous.verifiedFiles, selectedPath])] }
-          : previous)
+        const validRead = !signal.aborted && startedAtEpoch === requestEpoch()
+        if (validRead && queryClient.getQueryData<WorkspaceFileAccessGate | null>(workspaceAccessKey)?.scope === scope) {
+          queryClient.setQueryData(labbitQueryKeys.workspaceFile(labInstanceId, generation, selectedPath), result)
+          queryClient.setQueryData<WorkspaceFileAccessGate | null>(workspaceAccessKey, (previous) => previous
+            ? { ...previous, verifiedFiles: [...new Set([...previous.verifiedFiles, selectedPath])] }
+            : previous)
+        }
         if (validRead) setRequiresFreshRead((previous) =>
           previous?.labInstanceId === labInstanceId &&
           previous?.generation === generation &&
@@ -447,8 +484,9 @@ export function WorkspaceFilePanels({
       } catch (error) {
         if (signal.aborted) throw error
         if (workspaceWideAccessChange(error)) {
-          workspaceRequestEpoch.current += 1
-          setWorkspaceGate({ scope, verifiedTrees: [], verifiedFiles: [] })
+          queryClient.setQueryData<WorkspaceFileAccessGate>(workspaceAccessKey, (previous) => ({
+            scope, epoch: (previous?.epoch ?? 0) + 1, verifiedTrees: [], verifiedFiles: [],
+          }))
         }
         if (error instanceof HttpError && [403, 404, 409].includes(error.status)) {
           setRequiresFreshRead({ labInstanceId, generation, path: selectedPath })

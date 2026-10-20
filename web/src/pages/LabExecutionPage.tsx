@@ -132,6 +132,10 @@ function LabExecutionForId({ executionId }: { executionId: string }) {
       const latestClass = await api.getClass(latest.classId)
       if (latestClass.myRole !== 'INSTRUCTOR') throw new HttpError(403)
 
+      // GET preflight is asynchronous. If the instructor left the Execution
+      // screen before it finished, do not start a destructive POST afterward.
+      if (!isMountedRef.current) throw new Error('Execution action confirmation expired')
+
       if (action.type === 'RESET') {
         const target = latest.labInstances.find(
           (instance) => instance.id === action.labInstanceId,

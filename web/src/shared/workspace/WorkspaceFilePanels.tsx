@@ -178,16 +178,19 @@ function WorkspaceFileEditor({
 
   const dirty = draft !== savedContent
 
-  useEffect(() => {
-    onSavePendingChange(saveMutation.isPending)
-  }, [onSavePendingChange, saveMutation.isPending])
-
-  useEffect(
-    () => () => {
+  async function submitSave() {
+    if (saveMutation.isPending) return
+    // Keep the parent navigation/dirty barrier until the actual HTTP result,
+    // even if access revocation unmounts this Editor during the in-flight PUT.
+    onSavePendingChange(true)
+    try {
+      await saveMutation.mutateAsync()
+    } catch {
+      // The mutation's onError already preserves the draft and safe UX.
+    } finally {
       onSavePendingChange(false)
-    },
-    [onSavePendingChange],
-  )
+    }
+  }
 
   // Parent dirty state is updated by user edits, explicit restoration and save.
   // Avoid cascading React state updates from a child effect.
@@ -226,7 +229,7 @@ function WorkspaceFileEditor({
           className="workspace-file-action workspace-file-action-primary"
           type="button"
           disabled={!dirty || saveMutation.isPending}
-          onClick={() => saveMutation.mutate()}
+          onClick={() => void submitSave()}
         >
           {saveMutation.isPending ? '저장 중...' : '저장'}
         </button>

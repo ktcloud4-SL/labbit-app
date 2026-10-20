@@ -323,6 +323,37 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     expect(screen.queryByText(/이전 미저장 수정본은 메모리에 보관했습니다/)).not.toBeInTheDocument()
   })
 
+
+  it('미저장 LabSpec을 가지고 뒤로 이동할 때 취소하면 편집 내용을 보존하고 확인해야 이동한다', async () => {
+    const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const { router } = mountLabSpecFlow({}, '/lab-specs/new')
+    await screen.findByRole('heading', { level: 1, name: '새 실습 정의' })
+
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'Draft that must not disappear' },
+    })
+    fireEvent.click(screen.getByRole('link', { name: /실습 정의 목록/ }))
+    await waitFor(() => expect(confirmation).toHaveBeenCalledTimes(1))
+    expect(router.state.location.pathname).toBe('/lab-specs/new')
+    expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('Draft that must not disappear')
+
+    confirmation.mockReturnValue(true)
+    fireEvent.click(screen.getByRole('link', { name: /실습 정의 목록/ }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/lab-specs'))
+    confirmation.mockRestore()
+  })
+
+  it('LabSpec 저장 전 브라우저 페이지 종료 시 변경 내용 경고가 활성화된다', async () => {
+    mountLabSpecFlow({}, '/lab-specs/new')
+    await screen.findByRole('heading', { level: 1, name: '새 실습 정의' })
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'Not yet saved' },
+    })
+    const unload = new Event('beforeunload', { cancelable: true })
+    await act(async () => { window.dispatchEvent(unload) })
+    expect(unload.defaultPrevented).toBe(true)
+  })
+
   it('LabSpec 조회 403이면 상세 내용을 렌더하지 않고 목록 복귀를 안내한다', async () => {
     const updateLabSpec = vi.fn(async () => {
       throw new Error('접근 거부 상태에서 쓰기를 호출하면 안 됨')

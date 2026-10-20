@@ -1,0 +1,6 @@
+{
+  "file": "web-build.txt",
+  "normalization": "CRLF to LF; trim trailing spaces/tabs only; original exit/result retained",
+  "rawSha256": "1c1fc7636b8e52db5fc33fd3389e33a0a488c0264a8d149e737bc213b1933d40",
+  "canonicalSha256": "3c43ecafb9a7e1dce3697871429cfcecfa1075e073e5307089b94f417bd60452"
+}

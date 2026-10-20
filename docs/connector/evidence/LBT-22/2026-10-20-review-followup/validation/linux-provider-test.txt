@@ -1,0 +1,1172 @@
+=== RUN   TestLoadConfigReadsNamedCloudWithoutExposingCredentials
+--- PASS: TestLoadConfigReadsNamedCloudWithoutExposingCredentials (0.00s)
+=== RUN   TestConfigFromEnvironment
+--- PASS: TestConfigFromEnvironment (0.00s)
+=== RUN   TestLoadConfigRejectsUnsafeOrInvalidInputWithSafeErrors
+=== RUN   TestLoadConfigRejectsUnsafeOrInvalidInputWithSafeErrors/missing
+=== RUN   TestLoadConfigRejectsUnsafeOrInvalidInputWithSafeErrors/invalid
+=== RUN   TestLoadConfigRejectsUnsafeOrInvalidInputWithSafeErrors/insecure_TLS
+--- PASS: TestLoadConfigRejectsUnsafeOrInvalidInputWithSafeErrors (0.01s)
+    --- PASS: TestLoadConfigRejectsUnsafeOrInvalidInputWithSafeErrors/missing (0.00s)
+    --- PASS: TestLoadConfigRejectsUnsafeOrInvalidInputWithSafeErrors/invalid (0.00s)
+    --- PASS: TestLoadConfigRejectsUnsafeOrInvalidInputWithSafeErrors/insecure_TLS (0.00s)
+=== RUN   TestValidateConnectionRequiresAuthenticatedClient
+--- PASS: TestValidateConnectionRequiresAuthenticatedClient (0.00s)
+=== RUN   TestValidateConnectionChecksKeystone
+=== RUN   TestValidateConnectionChecksKeystone/valid
+=== RUN   TestValidateConnectionChecksKeystone/valid200
+=== RUN   TestValidateConnectionChecksKeystone/revoked
+=== RUN   TestValidateConnectionChecksKeystone/unauthorized
+=== RUN   TestValidateConnectionChecksKeystone/forbidden
+=== RUN   TestValidateConnectionChecksKeystone/unavailable
+=== RUN   TestValidateConnectionChecksKeystone/rateLimited
+--- PASS: TestValidateConnectionChecksKeystone (0.03s)
+    --- PASS: TestValidateConnectionChecksKeystone/valid (0.01s)
+    --- PASS: TestValidateConnectionChecksKeystone/valid200 (0.01s)
+    --- PASS: TestValidateConnectionChecksKeystone/revoked (0.00s)
+    --- PASS: TestValidateConnectionChecksKeystone/unauthorized (0.00s)
+    --- PASS: TestValidateConnectionChecksKeystone/forbidden (0.00s)
+    --- PASS: TestValidateConnectionChecksKeystone/unavailable (0.00s)
+    --- PASS: TestValidateConnectionChecksKeystone/rateLimited (0.00s)
+=== RUN   TestValidateConnectionRechecksRefreshedToken
+=== RUN   TestValidateConnectionRechecksRefreshedToken/refresh
+=== RUN   TestValidateConnectionRechecksRefreshedToken/refreshRejected
+--- PASS: TestValidateConnectionRechecksRefreshedToken (0.01s)
+    --- PASS: TestValidateConnectionRechecksRefreshedToken/refresh (0.01s)
+    --- PASS: TestValidateConnectionRechecksRefreshedToken/refreshRejected (0.00s)
+=== RUN   TestValidateConnectionBoundsDefaultRequestAndRedactsTransportErrors
+--- PASS: TestValidateConnectionBoundsDefaultRequestAndRedactsTransportErrors (0.00s)
+=== RUN   TestValidateConnectionConcurrentRefresh
+--- PASS: TestValidateConnectionConcurrentRefresh (0.04s)
+=== RUN   TestValidateConnectionRejectsMissingIdentityOrToken
+--- PASS: TestValidateConnectionRejectsMissingIdentityOrToken (0.00s)
+=== RUN   TestValidateConnectionHonorsDeadlineAndCancellation
+=== RUN   TestValidateConnectionHonorsDeadlineAndCancellation/cancel
+=== RUN   TestValidateConnectionHonorsDeadlineAndCancellation/deadline
+--- PASS: TestValidateConnectionHonorsDeadlineAndCancellation (0.11s)
+    --- PASS: TestValidateConnectionHonorsDeadlineAndCancellation/cancel (0.00s)
+    --- PASS: TestValidateConnectionHonorsDeadlineAndCancellation/deadline (0.10s)
+=== RUN   TestControlWSSFailedResetTracksPartialGenerationForTeardown
+=== RUN   TestControlWSSFailedResetTracksPartialGenerationForTeardown/FAILED
+=== RUN   TestControlWSSFailedResetTracksPartialGenerationForTeardown/UNKNOWN
+--- PASS: TestControlWSSFailedResetTracksPartialGenerationForTeardown (0.02s)
+    --- PASS: TestControlWSSFailedResetTracksPartialGenerationForTeardown/FAILED (0.01s)
+    --- PASS: TestControlWSSFailedResetTracksPartialGenerationForTeardown/UNKNOWN (0.01s)
+=== RUN   TestRecordingProviderFailedProvisionTracksPartialResourcesForTeardown
+=== RUN   TestRecordingProviderFailedProvisionTracksPartialResourcesForTeardown/FAILED
+=== RUN   TestRecordingProviderFailedProvisionTracksPartialResourcesForTeardown/UNKNOWN
+--- PASS: TestRecordingProviderFailedProvisionTracksPartialResourcesForTeardown (0.01s)
+    --- PASS: TestRecordingProviderFailedProvisionTracksPartialResourcesForTeardown/FAILED (0.00s)
+    --- PASS: TestRecordingProviderFailedProvisionTracksPartialResourcesForTeardown/UNKNOWN (0.00s)
+=== RUN   TestOpenStackM2ControlWSSIntegration
+    control_wss_integration_test.go:22: set LABBIT_OPENSTACK_M2_WSS_TEST=1 for Provision or LABBIT_OPENSTACK_M3_WSS_TEST=1 for the full WSS lifecycle
+--- SKIP: TestOpenStackM2ControlWSSIntegration (0.00s)
+=== RUN   TestOpenStackFileTransportIntegration
+    file_transport_integration_test.go:85: set LABBIT_OPENSTACK_FILE_TRANSPORT_TEST=1 for disposable local OpenStack File acceptance
+--- SKIP: TestOpenStackFileTransportIntegration (0.00s)
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent
+=== RUN   TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails
+--- PASS: TestIntegrationCleanupConfirmsGETAbsence (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/delete_acknowledgement_can_precede_disappearance (0.20s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/unavailable_is_not_absent (0.00s)
+    --- PASS: TestIntegrationCleanupConfirmsGETAbsence/still_present_at_deadline_fails (0.00s)
+=== RUN   TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport
+=== RUN   TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation
+=== RUN   TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#01
+=== RUN   TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#02
+=== RUN   TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#03
+=== RUN   TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#04
+=== RUN   TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#05
+=== RUN   TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#06
+=== RUN   TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#07
+=== RUN   TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#08
+=== RUN   TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#09
+--- PASS: TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport (0.21s)
+    --- PASS: TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation (0.02s)
+    --- PASS: TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#01 (0.02s)
+    --- PASS: TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#02 (0.02s)
+    --- PASS: TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#03 (0.01s)
+    --- PASS: TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#04 (0.03s)
+    --- PASS: TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#05 (0.02s)
+    --- PASS: TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#06 (0.02s)
+    --- PASS: TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#07 (0.02s)
+    --- PASS: TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#08 (0.01s)
+    --- PASS: TestIntegrationDiagnosticCancellationJoinsExecAndClosesOwnedTransport/cancellation#09 (0.02s)
+=== RUN   TestOpenStackM1Integration
+    integration_test.go:36: set LABBIT_OPENSTACK_INTEGRATION=1 to run against a local OpenStack cloud
+--- SKIP: TestOpenStackM1Integration (0.00s)
+=== RUN   TestOpenStackM2ProvisionIntegration
+    integration_test.go:75: set LABBIT_OPENSTACK_M2_TEST=1 to create and clean one real Provision topology
+--- SKIP: TestOpenStackM2ProvisionIntegration (0.00s)
+=== RUN   TestOpenStackM3LifecycleIntegration
+    integration_test.go:164: set LABBIT_OPENSTACK_M3_TEST=1 to run Provision, Reset, Reconcile, and Cleanup against a local OpenStack cloud
+--- SKIP: TestOpenStackM3LifecycleIntegration (0.00s)
+=== RUN   TestOpenStackInternetPolicyIntegration
+    integration_test.go:302: set LABBIT_OPENSTACK_INTERNET_POLICY_TEST=1 to verify real Internet ON/OFF reachability
+--- SKIP: TestOpenStackInternetPolicyIntegration (0.00s)
+=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty
+=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config
+=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/missing_directory
+=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted
+=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock
+=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock
+=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config
+=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock
+=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool
+=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent
+=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent
+=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock
+--- PASS: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty (0.16s)
+    --- PASS: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config (0.00s)
+    --- PASS: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/missing_directory (0.00s)
+    --- PASS: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted (0.03s)
+    --- PASS: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock (0.01s)
+    --- PASS: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock (0.00s)
+    --- PASS: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config (0.01s)
+    --- PASS: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock (0.02s)
+    --- PASS: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool (0.02s)
+    --- PASS: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent (0.02s)
+    --- PASS: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent (0.02s)
+    --- PASS: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock (0.02s)
+=== RUN   TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration
+=== RUN   TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/invalid_config
+=== RUN   TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/foreign_lock
+--- PASS: TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration (0.03s)
+    --- PASS: TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/invalid_config (0.01s)
+    --- PASS: TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/foreign_lock (0.02s)
+=== RUN   TestKTCloudCIDRPoolIsolationResetAndRestart
+--- PASS: TestKTCloudCIDRPoolIsolationResetAndRestart (0.05s)
+=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory
+=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/skip_shared
+=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/all_overlap
+=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/unknown_CIDR
+=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/pending_unmapped_Tier
+--- PASS: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory (0.06s)
+    --- PASS: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/skip_shared (0.01s)
+    --- PASS: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/all_overlap (0.01s)
+    --- PASS: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/unknown_CIDR (0.01s)
+    --- PASS: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/pending_unmapped_Tier (0.01s)
+=== RUN   TestKTCloudCIDRPoolConcurrentAndUnknownMutation
+--- PASS: TestKTCloudCIDRPoolConcurrentAndUnknownMutation (0.03s)
+=== RUN   TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed
+=== RUN   TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/overlap
+=== RUN   TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/noncanonical
+=== RUN   TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/public
+=== RUN   TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/partial
+=== RUN   TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/pool_changed
+=== RUN   TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/symlink
+=== RUN   TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/corrupt_slot
+=== RUN   TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/stale_lock
+--- PASS: TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed (0.06s)
+    --- PASS: TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/overlap (0.00s)
+    --- PASS: TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/noncanonical (0.00s)
+    --- PASS: TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/public (0.00s)
+    --- PASS: TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/partial (0.00s)
+    --- PASS: TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/pool_changed (0.02s)
+    --- PASS: TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/symlink (0.00s)
+    --- PASS: TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/corrupt_slot (0.02s)
+    --- PASS: TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/stale_lock (0.00s)
+=== RUN   TestKTCloudCIDRPoolManagementAddressUsesAssignment
+--- PASS: TestKTCloudCIDRPoolManagementAddressUsesAssignment (0.04s)
+=== RUN   TestKTCloudCIDRPoolEnvironment
+--- PASS: TestKTCloudCIDRPoolEnvironment (0.00s)
+=== RUN   TestKTCloudCIDRPoolResetCreditsOnlyExactPreviousInstance
+=== RUN   TestKTCloudCIDRPoolResetCreditsOnlyExactPreviousInstance/foreign=false
+=== RUN   TestKTCloudCIDRPoolResetCreditsOnlyExactPreviousInstance/foreign=true
+--- PASS: TestKTCloudCIDRPoolResetCreditsOnlyExactPreviousInstance (0.09s)
+    --- PASS: TestKTCloudCIDRPoolResetCreditsOnlyExactPreviousInstance/foreign=false (0.06s)
+    --- PASS: TestKTCloudCIDRPoolResetCreditsOnlyExactPreviousInstance/foreign=true (0.03s)
+=== RUN   TestKTCloudCIDRPoolTierCreateAndCleanupIsolation
+--- PASS: TestKTCloudCIDRPoolTierCreateAndCleanupIsolation (0.04s)
+=== RUN   TestKTCloudCIDRPoolPublicProvisionLostCreateCannotRepeat
+--- PASS: TestKTCloudCIDRPoolPublicProvisionLostCreateCannotRepeat (0.04s)
+=== RUN   TestKTCloudCIDRPoolResetPreflightRejectsUnmappedInventory
+--- PASS: TestKTCloudCIDRPoolResetPreflightRejectsUnmappedInventory (0.02s)
+=== RUN   TestKTCloudD1EndpointSelectionIsExact
+--- PASS: TestKTCloudD1EndpointSelectionIsExact (0.00s)
+=== RUN   TestKTCloudD1SDKQueriesAndValidationUseGatewayPaths
+--- PASS: TestKTCloudD1SDKQueriesAndValidationUseGatewayPaths (0.01s)
+=== RUN   TestKTCloudD1ReauthRefreshesQueryAndValidationSubject
+--- PASS: TestKTCloudD1ReauthRefreshesQueryAndValidationSubject (0.01s)
+=== RUN   TestKTCloudD1MutationRetriesOnlyDefinitive401
+=== RUN   TestKTCloudD1MutationRetriesOnlyDefinitive401/401
+=== RUN   TestKTCloudD1MutationRetriesOnlyDefinitive401/403
+=== RUN   TestKTCloudD1MutationRetriesOnlyDefinitive401/408
+=== RUN   TestKTCloudD1MutationRetriesOnlyDefinitive401/429
+=== RUN   TestKTCloudD1MutationRetriesOnlyDefinitive401/500
+--- PASS: TestKTCloudD1MutationRetriesOnlyDefinitive401 (0.03s)
+    --- PASS: TestKTCloudD1MutationRetriesOnlyDefinitive401/401 (0.01s)
+    --- PASS: TestKTCloudD1MutationRetriesOnlyDefinitive401/403 (0.00s)
+    --- PASS: TestKTCloudD1MutationRetriesOnlyDefinitive401/408 (0.00s)
+    --- PASS: TestKTCloudD1MutationRetriesOnlyDefinitive401/429 (0.01s)
+    --- PASS: TestKTCloudD1MutationRetriesOnlyDefinitive401/500 (0.00s)
+=== RUN   TestKTCloudD1AuthErrorsAreSafeAndTokenOnlyDoesNotRenew
+--- PASS: TestKTCloudD1AuthErrorsAreSafeAndTokenOnlyDoesNotRenew (0.01s)
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/absent
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/present
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/lookup_failure
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/incomplete
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/present_second_page
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/second_page_failure
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/pagination_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/pagination_null
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/total_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/offset_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/absent
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/present
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/lookup_failure
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/incomplete
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/present_second_page
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/second_page_failure
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/pagination_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/pagination_null
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/total_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/offset_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/absent
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/present
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/lookup_failure
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/incomplete
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/present_second_page
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/second_page_failure
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/pagination_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/pagination_null
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/total_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/offset_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/absent
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/present
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/lookup_failure
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/incomplete
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/present_second_page
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/second_page_failure
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/pagination_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/pagination_null
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/total_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/offset_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/absent
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/present
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/lookup_failure
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/incomplete
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/present_second_page
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/second_page_failure
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/pagination_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/pagination_null
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/total_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/offset_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/absent
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/present
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/lookup_failure
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/incomplete
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/present_second_page
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/second_page_failure
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/pagination_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/pagination_null
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/total_missing
+=== RUN   TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/offset_missing
+--- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory (0.41s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/absent (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/present (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/lookup_failure (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/incomplete (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/present_second_page (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/second_page_failure (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/pagination_missing (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/pagination_null (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/total_missing (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/HTTP404/offset_missing (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/absent (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/present (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/lookup_failure (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/incomplete (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/present_second_page (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/second_page_failure (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/pagination_missing (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/pagination_null (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/total_missing (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-number/offset_missing (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/absent (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/present (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/lookup_failure (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/incomplete (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/present_second_page (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/second_page_failure (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/pagination_missing (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/pagination_null (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/total_missing (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_TIER/body404-string/offset_missing (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/absent (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/present (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/lookup_failure (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/incomplete (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/present_second_page (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/second_page_failure (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/pagination_missing (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/pagination_null (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/total_missing (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/HTTP404/offset_missing (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/absent (0.02s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/present (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/lookup_failure (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/incomplete (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/present_second_page (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/second_page_failure (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/pagination_missing (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/pagination_null (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/total_missing (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-number/offset_missing (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/absent (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/present (0.00s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/lookup_failure (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/incomplete (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/present_second_page (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/second_page_failure (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/pagination_missing (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/pagination_null (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/total_missing (0.01s)
+    --- PASS: TestKTCloudDelete404ReceiptUsesCompleteInventory/KT_FIREWALL_POLICY/body404-string/offset_missing (0.01s)
+=== RUN   TestKTFixtureCleanupDoesNotAdoptMatchingCandidates
+=== RUN   TestKTFixtureCleanupDoesNotAdoptMatchingCandidates/unknown_Tier_create
+=== RUN   TestKTFixtureCleanupDoesNotAdoptMatchingCandidates/unknown_policy_create
+=== RUN   TestKTFixtureCleanupDoesNotAdoptMatchingCandidates/FAILED_policy_job
+=== RUN   TestKTFixtureCleanupDoesNotAdoptMatchingCandidates/successful_job_without_confirmed_mapping
+--- PASS: TestKTFixtureCleanupDoesNotAdoptMatchingCandidates (0.00s)
+    --- PASS: TestKTFixtureCleanupDoesNotAdoptMatchingCandidates/unknown_Tier_create (0.00s)
+    --- PASS: TestKTFixtureCleanupDoesNotAdoptMatchingCandidates/unknown_policy_create (0.00s)
+    --- PASS: TestKTFixtureCleanupDoesNotAdoptMatchingCandidates/FAILED_policy_job (0.00s)
+    --- PASS: TestKTFixtureCleanupDoesNotAdoptMatchingCandidates/successful_job_without_confirmed_mapping (0.00s)
+=== RUN   TestKTFixtureTierOwnershipBeforePolicyAndCleanup
+=== RUN   TestKTFixtureTierOwnershipBeforePolicyAndCleanup/valid
+=== RUN   TestKTFixtureTierOwnershipBeforePolicyAndCleanup/body409
+=== RUN   TestKTFixtureTierOwnershipBeforePolicyAndCleanup/body500
+=== RUN   TestKTFixtureTierOwnershipBeforePolicyAndCleanup/baseline_ID
+=== RUN   TestKTFixtureTierOwnershipBeforePolicyAndCleanup/wrong_name
+=== RUN   TestKTFixtureTierOwnershipBeforePolicyAndCleanup/wrong_CIDR
+=== RUN   TestKTFixtureTierOwnershipBeforePolicyAndCleanup/shared_true
+=== RUN   TestKTFixtureTierOwnershipBeforePolicyAndCleanup/shared_missing
+=== RUN   TestKTFixtureTierOwnershipBeforePolicyAndCleanup/shared_null
+=== RUN   TestKTFixtureTierOwnershipBeforePolicyAndCleanup/unconfirmed_lookup_failure
+=== RUN   TestKTFixtureTierOwnershipBeforePolicyAndCleanup/confirmed_BUILD_then_lookup_failure
+--- PASS: TestKTFixtureTierOwnershipBeforePolicyAndCleanup (0.11s)
+    --- PASS: TestKTFixtureTierOwnershipBeforePolicyAndCleanup/valid (0.01s)
+    --- PASS: TestKTFixtureTierOwnershipBeforePolicyAndCleanup/body409 (0.01s)
+    --- PASS: TestKTFixtureTierOwnershipBeforePolicyAndCleanup/body500 (0.01s)
+    --- PASS: TestKTFixtureTierOwnershipBeforePolicyAndCleanup/baseline_ID (0.01s)
+    --- PASS: TestKTFixtureTierOwnershipBeforePolicyAndCleanup/wrong_name (0.01s)
+    --- PASS: TestKTFixtureTierOwnershipBeforePolicyAndCleanup/wrong_CIDR (0.02s)
+    --- PASS: TestKTFixtureTierOwnershipBeforePolicyAndCleanup/shared_true (0.01s)
+    --- PASS: TestKTFixtureTierOwnershipBeforePolicyAndCleanup/shared_missing (0.01s)
+    --- PASS: TestKTFixtureTierOwnershipBeforePolicyAndCleanup/shared_null (0.01s)
+    --- PASS: TestKTFixtureTierOwnershipBeforePolicyAndCleanup/unconfirmed_lookup_failure (0.01s)
+    --- PASS: TestKTFixtureTierOwnershipBeforePolicyAndCleanup/confirmed_BUILD_then_lookup_failure (0.01s)
+=== RUN   TestKTFixtureCleanupUsesConfirmedIDsAndChecksAbsence
+--- PASS: TestKTFixtureCleanupUsesConfirmedIDsAndChecksAbsence (0.00s)
+=== RUN   TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping
+=== RUN   TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/valid
+=== RUN   TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/wrong_target
+=== RUN   TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/wrong_source_IP
+=== RUN   TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/deny
+=== RUN   TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/NAT_enabled
+=== RUN   TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/status_disabled
+=== RUN   TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/status_empty
+=== RUN   TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/status_UNKNOWN
+=== RUN   TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/status_ERROR
+=== RUN   TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/duplicate
+=== RUN   TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/missing
+--- PASS: TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping (0.00s)
+    --- PASS: TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/valid (0.00s)
+    --- PASS: TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/wrong_target (0.00s)
+    --- PASS: TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/wrong_source_IP (0.00s)
+    --- PASS: TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/deny (0.00s)
+    --- PASS: TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/NAT_enabled (0.00s)
+    --- PASS: TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/status_disabled (0.00s)
+    --- PASS: TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/status_empty (0.00s)
+    --- PASS: TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/status_UNKNOWN (0.00s)
+    --- PASS: TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/status_ERROR (0.00s)
+    --- PASS: TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/duplicate (0.00s)
+    --- PASS: TestKTFixturePolicyIDIsRecordedOnlyAfterCompleteMapping/missing (0.00s)
+=== RUN   TestKTFixtureLedgerPreservesPreviousRunBeforeCloudAccess
+=== RUN   TestKTFixtureLedgerPreservesPreviousRunBeforeCloudAccess/TIER_CREATE_RESPONSE_RECORDED
+=== RUN   TestKTFixtureLedgerPreservesPreviousRunBeforeCloudAccess/CLEANUP_ABSENCE_CONFIRMED
+--- PASS: TestKTFixtureLedgerPreservesPreviousRunBeforeCloudAccess (0.07s)
+    --- PASS: TestKTFixtureLedgerPreservesPreviousRunBeforeCloudAccess/TIER_CREATE_RESPONSE_RECORDED (0.03s)
+    --- PASS: TestKTFixtureLedgerPreservesPreviousRunBeforeCloudAccess/CLEANUP_ABSENCE_CONFIRMED (0.04s)
+=== RUN   TestKTFixtureLedgerConcurrentClaimAndOwnedUpdates
+--- PASS: TestKTFixtureLedgerConcurrentClaimAndOwnedUpdates (0.01s)
+=== RUN   TestKTFixtureLedgerRejectsSymlinkAndReplacement
+=== RUN   TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink
+=== RUN   TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement
+--- PASS: TestKTFixtureLedgerRejectsSymlinkAndReplacement (0.01s)
+    --- PASS: TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink (0.00s)
+    --- PASS: TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement (0.00s)
+=== RUN   TestKTCloudD1ReadOnlyIntegration
+    ktcloud_d1_integration_test.go:15: set LABBIT_KTCLOUD_D1_INTEGRATION=1 explicitly for real KT D1 read-only checks
+--- SKIP: TestKTCloudD1ReadOnlyIntegration (0.00s)
+=== RUN   TestKTCloudTerminalRequiresExplicitNonSharedManagementTier
+=== RUN   TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/short/false
+=== RUN   TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/short/true
+=== RUN   TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/short/missing
+=== RUN   TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/short/null
+=== RUN   TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/legacy/false
+=== RUN   TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/legacy/true
+=== RUN   TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/legacy/missing
+=== RUN   TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/legacy/null
+--- PASS: TestKTCloudTerminalRequiresExplicitNonSharedManagementTier (0.04s)
+    --- PASS: TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/short/false (0.01s)
+    --- PASS: TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/short/true (0.00s)
+    --- PASS: TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/short/missing (0.01s)
+    --- PASS: TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/short/null (0.01s)
+    --- PASS: TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/legacy/false (0.01s)
+    --- PASS: TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/legacy/true (0.01s)
+    --- PASS: TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/legacy/missing (0.00s)
+    --- PASS: TestKTCloudTerminalRequiresExplicitNonSharedManagementTier/legacy/null (0.00s)
+=== RUN   TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources
+=== RUN   TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources/false
+=== RUN   TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources/true
+=== RUN   TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources/missing
+=== RUN   TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources/null
+--- PASS: TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources (0.03s)
+    --- PASS: TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources/false (0.01s)
+    --- PASS: TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources/true (0.01s)
+    --- PASS: TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources/missing (0.01s)
+    --- PASS: TestKTCloudRefreshRequiresExplicitNonSharedManagementTierAndPreservesResources/null (0.01s)
+=== RUN   TestKTCloudTierNamesBoundFullIdentity
+--- PASS: TestKTCloudTierNamesBoundFullIdentity (0.00s)
+=== RUN   TestKTCloudTierNameBoundaryRejectsBeforeMutation
+--- PASS: TestKTCloudTierNameBoundaryRejectsBeforeMutation (0.00s)
+=== RUN   TestKTCloudPrepareNetworkUsesBoundedTierName
+--- PASS: TestKTCloudPrepareNetworkUsesBoundedTierName (0.01s)
+=== RUN   TestKTCloudPrepareManagementNICUsesBoundedTierName
+--- PASS: TestKTCloudPrepareManagementNICUsesBoundedTierName (0.01s)
+=== RUN   TestKTCloudShortAndLegacyDiscoveryRemainAdvisory
+=== RUN   TestKTCloudShortAndLegacyDiscoveryRemainAdvisory/none
+=== RUN   TestKTCloudShortAndLegacyDiscoveryRemainAdvisory/server
+=== RUN   TestKTCloudShortAndLegacyDiscoveryRemainAdvisory/policy
+--- PASS: TestKTCloudShortAndLegacyDiscoveryRemainAdvisory (0.03s)
+    --- PASS: TestKTCloudShortAndLegacyDiscoveryRemainAdvisory/none (0.01s)
+    --- PASS: TestKTCloudShortAndLegacyDiscoveryRemainAdvisory/server (0.01s)
+    --- PASS: TestKTCloudShortAndLegacyDiscoveryRemainAdvisory/policy (0.02s)
+=== RUN   TestKTCloudTerminalResolvesShortAndLegacyTierNames
+=== RUN   TestKTCloudTerminalResolvesShortAndLegacyTierNames/short
+=== RUN   TestKTCloudTerminalResolvesShortAndLegacyTierNames/legacy
+=== RUN   TestKTCloudTerminalResolvesShortAndLegacyTierNames/ambiguous
+=== RUN   TestKTCloudTerminalResolvesShortAndLegacyTierNames/other-generation
+=== RUN   TestKTCloudTerminalResolvesShortAndLegacyTierNames/shared
+--- PASS: TestKTCloudTerminalResolvesShortAndLegacyTierNames (0.03s)
+    --- PASS: TestKTCloudTerminalResolvesShortAndLegacyTierNames/short (0.00s)
+    --- PASS: TestKTCloudTerminalResolvesShortAndLegacyTierNames/legacy (0.00s)
+    --- PASS: TestKTCloudTerminalResolvesShortAndLegacyTierNames/ambiguous (0.01s)
+    --- PASS: TestKTCloudTerminalResolvesShortAndLegacyTierNames/other-generation (0.01s)
+    --- PASS: TestKTCloudTerminalResolvesShortAndLegacyTierNames/shared (0.01s)
+=== RUN   TestKTCloudD1DisposableNetworkIntegration
+    ktcloud_d1_network_integration_test.go:21: set LABBIT_KTCLOUD_D1_NETWORK_MUTATION_TEST=1 explicitly for disposable NSM mutations
+--- SKIP: TestKTCloudD1DisposableNetworkIntegration (0.00s)
+=== RUN   TestKTCloudTierPaginationAndDistinctIDs
+--- PASS: TestKTCloudTierPaginationAndDistinctIDs (0.01s)
+=== RUN   TestKTCloudTierMutationUsesTierIDAndCustomRanges
+--- PASS: TestKTCloudTierMutationUsesTierIDAndCustomRanges (0.01s)
+=== RUN   TestKTCloudFirewallPolicyAndJobMapping
+--- PASS: TestKTCloudFirewallPolicyAndJobMapping (0.01s)
+=== RUN   TestKTCloudMutationFailureClassificationNeverBlindRetries
+=== RUN   TestKTCloudMutationFailureClassificationNeverBlindRetries/400/envelope=false
+=== RUN   TestKTCloudMutationFailureClassificationNeverBlindRetries/400/envelope=true
+=== RUN   TestKTCloudMutationFailureClassificationNeverBlindRetries/403/envelope=false
+=== RUN   TestKTCloudMutationFailureClassificationNeverBlindRetries/403/envelope=true
+=== RUN   TestKTCloudMutationFailureClassificationNeverBlindRetries/408/envelope=false
+=== RUN   TestKTCloudMutationFailureClassificationNeverBlindRetries/408/envelope=true
+=== RUN   TestKTCloudMutationFailureClassificationNeverBlindRetries/429/envelope=false
+=== RUN   TestKTCloudMutationFailureClassificationNeverBlindRetries/429/envelope=true
+=== RUN   TestKTCloudMutationFailureClassificationNeverBlindRetries/500/envelope=false
+=== RUN   TestKTCloudMutationFailureClassificationNeverBlindRetries/500/envelope=true
+--- PASS: TestKTCloudMutationFailureClassificationNeverBlindRetries (0.04s)
+    --- PASS: TestKTCloudMutationFailureClassificationNeverBlindRetries/400/envelope=false (0.00s)
+    --- PASS: TestKTCloudMutationFailureClassificationNeverBlindRetries/400/envelope=true (0.00s)
+    --- PASS: TestKTCloudMutationFailureClassificationNeverBlindRetries/403/envelope=false (0.00s)
+    --- PASS: TestKTCloudMutationFailureClassificationNeverBlindRetries/403/envelope=true (0.00s)
+    --- PASS: TestKTCloudMutationFailureClassificationNeverBlindRetries/408/envelope=false (0.00s)
+    --- PASS: TestKTCloudMutationFailureClassificationNeverBlindRetries/408/envelope=true (0.00s)
+    --- PASS: TestKTCloudMutationFailureClassificationNeverBlindRetries/429/envelope=false (0.00s)
+    --- PASS: TestKTCloudMutationFailureClassificationNeverBlindRetries/429/envelope=true (0.00s)
+    --- PASS: TestKTCloudMutationFailureClassificationNeverBlindRetries/500/envelope=false (0.00s)
+    --- PASS: TestKTCloudMutationFailureClassificationNeverBlindRetries/500/envelope=true (0.00s)
+=== RUN   TestKTCloudMalformedInventoryIsUnknownRatherThanAbsent
+--- PASS: TestKTCloudMalformedInventoryIsUnknownRatherThanAbsent (0.02s)
+=== RUN   TestKTCloudDelete404RequiresCompleteInventoryAbsence
+=== RUN   TestKTCloudDelete404RequiresCompleteInventoryAbsence/network/present=true
+=== RUN   TestKTCloudDelete404RequiresCompleteInventoryAbsence/network/present=false
+=== RUN   TestKTCloudDelete404RequiresCompleteInventoryAbsence/firewall/policy/present=true
+=== RUN   TestKTCloudDelete404RequiresCompleteInventoryAbsence/firewall/policy/present=false
+--- PASS: TestKTCloudDelete404RequiresCompleteInventoryAbsence (0.04s)
+    --- PASS: TestKTCloudDelete404RequiresCompleteInventoryAbsence/network/present=true (0.01s)
+    --- PASS: TestKTCloudDelete404RequiresCompleteInventoryAbsence/network/present=false (0.01s)
+    --- PASS: TestKTCloudDelete404RequiresCompleteInventoryAbsence/firewall/policy/present=true (0.01s)
+    --- PASS: TestKTCloudDelete404RequiresCompleteInventoryAbsence/firewall/policy/present=false (0.01s)
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/valid
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/wrong_destination
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/wrong_source
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/wrong_source_IP
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/wrong_port
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/deny_action
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/NAT_enabled
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/status_disabled
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/status_empty
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/status_UNKNOWN
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/status_ERROR
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/FAILED_job
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/unknown_job
+=== RUN   TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/duplicate_comment
+--- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping (1.15s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/valid (0.01s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/wrong_destination (0.01s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/wrong_source (0.01s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/wrong_source_IP (0.01s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/wrong_port (0.01s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/deny_action (0.01s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/NAT_enabled (0.01s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/status_disabled (0.01s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/status_empty (0.01s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/status_UNKNOWN (0.01s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/status_ERROR (0.02s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/FAILED_job (0.01s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/unknown_job (1.01s)
+    --- PASS: TestKTCloudPolicyOwnershipRequiresSuccessfulJobAndCompleteMapping/duplicate_comment (0.01s)
+=== RUN   TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference
+=== RUN   TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/valid
+=== RUN   TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/additional_attachment
+=== RUN   TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/no_attachment
+=== RUN   TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/empty_ID
+=== RUN   TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/wrong_image
+=== RUN   TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/wrong_size
+=== RUN   TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/wrong_server
+=== RUN   TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/multiple_owners
+=== RUN   TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/volume_ID_mismatch
+=== RUN   TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/lookup_unavailable
+=== RUN   TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/management_lookup_unavailable
+--- PASS: TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference (0.07s)
+    --- PASS: TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/valid (0.00s)
+    --- PASS: TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/additional_attachment (0.00s)
+    --- PASS: TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/no_attachment (0.01s)
+    --- PASS: TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/empty_ID (0.00s)
+    --- PASS: TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/wrong_image (0.00s)
+    --- PASS: TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/wrong_size (0.01s)
+    --- PASS: TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/wrong_server (0.01s)
+    --- PASS: TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/multiple_owners (0.01s)
+    --- PASS: TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/volume_ID_mismatch (0.01s)
+    --- PASS: TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/lookup_unavailable (0.00s)
+    --- PASS: TestKTCloudRootOwnershipRequiresVerifiedMappingBeforeCleanupReference/management_lookup_unavailable (0.01s)
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/body409
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/body500
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/name_mismatch
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/CIDR_mismatch
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/shared
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/shared_missing
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/shared_null
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/name_missing
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/CIDR_missing
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/ID_existed_before_POST
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/lookup_failed_before_confirmation
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_lookup_failed
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_shared
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_shared_missing
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_shared_null
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_name_missing
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_CIDR_missing
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_ERROR
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_timeout
+=== RUN   TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_ACTIVE
+--- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup (0.23s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/body409 (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/body500 (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/name_mismatch (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/CIDR_mismatch (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/shared (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/shared_missing (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/shared_null (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/name_missing (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/CIDR_missing (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/ID_existed_before_POST (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/lookup_failed_before_confirmation (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_lookup_failed (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_shared (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_shared_missing (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_shared_null (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_name_missing (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_CIDR_missing (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_ERROR (0.01s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_BUILD_then_timeout (0.03s)
+    --- PASS: TestKTCloudTierOwnershipBeforeResultAndFollowupCleanup/matching_ACTIVE (0.01s)
+=== RUN   TestKTCloudHTTP200FaultIsUnavailableNotEmptyInventory
+--- PASS: TestKTCloudHTTP200FaultIsUnavailableNotEmptyInventory (0.00s)
+=== RUN   TestKTCloudServerHTTP400NeverConfirmsAbsence
+--- PASS: TestKTCloudServerHTTP400NeverConfirmsAbsence (0.01s)
+=== RUN   TestKTCloudResetCreditsObservedExtendedFlavor
+--- PASS: TestKTCloudResetCreditsObservedExtendedFlavor (0.00s)
+=== RUN   TestKTCloudSoftDeleteRequiresOneForceDeleteAndActual404
+=== RUN   TestKTCloudSoftDeleteRequiresOneForceDeleteAndActual404/202/delayed=false
+=== RUN   TestKTCloudSoftDeleteRequiresOneForceDeleteAndActual404/202/delayed=true
+=== RUN   TestKTCloudSoftDeleteRequiresOneForceDeleteAndActual404/503/delayed=false
+--- PASS: TestKTCloudSoftDeleteRequiresOneForceDeleteAndActual404 (0.04s)
+    --- PASS: TestKTCloudSoftDeleteRequiresOneForceDeleteAndActual404/202/delayed=false (0.02s)
+    --- PASS: TestKTCloudSoftDeleteRequiresOneForceDeleteAndActual404/202/delayed=true (0.01s)
+    --- PASS: TestKTCloudSoftDeleteRequiresOneForceDeleteAndActual404/503/delayed=false (0.01s)
+=== RUN   TestKTCloudServerVolumeAndPhysicalNetworkMapping
+=== RUN   TestKTCloudServerVolumeAndPhysicalNetworkMapping/accepted
+=== RUN   TestKTCloudServerVolumeAndPhysicalNetworkMapping/HTTP200Fault400
+=== RUN   TestKTCloudServerVolumeAndPhysicalNetworkMapping/HTTP200Fault500
+=== RUN   TestKTCloudServerVolumeAndPhysicalNetworkMapping/HTTP429
+--- PASS: TestKTCloudServerVolumeAndPhysicalNetworkMapping (0.03s)
+    --- PASS: TestKTCloudServerVolumeAndPhysicalNetworkMapping/accepted (0.01s)
+    --- PASS: TestKTCloudServerVolumeAndPhysicalNetworkMapping/HTTP200Fault400 (0.00s)
+    --- PASS: TestKTCloudServerVolumeAndPhysicalNetworkMapping/HTTP200Fault500 (0.00s)
+    --- PASS: TestKTCloudServerVolumeAndPhysicalNetworkMapping/HTTP429 (0.00s)
+=== RUN   TestKTCloudUnsupportedResetAndMixedCleanupDoNotMutate
+--- PASS: TestKTCloudUnsupportedResetAndMixedCleanupDoNotMutate (0.00s)
+=== RUN   TestKTCloudReconcileKnownMissingAndCandidateNeverOwns
+--- PASS: TestKTCloudReconcileKnownMissingAndCandidateNeverOwns (0.01s)
+=== RUN   TestKTCloudCleanupActualResourceOrderAndAbsence
+--- PASS: TestKTCloudCleanupActualResourceOrderAndAbsence (0.01s)
+=== RUN   TestKTCloudRootAlreadyDeletedWithServerDoesNotMutate
+=== RUN   TestKTCloudRootAlreadyDeletedWithServerDoesNotMutate/404
+=== RUN   TestKTCloudRootAlreadyDeletedWithServerDoesNotMutate/200
+--- PASS: TestKTCloudRootAlreadyDeletedWithServerDoesNotMutate (0.01s)
+    --- PASS: TestKTCloudRootAlreadyDeletedWithServerDoesNotMutate/404 (0.01s)
+    --- PASS: TestKTCloudRootAlreadyDeletedWithServerDoesNotMutate/200 (0.00s)
+=== RUN   TestKTCloudManagementAddressNeverFallsBackToLab
+--- PASS: TestKTCloudManagementAddressNeverFallsBackToLab (0.00s)
+=== RUN   TestKTCloudResetRequiresExactActualResourceSet
+--- PASS: TestKTCloudResetRequiresExactActualResourceSet (0.00s)
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/absent
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/deleting
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/available
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/lookupFailure
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/wrongID
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/attached
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/emptyStatus
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/staysDeleting
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/absent
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/deleting
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/available
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/lookupFailure
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/wrongID
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/attached
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/emptyStatus
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/staysDeleting
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/absent
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/deleting
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/available
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/lookupFailure
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/wrongID
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/attached
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/emptyStatus
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/staysDeleting
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/absent
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/deleting
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/available
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/lookupFailure
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/wrongID
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/attached
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/emptyStatus
+=== RUN   TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/staysDeleting
+--- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry (0.61s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/absent (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/deleting (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/available (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/lookupFailure (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/wrongID (0.00s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/attached (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/emptyStatus (0.00s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/400/staysDeleting (0.21s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/absent (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/deleting (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/available (0.00s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/lookupFailure (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/wrongID (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/attached (0.00s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/emptyStatus (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/409/staysDeleting (0.21s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/absent (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/deleting (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/available (0.00s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/lookupFailure (0.00s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/wrongID (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/attached (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/emptyStatus (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/403/staysDeleting (0.00s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/absent (0.00s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/deleting (0.00s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/available (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/lookupFailure (0.00s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/wrongID (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/attached (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/emptyStatus (0.01s)
+    --- PASS: TestKTCloudRootDeleteRejectionUsesFreshObservationWithoutRetry/500/staysDeleting (0.00s)
+=== RUN   TestKTCloudDeletingRootWaitsForActualAbsenceWithoutDuplicateDelete
+=== RUN   TestKTCloudDeletingRootWaitsForActualAbsenceWithoutDuplicateDelete/converges
+=== RUN   TestKTCloudDeletingRootWaitsForActualAbsenceWithoutDuplicateDelete/staysDeleting
+--- PASS: TestKTCloudDeletingRootWaitsForActualAbsenceWithoutDuplicateDelete (0.21s)
+    --- PASS: TestKTCloudDeletingRootWaitsForActualAbsenceWithoutDuplicateDelete/converges (0.01s)
+    --- PASS: TestKTCloudDeletingRootWaitsForActualAbsenceWithoutDuplicateDelete/staysDeleting (0.20s)
+=== RUN   TestKTCloudRejectedCreateBodyRemainsUnknownWithoutRetry
+=== RUN   TestKTCloudRejectedCreateBodyRemainsUnknownWithoutRetry/length-41
+=== RUN   TestKTCloudRejectedCreateBodyRemainsUnknownWithoutRetry/length-10
+--- PASS: TestKTCloudRejectedCreateBodyRemainsUnknownWithoutRetry (0.02s)
+    --- PASS: TestKTCloudRejectedCreateBodyRemainsUnknownWithoutRetry/length-41 (0.01s)
+    --- PASS: TestKTCloudRejectedCreateBodyRemainsUnknownWithoutRetry/length-10 (0.01s)
+=== RUN   TestKTCloudCompressedUserDataRejectsFinalTransportOverflow
+--- PASS: TestKTCloudCompressedUserDataRejectsFinalTransportOverflow (0.03s)
+=== RUN   TestKTCloudCompressibleStartupPassesPreflightAndServerCreate
+--- PASS: TestKTCloudCompressibleStartupPassesPreflightAndServerCreate (0.01s)
+=== RUN   TestKTCloudServerPreservesStartupScriptThroughCompressedUserData
+=== RUN   TestKTCloudServerPreservesStartupScriptThroughCompressedUserData/#00
+=== RUN   TestKTCloudServerPreservesStartupScriptThroughCompressedUserData/#!/bin/sh_true_
+=== RUN   TestKTCloudServerPreservesStartupScriptThroughCompressedUserData/#!/bin/sh_printf_'%s'_'<form_method="post">한글</form>'_
+--- PASS: TestKTCloudServerPreservesStartupScriptThroughCompressedUserData (0.03s)
+    --- PASS: TestKTCloudServerPreservesStartupScriptThroughCompressedUserData/#00 (0.01s)
+    --- PASS: TestKTCloudServerPreservesStartupScriptThroughCompressedUserData/#!/bin/sh_true_ (0.01s)
+    --- PASS: TestKTCloudServerPreservesStartupScriptThroughCompressedUserData/#!/bin/sh_printf_'%s'_'<form_method="post">한글</form>'_ (0.01s)
+=== RUN   TestCleanupDeletesExactIDsInDependencyOrderAndTreats404AsDeleted
+--- PASS: TestCleanupDeletesExactIDsInDependencyOrderAndTreats404AsDeleted (0.01s)
+=== RUN   TestCleanupPartialDeleteRejectionReportsDestructiveFailure
+--- PASS: TestCleanupPartialDeleteRejectionReportsDestructiveFailure (0.01s)
+=== RUN   TestCleanupDetachesRouterInterfaceBeforeDelete
+--- PASS: TestCleanupDetachesRouterInterfaceBeforeDelete (0.01s)
+=== RUN   TestCleanupUncertainDeleteStopsAndPreservesEveryTarget
+--- PASS: TestCleanupUncertainDeleteStopsAndPreservesEveryTarget (0.01s)
+=== RUN   TestCleanupRequestTimeoutRemainsUnknown
+--- PASS: TestCleanupRequestTimeoutRemainsUnknown (0.01s)
+=== RUN   TestCleanupRejectsFutureGenerationBeforeMutation
+--- PASS: TestCleanupRejectsFutureGenerationBeforeMutation (0.00s)
+=== RUN   TestResetPreflightFailureDoesNotDeleteCurrentGeneration
+--- PASS: TestResetPreflightFailureDoesNotDeleteCurrentGeneration (0.01s)
+=== RUN   TestResetDoesNotCreditMissingResourcesBeforeDestructiveCleanup
+--- PASS: TestResetDoesNotCreditMissingResourcesBeforeDestructiveCleanup (0.02s)
+=== RUN   TestResetUsesActualOldServerFlavorForQuotaCreditBeforeCleanup
+--- PASS: TestResetUsesActualOldServerFlavorForQuotaCreditBeforeCleanup (0.03s)
+=== RUN   TestResetRejectsMissingEmptyAndPartialResourcesBeforePreflight
+=== RUN   TestResetRejectsMissingEmptyAndPartialResourcesBeforePreflight/missing
+=== RUN   TestResetRejectsMissingEmptyAndPartialResourcesBeforePreflight/empty
+=== RUN   TestResetRejectsMissingEmptyAndPartialResourcesBeforePreflight/partial
+--- PASS: TestResetRejectsMissingEmptyAndPartialResourcesBeforePreflight (0.00s)
+    --- PASS: TestResetRejectsMissingEmptyAndPartialResourcesBeforePreflight/missing (0.00s)
+    --- PASS: TestResetRejectsMissingEmptyAndPartialResourcesBeforePreflight/empty (0.00s)
+    --- PASS: TestResetRejectsMissingEmptyAndPartialResourcesBeforePreflight/partial (0.00s)
+=== RUN   TestResetRejectsCurrentGenerationResourcesBeforePreflight
+--- PASS: TestResetRejectsCurrentGenerationResourcesBeforePreflight (0.00s)
+=== RUN   TestResetCleansOldGenerationThenProvisionsNewGeneration
+--- PASS: TestResetCleansOldGenerationThenProvisionsNewGeneration (0.12s)
+=== RUN   TestProvisionLongVMKeyLifecycleRoundTrip
+=== RUN   TestProvisionLongVMKeyLifecycleRoundTrip/key_244/Cleanup
+=== RUN   TestProvisionLongVMKeyLifecycleRoundTrip/key_244/Reconcile
+=== RUN   TestProvisionLongVMKeyLifecycleRoundTrip/key_244/Reset
+=== RUN   TestProvisionLongVMKeyLifecycleRoundTrip/key_245/Cleanup
+=== RUN   TestProvisionLongVMKeyLifecycleRoundTrip/key_245/Reconcile
+=== RUN   TestProvisionLongVMKeyLifecycleRoundTrip/key_245/Reset
+=== RUN   TestProvisionLongVMKeyLifecycleRoundTrip/key_255/Cleanup
+=== RUN   TestProvisionLongVMKeyLifecycleRoundTrip/key_255/Reconcile
+=== RUN   TestProvisionLongVMKeyLifecycleRoundTrip/key_255/Reset
+--- PASS: TestProvisionLongVMKeyLifecycleRoundTrip (0.83s)
+    --- PASS: TestProvisionLongVMKeyLifecycleRoundTrip/key_244/Cleanup (0.07s)
+    --- PASS: TestProvisionLongVMKeyLifecycleRoundTrip/key_244/Reconcile (0.07s)
+    --- PASS: TestProvisionLongVMKeyLifecycleRoundTrip/key_244/Reset (0.12s)
+    --- PASS: TestProvisionLongVMKeyLifecycleRoundTrip/key_245/Cleanup (0.06s)
+    --- PASS: TestProvisionLongVMKeyLifecycleRoundTrip/key_245/Reconcile (0.07s)
+    --- PASS: TestProvisionLongVMKeyLifecycleRoundTrip/key_245/Reset (0.14s)
+    --- PASS: TestProvisionLongVMKeyLifecycleRoundTrip/key_255/Cleanup (0.07s)
+    --- PASS: TestProvisionLongVMKeyLifecycleRoundTrip/key_255/Reconcile (0.08s)
+    --- PASS: TestProvisionLongVMKeyLifecycleRoundTrip/key_255/Reset (0.17s)
+=== RUN   TestProvisionOversizedVMKeyStillRejectedBeforeCloudCalls
+--- PASS: TestProvisionOversizedVMKeyStillRejectedBeforeCloudCalls (0.00s)
+=== RUN   TestManagementDHCPClasslessRouteUsesValidatedSubnet
+=== RUN   TestManagementDHCPClasslessRouteUsesValidatedSubnet/172.16.8.0/24
+=== RUN   TestManagementDHCPClasslessRouteUsesValidatedSubnet/10.80.0.0/24
+--- PASS: TestManagementDHCPClasslessRouteUsesValidatedSubnet (0.08s)
+    --- PASS: TestManagementDHCPClasslessRouteUsesValidatedSubnet/172.16.8.0/24 (0.05s)
+    --- PASS: TestManagementDHCPClasslessRouteUsesValidatedSubnet/10.80.0.0/24 (0.04s)
+=== RUN   TestManagementPortRejectsAddressOutsideOriginalSubnet
+--- PASS: TestManagementPortRejectsAddressOutsideOriginalSubnet (0.03s)
+=== RUN   TestManagementDHCPPolicyRejectsInvalidCIDRBeforePortAPI
+=== RUN   TestManagementDHCPPolicyRejectsInvalidCIDRBeforePortAPI/#00
+=== RUN   TestManagementDHCPPolicyRejectsInvalidCIDRBeforePortAPI/invalid
+=== RUN   TestManagementDHCPPolicyRejectsInvalidCIDRBeforePortAPI/::/64
+=== RUN   TestManagementDHCPPolicyRejectsInvalidCIDRBeforePortAPI/172.16.8.1/24
+=== RUN   TestManagementDHCPPolicyRejectsInvalidCIDRBeforePortAPI/0.0.0.0/0
+--- PASS: TestManagementDHCPPolicyRejectsInvalidCIDRBeforePortAPI (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsInvalidCIDRBeforePortAPI/#00 (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsInvalidCIDRBeforePortAPI/invalid (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsInvalidCIDRBeforePortAPI/::/64 (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsInvalidCIDRBeforePortAPI/172.16.8.1/24 (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsInvalidCIDRBeforePortAPI/0.0.0.0/0 (0.00s)
+=== RUN   TestManagementPortRejectsPolicyDriftAfterNova
+=== RUN   TestManagementPortRejectsPolicyDriftAfterNova/empty_121
+=== RUN   TestManagementPortRejectsPolicyDriftAfterNova/default_route
+=== RUN   TestManagementPortRejectsPolicyDriftAfterNova/other_subnet
+=== RUN   TestManagementPortRejectsPolicyDriftAfterNova/null
+=== RUN   TestManagementPortRejectsPolicyDriftAfterNova/missing
+--- PASS: TestManagementPortRejectsPolicyDriftAfterNova (0.27s)
+    --- PASS: TestManagementPortRejectsPolicyDriftAfterNova/empty_121 (0.07s)
+    --- PASS: TestManagementPortRejectsPolicyDriftAfterNova/default_route (0.06s)
+    --- PASS: TestManagementPortRejectsPolicyDriftAfterNova/other_subnet (0.06s)
+    --- PASS: TestManagementPortRejectsPolicyDriftAfterNova/null (0.04s)
+    --- PASS: TestManagementPortRejectsPolicyDriftAfterNova/missing (0.04s)
+=== RUN   TestManagementPortUsesValidatedObservation
+=== RUN   TestManagementPortUsesValidatedObservation/outside_address
+=== RUN   TestManagementPortUsesValidatedObservation/foreign_ID
+=== RUN   TestManagementPortUsesValidatedObservation/foreign_network
+=== RUN   TestManagementPortUsesValidatedObservation/empty_121
+--- PASS: TestManagementPortUsesValidatedObservation (0.15s)
+    --- PASS: TestManagementPortUsesValidatedObservation/outside_address (0.03s)
+    --- PASS: TestManagementPortUsesValidatedObservation/foreign_ID (0.03s)
+    --- PASS: TestManagementPortUsesValidatedObservation/foreign_network (0.03s)
+    --- PASS: TestManagementPortUsesValidatedObservation/empty_121 (0.05s)
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/extension_absent
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/multiple_subnets
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/network_identity_mismatch
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/network_unavailable
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/routed_SSH
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/SSH_prefix_only_partly_contained
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/Lab_overlaps_management
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/DHCP_disabled
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/IPv6
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/invalid_CIDR
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/subnet_identity_mismatch
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/subnet_parent_mismatch
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/default_host_route
+=== RUN   TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/specific_host_route_dependency
+--- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation (0.10s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/extension_absent (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/multiple_subnets (0.01s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/network_identity_mismatch (0.01s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/network_unavailable (0.01s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/routed_SSH (0.01s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/SSH_prefix_only_partly_contained (0.01s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/Lab_overlaps_management (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/DHCP_disabled (0.01s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/IPv6 (0.01s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/invalid_CIDR (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/subnet_identity_mismatch (0.01s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/subnet_parent_mismatch (0.01s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/default_host_route (0.01s)
+    --- PASS: TestManagementDHCPPolicyRejectsUnsupportedDeploymentBeforeMutation/specific_host_route_dependency (0.01s)
+=== RUN   TestManagementDHCPPolicyAppliesToOnlyOwnedManagementPortAndPreservesUserData
+=== RUN   TestManagementDHCPPolicyAppliesToOnlyOwnedManagementPortAndPreservesUserData/on
+=== RUN   TestManagementDHCPPolicyAppliesToOnlyOwnedManagementPortAndPreservesUserData/off
+--- PASS: TestManagementDHCPPolicyAppliesToOnlyOwnedManagementPortAndPreservesUserData (0.11s)
+    --- PASS: TestManagementDHCPPolicyAppliesToOnlyOwnedManagementPortAndPreservesUserData/on (0.06s)
+    --- PASS: TestManagementDHCPPolicyAppliesToOnlyOwnedManagementPortAndPreservesUserData/off (0.05s)
+=== RUN   TestManagementDHCPPolicyKeepsCreatedPortWhenProviderDropsOverride
+=== RUN   TestManagementDHCPPolicyKeepsCreatedPortWhenProviderDropsOverride/create
+=== RUN   TestManagementDHCPPolicyKeepsCreatedPortWhenProviderDropsOverride/read
+--- PASS: TestManagementDHCPPolicyKeepsCreatedPortWhenProviderDropsOverride (0.09s)
+    --- PASS: TestManagementDHCPPolicyKeepsCreatedPortWhenProviderDropsOverride/create (0.05s)
+    --- PASS: TestManagementDHCPPolicyKeepsCreatedPortWhenProviderDropsOverride/read (0.04s)
+=== RUN   TestManagementDHCPPolicyRejectsMalformedOptions
+=== RUN   TestManagementDHCPPolicyRejectsMalformedOptions/missing
+=== RUN   TestManagementDHCPPolicyRejectsMalformedOptions/null
+=== RUN   TestManagementDHCPPolicyRejectsMalformedOptions/duplicate
+=== RUN   TestManagementDHCPPolicyRejectsMalformedOptions/IPv6
+=== RUN   TestManagementDHCPPolicyRejectsMalformedOptions/nonempty
+=== RUN   TestManagementDHCPPolicyRejectsMalformedOptions/unknown
+=== RUN   TestManagementDHCPPolicyRejectsMalformedOptions/numeric_name
+=== RUN   TestManagementDHCPPolicyRejectsMalformedOptions/unsupported_249
+=== RUN   TestManagementDHCPPolicyRejectsMalformedOptions/empty_121
+=== RUN   TestManagementDHCPPolicyRejectsMalformedOptions/default_121
+=== RUN   TestManagementDHCPPolicyRejectsMalformedOptions/other_subnet
+--- PASS: TestManagementDHCPPolicyRejectsMalformedOptions (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsMalformedOptions/missing (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsMalformedOptions/null (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsMalformedOptions/duplicate (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsMalformedOptions/IPv6 (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsMalformedOptions/nonempty (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsMalformedOptions/unknown (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsMalformedOptions/numeric_name (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsMalformedOptions/unsupported_249 (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsMalformedOptions/empty_121 (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsMalformedOptions/default_121 (0.00s)
+    --- PASS: TestManagementDHCPPolicyRejectsMalformedOptions/other_subnet (0.00s)
+=== RUN   TestManagementDHCPPolicyResetPreflightRetainsExistingGeneration
+--- PASS: TestManagementDHCPPolicyResetPreflightRetainsExistingGeneration (0.05s)
+=== RUN   TestManagementDHCPPolicyLookupFailureAndCancellationNeverMutate
+=== RUN   TestManagementDHCPPolicyLookupFailureAndCancellationNeverMutate/unauthorized
+=== RUN   TestManagementDHCPPolicyLookupFailureAndCancellationNeverMutate/unavailable
+=== RUN   TestManagementDHCPPolicyLookupFailureAndCancellationNeverMutate/canceled
+--- PASS: TestManagementDHCPPolicyLookupFailureAndCancellationNeverMutate (0.03s)
+    --- PASS: TestManagementDHCPPolicyLookupFailureAndCancellationNeverMutate/unauthorized (0.01s)
+    --- PASS: TestManagementDHCPPolicyLookupFailureAndCancellationNeverMutate/unavailable (0.01s)
+    --- PASS: TestManagementDHCPPolicyLookupFailureAndCancellationNeverMutate/canceled (0.01s)
+=== RUN   TestManagementPortDecodesPolicy
+--- PASS: TestManagementPortDecodesPolicy (0.00s)
+=== RUN   TestManagementSubnetAffinity
+=== RUN   TestManagementSubnetAffinity/stable
+=== RUN   TestManagementSubnetAffinity/changed_after_Nova_creation
+    management_subnet_affinity_test.go:65: observed changedReads=1 outcome=UNKNOWN probed="" resources=8
+--- PASS: TestManagementSubnetAffinity (0.10s)
+    --- PASS: TestManagementSubnetAffinity/stable (0.05s)
+    --- PASS: TestManagementSubnetAffinity/changed_after_Nova_creation (0.05s)
+=== RUN   TestProvisionWithoutStartupScriptChecksEveryVMSSH
+--- PASS: TestProvisionWithoutStartupScriptChecksEveryVMSSH (0.06s)
+=== RUN   TestProvisionWithoutStartupScriptRejectsWorkerSSHFailureAndKeepsResources
+--- PASS: TestProvisionWithoutStartupScriptRejectsWorkerSSHFailureAndKeepsResources (0.08s)
+=== RUN   TestProvisionWithoutStartupScriptKeepsResourcesOnWorkerCancellation
+--- PASS: TestProvisionWithoutStartupScriptKeepsResourcesOnWorkerCancellation (0.09s)
+=== RUN   TestEnsureNetworkRejectsExistingExactNameWithoutClaimingOwnership
+--- PASS: TestEnsureNetworkRejectsExistingExactNameWithoutClaimingOwnership (0.00s)
+=== RUN   TestEnsureNetworkTreatsRequestTimeoutAsUnknownMutation
+=== RUN   TestEnsureNetworkTreatsRequestTimeoutAsUnknownMutation/request_timeout
+=== RUN   TestEnsureNetworkTreatsRequestTimeoutAsUnknownMutation/bad_request
+--- PASS: TestEnsureNetworkTreatsRequestTimeoutAsUnknownMutation (0.01s)
+    --- PASS: TestEnsureNetworkTreatsRequestTimeoutAsUnknownMutation/request_timeout (0.01s)
+    --- PASS: TestEnsureNetworkTreatsRequestTimeoutAsUnknownMutation/bad_request (0.00s)
+=== RUN   TestEnsureNetworkCreatesPrivateActiveResource
+--- PASS: TestEnsureNetworkCreatesPrivateActiveResource (0.01s)
+=== RUN   TestEnsureSubnetRejectsSameNameWithDifferentAddressing
+--- PASS: TestEnsureSubnetRejectsSameNameWithDifferentAddressing (0.00s)
+=== RUN   TestEnsureSubnetCreatesIPv4Resource
+--- PASS: TestEnsureSubnetCreatesIPv4Resource (0.01s)
+=== RUN   TestEnsureSecurityGroupCreatesStatefulResource
+--- PASS: TestEnsureSecurityGroupCreatesStatefulResource (0.01s)
+=== RUN   TestEnsureResourcesRejectInvalidInputBeforeCallingOpenStack
+--- PASS: TestEnsureResourcesRejectInvalidInputBeforeCallingOpenStack (0.00s)
+=== RUN   TestEnsureOwnedResourcesRejectNameAndShapeMatchesWithoutProviderID
+=== RUN   TestEnsureOwnedResourcesRejectNameAndShapeMatchesWithoutProviderID/security_group
+=== RUN   TestEnsureOwnedResourcesRejectNameAndShapeMatchesWithoutProviderID/port
+=== RUN   TestEnsureOwnedResourcesRejectNameAndShapeMatchesWithoutProviderID/router
+--- PASS: TestEnsureOwnedResourcesRejectNameAndShapeMatchesWithoutProviderID (0.02s)
+    --- PASS: TestEnsureOwnedResourcesRejectNameAndShapeMatchesWithoutProviderID/security_group (0.01s)
+    --- PASS: TestEnsureOwnedResourcesRejectNameAndShapeMatchesWithoutProviderID/port (0.01s)
+    --- PASS: TestEnsureOwnedResourcesRejectNameAndShapeMatchesWithoutProviderID/router (0.00s)
+=== RUN   TestOpenStackPreviewForwardingIntegration
+    preview_forwarding_integration_test.go:26: set LABBIT_OPENSTACK_PREVIEW_TEST=1 for disposable local OpenStack forwarding acceptance
+--- SKIP: TestOpenStackPreviewForwardingIntegration (0.00s)
+=== RUN   TestDispatchOperationProvisionCreatesDualNICServerAndTracksResources
+--- PASS: TestDispatchOperationProvisionCreatesDualNICServerAndTracksResources (0.07s)
+=== RUN   TestPreflightQuotaAllowsAvailableCapacity
+--- PASS: TestPreflightQuotaAllowsAvailableCapacity (0.01s)
+=== RUN   TestProvisionRejectsNonExternalOutboundNetworkBeforeMutation
+--- PASS: TestProvisionRejectsNonExternalOutboundNetworkBeforeMutation (0.02s)
+=== RUN   TestProvisionRejectsInsufficientQuotaBeforeMutation
+--- PASS: TestProvisionRejectsInsufficientQuotaBeforeMutation (0.03s)
+=== RUN   TestProvisionSupportsMultipleVMs
+--- PASS: TestProvisionSupportsMultipleVMs (0.10s)
+=== RUN   TestProvisionWithoutInternetDoesNotCreateRouter
+--- PASS: TestProvisionWithoutInternetDoesNotCreateRouter (0.05s)
+=== RUN   TestProvisionWithoutInternetRejectsManagementSecurityGroupEgressBeforeMutation
+--- PASS: TestProvisionWithoutInternetRejectsManagementSecurityGroupEgressBeforeMutation (0.01s)
+=== RUN   TestProvisionServerCreateFailureIsUnknownWithPartialResources
+--- PASS: TestProvisionServerCreateFailureIsUnknownWithPartialResources (0.05s)
+=== RUN   TestProvisionRejectedServerCreateIsFailedWithPartialResources
+--- PASS: TestProvisionRejectedServerCreateIsFailedWithPartialResources (0.04s)
+=== RUN   TestProvisionRejectsInvalidSnapshotBeforeOpenStackCalls
+--- PASS: TestProvisionRejectsInvalidSnapshotBeforeOpenStackCalls (0.00s)
+=== RUN   TestProvisionRejectsCollidingDerivedVMNamesBeforeOpenStackCalls
+=== RUN   TestProvisionRejectsCollidingDerivedVMNamesBeforeOpenStackCalls/web/1_web-1
+=== RUN   TestProvisionRejectsCollidingDerivedVMNamesBeforeOpenStackCalls/worker-identifier-that-is-long-a_worker-identifier-that-is-long-b
+--- PASS: TestProvisionRejectsCollidingDerivedVMNamesBeforeOpenStackCalls (0.00s)
+    --- PASS: TestProvisionRejectsCollidingDerivedVMNamesBeforeOpenStackCalls/web/1_web-1 (0.00s)
+    --- PASS: TestProvisionRejectsCollidingDerivedVMNamesBeforeOpenStackCalls/worker-identifier-that-is-long-a_worker-identifier-that-is-long-b (0.00s)
+=== RUN   TestProvisionRejectsUnreadableSSHPrivateKeyBeforeMutation
+--- PASS: TestProvisionRejectsUnreadableSSHPrivateKeyBeforeMutation (0.01s)
+=== RUN   TestProvisionRejectsMismatchedSSHPrivateKeyBeforeMutation
+--- PASS: TestProvisionRejectsMismatchedSSHPrivateKeyBeforeMutation (0.02s)
+=== RUN   TestValidateSSHCredentialRejectsMatchingNonEd25519Key
+--- PASS: TestValidateSSHCredentialRejectsMatchingNonEd25519Key (0.11s)
+=== RUN   TestProvisionRejectsProviderConnectionMismatchBeforeOpenStackCalls
+--- PASS: TestProvisionRejectsProviderConnectionMismatchBeforeOpenStackCalls (0.00s)
+=== RUN   TestProvisionSSHTimeoutIsFailedAndPreservesActiveServer
+--- PASS: TestProvisionSSHTimeoutIsFailedAndPreservesActiveServer (0.05s)
+=== RUN   TestProvisionWaitsForStartupCompletionBeforeSuccess
+--- PASS: TestProvisionWaitsForStartupCompletionBeforeSuccess (0.04s)
+=== RUN   TestProvisionNameIsStableAndBounded
+--- PASS: TestProvisionNameIsStableAndBounded (0.00s)
+=== RUN   TestOpenStackPTYCC02Integration
+    pty_cc02_integration_test.go:27: set LABBIT_OPENSTACK_PTY_CC02_TEST=1 for real local OpenStack PTY/CC-02 acceptance
+--- SKIP: TestOpenStackPTYCC02Integration (0.00s)
+=== RUN   TestAdapterListsAndNormalizesM1Resources
+--- PASS: TestAdapterListsAndNormalizesM1Resources (0.01s)
+=== RUN   TestListErrorsDoNotExposeProviderResponse
+--- PASS: TestListErrorsDoNotExposeProviderResponse (0.00s)
+=== RUN   TestQuotaRequiredForTwoVMOutboundTopology
+--- PASS: TestQuotaRequiredForTwoVMOutboundTopology (0.00s)
+=== RUN   TestQuotaCreditForResetUsesOnlyObservedResourcesAndActualServerFlavor
+--- PASS: TestQuotaCreditForResetUsesOnlyObservedResourcesAndActualServerFlavor (0.01s)
+=== RUN   TestQuotaAvailableAccountsForReservedAndResetCredit
+--- PASS: TestQuotaAvailableAccountsForReservedAndResetCredit (0.00s)
+=== RUN   TestPublicNewReauthRecoversExpiredToken
+=== RUN   TestPublicNewReauthRecoversExpiredToken/password
+=== RUN   TestPublicNewReauthRecoversExpiredToken/application
+--- PASS: TestPublicNewReauthRecoversExpiredToken (0.11s)
+    --- PASS: TestPublicNewReauthRecoversExpiredToken/password (0.05s)
+    --- PASS: TestPublicNewReauthRecoversExpiredToken/application (0.06s)
+=== RUN   TestPublicNewReauthFailedRefreshCanRecoverOnLaterRequest
+--- PASS: TestPublicNewReauthFailedRefreshCanRecoverOnLaterRequest (0.02s)
+=== RUN   TestPublicNewReauthTokenOnlyDoesNotRenew
+--- PASS: TestPublicNewReauthTokenOnlyDoesNotRenew (0.01s)
+=== RUN   TestBoundedReauthenticationAddsDeadlineAndReleasesContext
+--- PASS: TestBoundedReauthenticationAddsDeadlineAndReleasesContext (0.00s)
+=== RUN   TestLoadConfigMixedTokenAndPasswordDoesNotEnableReauth
+--- PASS: TestLoadConfigMixedTokenAndPasswordDoesNotEnableReauth (0.00s)
+=== RUN   TestPublicNewReauthHonorsCancellation
+=== RUN   TestPublicNewReauthHonorsCancellation/true
+=== RUN   TestPublicNewReauthHonorsCancellation/false
+--- PASS: TestPublicNewReauthHonorsCancellation (0.11s)
+    --- PASS: TestPublicNewReauthHonorsCancellation/true (0.05s)
+    --- PASS: TestPublicNewReauthHonorsCancellation/false (0.06s)
+=== RUN   TestPublicNewReauthMutationRetryIsOnlyDefinitive401
+=== RUN   TestPublicNewReauthMutationRetryIsOnlyDefinitive401/expired_then_success
+=== RUN   TestPublicNewReauthMutationRetryIsOnlyDefinitive401/refresh_rejected
+=== RUN   TestPublicNewReauthMutationRetryIsOnlyDefinitive401/second_401
+=== RUN   TestPublicNewReauthMutationRetryIsOnlyDefinitive401/second_500
+=== RUN   TestPublicNewReauthMutationRetryIsOnlyDefinitive401/second_timeout
+=== RUN   TestPublicNewReauthMutationRetryIsOnlyDefinitive401/initial_500
+=== RUN   TestPublicNewReauthMutationRetryIsOnlyDefinitive401/initial_timeout
+--- PASS: TestPublicNewReauthMutationRetryIsOnlyDefinitive401 (0.69s)
+    --- PASS: TestPublicNewReauthMutationRetryIsOnlyDefinitive401/expired_then_success (0.01s)
+    --- PASS: TestPublicNewReauthMutationRetryIsOnlyDefinitive401/refresh_rejected (0.01s)
+    --- PASS: TestPublicNewReauthMutationRetryIsOnlyDefinitive401/second_401 (0.02s)
+    --- PASS: TestPublicNewReauthMutationRetryIsOnlyDefinitive401/second_500 (0.01s)
+    --- PASS: TestPublicNewReauthMutationRetryIsOnlyDefinitive401/second_timeout (0.31s)
+    --- PASS: TestPublicNewReauthMutationRetryIsOnlyDefinitive401/initial_500 (0.01s)
+    --- PASS: TestPublicNewReauthMutationRetryIsOnlyDefinitive401/initial_timeout (0.31s)
+=== RUN   TestReconcileObservesKnownPresentAndConfirmedAbsentResources
+--- PASS: TestReconcileObservesKnownPresentAndConfirmedAbsentResources (0.00s)
+=== RUN   TestDispatchReconcileDoesNotTurnLookupFailureIntoAbsence
+--- PASS: TestDispatchReconcileDoesNotTurnLookupFailureIntoAbsence (0.01s)
+=== RUN   TestReconcileDiscoversGenerationCandidatesWithoutClaimingOwnership
+--- PASS: TestReconcileDiscoversGenerationCandidatesWithoutClaimingOwnership (0.01s)
+=== RUN   TestReconcileExcludesKnownIDFromCandidates
+--- PASS: TestReconcileExcludesKnownIDFromCandidates (0.01s)
+=== RUN   TestEnsureServerRejectsMatchingServerWithoutPersistedOwnership
+--- PASS: TestEnsureServerRejectsMatchingServerWithoutPersistedOwnership (0.01s)
+=== RUN   TestRunSSHCommandCancellationClosesStalledHandshake
+--- PASS: TestRunSSHCommandCancellationClosesStalledHandshake (0.01s)
+=== RUN   TestRunSSHCommandCancellationClosesStalledCommand
+--- PASS: TestRunSSHCommandCancellationClosesStalledCommand (0.02s)
+=== RUN   TestTrustOnFirstUsePinsAndRejectsChangedHostKey
+--- PASS: TestTrustOnFirstUsePinsAndRejectsChangedHostKey (0.00s)
+=== RUN   TestTrustOnFirstUseRepinsNewServerIdentityAtReusedIP
+--- PASS: TestTrustOnFirstUseRepinsNewServerIdentityAtReusedIP (0.00s)
+=== RUN   TestTrustOnFirstUseOnlyOneConcurrentFirstKeyWins
+--- PASS: TestTrustOnFirstUseOnlyOneConcurrentFirstKeyWins (0.00s)
+=== RUN   TestSSHHostKeyIdentityIsStableAndBoundToServer
+--- PASS: TestSSHHostKeyIdentityIsStableAndBoundToServer (0.00s)
+=== RUN   TestTerminalC2_FullStackLoopback
+    terminal_c2_integration_test.go:626: Scenario 1A: Browser ↔ Relay ↔ Connector ↔ Echo PTY PASS
+    terminal_c2_integration_test.go:656: Scenario 1B: Terminal RESIZE PASS
+    terminal_c2_integration_test.go:707: Scenario 2: Browser Reconnect within Grace Period PASS
+    terminal_c2_integration_test.go:723: Scenario 3: PTY Close & Safe Resource Release PASS
+--- PASS: TestTerminalC2_FullStackLoopback (0.04s)
+=== RUN   TestOpenStackTerminalC2Integration
+    terminal_c2_integration_test.go:735: set LABBIT_OPENSTACK_TERMINAL_C2_TEST=1 for real local OpenStack Terminal C2 full-stack acceptance
+--- SKIP: TestOpenStackTerminalC2Integration (0.00s)
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/nova-503
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/neutron-503
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/nova-401
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/neutron-401
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/nova-json
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/neutron-json
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/missing-server
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/other-lab
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/stale-generation
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/wrong-vm
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/wrong-project
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/wrong-port
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/building
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/no-ip
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/unconfigured
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/canceled
+=== RUN   TestVMAccessProviderFailuresAndTargetMismatchControlCodes/deadline
+--- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes (0.13s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/nova-503 (0.01s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/neutron-503 (0.01s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/nova-401 (0.01s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/neutron-401 (0.01s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/nova-json (0.01s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/neutron-json (0.01s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/missing-server (0.01s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/other-lab (0.00s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/stale-generation (0.01s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/wrong-vm (0.01s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/wrong-project (0.01s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/wrong-port (0.01s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/building (0.01s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/no-ip (0.01s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/unconfigured (0.00s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/canceled (0.00s)
+    --- PASS: TestVMAccessProviderFailuresAndTargetMismatchControlCodes/deadline (0.00s)
+=== RUN   TestTerminalTargetRejectsInvalidInputsBeforeCloudLookup
+--- PASS: TestTerminalTargetRejectsInvalidInputsBeforeCloudLookup (0.00s)
+=== RUN   TestWorkspaceDesignationFailsClosed
+=== RUN   TestWorkspaceDesignationFailsClosed/workspace
+=== RUN   TestWorkspaceDesignationFailsClosed/worker
+=== RUN   TestWorkspaceDesignationFailsClosed/legacy-missing
+=== RUN   TestWorkspaceDesignationFailsClosed/wrong-vm
+--- PASS: TestWorkspaceDesignationFailsClosed (0.02s)
+    --- PASS: TestWorkspaceDesignationFailsClosed/workspace (0.00s)
+    --- PASS: TestWorkspaceDesignationFailsClosed/worker (0.00s)
+    --- PASS: TestWorkspaceDesignationFailsClosed/legacy-missing (0.01s)
+    --- PASS: TestWorkspaceDesignationFailsClosed/wrong-vm (0.01s)
+=== RUN   TestVMAccessRejectsMismatchedEnvelopeBeforeManagementLookup
+=== RUN   TestVMAccessRejectsMismatchedEnvelopeBeforeManagementLookup/other-lab
+=== RUN   TestVMAccessRejectsMismatchedEnvelopeBeforeManagementLookup/stale-generation
+=== RUN   TestVMAccessRejectsMismatchedEnvelopeBeforeManagementLookup/future-generation
+--- PASS: TestVMAccessRejectsMismatchedEnvelopeBeforeManagementLookup (0.02s)
+    --- PASS: TestVMAccessRejectsMismatchedEnvelopeBeforeManagementLookup/other-lab (0.00s)
+    --- PASS: TestVMAccessRejectsMismatchedEnvelopeBeforeManagementLookup/stale-generation (0.01s)
+    --- PASS: TestVMAccessRejectsMismatchedEnvelopeBeforeManagementLookup/future-generation (0.00s)
+=== RUN   TestKTCloudVMAccessPreservesTargetAffinityAndManagementTier
+=== RUN   TestKTCloudVMAccessPreservesTargetAffinityAndManagementTier/valid
+=== RUN   TestKTCloudVMAccessPreservesTargetAffinityAndManagementTier/stale-generation
+--- PASS: TestKTCloudVMAccessPreservesTargetAffinityAndManagementTier (0.01s)
+    --- PASS: TestKTCloudVMAccessPreservesTargetAffinityAndManagementTier/valid (0.01s)
+    --- PASS: TestKTCloudVMAccessPreservesTargetAffinityAndManagementTier/stale-generation (0.00s)
+=== RUN   TestResolveServerAddressManagementOnly
+=== RUN   TestResolveServerAddressManagementOnly/valid
+=== RUN   TestResolveServerAddressManagementOnly/wrong-vm
+=== RUN   TestResolveServerAddressManagementOnly/wrong-project
+=== RUN   TestResolveServerAddressManagementOnly/missing-metadata
+=== RUN   TestResolveServerAddressManagementOnly/wrong-name
+=== RUN   TestResolveServerAddressManagementOnly/not-active
+=== RUN   TestResolveServerAddressManagementOnly/no-port
+=== RUN   TestResolveServerAddressManagementOnly/two-ports
+=== RUN   TestResolveServerAddressManagementOnly/lab-port
+=== RUN   TestResolveServerAddressManagementOnly/other-server-port
+=== RUN   TestResolveServerAddressManagementOnly/other-project-port
+=== RUN   TestResolveServerAddressManagementOnly/no-ip
+=== RUN   TestResolveServerAddressManagementOnly/two-ips
+--- PASS: TestResolveServerAddressManagementOnly (0.08s)
+    --- PASS: TestResolveServerAddressManagementOnly/valid (0.01s)
+    --- PASS: TestResolveServerAddressManagementOnly/wrong-vm (0.00s)
+    --- PASS: TestResolveServerAddressManagementOnly/wrong-project (0.00s)
+    --- PASS: TestResolveServerAddressManagementOnly/missing-metadata (0.00s)
+    --- PASS: TestResolveServerAddressManagementOnly/wrong-name (0.00s)
+    --- PASS: TestResolveServerAddressManagementOnly/not-active (0.00s)
+    --- PASS: TestResolveServerAddressManagementOnly/no-port (0.01s)
+    --- PASS: TestResolveServerAddressManagementOnly/two-ports (0.01s)
+    --- PASS: TestResolveServerAddressManagementOnly/lab-port (0.01s)
+    --- PASS: TestResolveServerAddressManagementOnly/other-server-port (0.01s)
+    --- PASS: TestResolveServerAddressManagementOnly/other-project-port (0.00s)
+    --- PASS: TestResolveServerAddressManagementOnly/no-ip (0.01s)
+    --- PASS: TestResolveServerAddressManagementOnly/two-ips (0.01s)
+=== RUN   TestTerminalHostKeyUsesExistingServerPin
+--- PASS: TestTerminalHostKeyUsesExistingServerPin (0.00s)
+=== RUN   TestOpenStackVMAccessIntegration
+    vm_access_integration_test.go:23: set LABBIT_OPENSTACK_VM_ACCESS_TEST=1 for real local OpenStack VM access acceptance
+--- SKIP: TestOpenStackVMAccessIntegration (0.00s)
+=== RUN   TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit
+--- PASS: TestWorkspaceFixtureExecReleasesSetupAdmissionBeforeCommandExit (0.01s)
+=== RUN   TestWorkspaceFixtureExecCancellationClosesExactSession
+--- PASS: TestWorkspaceFixtureExecCancellationClosesExactSession (0.02s)
+=== RUN   TestLinuxRegressionRequiresEveryRequestedTest
+--- PASS: TestLinuxRegressionRequiresEveryRequestedTest (0.00s)
+=== RUN   TestOpenStackWorkspaceFileIntegration
+    workspace_file_integration_test.go:27: set LABBIT_OPENSTACK_WORKSPACE_FILE_TEST=1 for disposable local OpenStack acceptance
+--- SKIP: TestOpenStackWorkspaceFileIntegration (0.00s)
+=== RUN   TestOpenStackPreviewTransportIntegration
+    preview_transport_integration_test.go:247: set LABBIT_OPENSTACK_PREVIEW_TRANSPORT_TEST=1 for disposable local OpenStack Preview transport acceptance
+--- SKIP: TestOpenStackPreviewTransportIntegration (0.00s)
+PASS

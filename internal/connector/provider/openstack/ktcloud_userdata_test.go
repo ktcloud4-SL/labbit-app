@@ -75,6 +75,67 @@ func TestKTCloudCompressedUserDataRejectsFinalTransportOverflow(t *testing.T) {
 	}
 }
 
+func TestKTCloudCompressibleStartupPassesPreflightAndServerCreate(t *testing.T) {
+	original := []byte("#!/bin/sh\n" + strings.Repeat("# Repeated startup documentation for the workspace application.\n", 64) + "true\n")
+	before := bytes.Clone(original)
+	digest := fmt.Sprintf("%x", sha256.Sum256(original))
+	if len(original) <= 1536 || base64.StdEncoding.EncodedLen(len(original)) <= 2048 {
+		t.Fatal("fixture must exceed the obsolete raw-base64 limit")
+	}
+	posts := 0
+	a := ktTopologyAdapter(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/compute/v2/servers/detail":
+			writeJSON(t, w, 200, map[string]any{"servers": []any{}})
+		case r.Method == "POST" && r.URL.Path == "/compute/v2/servers":
+			posts++
+			var body struct {
+				Server struct {
+					UserData string `json:"user_data"`
+				} `json:"server"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatal("invalid server create JSON")
+			}
+			if body.Server.UserData == "" || len(body.Server.UserData) > 2048 {
+				t.Fatal("final SDK-base64 user_data must fit the transport limit")
+			}
+			compressed, err := base64.StdEncoding.DecodeString(body.Server.UserData)
+			if err != nil {
+				t.Fatal("invalid user_data base64")
+			}
+			reader, err := gzip.NewReader(bytes.NewReader(compressed))
+			if err != nil {
+				t.Fatal("user_data must contain gzip-compressed startup bytes")
+			}
+			decoded, readErr := io.ReadAll(reader)
+			closeErr := reader.Close()
+			if readErr != nil || closeErr != nil || !bytes.Equal(decoded, before) || fmt.Sprintf("%x", sha256.Sum256(decoded)) != digest {
+				t.Fatal("startup content or SHA256 changed during transport")
+			}
+			writeJSON(t, w, 202, map[string]any{"server": map[string]any{"id": "created-server"}})
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+	})
+	snapshot := validSnapshot()
+	snapshot.ProviderConnectionID = a.provision.ProviderConnectionID
+	snapshot.InternetOutbound = false
+	snapshot.StartupScript.Content = string(original)
+	snapshot.StartupScript.SHA256 = digest
+	request := coreprovider.ProvisionRequest{Correlation: coreprovider.Correlation{OperationID: "compressible-operation", LabInstanceID: "compressible-instance", Generation: 1}, CreationSnapshot: snapshot}
+	if err := validateProvisionRequest(request); err != nil {
+		t.Fatalf("long compressible startup must pass request validation: %v", err)
+	}
+	if err := a.validateProvisionSettings(a.provision, snapshot); err != nil {
+		t.Fatalf("long compressible startup must pass preflight: %v", err)
+	}
+	resource, server, err := a.EnsureServer(context.Background(), resourceIdentity(1, "workspace"), ServerSpec{Name: "fixture", ImageID: "image", FlavorID: "flavor", KeyPair: "key", NetworkIDs: []string{"management-ref", "lab-ref"}, UserData: original})
+	if err != nil || posts != 1 || resource.ProviderID != "created-server" || server.ID != "created-server" || !bytes.Equal(original, before) || snapshot.StartupScript.Content != string(before) || snapshot.StartupScript.SHA256 != digest {
+		t.Fatalf("server create or immutable startup preservation failed: posts=%d err=%v", posts, err)
+	}
+}
+
 func TestKTCloudServerPreservesStartupScriptThroughCompressedUserData(t *testing.T) {
 	for _, script := range []string{"", "#!/bin/sh\ntrue\n", "#!/bin/sh\nprintf '%s' '<form method=\"post\">한글</form>'\n"} {
 		t.Run(script, func(t *testing.T) {

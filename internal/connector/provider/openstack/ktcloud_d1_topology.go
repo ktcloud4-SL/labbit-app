@@ -53,9 +53,6 @@ func (a *Adapter) validateProvisionSettings(config ProvisionConfig, snapshot cor
 	if len(snapshot.VMs) != 1 || snapshot.InternetOutbound || config.ProjectID == "" || config.KTCloudConnectorTierID == "" || a.volume == nil || config.ManagementNetworkID != "" || config.ManagementSecurityGroupID != "" || config.ExternalNetworkID != "" || le != nil || me != nil || se != nil || !lab.Addr().Is4() || !management.Addr().Is4() || !source.Addr().Is4() || lab.Bits() != 24 || management.Bits() != 24 || source.Bits() != 32 || lab != lab.Masked() || management != management.Masked() || lab.Overlaps(management) || config.ProviderConnectionID == "" || snapshot.ProviderConnectionID != config.ProviderConnectionID || config.KeyPairName == "" || config.SSHUsername == "" || config.SSHPrivateKeyFile == "" || config.SSHKnownHostsFile == "" {
 		return ErrProvisionConfig
 	}
-	if snapshot.StartupScript != nil && base64.StdEncoding.EncodedLen(len(snapshot.StartupScript.Content)) > 2048 {
-		return ErrProvisionConfig
-	}
 	if snapshot.StartupScript != nil {
 		if _, err := ktCloudCompressedUserData([]byte(snapshot.StartupScript.Content)); err != nil {
 			return ErrProvisionConfig

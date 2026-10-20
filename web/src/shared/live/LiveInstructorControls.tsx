@@ -25,6 +25,7 @@ export function LiveInstructorControls({
   const pendingRef = useRef(false)
   const [message, setMessage] = useState('')
   const [authExpired, setAuthExpired] = useState(false)
+  const [closedSessionId, setClosedSessionId] = useState<string | null>(null)
   const queryKey = labbitQueryKeys.activeLiveSession(classId)
   const activeQuery = useQuery({
     queryKey,
@@ -40,7 +41,8 @@ export function LiveInstructorControls({
   // But preserve the last verified ID for an explicit best-effort STOP.
   // Never offer STOP for an auth failure, forbidden membership, or confirmed 404.
   const uncertain = Boolean(lookupError) && !forbidden
-  const active = forbidden ? undefined : activeQuery.data
+  const queriedActive = forbidden ? undefined : activeQuery.data
+  const active = queriedActive?.id === closedSessionId ? undefined : queriedActive
 
   async function act(action: 'start' | 'stop') {
     if (pendingRef.current || activeQuery.isPending) return
@@ -55,11 +57,14 @@ export function LiveInstructorControls({
         if (created.classId !== classId || created.sourceTerminalSessionId !== id) {
           setMessage('Live 응답 대상이 현재 Class·Terminal과 다릅니다. 새로 확인해 주세요.')
         } else {
+          setClosedSessionId(null)
           queryClient.setQueryData(queryKey, created)
           setMessage('학생에게 현재 이후의 터미널 출력만 공유합니다.')
         }
       } else {
         await api.closeLiveSession(id)
+        // A subsequent failed refetch must not resurrect this confirmed-closed ID.
+        setClosedSessionId(id)
         queryClient.removeQueries({ queryKey, exact: true })
         setMessage('화면 공유를 종료했습니다. 원본 터미널은 유지됩니다.')
       }

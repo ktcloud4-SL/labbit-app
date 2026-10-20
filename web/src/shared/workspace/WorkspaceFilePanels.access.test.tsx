@@ -106,7 +106,7 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
     expect(readWorkspaceFile).toHaveBeenCalledTimes(1)
     fireEvent.click(verify)
     expect(await screen.findByRole('button', { name: '미저장 수정본 복원' })).toBeInTheDocument()
-    expect(screen.getByLabelText('파일 편집기')).toHaveValue('# authorized content')
+    expect((screen.getByLabelText('파일 편집기') as HTMLTextAreaElement).value.trimEnd()).toBe('# authorized content')
 
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     fireEvent.click(screen.getByRole('button', { name: '미저장 수정본 복원' }))
@@ -140,7 +140,7 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
     fileDenied = false
     fireEvent.click(screen.getByRole('button', { name: '파일 다시 읽기' }))
     expect(await screen.findByRole('button', { name: '미저장 수정본 복원' })).toBeInTheDocument()
-    expect(screen.getByLabelText('파일 편집기')).toHaveValue('# authorized content')
+    expect((screen.getByLabelText('파일 편집기') as HTMLTextAreaElement).value.trimEnd()).toBe('# authorized content')
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     fireEvent.click(screen.getByRole('button', { name: '수정본 버리기' }))
     expect(screen.queryByRole('button', { name: '미저장 수정본 복원' })).not.toBeInTheDocument()

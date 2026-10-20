@@ -130,7 +130,7 @@ function deniesPreviouslyVerifiedLive(error: unknown) {
 }
 
 function isTransientLiveLookupFailure(error: unknown) {
-  return Boolean(error) && (!(error instanceof HttpError) || error.status === 503)
+  return Boolean(error) && (!(error instanceof HttpError) || (error.status >= 500 && error.status < 600))
 }
 
 export function LiveStudentPanel({ classId }: { classId: string }) {
@@ -158,7 +158,7 @@ export function LiveStudentPanel({ classId }: { classId: string }) {
         return session
       } catch (error) {
         // Latch revocation at the response boundary, including back-to-back
-        // 403/404 -> 503 replies without an intervening React render.
+        // 403/404 -> 5xx replies without an intervening React render.
         if (!signal.aborted && deniesPreviouslyVerifiedLive(error)) {
           setLastVerified({ classId, sessionId: null })
         }

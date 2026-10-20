@@ -308,7 +308,7 @@ describe('LBT-26 student read-only Class Live', () => {
     expect(screen.queryByLabelText('강사 화면 읽기 전용 출력')).not.toBeInTheDocument()
   })
 
-  it.each(['503', 'network'] as const)(
+  it.each([500, 502, 503, 504, 599, 'network'] as const)(
     'preserves subscribed student Live WSS and receives output after transient %s refetch failure',
     async (failure) => {
       vi.stubGlobal('WebSocket', FakeSocket)
@@ -316,7 +316,7 @@ describe('LBT-26 student read-only Class Live', () => {
       const { query } = mount(<LiveStudentPanel classId="class-a" />, {
         getActiveLiveSession: async () => {
           if (unavailable) {
-            if (failure === '503') throw new HttpError(503)
+            if (typeof failure === 'number') throw new HttpError(failure)
             throw new TypeError('Network offline')
           }
           return live
@@ -343,7 +343,7 @@ describe('LBT-26 student read-only Class Live', () => {
   )
 
   it.each([403, 404])(
-    'disconnects student Live after %i and never revives stale Viewer on a following 503',
+    'disconnects student Live after %i and never revives stale Viewer on following 500/503',
     async (status) => {
       vi.stubGlobal('WebSocket', FakeSocket)
       let failure: Error | null = null
@@ -364,11 +364,13 @@ describe('LBT-26 student read-only Class Live', () => {
       await waitFor(() => expect(screen.queryByLabelText('강사 화면 읽기 전용 출력')).not.toBeInTheDocument())
       expect(ws.readyState).toBe(3)
 
-      failure = new HttpError(503)
-      await act(async () => { await query.invalidateQueries() })
-      expect(screen.queryByLabelText('강사 화면 읽기 전용 출력')).not.toBeInTheDocument()
-      expect(FakeSocket.instances).toHaveLength(1)
-      expect(screen.queryByText('읽기 전용 연결됨')).not.toBeInTheDocument()
+      for (const transientStatus of [500, 503]) {
+        failure = new HttpError(transientStatus)
+        await act(async () => { await query.invalidateQueries() })
+        expect(screen.queryByLabelText('강사 화면 읽기 전용 출력')).not.toBeInTheDocument()
+        expect(FakeSocket.instances).toHaveLength(1)
+        expect(screen.queryByText('읽기 전용 연결됨')).not.toBeInTheDocument()
+      }
 
       // A new authorized GET 200, not a transient error or cached data, can
       // establish a fresh blank/no-history subscription.

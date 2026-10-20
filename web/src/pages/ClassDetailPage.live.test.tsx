@@ -57,7 +57,7 @@ afterEach(() => {
 })
 
 describe('LBT-26 Live continuity when revisiting a cached Class', () => {
-  it.each(['503', 'network'] as const)(
+  it.each([500, 503, 'network'] as const)(
     'keeps Class B WSS and OUTPUT after B → A → cached B, then %s',
     async (failure) => {
       vi.stubGlobal('WebSocket', LiveSocket)
@@ -103,7 +103,7 @@ describe('LBT-26 Live continuity when revisiting a cached Class', () => {
       expect(oldA.readyState).toBe(3)
 
       await act(async () => {
-        rejectB(failure === '503' ? new HttpError(503) : new TypeError('Network offline'))
+        rejectB(typeof failure === 'number' ? new HttpError(failure) : new TypeError('Network offline'))
       })
       await waitFor(() => expect(query.getQueryState(labbitQueryKeys.activeLiveSession('class-b'))?.status).toBe('error'))
       expect(await screen.findByRole('alert')).toHaveTextContent('기존 읽기 전용 연결을 유지합니다')

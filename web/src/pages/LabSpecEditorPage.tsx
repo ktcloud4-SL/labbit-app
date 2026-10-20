@@ -280,7 +280,7 @@ function LabSpecForm({
       {requireEtag && (
         <div className="notice-card notice-warning">
           최신 ETag를 확인하지 못해 안전한 수정 요청을 보낼 수 없습니다. 다시 불러와 주세요.
-          <button className="text-button" type="button" onClick={onReload}>
+          <button className="text-button" type="button" disabled={saving} onClick={onReload}>
             다시 불러오기
           </button>
         </div>
@@ -298,7 +298,7 @@ function LabSpecForm({
           <span>이름</span>
           <input
             value={form.name}
-            disabled={readOnly}
+            disabled={readOnly || saving}
             onChange={(event) =>
               setForm((current) => ({ ...current, name: event.target.value }))
             }
@@ -310,7 +310,7 @@ function LabSpecForm({
           <textarea
             rows={3}
             value={form.description ?? ''}
-            disabled={readOnly}
+            disabled={readOnly || saving}
             onChange={(event) =>
               setForm((current) => ({ ...current, description: event.target.value }))
             }
@@ -328,7 +328,7 @@ function LabSpecForm({
             </p>
           </div>
           {!readOnly && (
-            <button className="secondary-button" type="button" onClick={addVm}>
+            <button className="secondary-button" type="button" disabled={saving} onClick={addVm}>
               VM 역할 추가
             </button>
           )}
@@ -338,7 +338,7 @@ function LabSpecForm({
           <span>Provider 연결</span>
           <select
             value={providerConnectionId}
-            disabled={readOnly}
+            disabled={readOnly || saving}
             onChange={(event) => {
               const nextProvider = event.target.value
               if (nextProvider === providerConnectionId) return
@@ -382,6 +382,7 @@ function LabSpecForm({
                   <button
                     className="text-button danger-text"
                     type="button"
+                    disabled={saving}
                     onClick={() => removeVm(index)}
                   >
                     제거
@@ -394,7 +395,7 @@ function LabSpecForm({
                   <span>Role</span>
                   <input
                     value={vm.role}
-                    disabled={readOnly}
+                    disabled={readOnly || saving}
                     placeholder="예: control"
                     onChange={(event) => updateVm(index, { role: event.target.value })}
                   />
@@ -403,7 +404,7 @@ function LabSpecForm({
                   <span>표시 이름</span>
                   <input
                     value={vm.name ?? ''}
-                    disabled={readOnly}
+                    disabled={readOnly || saving}
                     placeholder="선택"
                     onChange={(event) => updateVm(index, { name: event.target.value })}
                   />
@@ -425,7 +426,7 @@ function LabSpecForm({
                     images={images}
                     sizes={sizes}
                     providerConnectionId={providerConnectionId}
-                    disabled={readOnly || !selectedGroup}
+                    disabled={readOnly || saving || !selectedGroup}
                     onChange={(next) => updateVm(index, next)}
                   />
                 )}
@@ -435,7 +436,7 @@ function LabSpecForm({
                     type="number"
                     min={1}
                     value={vm.count}
-                    disabled={readOnly}
+                    disabled={readOnly || saving}
                     onChange={(event) =>
                       updateVm(index, {
                         count: Math.max(1, event.target.valueAsNumber || 1),
@@ -464,7 +465,7 @@ function LabSpecForm({
           <span>Workspace VM</span>
           <select
             value={`${form.workspaceVm.role}:${form.workspaceVm.instanceIndex}`}
-            disabled={readOnly}
+            disabled={readOnly || saving}
             onChange={(event) => {
               const separator = event.target.value.lastIndexOf(':')
               const role = event.target.value.slice(0, separator)
@@ -494,7 +495,7 @@ function LabSpecForm({
           <input
             type="checkbox"
             checked={form.internetOutbound}
-            disabled={readOnly}
+            disabled={readOnly || saving}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
@@ -510,7 +511,7 @@ function LabSpecForm({
           <textarea
             rows={8}
             value={form.startupScript ?? ''}
-            disabled={readOnly}
+            disabled={readOnly || saving}
             placeholder="선택 입력"
             onChange={(event) =>
               setForm((current) => ({ ...current, startupScript: event.target.value }))
@@ -533,7 +534,7 @@ function LabSpecForm({
                   ? '저장할 수 없는 값이 있습니다. 입력 내용을 확인해 주세요.'
                   : 'LabSpec을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.')}
           {staleError && (
-            <button className="text-button" type="button" onClick={onReload}>
+            <button className="text-button" type="button" disabled={saving} onClick={onReload}>
               최신 내용 다시 불러오기
             </button>
           )}

@@ -1022,8 +1022,13 @@ EOF
   echo "PASS: Case 12B - Tampered binary aborted on release SHA256SUMS check."
 
   # Case 12C: ATTACK SCENARIO - Attacker replaced BOTH binary AND SHA256SUMS on GitHub release!
-  # In this scenario, SHA256SUMS matches the tampered binary, but does NOT match approved pinned checksum.
-  local tampered_hash="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  # Real sha256sum calculates actual hash of tampered binary, release SHA256SUMS matches it,
+  # but installer aborts because it does NOT match approved pinned checksum.
+  rm -f "${fake_bin}/sha256sum"
+  local tampered_content="tampered-payload-attack-vector"
+  local tampered_real_sha
+  tampered_real_sha=$(printf '%s' "$tampered_content" | sha256sum | awk '{print $1}')
+
   cat <<EOF > "${fake_bin}/curl"
 #!/bin/sh
 out=""
@@ -1037,25 +1042,18 @@ while [ \$# -gt 0 ]; do
 done
 case "\$url" in
   */SHA256SUMS)
-    # Attacker modified SHA256SUMS to match the tampered binary
-    printf '%s  labbit-connector\n' "$tampered_hash" > "\$out"
+    # Attacker modified SHA256SUMS to match the real sha256 of tampered binary
+    printf '%s  labbit-connector\n' "$tampered_real_sha" > "\$out"
     exit 0
     ;;
   */labbit-connector)
-    printf 'tampered-payload' > "\$out"
+    printf '%s' "$tampered_content" > "\$out"
     exit 0
     ;;
 esac
 exit 0
 EOF
   chmod +x "${fake_bin}/curl"
-
-  cat <<EOF > "${fake_bin}/sha256sum"
-#!/bin/sh
-echo "${tampered_hash}  \$1"
-exit 0
-EOF
-  chmod +x "${fake_bin}/sha256sum"
 
   local out_attack
   out_attack=$(PATH="${fake_bin}:${PATH}" \

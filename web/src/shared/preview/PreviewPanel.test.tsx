@@ -85,6 +85,22 @@ describe('LBT-26 PreviewSession Frontend consumer', () => {
     expect(container.innerHTML).not.toContain(URL_WITH_FIXTURE)
   })
 
+  it('로컬 HTTP Preview Origin은 Runtime Contract에 따라 허용하고 외부 HTTP Origin은 거부한다', async () => {
+    expect(window.location.hostname).toBe('localhost')
+    expect(window.location.protocol).toBe('http:')
+
+    const { api } = mount({
+      createPreviewSession: async () => ({
+        ...session(),
+        previewUrl: 'http://fixture-preview.localhost:8080/__labbit/bootstrap#fixture-local-only',
+      }),
+    })
+    submitPort()
+    expect(await screen.findByText(/미리보기 세션이 준비되었습니다/)).toBeInTheDocument()
+    expect(api.closePreviewSession).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: '미리보기 새 탭 열기' })).toBeEnabled()
+  })
+
   it('명시 종료는 session ID만 전달하고 UI의 재생성 버튼을 복원한다', async () => {
     const { api } = mount()
     submitPort()

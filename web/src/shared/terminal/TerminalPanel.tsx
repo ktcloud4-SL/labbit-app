@@ -15,6 +15,7 @@ import { labbitQueryKeys } from '../api/labbitApi'
 import { LoginRedirect } from '../ui/LoginRedirect'
 import { BrowserTerminalClient } from './browserTerminalClient'
 import { subscribeTerminalInput } from './terminalInput'
+import { LiveInstructorControls } from '../live/LiveInstructorControls'
 import {
   decideTerminalClose,
   decideTerminalProtocolError,
@@ -29,6 +30,8 @@ import {
 interface TerminalPanelProps {
   labInstanceId: string
   generation: number
+  classId?: string
+  isInstructor?: boolean
 }
 
 interface Disposable {
@@ -100,7 +103,7 @@ function httpTerminalError(error: unknown) {
   return '터미널 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'
 }
 
-export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps) {
+export function TerminalPanel({ labInstanceId, generation, classId, isInstructor = false }: TerminalPanelProps) {
   const api = useLabbitApi()
   const clientRef = useRef<BrowserTerminalClient | null>(null)
   const resumeRef = useRef<TerminalResumeState | null>(null)
@@ -133,6 +136,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
       : 'VM을 선택하고 터미널 연결을 시작하세요.',
   )
   const [resumed, setResumed] = useState(false)
+  const [attachedSessionId, setAttachedSessionId] = useState<string | null>(null)
   const [authExpired, setAuthExpired] = useState(false)
 
   const targetsQuery = useQuery({
@@ -258,6 +262,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     (state: TerminalResumeState) => {
       if (suppressReconnectRef.current) return
 
+      setAttachedSessionId(null)
       const startedAt = reconnectStartedAtRef.current ?? Date.now()
       reconnectStartedAtRef.current = startedAt
       const elapsed = Date.now() - startedAt
@@ -306,6 +311,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
 
           reconnectStartedAtRef.current = null
           setStatus('attached')
+          setAttachedSessionId(state.terminalSessionId)
           setResumed(result.resumed)
           setStatusMessage(
             result.resumed
@@ -323,6 +329,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
 
           suppressReconnectRef.current = true
           invalidateResume()
+          setAttachedSessionId(null)
           setStatus('ended')
           setStatusMessage(
             event.exitCode === undefined
@@ -354,6 +361,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
         },
         onClose(event) {
           if (sequence !== connectionSequenceRef.current) return
+          setAttachedSessionId(null)
 
           const decision = decideTerminalClose(event.code)
 
@@ -454,6 +462,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
     suppressReconnectRef.current = true
     clearRetryTimer()
     setStatus('creating')
+    setAttachedSessionId(null)
     setStatusMessage('TerminalSession과 PTY를 준비하고 있습니다.')
     setResumed(false)
 
@@ -510,6 +519,7 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
   }
 
   async function closeTerminal() {
+    setAttachedSessionId(null)
     const state = resumeRef.current
     suppressReconnectRef.current = true
     clearRetryTimer()
@@ -597,6 +607,12 @@ export function TerminalPanel({ labInstanceId, generation }: TerminalPanelProps)
         </div>
 
         <div className="terminal-toolbar-actions">
+          {isInstructor && classId && (
+            <LiveInstructorControls
+              classId={classId}
+              sourceTerminalSessionId={status === 'attached' ? attachedSessionId : null}
+            />
+          )}
           <span
             className={
               'terminal-status terminal-status-' +

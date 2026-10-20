@@ -94,6 +94,13 @@ export interface CreateTerminalSessionRequest {
   rows: number
 }
 
+export interface LiveSession {
+  id: ResourceId
+  classId: ResourceId
+  sourceTerminalSessionId: ResourceId
+  createdAt: string
+}
+
 export interface TerminalSession {
   id: ResourceId
   generation: number

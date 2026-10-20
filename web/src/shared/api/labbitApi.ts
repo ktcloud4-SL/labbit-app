@@ -8,6 +8,7 @@ import type {
   CreatePreviewSessionRequest,
   CreateTerminalSessionRequest,
   LabExecution,
+  LiveSession,
   LabSpec,
   LabSpecList,
   LabSpecMappingOptionsList,
@@ -35,6 +36,7 @@ export const labbitQueryKeys = {
   labSpecMappingOptions: (organizationId: string, userId: string) =>
     ['lab-specs', 'mapping-options', organizationId, userId] as const,
   labSpec: (labSpecId: string) => ['lab-specs', labSpecId] as const,
+  activeLiveSession: (classId: string) => ['classes', classId, 'live-session'] as const,
   labExecution: (labExecutionId: string) =>
     ['lab-executions', labExecutionId] as const,
   operation: (operationId: string) => ['operations', operationId] as const,
@@ -98,6 +100,9 @@ export interface LabbitApi {
     input: CreateTerminalSessionRequest,
   ): Promise<TerminalSession>
   closeTerminalSession(terminalSessionId: string): Promise<void>
+  getActiveLiveSession(classId: string): Promise<LiveSession>
+  createLiveSession(terminalSessionId: string): Promise<LiveSession>
+  closeLiveSession(liveSessionId: string): Promise<void>
   listWorkspaceFiles(
     labInstanceId: string,
     path?: string,
@@ -318,6 +323,24 @@ export const httpLabbitApi: LabbitApi = {
       {
         method: 'DELETE',
       },
+    )
+  },
+
+  getActiveLiveSession(classId) {
+    return request<LiveSession>(`/classes/${encodeURIComponent(classId)}/live-session`)
+  },
+
+  createLiveSession(terminalSessionId) {
+    return request<LiveSession>(
+      `/terminal-sessions/${encodeURIComponent(terminalSessionId)}/live-sessions`,
+      { method: 'POST' },
+    )
+  },
+
+  closeLiveSession(liveSessionId) {
+    return request<void>(
+      `/live-sessions/${encodeURIComponent(liveSessionId)}`,
+      { method: 'DELETE' },
     )
   },
 

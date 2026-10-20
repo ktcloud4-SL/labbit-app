@@ -1893,3 +1893,20 @@ a {
     padding: 22px;
   }
 }
+
+/* LBT-26: student receives only read-only xterm output, never input controls. */
+.terminal-live-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.terminal-live-message { color: #e1d9af; font-size: 11px; max-width: 260px; }
+.live-class-panel { margin-top: 18px; padding: 18px; background: #fff; border: 1px solid #e3e7ee; border-radius: 12px; }
+.live-class-panel h2 { font-size: 17px; margin: 0 0 12px; }
+.live-viewer { background: #202531; color: #e7ebf2; border-radius: 8px; overflow: hidden; }
+.live-viewer-toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding: 10px 12px; border-bottom: 1px solid #353b48; }
+.live-viewer-toolbar strong { font-size: 13px; }
+.live-viewer-message { padding: 7px 12px; font-size: 12px; margin: 0; }
+.live-viewer-terminal { min-height: 240px; height: 240px; padding: 8px; background: #171b23; }
+.live-viewer > .muted { color: #b7bdc9; padding: 8px 12px; font-size: 11px; }
+@media (max-width: 720px) {
+  .terminal-live-controls { width: 100%; }
+  .live-class-panel { padding: 12px; }
+  .live-viewer-terminal { min-height: 200px; height: 200px; }
+}

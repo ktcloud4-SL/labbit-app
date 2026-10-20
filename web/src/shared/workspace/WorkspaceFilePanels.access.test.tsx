@@ -76,7 +76,7 @@ describe('LBT-27 Workspace File authoritative access-change boundary', () => {
 
   it('Tree 403 hides an already open Editor and retains draft until a fresh authorized File GET', async () => {
     let treeDenied = false
-    const readWorkspaceFile = vi.fn(async () => document)
+    const readWorkspaceFile = vi.fn(async () => workspaceDocument)
     const { client } = mount({
       listWorkspaceFiles: async () => {
         if (treeDenied) throw new HttpError(403)

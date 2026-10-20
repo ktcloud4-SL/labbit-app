@@ -251,6 +251,7 @@ const terminalClassById = new Map<string, string>()
 let nextLiveSessionId = 1
 const activeLiveByClass = new Map<string, LiveSession>()
 const closedLiveSessionIds = new Set<string>()
+const liveClassById = new Map<string, string>()
 
 const initialWorkspaceFiles = new Map<string, string>([
   ['README.md', '# Kubernetes Basic\n'],
@@ -320,6 +321,7 @@ function resetMockData() {
   nextLiveSessionId = 1
   activeLiveByClass.clear()
   closedLiveSessionIds.clear()
+  liveClassById.clear()
   workspaceFiles = new Map(initialWorkspaceFiles)
   workspaceFileVersions = new Map(
     [...initialWorkspaceFiles.keys()].map((path) => [path, 1]),
@@ -893,20 +895,25 @@ export const mockLabbitApi: LabbitApi = {
       createdAt: new Date().toISOString(),
     }
     activeLiveByClass.set(classId, live)
+    liveClassById.set(live.id, classId)
     return { ...live }
   },
 
   async closeLiveSession(liveSessionId) {
     requireSession()
+    const classId = liveClassById.get(liveSessionId)
+    if (!classId) throw new HttpError(404)
+
+    // Resolve the *current* caller's class role, including on idempotent
+    // close. A leaked/guessed Live ID alone must not authorize a mutation.
+    const classDetail = await mockLabbitApi.getClass(classId)
+    if (classDetail.myRole !== 'INSTRUCTOR') throw new HttpError(403)
     if (closedLiveSessionIds.has(liveSessionId)) return
-    for (const [classId, live] of activeLiveByClass) {
-      if (live.id === liveSessionId) {
-        activeLiveByClass.delete(classId)
-        closedLiveSessionIds.add(liveSessionId)
-        return
-      }
-    }
-    throw new HttpError(404)
+
+    const active = activeLiveByClass.get(classId)
+    if (!active || active.id !== liveSessionId) throw new HttpError(404)
+    activeLiveByClass.delete(classId)
+    closedLiveSessionIds.add(liveSessionId)
   },
 
   async listWorkspaceFiles(labInstanceId, path = '') {

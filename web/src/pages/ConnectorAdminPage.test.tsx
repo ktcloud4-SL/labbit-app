@@ -449,6 +449,35 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     expect(screen.queryByRole('button', { name: '일회용 토큰 발급' })).not.toBeInTheDocument()
   })
 
+  it('토큰 취소 CSRF 403은 ADMIN 권한 회수로 오판하지 않고 기존 토큰을 유지한다', async () => {
+    const cancel = vi.fn(async () => {
+      throw new HttpError(403, {
+        type: 'about:blank', title: 'CSRF Rejected', status: 403,
+        code: 'csrf_rejected', requestId: 'csrf-fixture',
+      })
+    })
+    const { client } = mount({
+      createConnectorEnrollmentToken: async () => ({
+        tokenId: 'csrf-fixture', enrollmentToken: TOKEN, expiresAt: FUTURE_EXPIRY,
+      }),
+      cancelConnectorEnrollmentToken: cancel,
+    })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'Fixture VM' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(await screen.findByText(TOKEN)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '등록 토큰 취소' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('관리자 권한이 없거나 요청이 거부됐습니다.')
+    expect(cancel).toHaveBeenCalledWith('csrf-fixture')
+    expect(screen.getByText(TOKEN)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '토큰 복사' })).toBeInTheDocument()
+    expect(screen.queryByText('등록 토큰을 취소했습니다.')).not.toBeInTheDocument()
+    expect(client.getQueryData(labbitQueryKeys.me)).toMatchObject({ organizationRole: 'ADMIN' })
+  })
+
   it('토큰 취소 403은 성공으로 위장하지 않고 안전한 안내를 표시한다', async () => {
     const cancel = vi.fn(async () => { throw new HttpError(403) })
     mount({

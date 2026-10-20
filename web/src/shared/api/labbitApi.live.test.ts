@@ -131,10 +131,11 @@ describe('LBT-26 LiveSession isolated mock lifecycle', () => {
 
     getClass.mockRestore()
     await expect(mockLabbitApi.closeLiveSession(created.id)).resolves.toBeUndefined()
-    getClass.mockResolvedValue({ ...original, myRole: 'STUDENT' })
+    const deniedAgain = vi.spyOn(mockLabbitApi, 'getClass')
+      .mockResolvedValue({ ...original, myRole: 'STUDENT' })
     await expect(mockLabbitApi.closeLiveSession(created.id))
       .rejects.toMatchObject({ status: 403 })
-    getClass.mockRestore()
+    deniedAgain.mockRestore()
     await expect(mockLabbitApi.closeLiveSession(created.id)).resolves.toBeUndefined()
   })
 

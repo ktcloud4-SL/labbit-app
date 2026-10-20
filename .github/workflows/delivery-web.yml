@@ -148,6 +148,10 @@ jobs:
         with:
           context: ./web
           file: ./web/Dockerfile
+          # PR-only synthetic PUBLIC fixture. Not passed to the production
+          # build-and-push job; official URL still requires LBT-181 approval.
+          build-args: |
+            VITE_LABBIT_APPROVED_INSTALLER_URL=https://installer.example.test/install.sh
           push: false
           load: true
           tags: labbit-web:pr
@@ -159,6 +163,12 @@ jobs:
           docker run -d --name labbit-web-smoke --cap-drop=ALL --security-opt=no-new-privileges -p 127.0.0.1:18080:8080 labbit-web:pr
           trap 'docker logs labbit-web-smoke || true; docker rm -f labbit-web-smoke >/dev/null 2>&1 || true' EXIT
           test "$(docker exec labbit-web-smoke id -u)" = 101
+          # Proves Docker ARG -> builder ENV -> Vite dist, not only Vitest mocking.
+          # Fixture is synthetic, PR-only, and the image is never pushed.
+          if ! docker exec labbit-web-smoke sh -c 'grep -rFq "https://installer.example.test/install.sh" /usr/share/nginx/html/assets'; then
+            echo "::error::Installer public URL was not embedded into PR Web bundle"
+            exit 1
+          fi
           for attempt in {1..30}; do
             if curl -fsS http://127.0.0.1:18080/healthz | grep -qx 'OK'; then
               curl -fsS http://127.0.0.1:18080/login >/dev/null

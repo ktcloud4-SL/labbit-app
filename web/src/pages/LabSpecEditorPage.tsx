@@ -88,6 +88,8 @@ function LabSpecForm({
   onDiscardRetainedDraft,
 }: LabSpecFormProps) {
   const [form, setForm] = useState<LabSpecWrite>(initial)
+  // Preserve an older ETag draft until an explicit Restore/Discard decision.
+  const draftDecisionPending = Boolean(retainedDraft)
   const initialFingerprint = JSON.stringify(initial)
   // Keep the latest user changes above this ETag-keyed form. A background
   // refetch or explicit 412 reload must not silently discard the draft.
@@ -258,6 +260,7 @@ function LabSpecForm({
               type="button"
               disabled={saving || readOnly}
               onClick={() => {
+                setProviderConnectionId(providerForInitial(retainedDraft, mappingOptions))
                 setForm(retainedDraft)
                 setValidationError(null)
                 onDiscardRetainedDraft()
@@ -298,7 +301,7 @@ function LabSpecForm({
           <span>이름</span>
           <input
             value={form.name}
-            disabled={readOnly || saving}
+            disabled={readOnly || saving || draftDecisionPending}
             onChange={(event) =>
               setForm((current) => ({ ...current, name: event.target.value }))
             }
@@ -310,7 +313,7 @@ function LabSpecForm({
           <textarea
             rows={3}
             value={form.description ?? ''}
-            disabled={readOnly || saving}
+            disabled={readOnly || saving || draftDecisionPending}
             onChange={(event) =>
               setForm((current) => ({ ...current, description: event.target.value }))
             }
@@ -328,7 +331,7 @@ function LabSpecForm({
             </p>
           </div>
           {!readOnly && (
-            <button className="secondary-button" type="button" disabled={saving} onClick={addVm}>
+            <button className="secondary-button" type="button" disabled={saving || draftDecisionPending} onClick={addVm}>
               VM 역할 추가
             </button>
           )}
@@ -338,7 +341,7 @@ function LabSpecForm({
           <span>Provider 연결</span>
           <select
             value={providerConnectionId}
-            disabled={readOnly || saving}
+            disabled={readOnly || saving || draftDecisionPending}
             onChange={(event) => {
               const nextProvider = event.target.value
               if (nextProvider === providerConnectionId) return
@@ -382,7 +385,7 @@ function LabSpecForm({
                   <button
                     className="text-button danger-text"
                     type="button"
-                    disabled={saving}
+                    disabled={saving || draftDecisionPending}
                     onClick={() => removeVm(index)}
                   >
                     제거
@@ -395,7 +398,7 @@ function LabSpecForm({
                   <span>Role</span>
                   <input
                     value={vm.role}
-                    disabled={readOnly || saving}
+                    disabled={readOnly || saving || draftDecisionPending}
                     placeholder="예: control"
                     onChange={(event) => updateVm(index, { role: event.target.value })}
                   />
@@ -404,7 +407,7 @@ function LabSpecForm({
                   <span>표시 이름</span>
                   <input
                     value={vm.name ?? ''}
-                    disabled={readOnly || saving}
+                    disabled={readOnly || saving || draftDecisionPending}
                     placeholder="선택"
                     onChange={(event) => updateVm(index, { name: event.target.value })}
                   />
@@ -426,7 +429,7 @@ function LabSpecForm({
                     images={images}
                     sizes={sizes}
                     providerConnectionId={providerConnectionId}
-                    disabled={readOnly || saving || !selectedGroup}
+                    disabled={readOnly || saving || draftDecisionPending || !selectedGroup}
                     onChange={(next) => updateVm(index, next)}
                   />
                 )}
@@ -436,7 +439,7 @@ function LabSpecForm({
                     type="number"
                     min={1}
                     value={vm.count}
-                    disabled={readOnly || saving}
+                    disabled={readOnly || saving || draftDecisionPending}
                     onChange={(event) =>
                       updateVm(index, {
                         count: Math.max(1, event.target.valueAsNumber || 1),
@@ -465,7 +468,7 @@ function LabSpecForm({
           <span>Workspace VM</span>
           <select
             value={`${form.workspaceVm.role}:${form.workspaceVm.instanceIndex}`}
-            disabled={readOnly || saving}
+            disabled={readOnly || saving || draftDecisionPending}
             onChange={(event) => {
               const separator = event.target.value.lastIndexOf(':')
               const role = event.target.value.slice(0, separator)
@@ -495,7 +498,7 @@ function LabSpecForm({
           <input
             type="checkbox"
             checked={form.internetOutbound}
-            disabled={readOnly || saving}
+            disabled={readOnly || saving || draftDecisionPending}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
@@ -511,7 +514,7 @@ function LabSpecForm({
           <textarea
             rows={8}
             value={form.startupScript ?? ''}
-            disabled={readOnly || saving}
+            disabled={readOnly || saving || draftDecisionPending}
             placeholder="선택 입력"
             onChange={(event) =>
               setForm((current) => ({ ...current, startupScript: event.target.value }))
@@ -598,10 +601,13 @@ export function LabSpecEditorPage() {
   const captureDraft = useCallback((form: LabSpecWrite) => {
     setDirtyRoute(currentRoute)
     if (!resolvedLabSpecId) return
-    setDraftBackup({
-      labSpecId: resolvedLabSpecId,
-      etag: labSpecQuery.data?.etag,
-      form,
+    setDraftBackup((previous) => {
+      // A background refetch may already have switched the form to a newer
+      // ETag. Never overwrite an unconfirmed draft from the old revision.
+      if (previous?.labSpecId === resolvedLabSpecId && previous.etag !== labSpecQuery.data?.etag) {
+        return previous
+      }
+      return { labSpecId: resolvedLabSpecId, etag: labSpecQuery.data?.etag, form }
     })
   }, [currentRoute, resolvedLabSpecId, labSpecQuery.data?.etag])
 

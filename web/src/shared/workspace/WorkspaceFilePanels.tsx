@@ -1,5 +1,6 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { useBlocker } from 'react-router-dom'
 
 import type {
@@ -18,6 +19,19 @@ import {
 interface WorkspaceFilePanelsProps {
   labInstanceId: string
   generation: number
+  retainedDraft?: WorkspaceDraftBackup | null
+  onRetainedDraftChange?: Dispatch<SetStateAction<WorkspaceDraftBackup | null>>
+  retainedSavePending?: boolean
+  onRetainedSavePendingChange?: Dispatch<SetStateAction<boolean>>
+  isCurrentWorkspace?: (id: string, generation: number) => boolean
+}
+
+export interface WorkspaceDraftBackup {
+  labInstanceId: string
+  generation: number
+  path: string
+  content: string
+  sourceEtag: string
 }
 
 interface WorkspaceFileEditorProps {
@@ -27,6 +41,24 @@ interface WorkspaceFileEditorProps {
   onReload(): Promise<unknown>
   onDirtyChange(dirty: boolean): void
   onSavePendingChange(pending: boolean): void
+  savePending: boolean
+  onDraftChange(content: string | null, sourceEtag: string): void
+  onSaveAccepted(content: string, sourceEtag: string): void
+  restoredDraft?: string
+}
+
+interface WorkspaceFileAccessGate {
+  scope: string
+  epoch: number
+  verifiedTrees: string[]
+  verifiedFiles: string[]
+}
+
+function workspaceWideAccessChange(error: unknown) {
+  return error instanceof HttpError &&
+    (error.status === 409 ||
+      (error.status === 404 && error.problem?.code === 'not_found') ||
+      (error.status === 403 && error.problem?.code !== 'file_permission_denied'))
 }
 
 function parentDirectory(path: string) {
@@ -137,9 +169,13 @@ function WorkspaceFileEditor({
   onReload,
   onDirtyChange,
   onSavePendingChange,
+  savePending,
+  onDraftChange,
+  onSaveAccepted,
+  restoredDraft,
 }: WorkspaceFileEditorProps) {
   const api = useLabbitApi()
-  const [draft, setDraft] = useState(versionedFile.file.content)
+  const [draft, setDraft] = useState(restoredDraft ?? versionedFile.file.content)
   const [savedContent, setSavedContent] = useState(versionedFile.file.content)
   const [etag, setEtag] = useState(versionedFile.etag)
   const [saveError, setSaveError] = useState<unknown>(null)
@@ -156,7 +192,9 @@ function WorkspaceFileEditor({
       setEtag(saved.etag)
       setSavedContent(draft)
       setSaveError(null)
-      onDirtyChange(false)
+      // A PUT can settle after the Editor has unmounted or after generation
+      // changed. The parent must verify the saved scope before clearing backup.
+      onSaveAccepted(draft, etag)
     },
     onError: (error) => {
       setSaveError(error)
@@ -165,20 +203,23 @@ function WorkspaceFileEditor({
 
   const dirty = draft !== savedContent
 
-  useEffect(() => {
-    onSavePendingChange(saveMutation.isPending)
-  }, [onSavePendingChange, saveMutation.isPending])
-
-  useEffect(
-    () => () => {
+  async function submitSave() {
+    if (savePending || saveMutation.isPending) return
+    // Keep the parent navigation/dirty barrier until the actual HTTP result,
+    // even if access revocation unmounts this Editor during the in-flight PUT.
+    onSavePendingChange(true)
+    try {
+      await saveMutation.mutateAsync()
+    } catch {
+      // The mutation's onError already preserves the draft and safe UX.
+    } finally {
       onSavePendingChange(false)
-    },
-    [onSavePendingChange],
-  )
+    }
+  }
 
-  useEffect(() => {
-    onDirtyChange(false)
-  }, [onDirtyChange, versionedFile.etag, versionedFile.file.path])
+  // Parent dirty state is updated by user edits, explicit restoration and save.
+  // Avoid cascading React state updates from a child effect.
+  useEffect(() => () => onDirtyChange(false), [onDirtyChange])
 
   useEffect(() => {
     if (!dirty) return
@@ -212,10 +253,10 @@ function WorkspaceFileEditor({
         <button
           className="workspace-file-action workspace-file-action-primary"
           type="button"
-          disabled={!dirty || saveMutation.isPending}
-          onClick={() => saveMutation.mutate()}
+          disabled={!dirty || savePending || saveMutation.isPending}
+          onClick={() => void submitSave()}
         >
-          {saveMutation.isPending ? '저장 중...' : '저장'}
+          {savePending || saveMutation.isPending ? '저장 중...' : '저장'}
         </button>
       </div>
 
@@ -235,6 +276,7 @@ function WorkspaceFileEditor({
                 ) {
                   return
                 }
+                onDraftChange(null, etag)
                 void onReload()
               }}
             >
@@ -248,12 +290,13 @@ function WorkspaceFileEditor({
         className="workspace-code-editor"
         aria-label="파일 편집기"
         spellCheck={false}
-        disabled={saveMutation.isPending}
+        disabled={savePending || saveMutation.isPending}
         value={draft}
         onChange={(event) => {
           const next = event.target.value
           setDraft(next)
           onDirtyChange(next !== savedContent)
+          onDraftChange(next === savedContent ? null : next, etag)
           if (saveError) setSaveError(null)
         }}
       />
@@ -266,25 +309,117 @@ function WorkspaceFileEditor({
   )
 }
 
+// Only standalone usage registers this blocker. A real LabPage owns the sole
+// router blocker for both READY and non-READY states; registering two blockers
+// would let the later (inactive) one override its navigation policy.
+function StandaloneWorkspaceNavigationGuard({
+  hasUnsavedChanges,
+  savePending,
+}: {
+  hasUnsavedChanges: boolean
+  savePending: boolean
+}) {
+  const blocker = useBlocker(
+    ({ nextLocation }) =>
+      (hasUnsavedChanges || savePending) && nextLocation.pathname !== '/login',
+  )
+
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return
+    if (savePending) {
+      blocker.reset()
+      return
+    }
+    if (window.confirm(
+      '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 페이지를 이동할까요?',
+    )) {
+      blocker.proceed()
+      return
+    }
+    blocker.reset()
+  }, [blocker, savePending])
+
+  return null
+}
+
 export function WorkspaceFilePanels({
   labInstanceId,
   generation,
+  retainedDraft,
+  onRetainedDraftChange,
+  retainedSavePending,
+  onRetainedSavePendingChange,
+  isCurrentWorkspace,
 }: WorkspaceFilePanelsProps) {
   const api = useLabbitApi()
+  const queryClient = useQueryClient()
   const [directoryPath, setDirectoryPath] = useState('')
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null)
+  const activeEditorScope = useRef({ labInstanceId, generation, path: selectedFilePath })
+  useEffect(() => {
+    activeEditorScope.current = { labInstanceId, generation, path: selectedFilePath }
+  }, [labInstanceId, generation, selectedFilePath])
   const [editorDirty, setEditorDirty] = useState(false)
-  const [savePending, setSavePending] = useState(false)
+  const [internalSavePending, setInternalSavePending] = useState(false)
+  const savePending = onRetainedSavePendingChange ? Boolean(retainedSavePending) : internalSavePending
+  const setSavePending = onRetainedSavePendingChange ?? setInternalSavePending
+  // In-memory only; never render, persist or log denied Workspace file bytes.
+  const [internalDraftBackup, setInternalDraftBackup] = useState<WorkspaceDraftBackup | null>(null)
+  // LabPage owns this volatile draft across generation changes and READY/RESET
+  // branch transitions. Isolated component consumers use the internal fallback.
+  const draftBackup = onRetainedDraftChange ? retainedDraft ?? null : internalDraftBackup
+  const setDraftBackup = onRetainedDraftChange ?? setInternalDraftBackup
+  const [restoredDraft, setRestoredDraft] = useState<{
+    scope: string
+    path: string
+    content: string
+  } | null>(null)
+  const [restoreEpoch, setRestoreEpoch] = useState(0)
+  // Access metadata must live as long as the QueryClient's file caches, not
+  // just this panel: route/READY remounts cannot restore revoked cached bytes.
+  // This disabled query performs no IO and contains no file contents. Logout
+  // clears it with the rest of the QueryClient; no browser storage is used.
+  const workspaceAccessKey = ['workspace-file-access', labInstanceId, generation] as const
+  useQuery<WorkspaceFileAccessGate | null>({
+    queryKey: workspaceAccessKey,
+    queryFn: skipToken,
+    initialData: null,
+    enabled: false,
+    subscribed: false,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
+  // Denial must hide cached bytes synchronously; query observer notifications
+  // are batched and may otherwise leave the old content visible for a frame.
+  const subscribeAccess = useCallback((notify: () => void) =>
+    queryClient.getQueryCache().subscribe(({ query }) => {
+      const key = query.queryKey
+      if (key[0] === 'workspace-file-access' && key[1] === labInstanceId && key[2] === generation) notify()
+    }), [queryClient, labInstanceId, generation])
+  const readAccess = useCallback(() => queryClient.getQueryData<WorkspaceFileAccessGate | null>(
+    ['workspace-file-access', labInstanceId, generation],
+  ) ?? null, [queryClient, labInstanceId, generation])
+  const workspaceGate = useSyncExternalStore(subscribeAccess, readAccess, () => null)
+  const requestEpoch = () =>
+    queryClient.getQueryData<WorkspaceFileAccessGate | null>(workspaceAccessKey)?.epoch ?? 0
+  const [requiresFreshRead, setRequiresFreshRead] = useState<{
+    labInstanceId: string
+    generation: number
+    path: string
+  } | null>(null)
+  const scope = `${labInstanceId}:${generation}`
+  const hasUnsavedChanges = editorDirty || draftBackup !== null
+  const ownedByLabPage = Boolean(onRetainedDraftChange && onRetainedSavePendingChange)
 
   useEffect(() => {
-    setWorkspaceEditState({ dirty: editorDirty, savePending })
-  }, [editorDirty, savePending])
+    if (!ownedByLabPage) setWorkspaceEditState({ dirty: hasUnsavedChanges, savePending })
+  }, [hasUnsavedChanges, savePending, ownedByLabPage])
 
   useEffect(
     () => () => {
-      clearWorkspaceEditState()
+      if (!ownedByLabPage) clearWorkspaceEditState()
     },
-    [],
+    [ownedByLabPage],
   )
 
   const treeQuery = useQuery({
@@ -293,7 +428,33 @@ export function WorkspaceFilePanels({
       generation,
       directoryPath,
     ),
-    queryFn: () => api.listWorkspaceFiles(labInstanceId, directoryPath),
+    queryFn: async ({ signal }) => {
+      const startedAtEpoch = requestEpoch()
+      try {
+        const result = await api.listWorkspaceFiles(labInstanceId, directoryPath)
+        if (!signal.aborted && startedAtEpoch === requestEpoch() &&
+            queryClient.getQueryData<WorkspaceFileAccessGate | null>(workspaceAccessKey)?.scope === scope) {
+          // Publish the newly authorized response before opening its gate;
+          // otherwise a metadata notification could expose the old response.
+          queryClient.setQueryData(labbitQueryKeys.workspaceFileTree(labInstanceId, generation, directoryPath), result)
+          queryClient.setQueryData<WorkspaceFileAccessGate | null>(workspaceAccessKey, (previous) => previous
+            ? { ...previous, verifiedTrees: [...new Set([...previous.verifiedTrees, directoryPath])] }
+            : previous)
+        }
+        return result
+      } catch (error) {
+        if (signal.aborted) throw error
+        if (workspaceWideAccessChange(error)) {
+          queryClient.setQueryData<WorkspaceFileAccessGate>(workspaceAccessKey, (previous) => ({
+            scope, epoch: (previous?.epoch ?? 0) + 1, verifiedTrees: [], verifiedFiles: [],
+          }))
+        }
+        if (error instanceof HttpError && [403, 404, 409].includes(error.status) && selectedFilePath) {
+          setRequiresFreshRead({ labInstanceId, generation, path: selectedFilePath })
+        }
+        throw error
+      }
+    },
     retry: false,
   })
 
@@ -304,7 +465,36 @@ export function WorkspaceFilePanels({
       generation,
       selectedPath,
     ),
-    queryFn: () => api.readWorkspaceFile(labInstanceId, selectedPath),
+    queryFn: async ({ signal }) => {
+      const startedAtEpoch = requestEpoch()
+      try {
+        const result = await api.readWorkspaceFile(labInstanceId, selectedPath)
+        const validRead = !signal.aborted && startedAtEpoch === requestEpoch()
+        if (validRead && queryClient.getQueryData<WorkspaceFileAccessGate | null>(workspaceAccessKey)?.scope === scope) {
+          queryClient.setQueryData(labbitQueryKeys.workspaceFile(labInstanceId, generation, selectedPath), result)
+          queryClient.setQueryData<WorkspaceFileAccessGate | null>(workspaceAccessKey, (previous) => previous
+            ? { ...previous, verifiedFiles: [...new Set([...previous.verifiedFiles, selectedPath])] }
+            : previous)
+        }
+        if (validRead) setRequiresFreshRead((previous) =>
+          previous?.labInstanceId === labInstanceId &&
+          previous?.generation === generation &&
+          previous?.path === selectedPath ? null : previous,
+        )
+        return result
+      } catch (error) {
+        if (signal.aborted) throw error
+        if (workspaceWideAccessChange(error)) {
+          queryClient.setQueryData<WorkspaceFileAccessGate>(workspaceAccessKey, (previous) => ({
+            scope, epoch: (previous?.epoch ?? 0) + 1, verifiedTrees: [], verifiedFiles: [],
+          }))
+        }
+        if (error instanceof HttpError && [403, 404, 409].includes(error.status)) {
+          setRequiresFreshRead({ labInstanceId, generation, path: selectedPath })
+        }
+        throw error
+      }
+    },
     enabled: Boolean(selectedFilePath),
     retry: false,
     // 편집 중 자동 refetch가 Editor를 새 revision으로 remount해
@@ -313,34 +503,50 @@ export function WorkspaceFilePanels({
     refetchOnReconnect: false,
   })
 
-  const navigationBlocker = useBlocker(
-    ({ nextLocation }) =>
-      (editorDirty || savePending) && nextLocation.pathname !== '/login',
-  )
-
+  // The editor may unmount on access loss, but drafts still need unload protection.
   useEffect(() => {
-    if (navigationBlocker.state !== 'blocked') return
-
-    if (savePending) {
-      navigationBlocker.reset()
-      return
+    if (ownedByLabPage || !draftBackup) return
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
     }
-
-    if (
-      window.confirm(
-        '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 페이지를 이동할까요?',
-      )
-    ) {
-      navigationBlocker.proceed()
-      return
-    }
-
-    navigationBlocker.reset()
-  }, [navigationBlocker, savePending])
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [draftBackup, ownedByLabPage])
 
   const authExpired =
     (treeQuery.error instanceof HttpError && treeQuery.error.status === 401) ||
     (fileQuery.error instanceof HttpError && fileQuery.error.status === 401)
+
+  // React Query retains the last successful result after a failed refetch.
+  // 403/404/409 are authoritative permission, identity or generation changes:
+  // never render cached file names/content alongside those failures.
+  // For transient transport errors, preserve unsaved editor drafts.
+  const treeAccessChanged =
+    treeQuery.error instanceof HttpError &&
+    [403, 404, 409].includes(treeQuery.error.status)
+  const fileAccessChanged =
+    fileQuery.error instanceof HttpError &&
+    [403, 404, 409].includes(fileQuery.error.status)
+  const gatedWorkspace = workspaceGate?.scope === scope
+  const needsFreshTreeRead = gatedWorkspace && !workspaceGate.verifiedTrees.includes(directoryPath)
+  const currentPathUnverified = gatedWorkspace && selectedFilePath !== null &&
+    !workspaceGate.verifiedFiles.includes(selectedFilePath)
+  const selectedAccessChanged = treeAccessChanged || fileAccessChanged
+  // An authoritative 403/404/409 latches a fresh-read gate until the selected
+  // File GET really succeeds. Transient 503 failures do not set this latch.
+  const needsFreshFileRead = Boolean(currentPathUnverified) || (Boolean(selectedFilePath) &&
+    requiresFreshRead?.labInstanceId === labInstanceId &&
+    requiresFreshRead?.generation === generation &&
+    requiresFreshRead?.path === selectedFilePath)
+  const currentWorkspaceDraft = draftBackup?.labInstanceId === labInstanceId
+  // A reset or new execution may replace the entire LabInstance, not just its
+  // generation. Do not silently hide or overwrite a draft from that instance.
+  const previousInstanceDraft = draftBackup !== null && !currentWorkspaceDraft
+  const previousGenerationDraft = currentWorkspaceDraft && draftBackup.generation !== generation
+  const backupForSelected = currentWorkspaceDraft && draftBackup.path === selectedFilePath
+  const restoredForSelected = restoredDraft?.scope === scope && restoredDraft?.path === selectedFilePath
+    ? restoredDraft.content : null
 
   if (authExpired) {
     return <LoginRedirect reason="sessionExpired" />
@@ -348,10 +554,13 @@ export function WorkspaceFilePanels({
 
   function canLeaveEditor() {
     if (savePending) return false
-    if (!editorDirty) return true
-    return window.confirm(
+    if (!hasUnsavedChanges) return true
+    if (!window.confirm(
       '저장되지 않은 변경이 있습니다. 변경 내용을 버리고 다른 파일로 이동할까요?',
-    )
+    )) return false
+    setDraftBackup(null)
+    setRestoredDraft(null)
+    return true
   }
 
   function openEntry(entry: WorkspaceFileEntry) {
@@ -379,10 +588,16 @@ export function WorkspaceFilePanels({
 
   return (
     <>
+      {!ownedByLabPage && (
+        <StandaloneWorkspaceNavigationGuard
+          hasUnsavedChanges={hasUnsavedChanges}
+          savePending={savePending}
+        />
+      )}
       <aside className="workspace-panel workspace-files">
         <div className="workspace-panel-heading">
           <strong>파일</strong>
-          <span>{directoryPath || 'Workspace root'}</span>
+          <span>{(treeAccessChanged || needsFreshTreeRead) ? '접근 확인 필요' : directoryPath || 'Workspace root'}</span>
         </div>
 
         <div className="workspace-file-browser">
@@ -412,13 +627,22 @@ export function WorkspaceFilePanels({
             />
           )}
 
-          {treeQuery.data && treeQuery.data.items.length === 0 && (
+          {needsFreshTreeRead && !treeAccessChanged && (
+            <div className="workspace-file-state" role="status">
+              <p>Workspace 대상 변경 이후 폴더 내용을 다시 확인해야 합니다.</p>
+              <button className="workspace-file-action" type="button"
+                disabled={treeQuery.isFetching}
+                onClick={() => void treeQuery.refetch()}>파일 목록 접근 다시 확인</button>
+            </div>
+          )}
+
+          {treeQuery.data && !treeAccessChanged && !needsFreshTreeRead && treeQuery.data.items.length === 0 && (
             <div className="workspace-file-state">
               <p>이 폴더에는 표시할 파일이 없습니다.</p>
             </div>
           )}
 
-          {treeQuery.data && treeQuery.data.items.length > 0 && (
+          {treeQuery.data && !treeAccessChanged && !needsFreshTreeRead && treeQuery.data.items.length > 0 && (
             <div className="workspace-file-list" role="list" aria-label="Workspace 파일 목록">
               {treeQuery.data.items.map((entry) => (
                 <button
@@ -445,7 +669,7 @@ export function WorkspaceFilePanels({
       <section className="workspace-panel workspace-editor">
         <div className="workspace-panel-heading">
           <strong>Editor</strong>
-          <span>{selectedFilePath || '파일을 선택하세요'}</span>
+          <span>{(selectedAccessChanged || needsFreshFileRead) ? '접근 확인 필요' : selectedFilePath || '파일을 선택하세요'}</span>
         </div>
 
         {!selectedFilePath && (
@@ -475,14 +699,124 @@ export function WorkspaceFilePanels({
           />
         )}
 
-        {selectedFilePath && fileQuery.data && (
+        {previousInstanceDraft && (
+          <div className="workspace-file-state" role="status">
+            <p>이전 LabInstance의 미저장 수정본이 메모리에 보관되어 있습니다.
+              현재 실습 환경에는 자동으로 적용되지 않습니다.</p>
+            <button className="workspace-file-action" type="button" disabled={savePending}
+              onClick={() => {
+                if (window.confirm('이전 LabInstance의 미저장 수정본을 버릴까요?')) {
+                  setDraftBackup(null)
+                  setRestoredDraft(null)
+                  setEditorDirty(false)
+                }
+              }}>이전 LabInstance 수정본 버리기</button>
+          </div>
+        )}
+
+        {previousGenerationDraft && (
+          <div className="workspace-file-state" role="status">
+            <p>이전 generation {draftBackup.generation}의 미저장 수정본이 메모리에 보관되어 있습니다.
+              현재 generation {generation}에는 자동으로 적용되지 않습니다.</p>
+            <button className="workspace-file-action" type="button" disabled={savePending}
+              onClick={() => {
+                setRestoredDraft(null)
+                setEditorDirty(false)
+                setDirectoryPath(parentDirectory(draftBackup.path))
+                setSelectedFilePath(draftBackup.path)
+              }}>현재 generation에서 해당 파일 확인</button>
+            <button className="workspace-file-action" type="button" disabled={savePending}
+              onClick={() => {
+                if (window.confirm('이전 generation의 미저장 수정본을 버릴까요?')) {
+                  setDraftBackup(null)
+                  setRestoredDraft(null)
+                  setEditorDirty(false)
+                }
+              }}>이전 수정본 버리기</button>
+          </div>
+        )}
+
+        {selectedFilePath && selectedAccessChanged && backupForSelected && (
+          <p className="workspace-file-state" role="status">
+            미저장 수정본을 이 탭의 메모리에 임시 보관했습니다.
+            접근 권한을 다시 확인한 후 복원할 수 있습니다. 새로고침하면 사라집니다.
+          </p>
+        )}
+
+        {selectedFilePath && !selectedAccessChanged && needsFreshFileRead && (
+          <div className="workspace-file-state" role="status">
+            <p>이전 접근 오류 이후 파일 내용을 다시 확인해야 합니다.</p>
+            <button className="workspace-file-action" type="button"
+              disabled={fileQuery.isFetching}
+              onClick={() => void fileQuery.refetch()}>파일 접근 다시 확인</button>
+          </div>
+        )}
+
+        {selectedFilePath && fileQuery.data && !selectedAccessChanged && !needsFreshFileRead && backupForSelected && restoredForSelected === null && !editorDirty && !savePending && (
+          <div className="workspace-file-state" role="status">
+            <p>이전에 저장하지 못한 수정본이 있습니다. 최신 파일과 비교한 뒤 복원하거나 버려 주세요.</p>
+            <button className="workspace-file-action" type="button"
+              onClick={() => {
+                if (window.confirm(
+                  '미저장 수정본을 다시 편집기에 불러옵니다. 서버 파일의 버전이 달라졌을 수 있으니 저장 전에 반드시 내용을 비교해 주세요.',
+                )) {
+                  // Only explicit restoration adopts the currently verified
+                  // generation/revision; a late old-generation PUT cannot.
+                  setDraftBackup({ ...draftBackup, generation, sourceEtag: fileQuery.data.etag })
+                  setRestoredDraft({ scope, path: selectedFilePath, content: draftBackup.content })
+                  setEditorDirty(draftBackup.content !== fileQuery.data.file.content)
+                  setRestoreEpoch((epoch) => epoch + 1)
+                }
+              }}>미저장 수정본 복원</button>
+            <button className="workspace-file-action" type="button"
+              onClick={() => {
+                if (window.confirm('복원하지 않은 미저장 수정본을 버릴까요?')) {
+                  setDraftBackup(null)
+                  setRestoredDraft(null)
+                }
+              }}>수정본 버리기</button>
+          </div>
+        )}
+
+        {selectedFilePath && fileQuery.data && !selectedAccessChanged && !needsFreshFileRead &&
+          !previousInstanceDraft && (!previousGenerationDraft || restoredForSelected !== null) && (
           <WorkspaceFileEditor
-            key={`${fileQuery.data.file.path}:${fileQuery.data.etag}:${fileQuery.dataUpdatedAt}`}
+            key={`${labInstanceId}:${generation}:${fileQuery.data.file.path}:${fileQuery.data.etag}:${fileQuery.dataUpdatedAt}:${restoreEpoch}`}
             labInstanceId={labInstanceId}
             generation={generation}
             versionedFile={fileQuery.data}
             onDirtyChange={setEditorDirty}
             onSavePendingChange={setSavePending}
+            savePending={savePending}
+            restoredDraft={restoredForSelected ?? undefined}
+            onDraftChange={(content, sourceEtag) => {
+              if (content === null) setRestoredDraft(null)
+              setDraftBackup(content === null ? null : {
+                labInstanceId,
+                generation,
+                path: fileQuery.data.file.path,
+                content,
+                sourceEtag,
+              })
+            }}
+            onSaveAccepted={(savedContent, sourceEtag) => {
+              const active = activeEditorScope.current
+              // The Editor may already be unmounted during LabPage PROVISIONING.
+              // Its local ref alone cannot tell whether the page changed
+              // generations; defer to the current parent Workspace identity.
+              if (isCurrentWorkspace && !isCurrentWorkspace(labInstanceId, generation)) return
+              if (active.labInstanceId !== labInstanceId ||
+                  active.generation !== generation ||
+                  active.path !== fileQuery.data.file.path) return
+              setDraftBackup((previous) =>
+                previous?.labInstanceId === labInstanceId &&
+                previous.generation === generation &&
+                previous.path === fileQuery.data.file.path &&
+                previous.sourceEtag === sourceEtag &&
+                previous.content === savedContent ? null : previous)
+              setEditorDirty(false)
+              setRestoredDraft(null)
+            }}
             onReload={() => fileQuery.refetch()}
           />
         )}

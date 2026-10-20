@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useBlocker, useParams } from 'react-router-dom'
 
 import type { ClassDetail } from '../shared/api/contracts'
 import { HttpError } from '../shared/api/httpClient'
@@ -15,6 +16,8 @@ import { LoadingState } from '../shared/ui/LoadingState'
 import { TerminalPanel } from '../shared/terminal/TerminalPanel'
 import { PreviewPanel } from '../shared/preview/PreviewPanel'
 import { WorkspaceFilePanels } from '../shared/workspace/WorkspaceFilePanels'
+import type { WorkspaceDraftBackup } from '../shared/workspace/WorkspaceFilePanels'
+import { clearWorkspaceEditState, setWorkspaceEditState } from '../shared/workspace/workspaceEditState'
 
 const roleLabel = (role: string) => {
   if (role === 'INSTRUCTOR') return '강사'
@@ -27,6 +30,55 @@ export function LabPage() {
   const queryClient = useQueryClient()
   const { classId } = useParams()
   const resolvedClassId = classId ?? ''
+  // Keep only in volatile React memory, above the READY / RESET render split.
+  // Generation changes must not silently discard dirty editor drafts or a PUT.
+  const [retainedWorkspaceDraft, setRetainedWorkspaceDraft] = useState<WorkspaceDraftBackup | null>(null)
+  const [retainedFileSavePending, setRetainedFileSavePending] = useState(false)
+  // Late PUT callbacks from an unmounted Editor consult the live Class query,
+  // not the generation that was current when the Editor first rendered.
+  const dirty = retainedWorkspaceDraft !== null
+  // Own the navigation/unload barrier above WorkspaceFilePanels. The panel
+  // unmounts while a LabInstance is PROVISIONING or missing, but the user
+  // must still be able to decide whether to discard their in-memory draft.
+  const navigationBlocker = useBlocker(
+    ({ nextLocation }) => (dirty || retainedFileSavePending) && nextLocation.pathname !== '/login',
+  )
+
+  useEffect(() => {
+    setWorkspaceEditState({ dirty, savePending: retainedFileSavePending })
+  }, [dirty, retainedFileSavePending])
+
+  useEffect(() => () => clearWorkspaceEditState(), [])
+
+  useEffect(() => {
+    if (!dirty && !retainedFileSavePending) return
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty, retainedFileSavePending])
+
+  useEffect(() => {
+    if (navigationBlocker.state !== 'blocked') return
+    if (retainedFileSavePending) {
+      navigationBlocker.reset()
+      return
+    }
+    if (window.confirm('저장되지 않은 변경이 있습니다. 변경 내용을 버리고 페이지를 이동할까요?')) {
+      // The same LabPage instance can survive a /classes/:classId/lab route change.
+      // Discard explicitly before proceeding so its old Class draft cannot linger.
+      // Defer the state update out of this synchronization effect. The
+      // confirmed transition still discards its draft before proceeding.
+      queueMicrotask(() => {
+        setRetainedWorkspaceDraft(null)
+        navigationBlocker.proceed()
+      })
+      return
+    }
+    navigationBlocker.reset()
+  }, [navigationBlocker, retainedFileSavePending])
 
   const classQuery = useQuery({
     queryKey: labbitQueryKeys.classDetail(resolvedClassId),
@@ -156,6 +208,10 @@ export function LabPage() {
         <section className={'notice-card ' + (isError ? 'notice-error' : 'notice-warning')}>
           <strong>{title}</strong>
           <p className="muted">{description}</p>
+          {(dirty || retainedFileSavePending) && (
+            <p role="status">Workspace에 저장되지 않은 수정본 또는 진행 중인 저장 요청이 있어
+              이 화면을 벗어나기 전 확인이 필요합니다. 새로고침하면 메모리 수정본은 사라집니다.</p>
+          )}
           {classDetail.activeLabExecution && (
             <Link
               className="secondary-link"
@@ -194,9 +250,21 @@ export function LabPage() {
 
       <section className="workspace-shell" aria-label="Lab Workspace Shell">
         <WorkspaceFilePanels
-          key={`${labInstance.id}:${labInstance.generation}`}
           labInstanceId={labInstance.id}
           generation={labInstance.generation}
+          retainedDraft={retainedWorkspaceDraft}
+          onRetainedDraftChange={setRetainedWorkspaceDraft}
+          retainedSavePending={retainedFileSavePending}
+          onRetainedSavePendingChange={setRetainedFileSavePending}
+          isCurrentWorkspace={(id, expectedGeneration) => {
+            const current = queryClient.getQueryState<ClassDetail>(
+              labbitQueryKeys.classDetail(resolvedClassId),
+            )
+            return current?.status === 'success' &&
+              current.data?.myLabInstance?.status === 'READY' &&
+              current.data.myLabInstance.id === id &&
+              current.data.myLabInstance.generation === expectedGeneration
+          }}
         />
 
         <section className="workspace-panel workspace-preview">

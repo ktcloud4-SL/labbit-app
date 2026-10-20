@@ -20,9 +20,9 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/web
-  # Approved script address handed off on 2026-10-20. This is a public, mutable
-  # main-branch script address; it does not certify SaaS/VM installation readiness.
-  APPROVED_INSTALLER_URL: https://raw.githubusercontent.com/ktcloud4-SL/labbit-app/main/scripts/installer/install.sh
+  # Owner-approved, commit-pinned script address (2026-10-20).
+  # Script provenance does not certify SaaS/VM installation readiness.
+  APPROVED_INSTALLER_URL: https://raw.githubusercontent.com/ktcloud4-SL/labbit-app/e0caea4f3191e9109171c02581d498f48e4c9887/scripts/installer/install.sh
 
 jobs:
   build-and-push:
@@ -145,6 +145,8 @@ jobs:
             installer_url: ''
           - profile: synthetic
             installer_url: https://installer.example.test/install.sh
+          - profile: approved
+            installer_url: ''
 
     steps:
       - name: Checkout repository
@@ -160,10 +162,10 @@ jobs:
         with:
           context: ./web
           file: ./web/Dockerfile
-          # Test the safe empty default and a PR-only PUBLIC fixture. Neither
-          # PR image is published; production has its own approved build arg.
+          # Test empty, synthetic, and the actual approved PUBLIC build value.
+          # No PR image is published or passed to GitOps.
           build-args: |
-            VITE_LABBIT_APPROVED_INSTALLER_URL=${{ matrix.installer_url }}
+            VITE_LABBIT_APPROVED_INSTALLER_URL=${{ matrix.profile == 'approved' && env.APPROVED_INSTALLER_URL || matrix.installer_url }}
           push: false
           load: true
           tags: labbit-web:pr
@@ -172,7 +174,7 @@ jobs:
       - name: Smoke test unprivileged Web image
         shell: bash
         env:
-          EXPECTED_INSTALLER_URL: ${{ matrix.installer_url }}
+          EXPECTED_INSTALLER_URL: ${{ matrix.profile == 'approved' && env.APPROVED_INSTALLER_URL || matrix.installer_url }}
         run: |
           docker run -d --name labbit-web-smoke --cap-drop=ALL --security-opt=no-new-privileges -p 127.0.0.1:18080:8080 labbit-web:pr
           trap 'docker logs labbit-web-smoke || true; docker rm -f labbit-web-smoke >/dev/null 2>&1 || true' EXIT

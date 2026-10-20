@@ -138,10 +138,18 @@ export function OperationPage() {
     )
   }
 
-  if (operationQuery.error || !operationQuery.data) {
+  if (!operationQuery.data) {
     return (
       <main className="app-page">
-        <ErrorState message="작업 상태를 불러오지 못했습니다." />
+        <ErrorState message="작업 상태를 불러오지 못했습니다. 서버 작업을 재실행하지 말고 상태만 다시 확인해 주세요." />
+        <button
+          className="secondary-button"
+          type="button"
+          disabled={operationQuery.isFetching}
+          onClick={() => void operationQuery.refetch()}
+        >
+          {operationQuery.isFetching ? '상태 확인 중...' : '상태 다시 확인'}
+        </button>
       </main>
     )
   }
@@ -166,6 +174,24 @@ export function OperationPage() {
         </div>
         <span className={statusPillClass(operation.status)}>{statusLabel(operation.status)}</span>
       </header>
+
+      {operationQuery.error && (
+        <section className="notice-card notice-warning" role="alert">
+          <strong>작업 상태를 일시적으로 확인하지 못했습니다.</strong>
+          <p className="muted">
+            아래 상태는 마지막으로 확인한 정보이며 최신 결과가 아닐 수 있습니다.
+            Provision·Reset·Cleanup 요청을 다시 실행하지 말고 상태 조회만 재시도해 주세요.
+          </p>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={operationQuery.isFetching}
+            onClick={() => void operationQuery.refetch()}
+          >
+            {operationQuery.isFetching ? '상태 확인 중...' : '상태 다시 확인'}
+          </button>
+        </section>
+      )}
 
       {isReconciling && (
         <section className="notice-card notice-warning">

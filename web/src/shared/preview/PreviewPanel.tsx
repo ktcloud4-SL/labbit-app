@@ -55,7 +55,14 @@ function safePreviewError(error: unknown): string {
 function validBootstrapUrl(raw: string): boolean {
   try {
     const url = new URL(raw)
-    return url.protocol === 'https:'
+    const isLocalHost = (hostname: string) =>
+      hostname === 'localhost' || hostname.endsWith('.localhost')
+    // Runtime Contract permits local HTTP on *.localhost; production requires HTTPS.
+    const isLocalHttp = url.protocol === 'http:'
+      && window.location.protocol === 'http:'
+      && isLocalHost(window.location.hostname)
+      && isLocalHost(url.hostname)
+    return (url.protocol === 'https:' || isLocalHttp)
       && Boolean(url.hostname)
       && url.origin !== window.location.origin
       && url.username === ''

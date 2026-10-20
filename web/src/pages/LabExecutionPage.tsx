@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { HttpError } from '../shared/api/httpClient'
@@ -72,11 +72,24 @@ function createIdempotencyKey() {
 }
 
 export function LabExecutionPage() {
+  const { labExecutionId } = useParams()
+  const resolvedExecutionId = labExecutionId ?? ''
+
+  // React Router can reuse this route when switching execution A → B.
+  // Reset/Cleanup confirmation and mutation state must never cross IDs.
+  return <LabExecutionForId key={resolvedExecutionId} executionId={resolvedExecutionId} />
+}
+
+function LabExecutionForId({ executionId }: { executionId: string }) {
   const api = useLabbitApi()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { labExecutionId } = useParams()
-  const resolvedExecutionId = labExecutionId ?? ''
+  const resolvedExecutionId = executionId
+  const isMountedRef = useRef(true)
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => { isMountedRef.current = false }
+  }, [])
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const actionTriggerRef = useRef<HTMLElement | null>(null)
 
@@ -111,9 +124,14 @@ export function LabExecutionPage() {
       return api.cleanupLabExecution(resolvedExecutionId, action.idempotencyKey)
     },
     onSuccess: (accepted) => {
-      navigate(`/operations/${encodeURIComponent(accepted.operationId)}`)
+      // A late response from execution A must not navigate the B screen.
+      if (isMountedRef.current) {
+        navigate(`/operations/${encodeURIComponent(accepted.operationId)}`)
+      }
     },
     onError: async (error) => {
+      // Do not mutate the next route's auth/cache state from a departed page.
+      if (!isMountedRef.current) return
       if (error instanceof HttpError && error.status === 401) {
         queryClient.removeQueries({ queryKey: labbitQueryKeys.me })
       }

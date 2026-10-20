@@ -253,6 +253,94 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     expect(JSON.stringify(client.getMutationCache().getAll().map((mutation) => mutation.state.data))).not.toContain(TOKEN)
   })
 
+
+  it('ADMIN이 다른 Organization으로 바뀌면 이전 발급 Token을 새 화면에서 재노출하지 않는다', async () => {
+    const { client } = mount({
+      createConnectorEnrollmentToken: async () => ({
+        tokenId: 'org-a-issue',
+        enrollmentToken: TOKEN,
+        expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+      }),
+    })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'Org A fixture' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(await screen.findByText(TOKEN)).toBeInTheDocument()
+
+    act(() => {
+      client.setQueryData(labbitQueryKeys.me, {
+        ...ADMIN,
+        organization: { id: 'org-b-fixture', name: 'Organization B' },
+      })
+    })
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '토큰 복사' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeEnabled()
+  })
+
+  it('발급 요청 중 ADMIN Principal이 바뀌면 이전 조직의 늦은 Secret 응답을 버린다', async () => {
+    let resolveIssue: ((value: ConnectorEnrollmentTokenIssued) => void) | undefined
+    const issue = vi.fn(() => new Promise<ConnectorEnrollmentTokenIssued>((resolve) => {
+      resolveIssue = resolve
+    }))
+    const { client } = mount({ createConnectorEnrollmentToken: issue })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'Org A pending fixture' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(issue).toHaveBeenCalledTimes(1)
+
+    act(() => {
+      client.setQueryData(labbitQueryKeys.me, {
+        ...ADMIN,
+        id: 'other-admin-user',
+        organization: { id: 'other-org', name: 'Other Organization' },
+      })
+    })
+    await act(async () => {
+      resolveIssue?.({
+        tokenId: 'old-principal-response',
+        enrollmentToken: TOKEN,
+        expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+      })
+      await Promise.resolve()
+    })
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '토큰 복사' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeEnabled()
+    expect(JSON.stringify(client.getQueryCache().getAll().map((q) => q.state.data))).not.toContain(TOKEN)
+    expect(JSON.stringify(client.getMutationCache().getAll().map((q) => q.state.data))).not.toContain(TOKEN)
+  })
+
+  it('ADMIN 권한이 내려갔다가 복구되어도 이전에 발급된 Token 원문을 복원하지 않는다', async () => {
+    const { client } = mount({
+      createConnectorEnrollmentToken: async () => ({
+        tokenId: 'before-downgrade',
+        enrollmentToken: TOKEN,
+        expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+      }),
+    })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'Privilege fixture' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(await screen.findByText(TOKEN)).toBeInTheDocument()
+
+    act(() => {
+      client.setQueryData(labbitQueryKeys.me, { ...ADMIN, organizationRole: 'MEMBER' })
+    })
+    expect(screen.getByRole('alert')).toHaveTextContent('Organization ADMIN')
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+
+    act(() => { client.setQueryData(labbitQueryKeys.me, ADMIN) })
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '일회용 토큰 발급' })).toBeEnabled()
+  })
+
   it('서버 목록 401은 빈 Connector 목록 대신 로그인 화면으로 보낸다', async () => {
     const { router } = mount({
       listConnectors: async () => { throw new HttpError(401) },

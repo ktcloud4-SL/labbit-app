@@ -9,6 +9,22 @@ import { useState } from 'react'
  * This component neither fetches nor persists a token and is intentionally
  * not mounted by a production route until LBT-182's OpenAPI is finalized.
  */
+// Presentation only: the server's ISO timestamp remains authoritative for expiry.
+// Use a fixed timezone to prevent UTC 'Z' times being mistaken for Korean local time.
+function formatExpiryKst(expiresAt: string): string {
+  const date = new Date(expiresAt)
+  if (!Number.isFinite(date.getTime())) return '확인 불가'
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date)
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? ''
+  return `${value('year')}-${value('month')}-${value('day')} ${value('hour')}:${value('minute')}:${value('second')} KST`
+}
+
 interface ConnectorEnrollmentTokenPanelProps {
   token: string
   expiresAt?: string
@@ -52,7 +68,7 @@ export function ConnectorEnrollmentTokenPanel({
       >
         {token}
       </output>
-      {expiresAt && <p className="muted">만료 시각: {expiresAt}</p>}
+      {expiresAt && <p className="muted">만료 시각: {formatExpiryKst(expiresAt)}</p>}
       <p className="muted">
         설치 프로그램에서 화면에 표시되지 않는 입력창으로 토큰을 입력합니다.
         이 화면을 닫은 후에는 원문을 다시 조회하지 않습니다.

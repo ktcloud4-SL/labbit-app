@@ -46,6 +46,8 @@ function statusPillClass(status: string) {
 
 function stageLabel(stage: string | undefined) {
   switch (stage) {
+    case 'DEFERRED':
+      return '재시도 대기 (DEFERRED)'
     case 'PROVISIONING':
       return '환경 생성 중'
     case 'RESETTING':
@@ -155,6 +157,7 @@ export function OperationPage() {
   }
 
   const operation = operationQuery.data
+  const isDeferredPending = operation.status === 'PENDING' && operation.stage === 'DEFERRED' && !operationQuery.error
   const isReconciling = operation.status === 'RECONCILING'
   const isUnknownStatus = !knownOperationStatuses.has(operation.status)
   const link = targetLink(operation)
@@ -190,6 +193,17 @@ export function OperationPage() {
           >
             {operationQuery.isFetching ? '상태 확인 중...' : '상태 다시 확인'}
           </button>
+        </section>
+      )}
+
+      {isDeferredPending && (
+        <section className="notice-card notice-warning" role="status">
+          <strong>요청이 접수됐지만 작업이 재시도 대기 상태입니다.</strong>
+          <p className="muted">
+            연결 또는 실행 환경 문제로 대기할 수 있지만, 이 화면만으로 정확한 원인은 알 수 없습니다.
+            같은 Provision·Reset·Cleanup 요청을 반복하지 마세요.
+            대기가 길어지면 작업 ID를 담당자에게 전달해 상태를 확인해 주세요.
+          </p>
         </section>
       )}
 

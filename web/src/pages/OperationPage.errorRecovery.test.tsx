@@ -43,6 +43,38 @@ function mount(getOperation: (id: string) => Promise<Operation>) {
 }
 
 describe('LBT-53 Operation status read-only recovery', () => {
+  it('PENDING/DEFERRED는 재시도 대기와 원인 미확정·중복 요청 금지를 안내한다', async () => {
+    const { get } = mount(async () => ({ ...OPERATION, stage: 'DEFERRED' }))
+    expect(await screen.findByRole('heading', { name: '요청 대기 중' })).toBeInTheDocument()
+    expect(screen.getByText('재시도 대기 (DEFERRED)')).toBeInTheDocument()
+    const notice = screen.getByRole('status')
+    expect(notice).toHaveTextContent('정확한 원인은 알 수 없습니다')
+    expect(notice).toHaveTextContent('같은 Provision·Reset·Cleanup 요청을 반복하지 마세요')
+    expect(get).toHaveBeenCalledWith('operation-1')
+  })
+
+  it('일반 PENDING은 DEFERRED 안내를 보이지 않는다', async () => {
+    mount(async () => OPERATION)
+    expect(await screen.findByRole('heading', { name: '요청 대기 중' })).toBeInTheDocument()
+    expect(screen.getByText('환경 생성 중')).toBeInTheDocument()
+    expect(screen.queryByText(/재시도 대기 상태입니다/)).not.toBeInTheDocument()
+  })
+
+  it('DEFERRED의 마지막 성공 응답 뒤 조회 503이면 대기를 확정하지 않고 stale 안내만 보인다', async () => {
+    let calls = 0
+    const { client } = mount(async () => {
+      calls += 1
+      if (calls > 1) throw new HttpError(503)
+      return { ...OPERATION, stage: 'DEFERRED' }
+    })
+    expect(await screen.findByRole('status')).toHaveTextContent('재시도 대기 상태입니다')
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: labbitQueryKeys.operation('operation-1') })
+    })
+    expect(await screen.findByRole('alert')).toHaveTextContent('마지막으로 확인한 정보')
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
   it('최초 503에서는 작업 재실행 없이 GET 상태 재조회로 복구할 수 있다', async () => {
     let count = 0
     const { get } = mount(async () => {

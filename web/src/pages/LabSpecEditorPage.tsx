@@ -572,6 +572,12 @@ export function LabSpecEditorPage() {
   const allowSavedNavigationRef = useRef(false)
   const currentRoute = resolvedLabSpecId || 'new-lab-spec'
 
+  // React Router can reuse this page across /new -> /:id. The create-only
+  // navigation bypass must not survive entry into the saved detail route.
+  useEffect(() => {
+    allowSavedNavigationRef.current = false
+  }, [currentRoute])
+
   const meQuery = useQuery({
     queryKey: labbitQueryKeys.me,
     queryFn: () => api.getMe(),

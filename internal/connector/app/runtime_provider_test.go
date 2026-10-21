@@ -292,7 +292,7 @@ func TestLazyProvider_SharesFailedAttemptAndRetriesOnNextRequest(t *testing.T) {
 			}
 			unblock()
 			for i := 0; i < 7; i++ {
-				if err := awaitProviderError(t, done); err != errProviderInitialization {
+				if err := awaitProviderError(t, done); !errors.Is(err, errProviderInitialization) {
 					t.Fatalf("failed initialization exposed detail or retried: %v", err)
 				}
 			}
@@ -335,7 +335,7 @@ func TestLazyProvider_OwnerCancellationReleasesWaitersAndAllowsRetry(t *testing.
 	if err := awaitProviderError(t, ownerDone); !errors.Is(err, context.Canceled) {
 		t.Fatalf("owner cancellation = %v", err)
 	}
-	if err := awaitProviderError(t, waiterDone); err != errProviderInitialization {
+	if err := awaitProviderError(t, waiterDone); !errors.Is(err, errProviderInitialization) {
 		t.Fatalf("waiter inherited owner's cancellation or stayed blocked: %v", err)
 	}
 	if err := lazy.ValidateConnection(context.Background()); err != nil || attempts.Load() != 2 {

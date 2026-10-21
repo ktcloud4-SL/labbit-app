@@ -3,15 +3,38 @@ package app
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
+	openstackprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile"
 	"golang.org/x/crypto/ssh"
 )
 
 var errProviderInitialization = errors.New("connector Provider initialization failed")
+
+// Keep only a fixed diagnostic category, never the original SDK error.
+type providerInitializationError struct{ category string }
+
+func (e *providerInitializationError) Error() string { return errProviderInitialization.Error() }
+func (e *providerInitializationError) Unwrap() error { return errProviderInitialization }
+
+func safeProviderInitializationError(err error) error {
+	category := "internal_init"
+	switch {
+	case errors.Is(err, openstackprovider.ErrConfigRequired), errors.Is(err, openstackprovider.ErrConfigUnavailable),
+		errors.Is(err, openstackprovider.ErrConfigInvalid), errors.Is(err, openstackprovider.ErrInsecureTLS):
+		category = "config"
+	case errors.Is(err, openstackprovider.ErrAuthentication):
+		category = "auth"
+	case errors.Is(err, openstackprovider.ErrServiceUnavailable):
+		category = "catalog"
+	}
+	return &providerInitializationError{category: category}
+}
 
 type runtimeProvider interface {
 	provider.Provider
@@ -29,6 +52,7 @@ type lazyProvider struct {
 	factory              providerFactory
 	initializedProvider  runtimeProvider
 	initializing         *providerInitialization
+	diagnosticLogger     *slog.Logger
 }
 
 type providerInitialization struct {
@@ -56,8 +80,11 @@ func (p *lazyProvider) ProviderConnectionID() string {
 }
 
 func (p *lazyProvider) get(ctx context.Context) (runtimeProvider, error) {
-	if p == nil || p.factory == nil || p.providerConnectionID == "" {
-		return nil, errProviderInitialization
+	if p == nil || p.factory == nil {
+		return nil, safeProviderInitializationError(nil)
+	}
+	if p.providerConnectionID == "" {
+		return nil, safeProviderInitializationError(openstackprovider.ErrConfigRequired)
 	}
 	p.mu.Lock()
 	if err := ctx.Err(); err != nil {
@@ -79,7 +106,7 @@ func (p *lazyProvider) get(ctx context.Context) (runtimeProvider, error) {
 		// can leave independently without canceling this shared attempt.
 		initialized, err := p.factory(ctx)
 		if err != nil || ctx.Err() != nil || initialized == nil || initialized.ProviderConnectionID() != p.providerConnectionID {
-			initialized, err = nil, errProviderInitialization
+			initialized, err = nil, safeProviderInitializationError(err)
 		}
 		p.mu.Lock()
 		p.initializedProvider = initialized
@@ -101,6 +128,40 @@ func (p *lazyProvider) get(ctx context.Context) (runtimeProvider, error) {
 		return nil, err
 	}
 	return attempt.provider, attempt.err
+}
+
+func (p *lazyProvider) setDiagnosticLogger(logger *slog.Logger) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.diagnosticLogger = logger
+}
+
+func (p *lazyProvider) logInitializationFailure(ctx context.Context, correlation provider.Correlation, err error) {
+	var failure *providerInitializationError
+	if p == nil || !errors.As(err, &failure) {
+		return
+	}
+	p.mu.Lock()
+	logger := p.diagnosticLogger
+	p.mu.Unlock()
+	if logger == nil {
+		return
+	}
+	attrs := []any{"failure_stage", "provider_initialization", "failure_category", failure.category}
+	// Correlation fields are opaque wire strings; log only validated UUIDs so
+	// malformed inputs cannot turn a credential or endpoint into a log value.
+	for _, field := range []struct{ name, value string }{
+		{"operation_id", correlation.OperationID}, {"lab_instance_id", correlation.LabInstanceID},
+		{"provider_connection_id", p.providerConnectionID},
+	} {
+		if id, err := uuid.Parse(field.value); err == nil && id != uuid.Nil {
+			attrs = append(attrs, field.name, id.String())
+		}
+	}
+	if correlation.Generation > 0 {
+		attrs = append(attrs, "generation", correlation.Generation)
+	}
+	logger.WarnContext(ctx, "Connector Provider initialization failed", attrs...)
 }
 
 func (p *lazyProvider) ValidateConnection(ctx context.Context) error {
@@ -178,6 +239,7 @@ func (p *lazyProvider) SSHHostKeyCallback(ctx context.Context, serverID string) 
 func (p *lazyProvider) Provision(ctx context.Context, request provider.ProvisionRequest) (provider.OperationResult, error) {
 	initialized, err := p.get(ctx)
 	if err != nil {
+		p.logInitializationFailure(ctx, request.Correlation, err)
 		return providerUnavailableOperationResult(), nil
 	}
 	return initialized.Provision(ctx, request)
@@ -186,6 +248,7 @@ func (p *lazyProvider) Provision(ctx context.Context, request provider.Provision
 func (p *lazyProvider) Reset(ctx context.Context, request provider.ResetRequest) (provider.OperationResult, error) {
 	initialized, err := p.get(ctx)
 	if err != nil {
+		p.logInitializationFailure(ctx, request.Correlation, err)
 		return providerUnavailableOperationResult(), nil
 	}
 	return initialized.Reset(ctx, request)
@@ -194,6 +257,7 @@ func (p *lazyProvider) Reset(ctx context.Context, request provider.ResetRequest)
 func (p *lazyProvider) Cleanup(ctx context.Context, request provider.CleanupRequest) (provider.OperationResult, error) {
 	initialized, err := p.get(ctx)
 	if err != nil {
+		p.logInitializationFailure(ctx, request.Correlation, err)
 		return providerUnavailableOperationResult(), nil
 	}
 	return initialized.Cleanup(ctx, request)
@@ -202,6 +266,7 @@ func (p *lazyProvider) Cleanup(ctx context.Context, request provider.CleanupRequ
 func (p *lazyProvider) Reconcile(ctx context.Context, request provider.ReconcileRequest) (provider.ReconcileResult, error) {
 	initialized, err := p.get(ctx)
 	if err != nil {
+		p.logInitializationFailure(ctx, request.Correlation, err)
 		return provider.ReconcileResult{
 			Observations: []provider.ResourceObservation{},
 			Error: &provider.SafeError{

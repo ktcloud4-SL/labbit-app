@@ -1,10 +1,10 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 import { ConnectorEnrollmentTokenPanel } from './ConnectorEnrollmentTokenPanel'
 import { ConnectorInstallGuide } from './ConnectorInstallGuide'
-import type { ConnectorEnrollmentTokenIssued } from '../shared/api/contracts'
+import type { ConnectorEnrollmentTokenIssued, Me } from '../shared/api/contracts'
 import { HttpError } from '../shared/api/httpClient'
 import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
@@ -20,6 +20,18 @@ function statusLabel(status: string) {
     case 'REVOKED': return '폐기됨'
     default: return '알 수 없는 상태'
   }
+}
+
+// A Backend Problem Details forbidden code is an authorization decision.
+// Do not infer a changed ADMIN role from an unstructured proxy/origin 403.
+// Validate the response timestamp outside the component's render scope.
+function tokenExpiryInvalid(expiresAt: string): boolean {
+  const expiresAtMs = Date.parse(expiresAt)
+  return !Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()
+}
+
+function isManagementForbidden(error: unknown): boolean {
+  return error instanceof HttpError && error.status === 403 && error.problem?.code === 'forbidden'
 }
 
 function errorMessage(error: unknown, action: string) {
@@ -39,33 +51,69 @@ function errorMessage(error: unknown, action: string) {
  */
 export function ConnectorAdminPage() {
   const api = useLabbitApi()
-  const queryClient = useQueryClient()
   const meQuery = useQuery({
     queryKey: labbitQueryKeys.me,
     queryFn: () => api.getMe(),
     retry: false,
   })
   const me = meQuery.data
+  // React Router may keep /connectors mounted while the auth principal or
+  // organization changes. A one-time enrollment secret must never cross
+  // those boundaries, including late responses from the previous principal.
+  const principalKey = me
+    ? JSON.stringify([me.organization.id, me.id, me.organizationRole])
+    : 'no-principal'
+  return <ConnectorAdminForPrincipal key={principalKey} meQuery={meQuery} />
+}
+
+function ConnectorAdminForPrincipal({
+  meQuery,
+}: {
+  meQuery: Pick<UseQueryResult<Me>, 'data' | 'error' | 'isPending'>
+}) {
+  const api = useLabbitApi()
+  const queryClient = useQueryClient()
+  const me = meQuery.data
   const isAdmin = me?.organizationRole === 'ADMIN'
   const connectorsKey = ['connectors', me?.organization.id, me?.id] as const
-  const connectorsQuery = useQuery({
-    queryKey: connectorsKey,
-    queryFn: () => api.listConnectors(),
-    enabled: isAdmin,
-    retry: false,
-    // Server computes ONLINE/OFFLINE from real heartbeat; never infer from HELLO.
-    // Poll only while the page is active, preserving the observedAt timestamp.
-    refetchInterval: 15_000,
-  })
-
   const [name, setName] = useState('')
   const [issued, setIssued] = useState<ConnectorEnrollmentTokenIssued | null>(null)
   const [pending, setPending] = useState<'issue' | 'cancel' | string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [actionNotice, setActionNotice] = useState<string | null>(null)
   const [authExpired, setAuthExpired] = useState(false)
+  const [accessDenied, setAccessDenied] = useState(false)
   const requestEpoch = useRef(0)
   const busy = pending !== null
+
+  function rejectManagementAccess() {
+    // /me can still contain a stale ADMIN principal after the Backend begins
+    // returning forbidden. Drop the one-time secret and cancel late issuance.
+    requestEpoch.current += 1
+    setIssued(null)
+    setPending(null)
+    setActionError(null)
+    setAccessDenied(true)
+    void queryClient.invalidateQueries({ queryKey: labbitQueryKeys.me })
+  }
+
+  const connectorsQuery = useQuery({
+    queryKey: connectorsKey,
+    queryFn: async () => {
+      try {
+        return await api.listConnectors()
+      } catch (error) {
+        if (isManagementForbidden(error)) rejectManagementAccess()
+        throw error
+      }
+    },
+    enabled: isAdmin && !accessDenied,
+    retry: false,
+    // Server computes ONLINE/OFFLINE from real heartbeat; never infer from HELLO.
+    // Poll only while the page is active, preserving the observedAt timestamp.
+    refetchInterval: 15_000,
+  })
+  const managementForbidden = accessDenied || isManagementForbidden(connectorsQuery.error)
 
   // Each unmount invalidates late issuance: it cannot re-expose a secret in
   // a different screen after logout or navigation.
@@ -109,7 +157,7 @@ export function ConnectorAdminPage() {
       // Do not use useMutation here: Query's mutation cache could retain the raw token.
       const result = await api.createConnectorEnrollmentToken(name)
       if (requestEpoch.current !== epoch) return
-      if (!Number.isFinite(Date.parse(result.expiresAt)) || Date.parse(result.expiresAt) <= Date.now()) {
+      if (tokenExpiryInvalid(result.expiresAt)) {
         setActionError('발급된 토큰의 만료 시각이 유효하지 않습니다. 새 토큰을 발급해 주세요.')
         return
       }
@@ -118,6 +166,7 @@ export function ConnectorAdminPage() {
     } catch (error) {
       if (requestEpoch.current !== epoch) return
       if (error instanceof HttpError && error.status === 401) setAuthExpired(true)
+      else if (isManagementForbidden(error)) rejectManagementAccess()
       else setActionError(errorMessage(error, '등록 토큰 발급'))
     } finally {
       if (requestEpoch.current === epoch) setPending(null)
@@ -138,6 +187,7 @@ export function ConnectorAdminPage() {
     } catch (error) {
       if (requestEpoch.current !== epoch) return
       if (error instanceof HttpError && error.status === 401) setAuthExpired(true)
+      else if (isManagementForbidden(error)) rejectManagementAccess()
       else setActionError(errorMessage(error, '등록 토큰 취소'))
     } finally {
       if (requestEpoch.current === epoch) setPending(null)
@@ -158,6 +208,7 @@ export function ConnectorAdminPage() {
     } catch (error) {
       if (requestEpoch.current !== epoch) return
       if (error instanceof HttpError && error.status === 401) setAuthExpired(true)
+      else if (isManagementForbidden(error)) rejectManagementAccess()
       else setActionError(errorMessage(error, 'Connector 폐기'))
     } finally {
       if (requestEpoch.current === epoch) setPending(null)
@@ -184,6 +235,11 @@ export function ConnectorAdminPage() {
       <p role="alert">Connector 관리는 Organization ADMIN만 이용할 수 있습니다.</p>
       <Link to="/classes">수업 목록으로 돌아가기</Link>
     </main>
+  }
+
+  if (managementForbidden) {
+    // Fail closed even if /me has not yet refreshed after a role downgrade.
+    return <main className="app-page"><ErrorState message="Connector 목록에 접근할 권한이 없습니다." /></main>
   }
 
   return (

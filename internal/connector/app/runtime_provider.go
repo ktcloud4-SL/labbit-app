@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"log/slog"
 	"sync"
@@ -148,14 +150,20 @@ func (p *lazyProvider) logInitializationFailure(ctx context.Context, correlation
 		return
 	}
 	attrs := []any{"failure_stage", "provider_initialization", "failure_category", failure.category}
-	// Correlation fields are opaque wire strings; log only validated UUIDs so
-	// malformed inputs cannot turn a credential or endpoint into a log value.
+	// Opaque wire IDs remain correlatable without logging arbitrary text that
+	// could contain credentials or endpoints. Keep canonical UUIDs readable.
 	for _, field := range []struct{ name, value string }{
 		{"operation_id", correlation.OperationID}, {"lab_instance_id", correlation.LabInstanceID},
 		{"provider_connection_id", p.providerConnectionID},
 	} {
-		if id, err := uuid.Parse(field.value); err == nil && id != uuid.Nil {
+		if field.value == "" {
+			continue
+		}
+		if id, err := uuid.Parse(field.value); err == nil && id != uuid.Nil && id.String() == field.value {
 			attrs = append(attrs, field.name, id.String())
+		} else {
+			digest := sha256.Sum256([]byte(field.value))
+			attrs = append(attrs, field.name+"_sha256", hex.EncodeToString(digest[:]))
 		}
 	}
 	if correlation.Generation > 0 {

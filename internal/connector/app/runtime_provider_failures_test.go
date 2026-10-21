@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -195,6 +196,9 @@ func TestProviderInitializationDiagnosticsDiscardRawErrorsAndInvalidIDs(t *testi
 					if _, exists := records[0][field]; exists {
 						t.Fatalf("unvalidated correlation field logged: %s", field)
 					}
+					if records[0][field+"_sha256"] != fmt.Sprintf("%x", sha256.Sum256([]byte(sensitive))) {
+						t.Fatalf("protected correlation missing: %s", field)
+					}
 				}
 			} else if records[0]["operation_id"] != corr.OperationID || records[0]["lab_instance_id"] != corr.LabInstanceID || records[0]["provider_connection_id"] != connection {
 				t.Fatalf("correlation=%+v", records[0])
@@ -296,6 +300,31 @@ func TestProviderInitializationInternalFailuresAndCanceledCaller(t *testing.T) {
 	_, _ = p.Provision(ctx, provider.ProvisionRequest{})
 	if logs.Len() != 0 {
 		t.Fatal("caller cancellation was misreported as Provider initialization failure")
+	}
+}
+
+func TestProviderInitializationDiagnosticsPreserveOpaqueCorrelation(t *testing.T) {
+	p := newLazyProvider("connection-1", func(context.Context) (runtimeProvider, error) {
+		return nil, openstackprovider.ErrAuthentication
+	})
+	var logs bytes.Buffer
+	p.setDiagnosticLogger(slog.New(slog.NewJSONHandler(&logs, nil)))
+	for _, operation := range []string{"op-1", "op-2"} {
+		_, _ = p.Provision(t.Context(), provider.ProvisionRequest{Correlation: provider.Correlation{OperationID: operation, LabInstanceID: "lab-A", Generation: 1}})
+	}
+	records := initializationRecords(t, logs.String())
+	if len(records) != 2 {
+		t.Fatalf("diagnostics=%d", len(records))
+	}
+	for i, operation := range []string{"op-1", "op-2"} {
+		for field, value := range map[string]string{"operation_id": operation, "lab_instance_id": "lab-A", "provider_connection_id": "connection-1"} {
+			if records[i][field+"_sha256"] != fmt.Sprintf("%x", sha256.Sum256([]byte(value))) {
+				t.Fatalf("opaque correlation lost: field=%s record=%+v", field, records[i])
+			}
+			if _, raw := records[i][field]; raw {
+				t.Fatalf("opaque correlation was logged without protection: %s", field)
+			}
+		}
 	}
 }
 

@@ -153,6 +153,79 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
   })
 
+  it('미취소 발급 Token은 다른 화면으로 이동했다 돌아와도 재노출되지 않는다', async () => {
+    const create = vi.fn(async () => ({
+      tokenId: 'unrevoked-fixture', enrollmentToken: TOKEN, expiresAt: FUTURE_EXPIRY,
+    }))
+    const cancel = vi.fn(async () => undefined)
+    const { router, client } = mount({
+      createConnectorEnrollmentToken: create,
+      cancelConnectorEnrollmentToken: cancel,
+    })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'Unrevoked navigation fixture' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(await screen.findByText(TOKEN)).toBeInTheDocument()
+
+    await act(async () => { await router.navigate('/classes') })
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    await act(async () => { await router.navigate('/connectors') })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '토큰 복사' })).not.toBeInTheDocument()
+    expect(create).toHaveBeenCalledTimes(1)
+    expect(cancel).not.toHaveBeenCalled()
+    expect(JSON.stringify(client.getQueryCache().getAll().map((q) => q.state.data))).not.toContain(TOKEN)
+    expect(JSON.stringify(client.getMutationCache().getAll().map((m) => m.state.data))).not.toContain(TOKEN)
+    // Browser visibility removal does not mean that the server has revoked it.
+  })
+
+  it('취소 후 재발급 실패는 이전 원문을 재노출하지 않고 다음 시도를 허용한다', async () => {
+    const nextToken = 'fixture-second-issue-nonsecret'
+    let attempt = 0
+    const create = vi.fn(async () => {
+      attempt += 1
+      if (attempt === 2) throw new HttpError(503)
+      return {
+        tokenId: 'mock-issue-' + attempt,
+        enrollmentToken: attempt === 1 ? TOKEN : nextToken,
+        expiresAt: FUTURE_EXPIRY,
+      }
+    })
+    const cancel = vi.fn(async () => undefined)
+    const { client } = mount({
+      createConnectorEnrollmentToken: create,
+      cancelConnectorEnrollmentToken: cancel,
+    })
+    await screen.findByText('등록된 Connector가 없습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'First synthetic VM' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(await screen.findByText(TOKEN)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '등록 토큰 취소' }))
+    await waitFor(() => expect(cancel).toHaveBeenCalledWith('mock-issue-1'))
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Connector 이름' }), {
+      target: { value: 'Retry synthetic VM' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('등록 토큰 발급에 실패했습니다.')
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    expect(screen.queryByText(nextToken)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '일회용 토큰 발급' }))
+    expect(await screen.findByText(nextToken)).toBeInTheDocument()
+    expect(screen.queryByText(TOKEN)).not.toBeInTheDocument()
+    expect(create).toHaveBeenCalledTimes(3)
+    expect(JSON.stringify(client.getQueryCache().getAll().map((q) => q.state.data))).not.toContain(nextToken)
+    expect(JSON.stringify(client.getMutationCache().getAll().map((m) => m.state.data))).not.toContain(nextToken)
+  })
+
   it('Token 취소는 원문이 아닌 tokenId로 요청하고 원문을 화면에서 지운다', async () => {
     const cancel = vi.fn(async () => undefined)
     mount({

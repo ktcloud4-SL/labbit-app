@@ -40,6 +40,27 @@ describe('LBT-183 Connector one-time enrollment token presentation', () => {
     expect(setItem).not.toHaveBeenCalled()
   })
 
+  it('발급 토큰 만료 시각을 UTC 원문 대신 명시적인 한국시간으로 표시한다', () => {
+    render(<ConnectorEnrollmentTokenPanel
+      token={TEST_TOKEN}
+      expiresAt="2026-10-21T03:26:14.840419Z"
+      onClose={() => undefined}
+    />)
+
+    expect(screen.getByText('만료 시각: 2026-10-21 12:26:14 KST')).toBeInTheDocument()
+    expect(screen.queryByText(/T03:26:14/)).not.toBeInTheDocument()
+  })
+
+  it('동일한 만료 순간의 UTC+09:00도 똑같은 KST로 표시한다', () => {
+    render(<ConnectorEnrollmentTokenPanel
+      token={TEST_TOKEN}
+      expiresAt="2026-10-21T12:26:14+09:00"
+      onClose={() => undefined}
+    />)
+
+    expect(screen.getByText('만료 시각: 2026-10-21 12:26:14 KST')).toBeInTheDocument()
+  })
+
   it('복사 요청 시 Clipboard API에만 토큰을 전달하고 상태를 알려준다', async () => {
     const writeText = vi.fn(async () => undefined)
     vi.stubGlobal('navigator', { clipboard: { writeText } })

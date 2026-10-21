@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { HttpError } from '../shared/api/httpClient'
@@ -11,7 +11,7 @@ import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
 type PendingAction =
-  | { type: 'RESET'; labInstanceId: string; username: string; idempotencyKey: string }
+  | { type: 'RESET'; labInstanceId: string; username: string; generation: number; idempotencyKey: string }
   | { type: 'CLEANUP'; idempotencyKey: string }
   | null
 
@@ -72,11 +72,24 @@ function createIdempotencyKey() {
 }
 
 export function LabExecutionPage() {
+  const { labExecutionId } = useParams()
+  const resolvedExecutionId = labExecutionId ?? ''
+
+  // React Router can reuse this route when switching execution A → B.
+  // Reset/Cleanup confirmation and mutation state must never cross IDs.
+  return <LabExecutionForId key={resolvedExecutionId} executionId={resolvedExecutionId} />
+}
+
+function LabExecutionForId({ executionId }: { executionId: string }) {
   const api = useLabbitApi()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { labExecutionId } = useParams()
-  const resolvedExecutionId = labExecutionId ?? ''
+  const resolvedExecutionId = executionId
+  const isMountedRef = useRef(true)
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => { isMountedRef.current = false }
+  }, [])
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const actionTriggerRef = useRef<HTMLElement | null>(null)
 
@@ -105,15 +118,53 @@ export function LabExecutionPage() {
 
   const mutation = useMutation({
     mutationFn: async (action: Exclude<PendingAction, null>) => {
+      // Destructive confirmation may sit open while a teacher loses access
+      // or the LabExecution changes server-side. Check fresh GET responses
+      // before performing any Reset/Cleanup POST. Backend remains final arbiter.
+      const latest = await api.getLabExecution(resolvedExecutionId)
+      if (
+        latest.id !== resolvedExecutionId ||
+        !executionQuery.data ||
+        latest.classId !== executionQuery.data.classId
+      ) {
+        throw new HttpError(409)
+      }
+      const latestClass = await api.getClass(latest.classId)
+      if (latestClass.myRole !== 'INSTRUCTOR') throw new HttpError(403)
+
+      // GET preflight is asynchronous. If the instructor left the Execution
+      // screen before it finished, do not start a destructive POST afterward.
+      if (!isMountedRef.current) throw new Error('Execution action confirmation expired')
+
       if (action.type === 'RESET') {
+        const target = latest.labInstances.find(
+          (instance) => instance.id === action.labInstanceId,
+        )
+        if (
+          latest.status !== 'ACTIVE' ||
+          !target ||
+          target.userId === latest.instructorUserId ||
+          (target.status !== 'READY' && target.status !== 'ERROR') ||
+          target.generation !== action.generation
+        ) {
+          throw new HttpError(409)
+        }
         return api.resetLabInstance(action.labInstanceId, action.idempotencyKey)
+      }
+      if (latest.status !== 'ACTIVE' && latest.status !== 'ERROR') {
+        throw new HttpError(409)
       }
       return api.cleanupLabExecution(resolvedExecutionId, action.idempotencyKey)
     },
     onSuccess: (accepted) => {
-      navigate(`/operations/${encodeURIComponent(accepted.operationId)}`)
+      // A late response from execution A must not navigate the B screen.
+      if (isMountedRef.current) {
+        navigate(`/operations/${encodeURIComponent(accepted.operationId)}`)
+      }
     },
     onError: async (error) => {
+      // Do not mutate the next route's auth/cache state from a departed page.
+      if (!isMountedRef.current) return
       if (error instanceof HttpError && error.status === 401) {
         queryClient.removeQueries({ queryKey: labbitQueryKeys.me })
       }
@@ -141,6 +192,40 @@ export function LabExecutionPage() {
     setPendingAction(null)
     actionTriggerRef.current = null
   }
+
+  const mutationPending = mutation.isPending
+  const resetMutation = mutation.reset
+
+  // Any refreshed role/status/instance invalidating an open confirmation
+  // invalidates the confirmation itself, including its idempotency key.
+  // A later restoration of the old state must not resurrect that dialog.
+  useEffect(() => {
+    if (!pendingAction || mutationPending) return
+
+    const execution = executionQuery.data
+    const invalidRole = classQuery.data && classQuery.data.myRole !== 'INSTRUCTOR'
+    const invalidTarget = execution && (
+      pendingAction.type === 'CLEANUP'
+        ? execution.status !== 'ACTIVE' && execution.status !== 'ERROR'
+        : execution.status !== 'ACTIVE' ||
+          !execution.labInstances.some((instance) =>
+            instance.id === pendingAction.labInstanceId &&
+            instance.generation === pendingAction.generation &&
+            instance.userId !== execution.instructorUserId &&
+            (instance.status === 'READY' || instance.status === 'ERROR'),
+          )
+    )
+
+    if (invalidRole || invalidTarget) {
+      // Defer a state update until after the effect, and guard against a
+      // different confirmation having opened before this callback runs.
+      queueMicrotask(() => {
+        setPendingAction((current) => current === pendingAction ? null : current)
+        resetMutation()
+        actionTriggerRef.current = null
+      })
+    }
+  }, [pendingAction, classQuery.data, executionQuery.data, mutationPending, resetMutation])
 
   if (!resolvedExecutionId) {
     return (
@@ -386,6 +471,7 @@ export function LabExecutionPage() {
                               type: 'RESET',
                               labInstanceId: labInstance.id,
                               username,
+                              generation: labInstance.generation,
                               idempotencyKey: createIdempotencyKey(),
                             },
                             event.currentTarget,

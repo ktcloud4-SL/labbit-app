@@ -163,11 +163,13 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     )
     expect(createLabSpec).toHaveBeenCalledTimes(1)
     expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('New LabSpec')
+    expect(await screen.findByRole('status')).toHaveTextContent('새 실습 정의가 저장되었습니다.')
     expect(confirmation).not.toHaveBeenCalled()
 
     fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
       target: { value: 'Unsaved detail changes' },
     })
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
     fireEvent.click(screen.getByRole('link', { name: /실습 정의 목록/ }))
     await waitFor(() => expect(confirmation).toHaveBeenCalledTimes(1))
     expect(router.state.location.pathname).toBe('/lab-specs/newly-created-spec')
@@ -279,6 +281,7 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('다른 곳에서 LabSpec이 수정되었습니다')
+    expect(screen.queryByText('실습 정의 변경사항이 저장되었습니다.')).not.toBeInTheDocument()
     expect(updateLabSpec).toHaveBeenCalledWith(
       'lab-spec-existing',
       expect.objectContaining({ name: 'My concurrent edit' }),
@@ -580,6 +583,11 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     })
     await waitFor(() => expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('Submitted edit'))
     expect(screen.getByRole('textbox', { name: '이름' })).toBeEnabled()
+    expect(await screen.findByRole('status')).toHaveTextContent('실습 정의 변경사항이 저장되었습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'Next unsaved edit' },
+    })
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
   })
 
   it('LabSpec 조회 403이면 상세 내용을 렌더하지 않고 목록 복귀를 안내한다', async () => {

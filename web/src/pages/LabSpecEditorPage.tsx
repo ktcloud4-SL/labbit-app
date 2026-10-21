@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom'
+import { Link, useBlocker, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import type { LabSpecMappingOptionsList, LabSpecWrite, VmRoleSpec } from '../shared/api/contracts'
 import { LabSpecMappingFields, type MappingCandidate } from './LabSpecMappingFields'
@@ -562,6 +562,7 @@ export function LabSpecEditorPage() {
   const api = useLabbitApi()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const location = useLocation()
   const { labSpecId } = useParams()
   const isNew = !labSpecId
   const resolvedLabSpecId = labSpecId ?? ''
@@ -569,6 +570,8 @@ export function LabSpecEditorPage() {
   // It is never automatically submitted with a newer server ETag.
   const [draftBackup, setDraftBackup] = useState<LabSpecDraftBackup | null>(null)
   const [dirtyRoute, setDirtyRoute] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState<'updated' | null>(null)
+  const [createdNoticeDismissed, setCreatedNoticeDismissed] = useState(false)
   const allowSavedNavigationRef = useRef(false)
   const currentRoute = resolvedLabSpecId || 'new-lab-spec'
 
@@ -605,6 +608,8 @@ export function LabSpecEditorPage() {
   })
 
   const captureDraft = useCallback((form: LabSpecWrite) => {
+    setSaveSuccess(null)
+    setCreatedNoticeDismissed(true)
     setDirtyRoute(currentRoute)
     if (!resolvedLabSpecId) return
     setDraftBackup((previous) => {
@@ -639,17 +644,23 @@ export function LabSpecEditorPage() {
     onSuccess: async (result) => {
       setDraftBackup(null)
       setDirtyRoute(null)
+      setSaveSuccess(null)
       await queryClient.invalidateQueries({ queryKey: labbitQueryKeys.labSpecs })
 
       if (result.mode === 'create') {
         // Only the successful create navigates away automatically.
+        // Pass feedback to the detail route because React Router may remount this page.
+        setCreatedNoticeDismissed(false)
         allowSavedNavigationRef.current = true
         navigate(`/lab-specs/${encodeURIComponent(result.labSpec.id)}`, {
           replace: true,
+          state: { labSpecJustCreatedId: result.labSpec.id },
         })
         return
       }
 
+      setCreatedNoticeDismissed(true)
+      setSaveSuccess('updated')
       queryClient.setQueryData(
         labbitQueryKeys.labSpec(resolvedLabSpecId),
         result.result,
@@ -817,6 +828,17 @@ export function LabSpecEditorPage() {
         </div>
       </header>
 
+      {(saveSuccess === 'updated' ||
+        (!isNew &&
+          location.state?.labSpecJustCreatedId === resolvedLabSpecId &&
+          !createdNoticeDismissed)) && (
+        <div className="notice-card notice-success" role="status">
+          {saveSuccess === 'updated'
+            ? '실습 정의 변경사항이 저장되었습니다.'
+            : '새 실습 정의가 저장되었습니다. 실제 환경 생성은 수업 상세에서 별도로 시작합니다.'}
+        </div>
+      )}
+
       {mappingError === 'unavailable' && (
         <button className="secondary-button" type="button" onClick={() => void mappingOptionsQuery.refetch()}>
           Mapping 후보 다시 시도
@@ -852,6 +874,7 @@ export function LabSpecEditorPage() {
           setDirtyRoute(null)
         }}
         onSubmit={(input) => {
+          setSaveSuccess(null)
           saveMutation.reset()
           saveMutation.mutate(input)
         }}

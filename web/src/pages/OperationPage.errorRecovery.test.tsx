@@ -67,7 +67,8 @@ describe('LBT-53 Operation status read-only recovery', () => {
       if (calls > 1) throw new HttpError(503)
       return { ...OPERATION, stage: 'DEFERRED' }
     })
-    expect(await screen.findByRole('status')).toHaveTextContent('재시도 대기 상태입니다')
+    expect(await screen.findByRole('heading', { name: '요청 대기 중' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('재시도 대기 상태입니다')
     await act(async () => {
       await client.invalidateQueries({ queryKey: labbitQueryKeys.operation('operation-1') })
     })

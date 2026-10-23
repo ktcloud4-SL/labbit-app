@@ -22,7 +22,7 @@ function HeightHarness() {
 }
 
 describe('Terminal height control', () => {
-  it('changes the workspace grid height with the slider without touching TerminalSession', () => {
+  it('changes the workspace grid height CSS variable with the slider', () => {
     render(<HeightHarness />)
     const slider = screen.getByRole('slider', { name: '터미널 높이' })
     expect(slider).toHaveAttribute('min', String(MIN_TERMINAL_HEIGHT))
@@ -42,6 +42,7 @@ describe('Terminal height control', () => {
 
     fireEvent.click(smaller)
     expect(screen.getByText('320px')).toBeInTheDocument()
+    expect(smaller).toBeDisabled()
     fireEvent.click(larger)
     expect(screen.getByText('360px')).toBeInTheDocument()
 

@@ -177,6 +177,59 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     confirmation.mockRestore()
   })
 
+  it('생성 성공 안내는 최초 상세에서만 보이고 목록→Back에서 재표시되지 않는다', async () => {
+    const candidate = mockLabSpecMappingOptions.items[0]
+    let savedLabSpec: LabSpec | null = null
+    const createLabSpec = vi.fn(async (input: LabSpecWrite) => {
+      savedLabSpec = { ...input, id: 'created-flash-spec', ownerUserId: mockMe.id }
+      return savedLabSpec
+    })
+    const getLabSpec = vi.fn(async () => {
+      if (!savedLabSpec) throw new Error('Read requested before create')
+      return { labSpec: savedLabSpec, etag: '"created-flash-v1"' }
+    })
+    const { router } = mountLabSpecFlow(
+      { createLabSpec, getLabSpec },
+      '/lab-specs/new',
+      <LabSpecEditorPage />,
+    )
+
+    await screen.findByRole('heading', { level: 1, name: '새 실습 정의' })
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'One-time notice' },
+    })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Provider 연결' }), {
+      target: { value: candidate.providerConnectionId },
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Role' }), {
+      target: { value: 'control' },
+    })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Image 참조' }), {
+      target: { value: candidate.images[0].id },
+    })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Size 참조' }), {
+      target: { value: candidate.flavors[0].id },
+    })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Workspace VM' }), {
+      target: { value: 'control:0' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('새 실습 정의가 저장되었습니다.')
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/lab-specs/created-flash-spec')
+      expect(router.state.location.state).toBeNull()
+    })
+
+    fireEvent.click(screen.getByRole('link', { name: /실습 정의 목록/ }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/lab-specs'))
+
+    await act(async () => { await router.navigate(-1) })
+    expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('One-time notice')
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(createLabSpec).toHaveBeenCalledTimes(1)
+  })
+
   it('Mapping 권한 403이면 편집기를 차단하고 저장을 호출하지 않는다', async () => {
     const createLabSpec = vi.fn(async () => {
       throw new Error('403에서는 호출하지 않아야 함')

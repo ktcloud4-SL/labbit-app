@@ -118,8 +118,9 @@ Oct 21 17:49:25 labbit-connector-vm labbit-connector[13467]: {"timestamp":"2026-
 - **화면에 표시된 최신 수신 Heartbeat**: `2026-10-21T08:50:27.264763Z` (= 2026-10-21 **17:50:27 KST**)
 - **화면의 서버 상태 관측 시각**: `2026-10-21T08:50:32.607938009Z` (= 2026-10-21 **17:50:32 KST**)
 
-> 제출 로그상 WSS 연결 완료(17:49:25 KST) 이후 약 62초 경과한 시점의 최신 Heartbeat를 화면에서 확인할 수 있습니다. 그러나 **하나의 화면에 표시된 최신 시각만으로 Heartbeat가 15초 간격으로 여러 번 수신되었음을 독립 검증할 수는 없습니다.** 로그의 `heartbeat_interval_seconds=15`는 협상·설정 값이지 실제 간격을 실측한 시계열이 아닙니다. 검증 담당자는 [Jira LBT-61 종료 보고(#10708)](https://samsunglions.atlassian.net/browse/LBT-61?focusedCommentId=10708)에서 주기적 Heartbeat 관측을 보고했으나, 이 PR에 두 시점 이상의 raw Heartbeat 자료는 첨부되지 않았습니다.
 - **제공자 상태**: **`미확인 (별도 검증 필요)`** (D-18 원칙에 따라 OpenStack 온보딩 전 제어 평면 ONLINE과 제공자 READY 분리 검증 완료)
+
+> 제출 로그상 WSS 연결 완료(17:49:25 KST) 이후 약 62초 경과한 시점의 최신 Heartbeat를 화면에서 확인할 수 있습니다. 그러나 **하나의 화면에 표시된 최신 시각만으로 Heartbeat가 15초 간격으로 여러 번 수신되었음을 독립 검증할 수는 없습니다.** 로그의 `heartbeat_interval_seconds=15`는 협상·설정 값이지 실제 간격을 실측한 시계열이 아닙니다. 검증 담당자는 [Jira LBT-61 종료 보고(#10708)](https://samsunglions.atlassian.net/browse/LBT-61?focusedCommentId=10708)에서 주기적 Heartbeat 관측을 보고했으나, 이 PR에 두 시점 이상의 raw Heartbeat 자료는 첨부되지 않았습니다.
 
 ---
 
@@ -146,7 +147,7 @@ Oct 21 17:49:25 labbit-connector-vm labbit-connector[13467]: {"timestamp":"2026-
 | **실제 HELLO_ACK 및 15초 간격 반복 Heartbeat 수신** | **not verified (첨부 자료 단독 기준)** | 명시적인 `HELLO_ACK` 로그·서로 다른 시점의 Heartbeat 2건 이상은 미첨부. 담당자 [Jira 관측 보고](https://samsunglions.atlassian.net/browse/LBT-61?focusedCommentId=10708)는 존재하지만 이 PR 이미지만으로 간격 실측은 확인 불가 |
 | **Web Console 실시간 Control 상태** | **단일 시점 스크린샷 확인** | `Control ONLINE`, `REGISTERED`, `connector-v0.1.0`, 최신 Heartbeat `17:50:27 KST` 표시 확인. 지속적인 갱신 동작 자체의 다회 관측은 미첨부 |
 | **Provider READY와 Control ONLINE 분리 (D-18)** | **스크린샷 확인** | `Control ONLINE`인 상태에서 `Provider READY: 미확인 (별도 검증 필요)` 표시 |
-| **오류/거부 시나리오 및 회귀 테스트** | **별도 Subtask 증거 참조** | [LBT-181 회귀·설치 검증](../../../../connector/evidence/LBT-181/2026-10-20/README.md), [LBT-182 Acceptance](https://samsunglions.atlassian.net/browse/LBT-182), [LBT-183 Acceptance](https://samsunglions.atlassian.net/browse/LBT-183). 본 PR은 이 시험들을 재실행하지 않음 |
+| **오류/거부 시나리오 및 회귀 테스트** | **별도 Subtask 증거 참조** | [LBT-181 회귀·설치 검증](../../LBT-181/2026-10-20/README.md), [LBT-182 Acceptance](https://samsunglions.atlassian.net/browse/LBT-182), [LBT-183 Acceptance](https://samsunglions.atlassian.net/browse/LBT-183). 본 PR은 이 시험들을 재실행하지 않음 |
 | **민감정보 비노출** | **이번 PR 추가 파일에서 미발견** | README 및 첨부 PNG에서 Enrollment Token·Credential 원문 미발견. VM 전체 로그·과거 Git 이력 전체에 대한 비노출 검증을 의미하지 않음 |
 
 ---

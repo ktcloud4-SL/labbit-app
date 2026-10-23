@@ -333,6 +333,11 @@ func (a *Adapter) withCIDRScope(ctx context.Context, correlation coreprovider.Co
 		if reset {
 			return hold()
 		}
+		// Reject an unusable helper before reserving a permanent CIDR slot.
+		// Existing assignments keep the intent/HOLD checks below first.
+		if _, err := workspaceBootstrapArtifact(normalizedProvisionConfig(a.provision)); err != nil {
+			return reject(errorInvalidProvision, "Workspace helper artifact is unavailable")
+		}
 		tiers, err := a.ktNetwork.tiers(ctx)
 		if err != nil {
 			return reject(errorOpenStack, "CIDR inventory preflight failed")

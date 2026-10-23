@@ -1,5 +1,9 @@
 # Workspace File bootstrap 검증 및 pre-merge audit
 
+아래는 최초 제출 revision의 기록이다. PR #155의 P2 리뷰 두 건에 대한 수정·재검증과
+현재 소스 해시는 [후속 audit](./REVIEW_FIX_AUDIT.md) 및
+[후속 검증 결과](./review-fix-validation.json)를 기준으로 확인한다.
+
 검토일: 2026-10-23 KST. 목적은 공식 Connector 설치와 신규 Provision/Reset에서
 Workspace helper·작업 폴더·File 환경변수 준비를 자동화하는 것이다.
 기존 운영 Connector/VM의 File 장애 수동 복구나 FE 통합 전체의 완료 판정과 구분한다.

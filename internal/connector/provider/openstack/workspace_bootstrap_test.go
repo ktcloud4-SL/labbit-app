@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -126,6 +127,95 @@ func TestWorkspaceBootstrapDoesNotTouchOtherVMsOrDisabledDeployments(t *testing.
 	}
 	if data, err := workspaceBootstrapArtifact(ProvisionConfig{}); err != nil || data != nil {
 		t.Fatal("manual preparation mode changed")
+	}
+}
+
+func TestWorkspaceArtifactFailurePrecedesCIDRReservation(t *testing.T) {
+	for _, kind := range []string{"missing", "hash mismatch"} {
+		t.Run(kind, func(t *testing.T) {
+			a := pooledKTAdapter(t, nil)
+			artifact, _ := testWorkspaceArtifact(t)
+			a.provision.WorkspaceRoot, a.provision.WorkspaceHelper = artifact.WorkspaceRoot, artifact.WorkspaceHelper
+			a.provision.WorkspaceHelperSource, a.provision.WorkspaceHelperSHA256 = artifact.WorkspaceHelperSource, artifact.WorkspaceHelperSHA256
+			if kind == "missing" {
+				a.provision.WorkspaceHelperSource += "-missing"
+			} else {
+				a.provision.WorkspaceHelperSHA256 = strings.Repeat("0", 64)
+			}
+			snapshot := validSnapshot()
+			snapshot.ProviderConnectionID = a.provision.ProviderConnectionID
+			result, err := a.Provision(t.Context(), coreprovider.ProvisionRequest{Correlation: cidrCorrelation("invalid", 1), CreationSnapshot: snapshot})
+			if err != nil || result.Outcome != coreprovider.OutcomeFailed || len(result.ProviderResources) != 0 {
+				t.Fatalf("artifact rejection: %+v %v", result, err)
+			}
+			entries, err := os.ReadDir(a.provision.KTCloudCIDRStateDir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, entry := range entries {
+				if entry.Name() != "pool.json" {
+					t.Fatalf("invalid artifact reserved durable state: %s", entry.Name())
+				}
+			}
+			// Both pairs remain available after correcting the local deployment.
+			a.provision.WorkspaceHelperSource, a.provision.WorkspaceHelperSHA256 = "", ""
+			first := claimCIDR(t, a, "first", 1, false)
+			second := claimCIDR(t, a, "second", 1, false)
+			if first == second {
+				t.Fatal("artifact rejection consumed a pool pair")
+			}
+		})
+	}
+}
+
+func TestWorkspaceArtifactFailurePreservesCIDRUnknown(t *testing.T) {
+	for _, reset := range []bool{false, true} {
+		priors := []string{"intent", "own lock", "corrupt slot"}
+		if reset {
+			priors = append(priors, "missing assignment", "missing previous intent")
+		}
+		for _, prior := range priors {
+			t.Run(fmt.Sprintf("reset=%v/%s", reset, prior), func(t *testing.T) {
+				a := pooledKTAdapter(t, nil)
+				generation := int64(1)
+				if reset {
+					if prior != "missing assignment" {
+						claimCIDR(t, a, "student", 1, false)
+					}
+					generation = 2
+				}
+				switch prior {
+				case "intent":
+					claimCIDR(t, a, "student", generation, reset)
+				case "own lock":
+					if err := writeCIDRFile(a.provision.KTCloudCIDRStateDir, "LOCK", cidrCorrelation("student", generation)); err != nil {
+						t.Fatal(err)
+					}
+				case "corrupt slot":
+					if err := os.WriteFile(filepath.Join(a.provision.KTCloudCIDRStateDir, slotName(0)), []byte("{"), 0600); err != nil {
+						t.Fatal(err)
+					}
+				case "missing previous intent":
+					if err := os.Remove(filepath.Join(a.provision.KTCloudCIDRStateDir, intentName(0, 1))); err != nil {
+						t.Fatal(err)
+					}
+				}
+				a.provision.WorkspaceHelperSource = filepath.Join(t.TempDir(), "missing")
+				a.provision.WorkspaceHelperSHA256 = strings.Repeat("0", 64)
+				snapshot := validSnapshot()
+				snapshot.ProviderConnectionID = a.provision.ProviderConnectionID
+				var result coreprovider.OperationResult
+				var err error
+				if reset {
+					result, err = a.Reset(t.Context(), coreprovider.ResetRequest{Correlation: cidrCorrelation("student", generation), CreationSnapshot: snapshot, ProviderResources: validResetResourceRefs(snapshot, generation-1)})
+				} else {
+					result, err = a.Provision(t.Context(), coreprovider.ProvisionRequest{Correlation: cidrCorrelation("student", generation), CreationSnapshot: snapshot})
+				}
+				if err != nil || result.Outcome != coreprovider.OutcomeUnknown || result.Error == nil || result.Error.Code != errorUnknown {
+					t.Fatalf("prior uncertainty lost: %+v %v", result, err)
+				}
+			})
+		}
 	}
 }
 

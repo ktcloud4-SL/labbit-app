@@ -27,7 +27,15 @@ class GuestBootstrapTest(unittest.TestCase):
         self.user = pwd.getpwnam("nobody")
 
     def run_bootstrap(self, digest=None, umask=-1):
-        return subprocess.run(["python3", str(pathlib.Path(__file__).with_name("workspace_bootstrap.py")), str(self.root), str(self.helper), self.user.pw_name, digest or self.digest], input=self.payload, capture_output=True, timeout=20, umask=umask)
+        command = ["python3"]
+        env = os.environ.copy()
+        optimize = env.get("LABBIT_BOOTSTRAP_TEST_OPTIMIZE", "")
+        if optimize == "flag":
+            command.append("-O")
+        elif optimize == "env":
+            env["PYTHONOPTIMIZE"] = "1"
+        command += [str(pathlib.Path(__file__).with_name("workspace_bootstrap.py")), str(self.root), str(self.helper), self.user.pw_name, digest or self.digest]
+        return subprocess.run(command, input=self.payload, capture_output=True, timeout=20, umask=umask, env=env)
 
     def test_restrictive_umask_creates_traversable_parents(self):
         for mask in (0o027, 0o077):
@@ -111,6 +119,11 @@ class GuestBootstrapTest(unittest.TestCase):
 
     def test_digest_failure_does_not_create_paths(self):
         self.assertNotEqual(self.run_bootstrap("0" * 64).returncode, 0)
+        self.assertEqual(list(self.base.iterdir()), [])
+
+    def test_noncanonical_path_does_not_create_paths(self):
+        self.root = self.base / "workspaces" / ".." / "workspace"
+        self.assertNotEqual(self.run_bootstrap().returncode, 0)
         self.assertEqual(list(self.base.iterdir()), [])
 
     def test_unsafe_existing_workspace_is_preserved(self):

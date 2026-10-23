@@ -16,6 +16,12 @@ import sys
 import time
 
 
+def require(condition):
+    # Required validation must also execute under python -O/PYTHONOPTIMIZE.
+    if not condition:
+        raise ValueError("Workspace validation failed")
+
+
 def main():
     def timed_out(signum, frame):
         raise TimeoutError("Workspace preparation timed out")
@@ -23,17 +29,17 @@ def main():
     signal.signal(signal.SIGALRM, timed_out)
     signal.alarm(120)
     root, helper, username, digest = sys.argv[1:]
-    assert os.geteuid() == 0 and platform.machine() in ("x86_64", "amd64")
+    require(os.geteuid() == 0 and platform.machine() in ("x86_64", "amd64"))
     for path in (root, helper):
-        assert path.startswith("/") and path != "/"
-        assert str(pathlib.PurePosixPath(path)) == path
-        assert not any(part in (".", "..") for part in path.split("/")[1:])
-    assert root != helper and not helper.startswith(root + "/") and not root.startswith(helper + "/")
+        require(path.startswith("/") and path != "/")
+        require(str(pathlib.PurePosixPath(path)) == path)
+        require(not any(part in (".", "..") for part in path.split("/")[1:]))
+    require(root != helper and not helper.startswith(root + "/") and not root.startswith(helper + "/"))
     user = pwd.getpwnam(username)
-    assert user.pw_uid != 0
+    require(user.pw_uid != 0)
     payload = sys.stdin.buffer.read((32 << 20) + 1)
-    assert 0 < len(payload) <= 32 << 20
-    assert hashlib.sha256(payload).hexdigest() == digest.lower()
+    require(0 < len(payload) <= 32 << 20)
+    require(hashlib.sha256(payload).hexdigest() == digest.lower())
     flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
     with contextlib.ExitStack() as stack:
         def keep(fd):
@@ -51,7 +57,7 @@ def main():
                     pass
                 fd = keep(os.open(part, flags | os.O_DIRECTORY, dir_fd=fd))
                 info = os.fstat(fd)
-                assert info.st_uid == 0 and info.st_mode & 0o022 == 0
+                require(info.st_uid == 0 and info.st_mode & 0o022 == 0)
                 if created:
                     # sudo/image umask must not prevent the guest user from
                     # traversing newly created, root-owned helper/root parents.
@@ -61,7 +67,7 @@ def main():
         helper_parent = parent(helper)
         lock = keep(os.open(".labbit-workspace-bootstrap.lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600, dir_fd=helper_parent))
         info = os.fstat(lock)
-        assert stat.S_ISREG(info.st_mode) and info.st_uid == 0 and info.st_mode & 0o077 == 0
+        require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and info.st_mode & 0o077 == 0)
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         root_parent = parent(root)
         root_name = pathlib.PurePosixPath(root).name
@@ -76,8 +82,8 @@ def main():
             os.fchmod(root_fd, 0o750)
         root_fd = keep(os.open(root_name, flags | os.O_DIRECTORY, dir_fd=root_parent))
         info = os.fstat(root_fd)
-        assert info.st_uid == user.pw_uid and info.st_gid == user.pw_gid
-        assert stat.S_IMODE(info.st_mode) == 0o750
+        require(info.st_uid == user.pw_uid and info.st_gid == user.pw_gid)
+        require(stat.S_IMODE(info.st_mode) == 0o750)
         helper_name = pathlib.PurePosixPath(helper).name
         try:
             fd = os.open(helper_name, flags, dir_fd=helper_parent)
@@ -101,10 +107,10 @@ def main():
             fd = os.open(helper_name, flags, dir_fd=helper_parent)
         with os.fdopen(fd, "rb") as installed:
             info = os.fstat(installed.fileno())
-            assert stat.S_ISREG(info.st_mode) and info.st_uid == 0
-            assert info.st_mode & 0o022 == 0 and info.st_mode & 0o111 != 0
-            assert info.st_size == len(payload)
-            assert hashlib.sha256(installed.read((32 << 20) + 1)).hexdigest() == digest.lower()
+            require(stat.S_ISREG(info.st_mode) and info.st_uid == 0)
+            require(info.st_mode & 0o022 == 0 and info.st_mode & 0o111 != 0)
+            require(info.st_size == len(payload))
+            require(hashlib.sha256(installed.read((32 << 20) + 1)).hexdigest() == digest.lower())
         probe_helper(helper, root, username)
 
 
@@ -119,13 +125,13 @@ def probe_helper(helper, root, username):
             consumed = 0
             def read_exact(size):
                 nonlocal consumed
-                assert size >= 0 and consumed + size <= 65536
+                require(size >= 0 and consumed + size <= 65536)
                 data = bytearray()
                 while len(data) < size:
                     remaining = deadline - time.monotonic()
-                    assert remaining > 0 and selector.select(remaining)
+                    require(remaining > 0 and selector.select(remaining))
                     chunk = os.read(process.stdout.fileno(), size - len(data))
-                    assert chunk
+                    require(chunk)
                     data.extend(chunk)
                 consumed += size
                 return bytes(data)
@@ -134,15 +140,15 @@ def probe_helper(helper, root, username):
                 process.stdin.write(struct.pack(">I", len(payload)) + payload)
                 process.stdin.flush()
                 size = struct.unpack(">I", read_exact(4))[0]
-                assert 0 < size <= 65532
+                require(0 < size <= 65532)
                 return read_exact(size)
 
             version = exchange(b"\x01" + struct.pack(">I", 3))
-            assert version[:5] == b"\x02\x00\x00\x00\x03"
+            require(version[:5] == b"\x02\x00\x00\x00\x03")
             attributes = exchange(b"\x11" + struct.pack(">II", 1, 1) + b"/")
-            assert len(attributes) >= 9 and attributes[:5] == b"\x69\x00\x00\x00\x01"
+            require(len(attributes) >= 9 and attributes[:5] == b"\x69\x00\x00\x00\x01")
         process.stdin.close()
-        assert process.wait(timeout=1) in (0, 1)
+        require(process.wait(timeout=1) in (0, 1))
     finally:
         # Include descendants even when runuser exits before its helper does.
         try:

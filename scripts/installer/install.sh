@@ -9,6 +9,8 @@ DEFAULT_SAAS_BASE_URL="https://api.labbit.example.com"
 LABBIT_SAAS_BASE_URL="${LABBIT_SAAS_BASE_URL:-$DEFAULT_SAAS_BASE_URL}"
 CONFIG_DIR="${LABBIT_CONFIG_DIR:-/etc/labbit-connector}"
 INSTALL_BIN="${LABBIT_INSTALL_BIN:-/usr/local/bin/labbit-connector}"
+HELPER_SOURCE_FILE="$(dirname "$INSTALL_BIN")/labbit-workspace-sftp"
+HELPER_EXPECTED_SHA256="${LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256:-}"
 SYSTEMD_SERVICE_FILE="${LABBIT_SYSTEMD_SERVICE_FILE:-/etc/systemd/system/labbit-connector.service}"
 SYSTEMD_RUN_DIR="${SYSTEMD_RUN_DIR:-/run/systemd/system}"
 LOCK_DIR="${LABBIT_LOCK_DIR:-/run/lock/labbit-connector-installer.lock.d}"
@@ -33,8 +35,12 @@ TTY_DEV="${LABBIT_TTY_DEV:-/dev/tty}"
 ID_TMP=""
 CRED_TMP=""
 ENV_TMP=""
+HELPER_DOWNLOAD_TMP=""
 
 cleanup() {
+  if [ -n "${HELPER_DOWNLOAD_TMP:-}" ] && [ -f "$HELPER_DOWNLOAD_TMP" ]; then
+    rm -f "$HELPER_DOWNLOAD_TMP" 2>/dev/null || true
+  fi
   if [ -n "${SAVED_STTY:-}" ] && [ -n "${TTY_DEV:-}" ]; then
     stty "$SAVED_STTY" < "$TTY_DEV" 2>/dev/null || stty echo < "$TTY_DEV" 2>/dev/null || true
   fi
@@ -218,6 +224,7 @@ if ! curl -fsSL "${RELEASE_BASE_URL}/SHA256SUMS" -o "$CHECKSUMS_TMP" 2>/dev/null
   exit 1
 fi
 EXPECTED_FROM_FILE="$(awk '$2 == "labbit-connector" || $2 == "*labbit-connector" {print $1}' "$CHECKSUMS_TMP" | head -n1)"
+EXPECTED_HELPER_FROM_FILE="$(awk '$2 == "labbit-workspace-sftp" || $2 == "*labbit-workspace-sftp" {print $1}' "$CHECKSUMS_TMP" | head -n1)"
 rm -f "$CHECKSUMS_TMP"
 CHECKSUMS_TMP=""
 if [ -z "$EXPECTED_FROM_FILE" ]; then
@@ -240,13 +247,53 @@ if [ -n "$EXPECTED_SHA256" ]; then
   echo "    SHA256 verified successfully against approved pinned checksum: $ACTUAL_SHA256"
 fi
 
-# Install binary to /usr/local/bin
+# Stage and verify the same-release helper before consuming an Enrollment Token.
+# Releases without the helper cannot silently install a File-disabled Connector.
+if [ "${#HELPER_EXPECTED_SHA256}" -ne 64 ] || printf '%s' "$HELPER_EXPECTED_SHA256" | LC_ALL=C grep -q '[^0-9a-f]'; then
+  echo "::error::An approved LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256 is required before enrollment. Obtain it from the approved release record." >&2
+  exit 1
+fi
+if [ "${#EXPECTED_HELPER_FROM_FILE}" -ne 64 ] || printf '%s' "$EXPECTED_HELPER_FROM_FILE" | LC_ALL=C grep -q '[^0-9a-f]'; then
+  echo "::error::Release SHA256SUMS has no valid labbit-workspace-sftp entry. Select a release containing Workspace bootstrap." >&2
+  exit 1
+fi
+HELPER_DOWNLOAD_TMP="$(mktemp)"
+chmod 0600 "$HELPER_DOWNLOAD_TMP"
+if ! curl -fsSL "${RELEASE_BASE_URL}/labbit-workspace-sftp" -o "$HELPER_DOWNLOAD_TMP"; then
+  echo "::error::Failed to download Workspace helper; enrollment was not attempted." >&2
+  exit 1
+fi
+HELPER_SHA256="$(sha256sum "$HELPER_DOWNLOAD_TMP" | awk '{print $1}')"
+if [ "$HELPER_SHA256" != "$EXPECTED_HELPER_FROM_FILE" ] || { [ -n "$HELPER_EXPECTED_SHA256" ] && [ "$HELPER_SHA256" != "$HELPER_EXPECTED_SHA256" ]; }; then
+  echo "::error::Workspace helper SHA256 mismatch; enrollment was not attempted." >&2
+  exit 1
+fi
+
+# Install both verified artifacts to the root-owned binary directory.
 mkdir -p "$(dirname "$INSTALL_BIN")"
+REUSE_HELPER=0
+if [ -e "$HELPER_SOURCE_FILE" ] || [ -L "$HELPER_SOURCE_FILE" ]; then
+  if [ -L "$HELPER_SOURCE_FILE" ] || [ ! -f "$HELPER_SOURCE_FILE" ] || [ ! -x "$HELPER_SOURCE_FILE" ] ||
+     [ "$(stat -c '%u' "$HELPER_SOURCE_FILE")" != 0 ] ||
+     [ -n "$(find "$HELPER_SOURCE_FILE" -maxdepth 0 -perm /022 -print)" ] ||
+     [ "$(sha256sum "$HELPER_SOURCE_FILE" | awk '{print $1}')" != "$HELPER_SHA256" ]; then
+    echo "::error::Existing Workspace helper source is unsafe or differs from the approved artifact; it was preserved." >&2
+    exit 1
+  fi
+  REUSE_HELPER=1
+fi
 cp "$DOWNLOAD_TMP" "$INSTALL_BIN"
 chmod 0755 "$INSTALL_BIN"
 chown root:root "$INSTALL_BIN"
 rm -f "$DOWNLOAD_TMP"
 DOWNLOAD_TMP=""
+if [ "$REUSE_HELPER" -eq 0 ]; then
+  cp "$HELPER_DOWNLOAD_TMP" "$HELPER_SOURCE_FILE"
+  chmod 0755 "$HELPER_SOURCE_FILE"
+  chown root:root "$HELPER_SOURCE_FILE"
+fi
+rm -f "$HELPER_DOWNLOAD_TMP"
+HELPER_DOWNLOAD_TMP=""
 echo "    Installed binary to $INSTALL_BIN"
 
 # -------------------------------------------------------------
@@ -431,6 +478,10 @@ LABBIT_CONNECTOR_ID=${CONNECTOR_ID}
 LABBIT_CONNECTOR_CREDENTIAL_FILE=${CONFIG_DIR}/credential
 LABBIT_OPENSTACK_SSH_KNOWN_HOSTS_FILE=${CONFIG_DIR}/ssh/known_hosts
 LABBIT_OPENSTACK_SSH_PRIVATE_KEY_FILE=${CONFIG_DIR}/ssh/id_ed25519
+LABBIT_WORKSPACE_ROOT=/var/lib/labbit-workspaces/workspace
+LABBIT_WORKSPACE_SFTP_HELPER=/usr/local/libexec/labbit-workspace-sftp
+LABBIT_WORKSPACE_SFTP_HELPER_SOURCE_FILE=${HELPER_SOURCE_FILE}
+LABBIT_WORKSPACE_SFTP_HELPER_SHA256=${HELPER_SHA256}
 LABBIT_LOG_LEVEL=info
 EOF
 chmod 0640 "$ENV_TMP"

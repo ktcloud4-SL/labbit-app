@@ -56,6 +56,10 @@ type ProvisionConfig struct {
 	SSHUsername               string
 	SSHPrivateKeyFile         string
 	SSHKnownHostsFile         string
+	WorkspaceRoot             string
+	WorkspaceHelper           string
+	WorkspaceHelperSource     string
+	WorkspaceHelperSHA256     string
 	ActiveTimeout             time.Duration
 	SSHReadyTimeout           time.Duration
 	StartupReadyTimeout       time.Duration
@@ -80,6 +84,10 @@ const (
 	EnvKTCloudManagementCIDR   = "LABBIT_KTCLOUD_MANAGEMENT_CIDR"
 	EnvKTCloudCIDRPairs        = "LABBIT_KTCLOUD_CIDR_PAIRS"
 	EnvKTCloudCIDRStateDir     = "LABBIT_KTCLOUD_CIDR_STATE_DIR"
+	EnvWorkspaceRoot           = "LABBIT_WORKSPACE_ROOT"
+	EnvWorkspaceHelper         = "LABBIT_WORKSPACE_SFTP_HELPER"
+	EnvWorkspaceHelperSource   = "LABBIT_WORKSPACE_SFTP_HELPER_SOURCE_FILE"
+	EnvWorkspaceHelperSHA256   = "LABBIT_WORKSPACE_SFTP_HELPER_SHA256"
 )
 
 // ConfigFromEnvironment uses Labbit's provider-config path and OpenStack's
@@ -105,6 +113,10 @@ func ConfigFromEnvironment() Config {
 			SSHUsername:               strings.TrimSpace(os.Getenv(EnvSSHUsername)),
 			SSHPrivateKeyFile:         strings.TrimSpace(os.Getenv(EnvSSHPrivateKeyFile)),
 			SSHKnownHostsFile:         strings.TrimSpace(os.Getenv(EnvSSHKnownHostsFile)),
+			WorkspaceRoot:             os.Getenv(EnvWorkspaceRoot),
+			WorkspaceHelper:           os.Getenv(EnvWorkspaceHelper),
+			WorkspaceHelperSource:     os.Getenv(EnvWorkspaceHelperSource),
+			WorkspaceHelperSHA256:     os.Getenv(EnvWorkspaceHelperSHA256),
 		},
 	}
 }

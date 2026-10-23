@@ -22,10 +22,14 @@
 Labbit 웹 콘솔에서 안내된 설치 스크립트를 내려받아 실행합니다. 다운로드 실패 시 빈 입력으로 `sh`가 성공 종료(exit 0)되는 문제를 방지하기 위해 임시 파일 다운로드 후 `&&`로 연결해 실행합니다.
 
 ```bash
-curl -fsSL https://install.labbit.example/install.sh -o install.sh && sudo sh ./install.sh
+curl -fsSL https://install.labbit.example/install.sh -o install.sh && sudo env \
+  LABBIT_CONNECTOR_RELEASE_TAG='<approved-release-tag>' \
+  LABBIT_CONNECTOR_EXPECTED_SHA256='<approved-connector-sha256>' \
+  LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256='<approved-helper-sha256>' \
+  sh ./install.sh
 ```
 
-> 파이프라인(`|`) 형태로 실행해야 하는 경우에는 반드시 `bash -o pipefail -c 'curl -fsSL https://install.labbit.example/install.sh | sudo sh'`와 같이 다운로드 실패가 즉시 전달되도록 실행하십시오.
+> 예시의 release tag와 두 digest는 게시·승인된 릴리스 기록의 실제 값으로 바꾼다. 기존 기본 릴리스에는 helper가 없으므로 새 릴리스 게시 전에는 이 설치 경로가 안전 중단한다. 파이프라인으로 실행할 때는 `pipefail`과 동일한 승인 값 전달이 필요하다.
 
 ### 2.2 수동 다운로드 및 검토 후 설치 (보안 대안)
 
@@ -38,12 +42,15 @@ chmod +x install.sh
 less install.sh
 
 # 2. 실행
-sudo ./install.sh
+sudo env LABBIT_CONNECTOR_RELEASE_TAG='<approved-release-tag>' \
+  LABBIT_CONNECTOR_EXPECTED_SHA256='<approved-connector-sha256>' \
+  LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256='<approved-helper-sha256>' \
+  sh ./install.sh
 ```
 
 ### 2.3 설치 과정 요약
 1. **사전 검사**: root 권한, OS(Linux), 아키텍처(amd64), systemd, 필수 유틸리티(`curl`, `sha256sum`, `ssh-keygen`, `stty`), 대화형 `/dev/tty` 접근 및 `stty` 제어 가능 여부 확인.
-2. **바이너리 다운로드 및 무결성 검증(Fail-Closed)**: GitHub Releases에서 고정 버전의 바이너리와 `SHA256SUMS`를 다운로드하고 SHA256 체크섬을 검증하여 일치할 때만 `/usr/local/bin/labbit-connector`에 배치.
+2. **바이너리 다운로드 및 무결성 검증(Fail-Closed)**: GitHub Releases의 같은 tag에서 `labbit-connector`, `labbit-workspace-sftp`, `SHA256SUMS`를 다운로드하고 체크섬을 검증하여 일치할 때만 `/usr/local/bin/`에 배치. helper 누락·손상은 Enrollment Token 입력·소비 전에 중단한다. Connector 승인 digest는 기존 릴리스 정책에 따라 `LABBIT_CONNECTOR_EXPECTED_SHA256`으로 지정할 수 있으며, helper 승인 digest인 `LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256`은 필수다.
 3. **토큰 입력 및 단회성 Enrollment**: `/dev/tty`에서 입력 마스킹(`stty -echo`) 상태로 1회용 토큰을 입력받아 SaaS Enrollment API (`POST /api/v1/connector-enrollments`, 요청 필드 `enrollmentToken`) 호출 및 `connectorId`·`connectorCredential` 수신.
 4. **로컬 보안 저장소 구성**:
    * 시스템 계정 `labbit` (non-root) 생성
@@ -56,7 +63,14 @@ sudo ./install.sh
 6. **systemd 서비스 등록 및 자동 시작**:
    * 서비스 유닛 `/etc/systemd/system/labbit-connector.service` 등록
    * 환경설정 `/etc/labbit-connector/connector.env` 생성
+   * `LABBIT_WORKSPACE_ROOT=/var/lib/labbit-workspaces/workspace`, `LABBIT_WORKSPACE_SFTP_HELPER=/usr/local/libexec/labbit-workspace-sftp`, `LABBIT_WORKSPACE_SFTP_HELPER_SOURCE_FILE=/usr/local/bin/labbit-workspace-sftp`, 다운로드로 검증한 `LABBIT_WORKSPACE_SFTP_HELPER_SHA256` 저장
    * 서비스 기동 및 상태 확인
+
+### 2.4 Workspace VM 자동 준비 및 출시 전제
+
+위 source 파일은 Connector 호스트의 읽기 전용 artifact이며 helper 목적지/root는 VM 안의 경로다. Provider가 별도로 구성된 Connector에서 새 Provision/Reset 시 지정 Workspace VM의 cloud-init 완료 후 관리 SSH로 helper/root를 준비한다. VM의 외부 인터넷과 사용자 StartupScript 변경은 요구하지 않는다. 이미지에는 Linux amd64/Python3/runuser와 non-root 관리 계정의 `sudo -n python3` 권한이 필요하다. 실패시 실습 생성 성공으로 처리하지 않는다. 보안·재시도 경계는 [Workspace SFTP](workspace-sftp.md)를 따른다.
+
+이 기능은 helper asset을 포함하는 새 Connector release를 먼저 게시해야 사용할 수 있다. 기존 기본 `connector-v0.1.0`의 승인 checksum을 임의로 바꾸거나 기존 release asset을 덮어쓰지 않는다. 새 tag의 두 artifact/checksum을 게시·승인한 뒤 Installer의 기본 tag/pin을 갱신하거나 `LABBIT_CONNECTOR_RELEASE_TAG`로 해당 release를 명시한다. helper가 없는 과거 release를 선택하면 Enrollment 전에 안전 중단한다. 코드 merge만으로 이미 설치된 Connector나 기존 READY VM이 자동 갱신되지는 않는다.
 
 ---
 
@@ -110,7 +124,7 @@ sudo journalctl -u labbit-connector.service -f -o cat
    sudo systemctl stop labbit-connector.service
    ```
 
-4. **바이너리 원자적 교체 및 권한 설정**:
+4. **바이너리 교체 및 권한 설정**:
    ```bash
    sudo mv "${UPGRADE_DIR}/labbit-connector" /usr/local/bin/labbit-connector
    sudo chmod 0755 /usr/local/bin/labbit-connector
@@ -163,3 +177,7 @@ sudo journalctl -u labbit-connector.service -n 30 --no-pager
 | WSS 재연결 반복 (`재연결 대기`) | 아웃바운드 443 차단 또는 SaaS 서버 도메인/TLS 오류 | `curl -vk https://<SAAS_URL>`로 아웃바운드 HTTPS/TLS 연결 진단 |
 | `Existing Connector credentials or identity found` | 이미 `credential`, `connector.id` 또는 서비스 유닛이 존재하는 환경에서 재실행 | 기존 식별자 및 현재 서비스 상태(실행/중지) 보호를 위해 설치가 안전 중단됨. 바이너리 업그레이드나 서비스 재기동은 본 Runbook의 수동 절차 수행 |
 | `Failed to securely save Connector credentials (Token was already consumed)` | 토큰 소비 성공 후 로컬 설정 디렉터리 권한·디스크 오류 등으로 파일 저장 실패 | 관리자 웹 콘솔의 커넥터 목록 확인 → 등록된 커넥터(ID) Revoke(폐기) → 신규 Token 발급 후 재설치 |
+
+### Helper 승인 체크섬과 릴리스 적용
+
+설치 실행 전에 승인된 릴리스 기록에서 `LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256`를 지정한다. helper와 SHA256SUMS를 함께 변조한 경우도 이 독립된 승인 값으로 거절한다. 값 누락은 Enrollment 전 안전 중단한다. 기존 기본 릴리스 `connector-v0.1.0`에는 helper가 없으므로 이 변경이 포함된 새 릴리스를 발행하고 승인된 두 바이너리 체크섬 및 기본 릴리스 pin을 갱신해야 운영 설치에 적용된다. 이 코드 변경 자체는 릴리스나 배포를 수행하지 않는다.

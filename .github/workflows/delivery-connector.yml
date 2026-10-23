@@ -47,14 +47,16 @@ jobs:
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
             -ldflags "-s -w -X github.com/ktcloud4-SL/labbit-app/internal/connector/version.Version=${TAG_NAME} -X github.com/ktcloud4-SL/labbit-app/internal/connector/version.CommitSHA=${COMMIT_SHA}" \
             -o dist/labbit-connector ./cmd/labbit-connector
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" \
+            -o dist/labbit-workspace-sftp ./cmd/labbit-workspace-sftp
 
           # Package archive
           ARCHIVE_NAME="labbit-connector-${TAG_NAME}-linux-amd64.tar.gz"
-          tar -czf "dist/${ARCHIVE_NAME}" -C dist labbit-connector
+          tar -czf "dist/${ARCHIVE_NAME}" -C dist labbit-connector labbit-workspace-sftp
 
           # Checksum generation
           cd dist
-          sha256sum "labbit-connector" "${ARCHIVE_NAME}" > SHA256SUMS
+          sha256sum "labbit-connector" "labbit-workspace-sftp" "${ARCHIVE_NAME}" > SHA256SUMS
           cat SHA256SUMS
 
       - name: Publish GitHub Release
@@ -66,6 +68,7 @@ jobs:
         run: |
           gh release create "${TAG_NAME}" \
             dist/labbit-connector \
+            dist/labbit-workspace-sftp \
             dist/labbit-connector-${TAG_NAME}-linux-amd64.tar.gz \
             dist/SHA256SUMS \
             --title "Labbit Connector ${TAG_NAME}" \

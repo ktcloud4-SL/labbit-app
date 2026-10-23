@@ -2,6 +2,7 @@ package openstackprovider
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -75,6 +76,102 @@ func TestRunSSHCommandCancellationClosesStalledCommand(t *testing.T) {
 	case <-serverDone:
 	case <-time.After(time.Second):
 		t.Fatal("authenticated SSH connection remained open after cancellation")
+	}
+}
+
+func TestRunSSHCommandInputStreamsArtifactAndClassifiesRejection(t *testing.T) {
+	for _, exitCode := range []uint32{0, 1} {
+		payload := bytes.Repeat([]byte("verified-artifact"), 1024)
+		signer, err := ssh.NewSignerFromKey(testPrivateKey("ssh-bootstrap-server"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		config := &ssh.ServerConfig{NoClientAuth: true}
+		config.AddHostKey(signer)
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = listener.Close() })
+		done := make(chan error, 1)
+		go func() {
+			connection, err := listener.Accept()
+			if err != nil {
+				done <- err
+				return
+			}
+			defer connection.Close()
+			_ = connection.SetDeadline(time.Now().Add(5 * time.Second))
+			server, channels, requests, err := ssh.NewServerConn(connection, config)
+			if err != nil {
+				done <- err
+				return
+			}
+			defer server.Close()
+			go ssh.DiscardRequests(requests)
+			channelRequest, ok := <-channels
+			if !ok {
+				done <- fmt.Errorf("missing session")
+				return
+			}
+			channel, requests, err := channelRequest.Accept()
+			if err != nil {
+				done <- err
+				return
+			}
+			defer channel.Close()
+			request, ok := <-requests
+			if !ok || request.Type != "exec" {
+				done <- fmt.Errorf("missing exec")
+				return
+			}
+			if err := request.Reply(true, nil); err != nil {
+				done <- err
+				return
+			}
+			received, err := io.ReadAll(channel)
+			if err != nil || !bytes.Equal(received, payload) {
+				done <- fmt.Errorf("payload transfer failed")
+				return
+			}
+			_, err = channel.SendRequest("exit-status", false, ssh.Marshal(struct{ Code uint32 }{exitCode}))
+			done <- err
+		}()
+		adapter := sshCancellationAdapter(t)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		err = adapter.runSSHCommandInput(ctx, listener.Addr().String(), "bootstrap-test:22", "private-test-command", bytes.NewReader(payload), func(_ string, _ net.Addr, key ssh.PublicKey) error {
+			if !bytes.Equal(key.Marshal(), signer.PublicKey().Marshal()) {
+				return fmt.Errorf("wrong host pin")
+			}
+			return nil
+		})
+		cancel()
+		if (exitCode == 0 && err != nil) || (exitCode != 0 && !errors.Is(err, errSSHCommandRejected)) {
+			t.Fatalf("exit=%d error=%v", exitCode, err)
+		}
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestRunSSHCommandInputCancellationClosesStalledUpload(t *testing.T) {
+	started := make(chan struct{})
+	address, done := stalledCommandSSHServer(t, started)
+	adapter := sshCancellationAdapter(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	result := make(chan error, 1)
+	go func() {
+		result <- adapter.runSSHCommandInput(ctx, address, "test-server:22", "private-test-command", bytes.NewReader(bytes.Repeat([]byte("a"), 8<<20)), nil)
+	}()
+	awaitSSHTestSignal(t, started, "stalled artifact upload")
+	cancel()
+	assertSSHTestCanceled(t, result)
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("upload connection leaked")
 	}
 }
 

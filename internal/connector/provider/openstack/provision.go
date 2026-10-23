@@ -57,6 +57,10 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 	if err := validateProvisionRequest(request); err != nil {
 		return failedResult(nil, errorInvalidProvision, "Provision request is invalid"), nil
 	}
+	artifact, err := workspaceBootstrapArtifact(config)
+	if err != nil {
+		return failedResult(nil, errorInvalidProvision, "Workspace helper artifact is unavailable"), nil
+	}
 	if err := a.preflightProvision(ctx, config, request.CreationSnapshot, quotaUsage{}); err != nil {
 		return preflightFailure(nil, err, "OpenStack Provision preflight failed"), nil
 	}
@@ -136,7 +140,7 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 			}
 			return failedResult(resources, errorBootTimeout, "VM SSH did not become ready"), nil
 		}
-		if request.CreationSnapshot.StartupScript != nil {
+		if request.CreationSnapshot.StartupScript != nil || (len(artifact) != 0 && vm.VMKey == request.CreationSnapshot.WorkspaceVMKey) {
 			startupContext, cancelStartup := context.WithTimeout(ctx, config.StartupReadyTimeout)
 			err = a.waitStartupReadyAddress(startupContext, managementIP, server.ID)
 			cancelStartup()
@@ -146,6 +150,12 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 				}
 				return failedResult(resources, errorBootTimeout, "VM initialization did not complete"), nil
 			}
+		}
+		if err := a.prepareWorkspace(ctx, request, vm.VMKey, server.ID, artifact); err != nil {
+			if errors.Is(err, errSSHCommandRejected) {
+				return failedResult(resources, errorOpenStack, "Workspace preparation was rejected"), nil
+			}
+			return unknownResult(resources, "Workspace preparation could not be verified"), nil
 		}
 		if vm.VMKey == request.CreationSnapshot.WorkspaceVMKey {
 			probe := a.ptyProbe
@@ -243,6 +253,9 @@ func validateProvisionRequest(request coreprovider.ProvisionRequest) error {
 }
 
 func (a *Adapter) preflightProvision(ctx context.Context, config ProvisionConfig, snapshot coreprovider.CreationSnapshot, credit quotaUsage) error {
+	if _, err := workspaceBootstrapArtifact(config); err != nil {
+		return ErrProvisionCheck
+	}
 	if a.ktNetwork != nil {
 		return a.preflightKTCloudProvision(ctx, config, snapshot, credit)
 	}

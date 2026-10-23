@@ -14,7 +14,11 @@ VM 아키텍처에 맞는 Go 1.27 Linux 바이너리를 빌드한다. 다음은 
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o labbit-workspace-sftp ./cmd/labbit-workspace-sftp
 ```
 
-이미지 제작 또는 승인된 VM bootstrap에서 관리자가 바이너리를 설치한다. `ubuntu`는 실제 SSH 계정으로 바꾼다. 이 계정으로 helper를 실행하므로 파일 권한도 해당 계정의 Linux 권한이다.
+공식 Installer는 같은 release의 helper를 Connector 로컬에 checksum 검증 후 설치하고 `LABBIT_WORKSPACE_SFTP_HELPER_SOURCE_FILE`과 `LABBIT_WORKSPACE_SFTP_HELPER_SHA256`을 VM 경로 두 설정과 함께 저장한다. Provision/Reset은 artifact가 없거나 hash/형식/권한이 잘못되면 cloud mutation 및 기존 세대 삭제 전에 실패한다. 지정 Workspace VM만 cloud-init 완료 후 기존 Management SSH와 host pin/현재 generation/metadata/NIC 검증으로 준비하며, VM은 Internet Outbound가 없어도 된다. LabSpec의 StartupScript/user_data bytes는 변경하지 않는다. bootstrap 완료는 Provider 성공의 전제이며 Backend의 READY 승격 규칙은 바꾸지 않는다.
+
+대상 이미지는 Linux amd64, Python3와 `runuser`, 관리 SSH 계정의 비대화형 `sudo -n python3` 실행 권한을 제공해야 한다. 설치 과정은 helper/root 부모를 root 소유·group/other 쓰기 불가로 확인하고 helper root 소유0755 및 SSH 계정 소유0750 workspace를 생성한다. 같은 digest의 기존 helper와 안전한 기존 root는 내용 보존 상태로 재사용하고, 다른 helper/symlink/불안전 권한은 덮어쓰거나 자동 수리하지 않고 실패한다. 설치 도중 연결 단절·취소로 결과가 불명확하면 확인된 ProviderResource를 유지한 UNKNOWN을 반환한다. VM bootstrap의 임시 파일은 finally로 정리하며 프로세스에는120초 상한이 있다. root-owned flock 파일은 helper 부모에 남겨 중복 설치를 직렬화한다.
+
+기존 image/manual 준비 환경은 source와 digest를 모두 생략하면 계속 사용할 수 있다. 이 경우 이미지 제작 또는 승인된 VM bootstrap에서 관리자가 다음처럼 설치한다. `ubuntu`는 실제 SSH 계정으로 바꾼다. 이미 READY인 VM에 새 bootstrap이 자동 실행되는 것은 아니며, helper 업그레이드/기존 helper 교체는 별도 유지보수 대상이다.
 
 ```sh
 sudo install -d -o root -g root -m 0755 /usr/local/libexec /var/lib/labbit-workspaces
@@ -37,3 +41,7 @@ Provision/Reset은 CreationSnapshot의 `workspaceVmKey`를 Nova의 `labbit_works
 비협조 SSH peer/TCP blackhole에서는 다른 PTY를 보존하는 동안 원격 CLOSE 대기 bridge가 늦게 종료될 수 있다. 호출자는 timeout에 반환하고 작업은 서비스당 16개로 제한되며, 미종료 작업의 slot/path lock은 연결 retirement까지 보존한다. 정상 sshd의 helper timeout과 PTY 보존은 실제 VM acceptance로 검증한다. TCP blackhole은 별도 잔여 검증 경계다.
 
 자동 검증은 `go test ./internal/connector/workspacefile ./internal/connector/workspacefs ./internal/connector/app ./internal/connector/provider/openstack`이다. 실제 Linux VM acceptance는 `TestOpenStackWorkspaceFileIntegration`의 명시적 opt-in이며 폐기용 local OpenStack, 관리자 helper 설치, tracked resource cleanup을 포함한다. 재현 입력과 실행 결과는 LBT-149 Evidence에 기록한다. Browser/SaaS 경로는 후속 LBT-150 범위다.
+
+### Helper 승인 체크섬과 릴리스 적용
+
+설치 실행 전에 승인된 릴리스 기록에서 `LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256`를 지정한다. helper와 SHA256SUMS를 함께 변조한 경우도 이 독립된 승인 값으로 거절한다. 값 누락은 Enrollment 전 안전 중단한다. 기존 기본 릴리스 `connector-v0.1.0`에는 helper가 없으므로 이 변경이 포함된 새 릴리스를 발행하고 승인된 두 바이너리 체크섬 및 기본 릴리스 pin을 갱신해야 운영 설치에 적용된다. 이 코드 변경 자체는 릴리스나 배포를 수행하지 않는다.

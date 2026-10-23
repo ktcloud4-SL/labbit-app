@@ -5,6 +5,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALLER="${SCRIPT_DIR}/install.sh"
 TEST_ROOT="$(mktemp -d)"
+# Never inspect the host installation in this isolated behavioral suite.
+export LABBIT_SYSTEMD_SERVICE_FILE="${TEST_ROOT}/absent.service"
+export LABBIT_CONFIG_DIR="${TEST_ROOT}/absent-config"
+export LABBIT_INSTALL_BIN="${TEST_ROOT}/default-bin/labbit-connector"
+export LABBIT_LOCK_DIR="${TEST_ROOT}/default-lock.d"
+export SYSTEMD_RUN_DIR="${TEST_ROOT}/default-run"
+export LABBIT_TTY_DEV="${TEST_ROOT}/default-tty"
+mkdir -p "$SYSTEMD_RUN_DIR"
 
 cleanup() {
   rm -rf "$TEST_ROOT"
@@ -57,6 +65,12 @@ EOF
 echo "chown $*" >> "${MOCK_LOG_FILE:-/dev/null}"
 exit 0
 EOF
+
+  cat <<'EOF' > "${bin_dir}/stat"
+#!/bin/sh
+if [ "${1:-}" = "-c" ] && [ "${2:-}" = "%u" ]; then echo 0; else /usr/bin/stat "$@"; fi
+EOF
+  chmod +x "${bin_dir}/stat"
 
   cat <<'EOF' > "${bin_dir}/getent"
 #!/bin/sh
@@ -228,7 +242,7 @@ case "$url" in
     # Simulate 404 / network failure on SHA256SUMS
     exit 22
     ;;
-  */labbit-connector)
+  */labbit-connector|*/labbit-workspace-sftp)
     printf 'mock-connector-binary\n' > "$out"
     exit 0
     ;;
@@ -319,10 +333,10 @@ while [ \$# -gt 0 ]; do
 done
 case "\$url" in
   */SHA256SUMS)
-    printf '%s  labbit-connector\n' "$expected_sha" > "\$out"
+    printf '%s  labbit-connector\n%s  labbit-workspace-sftp\n' "$expected_sha" "$expected_sha" > "\$out"
     exit 0
     ;;
-  */labbit-connector)
+  */labbit-connector|*/labbit-workspace-sftp)
     printf '%s' "$dummy_bin_content" > "\$out"
     exit 0
     ;;
@@ -343,7 +357,7 @@ EOF
     LABBIT_LOCK_DIR="${TEST_ROOT}/lock_5c.d" \
     LABBIT_CONFIG_DIR="${TEST_ROOT}/etc_5c" \
     LABBIT_INSTALL_BIN="${TEST_ROOT}/usr_5c/labbit-connector" \
-    LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
+    LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256="$expected_sha" LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
     LABBIT_TTY_DEV="$mock_tty" \
     sh "$INSTALLER" 2>&1 || true)
 
@@ -452,12 +466,24 @@ while [ \$# -gt 0 ]; do
 done
 
 case "\$url" in
+  */labbit-workspace-sftp)
+    if [ "\${MOCK_HELPER_CASE:-}" = "missing-asset" ]; then exit 22; fi
+    if [ "\${MOCK_HELPER_CASE:-}" = "mismatch" ]; then
+      printf 'corrupt helper' > "\$out"
+    else
+      printf '%s' "$dummy_bin_content" > "\$out"
+    fi
+    exit 0
+    ;;
   */labbit-connector)
     printf '%s' "$dummy_bin_content" > "\$out"
     exit 0
     ;;
   */SHA256SUMS)
-    printf '%s  labbit-connector\n0000000000000000000000000000000000000000000000000000000000000000  labbit-connector-v0.1.0-linux-amd64.tar.gz\n' "$expected_sha" > "\$out"
+    printf '%s  labbit-connector\n' "$expected_sha" > "\$out"
+    if [ "\${MOCK_HELPER_CASE:-}" != "missing-checksum" ]; then
+      printf '%s  labbit-workspace-sftp\n' "$expected_sha" >> "\$out"
+    fi
     exit 0
     ;;
   */api/v1/connector-enrollments)
@@ -502,7 +528,7 @@ EOF
     LABBIT_CONFIG_DIR="${TEST_ROOT}/etc_7a" \
     LABBIT_INSTALL_BIN="${TEST_ROOT}/usr_7a/labbit-connector" \
     LABBIT_SYSTEMD_SERVICE_FILE="${TEST_ROOT}/systemd_7/svc_a.service" \
-    LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
+    LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256="$expected_sha" LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
     LABBIT_TTY_DEV="$mock_tty" \
     sh "$INSTALLER" 2>&1 || true)
   if ! echo "$out_uncertain" | grep -q "outcome is UNCERTAIN" || ! echo "$out_uncertain" | grep -q "DO NOT blindly retry"; then
@@ -521,13 +547,40 @@ EOF
     LABBIT_CONFIG_DIR="${TEST_ROOT}/etc_7b" \
     LABBIT_INSTALL_BIN="${TEST_ROOT}/usr_7b/labbit-connector" \
     LABBIT_SYSTEMD_SERVICE_FILE="${TEST_ROOT}/systemd_7/svc_b.service" \
-    LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
+    LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256="$expected_sha" LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
     LABBIT_TTY_DEV="$mock_tty" \
     sh "$INSTALLER" 2>&1 || true)
   if ! echo "$out_401" | grep -q "invalid_enrollment_token"; then
     echo "FAIL: Expected invalid_enrollment_token message on HTTP 401, got: $out_401"
     exit 1
   fi
+
+  # Helper failures must stop before enrollment and before installing either asset.
+  local helper_pin
+  for failure in missing-asset mismatch missing-checksum unapproved missing-pin; do
+    helper_pin="$expected_sha"
+    [ "$failure" != unapproved ] || helper_pin="$(printf '%064d' 0)"
+    [ "$failure" != missing-pin ] || helper_pin=""
+    rm -f "$captured_req"
+    printf 'unconsumed-token\n' > "$mock_tty"
+    local failed_output
+    local failed_status=0
+    failed_output=$(PATH="${fake_bin}:${PATH}" \
+      MOCK_HELPER_CASE="$failure" SYSTEMD_RUN_DIR="$mock_run" \
+      LABBIT_LOCK_DIR="${TEST_ROOT}/lock_helper_${failure}.d" \
+      LABBIT_CONFIG_DIR="${TEST_ROOT}/etc_helper_${failure}" \
+      LABBIT_INSTALL_BIN="${TEST_ROOT}/usr_helper_${failure}/labbit-connector" \
+      LABBIT_SYSTEMD_SERVICE_FILE="${TEST_ROOT}/svc_helper_${failure}" \
+      LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256="$helper_pin" LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" LABBIT_TTY_DEV="$mock_tty" \
+      sh "$INSTALLER" 2>&1) || failed_status=$?
+    if [ "$failed_status" -eq 0 ] || [ -e "$captured_req" ] || [ -e "${TEST_ROOT}/usr_helper_${failure}/labbit-connector" ]; then
+      echo "FAIL: helper failure $failure consumed enrollment or installed an asset: $failed_output"
+      exit 1
+    fi
+  done
+
+  # Reuse the verified helper left after the rejected token with a fresh token.
+  mock_bin="${TEST_ROOT}/usr_7b/labbit-connector"
 
   # 7C: Full 201 Created Happy Path
   # After systemctl restart, systemctl is-active should return 0; update systemctl mock for 7C
@@ -558,7 +611,7 @@ EOF
     LABBIT_CONFIG_DIR="$mock_config" \
     LABBIT_INSTALL_BIN="$mock_bin" \
     LABBIT_SYSTEMD_SERVICE_FILE="$mock_service" \
-    LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
+    LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256="$expected_sha" LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
     LABBIT_TTY_DEV="$mock_tty" \
     sh "$INSTALLER" 2>&1)
 
@@ -597,6 +650,15 @@ EOF
     echo "FAIL: systemd service unit missing expected directives."
     exit 1
   fi
+  # Official install enables File and references the locally verified helper.
+  for setting in \
+    'LABBIT_WORKSPACE_ROOT=/var/lib/labbit-workspaces/workspace' \
+    'LABBIT_WORKSPACE_SFTP_HELPER=/usr/local/libexec/labbit-workspace-sftp' \
+    "LABBIT_WORKSPACE_SFTP_HELPER_SOURCE_FILE=$(dirname "$mock_bin")/labbit-workspace-sftp" \
+    "LABBIT_WORKSPACE_SFTP_HELPER_SHA256=$expected_sha"; do
+    grep -Fxq "$setting" "${mock_config}/connector.env" || { echo "FAIL: Missing $setting"; exit 1; }
+  done
+  [ "$(cat "$(dirname "$mock_bin")/labbit-workspace-sftp")" = "$dummy_bin_content" ] || exit 1
   # Verify ownership commands were invoked for root:labbit (config dir & connector.id) and labbit:labbit (credential & ssh)
   if ! grep -q "chown root:labbit ${mock_config}" "$mock_log" || ! grep -q "chown labbit:labbit ${mock_config}/ssh" "$mock_log"; then
     echo "FAIL: Expected chown ownership commands not found in log: $(cat "$mock_log")"
@@ -653,7 +715,7 @@ while [ \$# -gt 0 ]; do
   esac
 done
 case "\$url" in
-  */labbit-connector)
+  */labbit-connector|*/labbit-workspace-sftp)
     touch "${sync_file}"
     # Sleep to allow test runner to send SIGTERM while curl is active
     sleep 5
@@ -776,10 +838,10 @@ while [ \$# -gt 0 ]; do
 done
 case "\$url" in
   */SHA256SUMS)
-    printf '%s  labbit-connector\n' "${expected_sha}" > "\$out"
+    printf '%s  labbit-connector\n%s  labbit-workspace-sftp\n' "${expected_sha}" "${expected_sha}" > "\$out"
     exit 0
     ;;
-  */labbit-connector)
+  */labbit-connector|*/labbit-workspace-sftp)
     printf '%s' "${dummy_bin_content}" > "\$out"
     exit 0
     ;;
@@ -826,7 +888,7 @@ EOF
     LABBIT_CONFIG_DIR="$mock_config" \
     LABBIT_INSTALL_BIN="$mock_bin" \
     LABBIT_SYSTEMD_SERVICE_FILE="$mock_service" \
-    LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
+    LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256="$expected_sha" LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
     LABBIT_TTY_DEV="$mock_tty" \
     sh "$INSTALLER" 2>&1 || true)
 
@@ -871,9 +933,9 @@ EOF
     LABBIT_SAAS_BASE_URL="https://saas.labbit.example.com" \
     LABBIT_LOCK_DIR="$mock_lock" \
     LABBIT_CONFIG_DIR="$mock_config" \
-    LABBIT_INSTALL_BIN="$mock_bin" \
+    LABBIT_INSTALL_BIN="${TEST_ROOT}/usr_10_second/labbit-connector" \
     LABBIT_SYSTEMD_SERVICE_FILE="$mock_service" \
-    LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
+    LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256="$expected_sha" LABBIT_CONNECTOR_EXPECTED_SHA256="$expected_sha" \
     LABBIT_TTY_DEV="$mock_tty" \
     sh "$INSTALLER" 2>&1 || true)
 
@@ -955,10 +1017,10 @@ while [ \$# -gt 0 ]; do
 done
 case "\$url" in
   */SHA256SUMS)
-    printf '%s  labbit-connector\n' "$approved_sha" > "\$out"
+    printf '%s  labbit-connector\n%s  labbit-workspace-sftp\n' "$approved_sha" "$approved_sha" > "\$out"
     exit 0
     ;;
-  */labbit-connector)
+  */labbit-connector|*/labbit-workspace-sftp)
     printf 'approved-binary-payload' > "\$out"
     exit 0
     ;;
@@ -977,6 +1039,7 @@ EOF
   # Run installer with default parameters (no LABBIT_CONNECTOR_EXPECTED_SHA256 override)
   local out_success
   out_success=$(PATH="${fake_bin}:${PATH}" \
+    LABBIT_WORKSPACE_SFTP_HELPER_EXPECTED_SHA256="$approved_sha" \
     SYSTEMD_RUN_DIR="$mock_run" \
     LABBIT_LOCK_DIR="${TEST_ROOT}/lock_12a.d" \
     LABBIT_CONFIG_DIR="${TEST_ROOT}/etc_12a" \
@@ -1046,7 +1109,7 @@ case "\$url" in
     printf '%s  labbit-connector\n' "$tampered_real_sha" > "\$out"
     exit 0
     ;;
-  */labbit-connector)
+  */labbit-connector|*/labbit-workspace-sftp)
     printf '%s' "$tampered_content" > "\$out"
     exit 0
     ;;

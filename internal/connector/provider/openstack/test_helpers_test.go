@@ -1,6 +1,7 @@
 package openstackprovider
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -18,12 +19,14 @@ func newTestAdapter(t *testing.T, handler http.Handler) *Adapter {
 		HTTPClient: *server.Client(),
 		TokenID:    "test-token",
 	}
-	return newAdapter(
+	adapter := newAdapter(
 		providerClient,
 		&gophercloud.ServiceClient{ProviderClient: providerClient, Endpoint: server.URL + "/image/v2/"},
 		&gophercloud.ServiceClient{ProviderClient: providerClient, Endpoint: server.URL + "/compute/v2/"},
 		&gophercloud.ServiceClient{ProviderClient: providerClient, Endpoint: server.URL + "/network/v2.0/"},
 	)
+	adapter.ptyProbe = func(context.Context, string, string) error { return nil }
+	return adapter
 }
 
 func writeJSON(t *testing.T, response http.ResponseWriter, status int, value any) {

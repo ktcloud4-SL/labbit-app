@@ -198,6 +198,16 @@ func (s *Store) WriteProvision(ctx context.Context, u repository.ProvisionUpdate
 				return invalidProvision()
 			}
 		}
+		ready := validReadiness(d, u)
+		if u.Readiness != nil && !ready {
+			u.Status = "RECONCILING"
+			u.Stage = "RECONCILING"
+			u.ErrorCode = "readiness_attestation_invalid"
+			u.ErrorMessage = "Workspace readiness requires reconciliation"
+		}
+		if ready {
+			u.Stage = "READY"
+		}
 		var finishedAt *time.Time
 		if u.Status == "SUCCEEDED" || u.Status == "FAILED" {
 			finishedAt = &at
@@ -221,13 +231,13 @@ func (s *Store) WriteProvision(ctx context.Context, u repository.ProvisionUpdate
 				return normalize("WriteProvisionInstance", err)
 			}
 		}
-		// D-20 readiness is not attested by OperationResult; PROVISIONING stays
-		// until a separately contracted readiness writer can prove the C2 path.
-		_, err = q.db.Exec(ctx, `UPDATE lab_executions e SET status=CASE
- WHEN EXISTS (SELECT 1 FROM lab_instances WHERE lab_execution_id=e.id AND status='ERROR') THEN 'ERROR'
- ELSE 'PROVISIONING' END,updated_at=$2 WHERE e.id=$1`, d.LabExecutionID, at)
-		if err != nil {
-			return normalize("WriteProvisionExecution", err)
+		if ready {
+			if _, err = q.db.Exec(ctx, `UPDATE lab_instances SET status='READY',updated_at=$2 WHERE id=$1`, d.LabInstanceID, at); err != nil {
+				return normalize("WriteProvisionReady", err)
+			}
+		}
+		if err = q.aggregateReadiness(ctx, d.LabExecutionID, at); err != nil {
+			return err
 		}
 		return q.aggregateProvision(ctx, d.OperationID, at)
 	})
@@ -247,7 +257,7 @@ func (q queries) aggregateProvision(ctx context.Context, id uuid.UUID, at time.T
  WHERE operation_id=$1 AND status IN ('FAILED','RECONCILING') ORDER BY created_at,id LIMIT 1
  ) UPDATE operations SET status=a.status,updated_at=$2::timestamptz,
  finished_at=CASE WHEN a.status IN ('SUCCEEDED','FAILED') THEN $2::timestamptz ELSE NULL END,
- stage=CASE WHEN a.status='SUCCEEDED' THEN 'VERIFYING_READINESS'
+ stage=CASE WHEN a.status='SUCCEEDED' THEN CASE WHEN NOT EXISTS(SELECT 1 FROM operation_items WHERE operation_id=$1 AND stage IS DISTINCT FROM 'READY') THEN 'READY' ELSE 'VERIFYING_READINESS' END
  WHEN a.status='PENDING' THEN 'DEFERRED'
  WHEN a.status='RECONCILING' THEN 'RECONCILING' WHEN a.status='FAILED' THEN 'FAILED' ELSE 'PROVISIONING' END,
  error_code=(SELECT error_code FROM failure),error_message=(SELECT error_message FROM failure)

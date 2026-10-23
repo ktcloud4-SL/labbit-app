@@ -166,3 +166,32 @@ func TestSafeErrorCodeOnlyAcceptsMachineReadableCodes(t *testing.T) {
 		t.Fatalf("긴 code = %q, want INVALID", got)
 	}
 }
+
+func TestDecodeReadinessAttestation(t *testing.T) {
+	for _, tc := range []struct {
+		proof string
+		want  decodeStatus
+	}{
+		{`{"workspaceVmKey":"workspace","serverId":"exact-id","generation":2}`, decodeOK},
+		{`{"workspaceVmKey":"workspace","serverId":"exact-id","generation":2.0}`, decodeOK},
+		{`{"workspaceVmKey":"workspace","serverId":"exact-id","generation":123456789012345678901234567890}`, decodeUnrepresentable},
+		{`{"workspaceVmKey":"workspace","serverId":"exact-id","generation":0}`, decodeInvalid},
+		{`{"workspaceVmKey":"workspace","serverId":"exact-id","Generation":2}`, decodeInvalid},
+		{`{"workspaceVmKey":"workspace","serverId":"exact-id","generation":2,"extra":true}`, decodeInvalid},
+		{`null`, decodeInvalid},
+	} {
+		t.Run(tc.proof, func(t *testing.T) {
+			var raw map[string]json.RawMessage
+			if err := json.Unmarshal([]byte(`{"outcome":"SUCCEEDED","providerResources":[],"readiness":`+tc.proof+`}`), &raw); err != nil {
+				t.Fatal(err)
+			}
+			got, status := decodeOperationResult(raw)
+			if status != tc.want {
+				t.Fatalf("status=%v want=%v", status, tc.want)
+			}
+			if status == decodeOK && (got.Readiness == nil || got.Readiness.ServerID != "exact-id" || got.Readiness.Generation != 2) {
+				t.Fatalf("readiness lost: %+v", got)
+			}
+		})
+	}
+}

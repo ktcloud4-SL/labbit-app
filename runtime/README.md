@@ -287,3 +287,5 @@ Runtime Contract가 Git에 존재한다는 것은 **실행 인터페이스가 �
 실제 구현값이 이 계약을 변경해야 한다면 먼저 `runtime/contract.yaml`을 수정하고, 의미가 바뀌는 경우에만 Confluence의 상위 설계를 함께 갱신합니다.
 
 표준 참고: [W3C Trace Context](https://www.w3.org/TR/trace-context/) · [OpenTelemetry OTLP Exporter](https://opentelemetry.io/docs/specs/otel/protocol/exporter/) · [OpenTelemetry Error Handling](https://opentelemetry.io/docs/specs/otel/error-handling/)
+
+Provision/Reset 제품 readiness는 `contracts/connector/README.md`의 OPERATION_RESULT readiness attestation과 Backend generation/lease 검증을 따릅니다. 프로세스 `/readyz`와 별개이며, Terminal 출력은 영속하지 않습니다.

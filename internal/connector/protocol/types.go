@@ -341,7 +341,16 @@ type OperationProgressMessage struct {
 }
 
 // OperationResultPayload 는 작업 완료 후 보고하는 결과 본문입니다.
+// Readiness attests all snapshot VMs passed ACTIVE, authenticated SSH and
+// required initialization, and the designated workspace passed a PTY shell probe.
+type Readiness struct {
+	WorkspaceVMKey string `json:"workspaceVmKey"`
+	ServerID       string `json:"serverId"`
+	Generation     int64  `json:"generation"`
+}
+
 type OperationResultPayload struct {
+	Readiness         *Readiness               `json:"readiness,omitempty"`
 	Outcome           string                   `json:"outcome"` // SUCCEEDED, FAILED, UNKNOWN
 	ProviderResources []ProviderResourceResult `json:"providerResources"`
 	Error             *SafeError               `json:"error,omitempty"`

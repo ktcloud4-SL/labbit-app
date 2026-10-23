@@ -25,7 +25,13 @@ type ProvisionResource struct {
 	Generation                                   int64
 }
 
+type Readiness struct {
+	WorkspaceVMKey, ServerID string
+	Generation               int64
+}
+
 type ProvisionUpdate struct {
+	Readiness                              *Readiness
 	Dispatch                               ProvisionDispatch
 	Status, Stage, ErrorCode, ErrorMessage string
 	Resources                              []ProvisionResource

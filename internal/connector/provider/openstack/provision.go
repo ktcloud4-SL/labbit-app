@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net"
 	"net/netip"
 	"os"
 	"strconv"
@@ -73,6 +74,7 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 		return mutationFailure(resources, err, "Lab network could not be created"), nil
 	}
 
+	var workspaceServer string
 	for _, vm := range request.CreationSnapshot.VMs {
 		vmName := baseName + "-" + safeName(vm.VMKey, 28)
 		nics, updatedResources, err := a.prepareProvisionNICs(ctx, request, vm, config, topology, resources)
@@ -145,9 +147,28 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 				return failedResult(resources, errorBootTimeout, "VM initialization did not complete"), nil
 			}
 		}
+		if vm.VMKey == request.CreationSnapshot.WorkspaceVMKey {
+			probe := a.ptyProbe
+			if probe == nil {
+				probe = a.probeWorkspacePTY
+			}
+			probeCtx, cancel := context.WithTimeout(ctx, config.SSHReadyTimeout)
+			err := probe(probeCtx, net.JoinHostPort(managementIP, "22"), server.ID)
+			cancel()
+			if err != nil {
+				if ctx.Err() != nil {
+					return unknownResult(resources, "Workspace Terminal state could not be verified"), nil
+				}
+				return failedResult(resources, errorBootTimeout, "Workspace Terminal PTY did not become ready"), nil
+			}
+			workspaceServer = server.ID
+		}
 	}
-
+	if ctx.Err() != nil || workspaceServer == "" {
+		return unknownResult(resources, "Workspace readiness could not be verified"), nil
+	}
 	return coreprovider.OperationResult{
+		Readiness:         &coreprovider.Readiness{WorkspaceVMKey: request.CreationSnapshot.WorkspaceVMKey, ServerID: workspaceServer, Generation: request.Generation},
 		Outcome:           coreprovider.OutcomeSucceeded,
 		ProviderResources: resources,
 	}, nil

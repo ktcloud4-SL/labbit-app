@@ -140,6 +140,21 @@ func decodeOperationResult(payload map[string]json.RawMessage) (protocol.Operati
 			ObservedState:       observedState,
 		})
 	}
+	if raw, present := payload["readiness"]; present {
+		r, ok := jsonObject(raw)
+		if !ok || len(r) != 3 {
+			return protocol.OperationResultPayload{}, decodeInvalid
+		}
+		vm, ok1 := jsonString(r["workspaceVmKey"])
+		id, ok2 := jsonString(r["serverId"])
+		generation, valid, inRange := parseGeneration(r["generation"])
+		if !ok1 || vm == "" || !ok2 || id == "" || !valid {
+			return protocol.OperationResultPayload{}, decodeInvalid
+		}
+		unrepresentable = unrepresentable || !inRange
+		out.Readiness = &protocol.Readiness{WorkspaceVMKey: vm, ServerID: id, Generation: generation}
+	}
+
 	if raw, present := payload["error"]; present {
 		safe, ok := decodeSafeError(raw)
 		if !ok {

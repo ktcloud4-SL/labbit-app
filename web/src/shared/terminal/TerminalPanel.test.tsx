@@ -12,6 +12,8 @@ import { mockLabbitApi } from '../api/mockLabbitApi'
 import { TerminalPanel } from './TerminalPanel'
 import { clearTerminalResumeState, readTerminalResumeState, saveTerminalResumeState } from './terminalResumeStorage'
 
+let terminalResizeHandler: ((size: { cols: number; rows: number }) => void) | null = null
+
 vi.mock('@xterm/xterm', () => ({
   Terminal: class {
     cols = 100
@@ -20,7 +22,10 @@ vi.mock('@xterm/xterm', () => ({
     open() {}
     onData() { return { dispose() {} } }
     onBinary() { return { dispose() {} } }
-    onResize() { return { dispose() {} } }
+    onResize(handler: (size: { cols: number; rows: number }) => void) {
+      terminalResizeHandler = handler
+      return { dispose() { if (terminalResizeHandler === handler) terminalResizeHandler = null } }
+    }
     reset() {}
     clear() {}
     focus() {}
@@ -108,6 +113,7 @@ afterEach(() => {
   cleanup()
   clearTerminalResumeState()
   FakeWebSocket.instances = []
+  terminalResizeHandler = null
   vi.unstubAllGlobals()
 })
 
@@ -170,6 +176,25 @@ describe('TerminalPanel create lifecycle', () => {
     })
     expect(readTerminalResumeState({ labInstanceId: 'synthetic-lab', generation: 1 })).toBeNull()
     expect(FakeWebSocket.instances).toHaveLength(0)
+  })
+
+  it('sends TERMINAL_RESIZE on the attached WSS without creating another TerminalSession', async () => {
+    const { pending, start, api } = setup()
+    await start()
+    await act(async () => { pending.resolve(session()) })
+    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1))
+    const socket = FakeWebSocket.instances[0]
+    await act(async () => { socket.attach() })
+    expect(screen.getByText('연결됨')).toBeInTheDocument()
+
+    await act(async () => { terminalResizeHandler?.({ cols: 120, rows: 42 }) })
+    expect(JSON.parse(socket.sent.at(-1) ?? '{}')).toMatchObject({
+      type: 'TERMINAL_RESIZE',
+      terminalSessionId: 'synthetic-session-1',
+      payload: { cols: 120, rows: 42 },
+    })
+    expect(api.createTerminalSession).toHaveBeenCalledTimes(1)
+    expect(FakeWebSocket.instances).toHaveLength(1)
   })
 
   it('creates and attaches normally under StrictMode', async () => {

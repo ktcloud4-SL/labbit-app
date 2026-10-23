@@ -1148,6 +1148,11 @@ a {
 }
 
 @media (max-width: 720px) {
+  /* The mobile Workspace uses a flex stack, not the adjustable grid row. */
+  .terminal-height-control {
+    display: none;
+  }
+
   .terminal-toolbar {
     align-items: stretch;
     flex-direction: column;

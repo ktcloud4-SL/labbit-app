@@ -819,7 +819,7 @@ func TestReadinessProofSurvivesControlWSSAndReachesPostgres(t *testing.T) {
 			if err := e.db.QueryRow(t.Context(), `SELECT status FROM lab_executions WHERE id=$1`, e.executionID).Scan(&execution); err != nil {
 				t.Fatal(err)
 			}
-			if scenario == "ready" && execution != "READY" {
+			if scenario == "ready" && execution != "ACTIVE" {
 				t.Fatalf("execution=%s", execution)
 			}
 			if scenario == "stale" {

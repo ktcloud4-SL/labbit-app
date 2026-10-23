@@ -45,7 +45,7 @@ func TestProvisionReadinessWriterAndAggregate(t *testing.T) {
 		}
 		want := "PROVISIONING"
 		if i == 2 {
-			want = "READY"
+			want = "ACTIVE"
 		}
 		if state != want {
 			t.Fatalf("execution=%s want=%s", state, want)

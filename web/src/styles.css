@@ -423,6 +423,12 @@ a {
   background: #fff9e9;
 }
 
+.notice-success {
+  border-color: #c4dfcf;
+  background: #f0faf4;
+  color: #255a3d;
+}
+
 .form-actions {
   justify-content: flex-end;
 }

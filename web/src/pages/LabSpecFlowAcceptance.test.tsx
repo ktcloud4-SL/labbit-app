@@ -163,16 +163,71 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     )
     expect(createLabSpec).toHaveBeenCalledTimes(1)
     expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('New LabSpec')
+    expect(await screen.findByRole('status')).toHaveTextContent('새 실습 정의가 저장되었습니다.')
     expect(confirmation).not.toHaveBeenCalled()
 
     fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
       target: { value: 'Unsaved detail changes' },
     })
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
     fireEvent.click(screen.getByRole('link', { name: /실습 정의 목록/ }))
     await waitFor(() => expect(confirmation).toHaveBeenCalledTimes(1))
     expect(router.state.location.pathname).toBe('/lab-specs/newly-created-spec')
     expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('Unsaved detail changes')
     confirmation.mockRestore()
+  })
+
+  it('생성 성공 안내는 최초 상세에서만 보이고 목록→Back에서 재표시되지 않는다', async () => {
+    const candidate = mockLabSpecMappingOptions.items[0]
+    let savedLabSpec: LabSpec | null = null
+    const createLabSpec = vi.fn(async (input: LabSpecWrite) => {
+      savedLabSpec = { ...input, id: 'created-flash-spec', ownerUserId: mockMe.id }
+      return savedLabSpec
+    })
+    const getLabSpec = vi.fn(async () => {
+      if (!savedLabSpec) throw new Error('Read requested before create')
+      return { labSpec: savedLabSpec, etag: '"created-flash-v1"' }
+    })
+    const { router } = mountLabSpecFlow(
+      { createLabSpec, getLabSpec },
+      '/lab-specs/new',
+      <LabSpecEditorPage />,
+    )
+
+    await screen.findByRole('heading', { level: 1, name: '새 실습 정의' })
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'One-time notice' },
+    })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Provider 연결' }), {
+      target: { value: candidate.providerConnectionId },
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Role' }), {
+      target: { value: 'control' },
+    })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Image 참조' }), {
+      target: { value: candidate.images[0].id },
+    })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Size 참조' }), {
+      target: { value: candidate.flavors[0].id },
+    })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Workspace VM' }), {
+      target: { value: 'control:0' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('새 실습 정의가 저장되었습니다.')
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/lab-specs/created-flash-spec')
+      expect(router.state.location.state).toBeNull()
+    })
+
+    fireEvent.click(screen.getByRole('link', { name: /실습 정의 목록/ }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/lab-specs'))
+
+    await act(async () => { await router.navigate(-1) })
+    expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('One-time notice')
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(createLabSpec).toHaveBeenCalledTimes(1)
   })
 
   it('Mapping 권한 403이면 편집기를 차단하고 저장을 호출하지 않는다', async () => {
@@ -279,6 +334,7 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('다른 곳에서 LabSpec이 수정되었습니다')
+    expect(screen.queryByText('실습 정의 변경사항이 저장되었습니다.')).not.toBeInTheDocument()
     expect(updateLabSpec).toHaveBeenCalledWith(
       'lab-spec-existing',
       expect.objectContaining({ name: 'My concurrent edit' }),
@@ -580,6 +636,11 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     })
     await waitFor(() => expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('Submitted edit'))
     expect(screen.getByRole('textbox', { name: '이름' })).toBeEnabled()
+    expect(await screen.findByRole('status')).toHaveTextContent('실습 정의 변경사항이 저장되었습니다.')
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'Next unsaved edit' },
+    })
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
   })
 
   it('LabSpec 조회 403이면 상세 내용을 렌더하지 않고 목록 복귀를 안내한다', async () => {

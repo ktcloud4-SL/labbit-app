@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -17,8 +18,9 @@ import (
 )
 
 var (
-	ErrStartupNotReady = errors.New("VM initialization did not complete")
-	knownHostsMu       sync.Mutex
+	ErrStartupNotReady    = errors.New("VM initialization did not complete")
+	errSSHCommandRejected = errors.New("VM command was rejected")
+	knownHostsMu          sync.Mutex
 )
 
 func (a *Adapter) waitStartupReady(ctx context.Context, port ports.Port, serverID string) error {
@@ -57,6 +59,10 @@ func (a *Adapter) probeCloudInitComplete(ctx context.Context, address, hostIdent
 }
 
 func (a *Adapter) runSSHCommand(ctx context.Context, address, hostIdentity, command string) error {
+	return a.runSSHCommandInput(ctx, address, hostIdentity, command, nil, nil)
+}
+
+func (a *Adapter) runSSHCommandInput(ctx context.Context, address, hostIdentity, command string, input io.Reader, callback ssh.HostKeyCallback) error {
 	config := normalizedProvisionConfig(a.provision)
 	privateKey, err := os.ReadFile(config.SSHPrivateKeyFile)
 	if err != nil {
@@ -66,9 +72,11 @@ func (a *Adapter) runSSHCommand(ctx context.Context, address, hostIdentity, comm
 	if err != nil {
 		return ErrStartupNotReady
 	}
-	hostKeyCallback, err := trustOnFirstUseCallback(config.SSHKnownHostsFile, hostIdentity)
-	if err != nil {
-		return ErrStartupNotReady
+	if callback == nil {
+		callback, err = trustOnFirstUseCallback(config.SSHKnownHostsFile, hostIdentity)
+		if err != nil {
+			return ErrStartupNotReady
+		}
 	}
 
 	dialer := net.Dialer{Timeout: 5 * time.Second}
@@ -88,7 +96,7 @@ func (a *Adapter) runSSHCommand(ctx context.Context, address, hostIdentity, comm
 	clientConnection, channels, requests, err := ssh.NewClientConn(connection, hostIdentity, &ssh.ClientConfig{
 		User:            config.SSHUsername,
 		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
-		HostKeyCallback: hostKeyCallback,
+		HostKeyCallback: callback,
 	})
 	if err != nil {
 		return ErrStartupNotReady
@@ -100,7 +108,12 @@ func (a *Adapter) runSSHCommand(ctx context.Context, address, hostIdentity, comm
 		return ErrStartupNotReady
 	}
 	defer session.Close()
+	session.Stdin = input
 	if err := session.Run(command); err != nil {
+		var exit *ssh.ExitError
+		if errors.As(err, &exit) {
+			return errors.Join(ErrStartupNotReady, errSSHCommandRejected)
+		}
 		return ErrStartupNotReady
 	}
 	if err := ctx.Err(); err != nil {

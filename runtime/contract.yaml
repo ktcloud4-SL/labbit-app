@@ -581,6 +581,14 @@ connector:
       required_when: "LABBIT_WORKSPACE_ROOT is configured"
       secret: false
       note: "VM에 설치한 Linux labbit-workspace-sftp 실행 파일의 절대 경로입니다. executable과 상위 디렉터리는 root 소유이고 group/other writable이면 안 됩니다. 두 설정과 검증 가능한 Provider를 함께 주입하면 공유 VMAccess를 사용하는 WorkspaceFiles와 요청별 outbound File Data WSS를 구성하고 HELLO에 file-v1을 선언합니다. File endpoint는 LABBIT_SAAS_BASE_URL의 /connector/v1/file-data이며 production은 WSS와 서버 인증서 검증을 요구합니다."
+    LABBIT_WORKSPACE_SFTP_HELPER_SOURCE_FILE:
+      required: false
+      secret: false
+      note: "공식 Installer가 같은 release의 helper를 checksum 검증 후 저장하는 Connector 로컬 절대 파일 경로입니다. VM 목적지인 LABBIT_WORKSPACE_SFTP_HELPER와 다릅니다. SHA256과 VM 경로 두 값을 함께 설정하면 Provision/Reset은 cloud mutation 및 Reset 삭제 전에 최대 32MiB regular readonly ELF Linux amd64 artifact와 digest를 검증하고, Workspace VM의 cloud-init 완료 후 기존 management SSH pin/소유권 검증을 거쳐 helper/root를 준비합니다. VM Internet Outbound나 user_data 변경을 요구하지 않습니다. source와 digest 둘 다 없으면 기존 image/manual 준비 모드를 유지합니다."
+    LABBIT_WORKSPACE_SFTP_HELPER_SHA256:
+      required_when: "LABBIT_WORKSPACE_SFTP_HELPER_SOURCE_FILE is set"
+      secret: false
+      note: "Connector 로컬 helper artifact의 SHA256 hex digest입니다. 공식 Installer가 release SHA256SUMS와 다운로드 bytes를 검증해 저장합니다. helper는 root-owned 0755, workspace root는 non-root SSH 계정 소유0750으로 생성하며 같은 digest/안전한 기존 root만 재사용하고 다른 helper나 symlink/불안전 권한은 덮어쓰지 않고 실패합니다. sudo -n python3, runuser, Linux amd64 이미지를 요구하며 실패/불명은 Provider 성공으로 처리하지 않습니다."
     LABBIT_SAAS_BASE_URL:
       required: true
       secret: false

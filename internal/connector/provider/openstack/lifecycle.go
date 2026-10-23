@@ -61,6 +61,9 @@ func (a *Adapter) Reset(ctx context.Context, request coreprovider.ResetRequest) 
 	if err != nil || !a.resourceProfileMatches(oldResources) {
 		return failedResult(nil, errorInvalidProvision, "Reset resources are invalid"), nil
 	}
+	if _, err := workspaceBootstrapArtifact(config); err != nil {
+		return preflightFailure(resourceResults(oldResources, stateDeleteNotAttempted), err, "Workspace helper artifact is unavailable"), nil
+	}
 
 	// This read-only check intentionally happens before cleanup. If the original
 	// image, flavor, key pair, or network can no longer reproduce the snapshot,

@@ -1,0 +1,183 @@
+{
+  "date_kst": "2026-10-23",
+  "pr": "https://github.com/ktcloud4-SL/labbit-app/pull/155",
+  "base": "f1de5945e80401763efbe33c5d1be4b5888af5be",
+  "review_before_head": "883e4451ec360d7b1cdc2a585c3cd848a7f44556",
+  "tested_source": "uncommitted source identified by LF-normalized source_files; audit/evidence-only additions followed testing",
+  "source_files": [
+    {
+      "path": ".github/workflows/delivery-connector.yml",
+      "lf_sha256": "04a7f75d39fa7626e562f00a8703cb8935c842d54dae28712a63e78991a38c1a"
+    },
+    {
+      "path": "docs/connector/installer-runbook.md",
+      "lf_sha256": "0df7bfbb97dab09a063336b30783b3da96da3ea29a7cc0eb4685a5edec92766b"
+    },
+    {
+      "path": "docs/connector/workspace-sftp.md",
+      "lf_sha256": "6bac56eff01d712caa31d091c7ffaafb006fc7ffcdc17bc4ac09f81484f17254"
+    },
+    {
+      "path": "internal/connector/provider/openstack/client.go",
+      "lf_sha256": "c332358ee8a3047eca7ed3ee68f5b099635f5a566e0a3bc745fb932d571f0bd8"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_cidr.go",
+      "lf_sha256": "9c0ee47bcd2ee60c48ce6e5604ed9990cf8a9dd620640d697bd4c2c4e66d60df"
+    },
+    {
+      "path": "internal/connector/provider/openstack/lifecycle.go",
+      "lf_sha256": "75721b6a03b9707cbaf2686405c034bd21f43fb5c5982c70352dfc08b39ea742"
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision.go",
+      "lf_sha256": "12e847f2edc5b1d675d59bc19d0c740798d40bb43622f43b7c73bd9096481b60"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ssh_cancellation_test.go",
+      "lf_sha256": "f890b9e6493e152662ea0640f6f72abf3ed6a7e87f213cfd5fba65909eb47501"
+    },
+    {
+      "path": "internal/connector/provider/openstack/startup.go",
+      "lf_sha256": "79435332a98c95d486a6a86a922222d78087a87ea2937c63561b42ccd1e51553"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_bootstrap.go",
+      "lf_sha256": "eeadb75f05873a664d7dc78bc36a741c24c5736bb23a8e24d84e7a70eebff30c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_bootstrap.py",
+      "lf_sha256": "abbf9c9799387fb21e9dfc85d84af721676b74a3fd3f372b28586d00b9d3322b"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_bootstrap_guest_test.py",
+      "lf_sha256": "28d0610476abbb98a53e8e03a25b4c3516f64cf8486a89bf54e1f259738b1e19"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_bootstrap_test.go",
+      "lf_sha256": "f4617137ba3a8a87e976ac38b11fa55f0f74dd775d9687ebd72975cf2fa62ac2"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "lf_sha256": "679c36a1e64cf1fc759353f59f941448392b5790c7a405df05b385ba38855f1d"
+    },
+    {
+      "path": "scripts/installer/install.sh",
+      "lf_sha256": "e001b0e9f42dccf612f7789405d2b872cf6fa5cd8c8f0f3b6c249f351fd34409"
+    },
+    {
+      "path": "scripts/installer/install_test.sh",
+      "lf_sha256": "7f05536076609342323add3bb2638f25f7e6d5edfd2473bd88b48cea009e8f92"
+    }
+  ],
+  "before_fix": {
+    "cidr": {
+      "returncode": 1,
+      "binary_sha256": "27c67246f108d22639c25604918369815fa197e6d597b8c3c5dfa5549dfd13f2",
+      "observed": "missing/helper digest mismatch each left slot-000.json; both new regression subtests failed"
+    },
+    "python_optimized": {
+      "run": 2,
+      "failures": 1,
+      "errors": 1,
+      "skipped": 0,
+      "output": "test_digest_failure_does_not_create_paths (workspace_bootstrap_guest_test.GuestBootstrapTest.test_digest_failure_does_not_create_paths) ... FAIL\ntest_noncanonical_path_does_not_create_paths (workspace_bootstrap_guest_test.GuestBootstrapTest.test_noncanonical_path_does_not_create_paths) ... ERROR\n\n======================================================================\nERROR: test_noncanonical_path_does_not_create_paths (workspace_bootstrap_guest_test.GuestBootstrapTest.test_noncanonical_path_does_not_create_paths)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/opt/labbit-bootstrap-suite-rd6tzem4/workspace_bootstrap_guest_test.py\", line 126, in test_noncanonical_path_does_not_create_paths\n    self.assertNotEqual(self.run_bootstrap().returncode, 0)\n                        ^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/labbit-bootstrap-suite-rd6tzem4/workspace_bootstrap_guest_test.py\", line 38, in run_bootstrap\n    return subprocess.run(command, input=self.payload, capture_output=True, timeout=20, umask=umask, env=env)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/subprocess.py\", line 550, in run\n    stdout, stderr = process.communicate(input, timeout=timeout)\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/subprocess.py\", line 1209, in communicate\n    stdout, stderr = self._communicate(input, endtime, timeout)\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.12/subprocess.py\", line 2116, in _communicate\n    self._check_timeout(endtime, orig_timeout, stdout, stderr)\n  File \"/usr/lib/python3.12/subprocess.py\", line 1253, in _check_timeout\n    raise TimeoutExpired(\nsubprocess.TimeoutExpired: Command '['python3', '-O', '/opt/labbit-bootstrap-suite-rd6tzem4/workspace_bootstrap.py', '/opt/labbit-bootstrap-test-1jfccg3h/workspaces/../workspace', '/opt/labbit-bootstrap-test-1jfccg3h/libexec/helper', 'nobody', 'e3c527d543a426f43273e7ffc091ce9e76ee4677be5a7fe1f8df9edcbe8e4946']' timed out after 20 seconds\n\n======================================================================\nFAIL: test_digest_failure_does_not_create_paths (workspace_bootstrap_guest_test.GuestBootstrapTest.test_digest_failure_does_not_create_paths)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/opt/labbit-bootstrap-suite-rd6tzem4/workspace_bootstrap_guest_test.py\", line 121, in test_digest_failure_does_not_create_paths\n    self.assertNotEqual(self.run_bootstrap(\"0\" * 64).returncode, 0)\nAssertionError: 0 == 0\n\n----------------------------------------------------------------------\nRan 2 tests in 20.571s\n\nFAILED (failures=1, errors=1)\n"
+    }
+  },
+  "linux_provider": {
+    "returncode": 0,
+    "binary_sha256": "40cf2449693af66ddb14972c8dab355a7cc3a6abb44e993d57e68d110051cb3d",
+    "top_level_pass_count": 173,
+    "skip_tests": [
+      "TestOpenStackM2ControlWSSIntegration",
+      "TestOpenStackFileTransportIntegration",
+      "TestOpenStackM1Integration",
+      "TestOpenStackM2ProvisionIntegration",
+      "TestOpenStackM3LifecycleIntegration",
+      "TestOpenStackInternetPolicyIntegration",
+      "TestKTCloudD1ReadOnlyIntegration",
+      "TestKTCloudD1DisposableNetworkIntegration",
+      "TestOpenStackPreviewForwardingIntegration",
+      "TestOpenStackPTYCC02Integration",
+      "TestOpenStackTerminalC2Integration",
+      "TestOpenStackVMAccessIntegration",
+      "TestOpenStackWorkspaceFileIntegration",
+      "TestOpenStackPreviewTransportIntegration"
+    ],
+    "new_regressions": [
+      "TestWorkspaceArtifactFailurePrecedesCIDRReservation",
+      "TestWorkspaceArtifactFailurePrecedesCIDRReservation/missing",
+      "TestWorkspaceArtifactFailurePrecedesCIDRReservation/hash_mismatch",
+      "TestWorkspaceArtifactFailurePreservesCIDRUnknown",
+      "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=false/intent",
+      "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=false/own_lock",
+      "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=false/corrupt_slot",
+      "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=true/intent",
+      "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=true/own_lock",
+      "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=true/corrupt_slot",
+      "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=true/missing_assignment",
+      "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=true/missing_previous_intent"
+    ],
+    "suite_directory_removed": true,
+    "test_directories_remaining": 0
+  },
+  "linux_guest": {
+    "guest": {
+      "run": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "output": "test_digest_failure_does_not_create_paths (workspace_bootstrap_guest_test.GuestBootstrapTest.test_digest_failure_does_not_create_paths) ... ok\ntest_existing_different_helper_is_not_overwritten (workspace_bootstrap_guest_test.GuestBootstrapTest.test_existing_different_helper_is_not_overwritten) ... ok\ntest_existing_private_parent_is_preserved (workspace_bootstrap_guest_test.GuestBootstrapTest.test_existing_private_parent_is_preserved) ... ok\ntest_fresh_then_repeated_preserves_workspace_contents (workspace_bootstrap_guest_test.GuestBootstrapTest.test_fresh_then_repeated_preserves_workspace_contents) ... ok\ntest_noncanonical_path_does_not_create_paths (workspace_bootstrap_guest_test.GuestBootstrapTest.test_noncanonical_path_does_not_create_paths) ... ok\ntest_overlapping_paths_do_not_create_paths (workspace_bootstrap_guest_test.GuestBootstrapTest.test_overlapping_paths_do_not_create_paths) ... ok\ntest_probe_rejects_malformed_and_oversized_responses (workspace_bootstrap_guest_test.GuestBootstrapTest.test_probe_rejects_malformed_and_oversized_responses) ... ok\ntest_probe_timeout_kills_descendants (workspace_bootstrap_guest_test.GuestBootstrapTest.test_probe_timeout_kills_descendants) ... ok\ntest_restrictive_umask_creates_traversable_parents (workspace_bootstrap_guest_test.GuestBootstrapTest.test_restrictive_umask_creates_traversable_parents) ... ok\ntest_symlink_parent_does_not_write_outside (workspace_bootstrap_guest_test.GuestBootstrapTest.test_symlink_parent_does_not_write_outside) ... ok\ntest_symlink_workspace_is_rejected (workspace_bootstrap_guest_test.GuestBootstrapTest.test_symlink_workspace_is_rejected) ... ok\ntest_unsafe_existing_workspace_is_preserved (workspace_bootstrap_guest_test.GuestBootstrapTest.test_unsafe_existing_workspace_is_preserved) ... ok\ntest_unsafe_parent_is_not_repaired (workspace_bootstrap_guest_test.GuestBootstrapTest.test_unsafe_parent_is_not_repaired) ... ok\n\n----------------------------------------------------------------------\nRan 13 tests in 11.912s\n\nOK\n",
+      "helper_sha256": "e3c527d543a426f43273e7ffc091ce9e76ee4677be5a7fe1f8df9edcbe8e4946",
+      "suite_directory_removed": true,
+      "test_directories_remaining": 0
+    },
+    "guest-flag": {
+      "run": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "output": "test_digest_failure_does_not_create_paths (workspace_bootstrap_guest_test.GuestBootstrapTest.test_digest_failure_does_not_create_paths) ... ok\ntest_existing_different_helper_is_not_overwritten (workspace_bootstrap_guest_test.GuestBootstrapTest.test_existing_different_helper_is_not_overwritten) ... ok\ntest_existing_private_parent_is_preserved (workspace_bootstrap_guest_test.GuestBootstrapTest.test_existing_private_parent_is_preserved) ... ok\ntest_fresh_then_repeated_preserves_workspace_contents (workspace_bootstrap_guest_test.GuestBootstrapTest.test_fresh_then_repeated_preserves_workspace_contents) ... ok\ntest_noncanonical_path_does_not_create_paths (workspace_bootstrap_guest_test.GuestBootstrapTest.test_noncanonical_path_does_not_create_paths) ... ok\ntest_overlapping_paths_do_not_create_paths (workspace_bootstrap_guest_test.GuestBootstrapTest.test_overlapping_paths_do_not_create_paths) ... ok\ntest_probe_rejects_malformed_and_oversized_responses (workspace_bootstrap_guest_test.GuestBootstrapTest.test_probe_rejects_malformed_and_oversized_responses) ... ok\ntest_probe_timeout_kills_descendants (workspace_bootstrap_guest_test.GuestBootstrapTest.test_probe_timeout_kills_descendants) ... ok\ntest_restrictive_umask_creates_traversable_parents (workspace_bootstrap_guest_test.GuestBootstrapTest.test_restrictive_umask_creates_traversable_parents) ... ok\ntest_symlink_parent_does_not_write_outside (workspace_bootstrap_guest_test.GuestBootstrapTest.test_symlink_parent_does_not_write_outside) ... ok\ntest_symlink_workspace_is_rejected (workspace_bootstrap_guest_test.GuestBootstrapTest.test_symlink_workspace_is_rejected) ... ok\ntest_unsafe_existing_workspace_is_preserved (workspace_bootstrap_guest_test.GuestBootstrapTest.test_unsafe_existing_workspace_is_preserved) ... ok\ntest_unsafe_parent_is_not_repaired (workspace_bootstrap_guest_test.GuestBootstrapTest.test_unsafe_parent_is_not_repaired) ... ok\n\n----------------------------------------------------------------------\nRan 13 tests in 11.873s\n\nOK\n",
+      "helper_sha256": "e3c527d543a426f43273e7ffc091ce9e76ee4677be5a7fe1f8df9edcbe8e4946",
+      "suite_directory_removed": true,
+      "test_directories_remaining": 0
+    },
+    "guest-env": {
+      "run": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "output": "test_digest_failure_does_not_create_paths (workspace_bootstrap_guest_test.GuestBootstrapTest.test_digest_failure_does_not_create_paths) ... ok\ntest_existing_different_helper_is_not_overwritten (workspace_bootstrap_guest_test.GuestBootstrapTest.test_existing_different_helper_is_not_overwritten) ... ok\ntest_existing_private_parent_is_preserved (workspace_bootstrap_guest_test.GuestBootstrapTest.test_existing_private_parent_is_preserved) ... ok\ntest_fresh_then_repeated_preserves_workspace_contents (workspace_bootstrap_guest_test.GuestBootstrapTest.test_fresh_then_repeated_preserves_workspace_contents) ... ok\ntest_noncanonical_path_does_not_create_paths (workspace_bootstrap_guest_test.GuestBootstrapTest.test_noncanonical_path_does_not_create_paths) ... ok\ntest_overlapping_paths_do_not_create_paths (workspace_bootstrap_guest_test.GuestBootstrapTest.test_overlapping_paths_do_not_create_paths) ... ok\ntest_probe_rejects_malformed_and_oversized_responses (workspace_bootstrap_guest_test.GuestBootstrapTest.test_probe_rejects_malformed_and_oversized_responses) ... ok\ntest_probe_timeout_kills_descendants (workspace_bootstrap_guest_test.GuestBootstrapTest.test_probe_timeout_kills_descendants) ... ok\ntest_restrictive_umask_creates_traversable_parents (workspace_bootstrap_guest_test.GuestBootstrapTest.test_restrictive_umask_creates_traversable_parents) ... ok\ntest_symlink_parent_does_not_write_outside (workspace_bootstrap_guest_test.GuestBootstrapTest.test_symlink_parent_does_not_write_outside) ... ok\ntest_symlink_workspace_is_rejected (workspace_bootstrap_guest_test.GuestBootstrapTest.test_symlink_workspace_is_rejected) ... ok\ntest_unsafe_existing_workspace_is_preserved (workspace_bootstrap_guest_test.GuestBootstrapTest.test_unsafe_existing_workspace_is_preserved) ... ok\ntest_unsafe_parent_is_not_repaired (workspace_bootstrap_guest_test.GuestBootstrapTest.test_unsafe_parent_is_not_repaired) ... ok\n\n----------------------------------------------------------------------\nRan 13 tests in 11.980s\n\nOK\n",
+      "helper_sha256": "e3c527d543a426f43273e7ffc091ce9e76ee4677be5a7fe1f8df9edcbe8e4946",
+      "suite_directory_removed": true,
+      "test_directories_remaining": 0
+    }
+  },
+  "runtime_after_tests": {
+    "service": "MainPID=32352\nExecMainStartTimestamp=Thu 2026-10-22 11:49:13 KST\nActiveState=active\n",
+    "binary_sha256": "7dcaf2d9e0390ecf83f03383bc781c0bef3eccd5e2579c8b75f0fb3f47bdc630",
+    "scratch_processes": [],
+    "suite_directories": 0,
+    "test_directories": 0
+  },
+  "local_checks": {
+    "linux_provider_go_vet": 0,
+    "linux_connector_go_build": 0,
+    "git_diff_check": 0
+  },
+  "raw_local_log_sha256": {
+    "linux-guest-env-final.json": "6633c3bfff76ff04ad06812672f7176fcc5d50de3941142ea5aa98ed42d29789",
+    "linux-guest-final.json": "b226e67c2ef0a2cec4d8c535357c7b43befaabb8e400395c6978a87c5e16eff8",
+    "linux-guest-flag-final.json": "b11fd494f80e213d453bd4db47975dfd16fe911ce9f4f7b185bae92dccd3d85e",
+    "linux-guest-flag-rejection-before-fix.json": "9c2fd6cc0aece25cca54252d7b3396e1b8aa6640b48ba026bca1dee22fab78da",
+    "linux-provider-before-fix.json": "c007cc72f1448c426ca329f02b235b7d8b9ded2f5dad6a7c0990f24606925e6b",
+    "linux-provider-final.json": "bc7c0d8d2f02c0116f0f1a0d08c10f4fbe612fc922bb03eddb471dcaa744bd73",
+    "linux-provider-initial-fix.json": "05a78bb8f4a7706daec6063ab44a328e4f81e76ff71fcc36d3e29cdc18fc0558"
+  },
+  "limits": [
+    "Provider API is fake/in-process SSH; 14 real cloud integration gates skipped.",
+    "Linux guest runs use root-owned isolated /opt scratch and real non-root helper, not a provisioned Workspace VM.",
+    "No release, service replacement/restart, VM create/reset, Cloud-to-Browser File Tree E2E, Jira/Slack update or merge was performed.",
+    "Baseline CI/Linux/installer/Web evidence remains historical at its recorded source; revised source is covered by this supplemental test record."
+  ]
+}

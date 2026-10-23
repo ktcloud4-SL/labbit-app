@@ -1,0 +1,133 @@
+{
+  "date_kst": "2026-10-23",
+  "base": "f1de5945e80401763efbe33c5d1be4b5888af5be",
+  "source_commit_with_matching_files": "e0101125917a6be0b4d6432d10be0611a5beca85",
+  "source_files": [
+    {
+      "path": ".github/workflows/delivery-connector.yml",
+      "lf_sha256": "04a7f75d39fa7626e562f00a8703cb8935c842d54dae28712a63e78991a38c1a"
+    },
+    {
+      "path": "docs/connector/installer-runbook.md",
+      "lf_sha256": "0df7bfbb97dab09a063336b30783b3da96da3ea29a7cc0eb4685a5edec92766b"
+    },
+    {
+      "path": "docs/connector/workspace-sftp.md",
+      "lf_sha256": "6bac56eff01d712caa31d091c7ffaafb006fc7ffcdc17bc4ac09f81484f17254"
+    },
+    {
+      "path": "internal/connector/provider/openstack/client.go",
+      "lf_sha256": "c332358ee8a3047eca7ed3ee68f5b099635f5a566e0a3bc745fb932d571f0bd8"
+    },
+    {
+      "path": "internal/connector/provider/openstack/lifecycle.go",
+      "lf_sha256": "75721b6a03b9707cbaf2686405c034bd21f43fb5c5982c70352dfc08b39ea742"
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision.go",
+      "lf_sha256": "12e847f2edc5b1d675d59bc19d0c740798d40bb43622f43b7c73bd9096481b60"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ssh_cancellation_test.go",
+      "lf_sha256": "f890b9e6493e152662ea0640f6f72abf3ed6a7e87f213cfd5fba65909eb47501"
+    },
+    {
+      "path": "internal/connector/provider/openstack/startup.go",
+      "lf_sha256": "79435332a98c95d486a6a86a922222d78087a87ea2937c63561b42ccd1e51553"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "lf_sha256": "679c36a1e64cf1fc759353f59f941448392b5790c7a405df05b385ba38855f1d"
+    },
+    {
+      "path": "scripts/installer/install.sh",
+      "lf_sha256": "e001b0e9f42dccf612f7789405d2b872cf6fa5cd8c8f0f3b6c249f351fd34409"
+    },
+    {
+      "path": "scripts/installer/install_test.sh",
+      "lf_sha256": "7f05536076609342323add3bb2638f25f7e6d5edfd2473bd88b48cea009e8f92"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_bootstrap.go",
+      "lf_sha256": "eeadb75f05873a664d7dc78bc36a741c24c5736bb23a8e24d84e7a70eebff30c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_bootstrap.py",
+      "lf_sha256": "a76c0617f0f5319dde62176da04e41e98cce72c3db12fbb24acbba4886d98efe"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_bootstrap_guest_test.py",
+      "lf_sha256": "6a709e1516aec09ab319bcbb79fb1f91eeafd7ebd0c6358eca1e2aac667c7a49"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_bootstrap_test.go",
+      "lf_sha256": "d0a2f3d3d116f350206a066999c79e3f62beaa6ac56728e71294e6f9d7ab061d"
+    }
+  ],
+  "linux_provider": {
+    "exit_code": 0,
+    "binary_sha256": "20f4bc2c0d0337fc0e06e869a1b8677e099f30ac5f79dd35b00cb1f8d3a462a4",
+    "skipped_real_cloud_tests": [
+      "TestOpenStackM2ControlWSSIntegration",
+      "TestOpenStackFileTransportIntegration",
+      "TestOpenStackM1Integration",
+      "TestOpenStackM2ProvisionIntegration",
+      "TestOpenStackM3LifecycleIntegration",
+      "TestOpenStackInternetPolicyIntegration",
+      "TestKTCloudD1ReadOnlyIntegration",
+      "TestKTCloudD1DisposableNetworkIntegration",
+      "TestOpenStackPreviewForwardingIntegration",
+      "TestOpenStackPTYCC02Integration",
+      "TestOpenStackTerminalC2Integration",
+      "TestOpenStackVMAccessIntegration",
+      "TestOpenStackWorkspaceFileIntegration",
+      "TestOpenStackPreviewTransportIntegration"
+    ],
+    "package_pass": true
+  },
+  "linux_guest": {
+    "run": 12,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "helper_sha256": "e3c527d543a426f43273e7ffc091ce9e76ee4677be5a7fe1f8df9edcbe8e4946"
+  },
+  "umask_regression_before_fix": {
+    "failed_subtests": 2,
+    "umasks": [
+      "0027",
+      "0077"
+    ]
+  },
+  "linux_installer": {
+    "exit_code": 0,
+    "mock_suite_categories": 12
+  },
+  "cleanup": {
+    "all_suite_directories_removed": true,
+    "remaining_test_directories": 0
+  },
+  "go_vet": 0,
+  "go_build": 0,
+  "linux_connector_build": 0,
+  "changed_go_format": 0,
+  "yaml_parse": 0,
+  "shell_syntax": 0,
+  "windows_targeted_bootstrap_ssh_readiness_state_tests": 0,
+  "windows_installer_runtime_integrity_tests": 0,
+  "windows_other_packages": "installer shell suite failed; all other packages passed",
+  "windows_pty_fixture": "shell roundtrip failed: test requires /bin/sh; full package passed on Linux",
+  "web": {
+    "typecheck": 0,
+    "lint": 0,
+    "test": 0,
+    "build": 0
+  },
+  "web_vitest_passed": 441,
+  "not_executed": [
+    "new cloud Provision/Reset to Browser File Tree",
+    "PostgreSQL integration",
+    "GitHub release download",
+    "production Connector replacement/restart or VM modification"
+  ]
+}

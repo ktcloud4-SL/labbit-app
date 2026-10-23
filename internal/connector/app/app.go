@@ -368,6 +368,9 @@ func controlConfigFromEnvironment() (wss.Config, error) {
 }
 
 func runControl(ctx context.Context, config wss.Config, p runtimeProvider, connectorID string, logger *slog.Logger) error {
+	if lazy, ok := p.(*lazyProvider); ok {
+		lazy.setDiagnosticLogger(logger)
+	}
 	connectorApp, err := buildConnector(p, nil, &config)
 	if err != nil {
 		return err

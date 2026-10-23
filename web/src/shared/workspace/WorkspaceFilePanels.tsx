@@ -248,7 +248,7 @@ function WorkspaceFileEditor({
       <div className="workspace-editor-toolbar">
         <div>
           <strong>{versionedFile.file.path}</strong>
-          <span>{dirty ? '저장되지 않은 변경' : '저장됨'}</span>
+          <span role="status" aria-atomic="true">{dirty ? '저장되지 않은 변경' : '저장됨'}</span>
         </div>
         <button
           className="workspace-file-action workspace-file-action-primary"

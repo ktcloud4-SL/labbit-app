@@ -1,4 +1,5 @@
-export const MIN_TERMINAL_HEIGHT = 240
+// Reserve space for the toolbar, status line, and xterm minimum viewport.
+export const MIN_TERMINAL_HEIGHT = 320
 export const MAX_TERMINAL_HEIGHT = 760
 export const DEFAULT_TERMINAL_HEIGHT = 360
 export const TERMINAL_HEIGHT_STEP = 40

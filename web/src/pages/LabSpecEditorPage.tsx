@@ -588,7 +588,6 @@ export function LabSpecEditorPage() {
   // in component state, but Back navigation cannot replay the saved marker.
   useEffect(() => {
     if (isNew || location.state?.labSpecJustCreatedId !== resolvedLabSpecId) return
-    setSaveSuccess('created')
     navigate(location.pathname + location.search + location.hash, {
       replace: true,
       state: null,

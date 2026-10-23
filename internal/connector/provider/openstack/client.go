@@ -123,6 +123,7 @@ type Adapter struct {
 	cidrScope    *ktCIDRScope
 	sshProbe     func(context.Context, string) error
 	startupProbe func(context.Context, string, string) error
+	ptyProbe     func(context.Context, string, string) error
 }
 
 // ProviderConnectionID returns the SaaS ProviderConnection affinity configured

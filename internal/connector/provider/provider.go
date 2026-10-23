@@ -63,7 +63,16 @@ const (
 	OutcomeUnknown   Outcome = "UNKNOWN"
 )
 
+// Readiness attests all snapshot VMs passed ACTIVE, authenticated SSH and
+// required initialization, and the designated workspace passed a PTY shell probe.
+type Readiness struct {
+	WorkspaceVMKey string `json:"workspaceVmKey"`
+	ServerID       string `json:"serverId"`
+	Generation     int64  `json:"generation"`
+}
+
 type OperationResult struct {
+	Readiness         *Readiness `json:"readiness,omitempty"`
 	Outcome           Outcome
 	ProviderResources []ResourceResult
 	Error             *SafeError

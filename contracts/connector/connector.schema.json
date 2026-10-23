@@ -660,6 +660,17 @@
           },
           "description": "작업 과정에서 생성·관측·삭제한 Provider 리소스의 최소 식별/상태 정보입니다."
         },
+        "readiness": {
+          "type": "object",
+          "required": ["workspaceVmKey", "serverId", "generation"],
+          "properties": {
+            "workspaceVmKey": {"type": "string", "minLength": 1},
+            "serverId": {"type": "string", "minLength": 1},
+            "generation": {"type": "integer", "minimum": 1}
+          },
+          "additionalProperties": false,
+          "description": "SUCCEEDED Provision/Reset only: all immutable snapshot VMs ACTIVE, authenticated SSH and required startup initialization verified; workspace real PTY shell command roundtrip verified. No transcript is included."
+        },
         "error": {
           "$ref": "#/$defs/SafeError"
         }

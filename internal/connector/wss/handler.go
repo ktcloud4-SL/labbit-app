@@ -755,6 +755,10 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 		},
 	}
 
+	if result.Readiness != nil {
+		r := result.Readiness
+		resultMsg.Payload.Readiness = &protocol.Readiness{WorkspaceVMKey: r.WorkspaceVMKey, ServerID: r.ServerID, Generation: r.Generation}
+	}
 	for _, r := range result.ProviderResources {
 		resultMsg.Payload.ProviderResources = append(resultMsg.Payload.ProviderResources, protocol.ProviderResourceResult{
 			ProviderResourceRef: protocol.ProviderResourceRef{

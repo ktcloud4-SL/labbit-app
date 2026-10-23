@@ -538,11 +538,17 @@ UNKNOWN
 
 `UNKNOWN`은 실패가 아니라 Provider side effect 발생 여부를 현재 확정할 수 없어 Reconciliation이 필요한 상태입니다.
 
-`SUCCEEDED`는 Provider 작업의 완료 보고이며 LabInstance의 `READY`와 구분합니다. 현재 `OPERATION_RESULT`에는 D-20의
-Terminal PTY 경로 확인을 증명하는 필드가 없고 C2의 `TERMINAL_OPEN_RESULT`는 별도 TerminalSession lifecycle입니다.
-SaaS PROVISION writer는 확인된 Provider 결과·Resource를 저장하지만 이 응답만으로 `READY`를 확정하지 않습니다.
-현재 성공 Item/Operation은 `SUCCEEDED`·`VERIFYING_READINESS` stage이며 LabInstance는 `PROVISIONING`을 유지합니다.
-필수 초기화·SSH·Terminal 증거를 제품 readiness에 연결하는 계약과 writer는 후속 통합에서 확정해야 합니다.
+`SUCCEEDED`는 Provider 작업의 완료 보고이며 LabInstance의 `READY`와 구분합니다. C2의 `TERMINAL_OPEN_RESULT`는 별도 TerminalSession lifecycle입니다. SaaS writer는 다음 attestation이 있을 때만 제품 READY를 확정합니다.
+`OPERATION_RESULT.payload.readiness`는 선택적 `{workspaceVmKey, serverId, generation}` attestation입니다.
+PROVISION/RESET의 SUCCEEDED에서만 제공하며, immutable CreationSnapshot의 모든 VM이 ACTIVE이고
+인증된 SSH 및 필요한 Startup Script 초기화 확인을 통과하고, 지정 Workspace VM에서 실제
+Terminal SSH PTY/Shell 명령 왕복을 확인했다는 의미입니다. Shell 출력·nonce·transcript는 저장·전송하지 않습니다.
+Connector 내부 probe는 Browser Terminal의 READY 사전조건을 우회하여 제품 세션을 열지 않고 같은 PTY 구현을 사용합니다.
+Backend는 live lease, Connector/Provider affinity, snapshot VM exact set, generation과 Workspace server ID를 검증하고
+LabInstance 및 전체 준비된 LabExecution을 READY로 전환합니다. RESET은 이전 exact-ID 리소스 전체 부재 확인도 필요합니다.
+실패/UNKNOWN/stale generation/불완전 결과는 READY가 될 수 없습니다. Reconciliation의 existence 관측만으로도 READY가 되지 않습니다.
+기존 Connector의 attestation 없는 SUCCEEDED는 호환 유지하며 `VERIFYING_READINESS`/`PROVISIONING`에 남습니다.
+배포는 Backend consumer를 먼저 반영한 뒤 Connector producer를 반영합니다. HTTP/DB schema 변경은 없습니다.
 
 응답 유실 때문에 동일 Create/Delete를 자동 재전송하지 않습니다. Router가 미전송을 보장하는 `ErrConnectorUnavailable`은
 Provider UNKNOWN과 구분하며, live lease·DISPATCHING stage·리소스 부재를 확인한 transaction에서 PENDING/DEFERRED로 복귀합니다.

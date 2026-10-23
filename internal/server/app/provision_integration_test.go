@@ -780,3 +780,54 @@ func TestProvisionControlStackShutdownPreservesSentRunningItem(t *testing.T) {
 		t.Fatalf("shutdown running=%d %v", running, err)
 	}
 }
+
+// Covers the production serializer, authenticated WSS receiver, Router,
+// Executor and PostgreSQL writer. Provider proof is simulated, not Cloud E2E.
+func TestReadinessProofSurvivesControlWSSAndReachesPostgres(t *testing.T) {
+	for _, scenario := range []string{"ready", "legacy", "stale", "incomplete", "unknown"} {
+		t.Run(scenario, func(t *testing.T) {
+			e := newProvisionEnv(t, 5*time.Second)
+			e.startMock(&provider.MockProvider{ProvisionFunc: func(_ context.Context, r provider.ProvisionRequest) (provider.OperationResult, error) {
+				result := mockProvisionResult(r, provider.OutcomeSucceeded)
+				result.Readiness = &provider.Readiness{WorkspaceVMKey: r.CreationSnapshot.WorkspaceVMKey, ServerID: "provider-id-" + r.LabInstanceID + "/" + r.CreationSnapshot.WorkspaceVMKey, Generation: r.Generation}
+				switch scenario {
+				case "legacy":
+					result.Readiness = nil
+				case "stale":
+					result.Readiness.Generation++
+				case "incomplete":
+					result.ProviderResources = result.ProviderResources[:1]
+				case "unknown":
+					result.Outcome = provider.OutcomeUnknown
+				}
+				return result, nil
+			}})
+			e.startWorker()
+			wantOperation := "SUCCEEDED"
+			if scenario == "stale" || scenario == "incomplete" || scenario == "unknown" {
+				wantOperation = "RECONCILING"
+			}
+			eventually(t, "proof result persisted", 5*time.Second, func() bool { return e.operationStatus() == wantOperation })
+			var ready, total int
+			if err := e.db.QueryRow(t.Context(), `SELECT count(*) FILTER(WHERE status='READY'),count(*) FROM lab_instances WHERE lab_execution_id=$1`, e.executionID).Scan(&ready, &total); err != nil {
+				t.Fatal(err)
+			}
+			if scenario == "ready" && ready != total || scenario != "ready" && ready != 0 {
+				t.Fatalf("false readiness: ready=%d total=%d", ready, total)
+			}
+			var execution string
+			if err := e.db.QueryRow(t.Context(), `SELECT status FROM lab_executions WHERE id=$1`, e.executionID).Scan(&execution); err != nil {
+				t.Fatal(err)
+			}
+			if scenario == "ready" && execution != "READY" {
+				t.Fatalf("execution=%s", execution)
+			}
+			if scenario == "stale" {
+				var resources int
+				if err := e.db.QueryRow(t.Context(), `SELECT count(*) FROM provider_resources WHERE lab_instance_id IN(SELECT id FROM lab_instances WHERE lab_execution_id=$1)`, e.executionID).Scan(&resources); err != nil || resources == 0 {
+					t.Fatalf("owned observations lost: n=%d err=%v", resources, err)
+				}
+			}
+		})
+	}
+}

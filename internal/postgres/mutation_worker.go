@@ -347,6 +347,16 @@ func (s *Store) WriteMutation(ctx context.Context, u repository.ProvisionUpdate)
 			u.ErrorMessage = "Resource confirmation requires reconciliation"
 		}
 
+		ready := d.MutationType == "RESET" && allAbsent && replacementComplete && validReadiness(d, u)
+		if u.Readiness != nil && !ready {
+			u.Status = "RECONCILING"
+			u.Stage = "RECONCILING"
+			u.ErrorCode = "readiness_attestation_invalid"
+			u.ErrorMessage = "Workspace readiness requires reconciliation"
+		}
+		if ready {
+			u.Stage = "READY"
+		}
 		if d.MutationType == "CLEANUP" && u.Status == "SUCCEEDED" {
 			u.Stage = "COMPLETED"
 		}
@@ -375,6 +385,9 @@ func (s *Store) WriteMutation(ctx context.Context, u repository.ProvisionUpdate)
 			case allAbsent && replacementComplete:
 				generation = d.Generation
 				status = "PROVISIONING"
+				if ready {
+					status = "READY"
+				}
 				if u.Status == "FAILED" {
 					status = "ERROR"
 				}
@@ -404,6 +417,9 @@ func (q queries) aggregateMutation(ctx context.Context, d repository.ProvisionDi
  WHERE id=$1`, d.OperationID)
 	if err != nil {
 		return normalize("AggregateMutation", err)
+	}
+	if d.MutationType == "RESET" {
+		return q.aggregateReadiness(ctx, d.LabExecutionID, at)
 	}
 	if d.MutationType == "CLEANUP" {
 		// The registered set must cover the execution, and every resource across

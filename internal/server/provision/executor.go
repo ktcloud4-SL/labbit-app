@@ -378,6 +378,9 @@ func (p *Executor) unknown(ctx context.Context, d repository.ProvisionDispatch, 
 
 func (p *Executor) result(ctx context.Context, d repository.ProvisionDispatch, r protocol.OperationResultPayload) error {
 	u := repository.ProvisionUpdate{Dispatch: d}
+	if r.Readiness != nil {
+		u.Readiness = &repository.Readiness{WorkspaceVMKey: r.Readiness.WorkspaceVMKey, ServerID: r.Readiness.ServerID, Generation: r.Readiness.Generation}
+	}
 	switch r.Outcome {
 	case protocol.OutcomeSucceeded:
 		u.Status = "SUCCEEDED"

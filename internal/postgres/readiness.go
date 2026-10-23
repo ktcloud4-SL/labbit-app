@@ -34,7 +34,7 @@ func validReadiness(d repository.ProvisionDispatch, u repository.ProvisionUpdate
 func (q queries) aggregateReadiness(ctx context.Context, id uuid.UUID, at time.Time) error {
 	_, err := q.db.Exec(ctx, `UPDATE lab_executions e SET status=CASE
  WHEN EXISTS(SELECT 1 FROM lab_instances WHERE lab_execution_id=e.id AND status='ERROR') THEN 'ERROR'
- WHEN NOT EXISTS(SELECT 1 FROM lab_instances WHERE lab_execution_id=e.id AND status<>'READY') THEN 'READY'
+ WHEN NOT EXISTS(SELECT 1 FROM lab_instances WHERE lab_execution_id=e.id AND status<>'READY') THEN 'ACTIVE'
  ELSE 'PROVISIONING' END,updated_at=$2 WHERE e.id=$1`, id, at)
 	return normalize("AggregateReadiness", err)
 }

@@ -771,7 +771,7 @@ a {
 }
 
 .workspace-panel-heading span {
-  color: #7a8190;
+  color: #616978;
   font-size: 11px;
 }
 
@@ -1375,7 +1375,7 @@ a {
 
 .class-card-id {
   overflow: hidden;
-  color: #969dac;
+  color: #626a78;
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1399,7 +1399,7 @@ a {
 
 .status-pill-neutral {
   background: #f0f1f4;
-  color: #6f7685;
+  color: #606776;
 }
 
 .section-kicker {
@@ -1463,7 +1463,7 @@ a {
 }
 
 .class-overview-meta span {
-  color: #7a8190;
+  color: #616978;
   font-size: 12px;
   font-weight: 750;
 }

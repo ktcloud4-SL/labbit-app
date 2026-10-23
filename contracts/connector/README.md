@@ -545,7 +545,7 @@ PROVISION/RESET의 SUCCEEDED에서만 제공하며, immutable CreationSnapshot�
 Terminal SSH PTY/Shell 명령 왕복을 확인했다는 의미입니다. Shell 출력·nonce·transcript는 저장·전송하지 않습니다.
 Connector 내부 probe는 Browser Terminal의 READY 사전조건을 우회하여 제품 세션을 열지 않고 같은 PTY 구현을 사용합니다.
 Backend는 live lease, Connector/Provider affinity, snapshot VM exact set, generation과 Workspace server ID를 검증하고
-LabInstance 및 전체 준비된 LabExecution을 READY로 전환합니다. RESET은 이전 exact-ID 리소스 전체 부재 확인도 필요합니다.
+LabInstance를 READY로, 모든 LabInstance가 준비된 LabExecution을 ACTIVE로 전환합니다. RESET은 이전 exact-ID 리소스 전체 부재 확인도 필요합니다.
 실패/UNKNOWN/stale generation/불완전 결과는 READY가 될 수 없습니다. Reconciliation의 existence 관측만으로도 READY가 되지 않습니다.
 기존 Connector의 attestation 없는 SUCCEEDED는 호환 유지하며 `VERIFYING_READINESS`/`PROVISIONING`에 남습니다.
 배포는 Backend consumer를 먼저 반영한 뒤 Connector producer를 반영합니다. HTTP/DB schema 변경은 없습니다.

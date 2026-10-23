@@ -140,6 +140,8 @@ func TestWorkspaceBootstrapFailureRetainsCreatedResourcesAndStartupBytes(t *test
 	adapter.provision.WorkspaceHelperSHA256 = artifact.WorkspaceHelperSHA256
 	adapter.sshProbe = func(context.Context, string) error { return nil }
 	adapter.startupProbe = func(context.Context, string, string) error { fake.startupProbes++; return nil }
+	ptyProbes := 0
+	adapter.ptyProbe = func(context.Context, string, string) error { ptyProbes++; return nil }
 	snapshot := validSnapshot()
 	result, err := adapter.Provision(context.Background(), coreprovider.ProvisionRequest{Correlation: coreprovider.Correlation{OperationID: "bootstrap-partial", LabInstanceID: "lab-instance-1", Generation: 2}, CreationSnapshot: snapshot})
 	// The fake's detail metadata does not satisfy the final VMAccess ownership
@@ -149,5 +151,8 @@ func TestWorkspaceBootstrapFailureRetainsCreatedResourcesAndStartupBytes(t *test
 	}
 	if fake.userData != snapshot.StartupScript.Content || fake.startupProbes != 1 {
 		t.Fatal("startup was changed or not awaited before bootstrap")
+	}
+	if result.Readiness != nil || ptyProbes != 0 {
+		t.Fatal("failed workspace preparation produced readiness evidence")
 	}
 }

@@ -43,13 +43,19 @@ def main():
         def parent(path):
             fd = keep(os.open("/", flags | os.O_DIRECTORY))
             for part in pathlib.PurePosixPath(path).parent.parts[1:]:
+                created = False
                 try:
                     os.mkdir(part, 0o755, dir_fd=fd)
+                    created = True
                 except FileExistsError:
                     pass
                 fd = keep(os.open(part, flags | os.O_DIRECTORY, dir_fd=fd))
                 info = os.fstat(fd)
                 assert info.st_uid == 0 and info.st_mode & 0o022 == 0
+                if created:
+                    # sudo/image umask must not prevent the guest user from
+                    # traversing newly created, root-owned helper/root parents.
+                    os.fchmod(fd, 0o755)
             return fd
 
         helper_parent = parent(helper)

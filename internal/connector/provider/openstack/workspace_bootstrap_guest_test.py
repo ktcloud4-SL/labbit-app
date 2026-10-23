@@ -26,8 +26,24 @@ class GuestBootstrapTest(unittest.TestCase):
         self.digest = hashlib.sha256(self.payload).hexdigest()
         self.user = pwd.getpwnam("nobody")
 
-    def run_bootstrap(self, digest=None):
-        return subprocess.run(["python3", str(pathlib.Path(__file__).with_name("workspace_bootstrap.py")), str(self.root), str(self.helper), self.user.pw_name, digest or self.digest], input=self.payload, capture_output=True, timeout=20)
+    def run_bootstrap(self, digest=None, umask=-1):
+        return subprocess.run(["python3", str(pathlib.Path(__file__).with_name("workspace_bootstrap.py")), str(self.root), str(self.helper), self.user.pw_name, digest or self.digest], input=self.payload, capture_output=True, timeout=20, umask=umask)
+
+    def test_restrictive_umask_creates_traversable_parents(self):
+        for mask in (0o027, 0o077):
+            with self.subTest(umask=oct(mask)):
+                case = self.base / ("umask-" + oct(mask))
+                self.root = case / "workspaces" / "workspace"
+                self.helper = case / "libexec" / "helper"
+                self.assertEqual(self.run_bootstrap(umask=mask).returncode, 0)
+                self.assertEqual(self.run_bootstrap(umask=mask).returncode, 0)
+                for parent in (case, self.root.parent, self.helper.parent):
+                    self.assertEqual(parent.stat().st_mode & 0o777, 0o755)
+
+    def test_existing_private_parent_is_preserved(self):
+        self.helper.parent.mkdir(mode=0o700)
+        self.assertNotEqual(self.run_bootstrap(umask=0o077).returncode, 0)
+        self.assertEqual(self.helper.parent.stat().st_mode & 0o777, 0o700)
 
     def test_fresh_then_repeated_preserves_workspace_contents(self):
         self.assertEqual(self.run_bootstrap().returncode, 0)

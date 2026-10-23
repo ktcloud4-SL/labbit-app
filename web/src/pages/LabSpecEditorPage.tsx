@@ -570,8 +570,11 @@ export function LabSpecEditorPage() {
   // It is never automatically submitted with a newer server ETag.
   const [draftBackup, setDraftBackup] = useState<LabSpecDraftBackup | null>(null)
   const [dirtyRoute, setDirtyRoute] = useState<string | null>(null)
-  const [saveSuccess, setSaveSuccess] = useState<'updated' | null>(null)
-  const [createdNoticeDismissed, setCreatedNoticeDismissed] = useState(false)
+  // Capture the create notice locally before consuming the one-time history state.
+  // This preserves the first message even when React Router replaces this entry.
+  const [saveSuccess, setSaveSuccess] = useState<'created' | 'updated' | null>(() =>
+    !isNew && location.state?.labSpecJustCreatedId === resolvedLabSpecId ? 'created' : null,
+  )
   const allowSavedNavigationRef = useRef(false)
   const currentRoute = resolvedLabSpecId || 'new-lab-spec'
 
@@ -580,6 +583,17 @@ export function LabSpecEditorPage() {
   useEffect(() => {
     allowSavedNavigationRef.current = false
   }, [currentRoute])
+
+  // Consume the flash marker on its first detail visit. The message remains
+  // in component state, but Back navigation cannot replay the saved marker.
+  useEffect(() => {
+    if (isNew || location.state?.labSpecJustCreatedId !== resolvedLabSpecId) return
+    setSaveSuccess('created')
+    navigate(location.pathname + location.search + location.hash, {
+      replace: true,
+      state: null,
+    })
+  }, [isNew, location.hash, location.pathname, location.search, location.state, navigate, resolvedLabSpecId])
 
   const meQuery = useQuery({
     queryKey: labbitQueryKeys.me,
@@ -609,7 +623,6 @@ export function LabSpecEditorPage() {
 
   const captureDraft = useCallback((form: LabSpecWrite) => {
     setSaveSuccess(null)
-    setCreatedNoticeDismissed(true)
     setDirtyRoute(currentRoute)
     if (!resolvedLabSpecId) return
     setDraftBackup((previous) => {
@@ -650,7 +663,7 @@ export function LabSpecEditorPage() {
       if (result.mode === 'create') {
         // Only the successful create navigates away automatically.
         // Pass feedback to the detail route because React Router may remount this page.
-        setCreatedNoticeDismissed(false)
+        setSaveSuccess('created')
         allowSavedNavigationRef.current = true
         navigate(`/lab-specs/${encodeURIComponent(result.labSpec.id)}`, {
           replace: true,
@@ -659,7 +672,6 @@ export function LabSpecEditorPage() {
         return
       }
 
-      setCreatedNoticeDismissed(true)
       setSaveSuccess('updated')
       queryClient.setQueryData(
         labbitQueryKeys.labSpec(resolvedLabSpecId),
@@ -828,10 +840,7 @@ export function LabSpecEditorPage() {
         </div>
       </header>
 
-      {(saveSuccess === 'updated' ||
-        (!isNew &&
-          location.state?.labSpecJustCreatedId === resolvedLabSpecId &&
-          !createdNoticeDismissed)) && (
+      {saveSuccess && (
         <div className="notice-card notice-success" role="status">
           {saveSuccess === 'updated'
             ? '실습 정의 변경사항이 저장되었습니다.'

@@ -1661,6 +1661,35 @@ describe('Auth·Class·LabSpec routing', () => {
     ).toBeInTheDocument()
   })
 
+  it('Provider SUCCEEDED이지만 READY attestation이 없으면 완료로 단정하지 않는다', async () => {
+    const getOperation = vi.fn(async () => ({
+      ...operationFixture,
+      stage: 'VERIFYING_READINESS',
+    }))
+    renderRoute('/operations/operation-provision-1', createApi({ getOperation }))
+
+    expect(await screen.findByRole('heading', {
+      name: 'Provider 작업 완료 · READY 확인 중',
+    })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '실습 환경 READY는 아직 확인되지 않았습니다.',
+    )
+    expect(screen.getByText('Workspace 사용 가능 상태 확인 중')).toBeInTheDocument()
+    expect(screen.getByText('Provider 작업 완료 · READY 확인 중', { selector: 'span' }))
+      .toHaveClass('status-pill-progress')
+    expect(screen.getByRole('link', { name: '실습 운영 상태 보기' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '상태 다시 확인' }))
+    await waitFor(() => expect(getOperation).toHaveBeenCalledTimes(2))
+  })
+
+  it('실제 READY 단계에 도달한 Operation은 기존 완료 표시를 유지한다', async () => {
+    renderRoute('/operations/operation-provision-1')
+    expect(await screen.findByRole('heading', { name: '완료' })).toBeInTheDocument()
+    expect(screen.queryByText('실습 환경 READY는 아직 확인되지 않았습니다.', { exact: false }))
+      .not.toBeInTheDocument()
+  })
+
   it('알 수 없는 Operation 상태는 성공·실패로 단정하지 않고 fallback한다', async () => {
     renderRoute(
       '/operations/operation-future',

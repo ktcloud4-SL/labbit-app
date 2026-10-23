@@ -56,6 +56,8 @@ function stageLabel(stage: string | undefined) {
       return '환경 정리 중'
     case 'VERIFY_PROVIDER_STATE':
       return '실제 상태 확인 중'
+    case 'VERIFYING_READINESS':
+      return 'Workspace 사용 가능 상태 확인 중'
     default:
       return stage ?? '확인 중'
   }
@@ -161,6 +163,15 @@ export function OperationPage() {
   const isReconciling = operation.status === 'RECONCILING'
   const isUnknownStatus = !knownOperationStatuses.has(operation.status)
   const link = targetLink(operation)
+  // Provider SUCCEEDED does not prove that the Workspace reached READY.
+  // A legacy Connector can report success without readiness attestation.
+  const awaitingReadiness =
+    (operation.type === 'PROVISION' || operation.type === 'RESET') &&
+    operation.status === 'SUCCEEDED' &&
+    operation.stage === 'VERIFYING_READINESS'
+  const visibleStatusLabel = awaitingReadiness
+    ? 'Provider 작업 완료 · READY 확인 중'
+    : statusLabel(operation.status)
 
   return (
     <main className="app-page">
@@ -170,12 +181,14 @@ export function OperationPage() {
             ← 수업 목록
           </Link>
           <p className="eyebrow">작업 상태</p>
-          <h1>{statusLabel(operation.status)}</h1>
+          <h1>{visibleStatusLabel}</h1>
           <p className="muted">
             {operationTypeLabel(operation.type)} · {operation.id}
           </p>
         </div>
-        <span className={statusPillClass(operation.status)}>{statusLabel(operation.status)}</span>
+        <span className={awaitingReadiness ? 'status-pill status-pill-progress' : statusPillClass(operation.status)}>
+          {visibleStatusLabel}
+        </span>
       </header>
 
       {operationQuery.error && (
@@ -213,6 +226,24 @@ export function OperationPage() {
           <p className="muted">
             현재 상태를 확인하는 동안 같은 작업을 다시 요청하지 않고 안전하게 결과를 기다립니다.
           </p>
+        </section>
+      )}
+
+      {awaitingReadiness && (
+        <section className="notice-card notice-warning" role="status">
+          <strong>Provider 작업은 완료됐지만 실습 환경 READY는 아직 확인되지 않았습니다.</strong>
+          <p className="muted">
+            Workspace 입장 가능 여부는 실습 운영 화면의 LabInstance 상태에서 확인해 주세요.
+            이 화면만 보고 생성이나 초기화 요청을 다시 실행하지 마세요.
+          </p>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={operationQuery.isFetching}
+            onClick={() => void operationQuery.refetch()}
+          >
+            {operationQuery.isFetching ? '상태 확인 중...' : '상태 다시 확인'}
+          </button>
         </section>
       )}
 

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Link, useBlocker, useParams } from 'react-router-dom'
 
 import type { ClassDetail } from '../shared/api/contracts'
@@ -14,6 +14,7 @@ import { LoginRedirect } from '../shared/ui/LoginRedirect'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 import { TerminalPanel } from '../shared/terminal/TerminalPanel'
+import { DEFAULT_TERMINAL_HEIGHT, TerminalHeightControl } from '../shared/terminal/TerminalHeightControl'
 import { PreviewPanel } from '../shared/preview/PreviewPanel'
 import { WorkspaceFilePanels } from '../shared/workspace/WorkspaceFilePanels'
 import type { WorkspaceDraftBackup } from '../shared/workspace/WorkspaceFilePanels'
@@ -34,6 +35,7 @@ export function LabPage() {
   // Generation changes must not silently discard dirty editor drafts or a PUT.
   const [retainedWorkspaceDraft, setRetainedWorkspaceDraft] = useState<WorkspaceDraftBackup | null>(null)
   const [retainedFileSavePending, setRetainedFileSavePending] = useState(false)
+  const [terminalHeight, setTerminalHeight] = useState(DEFAULT_TERMINAL_HEIGHT)
   // Late PUT callbacks from an unmounted Editor consult the live Class query,
   // not the generation that was current when the Editor first rendered.
   const dirty = retainedWorkspaceDraft !== null
@@ -248,7 +250,11 @@ export function LabPage() {
         </div>
       </header>
 
-      <section className="workspace-shell" aria-label="Lab Workspace Shell">
+      <section
+        className="workspace-shell"
+        aria-label="Lab Workspace Shell"
+        style={{ '--workspace-terminal-height': `${terminalHeight}px` } as CSSProperties}
+      >
         <WorkspaceFilePanels
           labInstanceId={labInstance.id}
           generation={labInstance.generation}
@@ -282,7 +288,10 @@ export function LabPage() {
         <section className="workspace-panel workspace-terminal">
           <div className="workspace-panel-heading">
             <strong>Terminal</strong>
-            <span>Browser WSS · multi-VM</span>
+            <div className="workspace-terminal-heading-controls">
+              <span>Browser WSS · multi-VM</span>
+              <TerminalHeightControl height={terminalHeight} onHeightChange={setTerminalHeight} />
+            </div>
           </div>
           <TerminalPanel
             key={`${labInstance.id}:${labInstance.generation}`}

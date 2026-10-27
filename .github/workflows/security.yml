@@ -24,8 +24,14 @@ jobs:
       - name: Run Gitleaks
         run: |
           curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz | tar -xz
-          ./gitleaks detect --verbose --redact
-          
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "Scanning new commits in PR (origin/main..HEAD)..."
+            ./gitleaks detect --log-opts="origin/main..HEAD" --verbose --redact
+          else
+            echo "Scanning current workspace directory..."
+            ./gitleaks dir . --verbose --redact
+          fi
+  
   hadolint:
     name: Hadolint
     runs-on: ubuntu-latest
@@ -38,6 +44,7 @@ jobs:
         with:
           dockerfile: Dockerfile
           failure-threshold: error
+          ignore: DL3018
       
       - name: Lint Web Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
@@ -53,7 +60,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.29.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'

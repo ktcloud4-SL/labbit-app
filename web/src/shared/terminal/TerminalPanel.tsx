@@ -97,7 +97,16 @@ function httpTerminalError(error: unknown) {
     return '선택한 VM 정보가 현재 환경과 맞지 않습니다. VM 목록을 다시 불러와 주세요.'
   }
   if (error.status === 503) {
-    return '터미널 연결 경로를 지금 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+    switch (error.problem?.code) {
+      case 'connector_unavailable':
+        return '실습 환경 Connector에 연결할 수 없습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.'
+      case 'terminal_open_failed':
+        return 'VM 터미널을 열지 못했습니다. 계속 발생하면 운영 담당자에게 문의해 주세요.'
+      case 'terminal_unavailable':
+        return '현재 터미널 기능을 사용할 수 없습니다. 계속 발생하면 운영 담당자에게 문의해 주세요.'
+      default:
+        return '터미널 연결 경로를 지금 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+    }
   }
 
   return '터미널 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'
@@ -482,9 +491,17 @@ export function TerminalPanel({ labInstanceId, generation, classId, isInstructor
         cols: size.cols,
         rows: size.rows,
       })
-      if (sequence !== createSequenceRef.current) return
+      if (sequence !== createSequenceRef.current) {
+        // The request may have created a server-side PTY after this panel
+        // unmounted or the Workspace changed. It cannot be safely attached.
+        void api.closeTerminalSession(session.id).catch(() => undefined)
+        return
+      }
 
       if (session.generation !== generation) {
+        // A successful 201 may still carry an obsolete Workspace generation.
+        // Do not leave that unattachable TerminalSession running on Backend.
+        void api.closeTerminalSession(session.id).catch(() => undefined)
         invalidateResume()
         setStatus('error')
         setStatusMessage(

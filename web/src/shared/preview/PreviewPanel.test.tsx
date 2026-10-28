@@ -174,7 +174,7 @@ describe('LBT-26 PreviewSession Frontend consumer', () => {
       code: 'unexpected_code',
       message: '미리보기 연결이 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.',
     },
-  ])('503 / $code는 계약에 맞게 설명하고 미리보기 세션을 생성하지 않는다', async ({ code, message }) => {
+  ])('503 / $code는 계약에 맞게 안내하며 실패 응답에서 Preview URL·탭을 만들지 않는다', async ({ code, message }) => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null)
     const createPreviewSession = vi.fn(async () => {
       throw new HttpError(503, {
@@ -195,6 +195,29 @@ describe('LBT-26 PreviewSession Frontend consumer', () => {
     expect(screen.queryByRole('button', { name: '미리보기 새 탭 열기' })).not.toBeInTheDocument()
     expect(container.innerHTML).not.toContain(URL_WITH_FIXTURE)
     expect(open).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { status: 403, code: 'preview_unavailable', expected: '미리보기를 사용할 권한이 없거나 포트가 거부됐습니다.' },
+    { status: 409, code: 'preview_transport_unavailable', expected: '실습 환경이 준비되지 않았습니다. 상태를 확인해 주세요.' },
+    { status: 404, code: 'connector_unavailable', expected: '실습 환경 또는 미리보기 세션을 찾을 수 없습니다.' },
+  ])('503 전용 코드가 잘못 포함된 HTTP $status는 상태별 오류를 우선한다', async ({ status, code, expected }) => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const createPreviewSession = vi.fn(async () => {
+      throw new HttpError(status, {
+        type: 'about:blank', title: 'private-error-details', status, code, requestId: 'fixture-request',
+      })
+    })
+    const { api, container } = mount({ createPreviewSession })
+    submitPort()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(expected)
+    expect(alert).not.toHaveTextContent('private-error-details')
+    expect(createPreviewSession).toHaveBeenCalledOnce()
+    expect(api.closePreviewSession).not.toHaveBeenCalled()
+    expect(open).not.toHaveBeenCalled()
+    expect(container.innerHTML).not.toContain(URL_WITH_FIXTURE)
+    expect(screen.queryByRole('button', { name: '미리보기 새 탭 열기' })).not.toBeInTheDocument()
   })
 
   it('401 인증 만료에서 저장된 URL 없이 로그인으로 이동한다', async () => {

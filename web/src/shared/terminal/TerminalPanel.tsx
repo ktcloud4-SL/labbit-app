@@ -491,9 +491,17 @@ export function TerminalPanel({ labInstanceId, generation, classId, isInstructor
         cols: size.cols,
         rows: size.rows,
       })
-      if (sequence !== createSequenceRef.current) return
+      if (sequence !== createSequenceRef.current) {
+        // The request may have created a server-side PTY after this panel
+        // unmounted or the Workspace changed. It cannot be safely attached.
+        void api.closeTerminalSession(session.id).catch(() => undefined)
+        return
+      }
 
       if (session.generation !== generation) {
+        // A successful 201 may still carry an obsolete Workspace generation.
+        // Do not leave that unattachable TerminalSession running on Backend.
+        void api.closeTerminalSession(session.id).catch(() => undefined)
         invalidateResume()
         setStatus('error')
         setStatusMessage(

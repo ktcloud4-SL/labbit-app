@@ -153,6 +153,50 @@ describe('LBT-26 PreviewSession Frontend consumer', () => {
     expect(screen.getByRole('alert')).not.toHaveTextContent('private-runtime-output')
   })
 
+  it.each([
+    {
+      code: 'preview_unavailable',
+      message: '현재 배포 환경에서 미리보기 기능을 사용할 수 없습니다. 운영 담당자에게 문의해 주세요.',
+    },
+    {
+      code: 'preview_transport_unavailable',
+      message: '실습 환경 Connector가 미리보기를 지원하지 않습니다. 운영 담당자에게 문의해 주세요.',
+    },
+    {
+      code: 'connector_unavailable',
+      message: '미리보기 연결 경로를 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+    },
+    {
+      code: 'preview_open_failed',
+      message: '미리보기 연결 경로를 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+    },
+    {
+      code: 'unexpected_code',
+      message: '미리보기 연결이 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.',
+    },
+  ])('503 / $code는 계약에 맞게 설명하고 미리보기 세션을 생성하지 않는다', async ({ code, message }) => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const createPreviewSession = vi.fn(async () => {
+      throw new HttpError(503, {
+        type: 'about:blank',
+        title: 'private-upstream-details',
+        status: 503,
+        code,
+        requestId: 'fixture-request',
+      })
+    })
+    const { api, container } = mount({ createPreviewSession })
+    submitPort()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(message)
+    expect(alert).not.toHaveTextContent('private-upstream-details')
+    expect(createPreviewSession).toHaveBeenCalledOnce()
+    expect(api.closePreviewSession).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: '미리보기 새 탭 열기' })).not.toBeInTheDocument()
+    expect(container.innerHTML).not.toContain(URL_WITH_FIXTURE)
+    expect(open).not.toHaveBeenCalled()
+  })
+
   it('401 인증 만료에서 저장된 URL 없이 로그인으로 이동한다', async () => {
     const { router, client } = mount({
       createPreviewSession: async () => { throw new HttpError(401) },

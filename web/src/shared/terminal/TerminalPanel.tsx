@@ -103,7 +103,7 @@ function httpTerminalError(error: unknown) {
       case 'terminal_open_failed':
         return 'VM 터미널을 열지 못했습니다. 계속 발생하면 운영 담당자에게 문의해 주세요.'
       case 'terminal_unavailable':
-        return '현재 배포 환경에서 터미널 기능을 사용할 수 없습니다. 운영 담당자에게 문의해 주세요.'
+        return '현재 터미널 기능을 사용할 수 없습니다. 계속 발생하면 운영 담당자에게 문의해 주세요.'
       default:
         return '터미널 연결 경로를 지금 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
     }

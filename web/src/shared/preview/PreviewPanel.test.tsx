@@ -220,6 +220,43 @@ describe('LBT-26 PreviewSession Frontend consumer', () => {
     expect(screen.queryByRole('button', { name: '미리보기 새 탭 열기' })).not.toBeInTheDocument()
   })
 
+  it.each([
+    { status: 403, code: 'preview_port_not_allowed', expected: '해당 포트는 미리보기에 사용할 수 없습니다.' },
+    { status: 409, code: 'lab_instance_not_ready', expected: '실습 환경이 변경되었거나 준비되지 않았습니다.' },
+    { status: 502, code: 'preview_app_not_running', expected: '해당 포트에서 실행 중인 웹 애플리케이션이 없습니다.' },
+    { status: 504, code: 'preview_target_unreachable', expected: '실습 VM에 연결할 수 없습니다.' },
+    { status: 504, code: 'preview_open_timeout', expected: '미리보기 연결 시간이 초과되었습니다.' },
+    { status: 503, code: 'preview_port_not_allowed', expected: '미리보기 연결이 준비되지 않았습니다.' },
+    { status: 503, code: 'lab_instance_not_ready', expected: '미리보기 연결이 준비되지 않았습니다.' },
+    { status: 503, code: 'preview_app_not_running', expected: '미리보기 연결이 준비되지 않았습니다.' },
+    { status: 503, code: 'preview_open_timeout', expected: '미리보기 연결이 준비되지 않았습니다.' },
+    { status: 409, code: 'preview_app_not_running', expected: '실습 환경이 준비되지 않았습니다.' },
+    { status: 502, code: 'preview_port_rejected', expected: '해당 포트의 애플리케이션이 응답하지 않습니다.' },
+    { status: 403, code: 'preview_target_unreachable', expected: '미리보기를 사용할 권한이 없거나 포트가 거부됐습니다.' },
+  ])('Problem Code / $code는 HTTP $status와 일치할 때만 원인별 메시지를 표시한다', async ({ status, code, expected }) => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const createPreviewSession = vi.fn(async () => {
+      throw new HttpError(status, {
+        type: 'about:blank',
+        title: 'private-diagnostic-from-upstream',
+        status,
+        code,
+        requestId: 'fixture-request',
+      })
+    })
+    const { api, container } = mount({ createPreviewSession })
+    submitPort()
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(expected)
+    expect(alert).not.toHaveTextContent('private-diagnostic-from-upstream')
+    expect(api.createPreviewSession).toHaveBeenCalledOnce()
+    expect(api.closePreviewSession).not.toHaveBeenCalled()
+    expect(open).not.toHaveBeenCalled()
+    expect(container.innerHTML).not.toContain(URL_WITH_FIXTURE)
+    expect(screen.queryByRole('button', { name: '미리보기 새 탭 열기' })).not.toBeInTheDocument()
+  })
+
   it('401 인증 만료에서 저장된 URL 없이 로그인으로 이동한다', async () => {
     const { router, client } = mount({
       createPreviewSession: async () => { throw new HttpError(401) },

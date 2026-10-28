@@ -20,19 +20,36 @@ function safePreviewError(error: unknown): string {
   }
 
   switch (error.problem?.code) {
+    // Match the HTTP status as well as Problem Code. A stale/misrouted
+    // Problem Code must not turn a 503 outage into a 403/409/502/504 diagnosis.
     case 'preview_port_not_allowed':
     case 'preview_port_rejected':
-      return '해당 포트는 미리보기에 사용할 수 없습니다. 허용된 포트를 확인해 주세요.'
+      if (error.status === 403) {
+        return '해당 포트는 미리보기에 사용할 수 없습니다. 허용된 포트를 확인해 주세요.'
+      }
+      break
     case 'lab_instance_not_ready':
     case 'workspace_target_unavailable':
     case 'workspace_target_changed':
-      return '실습 환경이 변경되었거나 준비되지 않았습니다. 환경 상태를 확인해 주세요.'
+      if (error.status === 409) {
+        return '실습 환경이 변경되었거나 준비되지 않았습니다. 환경 상태를 확인해 주세요.'
+      }
+      break
     case 'preview_app_not_running':
-      return '해당 포트에서 실행 중인 웹 애플리케이션이 없습니다.'
+      if (error.status === 502) {
+        return '해당 포트에서 실행 중인 웹 애플리케이션이 없습니다.'
+      }
+      break
     case 'preview_target_unreachable':
-      return '실습 VM에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+      if (error.status === 504) {
+        return '실습 VM에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+      }
+      break
     case 'preview_open_timeout':
-      return '미리보기 연결 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.'
+      if (error.status === 504) {
+        return '미리보기 연결 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.'
+      }
+      break
     case 'preview_unavailable':
       if (error.status === 503) {
         return '현재 미리보기 기능을 사용할 수 없습니다. 계속 발생하면 운영 담당자에게 문의해 주세요.'

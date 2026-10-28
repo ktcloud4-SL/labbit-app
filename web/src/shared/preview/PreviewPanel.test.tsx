@@ -156,7 +156,7 @@ describe('LBT-26 PreviewSession Frontend consumer', () => {
   it.each([
     {
       code: 'preview_unavailable',
-      message: '현재 배포 환경에서 미리보기 기능을 사용할 수 없습니다. 운영 담당자에게 문의해 주세요.',
+      message: '현재 미리보기 기능을 사용할 수 없습니다. 계속 발생하면 운영 담당자에게 문의해 주세요.',
     },
     {
       code: 'preview_transport_unavailable',

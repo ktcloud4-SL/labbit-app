@@ -129,7 +129,7 @@ describe('TerminalPanel HTTP 503 feedback', () => {
     },
     {
       code: 'terminal_unavailable',
-      message: '현재 배포 환경에서 터미널 기능을 사용할 수 없습니다. 운영 담당자에게 문의해 주세요.',
+      message: '현재 터미널 기능을 사용할 수 없습니다. 계속 발생하면 운영 담당자에게 문의해 주세요.',
     },
     {
       code: 'unrecognized_code',

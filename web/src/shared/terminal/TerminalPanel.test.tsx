@@ -117,6 +117,44 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+describe('TerminalPanel HTTP 503 feedback', () => {
+  it.each([
+    {
+      code: 'connector_unavailable',
+      message: '실습 환경 Connector에 연결할 수 없습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.',
+    },
+    {
+      code: 'terminal_open_failed',
+      message: 'VM 터미널을 열지 못했습니다. 계속 발생하면 운영 담당자에게 문의해 주세요.',
+    },
+    {
+      code: 'terminal_unavailable',
+      message: '현재 배포 환경에서 터미널 기능을 사용할 수 없습니다. 운영 담당자에게 문의해 주세요.',
+    },
+    {
+      code: 'unrecognized_code',
+      message: '터미널 연결 경로를 지금 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+    },
+    {
+      code: '',
+      message: '터미널 연결 경로를 지금 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+    },
+  ])('shows safe guidance for 503 / $code without attaching or persisting a session', async ({ code, message }) => {
+    const { pending, api, start } = setup()
+    await start()
+    await act(async () => {
+      pending.reject(new HttpError(503, code
+        ? { type: 'about:blank', title: 'Service unavailable', status: 503, code, requestId: 'fixture-request' }
+        : undefined))
+    })
+    expect(await screen.findByText(message)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '새 터미널 열기' })).toBeEnabled()
+    expect(api.createTerminalSession).toHaveBeenCalledOnce()
+    expect(FakeWebSocket.instances).toHaveLength(0)
+    expect(readTerminalResumeState({ labInstanceId: 'synthetic-lab', generation: 1 })).toBeNull()
+  })
+})
+
 describe('TerminalPanel create lifecycle', () => {
   it('does not restore cleared resume state after unmount', async () => {
     const { pending, view, start } = setup()

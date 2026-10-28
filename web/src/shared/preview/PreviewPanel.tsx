@@ -33,9 +33,11 @@ function safePreviewError(error: unknown): string {
       return '실습 VM에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.'
     case 'preview_open_timeout':
       return '미리보기 연결 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.'
-    case 'connector_unavailable':
-    case 'preview_transport_unavailable':
     case 'preview_unavailable':
+      return '현재 배포 환경에서 미리보기 기능을 사용할 수 없습니다. 운영 담당자에게 문의해 주세요.'
+    case 'preview_transport_unavailable':
+      return '실습 환경 Connector가 미리보기를 지원하지 않습니다. 운영 담당자에게 문의해 주세요.'
+    case 'connector_unavailable':
     case 'preview_open_failed':
       return '미리보기 연결 경로를 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
   }

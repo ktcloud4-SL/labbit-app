@@ -93,3 +93,19 @@ F1–F7은 초기 구현 당시 aaa 기준으로 보고·분석한 결함과 정
 구현과 분리된 reviewer `terminal_reviewer`가 현재 21개 전체 diff, 신규 테스트, 호출자·consumer, 최신 D18·20·21·24 원문, source hash를 다시 확인했다. 공개 문서·Evidence도 원본25개 해시·내부14개 링크·privacy·검증 범위를 교차 확인하고 D1·E1·D2 보정 후 로컬 검토를 통과했다. 해당 시점의 [독립 검토 snapshot](independent-review.json)은 이후 CI 오탐 보완까지 검토한 것처럼 표시하지 않는다. 추가 파일인 `.gitleaksignore`·`ci.json`·독립 검토 snapshot, public manifest 표현 보완도 최종 두 번째 패스 대상으로 포함한다.
 
 제품 코드·운영 설명·Evidence의 검토 범위와 해결한 finding은 위와 같다. 최종 PR 검토 가능 판정은 **PR 본문에서 고정한 최신 HEAD의 Linux CI 결과와 독립 후속 검토 결과**를 함께 확인한다. 문서 안의 초기 commit CI를 최종 HEAD의 PASS로 대체하지 않는다. 과거 timeout의 단일 원인 확정, 전체 장애 매트릭스 완료, merge·추가 배포 승인으로 확대하지 않는다.
+
+## PR #167 문서 리뷰 후속 검토 (2026-10-28)
+
+기준은 위 전체 PR 감사의 base `019ff7ece1dccec551a9247d954020d9dc958855`와 리뷰 HEAD `aa9b3d9a8081c926432934d85411a390cc39372d`다. [Request Changes 원문](https://github.com/ktcloud4-SL/labbit-app/pull/167#pullrequestreview-5679310149)의 요청은 문서 보완이며 코드·추가 테스트를 요구하지 않는다. 이번 후속 diff는 Runtime README, Runtime YAML의 설명 note, 운영 복구 문서와 이 감사 기록 4파일뿐이다. 기존 전체 33파일 검토·CI·실환경 Evidence는 위 기록과 원본 manifest를 재사용하며 문서 수정 HEAD의 새 테스트 결과로 바꾸어 주장하지 않는다. 제품 코드가 리뷰 HEAD와 같음을 정규화 diff로 확인했다. 로컬 WSS 23파일의 line-ending/stat 변경은 커밋에서 제외했다.
+
+| 요구사항·원문 | 변경 위치 | 검증·Evidence와 한계 |
+| --- | --- | --- |
+| 리뷰 P2: 구버전 Cleanup 보호 범위 구분 | runtime/README.md CIDR 반환 설명, runtime/contract.yaml STATE_DIR note, 운영 복구 문서 복귀 조건 | 이전 main lifecycle.go의 Cleanup이 retired 검사 없이 cleanupResources를 직접 호출함을 읽어 확인. Provision/Reset HOLD를 Cleanup에 확대하지 않도록 수정. |
+| 롤백 전 Cleanup을 포함한 mutation dispatch·writer 중지, 원장/DB/Provider 정합성 확인 후 운영자 재개 | 같은 3개 문서 | CIDR 원장, DB ProviderResource, Provider exact-ID, 전체 Tier inventory를 모두 명시. 실제 rollback·장애 주입은 실행하지 않음. |
+| 사용자 승인 30쌍 운영 확장 기록 | 운영 복구 문서의 설정 이력 | 기존6쌍 유지+24쌍 추가, 실행 env/pool30쌍 일치·retired 해시 보존을 실제 재조회. 환경별 이력이며 기본값·코드 변경 또는 동시30개 E2E가 아님. |
+
+수정 전 finding R1/P2는 리뷰 HEAD의 runtime/README.md:246, runtime/contract.yaml:671, 운영 복구 문서:26이다. 구버전 rollback 후 Cleanup을 전송하면 새 원장을 확인하지 않고 기존 exact-ID DELETE를 시도할 수 있어, 포괄적인 HOLD 설명에 의존한 운영이 위험하다. 이는 코드 경로 검토이며 새 소유자 자원 삭제를 재현했다는 뜻은 아니다. Cleanup 중지와 정합성 확인을 명시하는 문서 수정으로 해결했다. owning Runtime note도 함께 맞췄고 key/type/default/required 조건은 바꾸지 않았다.
+
+YAML 파싱과 note를 제외한 전체 구조 동일성, git diff --check, 제품 코드 무변경을 확인했다. 요청에 따라 제품 테스트를 추가하거나 재실행하지 않았으며 Mock·실제 rollback 테스트도 없다. 기존 CI PASS는 aa9b3d9의 결과이고 후속 문서 HEAD CI와 구분한다. 독립 reviewer가 리뷰 HEAD 대비 3문서 diff를 검토했고 actionable finding은 없었다. 이번 독립 검토는 기존 33파일 구현 전체의 재감사가 아니며, 기존 전체 감사와 검증 Evidence를 재사용한다. HTTP/WSS/Realtime/DB schema·의존성·auth·제품 resource lifecycle은 변경하지 않아 관련 새 회귀는 해당 없다. Jira/Confluence는 이 리뷰 문구 보완의 새 요구사항 원문으로 사용하지 않았고 기존 전체 감사의 버전 고정을 유지한다.
+
+범위 내 문서 보완은 재리뷰 가능하다. 구버전에서 Cleanup을 실제로 차단하는 코드나 별도 rollback 프레임워크를 구현했다는 판정은 아니며, 승인된 사용자 범위는 기존 PR 업데이트·재리뷰 요청까지다. merge·배포는 포함하지 않는다.

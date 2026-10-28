@@ -23,9 +23,11 @@
 
 할당과 반환은 같은 독점 LOCK을 사용한다. immutable retired 기록을 fsync한 뒤 active 원장을 제거하며, 중간 상태·오래된 LOCK·UNKNOWN·legacy intent·root-volume 누락·불완전 inventory는 예약을 보존하거나 reconciliation이 필요한 HOLD로 처리한다. Reset의 이전 자원 삭제는 예약을 반환하지 않는다. 파일·이력 크기 제한을 초과해도 임의 잘라내기 대신 HOLD한다.
 
-구버전은 새 completion·retired 형식을 만나면 안전하게 HOLD할 수 있다. **운영 이력이 쌓인 상태의 binary 교체만으로 downgrade가 완결되지 않는다.** 복귀가 필요하면 writer를 중지하고 원장을 보존한 채 DB·Provider exact ID·Tier inventory를 대조한다. 원장을 삭제해 구버전을 기동하거나 stale LOCK을 자동 인수하는 절차는 사용하지 않는다. legacy 예약은 자동 migration 대상이 아니다.
+구버전의 Provision/Reset이 새 completion·retired 형식에서 HOLD하더라도 Cleanup은 해당 원장을 확인하지 않고 전달받은 exact-ID에 Provider DELETE를 시도할 수 있으므로, **binary 교체만으로 downgrade가 완결되지 않는다.** 롤백 전 Cleanup을 포함한 mutation dispatch와 Connector writer를 중지하고, 원장을 보존한 채 CIDR 원장·DB ProviderResource·실제 Provider exact-ID와 전체 Tier inventory의 정합성을 대조한 뒤 운영자 판단으로 재개한다. 원장을 삭제해 구버전을 기동하거나 stale LOCK을 자동 인수하는 절차는 사용하지 않는다. legacy 예약은 자동 migration 대상이 아니다.
 
 ## 운영 설정 변경 이력
+
+PR 리뷰 이후 10월 28일 17:02 KST, 사용자 요청으로 해당 배포의 CIDR 자동 할당 풀을 총 30쌍으로 확장했다. 기존 `172.25.224.0/24`~`172.25.235.0/24` 6쌍의 순서를 유지하고 `172.25.128.0/24`~`172.25.175.0/24` 24쌍을 뒤에 추가했다. 전체 Tier inventory와의 비중첩 및 활성 작업·세션 부재를 확인한 뒤 writer를 중지하고 실행 EnvironmentFile과 `pool.json`을 함께 갱신했다. 재시작 후 실행 환경·원장 30쌍 일치와 기존 retired 해시 보존을 별도 재조회했다. 이는 환경별 운영 설정 이력이며 코드·기본값 변경이나 30개 동시 생성·추가 대역 자동 반환 E2E 검증이 아니다.
 
 다음 값은 해당 배포의 이력이다. 새 환경의 기본값이나 공용 재사용 설정이 아니다. Connector·Provider ID, 프로젝트와 Tier, credential·SSH key·known_hosts는 환경별로 준비해야 한다.
 

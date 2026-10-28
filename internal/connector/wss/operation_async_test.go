@@ -628,7 +628,8 @@ func TestReconnectPreservesAdmittedWaitingItem(t *testing.T) {
 		cleanupCommand("running", "parent", "first"),
 		cleanupCommand("waiting", "parent", "second"),
 	}
-	for _, command := range commands {
+	var acceptedCtx context.Context
+	for i, command := range commands {
 		raw, _ := json.Marshal(command)
 		if err := h.handleMessageWithFileOwner(ctx, raw, h.fileOwnerEpoch, true); err != nil {
 			t.Fatal(err)
@@ -636,8 +637,10 @@ func TestReconnectPreservesAdmittedWaitingItem(t *testing.T) {
 		if ack := awaitOperationEvent(t, oldMessages).(protocol.OperationAckMessage); !ack.Payload.Accepted {
 			t.Fatal("Item not admitted before reconnect")
 		}
+		if i == 0 {
+			acceptedCtx = awaitOperationEvent(t, entered)
+		}
 	}
-	acceptedCtx := awaitOperationEvent(t, entered)
 	h.SetSender(nil)
 	h.SetSender(SendMessageFunc(func(_ context.Context, msg any) error { newMessages <- msg; return nil }))
 	if acceptedCtx.Err() != nil {

@@ -1,0 +1,165 @@
+{
+  "reviewBase": "019ff7ece1dccec551a9247d954020d9dc958855",
+  "sourceChangesSHA256": "3b39b0cc27590766fd9756f8628ccfb69b88fddc473d187fdafb11a4da37799a",
+  "historicalRuntimeSourceChangesSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+  "checks": [
+    {
+      "name": "unit",
+      "startedAt": "2026-10-28T07:18:07.012327+00:00",
+      "finishedAt": "2026-10-28T07:18:34.951755+00:00",
+      "exitCode": 0,
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-server",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-workspace-sftp",
+        "github.com/ktcloud4-SL/labbit-app/db/migrations",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/app",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/filetransport",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/heartbeat",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/mock",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/preview",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/protocol",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/provider",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/terminal",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/version",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefs",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/wss",
+        "github.com/ktcloud4-SL/labbit-app/internal/jsonnum",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability/tracing",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/auth",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/bootstrap",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/class",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connector",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/jsonnum",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution/labexecutiontest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labspec",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/livesession",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/operation",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/previewsession",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/provision",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/repository",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/terminal",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile",
+        "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+        "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance",
+        "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-op02-bootstrap",
+        "github.com/ktcloud4-SL/labbit-app/web/node_modules/flatted/golang/pkg/flatted"
+      ],
+      "base": "019ff7ece1dccec551a9247d954020d9dc958855",
+      "sourceChangesSHA256": "3b39b0cc27590766fd9756f8628ccfb69b88fddc473d187fdafb11a4da37799a",
+      "provenance": {
+        "localOriginal": "outputs/connector-pr-20261028/integrated-go-unit.log",
+        "sha256": "051b5c7e7ac181d920421a85b6c377c42fc7209ddff0758e55603f4f06003df8"
+      }
+    },
+    {
+      "name": "vet",
+      "startedAt": "2026-10-28T07:18:34.958668+00:00",
+      "finishedAt": "2026-10-28T07:18:42.472519+00:00",
+      "exitCode": 0,
+      "args": [
+        "go",
+        "vet",
+        "./..."
+      ],
+      "base": "019ff7ece1dccec551a9247d954020d9dc958855",
+      "sourceChangesSHA256": "3b39b0cc27590766fd9756f8628ccfb69b88fddc473d187fdafb11a4da37799a",
+      "provenance": {
+        "localOriginal": "outputs/connector-pr-20261028/integrated-go-vet.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "build",
+      "startedAt": "2026-10-28T07:18:42.478256+00:00",
+      "finishedAt": "2026-10-28T07:18:51.191969+00:00",
+      "exitCode": 0,
+      "args": [
+        "go",
+        "build",
+        "./..."
+      ],
+      "base": "019ff7ece1dccec551a9247d954020d9dc958855",
+      "sourceChangesSHA256": "3b39b0cc27590766fd9756f8628ccfb69b88fddc473d187fdafb11a4da37799a",
+      "provenance": {
+        "localOriginal": "outputs/connector-pr-20261028/integrated-go-build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "race",
+      "startedAt": "2026-10-28T07:18:51.196600+00:00",
+      "finishedAt": "2026-10-28T07:19:20.349192+00:00",
+      "exitCode": 0,
+      "args": [
+        "go",
+        "test",
+        "-race",
+        "-count=1",
+        "./internal/connector/vmaccess",
+        "./internal/connector/app",
+        "./internal/connector/terminal",
+        "./internal/connector/wss",
+        "./internal/server/connectorwss"
+      ],
+      "base": "019ff7ece1dccec551a9247d954020d9dc958855",
+      "sourceChangesSHA256": "3b39b0cc27590766fd9756f8628ccfb69b88fddc473d187fdafb11a4da37799a",
+      "provenance": {
+        "localOriginal": "outputs/connector-pr-20261028/integrated-go-race.log",
+        "sha256": "d8bc34e7ee4cee566c897a9ba91edf274389669cbe30f7df1368368c11c2d16a"
+      }
+    }
+  ],
+  "environment": "Fresh Windows Go1.27.1, Provider POSIX and Installer excluded from local unit; no Cloud credentials injected; race includes server/connectorwss",
+  "webAndContracts": "Inputs unchanged from initial PR source commit; final HEAD Linux CI reruns complete required checks",
+  "realVMOfIntegratedSource": "NOT EXECUTED; no new production deploy or paid trial",
+  "ci": "Final HEAD CI links and audit decision are recorded in PR body/GitHub Checks after pass.",
+  "independentRepeatedRegression": {
+    "startedAt": "2026-10-28T07:19:22.873748+00:00",
+    "finishedAt": "2026-10-28T07:19:36.650693+00:00",
+    "sourceSHA256": "3b39b0cc27590766fd9756f8628ccfb69b88fddc473d187fdafb11a4da37799a",
+    "base": "019ff7ece1dccec551a9247d954020d9dc958855",
+    "sourceBeforeAndAfterMatchManifest": true,
+    "command": [
+      "go",
+      "test",
+      "-race",
+      "-count=10",
+      "-run",
+      "Test(ControlTerminalLifecycleWhileProviderMutationIsBlocked|OperationAdmissionACKFailureAndCompletionBoundary|ReconnectOperationAdmissionAndLateResult|RetiredControlOperationCannotUseReplacementSender|OperationAdmissionBoundAndShutdownWaiters|FourWorkerItemsAdmittedDuringPreviousResultWrite|ReconnectPreservesAdmittedWaitingItem|ActualConnectorAdmitsFourWorkerItemsWhileProviderBlocked|ListenOpensReadyTerminalWhileAnotherVMOperationIsBlocked|SessionCancelPreservesAcceptedOperationButStopsBufferedCommands|SupervisorShutdownCancelsAcceptedOperationContext|ConnectorApp_GracefulShutdown|RunControlShutdownWithUnreadDataPeer|HandshakeTimeoutAndCancellationCloseSocket)$",
+      "./internal/connector/wss",
+      "./internal/server/connectorwss",
+      "./internal/connector/app",
+      "./internal/connector/vmaccess"
+    ],
+    "exitCode": 0,
+    "scope": "Local Windows loopback SSH/WSS, fake Provider, real in-process Backend Router, shutdown wire tests; no cloud or current integration deployment",
+    "provenance": {
+      "localOriginal": "outputs/connector-pr-20261028/independent-integration-regressions.json",
+      "sha256": "1313071e6af858408a07e842a4f9cd821f8c65993b1da8e8f21ea5893db3e3f4"
+    }
+  }
+}

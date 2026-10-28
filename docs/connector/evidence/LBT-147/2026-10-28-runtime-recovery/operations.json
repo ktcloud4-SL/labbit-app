@@ -1,0 +1,81 @@
+{
+  "observedAt": "2026-10-28T06:36:57.939665+00:00",
+  "comparisonBase": "aaa99d80c434910357007882bdbc614de8f1109d",
+  "lastConnectorMerge": "ff3d0cf8022c6c242d019dfe6bae10d95446db06",
+  "sourceChangesSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+  "runningBinarySHA256": "52ec09329b837c27618fc579aba5c7e87c40b12618f08d94cabc4e0c39c51c32",
+  "runningVersion": "labbit-connector terminal-diagnose-21f07ea74db5 (commit: aaa99d80c434910357007882bdbc614de8f1109d+diagnostic-21f07ea74db5)",
+  "helperSHA256": "5a31b45369409b0420f4a3c3611b7e06eb65b315e3e52b5345c6607ad7f65959",
+  "lastMainDeploymentToCurrentRuntime": {
+    "oldSHA256": "6380dd54b00a9a2a61c65357bef443469e3425d87ac8f3de909ca26561e415a6",
+    "newSHA256": "bb3e3dd806c5b822b0ff8b545146804e67b174c18ea179456b34ab9fe14d0b02",
+    "changedKeyNames": [
+      "LABBIT_WORKSPACE_SFTP_HELPER_SHA256",
+      "LABBIT_WORKSPACE_SFTP_HELPER_SOURCE_FILE"
+    ],
+    "onlyExactTwoLinesAppended": true,
+    "removedKeyNames": [],
+    "at": "2026-10-28T06:36:57.939665+00:00",
+    "mainDeploymentRuntimeSHA256": "6380dd54b00a9a2a61c65357bef443469e3425d87ac8f3de909ca26561e415a6",
+    "oldBytesEqualMainDeployment": true
+  },
+  "addedConfiguration": {
+    "LABBIT_WORKSPACE_SFTP_HELPER_SOURCE_FILE": "/opt/labbit/releases/workspace-helper-5a31b4536940/labbit-workspace-sftp",
+    "LABBIT_WORKSPACE_SFTP_HELPER_SHA256": "5a31b45369409b0420f4a3c3611b7e06eb65b315e3e52b5345c6607ad7f65959"
+  },
+  "scope": "Operating history; not portable defaults or a new deployment performed for this PR",
+  "provenance": [
+    {
+      "localOriginal": "outputs/connector-main-comparison-20261028/settings-proof.json",
+      "sha256": "568ea310cec1579af2e01b2e890240406219e2ae542dd7d25ae6121caccae2b6",
+      "sharedForm": "curated metadata, original retained privately"
+    },
+    {
+      "localOriginal": "outputs/connector-main-comparison-20261028/comparison.json",
+      "sha256": "541ed0ea97cb1062036da9ff1c131347e9927d852d7961c0ee37f2a4e7c601c5",
+      "sharedForm": "curated metadata, original retained privately"
+    }
+  ],
+  "historicalProvenance": [
+    {
+      "localOriginal": "outputs/aws-connector-transition-20261021/runtime-settings.diff.txt",
+      "sha256": "9b1a78201a179e43b238d4f81c480a37cfb267efb2e123b6a8c209f32ca3dac3",
+      "sharedForm": "Operating history summarized in runtime-recovery-20261028.md; original retained privately"
+    },
+    {
+      "localOriginal": "outputs/aws-saas-readiness-recovery-20261021/AUDIT.md",
+      "sha256": "042d78b7dca313c412b50af7c32f23cc8759494f6306ccce1980b6bdc7356217",
+      "sharedForm": "Operating history summarized in runtime-recovery-20261028.md; original retained privately"
+    },
+    {
+      "localOriginal": "outputs/connector-file-inspection-20261022/AUDIT.md",
+      "sha256": "b4e5a7e124d43e4adf693883e52f5b62e738c474c247e57d0af7ce0c8d0b978a",
+      "sharedForm": "Operating history summarized in runtime-recovery-20261028.md; original retained privately"
+    },
+    {
+      "localOriginal": "outputs/aws-disconnect-investigation-20261027/REGISTRATION_AUDIT.json",
+      "sha256": "09ab6e12fb350215052588bfbd3977755f07e9ce15346f929de3abc64d7f950d",
+      "sharedForm": "Operating history summarized in runtime-recovery-20261028.md; original retained privately"
+    },
+    {
+      "localOriginal": "outputs/aws-provider-reconnect-20261027/AUDIT.json",
+      "sha256": "dcfb2485c3d0a497cc5ddaa90f19e033914515e9ef46f08d615b59c5b96a275d",
+      "sharedForm": "Operating history summarized in runtime-recovery-20261028.md; original retained privately"
+    },
+    {
+      "localOriginal": "outputs/connector-main-deploy-20261027/AUDIT.json",
+      "sha256": "cabd9f4511aa569139485411c65c59fa285c7e8047cce42c9844b3210f407bcc",
+      "sharedForm": "Operating history summarized in runtime-recovery-20261028.md; original retained privately"
+    },
+    {
+      "localOriginal": "outputs/tier-cleanup-investigation-20261028/PRODUCTION_ROLLOUT_AUDIT.md",
+      "sha256": "96cd30dca224e01e302f70aba4d8715dd5fefee7652f81294181317609e79f63",
+      "sharedForm": "Operating history summarized in runtime-recovery-20261028.md; original retained privately"
+    },
+    {
+      "localOriginal": "outputs/workspace-file-fix-20261028/PRE_MERGE_AUDIT_FINAL_REVIEWED.json",
+      "sha256": "e4afc86e35191bcd6e312ac8b4cfd823e956321743e1676630a8cef56c94a3a6",
+      "sharedForm": "Operating history summarized in runtime-recovery-20261028.md; original retained privately"
+    }
+  ]
+}

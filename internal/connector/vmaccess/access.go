@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -48,23 +49,27 @@ type Config struct {
 }
 
 type Manager struct {
-	mu         sync.Mutex
-	resolver   Resolver
-	config     Config
-	entries    map[Target]*connection
-	generation map[string]int64
-	closed     bool
+	mu              sync.Mutex
+	resolver        Resolver
+	config          Config
+	entries         map[Target]*connection
+	generation      map[string]int64
+	closed          bool
+	failureObserver func(Target, FailureInfo)
 }
 
 type connection struct {
 	target      Target
 	endpoint    Endpoint
 	ready       chan struct{}
-	cancel      context.CancelFunc
+	cancel      context.CancelCauseFunc
 	client      *ssh.Client
 	err         error
 	retired     bool
 	users       int
+	waiters     int // Each pending caller owns only its own reservation.
+	progress    *dialProgress
+	dialCtx     context.Context
 	tcpChannels int // Includes channels awaiting peer CLOSE after EOF/caller Close.
 	idle        *time.Timer
 	done        chan struct{}
@@ -85,7 +90,22 @@ func NewManager(resolver Resolver, config Config) *Manager {
 
 // acquire revalidates Provider ownership even when a connection is cached.
 // The caller owns one reservation, including channel setup, until release.
-func (m *Manager) acquire(ctx context.Context, target Target) (*connection, error) {
+func (m *Manager) acquire(ctx context.Context, target Target) (_ *connection, retErr error) {
+	started, shared := time.Now(), false
+	defer func() {
+		_, diagnostic := Diagnostic(retErr)
+		if retErr != nil && (diagnostic || ctx.Err() != nil || errors.Is(retErr, context.DeadlineExceeded)) {
+			retErr = acquireDiagnostic(retErr, ctx, started, shared)
+		}
+		if info, ok := Diagnostic(retErr); ok {
+			m.mu.Lock()
+			observer := m.failureObserver
+			m.mu.Unlock()
+			if observer != nil {
+				observer(target, info)
+			}
+		}
+	}()
 	if target.LabInstanceID == "" || target.Generation < 1 || target.VMKey == "" || target.ServerID == "" || m.resolver == nil {
 		return nil, ErrInvalidTarget
 	}
@@ -121,40 +141,67 @@ func (m *Manager) acquire(ctx context.Context, target Target) (*connection, erro
 		}
 	}
 	c := m.entries[target]
+	shared = c != nil
 	if c == nil {
-		dialCtx, dialCancel := context.WithCancel(ctx)
+		// The shared dial has its own finite lifetime. No single caller owns
+		// cancellation while another authorized caller is still waiting.
+		budgetCtx, budgetCancel := context.WithTimeoutCause(context.Background(), m.config.SetupTimeout, errSetupTimeout)
+		dialCtx, dialCancel := context.WithCancelCause(budgetCtx)
 		c = &connection{target: target, endpoint: endpoint, ready: make(chan struct{}), cancel: dialCancel,
 			done: make(chan struct{}), opening: make(chan struct{}, 1), closeWake: make(chan struct{}, 1)}
+		c.progress, c.dialCtx = &dialProgress{started: time.Now()}, dialCtx
+		c.progress.stage.Store(uint32(StagePrivateKey))
 		m.entries[target] = c
-		m.mu.Unlock()
-		client, dialErr := dialSSH(dialCtx, endpoint)
-		dialCancel()
-		m.mu.Lock()
-		c.client, c.err = client, dialErr
-		if c.retired || m.closed || ctx.Err() != nil {
-			// Keep the failing SSH stage while retaining cancellation semantics.
-			c.err = Diagnose(StageUnknown, errors.Join(dialErr, safeError(ctx, ErrUnavailable)), time.Time{})
-		}
-		if c.err != nil {
-			m.retireLocked(c)
-		} else {
-			go m.closeChannels(c)
-			go func() { _ = client.Wait(); m.retire(c) }()
-		}
-		close(c.ready)
-	} else {
-		m.mu.Unlock()
-		select {
-		case <-ctx.Done():
-			return nil, safeError(ctx, ErrUnavailable)
-		case <-c.ready:
-		}
-		m.mu.Lock()
+		go m.dial(dialCtx, budgetCancel, c)
 	}
+	c.waiters++
+	if c.idle != nil {
+		c.idle.Stop()
+		c.idle = nil
+	}
+	m.mu.Unlock()
+	select {
+	case <-ctx.Done():
+		m.mu.Lock()
+		c.waiters--
+		last := c.waiters == 0 && c.users == 0
+		if last {
+			c.cancel(context.Cause(ctx))
+			m.retireLocked(c)
+		}
+		m.mu.Unlock()
+		if last {
+			// A callback cannot be interrupted by closing TCP. Return a safe
+			// checkpoint immediately; the worker reports its final result later.
+			select {
+			case <-c.ready:
+				m.mu.Lock()
+				err := c.err
+				m.mu.Unlock()
+				return nil, Diagnose(StageUnknown, errors.Join(err, safeError(ctx, ErrUnavailable)), time.Time{})
+			default:
+				return nil, c.progress.failure(c.dialCtx, ctx)
+			}
+		}
+		return nil, safeError(ctx, ErrUnavailable)
+	case <-c.ready:
+	}
+	m.mu.Lock()
+	c.waiters--
 	if c.err != nil || c.retired || ctx.Err() != nil {
 		err := c.err
 		if err == nil {
 			err = safeError(ctx, ErrUnavailable)
+		}
+		if c.waiters == 0 && c.users == 0 {
+			m.retireLocked(c)
+		}
+		m.mu.Unlock()
+		return nil, err
+	}
+	if err := m.targetErrorLocked(target); err != nil {
+		if c.waiters == 0 && c.users == 0 {
+			m.retireLocked(c)
 		}
 		m.mu.Unlock()
 		return nil, err
@@ -168,10 +215,42 @@ func (m *Manager) acquire(ctx context.Context, target Target) (*connection, erro
 	return c, nil
 }
 
+func (m *Manager) dial(ctx context.Context, budgetCancel context.CancelFunc, c *connection) {
+	defer budgetCancel()
+	client, dialErr := dialSSHTracked(ctx, c.endpoint, c.progress)
+	m.mu.Lock()
+	c.client, c.err = client, dialErr
+	if c.retired || m.closed {
+		c.err = Diagnose(StageUnknown, errors.Join(dialErr, safeError(ctx, ErrUnavailable)), time.Time{})
+	}
+	if c.err != nil {
+		m.retireLocked(c)
+	} else {
+		go m.closeChannels(c)
+		go func() { _ = client.Wait(); m.retire(c) }()
+	}
+	close(c.ready)
+	observer := m.failureObserver
+	info, diagnostic := Diagnostic(c.err)
+	m.mu.Unlock()
+	if diagnostic && observer != nil {
+		observer(c.target, info)
+	}
+}
+
+// SetFailureObserver records safe acquisition diagnostics before callers such
+// as File convert failures to their fixed external business errors. It never
+// receives the SSH error, endpoint, command, credential, or terminal content.
+func (m *Manager) SetFailureObserver(observer func(Target, FailureInfo)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.failureObserver = observer
+}
+
 // OpenSession opens an independent PTY/SFTP channel on the shared transport.
 func (m *Manager) OpenSession(ctx context.Context, target Target) (*Session, error) {
 	started := time.Now()
-	ctx, cancel := context.WithTimeout(ctx, m.config.SetupTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, m.config.SetupTimeout, errSetupTimeout)
 	defer cancel()
 	c, err := m.acquire(ctx, target)
 	if err != nil {
@@ -243,7 +322,7 @@ func (m *Manager) retireLocked(c *connection) {
 	}
 	c.retired = true
 	c.closing = nil
-	c.cancel()
+	c.cancel(errTransportRetired)
 	if c.idle != nil {
 		c.idle.Stop()
 	}
@@ -263,12 +342,12 @@ func (m *Manager) release(c *connection) {
 
 func (m *Manager) releaseLocked(c *connection) {
 	c.users--
-	if c.users == 0 && !c.retired {
+	if c.users == 0 && c.waiters == 0 && !c.retired {
 		var timer *time.Timer
 		timer = time.AfterFunc(m.config.IdleTimeout, func() {
 			m.mu.Lock()
 			defer m.mu.Unlock()
-			if c.users == 0 && m.entries[c.target] == c && c.idle == timer {
+			if c.users == 0 && c.waiters == 0 && m.entries[c.target] == c && c.idle == timer {
 				m.retireLocked(c)
 			}
 		})
@@ -309,7 +388,7 @@ func (s *Session) Close() error {
 
 func (s *Session) Setup(ctx context.Context, setup func(*ssh.Session) error) error {
 	started := time.Now()
-	ctx, cancel := context.WithTimeout(ctx, s.manager.config.SetupTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, s.manager.config.SetupTimeout, errSetupTimeout)
 	defer cancel()
 	s.manager.mu.Lock()
 	closed := s.closed
@@ -461,6 +540,9 @@ func (m *Manager) closeChannels(c *connection) {
 
 func safeError(ctx context.Context, fallback error) error {
 	if err := ctx.Err(); err != nil {
+		if errors.Is(context.Cause(ctx), errSetupTimeout) || errors.Is(context.Cause(ctx), context.DeadlineExceeded) {
+			return errors.Join(fallback, context.DeadlineExceeded)
+		}
 		return errors.Join(fallback, err)
 	}
 	// The socket deadline can fire before the context timer delivers Done.
@@ -472,7 +554,29 @@ func safeError(ctx context.Context, fallback error) error {
 }
 
 func dialSSH(ctx context.Context, endpoint Endpoint) (*ssh.Client, error) {
-	started := time.Now()
+	return dialSSHTracked(ctx, endpoint, &dialProgress{started: time.Now()})
+}
+
+type dialProgress struct {
+	started       time.Time
+	stage         atomic.Uint32
+	handshake     atomic.Pointer[handshakeConn]
+	contextClosed atomic.Bool
+}
+
+func (p *dialProgress) failure(dialCtx, callerCtx context.Context) error {
+	d := Diagnose(FailureStage(p.stage.Load()), safeError(callerCtx, ErrUnavailable), p.started).(*diagnosticError)
+	if h := p.handshake.Load(); h != nil {
+		d.info.SSHPhase = SSHPhase(h.phase.Load())
+	}
+	d.info.ContextEnd = contextEnd(dialCtx)
+	d.info.ContextClosedSocket = p.contextClosed.Load()
+	return d
+}
+
+func dialSSHTracked(ctx context.Context, endpoint Endpoint, tracked *dialProgress) (*ssh.Client, error) {
+	started := tracked.started
+	tracked.stage.Store(uint32(StagePrivateKey))
 	key, err := os.ReadFile(endpoint.PrivateKeyFile)
 	if err != nil {
 		return nil, Diagnose(StagePrivateKey, err, started)
@@ -481,33 +585,86 @@ func dialSSH(ctx context.Context, endpoint Endpoint) (*ssh.Client, error) {
 	if err != nil {
 		return nil, Diagnose(StagePrivateKey, err, started)
 	}
+	tracked.stage.Store(uint32(StageDial))
 	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", endpoint.Address)
 	if err != nil {
 		return nil, Diagnose(StageDial, errors.Join(err, safeError(ctx, ErrUnavailable)), started)
 	}
-	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
+	stop := context.AfterFunc(ctx, func() { tracked.contextClosed.Store(true); _ = conn.Close() })
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = conn.SetDeadline(deadline)
 	}
 	pinFailed := false
-	cc, channels, requests, err := ssh.NewClientConn(conn, endpoint.Address, &ssh.ClientConfig{
-		User: endpoint.Username, Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)}, HostKeyCallback: func(host string, remote net.Addr, key ssh.PublicKey) error {
+	progress := &handshakeConn{Conn: conn}
+	progress.phase.Store(uint32(SSHVersionExchange))
+	tracked.handshake.Store(progress)
+	tracked.stage.Store(uint32(StageHandshake))
+	cc, channels, requests, err := ssh.NewClientConn(progress, endpoint.Address, &ssh.ClientConfig{
+		User: endpoint.Username, Auth: []ssh.AuthMethod{ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
+			progress.phase.Store(uint32(SSHAuthentication))
+			return []ssh.Signer{signer}, nil
+		})}, HostKeyCallback: func(host string, remote net.Addr, key ssh.PublicKey) error {
+			progress.phase.Store(uint32(SSHHostVerification))
 			err := endpoint.HostKeyCallback(host, remote, key)
 			pinFailed = err != nil
 			return err
 		},
 	})
+	if err == nil {
+		progress.phase.Store(uint32(SSHComplete))
+	}
 	if !stop() || ctx.Err() != nil || err != nil {
 		_ = conn.Close()
 		stage := StageHandshake
 		if pinFailed {
 			stage = StageHostPin
 		}
-		return nil, Diagnose(stage, errors.Join(err, safeError(ctx, ErrUnavailable)), started)
+		d := Diagnose(stage, errors.Join(err, safeError(ctx, ErrUnavailable)), started).(*diagnosticError)
+		d.info.SSHPhase = SSHPhase(progress.phase.Load())
+		d.info.HandshakeReturnedError = err != nil
+		d.info.ContextEnd = contextEnd(ctx)
+		d.info.ContextClosedSocket = tracked.contextClosed.Load()
+		var ne net.Error
+		d.info.TransportTimeout = errors.As(err, &ne) && ne.Timeout()
+		return nil, d
 	}
 	if err := conn.SetDeadline(time.Time{}); err != nil {
 		_ = conn.Close()
 		return nil, ErrUnavailable
 	}
 	return ssh.NewClient(cc, channels, requests), nil
+}
+
+// Observe only completion of the protocol identification line. No peer bytes
+// are copied, retained, or logged. The encrypted transport remains untouched.
+type handshakeConn struct {
+	net.Conn
+	phase         atomic.Uint32
+	linePos       int
+	versionPrefix bool
+}
+
+func (c *handshakeConn) Read(p []byte) (int, error) {
+	n, err := c.Conn.Read(p)
+	if SSHPhase(c.phase.Load()) != SSHVersionExchange {
+		return n, err
+	}
+	for _, b := range p[:n] {
+		if c.linePos == 0 {
+			c.versionPrefix = true
+		}
+		if c.linePos < 4 && b != "SSH-"[c.linePos] {
+			c.versionPrefix = false
+		}
+		if b == '\n' {
+			if c.versionPrefix && c.linePos >= 4 {
+				c.phase.CompareAndSwap(uint32(SSHVersionExchange), uint32(SSHKeyExchange))
+				break
+			}
+			c.linePos = 0
+		} else if c.linePos < 4 {
+			c.linePos++
+		}
+	}
+	return n, err
 }

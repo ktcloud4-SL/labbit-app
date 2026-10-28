@@ -25,7 +25,7 @@ func (m *Manager) DialTCP(ctx context.Context, target Target, port int) (net.Con
 	if port < 1 || port > 65535 || port == 22 {
 		return nil, ErrInvalidTarget
 	}
-	ctx, cancel := context.WithTimeout(ctx, m.config.SetupTimeout)
+	ctx, cancel := context.WithTimeoutCause(ctx, m.config.SetupTimeout, errSetupTimeout)
 	defer cancel()
 	c, err := m.acquire(ctx, target)
 	if err != nil {

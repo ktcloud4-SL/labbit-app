@@ -1051,6 +1051,9 @@ func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Conte
 	if len(ownerEpoch) > 0 {
 		fileEpoch = ownerEpoch[0]
 	}
+	// Retiring the reader must not close the write path before Terminal ENDED.
+	stopRead := context.AfterFunc(readCtx, func() { _ = conn.UnderlyingConn().SetReadDeadline(time.Now()) })
+	defer stopRead()
 	for {
 		select {
 		case <-readCtx.Done():

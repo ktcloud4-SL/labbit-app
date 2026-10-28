@@ -124,12 +124,8 @@ func TestSupervisorShutdownCancelsAcceptedOperationContext(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("Supervisor shutdown did not cancel accepted Provider operation")
 	}
-	// Supervisor.Run closes the owned Control connection after running the
-	// shutdown callback. Mirror that ownership boundary before awaiting the
-	// read loop; canceling a context alone cannot interrupt ReadMessage.
-	if err := conn.Close(); err != nil {
-		t.Fatalf("close Control connection: %v", err)
-	}
+	// The listener owns cancellation of its captured socket. Shutdown must
+	// unblock ReadMessage even when no further Control frame arrives.
 	select {
 	case err := <-done:
 		if !errors.Is(err, context.Canceled) {

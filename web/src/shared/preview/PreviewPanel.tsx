@@ -34,12 +34,21 @@ function safePreviewError(error: unknown): string {
     case 'preview_open_timeout':
       return '미리보기 연결 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.'
     case 'preview_unavailable':
-      return '현재 미리보기 기능을 사용할 수 없습니다. 계속 발생하면 운영 담당자에게 문의해 주세요.'
+      if (error.status === 503) {
+        return '현재 미리보기 기능을 사용할 수 없습니다. 계속 발생하면 운영 담당자에게 문의해 주세요.'
+      }
+      break
     case 'preview_transport_unavailable':
-      return '실습 환경 Connector가 미리보기를 지원하지 않습니다. 운영 담당자에게 문의해 주세요.'
+      if (error.status === 503) {
+        return '실습 환경 Connector가 미리보기를 지원하지 않습니다. 운영 담당자에게 문의해 주세요.'
+      }
+      break
     case 'connector_unavailable':
     case 'preview_open_failed':
-      return '미리보기 연결 경로를 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+      if (error.status === 503) {
+        return '미리보기 연결 경로를 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+      }
+      break
   }
 
   if (error.status === 403) return '미리보기를 사용할 권한이 없거나 포트가 거부됐습니다.'

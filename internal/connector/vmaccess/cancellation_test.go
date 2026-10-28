@@ -1,6 +1,7 @@
 package vmaccess
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"io"
@@ -52,6 +53,12 @@ func TestHandshakeTimeoutAndCancellationCloseSocket(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer peer.Close()
+			// Wait for the client's SSH banner so cancellation happens during
+			// the handshake, rather than racing the TCP dial.
+			_ = peer.SetReadDeadline(time.Now().Add(time.Second))
+			if _, err := bufio.NewReader(peer).ReadString('\n'); err != nil {
+				t.Fatal("client did not start SSH handshake")
+			}
 			if mode == "cancel" {
 				cancel()
 			}
@@ -63,6 +70,13 @@ func TestHandshakeTimeoutAndCancellationCloseSocket(t *testing.T) {
 				}
 				if !errors.Is(err, want) {
 					t.Fatalf("handshake failure=%v", err)
+				}
+				info, ok := Diagnostic(err)
+				if !ok || info.Stage != StageHandshake || info.Timeout != (mode == "timeout") {
+					t.Errorf("handshake diagnostic = %+v, present=%v", info, ok)
+				}
+				if !errors.Is(err, ErrUnavailable) || err.Error() != errors.Join(ErrUnavailable, want).Error() {
+					t.Error("handshake failure lost safe classification or retained raw details")
 				}
 			case <-time.After(time.Second):
 				t.Fatal("handshake did not stop")

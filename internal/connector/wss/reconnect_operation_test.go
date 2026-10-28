@@ -32,6 +32,14 @@ func TestSessionCancelPreservesAcceptedOperationButStopsBufferedCommands(t *test
 			close(release)
 		}
 	}()
+	ackEntered, releaseAck, resultSent := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	defer func() {
+		select {
+		case <-releaseAck:
+		default:
+			close(releaseAck)
+		}
+	}()
 	var calls, responses atomic.Int32
 	h := NewHandler(&provider.MockProvider{
 		CleanupFunc: func(ctx context.Context, _ provider.CleanupRequest) (provider.OperationResult, error) {
@@ -43,28 +51,33 @@ func TestSessionCancelPreservesAcceptedOperationButStopsBufferedCommands(t *test
 			}
 			return provider.OperationResult{Outcome: provider.OutcomeSucceeded}, nil
 		},
-	}, SendMessageFunc(func(ctx context.Context, _ interface{}) error {
+	}, SendMessageFunc(func(ctx context.Context, msg interface{}) error {
 		if err := ctx.Err(); err != nil {
 			t.Errorf("accepted operation response context canceled: %v", err)
 			return err
 		}
 		responses.Add(1)
+		if _, ok := msg.(protocol.OperationAckMessage); ok {
+			close(ackEntered)
+			<-releaseAck
+		} else if _, ok := msg.(protocol.OperationResultMessage); ok {
+			close(resultSent)
+		}
 		return nil
 	}))
 	done := make(chan error, 1)
 	go func() { done <- h.listenWithOperationContext(readCtx, operationCtx, conn) }()
-	var acceptedCtx context.Context
-	select {
-	case acceptedCtx = <-entered:
-	case <-operationCtx.Done():
-		t.Fatal("first command did not reach Provider")
-	}
+	// Hold the admitted command's ACK so the second frame is buffered on
+	// the old socket before cancellation, independent of worker scheduling.
+	awaitOperationEvent(t, ackEntered)
 	select {
 	case <-written:
 	case <-operationCtx.Done():
 		t.Fatal("server did not write both commands")
 	}
 	cancelRead()
+	close(releaseAck)
+	acceptedCtx := awaitOperationEvent(t, entered)
 	if err := acceptedCtx.Err(); err != nil {
 		t.Fatalf("transport canceled accepted operation: %v", err)
 	}
@@ -77,6 +90,7 @@ func TestSessionCancelPreservesAcceptedOperationButStopsBufferedCommands(t *test
 	case <-operationCtx.Done():
 		t.Fatal("old listener did not stop after accepted operation finished")
 	}
+	awaitOperationEvent(t, resultSent)
 	if calls.Load() != 1 || responses.Load() != 2 {
 		t.Fatalf("Provider calls=%d, ACK/RESULT responses=%d, want 1/2", calls.Load(), responses.Load())
 	}

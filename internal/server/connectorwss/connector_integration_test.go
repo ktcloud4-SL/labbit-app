@@ -221,52 +221,51 @@ func TestActualConnectorOutcomesAreRoutedWithoutRetry(t *testing.T) {
 
 // RESET과 CLEANUP도 같은 경로로 실제 Connector의 Provider 경계에 도달하고 결과가 연결된다.
 func TestActualConnectorResetAndCleanupCommands(t *testing.T) {
-	h := newRoutedHarness(t, realConnectorHeartbeat)
-	var mu sync.Mutex
-	var reset provider.ResetRequest
-	var cleanup provider.CleanupRequest
-	startConnector(t, h, testCredential, h.principal.ConnectorID, &provider.MockProvider{
-		ResetFunc: func(_ context.Context, r provider.ResetRequest) (provider.OperationResult, error) {
+	// Each case verifies routing independently. Back-to-back mutations may
+	// now receive accepted=false while the Connector execution slot is busy.
+	for _, mutation := range []string{protocol.MutationTypeReset, protocol.MutationTypeCleanup} {
+		t.Run(mutation, func(t *testing.T) {
+			h := newRoutedHarness(t, realConnectorHeartbeat)
+			var mu sync.Mutex
+			var reset provider.ResetRequest
+			var cleanup provider.CleanupRequest
+			startConnector(t, h, testCredential, h.principal.ConnectorID, &provider.MockProvider{
+				ResetFunc: func(_ context.Context, r provider.ResetRequest) (provider.OperationResult, error) {
+					mu.Lock()
+					reset = r
+					mu.Unlock()
+					return succeeded(r.Correlation, "srv-new"), nil
+				},
+				CleanupFunc: func(_ context.Context, r provider.CleanupRequest) (provider.OperationResult, error) {
+					mu.Lock()
+					cleanup = r
+					mu.Unlock()
+					return provider.OperationResult{Outcome: provider.OutcomeSucceeded}, nil
+				},
+			})
+			cmd := provisionCommand(h.principal.ConnectorID, "op-1", "lab-A", 2)
+			cmd.Payload.MutationType = mutation
+			cmd.Payload.ProviderResources = []protocol.ProviderResourceRef{{ResourceType: "SERVER", ProviderID: "srv-old", Generation: 1, LogicalName: "vm-1"}}
+			if mutation == protocol.MutationTypeCleanup {
+				cmd.Payload.CreationSnapshot = nil
+			}
+			sent := send(t, h, cmd)
+			events := h.events.waitCount(t, 2)
+			ack, okAck := events[0].(connector.OperationAckEvent)
+			result, okResult := events[1].(connector.OperationResultEvent)
+			if !okAck || !ack.Payload.Accepted || !okResult || result.RequestMessageID != sent.MessageID || result.Payload.Outcome != protocol.OutcomeSucceeded {
+				t.Fatalf("events = %+v", events)
+			}
 			mu.Lock()
-			reset = r
-			mu.Unlock()
-			return succeeded(r.Correlation, "srv-new"), nil
-		},
-		CleanupFunc: func(_ context.Context, r provider.CleanupRequest) (provider.OperationResult, error) {
-			mu.Lock()
-			cleanup = r
-			mu.Unlock()
-			return provider.OperationResult{Outcome: provider.OutcomeSucceeded}, nil
-		},
-	})
-	refs := []protocol.ProviderResourceRef{{ResourceType: "SERVER", ProviderID: "srv-old", Generation: 1, LogicalName: "vm-1"}}
-
-	resetCmd := provisionCommand(h.principal.ConnectorID, "op-1", "lab-A", 2)
-	resetCmd.Payload.MutationType = protocol.MutationTypeReset
-	resetCmd.Payload.ProviderResources = refs
-	send(t, h, resetCmd)
-
-	cleanupCmd := provisionCommand(h.principal.ConnectorID, "op-2", "lab-B", 1)
-	cleanupCmd.Payload = protocol.OperationCommandPayload{MutationType: protocol.MutationTypeCleanup, ProviderResources: refs}
-	send(t, h, cleanupCmd)
-
-	events := h.events.waitCount(t, 4)
-	results := map[string]connector.OperationResultEvent{}
-	for _, event := range events {
-		if r, ok := event.(connector.OperationResultEvent); ok {
-			results[r.Correlation.LabInstanceID] = r
-		}
-	}
-	if len(results) != 2 || results["lab-A"].Payload.Outcome != protocol.OutcomeSucceeded || results["lab-B"].Payload.Outcome != protocol.OutcomeSucceeded {
-		t.Fatalf("results = %+v", results)
-	}
-	mu.Lock()
-	defer mu.Unlock()
-	if reset.Correlation.Generation != 2 || len(reset.CreationSnapshot.VMs) != 1 || len(reset.ProviderResources) != 1 || reset.ProviderResources[0].ProviderID != "srv-old" {
-		t.Fatalf("Reset request = %+v", reset)
-	}
-	if cleanup.Correlation.LabInstanceID != "lab-B" || len(cleanup.ProviderResources) != 1 || cleanup.ProviderResources[0].Generation != 1 {
-		t.Fatalf("Cleanup request = %+v", cleanup)
+			defer mu.Unlock()
+			if mutation == protocol.MutationTypeReset {
+				if reset.Correlation.Generation != 2 || len(reset.CreationSnapshot.VMs) != 1 || len(reset.ProviderResources) != 1 || reset.ProviderResources[0].ProviderID != "srv-old" {
+					t.Fatalf("Reset request = %+v", reset)
+				}
+			} else if cleanup.Correlation.LabInstanceID != "lab-A" || len(cleanup.ProviderResources) != 1 || cleanup.ProviderResources[0].Generation != 1 {
+				t.Fatalf("Cleanup request = %+v", cleanup)
+			}
+		})
 	}
 }
 

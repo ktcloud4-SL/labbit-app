@@ -38,7 +38,8 @@ type PTYFactoryFunc func(targetVmKey string, serverId string, cols, rows int) (t
 // Handler 는 SaaS 로부터 수신한 Control WSS 메시지를 검증하고
 // 내부 Provider(DispatchOperation / DispatchReconcile) 및 터미널/프리뷰 세션 관리자로 연결한 후 결과를 회신합니다.
 type Handler struct {
-	operationSlot      chan struct{}
+	operationExecution chan struct{}
+	operationInFlight  map[provider.Correlation]struct{}
 	previewOpenSlots   chan struct{}
 	mu                 sync.RWMutex
 	provider           provider.Provider
@@ -67,12 +68,19 @@ func (h *Handler) SetVMPTYFactory(factory func(context.Context, vmaccess.Target,
 	h.vmPTYFactory = factory
 }
 
+// Four Backend Executor.Run workers can dispatch to one Connector. Keep one
+// extra reservation for the finishing RESULT write: its recipient can dispatch
+// its next Item before SendMessage returns. This is a local bound, not a promise
+// to accept arbitrary load or additional Backend replicas.
+const operationAdmissionLimit = 5
+
 // NewHandler 는 새 Control WSS 메시지 핸들러를 생성합니다.
 func NewHandler(p provider.Provider, sender MessageSender) *Handler {
 	h := &Handler{
-		provider:         p,
-		operationSlot:    make(chan struct{}, 1),
-		previewOpenSlots: make(chan struct{}, 64),
+		provider:           p,
+		operationExecution: make(chan struct{}, 1),
+		operationInFlight:  make(map[provider.Correlation]struct{}),
+		previewOpenSlots:   make(chan struct{}, 64),
 	}
 	h.SetSender(sender)
 	return h
@@ -642,26 +650,31 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 		return fmt.Errorf("invalid operation command: %w", valErr)
 	}
 
-	// Reserve before ACK, across Control reconnects as well as this reader.
-	// Provider mutations previously ran serially; do not turn duplicate commands
-	// or distinct operation items into concurrent Provider mutations or a queue.
-	h.mu.RLock()
+	// Reserve before ACK across reconnects. Accepted means bounded local
+	// admission, not Provider completion. The execution gate below serializes
+	// mutations; waiting tasks cannot block the Control reader.
+	key := provider.Correlation{OperationID: cmdMsg.OperationID, LabInstanceID: cmdMsg.LabInstanceID, Generation: cmdMsg.Generation}
+	h.mu.Lock()
 	if err := ctx.Err(); err != nil {
-		h.mu.RUnlock()
+		h.mu.Unlock()
 		return err
 	}
 	if epoch != h.fileOwnerEpoch {
-		h.mu.RUnlock()
+		h.mu.Unlock()
 		return context.Canceled
 	}
 	sender := h.sender
-	admitted := false
-	select {
-	case h.operationSlot <- struct{}{}:
-		admitted = true
-	default:
+	_, duplicate := h.operationInFlight[key]
+	admitted := !duplicate && len(h.operationInFlight) < operationAdmissionLimit
+	if admitted {
+		h.operationInFlight[key] = struct{}{}
 	}
-	h.mu.RUnlock()
+	h.mu.Unlock()
+	release := func() {
+		h.mu.Lock()
+		delete(h.operationInFlight, key)
+		h.mu.Unlock()
+	}
 	ack := protocol.OperationAckMessage{
 		BaseEnvelope: cmdMsg.BaseEnvelope,
 		Payload:      protocol.OperationAckPayload{Accepted: admitted},
@@ -672,7 +685,10 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 	ack.SentAt = time.Now().UTC()
 	if !admitted {
 		ack.Payload.Error = &protocol.SafeError{
-			Code: "ERR_CONNECTOR_INTERNAL", Message: "Connector is busy with an accepted operation",
+			Code: "ERR_CONNECTOR_INTERNAL", Message: "Connector operation admission is full",
+		}
+		if duplicate {
+			ack.Payload.Error.Message = "Connector is already processing this operation item"
 		}
 		if sender != nil {
 			return sender.SendMessage(ctx, ack)
@@ -681,12 +697,31 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 	}
 	if sender != nil {
 		if err := sender.SendMessage(ctx, ack); err != nil {
-			<-h.operationSlot
+			release()
 			return fmt.Errorf("failed to send OPERATION_ACK: %w", err)
 		}
 	}
 	run := func() error {
-		defer func() { <-h.operationSlot }()
+		executing := false
+		defer func() {
+			// Retire the reservation before handing execution to the next task,
+			// so only one finishing response can overlap four Backend workers.
+			release()
+			if executing {
+				<-h.operationExecution
+			}
+		}()
+		select {
+		case h.operationExecution <- struct{}{}:
+			executing = true
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		// A canceled waiter must never start a fresh mutation on shutdown,
+		// even if the gate and cancellation became ready together.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		err := h.executeOperationCommand(ctx, cmdMsg)
 		if asynchronous && err != nil {
 			if onError := h.OnError(); onError != nil {

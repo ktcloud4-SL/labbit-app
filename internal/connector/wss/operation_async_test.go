@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 
@@ -47,10 +48,22 @@ func assertOperationCorrelation(t *testing.T, got, command protocol.BaseEnvelope
 // Exercise the real Control reader and serialized Client writer, as well as
 // Terminal Data attach. The mutation stays held through OPEN and CLOSE.
 func TestControlTerminalLifecycleWhileProviderMutationIsBlocked(t *testing.T) {
+	for _, count := range []int{2, 3, 4} {
+		t.Run(fmt.Sprint(count), func(t *testing.T) { controlTerminalWithBlockedItems(t, count) })
+	}
+}
+
+func controlTerminalWithBlockedItems(t *testing.T, count int) {
 	entered, release := make(chan struct{}), make(chan struct{})
-	var calls, ptys atomic.Int32
+	var calls, ptys, active atomic.Int32
 	h := NewHandler(&provider.MockProvider{CleanupFunc: func(ctx context.Context, _ provider.CleanupRequest) (provider.OperationResult, error) {
-		calls.Add(1)
+		if active.Add(1) != 1 {
+			t.Error("Provider mutations overlapped")
+		}
+		defer active.Add(-1)
+		if calls.Add(1) > 1 {
+			return provider.OperationResult{Outcome: provider.OutcomeSucceeded}, nil
+		}
 		close(entered)
 		select {
 		case <-release:
@@ -102,6 +115,19 @@ func TestControlTerminalLifecycleWhileProviderMutationIsBlocked(t *testing.T) {
 	}
 	assertOperationCorrelation(t, ack.BaseEnvelope, command.BaseEnvelope)
 	awaitOperationEvent(t, entered)
+	commands := map[string]protocol.OperationCommandMessage{command.MessageID: command}
+	for i := 1; i < count; i++ {
+		next := cleanupCommand(fmt.Sprintf("item-%d", i), command.OperationID, fmt.Sprintf("lab-%d", i))
+		commands[next.MessageID] = next
+		send(next)
+		if err := json.Unmarshal(awaitOperationEvent(t, messages), &ack); err != nil {
+			t.Fatal(err)
+		}
+		if ack.Type != protocol.MessageTypeOperationAck || !ack.Payload.Accepted || ack.Payload.Error != nil {
+			t.Fatalf("legitimate concurrent Item rejected: %+v", ack)
+		}
+		assertOperationCorrelation(t, ack.BaseEnvelope, next.BaseEnvelope)
+	}
 	open := protocol.TerminalOpenMessage{BaseEnvelope: protocol.BaseEnvelope{Type: protocol.MessageTypeTerminalOpen, MessageID: "open", SentAt: time.Now().UTC(), TerminalSessionID: "ready-terminal", LabInstanceID: "ready-lab", Generation: 1}, Payload: protocol.TerminalOpenPayload{TargetVmKey: "workspace", ProviderServerID: "ready-server", Cols: 80, Rows: 24}}
 	for i := 0; i < 2; i++ {
 		send(open)
@@ -141,9 +167,8 @@ func TestControlTerminalLifecycleWhileProviderMutationIsBlocked(t *testing.T) {
 	if reopened.Type != protocol.MessageTypeTerminalOpenResult || reopened.Payload.Outcome != protocol.OutcomeFailed || ptys.Load() != 1 {
 		t.Fatalf("closed Terminal resurrected: %+v", reopened)
 	}
-	// A duplicate delivery and a different Item of the same parent Operation
-	// cannot launch extra mutations while the execution slot is occupied.
-	for _, lab := range []string{"mutating-lab", "another-item"} {
+	// Replays of both a running and an admitted waiting Item cannot mutate twice.
+	for _, lab := range []string{"mutating-lab", "lab-1"} {
 		next := cleanupCommand("busy-"+lab, command.OperationID, lab)
 		send(next)
 		if err := json.Unmarshal(awaitOperationEvent(t, messages), &ack); err != nil {
@@ -158,14 +183,28 @@ func TestControlTerminalLifecycleWhileProviderMutationIsBlocked(t *testing.T) {
 		t.Fatalf("mutation calls=%d, want 1", calls.Load())
 	}
 	close(release)
-	var result protocol.OperationResultMessage
-	if err := json.Unmarshal(awaitOperationEvent(t, messages), &result); err != nil {
-		t.Fatal(err)
+	for range count {
+		var result protocol.OperationResultMessage
+		if err := json.Unmarshal(awaitOperationEvent(t, messages), &result); err != nil {
+			t.Fatal(err)
+		}
+		original, ok := commands[result.ReplyToMessageID]
+		if !ok || result.Type != protocol.MessageTypeOperationResult {
+			t.Fatalf("unexpected or duplicate result: %+v", result)
+		}
+		assertOperationCorrelation(t, result.BaseEnvelope, original.BaseEnvelope)
+		delete(commands, result.ReplyToMessageID)
+		if original.MessageID == command.MessageID {
+			if result.Payload.Outcome != protocol.OutcomeUnknown || len(result.Payload.ProviderResources) != 1 || result.Payload.ProviderResources[0].ProviderID != "uncertain-server" {
+				t.Fatalf("UNKNOWN changed: %+v", result)
+			}
+		} else if result.Payload.Outcome != protocol.OutcomeSucceeded {
+			t.Fatalf("admitted Item failed: %+v", result)
+		}
 	}
-	if result.Type != protocol.MessageTypeOperationResult || result.Payload.Outcome != protocol.OutcomeUnknown || len(result.Payload.ProviderResources) != 1 || result.Payload.ProviderResources[0].ProviderID != "uncertain-server" {
-		t.Fatalf("UNKNOWN changed: %+v", result)
+	if calls.Load() != int32(count) {
+		t.Fatalf("Provider calls=%d, want %d", calls.Load(), count)
 	}
-	assertOperationCorrelation(t, result.BaseEnvelope, command.BaseEnvelope)
 }
 
 func TestOperationAdmissionACKFailureAndCompletionBoundary(t *testing.T) {
@@ -199,7 +238,7 @@ func TestOperationAdmissionACKFailureAndCompletionBoundary(t *testing.T) {
 	close(release)
 	awaitOperationEvent(t, resultEntered)
 	_ = awaitOperationEvent(t, messages).(protocol.OperationResultMessage)
-	next := cleanupCommand("next", "parent", "second-item")
+	next := cleanupCommand("next", "parent", "first-item")
 	nextRaw, _ := json.Marshal(next)
 	if err := h.HandleMessage(context.Background(), nextRaw); err != nil {
 		t.Fatal(err)
@@ -211,8 +250,8 @@ func TestOperationAdmissionACKFailureAndCompletionBoundary(t *testing.T) {
 	if err := awaitOperationEvent(t, done); err != nil {
 		t.Fatal(err)
 	}
-	// Rejection did not record the parent Operation ID or replay it. A distinct
-	// Item remains executable when capacity becomes available.
+	// Dedup lasts through RESULT send, but adds no completed-result cache.
+	// An explicit later delivery still reaches the existing Provider guards.
 	h.SetSender(SendMessageFunc(func(_ context.Context, msg any) error { messages <- msg; return nil }))
 	if err := h.HandleMessage(context.Background(), nextRaw); err != nil {
 		t.Fatal(err)
@@ -249,8 +288,8 @@ func TestOperationAdmissionACKFailureAndCompletionBoundary(t *testing.T) {
 	}
 }
 
-// Accepted work outlives the old Control connection. Its single execution
-// slot spans reconnect, but its result is neither stored nor replayed. A late
+// Accepted work outlives the old Control connection. Its serial execution
+// gate spans reconnect, but its result is neither stored nor replayed. A late
 // result may use only a business sender published after HELLO_ACK.
 func TestReconnectOperationAdmissionAndLateResult(t *testing.T) {
 	for _, finishBeforeAck := range []bool{true, false} {
@@ -346,15 +385,15 @@ func TestReconnectOperationAdmissionAndLateResult(t *testing.T) {
 				// Wait for the whole admitted task, including its result send attempt,
 				// to relinquish capacity while the new handshake is deliberately held.
 				select {
-				case h.operationSlot <- struct{}{}:
+				case h.operationExecution <- struct{}{}:
 				case <-time.After(5 * time.Second):
 					t.Fatal("old worker did not finish during HELLO")
 				}
-				<-h.operationSlot
+				<-h.operationExecution
 				handshake(next)
 			} else {
 				handshake(next)
-				busy := cleanupCommand("busy-new-socket", "parent", "second-item")
+				busy := cleanupCommand("busy-new-socket", "parent", "first-item")
 				if err := next.conn.WriteJSON(busy); err != nil {
 					t.Fatal(err)
 				}
@@ -362,7 +401,7 @@ func TestReconnectOperationAdmissionAndLateResult(t *testing.T) {
 					t.Fatal(err)
 				}
 				if ack.Type != protocol.MessageTypeOperationAck || ack.Payload.Accepted {
-					t.Fatal("reconnect admitted concurrent mutation")
+					t.Fatal("reconnect admitted duplicate mutation")
 				}
 				assertOperationCorrelation(t, ack.BaseEnvelope, busy.BaseEnvelope)
 				close(release)
@@ -375,11 +414,11 @@ func TestReconnectOperationAdmissionAndLateResult(t *testing.T) {
 				}
 				assertOperationCorrelation(t, result.BaseEnvelope, command.BaseEnvelope)
 				select {
-				case h.operationSlot <- struct{}{}:
+				case h.operationExecution <- struct{}{}:
 				case <-time.After(5 * time.Second):
 					t.Fatal("old worker retained slot")
 				}
-				<-h.operationSlot
+				<-h.operationExecution
 			}
 			distinct := cleanupCommand("distinct-new-socket", "parent", "second-item")
 			if err := next.conn.WriteJSON(distinct); err != nil {
@@ -418,5 +457,213 @@ func TestRetiredControlOperationCannotUseReplacementSender(t *testing.T) {
 	}
 	if calls.Load() != 0 || sends.Load() != 0 {
 		t.Fatalf("retired command reached Provider/new sender: %d/%d", calls.Load(), sends.Load())
+	}
+}
+
+// The finite reservation count includes goroutines waiting for serialization,
+// ACK writes and RESULT writes. Overflow is an explicit rejection, never an
+// accepted command silently dropped or a new unbounded goroutine.
+func TestOperationAdmissionBoundAndShutdownWaiters(t *testing.T) {
+	for _, shutdown := range []bool{false, true} {
+		t.Run(fmt.Sprintf("shutdown=%v", shutdown), func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			entered, release := make(chan struct{}), make(chan struct{})
+			messages := make(chan any, 32)
+			done := make(chan error, 8)
+			var calls, active atomic.Int32
+			h := NewHandler(&provider.MockProvider{CleanupFunc: func(ctx context.Context, _ provider.CleanupRequest) (provider.OperationResult, error) {
+				if active.Add(1) != 1 {
+					t.Error("Provider mutations overlapped")
+				}
+				defer active.Add(-1)
+				if calls.Add(1) == 1 {
+					close(entered)
+					select {
+					case <-release:
+					case <-ctx.Done():
+					}
+				}
+				return provider.OperationResult{Outcome: provider.OutcomeSucceeded}, nil
+			}}, SendMessageFunc(func(_ context.Context, msg any) error { messages <- msg; return nil }))
+			for i := range 5 { // four Backend workers plus one RESULT handoff reservation
+				raw, _ := json.Marshal(cleanupCommand(fmt.Sprint(i), "parent", fmt.Sprint(i)))
+				go func() { done <- h.HandleMessage(ctx, raw) }()
+				ack := awaitOperationEvent(t, messages).(protocol.OperationAckMessage)
+				if !ack.Payload.Accepted || ack.Payload.Error != nil {
+					t.Fatalf("reservation %d rejected: %+v", i, ack)
+				}
+				if i == 0 {
+					awaitOperationEvent(t, entered)
+				}
+			}
+			for _, lab := range []string{"0", "1", "overflow"} {
+				raw, _ := json.Marshal(cleanupCommand("replay-"+lab, "parent", lab))
+				if err := h.HandleMessage(ctx, raw); err != nil {
+					t.Fatal(err)
+				}
+				ack := awaitOperationEvent(t, messages).(protocol.OperationAckMessage)
+				if ack.Payload.Accepted || ack.Payload.Error == nil || ack.Payload.Error.Code != "ERR_CONNECTOR_INTERNAL" {
+					t.Fatalf("duplicate/overflow admitted: %+v", ack)
+				}
+			}
+			if calls.Load() != 1 {
+				t.Fatalf("waiting Items started concurrently: %d", calls.Load())
+			}
+			if shutdown {
+				cancel()
+			} else {
+				close(release)
+			}
+			canceled := 0
+			for range 5 {
+				if err := awaitOperationEvent(t, done); errors.Is(err, context.Canceled) {
+					canceled++
+				} else if err != nil {
+					t.Fatal(err)
+				}
+			}
+			if shutdown {
+				if calls.Load() != 1 || canceled != 4 {
+					t.Fatalf("shutdown started waiting mutations: calls=%d canceled=%d", calls.Load(), canceled)
+				}
+			} else {
+				results := map[string]bool{}
+				for range 5 {
+					result := awaitOperationEvent(t, messages).(protocol.OperationResultMessage)
+					if result.Payload.Outcome != protocol.OutcomeSucceeded || results[result.LabInstanceID] {
+						t.Fatalf("invalid/duplicate completion: %+v", result)
+					}
+					results[result.LabInstanceID] = true
+				}
+				if calls.Load() != 5 {
+					t.Fatalf("Provider calls=%d, want 5", calls.Load())
+				}
+			}
+			// All reservations, including canceled waiters, are reusable.
+			raw, _ := json.Marshal(cleanupCommand("after-drain", "parent", "0"))
+			if err := h.HandleMessage(context.Background(), raw); err != nil {
+				t.Fatal(err)
+			}
+			if shutdown {
+				_ = awaitOperationEvent(t, messages).(protocol.OperationResultMessage)
+			}
+			if ack := awaitOperationEvent(t, messages).(protocol.OperationAckMessage); !ack.Payload.Accepted {
+				t.Fatal("reservation leaked after completion/cancellation")
+			}
+			_ = awaitOperationEvent(t, messages).(protocol.OperationResultMessage)
+		})
+	}
+}
+
+func TestFourWorkerItemsAdmittedDuringPreviousResultWrite(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	messages := make(chan any, 16)
+	done := make(chan error, 5)
+	release := make(chan struct{})
+	var calls atomic.Int32
+	var finishing atomic.Bool
+	h := NewHandler(&provider.MockProvider{CleanupFunc: func(context.Context, provider.CleanupRequest) (provider.OperationResult, error) {
+		calls.Add(1)
+		return provider.OperationResult{Outcome: provider.OutcomeSucceeded}, nil
+	}}, SendMessageFunc(func(_ context.Context, msg any) error {
+		messages <- msg
+		if _, result := msg.(protocol.OperationResultMessage); result && finishing.CompareAndSwap(false, true) {
+			select {
+			case <-release:
+			case <-ctx.Done():
+			}
+		}
+		return nil
+	}))
+	start := func(lab string) {
+		raw, _ := json.Marshal(cleanupCommand(lab, "parent", lab))
+		go func() { done <- h.HandleMessage(ctx, raw) }()
+		if ack := awaitOperationEvent(t, messages).(protocol.OperationAckMessage); !ack.Payload.Accepted {
+			t.Fatalf("worker rejected during RESULT handoff: %+v", ack)
+		}
+	}
+	start("finishing")
+	_ = awaitOperationEvent(t, messages).(protocol.OperationResultMessage)
+	for i := range 4 {
+		start(fmt.Sprint(i))
+	}
+	if calls.Load() != 1 {
+		t.Fatal("mutation started before previous response finished")
+	}
+	close(release)
+	for range 5 {
+		if err := awaitOperationEvent(t, done); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for range 4 {
+		if result := awaitOperationEvent(t, messages).(protocol.OperationResultMessage); result.Payload.Outcome != protocol.OutcomeSucceeded {
+			t.Fatalf("admitted worker failed: %+v", result)
+		}
+	}
+	if calls.Load() != 5 {
+		t.Fatalf("Provider calls=%d, want 5", calls.Load())
+	}
+}
+
+func TestReconnectPreservesAdmittedWaitingItem(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	oldMessages, newMessages := make(chan any, 8), make(chan any, 8)
+	entered, release := make(chan context.Context, 1), make(chan struct{})
+	var calls atomic.Int32
+	h := NewHandler(&provider.MockProvider{CleanupFunc: func(ctx context.Context, _ provider.CleanupRequest) (provider.OperationResult, error) {
+		if calls.Add(1) == 1 {
+			entered <- ctx
+			select {
+			case <-release:
+			case <-ctx.Done():
+			}
+		}
+		return provider.OperationResult{Outcome: provider.OutcomeSucceeded}, nil
+	}}, SendMessageFunc(func(_ context.Context, msg any) error { oldMessages <- msg; return nil }))
+	commands := []protocol.OperationCommandMessage{
+		cleanupCommand("running", "parent", "first"),
+		cleanupCommand("waiting", "parent", "second"),
+	}
+	for _, command := range commands {
+		raw, _ := json.Marshal(command)
+		if err := h.handleMessageWithFileOwner(ctx, raw, h.fileOwnerEpoch, true); err != nil {
+			t.Fatal(err)
+		}
+		if ack := awaitOperationEvent(t, oldMessages).(protocol.OperationAckMessage); !ack.Payload.Accepted {
+			t.Fatal("Item not admitted before reconnect")
+		}
+	}
+	acceptedCtx := awaitOperationEvent(t, entered)
+	h.SetSender(nil)
+	h.SetSender(SendMessageFunc(func(_ context.Context, msg any) error { newMessages <- msg; return nil }))
+	if acceptedCtx.Err() != nil {
+		t.Fatal("reconnect canceled accepted work")
+	}
+	replay := commands[1]
+	replay.MessageID = "replay-waiting"
+	raw, _ := json.Marshal(replay)
+	if err := h.HandleMessage(ctx, raw); err != nil {
+		t.Fatal(err)
+	}
+	if ack := awaitOperationEvent(t, newMessages).(protocol.OperationAckMessage); ack.Payload.Accepted {
+		t.Fatal("reconnect lost waiting Item deduplication")
+	}
+	if calls.Load() != 1 {
+		t.Fatal("waiting mutation overlapped running work")
+	}
+	close(release)
+	for _, command := range commands { // running Provider entered before the waiting Item
+		result := awaitOperationEvent(t, newMessages).(protocol.OperationResultMessage)
+		assertOperationCorrelation(t, result.BaseEnvelope, command.BaseEnvelope)
+		if result.Payload.Outcome != protocol.OutcomeSucceeded {
+			t.Fatalf("accepted Item failed across reconnect: %+v", result)
+		}
+	}
+	if calls.Load() != 2 || len(oldMessages) != 0 {
+		t.Fatalf("replay or stale result sender: calls=%d oldMessages=%d", calls.Load(), len(oldMessages))
 	}
 }

@@ -221,8 +221,8 @@ func TestActualConnectorOutcomesAreRoutedWithoutRetry(t *testing.T) {
 
 // RESET과 CLEANUP도 같은 경로로 실제 Connector의 Provider 경계에 도달하고 결과가 연결된다.
 func TestActualConnectorResetAndCleanupCommands(t *testing.T) {
-	// Each case verifies routing independently. Back-to-back mutations may
-	// now receive accepted=false while the Connector execution slot is busy.
+	// Each case verifies routing independently. Concurrent worker admission is
+	// covered by TestActualConnectorAdmitsFourWorkerItemsWhileProviderBlocked.
 	for _, mutation := range []string{protocol.MutationTypeReset, protocol.MutationTypeCleanup} {
 		t.Run(mutation, func(t *testing.T) {
 			h := newRoutedHarness(t, realConnectorHeartbeat)

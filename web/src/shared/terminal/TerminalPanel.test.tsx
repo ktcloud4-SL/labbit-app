@@ -90,6 +90,7 @@ function setup() {
       items: [{ vmKey: 'synthetic-vm', role: 'workspace', instanceIndex: 0 }],
     })),
     createTerminalSession: vi.fn(() => pending.promise),
+    closeTerminalSession: vi.fn(async () => undefined),
   }
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   function panel(generation = 1) {
@@ -157,17 +158,18 @@ describe('TerminalPanel HTTP 503 feedback', () => {
 
 describe('TerminalPanel create lifecycle', () => {
   it('does not restore cleared resume state after unmount', async () => {
-    const { pending, view, start } = setup()
+    const { pending, api, view, start } = setup()
     await start()
     view.unmount()
     clearTerminalResumeState()
     await act(async () => { pending.resolve(session()) })
     expect(readTerminalResumeState({ labInstanceId: 'synthetic-lab', generation: 1 })).toBeNull()
     expect(FakeWebSocket.instances).toHaveLength(0)
+    expect(api.closeTerminalSession).toHaveBeenCalledExactlyOnceWith('synthetic-session-1')
   })
 
   it.each(['success', 'failure'] as const)('ignores late %s after a generation change', async (outcome) => {
-    const { pending, queryClient, panel, view, start } = setup()
+    const { pending, api, queryClient, panel, view, start } = setup()
     await start()
     view.rerender(panel(2))
     const current = session(2)
@@ -178,6 +180,11 @@ describe('TerminalPanel create lifecycle', () => {
     })
     expect(readTerminalResumeState({ labInstanceId: 'synthetic-lab', generation: 2 })?.terminalSessionId).toBe(current.id)
     expect(FakeWebSocket.instances).toHaveLength(0)
+    if (outcome === 'success') {
+      expect(api.closeTerminalSession).toHaveBeenCalledExactlyOnceWith('synthetic-session-1')
+    } else {
+      expect(api.closeTerminalSession).not.toHaveBeenCalled()
+    }
     queryClient.clear()
   })
 
@@ -198,6 +205,12 @@ describe('TerminalPanel create lifecycle', () => {
     expect(readTerminalResumeState({ labInstanceId: 'synthetic-lab', generation: 1 })?.terminalSessionId).toBe(newSession.id)
     expect(screen.getByText('연결됨')).toBeInTheDocument()
     expect(FakeWebSocket.instances).toHaveLength(1)
+    if (outcome === 'success') {
+      expect(old.api.closeTerminalSession).toHaveBeenCalledExactlyOnceWith('synthetic-session-1')
+    } else {
+      expect(old.api.closeTerminalSession).not.toHaveBeenCalled()
+    }
+    expect(current.api.closeTerminalSession).not.toHaveBeenCalled()
   })
 
   it.each(['success', 'failure'] as const)('ignores late %s after target authentication expires', async (outcome) => {
@@ -212,6 +225,32 @@ describe('TerminalPanel create lifecycle', () => {
       if (outcome === 'success') pending.resolve(session())
       else pending.reject(new Error('synthetic late failure'))
     })
+    expect(readTerminalResumeState({ labInstanceId: 'synthetic-lab', generation: 1 })).toBeNull()
+    expect(FakeWebSocket.instances).toHaveLength(0)
+    if (outcome === 'success') {
+      expect(api.closeTerminalSession).toHaveBeenCalledExactlyOnceWith('synthetic-session-1')
+    } else {
+      expect(api.closeTerminalSession).not.toHaveBeenCalled()
+    }
+  })
+
+  it('closes a successful TerminalSession if the server returned an unexpected generation', async () => {
+    const { pending, api, start } = setup()
+    await start()
+    await act(async () => { pending.resolve(session(2)) })
+    expect(screen.getByText(/generation이 변경되었습니다/)).toBeInTheDocument()
+    expect(api.closeTerminalSession).toHaveBeenCalledExactlyOnceWith('synthetic-session-2')
+    expect(readTerminalResumeState({ labInstanceId: 'synthetic-lab', generation: 1 })).toBeNull()
+    expect(FakeWebSocket.instances).toHaveLength(0)
+  })
+
+  it('does not fail or expose a stale session when best-effort server cleanup rejects', async () => {
+    const { pending, api, view, start } = setup()
+    vi.mocked(api.closeTerminalSession).mockRejectedValue(new HttpError(404))
+    await start()
+    view.unmount()
+    await act(async () => { pending.resolve(session()) })
+    expect(api.closeTerminalSession).toHaveBeenCalledExactlyOnceWith('synthetic-session-1')
     expect(readTerminalResumeState({ labInstanceId: 'synthetic-lab', generation: 1 })).toBeNull()
     expect(FakeWebSocket.instances).toHaveLength(0)
   })

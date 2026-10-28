@@ -375,6 +375,11 @@ func runControl(ctx context.Context, config wss.Config, p runtimeProvider, conne
 	if err != nil {
 		return err
 	}
+	if connectorApp.VMAccess != nil {
+		connectorApp.VMAccess.SetFailureObserver(func(target vmaccess.Target, info vmaccess.FailureInfo) {
+			logVMAccessFailure(logger, connectorID, target, info)
+		})
+	}
 	shutdown := sync.OnceFunc(func() {
 		if connectorApp.FileTransport != nil {
 			fileCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

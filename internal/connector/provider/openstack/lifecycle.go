@@ -112,6 +112,9 @@ func (a *Adapter) Cleanup(ctx context.Context, request coreprovider.CleanupReque
 	if err != nil || !a.resourceProfileMatches(resources) {
 		return failedResult(nil, errorInvalidProvision, "Cleanup resources are invalid"), nil
 	}
+	if a.cidrPoolEnabled() {
+		return a.cleanupCIDR(ctx, request, resources), nil
+	}
 	return a.cleanupResources(ctx, resources), nil
 }
 

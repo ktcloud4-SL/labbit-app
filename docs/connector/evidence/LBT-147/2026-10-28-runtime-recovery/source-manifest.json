@@ -1,0 +1,28 @@
+{
+  "base": "aaa99d80c434910357007882bdbc614de8f1109d",
+  "files": {
+    "contracts/connector/README.md": "2d0cfed34112af09b505c9c2db2bac1d5d44b4a293de504bb77160ba1a1c8393",
+    "internal/connector/app/app.go": "4c32bbcfccba533a7c8d39264edea7f9c5c2b6d16f95eea287b9df102abb9092",
+    "internal/connector/app/control_error.go": "043088dc885c4db1287445a032c4ab6dbe3c1e3ac52820dbc099e63dd477871c",
+    "internal/connector/app/control_error_test.go": "d5bad73c1fc67f8beb041b2604ce3eb237ec6a8d70869e83845573d236389f29",
+    "internal/connector/provider/openstack/ktcloud_d1_cidr.go": "0c5fbdcedd904a3184f1a2807ec5023f3f49b731bc78440b53ae9f9a8f898b64",
+    "internal/connector/provider/openstack/ktcloud_d1_cidr_cleanup.go": "316cffb1d31cfdb6927828b29594a6393eaf7a81303a1b690ae7ed2504ea7e58",
+    "internal/connector/provider/openstack/ktcloud_d1_cidr_cleanup_test.go": "740c089f944932f0990c1f125e980eb0ea13a32de259336dd986f4bb9e83c5b0",
+    "internal/connector/provider/openstack/ktcloud_d1_cidr_lifecycle_test.go": "aa3c4e78a6482cce1d5ed3d781a593c55a3e48585e77d3736e3e1eb1b0ccb241",
+    "internal/connector/provider/openstack/ktcloud_d1_cidr_test.go": "7ff5d32b288c0f2258fd90468bd4be1e62cfcec214f341c24970a85acc4a15b7",
+    "internal/connector/provider/openstack/lifecycle.go": "62435c50866b8c5ea0c7c27a9ea5086eeb6bbbf38d37674bc714bac17d966e56",
+    "internal/connector/vmaccess/access.go": "2ae10c4ac5df10f71e91753d706613aa8458f471bd8fc2902b6270d540f39cb9",
+    "internal/connector/vmaccess/cancellation_test.go": "77521df850b5ccd3d2ae1d539dbfd4928bdd8f44c42663a2a0c491f7ee354091",
+    "internal/connector/vmaccess/diagnostic.go": "3d6b40747d61cc0b27542446e8cd5533348196faec3c355c9bb1132ffebb5272",
+    "internal/connector/vmaccess/handshake_diagnostic_test.go": "f5a7dbf5872f8c8e7b0e52fd324c5d4859f02bbcbc7eed2c541ebfddf0e2fe99",
+    "internal/connector/vmaccess/shared_dial_test.go": "ce1eb7acd7f04cec391ca59b0c87d5bc61cec0c10b2a50dc8aed275e0433e0f1",
+    "internal/connector/vmaccess/tcp.go": "fe3c12631a04591b18302c50ee75cc613822cc29791d28fb8d307be9e18e5739",
+    "internal/connector/wss/handler.go": "a87c49ddb1b089d7d331a522372be2fde5b5b18b279f56efdd2cde2052d30489",
+    "internal/connector/wss/operation_responsiveness_test.go": "c3325e3c768b88c4041c7b775bd9de8e49fa6d771abaaa82524d2fac31d9b884",
+    "internal/connector/wss/reconnect_operation_test.go": "9a1680d07be52d63ca3aeb64be5b36fa87517f51b3c51050e5b7c118256a7f36",
+    "runtime/README.md": "00ae9c4740e258c1a358e49b5655a6740f255a35f110a1d908d28d103ed2a6db",
+    "runtime/contract.yaml": "db98d9a11f002df3815b2a872012aa20dcebbdc4ecb54e4aac781dff363999bf"
+  },
+  "changeSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+  "version": "terminal-diagnose-21f07ea74db5"
+}

@@ -400,7 +400,7 @@ func TestKTCloudCIDRPoolTierCreateAndCleanupIsolation(t *testing.T) {
 			t.Fatalf("Tier creation: %v %+v", err, resources)
 		}
 		refs = append(refs, resources[0].ResourceRef)
-		return coreprovider.OperationResult{Outcome: coreprovider.OutcomeSucceeded}, nil
+		return coreprovider.OperationResult{Outcome: coreprovider.OutcomeSucceeded, ProviderResources: resources}, nil
 	})
 	if result.Outcome != coreprovider.OutcomeSucceeded {
 		t.Fatal("create HOLD")
@@ -409,13 +409,9 @@ func TestKTCloudCIDRPoolTierCreateAndCleanupIsolation(t *testing.T) {
 	if err != nil || cleanup.Outcome != coreprovider.OutcomeSucceeded || posts != 1 || deletes != 1 || len(tiers) != 1 || tiers[0]["networkId"] != "teacher-tier" {
 		t.Fatalf("cleanup crossed instance boundary: %+v %v", cleanup, err)
 	}
-	// Confirmed Cleanup never makes this pair available to a third instance.
-	result, _ = a.withCIDRScope(context.Background(), cidrCorrelation("third", 1), false, func(*Adapter) (coreprovider.OperationResult, error) {
-		t.Fatal("cleaned reservation automatically reused")
-		return coreprovider.OperationResult{}, nil
-	})
-	if result.Outcome != coreprovider.OutcomeFailed || result.Error == nil || result.Error.Code != errorOpenStack {
-		t.Fatal("confirmed pool exhaustion was not rejected deterministically")
+	// Confirmed Cleanup recycles only the student's pair; the teacher stays live.
+	if pair := claimCIDR(t, a, "third", 1, false); pair.Lab != "172.25.242.0/24" {
+		t.Fatal("cleaned student reservation was not reused")
 	}
 }
 

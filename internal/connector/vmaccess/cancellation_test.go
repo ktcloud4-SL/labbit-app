@@ -1,6 +1,7 @@
 package vmaccess
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"io"
@@ -31,7 +32,7 @@ func TestSocketDeadlinePrecedesContextTimer(t *testing.T) {
 }
 
 func TestHandshakeTimeoutAndCancellationCloseSocket(t *testing.T) {
-	for _, mode := range []string{"timeout", "cancel"} {
+	for _, mode := range []string{"timeout", "cancel", "shutdown", "reset"} {
 		t.Run(mode, func(t *testing.T) {
 			listener, err := net.Listen("tcp", "127.0.0.1:0")
 			if err != nil {
@@ -52,17 +53,33 @@ func TestHandshakeTimeoutAndCancellationCloseSocket(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer peer.Close()
-			if mode == "cancel" {
+			_ = peer.SetReadDeadline(time.Now().Add(time.Second))
+			if _, err := bufio.NewReader(peer).ReadString('\n'); err != nil {
+				t.Fatalf("client did not start SSH handshake: %v", err)
+			}
+			switch mode {
+			case "cancel":
 				cancel()
+			case "shutdown":
+				_ = m.Close()
+			case "reset":
+				m.InvalidateBefore(testTarget().LabInstanceID, 2)
 			}
 			select {
 			case err := <-done:
 				want := context.DeadlineExceeded
-				if mode == "cancel" {
+				if mode != "timeout" {
 					want = context.Canceled
 				}
 				if !errors.Is(err, want) {
 					t.Fatalf("handshake failure=%v", err)
+				}
+				info, ok := Diagnostic(err)
+				if !ok || info.Stage != StageHandshake || info.Timeout != (mode == "timeout") {
+					t.Fatalf("handshake diagnostic lost: %+v, present=%v", info, ok)
+				}
+				if mode == "timeout" && info.ElapsedMS <= 0 {
+					t.Fatalf("handshake elapsed time lost: %+v", info)
 				}
 			case <-time.After(time.Second):
 				t.Fatal("handshake did not stop")
@@ -78,6 +95,53 @@ func TestHandshakeTimeoutAndCancellationCloseSocket(t *testing.T) {
 				t.Fatal("failed handshake cached")
 			}
 		})
+	}
+}
+
+func TestHandshakeTimeoutKeepsOtherVMChannelUsable(t *testing.T) {
+	peer := newSSHPeer(t)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	badTarget := testTarget()
+	badTarget.LabInstanceID = "unreachable-lab"
+	badTarget.ServerID = "unreachable-server"
+	m := NewManager(resolverFunc(func(_ context.Context, target Target) (Endpoint, error) {
+		endpoint := peer.endpoint
+		if target == badTarget {
+			endpoint.Address = listener.Addr().String()
+		}
+		return endpoint, nil
+	}), Config{SetupTimeout: 150 * time.Millisecond})
+	defer m.Close()
+	good := openSession(t, m, testTarget())
+	defer good.Close()
+	in, out := echoChannel(t, good, false)
+	done := make(chan error, 1)
+	go func() { _, err := m.OpenSession(context.Background(), badTarget); done <- err }()
+	stalled, err := listener.Accept()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stalled.Close()
+	select {
+	case err := <-done:
+		info, ok := Diagnostic(err)
+		if !errors.Is(err, context.DeadlineExceeded) || !ok || info.Stage != StageHandshake || !info.Timeout {
+			t.Fatalf("handshake timeout diagnostic = %+v, present=%v, error=%v", info, ok, err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("stalled VM did not time out")
+	}
+	assertEcho(t, in, out)
+	m.mu.Lock()
+	_, badCached := m.entries[badTarget]
+	_, goodCached := m.entries[testTarget()]
+	m.mu.Unlock()
+	if badCached || !goodCached {
+		t.Fatal("failed VM transport affected healthy VM cache")
 	}
 }
 

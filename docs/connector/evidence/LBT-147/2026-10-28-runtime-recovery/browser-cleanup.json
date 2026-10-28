@@ -1,0 +1,206 @@
+{
+  "at": "2026-10-28",
+  "site": "https://labbit.jinnythecloud.cloud",
+  "executionId": "13b3e733-dfcf-435c-bd68-4300b635c7b4",
+  "sourceSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+  "helperSHA256": "5a31b45369409b0420f4a3c3611b7e06eb65b315e3e52b5345c6607ad7f65959",
+  "runtimeSHA256": "bb3e3dd806c5b822b0ff8b545146804e67b174c18ea179456b34ab9fe14d0b02",
+  "transport": "Real native in-app browser, SaaS HTTP File API + actual Connector/File Data WSS + designated real guest SSH/helper; no mocked Browser/backend/guest",
+  "instructor": {
+    "instanceId": "53042583-03fd-4503-9db7-7291ea63614d",
+    "generation": 1,
+    "firstWorkspaceVisit": "Loading -> empty directory success, no unavailable message or retry/reload",
+    "firstTerminalSession": "45c527cb-5f7b-4d91-abc4-156add6f3af7",
+    "firstTerminalCreated": "2026-10-28T06:14:26.801088+00:00",
+    "firstTerminalAttached": "2026-10-28T06:14:27.572898+00:00",
+    "firstTerminalAttachSeconds": 0.77181,
+    "terminalFixtureCommandAcknowledged": true,
+    "separateBrowserTabListedControlledFixture": true,
+    "browserReadMatchedControlledVersion1": true,
+    "browserSaveVersion2State": "저장됨",
+    "sameOriginalTerminalObservedSavedVersion2": true,
+    "sameOriginalTerminalStillAcceptedCommandAfterFileSave": true,
+    "explicitTerminalClose": "SESSION_CLOSED at 2026-10-28T06:15:57.025725+00:00",
+    "explicitTerminalCloseDBConfirmed": true
+  },
+  "student": {
+    "instanceId": "0e0bd8b0-e664-44dc-b521-93b185ab10d5",
+    "generation": 1,
+    "firstWorkspaceVisit": "Loading -> empty directory success, no unavailable message or retry/reload",
+    "firstTerminalSession": "ed13d562-a689-47e6-8219-8d785fd4926a",
+    "firstTerminalCreated": "2026-10-28T06:16:23.964007+00:00",
+    "firstTerminalAttached": "2026-10-28T06:16:24.685372+00:00",
+    "firstTerminalAttachSeconds": 0.721365,
+    "terminalFixtureCommandAcknowledged": true,
+    "separateBrowserTabListedControlledFixture": true,
+    "browserReadMatchedControlledVersion1": true,
+    "browserSaveVersion2State": "저장됨",
+    "sameOriginalTerminalObservedSavedVersion2": true,
+    "sameOriginalTerminalStillAcceptedCommandAfterFileSave": true,
+    "explicitTerminalCloseUIObserved": true,
+    "explicitTerminalCloseDBConfirmed": true
+  },
+  "methodLimits": {
+    "firstTerminal": "First actual web-terminal session per new VM; automatic successful File Tree request occurred beforehand. Not a claim that Terminal initiated the first underlying SSH transport.",
+    "fileRefresh": "Normal File UI has no successful-tree refresh button. A second normal Workspace tab performed a fresh Tree/Read/Save while the original Terminal stayed connected. No invented UI controls or hidden API calls.",
+    "screenshots": "Actual screenshots of both Browser Editor saved state and both original terminals' post-save success markers emitted in CUA tool output. CUA has no documented local screenshot export; no fabricated local image files.",
+    "persistence": "Only safe test metadata/booleans here; no full PTY transcript, directory entries, paths, file body, passwords, private keys or raw errors stored in this evidence.",
+    "historical": "The deleted old VMs' exact File failure substage remains unconfirmed. Missing bootstrap configuration is confirmed and repaired; current fresh guest File flow succeeds."
+  },
+  "cleanup": {
+    "operationId": "a9ba3492-702d-436e-b96b-6c170b8c1a73",
+    "officialBrowserRequested": true,
+    "completed": true,
+    "durationSeconds": 698.146123,
+    "checks": {
+      "executionCompleted": true,
+      "twoInstancesCompleted": true,
+      "provisionCleanupSucceeded": true,
+      "allSessionsEnded": true,
+      "tenResourcesDeleted": true,
+      "cloudExactOriginalBaseline": true,
+      "fourPairsFree": true,
+      "protectedStatePreserved": true,
+      "runningExactSource": true,
+      "withinFifteenMinutes": true
+    }
+  },
+  "result": "BOTH_ROLE_BROWSER_FILE_AND_TERMINAL_PASS_OFFICIAL_CLEANUP_VERIFIED",
+  "provenance": [
+    {
+      "localOriginal": "outputs/workspace-file-fix-20261028/browser-evidence-final.json",
+      "sha256": "59d944d583009379194bd6171de3da004a868db6f5be0a04728fae069d67f853",
+      "sharedForm": "curated metadata, original retained privately"
+    },
+    {
+      "localOriginal": "outputs/workspace-file-fix-20261028/final-verify-completed-verified.json",
+      "sha256": "6004939c5f93e186ddca0f02d8badf4c9c14592d4e398a861183a9765dd5a99e",
+      "sharedForm": "curated metadata, original retained privately"
+    }
+  ],
+  "finalMetadataVerification": {
+    "observedAt": "2026-10-28T06:23:20.044974+00:00",
+    "execution": [
+      {
+        "id": "13b3e733-dfcf-435c-bd68-4300b635c7b4",
+        "status": "COMPLETED",
+        "started_at": "2026-10-28 06:10:17.503697+00:00",
+        "finished_at": "2026-10-28 06:21:55.649820+00:00"
+      }
+    ],
+    "instances": [
+      {
+        "id": "0e0bd8b0-e664-44dc-b521-93b185ab10d5",
+        "status": "COMPLETED",
+        "generation": 1
+      },
+      {
+        "id": "53042583-03fd-4503-9db7-7291ea63614d",
+        "status": "COMPLETED",
+        "generation": 1
+      }
+    ],
+    "operations": [
+      {
+        "id": "f189584f-23cc-419a-8b58-98002edfc60b",
+        "operation_type": "PROVISION",
+        "status": "SUCCEEDED",
+        "created_at": "2026-10-28 06:10:17.503697+00:00",
+        "finished_at": "2026-10-28 06:15:31.515299+00:00"
+      },
+      {
+        "id": "a9ba3492-702d-436e-b96b-6c170b8c1a73",
+        "operation_type": "CLEANUP",
+        "status": "SUCCEEDED",
+        "created_at": "2026-10-28 06:17:59.395007+00:00",
+        "finished_at": "2026-10-28 06:21:55.649820+00:00"
+      }
+    ],
+    "sessions": [
+      {
+        "id": "45c527cb-5f7b-4d91-abc4-156add6f3af7",
+        "lab_instance_id": "53042583-03fd-4503-9db7-7291ea63614d",
+        "status": "ENDED",
+        "created_at": "2026-10-28 06:14:26.801088+00:00",
+        "attached_at": "2026-10-28 06:14:27.572898+00:00",
+        "ended_at": "2026-10-28 06:15:57.025725+00:00",
+        "end_reason": "SESSION_CLOSED"
+      },
+      {
+        "id": "ed13d562-a689-47e6-8219-8d785fd4926a",
+        "lab_instance_id": "0e0bd8b0-e664-44dc-b521-93b185ab10d5",
+        "status": "ENDED",
+        "created_at": "2026-10-28 06:16:23.964007+00:00",
+        "attached_at": "2026-10-28 06:16:24.685372+00:00",
+        "ended_at": "2026-10-28 06:17:34.532311+00:00",
+        "end_reason": "SESSION_CLOSED"
+      }
+    ],
+    "checks": {
+      "executionCompleted": true,
+      "twoInstancesCompleted": true,
+      "provisionCleanupSucceeded": true,
+      "allSessionsEnded": true,
+      "tenResourcesDeleted": true,
+      "cloudExactOriginalBaseline": true,
+      "fourPairsFree": true,
+      "protectedStatePreserved": true,
+      "runningExactSource": true,
+      "withinFifteenMinutes": true
+    },
+    "ownedResourceCount": 10,
+    "allOwnedResourcesDeleted": true,
+    "originalCloudBaselineCounts": {
+      "servers": 3,
+      "volumes": 3,
+      "tiers": 7,
+      "policies": 6
+    },
+    "exactIdBaselineCompared": true,
+    "metadataVerifierDatabaseWrites": false,
+    "metadataVerifierCloudMutations": false
+  },
+  "priorTerminalAndCleanupTrial": {
+    "executionId": "6961655c-8c61-437f-a213-1d5144a873ed",
+    "sourceSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+    "studentFirstAttachSeconds": 1.124252,
+    "instructorFirstAttachSeconds": 0.670896,
+    "readyStudentWhileOtherVMProvisioning": true,
+    "firstAttemptsOnly": true,
+    "manualSSHBeforeFirstWebAttempt": false,
+    "refreshOrRetryBeforeSuccess": false,
+    "cleanup": {
+      "operationId": "269092d0-853b-4d7e-8412-f4deeeeb1a04",
+      "UIObserved": "터미널 세션이 종료되었습니다. (LAB_CLEANUP)",
+      "databaseEndReason": "LAB_CLEANUP",
+      "notificationScreenshot": "CUA tool output only; no local screenshot export provided",
+      "withinFifteenMinutes": true,
+      "durationSeconds": 649.168116
+    },
+    "checks": {
+      "executionCompleted": true,
+      "twoInstancesCompleted": true,
+      "provisionCleanupSucceeded": true,
+      "allSessionsEnded": true,
+      "tenResourcesDeleted": true,
+      "cloudExactOriginalBaseline": true,
+      "fourPairsFree": true,
+      "protectedStatePreserved": true,
+      "runningExactSource": true,
+      "withinFifteenMinutes": true
+    },
+    "fileResult": "unavailable before helper source configuration; not a File PASS",
+    "provenance": [
+      {
+        "localOriginal": "outputs/terminal-first-connect-fix-v3-20261028/browser-evidence-final.json",
+        "sha256": "f74987e9eea0b38cecafa631eede7930be390856e019df1d8a1643499fc8eb79",
+        "sharedForm": "curated metadata, original retained privately"
+      },
+      {
+        "localOriginal": "outputs/terminal-first-connect-fix-v3-20261028/final-verify-completed-verified.json",
+        "sha256": "f0419a7960108bd50744dd9f2546098677e72d5c62b6cf357756c844b0579147",
+        "sharedForm": "curated metadata, original retained privately"
+      }
+    ]
+  }
+}

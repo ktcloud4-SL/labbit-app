@@ -27,3 +27,17 @@ func TestControlFailureLogContainsOnlySafeDiagnostics(t *testing.T) {
 		t.Fatalf("unexpected safe log: %s", got)
 	}
 }
+
+func TestVMAccessFailureLogValidatesTargetAndKeepsSafeCheckpoint(t *testing.T) {
+	var out bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&out, nil))
+	secret := "private-endpoint-key-vm-command"
+	info, _ := vmaccess.Diagnostic(vmaccess.Diagnose(vmaccess.StageHandshake, errors.Join(errors.New(secret), context.DeadlineExceeded), time.Now()))
+	for _, id := range []string{"3fdc3246-0bae-40fe-a4f8-8d156bf6fe5b", secret} {
+		logVMAccessFailure(logger, "connector", vmaccess.Target{LabInstanceID: id, Generation: 1, VMKey: secret, ServerID: secret}, info)
+	}
+	got := out.String()
+	if strings.Contains(got, secret) || strings.Count(got, `"lab_instance_id"`) != 1 || !strings.Contains(got, `"failure_stage":"handshake"`) || !strings.Contains(got, `"failure_timeout":true`) {
+		t.Fatalf("unsafe or missing VM acquisition metadata: %s", got)
+	}
+}

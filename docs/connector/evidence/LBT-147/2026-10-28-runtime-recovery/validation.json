@@ -1,0 +1,400 @@
+{
+  "reviewBase": "aaa99d80c434910357007882bdbc614de8f1109d",
+  "sourceChangesSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+  "checkedOn": "2026-10-28",
+  "checks": [
+    {
+      "name": "go-vet",
+      "startedAt": "2026-10-28T06:49:55.649303+00:00",
+      "finishedAt": "2026-10-28T06:50:02.279227+00:00",
+      "exitCode": 0,
+      "args": [
+        "go",
+        "vet",
+        "./..."
+      ],
+      "sourceChangesSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+      "environment": "Windows, Go 1.27.1; no Cloud opt-in credentials injected",
+      "provenance": {
+        "localOriginal": "outputs/connector-pr-20261028/go-vet.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sharedForm": "curated metadata, original retained privately"
+      }
+    },
+    {
+      "name": "go-unit",
+      "startedAt": "2026-10-28T06:50:05.746622+00:00",
+      "finishedAt": "2026-10-28T06:50:30.704541+00:00",
+      "exitCode": 0,
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-server",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-workspace-sftp",
+        "github.com/ktcloud4-SL/labbit-app/db/migrations",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/app",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/filetransport",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/heartbeat",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/mock",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/preview",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/protocol",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/provider",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/terminal",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/version",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefs",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/wss",
+        "github.com/ktcloud4-SL/labbit-app/internal/jsonnum",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability/tracing",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/auth",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/bootstrap",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/class",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connector",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/jsonnum",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution/labexecutiontest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labspec",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/livesession",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/operation",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/previewsession",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/provision",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/repository",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/terminal",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile",
+        "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+        "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance",
+        "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-op02-bootstrap",
+        "github.com/ktcloud4-SL/labbit-app/web/node_modules/flatted/golang/pkg/flatted"
+      ],
+      "sourceChangesSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+      "environment": "Windows, Go 1.27.1; no Cloud opt-in credentials injected",
+      "provenance": {
+        "localOriginal": "outputs/connector-pr-20261028/go-unit.log",
+        "sha256": "1a12d768d139c2e05e34477c18124420f6e51baeae5a311cd78bce7c051cc898",
+        "sharedForm": "curated metadata, original retained privately"
+      },
+      "topLevelTestsPassed": 1177,
+      "packagesPassed": 42,
+      "skippedTests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-server",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-workspace-sftp",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/db/migrations",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/version",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution/labexecutiontest",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+          "test": "TestSymlinkRejectedAndExcludedFromTree"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/web/node_modules/flatted/golang/pkg/flatted",
+          "test": null
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+          "test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+        }
+      ],
+      "excludedPackages": [
+        "internal/connector/provider/openstack (POSIX fixtures)",
+        "internal/connector/installer (Linux shell fixtures)"
+      ]
+    },
+    {
+      "name": "go-build",
+      "startedAt": "2026-10-28T06:50:30.708539+00:00",
+      "finishedAt": "2026-10-28T06:50:37.104323+00:00",
+      "exitCode": 0,
+      "args": [
+        "go",
+        "build",
+        "./..."
+      ],
+      "sourceChangesSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+      "environment": "Windows, Go 1.27.1; no Cloud opt-in credentials injected",
+      "provenance": {
+        "localOriginal": "outputs/connector-pr-20261028/go-build.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sharedForm": "curated metadata, original retained privately"
+      }
+    },
+    {
+      "name": "go-race",
+      "startedAt": "2026-10-28T06:50:37.110471+00:00",
+      "finishedAt": "2026-10-28T06:51:05.069817+00:00",
+      "exitCode": 0,
+      "args": [
+        "go",
+        "test",
+        "-race",
+        "-count=1",
+        "./internal/connector/vmaccess",
+        "./internal/connector/app",
+        "./internal/connector/terminal",
+        "./internal/connector/wss"
+      ],
+      "sourceChangesSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+      "environment": "Windows, Go 1.27.1; no Cloud opt-in credentials injected",
+      "provenance": {
+        "localOriginal": "outputs/connector-pr-20261028/go-race.log",
+        "sha256": "f6f2b287e4ab5dd97b7e0350c4d24237a65649e5f90bcd948ee2761597617945",
+        "sharedForm": "curated metadata, original retained privately"
+      }
+    },
+    {
+      "name": "web-typecheck",
+      "startedAt": "2026-10-28T06:51:05.072250+00:00",
+      "finishedAt": "2026-10-28T06:51:07.878415+00:00",
+      "exitCode": 0,
+      "args": [
+        "node",
+        "npm-cli.js",
+        "run",
+        "typecheck"
+      ],
+      "sourceChangesSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+      "environment": "Windows, Go 1.27.1; no Cloud opt-in credentials injected",
+      "provenance": {
+        "localOriginal": "outputs/connector-pr-20261028/web-typecheck.log",
+        "sha256": "aba894f572e9ac7ee2f2eadf84fd0e3046664c688a9a8c910bb6ebede1b59d1c",
+        "sharedForm": "curated metadata, original retained privately"
+      }
+    },
+    {
+      "name": "web-lint",
+      "startedAt": "2026-10-28T06:51:07.882094+00:00",
+      "finishedAt": "2026-10-28T06:51:12.129406+00:00",
+      "exitCode": 0,
+      "args": [
+        "node",
+        "npm-cli.js",
+        "run",
+        "lint"
+      ],
+      "sourceChangesSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+      "environment": "Windows, Go 1.27.1; no Cloud opt-in credentials injected",
+      "provenance": {
+        "localOriginal": "outputs/connector-pr-20261028/web-lint.log",
+        "sha256": "02b4047a480d163dc10a96d5080362e0c13af108fd20f9cf202b56299bed9771",
+        "sharedForm": "curated metadata, original retained privately"
+      }
+    },
+    {
+      "name": "web-test",
+      "startedAt": "2026-10-28T06:51:12.132934+00:00",
+      "finishedAt": "2026-10-28T06:51:23.944152+00:00",
+      "exitCode": 1,
+      "args": [
+        "node",
+        "npm-cli.js",
+        "run",
+        "test"
+      ],
+      "sourceChangesSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+      "environment": "Windows, Go 1.27.1; no Cloud opt-in credentials injected",
+      "provenance": {
+        "localOriginal": "outputs/connector-pr-20261028/web-test.log",
+        "sha256": "6c3723d9829448b020d4c66cdcb1d83410b40f25bd1fc8c85fae42eed09a66f7",
+        "sharedForm": "curated metadata, original retained privately"
+      },
+      "result": {
+        "passed": 441,
+        "failed": 2,
+        "total": 443,
+        "failure": "Existing installer build-env Vite fixture cleanup rmSync EPERM on Windows",
+        "changedWebInputs": false
+      }
+    },
+    {
+      "name": "web-build",
+      "startedAt": "2026-10-28T06:51:23.948418+00:00",
+      "finishedAt": "2026-10-28T06:51:24.649144+00:00",
+      "exitCode": 0,
+      "args": [
+        "node",
+        "npm-cli.js",
+        "run",
+        "build"
+      ],
+      "sourceChangesSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+      "environment": "Windows, Go 1.27.1; no Cloud opt-in credentials injected",
+      "provenance": {
+        "localOriginal": "outputs/connector-pr-20261028/web-build.log",
+        "sha256": "f058a9baf9a1944a66dc5d406f5a5945c6b135446aa8bbaa1ec83d02277e3152",
+        "sharedForm": "curated metadata, original retained privately"
+      }
+    },
+    {
+      "name": "linux-provider-final",
+      "executedOn": "2026-10-28",
+      "reused": true,
+      "environment": "Linux isolated fixture; no real Cloud mutation",
+      "exitCode": 0,
+      "provenance": {
+        "localOriginal": "outputs/tier-cleanup-investigation-20261028/linux-provider-final.json",
+        "sha256": "4ab06a20891369ab1e4867dd5be5265bd643d2dc1f73577885d3a7efb6b78e2f",
+        "sharedForm": "curated metadata, original retained privately"
+      },
+      "sameReviewedSource": true,
+      "topLevelTestsPassed": 180,
+      "skippedTests": [
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackFileTransportIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration",
+        "TestOpenStackPreviewForwardingIntegration",
+        "TestOpenStackPTYCC02Integration",
+        "TestOpenStackTerminalC2Integration",
+        "TestOpenStackVMAccessIntegration",
+        "TestOpenStackWorkspaceFileIntegration",
+        "TestOpenStackPreviewTransportIntegration"
+      ],
+      "sourceFilesSHA256": {
+        "contracts/connector/README.md": "2d0cfed34112af09b505c9c2db2bac1d5d44b4a293de504bb77160ba1a1c8393",
+        "internal/connector/provider/openstack/ktcloud_d1_cidr.go": "0c5fbdcedd904a3184f1a2807ec5023f3f49b731bc78440b53ae9f9a8f898b64",
+        "internal/connector/provider/openstack/ktcloud_d1_cidr_cleanup.go": "316cffb1d31cfdb6927828b29594a6393eaf7a81303a1b690ae7ed2504ea7e58",
+        "internal/connector/provider/openstack/ktcloud_d1_cidr_cleanup_test.go": "740c089f944932f0990c1f125e980eb0ea13a32de259336dd986f4bb9e83c5b0",
+        "internal/connector/provider/openstack/ktcloud_d1_cidr_lifecycle_test.go": "aa3c4e78a6482cce1d5ed3d781a593c55a3e48585e77d3736e3e1eb1b0ccb241",
+        "internal/connector/provider/openstack/ktcloud_d1_cidr_test.go": "7ff5d32b288c0f2258fd90468bd4be1e62cfcec214f341c24970a85acc4a15b7",
+        "internal/connector/provider/openstack/lifecycle.go": "62435c50866b8c5ea0c7c27a9ea5086eeb6bbbf38d37674bc714bac17d966e56",
+        "runtime/README.md": "00ae9c4740e258c1a358e49b5655a6740f255a35f110a1d908d28d103ed2a6db",
+        "runtime/contract.yaml": "db98d9a11f002df3815b2a872012aa20dcebbdc4ecb54e4aac781dff363999bf"
+      },
+      "testBinarySHA256": "a84d6b7cced5dee41ea904999b65cd1442b9f7ac47d9f5679f25c2c90fe52e55",
+      "testedSourceScope": "Final reviewed Provider implementation and complete Provider tests, including public lifecycle fixture"
+    },
+    {
+      "name": "linux-provider-concurrency",
+      "executedOn": "2026-10-28",
+      "reused": true,
+      "environment": "Linux isolated fixture; no real Cloud mutation",
+      "exitCode": 0,
+      "provenance": {
+        "localOriginal": "outputs/tier-cleanup-investigation-20261028/linux-provider-concurrency.json",
+        "sha256": "7bd7595daadc5861e120d07d4d41d471d0efccb2c49a923d6ca17ef142508a9b",
+        "sharedForm": "curated metadata, original retained privately"
+      },
+      "topLevelTestsPassed": 179,
+      "skippedTests": [
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackFileTransportIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration",
+        "TestOpenStackPreviewForwardingIntegration",
+        "TestOpenStackPTYCC02Integration",
+        "TestOpenStackTerminalC2Integration",
+        "TestOpenStackVMAccessIntegration",
+        "TestOpenStackWorkspaceFileIntegration",
+        "TestOpenStackPreviewTransportIntegration"
+      ],
+      "testedSourceScope": "Same Provider product implementation; executed before the final public lifecycle test was added. 179 top-level tests; not an execution of the final whole test tree.",
+      "publicLifecycleTestIncluded": false,
+      "testBinarySHA256": "5b2435554aaceb2de3376bc97c930f44b02022a28ba2cd95606cc28428547968"
+    },
+    {
+      "name": "linux-installer-final",
+      "executedOn": "2026-10-28",
+      "reused": true,
+      "environment": "Linux isolated fixture; no real Cloud mutation",
+      "exitCode": 0,
+      "provenance": {
+        "localOriginal": "outputs/tier-cleanup-investigation-20261028/linux-installer-final.json",
+        "sha256": "284fc8e2bf97a2dbd1350f319e34fd32a9437873659aca947804818d832f3c07",
+        "sharedForm": "curated metadata, original retained privately"
+      },
+      "sameReviewedSource": true,
+      "scenariosPassed": 12,
+      "sourceInputsChangedSinceExecution": false
+    }
+  ],
+  "ci": "Current PR HEAD Linux CI to be linked after creation; earlier base CI is not a test of changed Connector source",
+  "notExecutedLocally": [
+    "Fresh PostgreSQL integration",
+    "Real Cloud opt-in suites",
+    "Full real failure matrix; power loss; fsync fault injection; load test"
+  ],
+  "priorFailuresRetained": [
+    "Windows Provider POSIX permission fixture",
+    "Windows installer Git Bash scenario 7",
+    "gofmt Windows CRLF/argument length checks",
+    "Initial public lifecycle immutable flavor fixture mismatch fixed before final source",
+    "Earlier Windows Web 442/443 EPERM",
+    "Read-only metadata verifier SHA/UUID representation bugs corrected; intermediate connection-count assertion later passed without product change"
+  ],
+  "contractAndFormat": {
+    "observedAt": "2026-10-28T06:59:23.565535+00:00",
+    "openAPI": "PASS",
+    "draft202012Schemas": 8,
+    "localRefs": "PASS",
+    "runtimeYAML": "PASS",
+    "migrationPrefixes": "PASS",
+    "canonicalLFGofmtFiles": 562,
+    "canonicalLFGofmt": "PASS"
+  }
+}

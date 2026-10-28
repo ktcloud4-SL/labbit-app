@@ -524,6 +524,7 @@ KT D1은 표준 Neutron 경로가 제공되지 않아 OP-01 내부 Network API�
 - 실제 리소스 종류는 `KT_TIER`, `KT_FIREWALL_POLICY`, `SERVER`, `VOLUME`입니다. Tier `providerId`는 NSM `networkId`이며 `refId` 또는 가상의 Neutron Port/Subnet/SG ID로 대체하지 않습니다. Nova가 만드는 루트 볼륨도 실제 ID로 추적하고 서버 삭제 후 부재를 확인합니다.
 - 기존 CC-01, ACTIVE/인증된 SSH/Startup Ready 확인, immutable Snapshot Reset, 결과 불명 판정과 알려진 ID에 대한 Cleanup/Reconcile을 재사용합니다. NSM Create 후 ID가 확정되지 않으면 UNKNOWN과 이미 확정된 ID만 반환하며, 이름·설명으로 발견된 후보는 자동 소유·삭제하지 않습니다.
 - Cleanup은 서버 → 루트 볼륨 → 방화벽 정책 → Tier 순서로 정확한 추적 ID만 처리합니다. NSM의 전체 페이지 조회가 성공했을 때만 목록에서 없는 ID를 ABSENT로 판정합니다. 공유 Connector Tier와 설치 단계의 Keypair는 Lab Cleanup 대상이 아닙니다.
+- 선택 CIDR 풀의 예약은 Cleanup 성공과 모든 generation의 완전한 생성 이력·exact-ID 부재·전체 Tier inventory의 CIDR 부재가 확인되면 자동 반환합니다. UNKNOWN·구버전 intent 등 근거가 불완전하면 보존하며, RESET 내부 삭제는 반환하지 않습니다. 영속 completion/retired 원장 및 이전 소유자 명령 차단의 상세 계약은 `runtime/`을 따릅니다. HTTP/WSS payload와 ProviderResource 소유권 계약은 바꾸지 않습니다.
 - KT Nova의 일반 서버 DELETE는 soft delete로 루트 볼륨을 보존할 수 있습니다. 알려진 서버 ID의 상세 조회가 400이고, 전체 서버 목록에서 그 ID가 없으며, Cinder의 전체 조회에서 해당 서버에 연결된 볼륨이 확인되면 Gophercloud `forceDelete`를 한 번 수행합니다. 실제 서버 상세 조회의 404와 루트 볼륨 부재를 확인하기 전에는 삭제 완료로 판정하지 않습니다. 결과 불명 응답에서는 mutation을 반복하지 않고 Reconcile로 돌려보냅니다.
 
 ## 12. Result와 결과 불명

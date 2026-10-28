@@ -15,8 +15,8 @@ import (
 	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 )
 
-// Reservations are deliberately never recycled automatically, including after
-// Cleanup. An uncertain create must not make its CIDR available to another lab.
+// Only a confirmed Cleanup of a complete durable resource history can recycle
+// a reservation. An uncertain create must not free its CIDR for another lab.
 // The protected durable directory is the single-writer boundary for this pool.
 // A crash leaves LOCK behind: operator reconciliation is required before reuse.
 type ktCIDRPair struct {
@@ -108,7 +108,7 @@ func readCIDRFile(path string, target any) error {
 // they are never removed on error or interpreted as an available reservation.
 func writeCIDRFile(dir, name string, value any) error {
 	data, err := json.Marshal(value)
-	if err != nil {
+	if err != nil || len(data) > 32768 {
 		return ErrProvisionConfig
 	}
 	file, err := os.OpenFile(filepath.Join(dir, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
@@ -256,6 +256,20 @@ func (a *Adapter) cidrPriorUncertain(correlation coreprovider.Correlation, ownLo
 				return true
 			}
 		case name == "pool.json":
+		case strings.HasPrefix(name, "completion-"):
+			if validateCIDRCompletionFile(dir, name, assignments) != nil {
+				return true
+			}
+		case strings.HasPrefix(name, "retired-"):
+			retired, err := readCIDRRetired(pool, dir, name)
+			if err != nil || retired.Assignment.Instance == correlation.LabInstanceID {
+				return true
+			}
+			for _, assignment := range assignments {
+				if assignment.Instance == retired.Assignment.Instance {
+					return true // An interrupted release requires operator reconciliation.
+				}
+			}
 		case strings.HasPrefix(name, "slot-"):
 			if poolErr != nil {
 				return true
@@ -376,7 +390,14 @@ func (a *Adapter) withCIDRScope(ctx context.Context, correlation coreprovider.Co
 	scoped.provision.LabSubnetCIDR = pool.Pairs[slot].Lab
 	scoped.provision.KTCloudManagementCIDR = pool.Pairs[slot].Management
 	scoped.cidrScope = &ktCIDRScope{dir: dir, slot: slot}
-	return run(&scoped)
+	result, runErr := run(&scoped)
+	if scoped.cidrScope.started && runErr == nil && cidrCompleteResult(result, correlation.Generation) {
+		completion := ktCIDRCompletion{Correlation: correlation, Outcome: result.Outcome, Resources: cidrResultRefs(result.ProviderResources)}
+		if writeCIDRFile(dir, completionName(slot, correlation.Generation), completion) != nil {
+			return unknownResult(result.ProviderResources, "CIDR completion requires reconciliation"), nil
+		}
+	}
+	return result, runErr
 }
 func cidrPairFree(pair ktCIDRPair, tiers []ktCloudTier) (bool, error) {
 	lab, _ := netip.ParsePrefix(pair.Lab)

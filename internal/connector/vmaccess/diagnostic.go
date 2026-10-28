@@ -55,10 +55,81 @@ func (s FailureStage) String() string {
 }
 
 type FailureInfo struct {
-	Stage         FailureStage
-	Timeout       bool
-	ChannelReason uint32
-	ElapsedMS     int64
+	Stage                  FailureStage
+	Timeout                bool
+	ChannelReason          uint32
+	ElapsedMS              int64
+	SSHPhase               SSHPhase
+	HandshakeReturnedError bool
+	ContextEnd             string
+	ContextClosedSocket    bool
+	TransportTimeout       bool
+	SharedWaiter           bool
+	CallerContextEnd       string
+	CallerElapsedMS        int64
+}
+
+// SSHPhase is the last observed checkpoint, not proof of the exact blocked
+// library operation. Identification can be malformed; after host verification
+// the library can await the userauth service before invoking public-key auth.
+// It contains no peer text or terminal content.
+type SSHPhase uint8
+
+const (
+	SSHPhaseUnknown SSHPhase = iota
+	SSHVersionExchange
+	SSHKeyExchange
+	SSHHostVerification
+	SSHAuthentication
+	SSHComplete
+)
+
+func (p SSHPhase) String() string {
+	switch p {
+	case SSHVersionExchange:
+		return "version_exchange"
+	case SSHKeyExchange:
+		return "key_exchange"
+	case SSHHostVerification:
+		return "host_verification"
+	case SSHAuthentication:
+		return "authentication"
+	case SSHComplete:
+		return "complete"
+	default:
+		return "unknown"
+	}
+}
+
+var errSetupTimeout = errors.New("VM access setup deadline")
+var errTransportRetired = errors.New("VM access transport retired")
+
+func contextEnd(ctx context.Context) string {
+	switch {
+	case ctx.Err() == nil:
+		if deadline, ok := ctx.Deadline(); ok && !time.Now().Before(deadline) {
+			return "deadline_timer_pending"
+		}
+		return "active"
+	case errors.Is(context.Cause(ctx), errTransportRetired):
+		return "transport_retired"
+	case errors.Is(context.Cause(ctx), errSetupTimeout):
+		return "setup_deadline"
+	case errors.Is(context.Cause(ctx), context.DeadlineExceeded):
+		return "request_deadline"
+	case errors.Is(ctx.Err(), context.DeadlineExceeded):
+		return "request_deadline"
+	default:
+		return "request_canceled"
+	}
+}
+
+func acquireDiagnostic(err error, ctx context.Context, started time.Time, shared bool) error {
+	d := Diagnose(StageUnknown, err, time.Time{}).(*diagnosticError)
+	d.info.SharedWaiter = shared
+	d.info.CallerContextEnd = contextEnd(ctx)
+	d.info.CallerElapsedMS = time.Since(started).Milliseconds()
+	return d
 }
 
 type diagnosticError struct {

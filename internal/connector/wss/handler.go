@@ -39,6 +39,7 @@ type PTYFactoryFunc func(targetVmKey string, serverId string, cols, rows int) (t
 // 내부 Provider(DispatchOperation / DispatchReconcile) 및 터미널/프리뷰 세션 관리자로 연결한 후 결과를 회신합니다.
 type Handler struct {
 	previewOpenSlots   chan struct{}
+	operationSlot      chan struct{} // Serialize Provider work across overlapping Control readers.
 	mu                 sync.RWMutex
 	provider           provider.Provider
 	sender             MessageSender
@@ -71,6 +72,7 @@ func NewHandler(p provider.Provider, sender MessageSender) *Handler {
 	h := &Handler{
 		provider:         p,
 		previewOpenSlots: make(chan struct{}, 64),
+		operationSlot:    make(chan struct{}, 1),
 	}
 	h.SetSender(sender)
 	return h
@@ -977,6 +979,51 @@ func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Conte
 	if len(ownerEpoch) > 0 {
 		fileEpoch = ownerEpoch[0]
 	}
+	// Provider work can take minutes. Keep the owned reader available for READY
+	// VM Terminal/File requests, while a bounded FIFO still serializes operations.
+	queueCtx, cancelQueue := context.WithCancel(readCtx)
+	// Retiring a reader must unblock reads without closing writes: application
+	// shutdown still publishes Terminal ENDED before Supervisor closes Control.
+	stopRead := context.AfterFunc(readCtx, func() { _ = conn.UnderlyingConn().SetReadDeadline(time.Now()) })
+	jobs := make(chan []byte, 64)
+	workerDone := make(chan struct{})
+	report := func(err error) {
+		if err != nil {
+			if onErr := h.OnError(); onErr != nil {
+				onErr(err)
+			}
+		}
+	}
+	go func() {
+		defer close(workerDone)
+		for {
+			select {
+			case <-queueCtx.Done():
+				return
+			case msg := <-jobs:
+				select {
+				case <-queueCtx.Done():
+					return
+				case h.operationSlot <- struct{}{}:
+				}
+				h.mu.RLock()
+				current := h.fileOwnerEpoch == fileEpoch
+				h.mu.RUnlock()
+				if queueCtx.Err() != nil || !current {
+					<-h.operationSlot
+					return
+				}
+				// Once admitted, reconnect must not cancel an accepted mutation.
+				report(h.handleMessageWithFileOwner(operationCtx, msg, fileEpoch, true))
+				<-h.operationSlot
+			}
+		}
+	}()
+	defer func() {
+		cancelQueue() // Discard queued, unaccepted frames before waiting on accepted work.
+		stopRead()
+		<-workerDone
+	}()
 	for {
 		select {
 		case <-readCtx.Done():
@@ -987,18 +1034,34 @@ func (h *Handler) listenWithOperationContext(readCtx, operationCtx context.Conte
 				return ctxErr
 			}
 			if err != nil {
+				cancelQueue()
 				h.onControlDisconnected(fileEpoch, err)
 				return err
 			}
-			// HandleMessage 에러를 무시하지 않고 등록된 onError 콜백으로 전달 (팀장님 리뷰 6번)
-			if handleErr := h.handleMessageWithFileOwner(operationCtx, msg, fileEpoch, true); handleErr != nil {
-				h.mu.RLock()
-				onErr := h.onError
-				h.mu.RUnlock()
-				if onErr != nil {
-					onErr(handleErr)
-				}
+			if int64(len(msg)) > protocol.MaxJSONMessageSize {
+				report(ErrMessageTooLarge)
+				continue
 			}
+			var kind struct {
+				Type string `json:"type"`
+			}
+			if json.Unmarshal(msg, &kind) == nil && (kind.Type == protocol.MessageTypeOperationCommand || kind.Type == protocol.MessageTypeReconcileRequest) {
+				select {
+				case jobs <- msg:
+				case <-queueCtx.Done():
+					return queueCtx.Err()
+				default:
+					// No ACK or mutation occurred for discarded work. Retire only
+					// this reader; Control can reconcile the uncertain delivery.
+					cancelQueue()
+					_ = conn.Close()
+					err := errors.New("connector wss: Provider work queue is full")
+					h.onControlDisconnected(fileEpoch, err)
+					return err
+				}
+				continue
+			}
+			report(h.handleMessageWithFileOwner(operationCtx, msg, fileEpoch, true))
 		}
 	}
 }

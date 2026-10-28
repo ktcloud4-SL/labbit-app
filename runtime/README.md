@@ -241,7 +241,11 @@ KT D1에서 여러 LabInstance를 운영할 때는 선택 설정 `LABBIT_KTCLOUD
 
 이 방식의 배포 전제는 **한 Project의 해당 풀을 단일 Connector가 독점**하고, 다른 Connector/운영자가 풀에서 대역을 할당하지 않는 것입니다. 같은 풀의 프로세스는 같은 상태 디렉터리를 사용해야 합니다. 독립된 상태 디렉터리나 외부 할당자와의 분산 원자성은 제공하지 않습니다. 매번 최신 inventory를 확인하며 생성 직전에도 중첩/조회 불확실성을 거부합니다. 파일 잠금 충돌 등 사전 거절은 해당 Instance/generation의 이전 mutation 불확실성이 없고 이번 요청에서 mutation을 시도하지 않았다는 증거가 있을 때 FAILED로 반환합니다. 설정 오류·풀 소진·조회 실패도 같은 경계를 사용하며 자동 재시도하지 않습니다. 응답 유실 후 동일 generation intent가 있으면 새 mutation을 허용하지 않습니다.
 
-Cleanup 성공 후에도 예약/intent를 자동 삭제하지 않으므로 풀은 유한하게 소진됩니다. 상태 파일의 삭제·복제·풀 변경, 임시 디스크 사용은 안전한 재할당 방법이 아닙니다. 비정상 종료의 stale `LOCK`은 자동 회수하지 않습니다. 동일 Instance의 잠금, 대상 generation의 기존 intent, 손상된 원장 등 이전 부작용을 배제할 수 없는 경우는 UNKNOWN/HOLD를 유지합니다. 운영자 복구는 이전 프로세스 종료 및 독점 실행, 모든 generation의 exact-ID 부재/소유권, 미확인 mutation 부재를 확인한 뒤 별도 승인으로 수행해야 합니다. 상태 디렉터리를 보존한 바이너리 rollback은 가능하지만, 구버전에는 풀 모드가 없으므로 기존 고정 CIDR로 lifecycle을 재개해서는 안 됩니다.
+Cleanup이 성공하고 모든 generation의 생성 결과와 exact-ID 부재, 전체 Tier inventory의 해당 CIDR 부재가 확인되면 예약을 자동 반환합니다. Provision/RESET은 확정 결과와 전체 추적 ID를 generation별 completion(0600, exclusive create/fsync)에 기록합니다. SERVER마다 같은 generation의 root-volume ID가 있어야 완전한 결과로 인정합니다. UNKNOWN, 응답 유실, completion 없는 구버전 intent, root ID 누락은 자동 반환 근거가 아니므로 Cleanup 자체가 성공해도 예약을 보존합니다. RESET 내부의 이전 generation 삭제는 예약을 반환하지 않습니다.
+
+Cleanup·반환·새 할당은 동일 `LOCK`으로 직렬화합니다. 반환 전 소유자·쌍·Cleanup correlation·모든 generation completion을 immutable retired 파일에 fsync한 뒤 active slot/intent/completion을 제거하고 디렉터리를 fsync합니다. 이전 Instance의 Provision/RESET은 HOLD하며, 반환 이력에 포함된 ID의 중복 Cleanup은 Provider mutation 없이 처리합니다. 반환 도중 종료되어 retired와 이전 active 파일이 함께 남으면 자동 복구하지 않고 HOLD합니다. 각 원장 파일의 상한은 32 KiB이며 이력을 이 상한 내에서 보존할 수 없으면 반환을 보류합니다. 구버전 pool binding은 유지하지만 과거 completion을 추정해 만들지 않습니다. 구버전 바이너리는 새 completion/retired 파일을 알 수 없어 HOLD하므로 rollback 후 lifecycle을 재개하려면 운영자 검증이 필요합니다.
+
+상태 파일의 임의 삭제·복제·풀 변경, 임시 디스크 사용은 안전한 재할당 방법이 아닙니다. 비정상 종료의 stale `LOCK`은 자동 회수하지 않습니다. 동일 Instance의 잠금, 대상 generation의 기존 intent, 손상된 원장 등 이전 부작용을 배제할 수 없는 경우는 UNKNOWN/HOLD를 유지합니다. 운영자 복구는 이전 프로세스 종료 및 독점 실행, 모든 generation의 exact-ID 부재/소유권, 미확인 mutation 부재를 확인한 뒤 별도 승인으로 수행해야 합니다.
 
 D-17의 기본 Heartbeat는 15초, SaaS OFFLINE 판단은 45초입니다. 값은 설정 가능하지만 reconnect를 Operation Retry로 해석하지 않습니다.
 

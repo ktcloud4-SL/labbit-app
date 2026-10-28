@@ -38,6 +38,8 @@ type PTYFactoryFunc func(targetVmKey string, serverId string, cols, rows int) (t
 // Handler 는 SaaS 로부터 수신한 Control WSS 메시지를 검증하고
 // 내부 Provider(DispatchOperation / DispatchReconcile) 및 터미널/프리뷰 세션 관리자로 연결한 후 결과를 회신합니다.
 type Handler struct {
+	operationExecution chan struct{}
+	operationInFlight  map[provider.Correlation]struct{}
 	previewOpenSlots   chan struct{}
 	mu                 sync.RWMutex
 	provider           provider.Provider
@@ -66,11 +68,19 @@ func (h *Handler) SetVMPTYFactory(factory func(context.Context, vmaccess.Target,
 	h.vmPTYFactory = factory
 }
 
+// Four Backend Executor.Run workers can dispatch to one Connector. Keep one
+// extra reservation for the finishing RESULT write: its recipient can dispatch
+// its next Item before SendMessage returns. This is a local bound, not a promise
+// to accept arbitrary load or additional Backend replicas.
+const operationAdmissionLimit = 5
+
 // NewHandler 는 새 Control WSS 메시지 핸들러를 생성합니다.
 func NewHandler(p provider.Provider, sender MessageSender) *Handler {
 	h := &Handler{
-		provider:         p,
-		previewOpenSlots: make(chan struct{}, 64),
+		provider:           p,
+		operationExecution: make(chan struct{}, 1),
+		operationInFlight:  make(map[provider.Correlation]struct{}),
+		previewOpenSlots:   make(chan struct{}, 64),
 	}
 	h.SetSender(sender)
 	return h
@@ -175,7 +185,7 @@ func (h *Handler) HandleMessage(ctx context.Context, raw []byte) error {
 	return h.handleMessageWithFileOwner(ctx, raw, epoch)
 }
 
-func (h *Handler) handleMessageWithFileOwner(ctx context.Context, raw []byte, epoch uint64, asyncPreview ...bool) error {
+func (h *Handler) handleMessageWithFileOwner(ctx context.Context, raw []byte, epoch uint64, asyncTasks ...bool) error {
 	if int64(len(raw)) > protocol.MaxJSONMessageSize {
 		return ErrMessageTooLarge
 	}
@@ -204,7 +214,7 @@ func (h *Handler) handleMessageWithFileOwner(ctx context.Context, raw []byte, ep
 	case protocol.MessageTypeProviderRequest:
 		return h.handleProviderRequest(ctx, env, raw)
 	case protocol.MessageTypeOperationCommand:
-		return h.handleOperationCommand(ctx, env, raw)
+		return h.handleOperationCommand(ctx, env, raw, epoch, len(asyncTasks) > 0 && asyncTasks[0])
 	case protocol.MessageTypeReconcileRequest:
 		return h.handleReconcileRequest(ctx, env, raw)
 	case protocol.MessageTypeTerminalOpen:
@@ -212,7 +222,7 @@ func (h *Handler) handleMessageWithFileOwner(ctx context.Context, raw []byte, ep
 	case protocol.MessageTypeTerminalClose:
 		return h.handleTerminalClose(ctx, env, raw)
 	case protocol.MessageTypePreviewOpen:
-		return h.handlePreviewOpen(ctx, env, raw, epoch, len(asyncPreview) > 0 && asyncPreview[0])
+		return h.handlePreviewOpen(ctx, env, raw, epoch, len(asyncTasks) > 0 && asyncTasks[0])
 	case protocol.MessageTypePreviewClose:
 		return h.handlePreviewClose(ctx, env, raw, epoch)
 	default:
@@ -581,7 +591,7 @@ func validateCreationSnapshot(snap *protocol.CreationSnapshot, mutationType stri
 	return nil
 }
 
-func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseEnvelope, raw []byte) error {
+func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseEnvelope, raw []byte, epoch uint64, asynchronous bool) error {
 	var cmdMsg protocol.OperationCommandMessage
 	if err := json.Unmarshal(raw, &cmdMsg); err != nil {
 		return fmt.Errorf("failed to unmarshal OPERATION_COMMAND: %w", err)
@@ -640,30 +650,94 @@ func (h *Handler) handleOperationCommand(ctx context.Context, env protocol.BaseE
 		return fmt.Errorf("invalid operation command: %w", valErr)
 	}
 
-	// 2. 계약에 따른 OPERATION_ACK(Accepted: true) 즉시 회신
-	if sender := h.Sender(); sender != nil {
-		ackMsg := protocol.OperationAckMessage{
-			BaseEnvelope: protocol.BaseEnvelope{
-				Type:             protocol.MessageTypeOperationAck,
-				MessageID:        generateUUID(),
-				ReplyToMessageID: cmdMsg.MessageID,
-				SentAt:           time.Now().UTC(),
-				RequestID:        cmdMsg.RequestID,
-				OperationID:      cmdMsg.OperationID,
-				LabInstanceID:    cmdMsg.LabInstanceID,
-				Generation:       cmdMsg.Generation,
-				TraceParent:      cmdMsg.TraceParent,
-				TraceState:       cmdMsg.TraceState,
-			},
-			Payload: protocol.OperationAckPayload{
-				Accepted: true,
-			},
+	// Reserve before ACK across reconnects. Accepted means bounded local
+	// admission, not Provider completion. The execution gate below serializes
+	// mutations; waiting tasks cannot block the Control reader.
+	key := provider.Correlation{OperationID: cmdMsg.OperationID, LabInstanceID: cmdMsg.LabInstanceID, Generation: cmdMsg.Generation}
+	h.mu.Lock()
+	if err := ctx.Err(); err != nil {
+		h.mu.Unlock()
+		return err
+	}
+	if epoch != h.fileOwnerEpoch {
+		h.mu.Unlock()
+		return context.Canceled
+	}
+	sender := h.sender
+	_, duplicate := h.operationInFlight[key]
+	admitted := !duplicate && len(h.operationInFlight) < operationAdmissionLimit
+	if admitted {
+		h.operationInFlight[key] = struct{}{}
+	}
+	h.mu.Unlock()
+	release := func() {
+		h.mu.Lock()
+		delete(h.operationInFlight, key)
+		h.mu.Unlock()
+	}
+	ack := protocol.OperationAckMessage{
+		BaseEnvelope: cmdMsg.BaseEnvelope,
+		Payload:      protocol.OperationAckPayload{Accepted: admitted},
+	}
+	ack.Type = protocol.MessageTypeOperationAck
+	ack.MessageID = generateUUID()
+	ack.ReplyToMessageID = cmdMsg.MessageID
+	ack.SentAt = time.Now().UTC()
+	if !admitted {
+		ack.Payload.Error = &protocol.SafeError{
+			Code: "ERR_CONNECTOR_INTERNAL", Message: "Connector operation admission is full",
 		}
-		if err := sender.SendMessage(ctx, ackMsg); err != nil {
+		if duplicate {
+			ack.Payload.Error.Message = "Connector is already processing this operation item"
+		}
+		if sender != nil {
+			return sender.SendMessage(ctx, ack)
+		}
+		return nil
+	}
+	if sender != nil {
+		if err := sender.SendMessage(ctx, ack); err != nil {
+			release()
 			return fmt.Errorf("failed to send OPERATION_ACK: %w", err)
 		}
 	}
+	run := func() error {
+		executing := false
+		defer func() {
+			// Retire the reservation before handing execution to the next task,
+			// so only one finishing response can overlap four Backend workers.
+			release()
+			if executing {
+				<-h.operationExecution
+			}
+		}()
+		select {
+		case h.operationExecution <- struct{}{}:
+			executing = true
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		// A canceled waiter must never start a fresh mutation on shutdown,
+		// even if the gate and cancellation became ready together.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		err := h.executeOperationCommand(ctx, cmdMsg)
+		if asynchronous && err != nil {
+			if onError := h.OnError(); onError != nil {
+				onError(err)
+			}
+		}
+		return err
+	}
+	if asynchronous {
+		go func() { _ = run() }()
+		return nil
+	}
+	return run()
+}
 
+func (h *Handler) executeOperationCommand(ctx context.Context, cmdMsg protocol.OperationCommandMessage) error {
 	// 3. 내부 provider.OperationCommand 모델로 변환
 	internalCmd := provider.OperationCommand{
 		Correlation: provider.Correlation{

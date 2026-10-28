@@ -373,7 +373,7 @@
       "sourceInputsChangedSinceExecution": false
     }
   ],
-  "ci": "Current PR HEAD Linux CI to be linked after creation; earlier base CI is not a test of changed Connector source",
+  "ci": "Initial PR source commit results, including Gitleaks false positive, in ci.json. Final HEAD results and decision are authoritative in PR body and GitHub Checks; do not substitute older source results.",
   "notExecutedLocally": [
     "Fresh PostgreSQL integration",
     "Real Cloud opt-in suites",

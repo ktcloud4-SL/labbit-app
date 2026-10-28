@@ -25,7 +25,7 @@ go test -count=1 ./internal/connector/provider/openstack -run 'TestKTCloudCIDR' 
 | reconnect·종료 | `TestControlEOFDiscardsQueuedWorkAndPreservesAcceptedContext`, `TestRetiredReaderWaitingForOperationSlotStopsWithoutCancelingAcceptedWork`, `TestSessionCancelPreservesAcceptedOperationButStopsBufferedCommands`, `TestSupervisorShutdownCancelsAcceptedOperationContext` | in-process WSS·context. accepted/queued 작업과 read/write 수명을 구분. |
 | CIDR 반환·보존·재사용 | `TestKTCloudCIDRCleanup*`, `TestKTCloudCIDRPublicLifecycleReturnsCompleteTopology`, 기존 `TestKTCloudCIDRPool*` | loopback Provider HTTP·SSH readiness fake·임시 원장. public Provision→5개 refs→Cleanup→같은 pair의 새 owner Provision 경로 포함. 실제 OpenStack 아님. |
 
-과거 독립 리뷰의 overlay red/green은 공유 dial 취소 결함을 별도로 재현했다. 위 회귀가 최종 저장소에 포함되어 있으므로 개인 로컬 overlay 경로는 필요 없다. Linux Provider 전체 재사용 결과는 같은 Provider·계약 파일 해시에서 180 top-level PASS, 실제 OpenStack opt-in 14개 skip이다. Installer는 Linux 격리 fixture 12개 PASS를 재사용한다. 최종 PR CI에서는 새 commit의 전체 기본 검증을 별도로 확인한다.
+과거 독립 리뷰의 overlay red/green은 공유 dial 취소 결함을 별도로 재현했다. 위 회귀가 최종 저장소에 포함되어 있으므로 개인 로컬 overlay 경로는 필요 없다. Linux Provider 전체 재사용 결과는 같은 Provider·계약 파일 해시에서 180 top-level PASS, 실제 OpenStack opt-in 14개 skip이다. Installer는 Linux 격리 fixture 12개 PASS를 재사용한다. PR의 첫 commit `4f0c3bc`에서도 Linux 전체 Go·PostgreSQL 통합·Web 443개·Contracts 검증을 통과했다. [CI 기록](ci.json)은 이 실행과 보안 검사의 오탐을 구분하며, 최종 HEAD의 전체 결과는 PR 본문과 GitHub Checks를 기준으로 확인한다.
 
 ## 실제 Browser와 VM 검증
 
@@ -39,7 +39,11 @@ go test -count=1 ./internal/connector/provider/openstack -run 'TestKTCloudCIDR' 
 
 ## 실패 기록과 검증 한계
 
-현재 제품 소스의 fresh Windows Go vet·unit·build와 관련 race는 PASS다. fresh Web typecheck·lint·build는 PASS, test는 441/443으로 기존 installer env fixture 두 건의 `rmSync` EPERM이 실패했다. 이전 Windows 실행의 442/443 실패도 같은 임시 디렉터리 정리 경계였다. Web·workflow 입력은 base와 동일하며 Linux PR CI 결과를 별도로 기록한다. 실패를 수정본 전체 PASS로 바꾸어 표시하지 않는다.
+현재 제품 소스의 fresh Windows Go vet·unit·build와 관련 race는 PASS다. fresh Web typecheck·lint·build는 PASS, test는 441/443으로 기존 installer env fixture 두 건의 `rmSync` EPERM이 실패했다. 이전 Windows 실행의 442/443 실패도 같은 임시 디렉터리 정리 경계였다. Web·workflow 입력은 base와 동일하며 Linux PR CI에서는 443/443 PASS였다. Windows 실패를 전체 로컬 PASS로 바꾸어 표시하지 않는다.
+
+첫 PR commit의 Gitleaks는 manifest의 `vmaccess/access.go` 파일 SHA256을 generic API key로 오인했다. 실제 파일에서 같은 해시를 다시 계산해 확인했다. 공개 manifest의 파일 목록을 path·sha256 배열로 표현해 directory scan에서도 credential key 문맥으로 오인되지 않도록 했으며, 21개 원래 경로·해시와 changeSHA256은 보존했다. 이미 게시된 첫 commit을 검사하는 history scan에는 `.gitleaksignore`의 해당 commit·file·rule·line fingerprint 한 건만 예외로 둔다. 파일 전체·규칙 전체를 제외하지 않는다.
+
+같은 v8.28.0의 로컬 history 검사는 0건으로 통과했다. tracked tree 전체 directory 검사는 기존 파일 48개의 807건 탐지로 실패했다. 이 48개 파일은 base와 canonical 내용이 전부 같고 이번 신규·변경 파일의 탐지는 0건이었다. 기존 807건을 모두 오탐이나 안전한 값으로 판정한 것은 아니며, 저장소 전체 directory 검사를 통과했다고 주장하지 않는다. 이 PR은 해당 기존 범위를 숨기는 전역 예외나 workflow 변경을 추가하지 않는다.
 
 이전 준비 과정에서는 Windows Provider POSIX permission, Installer Git Bash 시나리오 7, gofmt의 CRLF·인자 길이, public lifecycle fixture flavor 불일치가 실패했다. Linux permission·installer 검증과 canonical LF 비교, 올바른 immutable fixture flavor로 보완한 뒤 최종 소스를 고정했다. 초기 metadata 검증기에는 기준 SHA·UUID 표현 오류가 있었고 read-only 검증기만 수정해 재검증했다. Cleanup 직후 한 snapshot의 connection count assertion도 실패했으며 후속 관찰과 동일 검증기 재실행에서 정상화됐다. 원인을 확인하지 않은 snapshot 실패를 제품 결함 해결로 설명하지 않는다.
 

@@ -1,0 +1,3 @@
+# False positive: canonical LF SHA256 of vmaccess/access.go, not a credential.
+# Exact commit/file/rule/line only; see LBT-147 runtime-recovery audit E2.
+4f0c3bc4d54447e2006758f64282fed6b7859b67:docs/connector/evidence/LBT-147/2026-10-28-runtime-recovery/source-manifest.json:generic-api-key:14

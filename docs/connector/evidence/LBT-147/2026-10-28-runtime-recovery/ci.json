@@ -1,0 +1,115 @@
+{
+  "testedPRHead": "4f0c3bc4d54447e2006758f64282fed6b7859b67",
+  "githubSyntheticMergeCommit": "583ff8adbc76a38e39018a57913cc852852ca67d",
+  "base": "aaa99d80c434910357007882bdbc614de8f1109d",
+  "sourceChangesSHA256": "21f07ea74db5e436aa644210aaa4bb1814a7bd11459b63abaca1e25c6eda8435",
+  "environment": "GitHub-hosted Ubuntu runner; PostgreSQL16 service; Web Node22",
+  "runs": [
+    {
+      "id": 40647680006,
+      "name": "Contracts",
+      "conclusion": "success",
+      "url": "https://github.com/ktcloud4-SL/labbit-app/actions/runs/40647680006"
+    },
+    {
+      "id": 40647680004,
+      "name": "Go",
+      "conclusion": "success",
+      "url": "https://github.com/ktcloud4-SL/labbit-app/actions/runs/40647680004"
+    },
+    {
+      "id": 40647680057,
+      "name": "Security Scan",
+      "conclusion": "failure",
+      "url": "https://github.com/ktcloud4-SL/labbit-app/actions/runs/40647680057"
+    },
+    {
+      "id": 40647680009,
+      "name": "Deliver Backend Image",
+      "conclusion": "success",
+      "url": "https://github.com/ktcloud4-SL/labbit-app/actions/runs/40647680009"
+    },
+    {
+      "id": 40647680021,
+      "name": "Web",
+      "conclusion": "success",
+      "url": "https://github.com/ktcloud4-SL/labbit-app/actions/runs/40647680021"
+    }
+  ],
+  "go": {
+    "formatVetUnitBuild": "PASS",
+    "actualPostgreSQLIntegration": "PASS",
+    "testOnlyRouterHarness": "PASS, actual PostgreSQL plus Mock Provider; no Cloud E2E"
+  },
+  "web": {
+    "filesPassed": 34,
+    "testsPassed": 443,
+    "totalTests": 443,
+    "typecheckLintBuild": "PASS",
+    "responsiveMockSmoke": "PASS at 320/375/768px; not real cloud Browser"
+  },
+  "security": {
+    "hadolint": "PASS",
+    "trivy": "PASS",
+    "gitleaksInitial": "FAILED_FALSE_POSITIVE",
+    "rule": "generic-api-key",
+    "file": "docs/connector/evidence/LBT-147/2026-10-28-runtime-recovery/source-manifest.json",
+    "line": 14,
+    "flaggedValue": "Canonical LF SHA256 of internal/connector/vmaccess/access.go, independently recomputed; not a credential",
+    "correction": "Public path/sha256 array preserves original map/changeSHA256; exact historical commit/file/rule/line .gitleaksignore only",
+    "scannerVersion": "v8.28.0",
+    "officialFingerprintDocumentation": "https://github.com/gitleaks/gitleaks/blob/v8.28.0/README.md#gitleaksignore"
+  },
+  "delivery": {
+    "backendImage": "Build validation only; push:false on pull_request; no runtime deployment"
+  },
+  "scope": "This is the initial source commit CI, not a claim of final documentation HEAD CI success. Final HEAD run links and audit decision are recorded in the PR body/GitHub Checks after all pending checks pass.",
+  "privateOriginals": [
+    {
+      "name": "initial-ci-runs.json",
+      "sha256": "c2d1884f0fb0cc69a573cd298abd9d4468208b7caf0adaec6c3757f408f1fd3d"
+    },
+    {
+      "name": "initial-ci-go-log.json",
+      "sha256": "35da14c9f9fd71cb2d12d3493825cc12e8df2a4b9ca0d52889966a10443f1865"
+    },
+    {
+      "name": "initial-ci-web-log.json",
+      "sha256": "2f3d770110da487b2d845e98873cf4403966ad1c9d0217278b4e51bd212c9375"
+    },
+    {
+      "name": "initial-ci-gitleaks-log.json",
+      "sha256": "310c7259387d9ac628651bc79db888c5aebb109f74bf0f92406432443f648fc1"
+    }
+  ],
+  "localSecurityFollowup": {
+    "scannerModule": "github.com/zricethezav/gitleaks/v8@v8.28.0",
+    "historyCurrentRangeExitCode": 0,
+    "historyCurrentRangeFindings": 0,
+    "trackedWorkingTreeDirectoryExitCode": 1,
+    "directoryFindings": 807,
+    "distinctFindingFiles": 48,
+    "allFindingFilesCanonicalEqualToBase": true,
+    "newOrChangedFindingFiles": [],
+    "notClaimed": "Repository-wide clean dir scan; pre-existing 807 findings have not all been assessed as false positives",
+    "reviewScope": "No blanket ignores added; new public manifest has zero directory findings",
+    "provenance": [
+      {
+        "name": "gitleaks-local-results.json",
+        "sha256": "8d15bc6f7db88605452440ae98060a35b0f1a013370f5961cdeed8b576918745"
+      },
+      {
+        "name": "gitleaks-local-summary.json",
+        "sha256": "459fdf4f8158abbe7a04bd224b3166be49632dc8f7746381c6aaab00e831bbbf"
+      },
+      {
+        "name": "gitleaks-history-report.json",
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+      },
+      {
+        "name": "gitleaks-directory-report.json",
+        "sha256": "a7bc55a06c46855f5dce1b894dde7c9fb8116626990ad8ff3836585015e0cb50"
+      }
+    ]
+  }
+}

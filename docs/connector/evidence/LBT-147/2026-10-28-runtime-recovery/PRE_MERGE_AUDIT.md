@@ -4,7 +4,7 @@
 
 ## 전체 변경 검토
 
-실행된 미커밋 제품 소스는 [21개 파일 manifest](source-manifest.json)의 canonical LF 해시로 고정했다. staged·unstaged·untracked를 모두 확인했다. 아래 21개에 운영 설명 문서와 이 Evidence 패키지를 추가한다. raw status의 일부 WSS 파일은 line ending·stat 차이만 있고 normalized 내용은 base와 같아 PR에 포함하지 않는다. ignored Node 의존성·실행 도구는 setup 결과이며 제품 변경이 아니다. 개인 출력 디렉터리에는 운영 접근 helper와 민감한 참조가 있어 그대로 제출하지 않는다.
+실행된 미커밋 제품 소스는 [21개 파일 manifest](source-manifest.json)의 canonical LF 해시로 고정했다. staged·unstaged·untracked를 모두 확인했다. 아래 21개에 운영 설명 문서와 이 Evidence 패키지, 단일 fingerprint의 `.gitleaksignore`를 추가한다. 공개 manifest는 scanner 오탐을 피하기 위해 path·sha256 배열로 표현하며 원래 map으로 복원한 changeSHA256은 동일하다. private build/deployment manifest는 바꾸지 않았다. raw status의 일부 WSS 파일은 line ending·stat 차이만 있고 normalized 내용은 base와 같아 PR에 포함하지 않는다. ignored Node 의존성·실행 도구는 setup 결과이며 제품 변경이 아니다. 개인 출력 디렉터리에는 운영 접근 helper와 민감한 참조가 있어 그대로 제출하지 않는다.
 
 | 파일 | 검토 목적과 영향 경계 |
 | --- | --- |
@@ -63,6 +63,9 @@ Jira 본문·AC·최신 관련 댓글 및 아래 Confluence 원문을 10월 28�
 | D1 P3 문서 | 운영 변경 이력 초안 13·18행. LabExecution 단위 거절·기존 slot이라고 기술 | 실제 LabInstance 충돌 거절과 이번 slot 추가를 오해할 수 있음. 독립 리뷰에서 수정 전 보고. | LabInstance와 기존 직렬 실행 보존으로 보정. 제품 동작 변경이 없어 새 자동 테스트 불필요. |
 | E1 P2 검증 기록 | `validation.json` 초안 337행, concurrency 실행의 sameReviewedSource·최종 test hash | 신규 public lifecycle 테스트 추가 전 179 PASS를 최종 전체 Provider 테스트 실행처럼 표시. 실제 final180 PASS 근거는 별도 존재. | 해당 실행은 제품 구현 동일·신규 테스트 미포함으로 범위를 보정하고 최종 test hash 제거. 원본 binary·결과 대조, 추가 제품 테스트 불필요. |
 | D2 P3 감사 기록 | 이 문서 초안 56행, F1 위치를 Diagnose 함수로 기술 | 원래 typed diagnostic을 잃은 실제 위치가 아닌 함수로 잘못 안내. | base `access.go:133`부터 135행으로 보정하고 원래 safeError 대체를 설명. |
+| E2 P2 CI 오탐 | 첫 PR commit `4f0c3bc`, `source-manifest.json:14`, Gitleaks generic-api-key | `access.go`의 실제 canonical LF SHA256을 credential로 오인. 파일 재계산으로 해시임을 확인했으며 실제 secret 발견이 아님. | 공개 목록은 path·sha256 배열로 바꿔 directory scan 문맥을 보완하고, 이미 게시된 commit의 exact fingerprint 1개만 history 예외. 전체 규칙·파일 제외 없음. 같은 v8.28 git/dir 및 최종 CI로 확인. |
+
+추가 조사에서 v8.28.0 전체 tracked directory 검사는 807건을 탐지했다. 해당 48개 파일은 모두 base와 canonical bytes가 같고 신규·변경 파일 탐지는 0이다. 이 결과는 이번 PR이 추가한 탐지가 없다는 근거이며 807건 각각의 안전성 판정이 아니다. history 검사 PASS와 전체 directory FAIL을 [CI 기록](ci.json)에 구분했다. 기존 전체 저장소 finding 검토는 이번 Connector 변경 감사 밖의 후속 보안 범위다.
 
 위 위치는 함수 시작 또는 문제 경계의 대표 위치다. F1·F4는 수정 진행 중 중간 형태까지 포함하고 base와 최종 변경 줄이 일대일 대응하지 않는다. 최종 고정 소스와 전체 diff의 검토 위치는 앞 표에 따로 적었다.
 
@@ -82,8 +85,8 @@ Jira 본문·AC·최신 관련 댓글 및 아래 Confluence 원문을 10월 28�
 
 ## 실행과 독립 검토
 
-최종 제품 해시에서 Windows Go vet·unit·build 및 VMAccess/app/Terminal/WSS race를 fresh 실행했다. POSIX Provider·installer fixture는 해시가 같은 기존 Linux 결과를 재사용하고 PR Linux CI에서 전체 기본 검증을 추가 확인한다. Windows Web test 실패와 skip, 이전 fixture 실패·수정은 README 및 validation에 공개했다. DB integration은 로컬에서 새로 실행하지 않았고 PR CI가 해당 HEAD의 PostgreSQL 경로를 검증한다. 실제 VM 결과는 unit이나 Mock으로 대체하지 않았다.
+최종 제품 해시에서 Windows Go vet·unit·build 및 VMAccess/app/Terminal/WSS race를 fresh 실행했다. POSIX Provider·installer fixture는 해시가 같은 기존 Linux 결과를 재사용했고, 첫 PR commit `4f0c3bc`의 Linux 전체 Go·실제 PostgreSQL16 integration·Web443개·Contracts도 통과했다. [ci.json](ci.json)은 이 초기 실행과 Gitleaks 오탐 실패를 그대로 구분한다. Windows Web test 실패와 skip, 이전 fixture 실패·수정은 README 및 validation에 공개했다. 로컬 DB integration을 새로 실행했다고 주장하지 않는다. 실제 VM 결과는 unit이나 Mock으로 대체하지 않았다.
 
-구현과 분리된 reviewer `terminal_reviewer`가 현재 21개 전체 diff, 신규 테스트, 호출자·consumer, 최신 D18·20·21·24 원문, source hash를 다시 확인했다. 새 confirmed blocker는 없었다. 공개 문서·Evidence의 재현성·privacy·범위에 대한 최종 검토는 문서 고정 후 별도로 기록한다.
+구현과 분리된 reviewer `terminal_reviewer`가 현재 21개 전체 diff, 신규 테스트, 호출자·consumer, 최신 D18·20·21·24 원문, source hash를 다시 확인했다. 공개 문서·Evidence도 원본25개 해시·내부14개 링크·privacy·검증 범위를 교차 확인하고 D1·E1·D2 보정 후 로컬 검토를 통과했다. 해당 시점의 [독립 검토 snapshot](independent-review.json)은 이후 CI 오탐 보완까지 검토한 것처럼 표시하지 않는다. 추가 파일인 `.gitleaksignore`·`ci.json`·독립 검토 snapshot, public manifest 표현 보완도 최종 두 번째 패스 대상으로 포함한다.
 
-현 단계 판정은 **제품 코드 검토 통과, 문서·최종 CI 확인 중**이다. 최종 PR 검토 가능 판정은 문서 독립 검토와 해당 HEAD CI 후 갱신한다. 과거 timeout의 단일 원인 확정, 전체 장애 매트릭스 완료, merge·추가 배포 승인으로 확대하지 않는다.
+제품 코드·운영 설명·Evidence의 검토 범위와 해결한 finding은 위와 같다. 최종 PR 검토 가능 판정은 **PR 본문에서 고정한 최신 HEAD의 Linux CI 결과와 독립 후속 검토 결과**를 함께 확인한다. 문서 안의 초기 commit CI를 최종 HEAD의 PASS로 대체하지 않는다. 과거 timeout의 단일 원인 확정, 전체 장애 매트릭스 완료, merge·추가 배포 승인으로 확대하지 않는다.

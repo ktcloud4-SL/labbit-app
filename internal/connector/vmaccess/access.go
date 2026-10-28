@@ -132,7 +132,8 @@ func (m *Manager) acquire(ctx context.Context, target Target) (*connection, erro
 		m.mu.Lock()
 		c.client, c.err = client, dialErr
 		if c.retired || m.closed || ctx.Err() != nil {
-			c.err = safeError(ctx, ErrUnavailable)
+			// Keep the failing SSH stage while retaining cancellation semantics.
+			c.err = Diagnose(StageUnknown, errors.Join(dialErr, safeError(ctx, ErrUnavailable)), time.Time{})
 		}
 		if c.err != nil {
 			m.retireLocked(c)

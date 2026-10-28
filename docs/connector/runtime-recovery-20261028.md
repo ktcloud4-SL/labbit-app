@@ -4,18 +4,18 @@
 
 ## 병합본과 운영본의 차이
 
-비교 기준 main은 `aaa99d80c434910357007882bdbc614de8f1109d`이다. 마지막 Connector 변경 병합은 [PR 155](https://github.com/ktcloud4-SL/labbit-app/pull/155)의 `ff3d0cf8022c6c242d019dfe6bae10d95446db06`이며, 그 사이 Connector·설치기·Runtime 파일에는 추가 변경이 없다. 이번 PR의 기존 변경은 제품 코드 9개, 테스트 9개, 계약·설명 3개다. 전체 파일과 canonical LF 해시는 [source manifest](evidence/LBT-147/2026-10-28-runtime-recovery/source-manifest.json)에 있다.
+운영 변경 조사 당시 비교 기준은 main `aaa99d80c434910357007882bdbc614de8f1109d`였고, 그 기준 마지막 Connector 병합은 [PR 155](https://github.com/ktcloud4-SL/labbit-app/pull/155)였다. PR 작성 중 [PR 163](https://github.com/ktcloud4-SL/labbit-app/pull/163)과 [PR 166](https://github.com/ktcloud4-SL/labbit-app/pull/166)이 main에 병합되어 최종 기준을 `019ff7ece1dccec551a9247d954020d9dc958855`로 갱신했다. 두 병합의 admission·ACK·중복 차단·SSH 오류 보존을 유지한다. 운영에서 실행한 21개 파일 해시는 [운영 source manifest](evidence/LBT-147/2026-10-28-runtime-recovery/source-manifest.json), 최종 통합한 21개 파일은 [통합 source manifest](evidence/LBT-147/2026-10-28-runtime-recovery/integration-source-manifest.json)에 구분했다. 최종 통합본은 이번 작업에서 운영에 배포하지 않았다.
 
-| 변경 | 운영에서 달라지는 행동 |
+| 변경 | 변경과 운영 및 통합 범위 |
 | --- | --- |
 | 공유 SSH 연결 생성 | 첫 요청이 취소돼도 같은 VM에 남아 있는 요청의 SSH 협상을 취소하지 않는다. Manager의 유한한 연결 시간 한도를 유지하며 마지막 대기자 취소·generation 변경은 연결을 정리한다. |
 | 안전한 오류 분류 | 취소·timeout 변환 뒤에도 연결 단계와 원인을 보존한다. SSH identification·key exchange·host verification·authentication 진행 지점, 소요시간, context 종료를 구분한다. 파일 요청의 오류 변환 전에도 같은 관측 경계를 사용한다. |
-| Control 수신 | 오래 걸리는 Provider 작업 중에도 READY VM의 Terminal·File 요청을 수신한다. 내부 FIFO는 64개로 제한하고 기존 Provider 직렬 실행을 전역 slot으로 보존한다. |
+| Control 수신 | 운영 실측본은 FIFO64로 Provider 작업 중 READY VM의 요청을 수신했다. 최종 미배포 통합본은 최신 main의 최대 5개 admission·즉시 ACK·correlation 중복 차단과 단일 mutation 실행 gate를 보존한다. 이번 PR은 reader 취소 시 write 경로 보존을 보완한다. |
 | Terminal 종료 알림 | reader 종료는 read deadline으로 해제해 write 경로를 보존한다. Connector 종료 시 `TERMINAL_ENDED` 전송을 socket 전체 종료가 먼저 막지 않도록 한다. |
 | CIDR 자동 반환 | Cleanup과 엄격한 부재 확인을 마친 예약만 반환한다. completion·retired 기록으로 이전 소유자의 지연 명령을 차단한다. |
 | 파일 기능 설정 | main에 이미 있는 PR 155의 helper 자동 설치를 활성화하도록 기존 Runtime key 두 개를 설정했다. 이번 PR에서 파일 프로토콜이나 helper 소스를 새로 구현한 것은 아니다. |
 
-Control FIFO는 SaaS의 충돌 요청을 기다리게 하는 제품 기능이 아니다. 같은 LabInstance를 대상으로 하는 충돌 mutation은 기존 HTTP `409 operation_in_progress`와 DB 제약으로 거절한다. 끊긴 reader의 미수락 명령은 폐기하고 이미 수락한 작업만 application context에서 계속한다. 종료 시에는 그 context도 취소한다. 명령이나 mutation을 자동 재전송하지 않는다.
+운영 시험 당시의 FIFO64 구현은 최종 통합본에서 최신 main의 PR163 admission 구현으로 대체했다. 수락된 대기 작업은 reconnect 후에도 유지하고 미수락 old-reader 작업은 차단한다. RECONCILE_REQUEST는 최신 main처럼 동기 read-only 처리를 유지한다. 이는 SaaS의 충돌 요청을 기다리게 하는 제품 기능이 아니다. 같은 LabInstance를 대상으로 하는 충돌 mutation은 기존 HTTP `409 operation_in_progress`와 DB 제약으로 거절한다. 끊긴 reader의 미수락 명령은 처리하지 않고 이미 수락한 실행·대기 작업은 application context에서 계속한다. 종료 시에는 그 context도 취소한다. 명령이나 mutation을 자동 재전송하지 않는다.
 
 ## CIDR 계약 변경과 복귀 조건
 
@@ -50,7 +50,7 @@ LABBIT_WORKSPACE_SFTP_HELPER_SHA256=5a31b45369409b0420f4a3c3611b7e06eb65b315e3e5
 
 ## 현재 배포 확인과 재현
 
-2026년 10월 28일 검증 당시 binary SHA256은 `52ec09329b837c27618fc579aba5c7e87c40b12618f08d94cabc4e0c39c51c32`, 버전은 `terminal-diagnose-21f07ea74db5`다. 표기된 `aaa99d8…+diagnostic-21f07ea74db5`는 base와 미커밋 소스 해시를 조합한 운영 빌드 식별자이며 Git commit SHA가 아니다. 이 PR의 제품 소스와 해시가 일치한다.
+2026년 10월 28일 검증 당시 binary SHA256은 `52ec09329b837c27618fc579aba5c7e87c40b12618f08d94cabc4e0c39c51c32`, 버전은 `terminal-diagnose-21f07ea74db5`다. 표기된 `aaa99d8…+diagnostic-21f07ea74db5`는 base와 미커밋 소스 해시를 조합한 운영 빌드 식별자이며 Git commit SHA가 아니다. 이 해시는 운영 실측 당시 제품 소스를 식별한다. 최신 main을 통합한 최종 PR 소스는 별도 해시이며 새 자동 검증·CI 대상으로 구분한다.
 
 적용된 env는 `/etc/labbit/connector/aws-seoul-20261027/runtime.env`, systemd 선택은 `/etc/systemd/system/labbit-connector.service.d/10-aws-seoul.conf`다. CIDR state는 `/var/lib/labbit-connector/aws-seoul-20261027-pool`, Workspace root는 `/var/lib/labbit-workspaces/workspace`, guest helper는 `/usr/local/libexec/labbit-workspace-sftp`다. credential·cloud config·개인키 파일은 기존 보호된 로컬 참조를 유지한다. known_hosts는 기존 검증된 전용 파일을 보존한다.
 

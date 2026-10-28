@@ -78,6 +78,9 @@ func TestHandshakeTimeoutAndCancellationCloseSocket(t *testing.T) {
 				if !ok || info.Stage != StageHandshake || info.Timeout != (mode == "timeout") {
 					t.Fatalf("handshake diagnostic lost: %+v, present=%v", info, ok)
 				}
+				if (mode == "timeout" || mode == "cancel") && (!errors.Is(err, ErrUnavailable) || err.Error() != errors.Join(ErrUnavailable, want).Error()) {
+					t.Error("handshake failure lost safe classification or retained raw details")
+				}
 				if mode == "timeout" && info.ElapsedMS <= 0 {
 					t.Fatalf("handshake elapsed time lost: %+v", info)
 				}

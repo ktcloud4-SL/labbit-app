@@ -113,9 +113,12 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 		}
 		resources = upsertResource(resources, serverResource)
 
-		activeContext, cancelActive := context.WithTimeout(ctx, config.ActiveTimeout)
-		activeResource, err := a.waitServerActive(activeContext, resourceIdentity(request.Generation, vm.VMKey), server.ID)
-		cancelActive()
+		var activeResource coreprovider.ResourceResult
+		err = a.runReadinessStage(ctx, request.Correlation, vm.VMKey, server.ID, stageServerActive, a.serverActiveTimeout(config), func(stageCtx context.Context) error {
+			var waitErr error
+			activeResource, waitErr = a.waitServerActive(stageCtx, resourceIdentity(request.Generation, vm.VMKey), server.ID)
+			return waitErr
+		})
 		if activeResource.ProviderID != "" {
 			resources = upsertResource(resources, activeResource)
 		}
@@ -131,9 +134,9 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 			return unknownResult(resources, "VM network state could not be verified"), nil
 		}
 
-		sshContext, cancelSSH := context.WithTimeout(ctx, config.SSHReadyTimeout)
-		err = a.waitSSHReadyAddress(sshContext, managementIP, server.ID)
-		cancelSSH()
+		err = a.runReadinessStage(ctx, request.Correlation, vm.VMKey, server.ID, stageManagementSSH, config.SSHReadyTimeout, func(stageCtx context.Context) error {
+			return a.waitSSHReadyAddress(stageCtx, managementIP, server.ID)
+		})
 		if err != nil {
 			if (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) && ctx.Err() != nil {
 				return unknownResult(resources, "VM SSH state could not be verified"), nil
@@ -141,9 +144,9 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 			return failedResult(resources, errorBootTimeout, "VM SSH did not become ready"), nil
 		}
 		if request.CreationSnapshot.StartupScript != nil || (len(artifact) != 0 && vm.VMKey == request.CreationSnapshot.WorkspaceVMKey) {
-			startupContext, cancelStartup := context.WithTimeout(ctx, config.StartupReadyTimeout)
-			err = a.waitStartupReadyAddress(startupContext, managementIP, server.ID)
-			cancelStartup()
+			err = a.runReadinessStage(ctx, request.Correlation, vm.VMKey, server.ID, stageStartup, config.StartupReadyTimeout, func(stageCtx context.Context) error {
+				return a.waitStartupReadyAddress(stageCtx, managementIP, server.ID)
+			})
 			if err != nil {
 				if (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) && ctx.Err() != nil {
 					return unknownResult(resources, "VM initialization state could not be verified"), nil
@@ -162,9 +165,9 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 			if probe == nil {
 				probe = a.probeWorkspacePTY
 			}
-			probeCtx, cancel := context.WithTimeout(ctx, config.SSHReadyTimeout)
-			err := probe(probeCtx, net.JoinHostPort(managementIP, "22"), server.ID)
-			cancel()
+			err := a.runReadinessStage(ctx, request.Correlation, vm.VMKey, server.ID, stageWorkspacePTY, config.SSHReadyTimeout, func(stageCtx context.Context) error {
+				return probe(stageCtx, net.JoinHostPort(managementIP, "22"), server.ID)
+			})
 			if err != nil {
 				if ctx.Err() != nil {
 					return unknownResult(resources, "Workspace Terminal state could not be verified"), nil

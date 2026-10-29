@@ -255,14 +255,15 @@ func (p *peer) writeLoop() {
 				tick = ticker.C
 				continue
 			}
-			// Serialize the closed check with close requests, so no Ping follows close.
+			// The writer alone sends frames, so a queued close can follow an
+			// in-flight Ping, but no Ping can follow the actual Close frame.
 			p.q.mu.Lock()
-			if p.q.closed {
-				p.q.mu.Unlock()
+			closed := p.q.closed
+			p.q.mu.Unlock()
+			if closed {
 				continue
 			}
 			err := p.ws.WriteControl(websocket.PingMessage, nil, time.Now().Add(p.writeTimeout))
-			p.q.mu.Unlock()
 			if err != nil {
 				p.q.abort()
 				_ = p.ws.Close()

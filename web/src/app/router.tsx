@@ -49,6 +49,14 @@ function RequireAuth({ children }: { children: ReactNode }) {
     return (
       <main className="app-page">
         <ErrorState message="로그인 상태를 확인하지 못했습니다." />
+        <button
+          className="secondary-button"
+          type="button"
+          disabled={meQuery.isFetching}
+          onClick={() => void meQuery.refetch()}
+        >
+          {meQuery.isFetching ? '로그인 상태 확인 중...' : '로그인 상태 다시 확인'}
+        </button>
       </main>
     )
   }

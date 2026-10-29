@@ -24,6 +24,7 @@ const (
 	defaultQueueBytes       = 1 << 20
 	defaultQueueMessages    = 256
 	defaultMaxBinaryMessage = 1 << 20
+	terminalPingInterval    = 20 * time.Second
 )
 
 // contracts/realtime/README.md §9의 close code와 표준 code다.
@@ -111,6 +112,7 @@ type Relay struct {
 	attachTimeout time.Duration
 	writeTimeout  time.Duration
 	closeGrace    time.Duration
+	pingInterval  time.Duration
 
 	browserQueueBytes, browserQueueMessages int
 	dataQueueBytes, dataQueueMessages       int
@@ -156,6 +158,7 @@ func New(opts Options) (*Relay, error) {
 		attachTimeout:        durationOr(opts.AttachTimeout, defaultAttachTimeout),
 		writeTimeout:         durationOr(opts.WriteTimeout, defaultWriteTimeout),
 		closeGrace:           durationOr(opts.CloseGrace, defaultCloseGrace),
+		pingInterval:         terminalPingInterval,
 		browserQueueBytes:    intOr(opts.BrowserQueueBytes, defaultQueueBytes),
 		browserQueueMessages: intOr(opts.BrowserQueueMessages, defaultQueueMessages),
 		dataQueueBytes:       intOr(opts.DataQueueBytes, defaultQueueBytes),

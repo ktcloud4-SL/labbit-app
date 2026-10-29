@@ -169,6 +169,7 @@ func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket
 		}
 	}
 	attached.Store(true)
+	p.startKeepalive(r.pingInterval)
 	log.Info("Connector Terminal Data attach", "resumed", resumed)
 
 	_ = ws.SetReadDeadline(time.Time{})

@@ -2,8 +2,12 @@ package realtime
 
 import (
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -170,5 +174,39 @@ func TestPeerCloseWithFinalMessageDeterministicInterleaving(t *testing.T) {
 	}
 	if _, ok := sub.p.q.next(); ok {
 		t.Fatalf("late pty data was incorrectly queued after LIVE_ENDED")
+	}
+}
+
+func TestKeepaliveWriteFailureStopsPeer(t *testing.T) {
+	peers := make(chan *peer, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ws, err := (&websocket.Upgrader{}).Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		p := newPeer(ws, 1024, 8, time.Second, 10*time.Millisecond)
+		peers <- p
+		<-p.done
+	}))
+	defer server.Close()
+	client, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := <-peers
+	// Closing both TCP endpoints makes the first Ping fail deterministically.
+	_ = client.Close()
+	_ = p.ws.Close()
+	p.startKeepalive(10 * time.Millisecond)
+	select {
+	case <-p.done:
+	case <-time.After(time.Second):
+		t.Fatal("writer did not stop after transport failure")
+	}
+	if !p.isClosed() {
+		t.Fatal("failed writer did not close queue")
+	}
+	if err := p.send(websocket.TextMessage, []byte("late")); !errors.Is(err, errPeerClosed) {
+		t.Fatalf("send after failure: %v", err)
 	}
 }

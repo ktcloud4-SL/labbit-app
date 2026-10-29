@@ -70,6 +70,7 @@ func newKTCloudD1Adapter(ctx context.Context, cfg Config, auth gophercloud.AuthO
 	adapter.identity = &gophercloud.ServiceClient{ProviderClient: client, Endpoint: identityEndpoint, Type: "identity"}
 	adapter.ktNetwork = &ktCloudD1Network{client: &gophercloud.ServiceClient{ProviderClient: client, Endpoint: gateway + "/nsm/v1/", Type: "network"}}
 	adapter.provision = normalizedProvisionConfig(cfg.Provision)
+	adapter.diagnosticLogger = cfg.DiagnosticLogger
 	if adapter.provision.ProjectID != "" {
 		adapter.volume = &gophercloud.ServiceClient{ProviderClient: client, Endpoint: gateway + "/volume/" + adapter.provision.ProjectID + "/", Type: "volumev3"}
 	}

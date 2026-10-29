@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -32,9 +33,10 @@ const authenticationTimeout = 15 * time.Second
 // Config identifies a single cloud entry in the customer-local clouds.yaml.
 // The file may contain credentials and must remain outside the repository.
 type Config struct {
-	File      string
-	CloudName string
-	Provision ProvisionConfig
+	File             string
+	CloudName        string
+	Provision        ProvisionConfig
+	DiagnosticLogger *slog.Logger
 }
 
 // ProvisionConfig contains customer-local infrastructure choices. These are
@@ -124,18 +126,19 @@ func ConfigFromEnvironment() Config {
 // Adapter owns authenticated OpenStack clients and customer-local Provision
 // settings. Credentials stay inside Gophercloud's ProviderClient.
 type Adapter struct {
-	provider     *gophercloud.ProviderClient
-	identity     *gophercloud.ServiceClient
-	ktNetwork    *ktCloudD1Network
-	volume       *gophercloud.ServiceClient
-	image        *gophercloud.ServiceClient
-	compute      *gophercloud.ServiceClient
-	network      *gophercloud.ServiceClient
-	provision    ProvisionConfig
-	cidrScope    *ktCIDRScope
-	sshProbe     func(context.Context, string) error
-	startupProbe func(context.Context, string, string) error
-	ptyProbe     func(context.Context, string, string) error
+	diagnosticLogger *slog.Logger
+	provider         *gophercloud.ProviderClient
+	identity         *gophercloud.ServiceClient
+	ktNetwork        *ktCloudD1Network
+	volume           *gophercloud.ServiceClient
+	image            *gophercloud.ServiceClient
+	compute          *gophercloud.ServiceClient
+	network          *gophercloud.ServiceClient
+	provision        ProvisionConfig
+	cidrScope        *ktCIDRScope
+	sshProbe         func(context.Context, string) error
+	startupProbe     func(context.Context, string, string) error
+	ptyProbe         func(context.Context, string, string) error
 }
 
 // ProviderConnectionID returns the SaaS ProviderConnection affinity configured
@@ -190,6 +193,7 @@ func New(ctx context.Context, cfg Config) (*Adapter, error) {
 
 	adapter := newAdapter(providerClient, imageClient, computeClient, networkClient)
 	adapter.provision = normalizedProvisionConfig(cfg.Provision)
+	adapter.diagnosticLogger = cfg.DiagnosticLogger
 	return adapter, nil
 }
 

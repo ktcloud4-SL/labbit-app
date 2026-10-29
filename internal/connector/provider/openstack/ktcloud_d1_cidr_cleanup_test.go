@@ -217,3 +217,48 @@ func TestKTCloudCIDRCleanupSerializesWithAllocation(t *testing.T) {
 		t.Fatal("pair unavailable after lock release")
 	}
 }
+
+// An uncertain old owner holds its pair while a different Instance can use a
+// distinct free pair. This fixture does not attest recovery of an operational ledger.
+func TestKTCloudHeldCIDRAllowsDifferentInstanceWithoutReleasingOldOwner(t *testing.T) {
+	a := pooledKTAdapter(t, nil)
+	corr := cidrCorrelation("held", 1)
+	result, err := a.withCIDRScope(context.Background(), corr, false, func(scoped *Adapter) (coreprovider.OperationResult, error) {
+		if err := scoped.startCIDRMutation(corr); err != nil {
+			t.Fatal(err)
+		}
+		return failedResult(resourceResults([]coreprovider.ResourceRef{{ResourceType: coreprovider.ResourceTypeServer, ProviderID: "server", Generation: 1, LogicalName: "vm"}}, "BUILD"), errorBootTimeout, "VM did not become ACTIVE"), nil
+	})
+	if err != nil || result.Outcome != coreprovider.OutcomeFailed {
+		t.Fatal("fixture did not fail")
+	}
+	dir := a.provision.KTCloudCIDRStateDir
+	before := map[string]string{}
+	for _, name := range []string{slotName(0), intentName(0, 1)} {
+		b, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		before[name] = string(b)
+	}
+	if _, err := os.Stat(filepath.Join(dir, completionName(0, 1))); !os.IsNotExist(err) {
+		t.Fatal("incomplete server generated completion evidence")
+	}
+	pair := claimCIDR(t, a, "different", 1, false)
+	if pair.Lab != "172.25.242.0/24" {
+		t.Fatal("new Instance reused held pair")
+	}
+	replay, _ := a.withCIDRScope(context.Background(), corr, false, func(*Adapter) (coreprovider.OperationResult, error) {
+		t.Fatal("uncertain owner repeated mutation")
+		return coreprovider.OperationResult{}, nil
+	})
+	if replay.Outcome != coreprovider.OutcomeUnknown {
+		t.Fatal("held owner lost UNKNOWN semantics")
+	}
+	for name, want := range before {
+		b, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil || string(b) != want {
+			t.Fatal("held reservation/intent changed")
+		}
+	}
+}

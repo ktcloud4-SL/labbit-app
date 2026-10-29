@@ -336,7 +336,9 @@ func Run(ctx context.Context) error {
 	}
 	providerConnectionID := strings.TrimSpace(os.Getenv(openstackprovider.EnvProviderConnection))
 	lazy := newLazyProvider(providerConnectionID, func(factoryContext context.Context) (runtimeProvider, error) {
-		return openstackprovider.New(factoryContext, openstackprovider.ConfigFromEnvironment())
+		cfg := openstackprovider.ConfigFromEnvironment()
+		cfg.DiagnosticLogger = logger
+		return openstackprovider.New(factoryContext, cfg)
 	})
 
 	logger.Info("Labbit Connector 시작", "connector_id", connectorID, "version", config.ConnectorVersion)

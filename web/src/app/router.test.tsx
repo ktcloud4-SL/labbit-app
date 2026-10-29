@@ -272,6 +272,64 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(router.state.location.pathname).toBe('/classes')
   })
 
+  it('보호 route의 최초 /me 503은 재로그인 강제 대신 GET 상태 조회로 복구한다', async () => {
+    let count = 0
+    const getMe = vi.fn(async () => {
+      count += 1
+      if (count === 1) throw new HttpError(503)
+      return meFixture
+    })
+    const router = renderRoute('/classes', createApi({ getMe }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('로그인 상태를 확인하지 못했습니다.')
+    expect(screen.queryByRole('heading', { name: 'Labbit에 로그인' })).not.toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/classes')
+
+    fireEvent.click(screen.getByRole('button', { name: '로그인 상태 다시 확인' }))
+    expect(await screen.findByRole('heading', { name: '수업' })).toBeInTheDocument()
+    expect(getMe).toHaveBeenCalledTimes(2)
+    expect(router.state.location.pathname).toBe('/classes')
+  })
+
+  it('보호 route의 /me 재조회에서 401이면 인증 만료로 처리하고 이전 화면을 열지 않는다', async () => {
+    let count = 0
+    const getMe = vi.fn(async () => {
+      count += 1
+      throw new HttpError(count === 1 ? 503 : 401)
+    })
+    const router = renderRoute('/classes', createApi({ getMe }))
+
+    expect(await screen.findByRole('button', { name: '로그인 상태 다시 확인' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '로그인 상태 다시 확인' }))
+    expect(await screen.findByRole('heading', { name: 'Labbit에 로그인' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/login')
+    expect(screen.queryByRole('heading', { name: '수업' })).not.toBeInTheDocument()
+    expect(getMe).toHaveBeenCalledTimes(2)
+  })
+
+  it('보호 route의 /me 재조회 중에는 중복 조회 버튼을 비활성화한다', async () => {
+    let resolveRetry: ((value: Me) => void) | undefined
+    let count = 0
+    const getMe = vi.fn(async () => {
+      count += 1
+      if (count === 1) throw new HttpError(502)
+      return new Promise<Me>((resolve) => {
+        resolveRetry = resolve
+      })
+    })
+    renderRoute('/classes', createApi({ getMe }))
+
+    fireEvent.click(await screen.findByRole('button', { name: '로그인 상태 다시 확인' }))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: '로그인 상태 확인 중...' })).toBeDisabled(),
+    )
+    expect(getMe).toHaveBeenCalledTimes(2)
+    await act(async () => {
+      resolveRetry?.(meFixture)
+    })
+    expect(await screen.findByRole('heading', { name: '수업' })).toBeInTheDocument()
+  })
+
   it('보호 route의 예상하지 못한 응답 파싱 오류도 로그인 실패로 오인하지 않는다', async () => {
     const router = renderRoute(
       '/classes',

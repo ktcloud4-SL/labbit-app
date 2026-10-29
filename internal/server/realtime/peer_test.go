@@ -2,11 +2,120 @@ package realtime
 
 import (
 	"errors"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
+
+type heldWriteConn struct {
+	net.Conn
+	hold    atomic.Bool
+	entered chan struct{}
+	release chan struct{}
+	once    sync.Once
+}
+
+func (c *heldWriteConn) Write(b []byte) (int, error) {
+	if c.hold.Load() {
+		c.once.Do(func() { close(c.entered) })
+		<-c.release
+	}
+	return c.Conn.Write(b)
+}
+
+type heldWriteListener struct {
+	net.Listener
+	conn chan *heldWriteConn
+}
+
+func (l *heldWriteListener) Accept() (net.Conn, error) {
+	c, err := l.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	held := &heldWriteConn{Conn: c, entered: make(chan struct{}), release: make(chan struct{})}
+	l.conn <- held
+	return held, nil
+}
+
+func TestBlockedPingDoesNotBlockQueueOrClose(t *testing.T) {
+	peers := make(chan *peer, 1)
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ws, err := (&websocket.Upgrader{}).Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		p := newPeer(ws, 1024, 8, 2*time.Second, 100*time.Millisecond)
+		peers <- p
+		<-p.done
+	}))
+	listener := &heldWriteListener{Listener: server.Listener, conn: make(chan *heldWriteConn, 1)}
+	server.Listener = listener
+	server.Start()
+	defer server.Close()
+	client, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	c := <-listener.conn
+	p := <-peers
+	c.hold.Store(true)
+	defer close(c.release)
+	p.startKeepalive(10 * time.Millisecond)
+	select {
+	case <-c.entered:
+	case <-time.After(time.Second):
+		t.Fatal("Ping did not reach transport")
+	}
+
+	// The writer is blocked in Ping I/O. Both output enqueue and close request
+	// must finish without waiting for that transport write.
+	queued := make(chan error, 1)
+	go func() { queued <- p.send(websocket.BinaryMessage, []byte("output")) }()
+	select {
+	case err := <-queued:
+		if err != nil {
+			t.Fatalf("enqueue output: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("blocked Ping prevented output enqueue")
+	}
+	closed := make(chan struct{})
+	go func() { p.close(websocket.CloseNormalClosure, "", true); close(closed) }()
+	select {
+	case <-closed:
+	case <-time.After(time.Second):
+		t.Fatal("blocked Ping prevented close request")
+	}
+
+	// Unblock writes; the in-flight Ping precedes the queued output and Close.
+	c.hold.Store(false)
+	c.release <- struct{}{}
+	ping := false
+	client.SetPingHandler(func(string) error { ping = true; return nil })
+	_ = client.SetReadDeadline(time.Now().Add(time.Second))
+	kind, data, err := client.ReadMessage()
+	if err != nil || kind != websocket.BinaryMessage || string(data) != "output" || !ping {
+		t.Fatalf("expected Ping then output, got kind=%d data=%q ping=%v err=%v", kind, data, ping, err)
+	}
+	_, _, err = client.ReadMessage()
+	if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+		t.Fatalf("expected normal Close after output, got %v", err)
+	}
+	select {
+	case <-p.done:
+	case <-time.After(time.Second):
+		t.Fatal("writer did not stop after Close")
+	}
+}
 
 // TestOutQueueCloseWithFinalNormal은 정상 큐 상태에서 기존 프레임을 flush하고
 // 마지막 application 프레임과 close 프레임이 원자적으로 순서대로 등록됨을 검증한다.
@@ -170,5 +279,39 @@ func TestPeerCloseWithFinalMessageDeterministicInterleaving(t *testing.T) {
 	}
 	if _, ok := sub.p.q.next(); ok {
 		t.Fatalf("late pty data was incorrectly queued after LIVE_ENDED")
+	}
+}
+
+func TestKeepaliveWriteFailureStopsPeer(t *testing.T) {
+	peers := make(chan *peer, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ws, err := (&websocket.Upgrader{}).Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		p := newPeer(ws, 1024, 8, time.Second, 10*time.Millisecond)
+		peers <- p
+		<-p.done
+	}))
+	defer server.Close()
+	client, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := <-peers
+	// Closing both TCP endpoints makes the first Ping fail deterministically.
+	_ = client.Close()
+	_ = p.ws.Close()
+	p.startKeepalive(10 * time.Millisecond)
+	select {
+	case <-p.done:
+	case <-time.After(time.Second):
+		t.Fatal("writer did not stop after transport failure")
+	}
+	if !p.isClosed() {
+		t.Fatal("failed writer did not close queue")
+	}
+	if err := p.send(websocket.TextMessage, []byte("late")); !errors.Is(err, errPeerClosed) {
+		t.Fatalf("send after failure: %v", err)
 	}
 }

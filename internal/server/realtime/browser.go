@@ -146,6 +146,7 @@ func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken) {
 		}
 	}
 	attached.Store(true)
+	p.startKeepalive(r.pingInterval)
 	withTrace(s.log, msg.Trace).Info("Browser Terminal attach", "resumed", resumed)
 
 	_ = ws.SetReadDeadline(time.Time{})

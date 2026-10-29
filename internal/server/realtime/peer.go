@@ -105,6 +105,11 @@ func (q *outQueue) pushWait(ctx context.Context, f frame) error {
 
 // next는 다음 frame을 기다려 꺼낸다. queue가 닫혔고 남은 frame이 없으면 false다.
 func (q *outQueue) next() (frame, bool) {
+	f, ok, _ := q.nextWake(nil, nil)
+	return f, ok
+}
+
+func (q *outQueue) nextWake(start, tick <-chan time.Time) (frame, bool, bool) {
 	for {
 		q.mu.Lock()
 		if len(q.items) > 0 {
@@ -114,14 +119,20 @@ func (q *outQueue) next() (frame, bool) {
 			q.bytes -= len(f.data)
 			q.mu.Unlock()
 			signal(q.space)
-			return f, true
+			return f, true, false
 		}
 		closed := q.closed
 		q.mu.Unlock()
 		if closed {
-			return frame{}, false
+			return frame{}, false, false
 		}
-		<-q.ready
+		select {
+		case <-q.ready:
+		case <-start:
+			return frame{}, true, true
+		case <-tick:
+			return frame{}, true, true
+		}
 	}
 }
 
@@ -196,8 +207,16 @@ type peer struct {
 	q            *outQueue
 	writeTimeout time.Duration
 	closeGrace   time.Duration
+	pingInterval time.Duration
 
-	done chan struct{} // writer가 끝나면 닫힌다.
+	done      chan struct{} // writer가 끝나면 닫힌다.
+	keepalive chan time.Time
+}
+
+// startKeepalive is called only after a successful Terminal attach.
+func (p *peer) startKeepalive(interval time.Duration) {
+	p.pingInterval = interval
+	p.keepalive <- time.Time{}
 }
 
 func newPeer(ws *websocket.Conn, queueBytes, queueItems int, writeTimeout, closeGrace time.Duration) *peer {
@@ -207,6 +226,7 @@ func newPeer(ws *websocket.Conn, queueBytes, queueItems int, writeTimeout, close
 		writeTimeout: writeTimeout,
 		closeGrace:   closeGrace,
 		done:         make(chan struct{}),
+		keepalive:    make(chan time.Time, 1),
 	}
 	go p.writeLoop()
 	return p
@@ -214,10 +234,42 @@ func newPeer(ws *websocket.Conn, queueBytes, queueItems int, writeTimeout, close
 
 func (p *peer) writeLoop() {
 	defer close(p.done)
+	var ticker *time.Ticker
+	var tick <-chan time.Time
+	start := (<-chan time.Time)(p.keepalive)
+	defer func() {
+		if ticker != nil {
+			ticker.Stop()
+		}
+	}()
 	for {
-		f, ok := p.q.next()
+		f, ok, wake := p.q.nextWake(start, tick)
 		if !ok {
 			return
+		}
+		if wake {
+			if start != nil {
+				// A zero time marks activation; the interval is carried separately below.
+				start = nil
+				ticker = time.NewTicker(p.pingInterval)
+				tick = ticker.C
+				continue
+			}
+			// The writer alone sends frames, so a queued close can follow an
+			// in-flight Ping, but no Ping can follow the actual Close frame.
+			p.q.mu.Lock()
+			closed := p.q.closed
+			p.q.mu.Unlock()
+			if closed {
+				continue
+			}
+			err := p.ws.WriteControl(websocket.PingMessage, nil, time.Now().Add(p.writeTimeout))
+			if err != nil {
+				p.q.abort()
+				_ = p.ws.Close()
+				return
+			}
+			continue
 		}
 		if f.kind == closeKind {
 			_ = p.ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(f.code, f.text), time.Now().Add(p.writeTimeout))

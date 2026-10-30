@@ -1813,6 +1813,31 @@ describe('Auth·Class·LabSpec routing', () => {
         '같은 작업을 다시 실행하지 않고 Provider의 실제 상태를 확인하고 있습니다.',
       ),
     ).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('자동 완료를 보장하지 않습니다')
+    expect(screen.getByRole('status')).toHaveTextContent('HOLD 상태가 지속되면 위 작업 ID')
+    expect(screen.getByRole('status')).toHaveTextContent('Provider 자원을 직접 삭제하지 마세요')
+  })
+
+  it('Operation RECONCILING/HOLD는 지원 담당자 인수 안내를 하고 Cleanup 재시도를 유도하지 않는다', async () => {
+    renderRoute(
+      '/operations/operation-hold',
+      createApi({
+        getOperation: async () => ({
+          ...operationFixture,
+          id: 'operation-hold',
+          status: 'RECONCILING',
+          stage: 'HOLD',
+        }),
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: '실제 Provider 상태 확인 중' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('운영 담당자 확인 필요 (HOLD)')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('위 작업 ID를 운영 담당자에게 전달')
+    expect(screen.getByRole('status')).toHaveTextContent('Provision·Reset·Cleanup을 반복 요청')
+    expect(screen.queryByRole('button', { name: '전체 실습 정리' })).not.toBeInTheDocument()
   })
 
   it('LabExecution의 학생별 부분 실패를 개별 상태로 표시한다', async () => {

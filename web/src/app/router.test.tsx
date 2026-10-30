@@ -13,6 +13,7 @@ import type {
 import { HttpError } from '../shared/api/httpClient'
 import type { LabbitApi } from '../shared/api/labbitApi'
 import { mockLabSpecMappingOptions } from '../shared/api/mockLabbitApi'
+import { operationPollingInterval } from '../pages/OperationPage'
 import { AppProviders } from './providers/AppProviders'
 import { appRoutes } from './router'
 
@@ -1790,6 +1791,17 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(getOperation).toHaveBeenCalledTimes(2)
   })
 
+  it('Operation 상태별 조회 주기는 HOLD만 완화하고 완료 상태는 중단한다', () => {
+    expect(operationPollingInterval(undefined)).toBe(false)
+    expect(operationPollingInterval({ status: 'PENDING', stage: 'DEFERRED' })).toBe(2000)
+    expect(operationPollingInterval({ status: 'RUNNING', stage: 'VERIFYING_READINESS' })).toBe(2000)
+    expect(operationPollingInterval({ status: 'RECONCILING', stage: 'VERIFY_PROVIDER_STATE' })).toBe(2000)
+    expect(operationPollingInterval({ status: 'RECONCILING', stage: 'HOLD' })).toBe(15_000)
+    expect(operationPollingInterval({ status: 'SUCCEEDED', stage: 'HOLD' })).toBe(false)
+    expect(operationPollingInterval({ status: 'FAILED', stage: 'HOLD' })).toBe(false)
+    expect(operationPollingInterval({ status: 'WAITING_FOR_PROVIDER', stage: 'HOLD' })).toBe(false)
+  })
+
   it('Operation RECONCILING을 중복 재실행이 아닌 Provider 확인 상태로 표시한다', async () => {
     renderRoute(
       '/operations/operation-reconciling',
@@ -1818,17 +1830,16 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Provider 자원을 직접 삭제하지 마세요')
   })
 
-  it('Operation RECONCILING/HOLD는 지원 담당자 인수 안내를 하고 Cleanup 재시도를 유도하지 않는다', async () => {
+  it('Operation RECONCILING/HOLD는 지원 담당자 인수·읽기 전용 조회를 제공하고 Cleanup 재시도를 유도하지 않는다', async () => {
+    const getOperation = vi.fn(async () => ({
+      ...operationFixture,
+      id: 'operation-hold',
+      status: 'RECONCILING',
+      stage: 'HOLD',
+    }))
     renderRoute(
       '/operations/operation-hold',
-      createApi({
-        getOperation: async () => ({
-          ...operationFixture,
-          id: 'operation-hold',
-          status: 'RECONCILING',
-          stage: 'HOLD',
-        }),
-      }),
+      createApi({ getOperation }),
     )
 
     expect(
@@ -1837,6 +1848,9 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(screen.getByText('운영 담당자 확인 필요 (HOLD)')).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('위 작업 ID를 운영 담당자에게 전달')
     expect(screen.getByRole('status')).toHaveTextContent('Provision·Reset·Cleanup을 반복 요청')
+    expect(screen.queryByRole('button', { name: '전체 실습 정리' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '상태 다시 확인' }))
+    await waitFor(() => expect(getOperation).toHaveBeenCalledTimes(2))
     expect(screen.queryByRole('button', { name: '전체 실습 정리' })).not.toBeInTheDocument()
   })
 

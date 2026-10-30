@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "**/*.go"
+      - "internal/connector/provider/openstack/ktcloud_management_route*.py"
       - "go.mod"
       - "go.sum"
       - "Makefile"
@@ -51,6 +52,11 @@ jobs:
 
       - name: Go build
         run: make go-build
+
+      - name: KT management route Linux fixtures
+        run: |
+          sudo python3 -m unittest discover -s internal/connector/provider/openstack -p ktcloud_management_route_guest_test.py -v
+          sudo python3 -O -m unittest discover -s internal/connector/provider/openstack -p ktcloud_management_route_guest_test.py -v
 
       - name: Go PostgreSQL integration test
         env:

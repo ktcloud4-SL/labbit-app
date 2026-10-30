@@ -143,7 +143,7 @@ func (a *Adapter) Provision(ctx context.Context, request coreprovider.ProvisionR
 			}
 			return failedResult(resources, errorBootTimeout, "VM SSH did not become ready"), nil
 		}
-		if request.CreationSnapshot.StartupScript != nil || (len(artifact) != 0 && vm.VMKey == request.CreationSnapshot.WorkspaceVMKey) {
+		if a.ktNetwork != nil || request.CreationSnapshot.StartupScript != nil || (len(artifact) != 0 && vm.VMKey == request.CreationSnapshot.WorkspaceVMKey) {
 			err = a.runReadinessStage(ctx, request.Correlation, vm.VMKey, server.ID, stageStartup, config.StartupReadyTimeout, func(stageCtx context.Context) error {
 				return a.waitStartupReadyAddress(stageCtx, managementIP, server.ID)
 			})

@@ -11,6 +11,11 @@
 - PreviewSession lifecycle Control 메시지: `preview-control.schema.json`
 - Preview Data WSS JSON control frame(attach 핸드셰이크): `preview-data.schema.json`
 
+운영자가 명시적으로 실행하는 FAILED Provision 복구는 Control WSS의 Reconcile 후보 채택이 아닙니다.
+기존 고정 host key를 사용하는 관리 SSH에서 원장·원래 실패 결과와 실제 exact-ID를 확인하는 별도 one-shot이며,
+권한·입력·검증·실패 조건은 `runtime/contract.yaml`의 `artifacts.failed_provision_recovery`가 소유합니다.
+기존 Reconcile message/schema와 자동 후보 비채택·mutation 재실행 금지 의미는 유지합니다.
+
 Terminal/Live의 Browser-facing 계약은 `contracts/realtime/README.md` + `terminal-live.schema.json`이 원본입니다. Preview의 Browser-facing 계약(PreviewSession HTTP, Preview Origin의 bootstrap/인증)은 `contracts/http/openapi.yaml`이 원본입니다.
 
 Terminal/Live INPUT/OUTPUT, Preview 본문, Workspace file 본문과 디렉터리 목록은 **persistent Control WSS에 싣지 않습니다.** Control에는 lifecycle/metadata만 전달하고 실제 PTY byte stream은 별도 Terminal Data WSS, Workspace file 내용은 요청별 File Data WSS, Preview HTTP byte stream은 PreviewSession별 Preview Data WSS를 사용합니다.
@@ -520,6 +525,8 @@ KT D1은 표준 Neutron 경로가 제공되지 않아 OP-01 내부 Network API�
 
 - generation별 Lab Tier와 해당 VM 전용 Management Tier를 생성합니다. VM별 Management Tier는 같은 L2에 다른 Lab VM이 연결되는 것을 막습니다. 두 NIC는 Nova에 각각 Tier의 물리 `refId`로 연결합니다.
 - Connector Tier의 설정된 IPv4 `/32`에서 Management Tier로 향하는 TCP 22만 NSM 방화벽으로 허용합니다. Lab Tier의 동일 L2 통신과 SSH 응답을 제외한 허용 정책·NAT·인터넷 Router는 생성하지 않습니다. 전역 허용 정책이 있거나 필요한 정책 조회가 불완전하면 Preflight를 거절합니다.
+- 관리 SSH의 반환 경로는 DHCP 기본 경로 순서에 의존하지 않습니다. Python3/cloud-init/Netplan/systemd-networkd를 제공하고 관리 NIC의 Netplan ID가 실제 인터페이스 이름과 같은 Ubuntu 이미지에서 별도 boothook이 관리 CIDR로 식별한 단일 NIC에 Connector `/32` → 관리 gateway `.1` 경로를 `90-labbit-management-ssh.yaml`로 선언하고 networkd를 reload합니다. Lab default·metadata·원본 cloud-init 파일은 수정하지 않습니다. 동일 이름의 기존 파일은 소유 조건·정확한 내용이 맞지 않으면 덮어쓰지 않고 실패합니다. 인증된 SSH 후 cloud-init 완료·영속 설정·실제 host/source 경로를 검사하며, `networkctl status --json=short`의 실제 활성 NetworkFile이 해당 경로를 선언한 `/run/systemd/network/*netplan*.network`이고 별도 drop-in이 없어야 합니다. 조건이 맞지 않으면 준비 완료로 처리하지 않습니다. 새 VM과 Reset 모두 같은 bootstrap을 사용하며 기존 실행 VM에 배포만으로 소급 적용되지는 않습니다.
+- 사용자 StartupScript의 원본 bytes/SHA는 별도 MIME part로 보존합니다. 기존 multipart 입력은 multipart 형식을 유지하며, MIME header로 식별됐지만 파싱할 수 없거나 multipart가 아닌 입력은 mutation 전에 거절합니다. 합성 MIME를 gzip+base64한 최종 2048 byte 한도를 사전 검사하므로 사용자 script 단독 압축 때보다 허용 가능한 길이가 줄 수 있습니다. 한도 초과는 Reset의 기존 generation 삭제 전에 실패합니다.
 - Preflight는 원본 Image/Flavor/Keypair, SSH key 일치, Project affinity, Connector Tier, CIDR 중복, 방화벽 인벤토리, Nova Instance/vCPU/RAM 상세 quota를 확인합니다. NSM의 상세 quota API는 공개되어 있지 않고 KT 볼륨 quota 경로는 실제 500을 반환합니다. 이 제한을 무제한 quota로 취급하지 않으며 NSM/Cinder mutation의 실제 거절·결과 불명을 그대로 전달합니다.
 - 실제 리소스 종류는 `KT_TIER`, `KT_FIREWALL_POLICY`, `SERVER`, `VOLUME`입니다. Tier `providerId`는 NSM `networkId`이며 `refId` 또는 가상의 Neutron Port/Subnet/SG ID로 대체하지 않습니다. Nova가 만드는 루트 볼륨도 실제 ID로 추적하고 서버 삭제 후 부재를 확인합니다.
 - 기존 CC-01, ACTIVE/인증된 SSH/Startup Ready 확인, immutable Snapshot Reset, 결과 불명 판정과 알려진 ID에 대한 Cleanup/Reconcile을 재사용합니다. NSM Create 후 ID가 확정되지 않으면 UNKNOWN과 이미 확정된 ID만 반환하며, 이름·설명으로 발견된 후보는 자동 소유·삭제하지 않습니다.

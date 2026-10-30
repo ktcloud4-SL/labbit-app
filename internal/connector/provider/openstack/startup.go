@@ -55,6 +55,13 @@ func (a *Adapter) waitStartupReadyAddress(ctx context.Context, address, serverID
 }
 
 func (a *Adapter) probeCloudInitComplete(ctx context.Context, address, hostIdentity string) error {
+	if a.ktNetwork != nil {
+		script, err := ktManagementRouteScript(a.provision, true)
+		if err != nil {
+			return err
+		}
+		return a.runSSHCommandInput(ctx, address, hostIdentity, "cloud-init status --wait && sudo -n python3 -", strings.NewReader(string(script)), nil)
+	}
 	return a.runSSHCommand(ctx, address, hostIdentity, "cloud-init status --wait")
 }
 

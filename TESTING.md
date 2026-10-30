@@ -1,5 +1,10 @@
 # Labbit Test Code Convention
 
+FAILED Provision 복구 검증은 `go test ./internal/operationrecovery`(고정 SSH·증거 검증),
+Linux Provider의 `TestFailedRecoveryEvidenceRequiresBoundCompleteOwnedTopology`(HTTP fixture·보호된 원장),
+`go test -tags integration ./internal/postgres -run '^TestFailedProvisionRecovery'`(폐기 가능한 실제 PostgreSQL)을 구분합니다.
+자동 테스트는 운영 HOLD 복구·실제 Provider 조회·공식 Cleanup을 대신하지 않습니다.
+
 이 문서는 Labbit 저장소의 **테스트 코드 작성 기준**을 정의합니다.
 
 상위 테스트 전략과 요구 → 검증 추적은 Confluence의
@@ -83,6 +88,8 @@
 - Local은 `compose.yaml`, CI는 GitHub Actions `Go / test` job의 service container를 사용합니다. 두 환경 모두 PostgreSQL 16, 같은 `db/migrations`, 같은 `make go-integration-test`를 사용합니다.
 
 ## Connector Test
+
+KT 관리망 반환 경로 helper의 Linux 파일시스템·실패 경로 fixture는 `sudo python3 -m unittest discover -s internal/connector/provider/openstack -p ktcloud_management_route_guest_test.py -v`로 실행합니다. 같은 명령을 `python3 -O`로도 실행하며 Go workflow가 두 모드를 검사합니다. 임시 디렉터리의 파일과 fake command만 사용하므로 실제 networkd/Netplan/Provider를 변경하지 않습니다. 실제 VM의 첫 부팅·최초 SSH·DHCP 갱신·재부팅·Reset 검증은 별도입니다.
 
 주 대상:
 

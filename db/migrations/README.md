@@ -8,6 +8,11 @@ Confluence는 Domain/Data 의미·ownership·결정 이유를 관리하고, 실�
 
 ## 현재 v0.1 Draft Migration
 
+`000011_failed_provision_recovery.sql`은 trusted operator가 원래 FAILED 결과를 복원할 때
+plan/receipt/원장 hash, 고정 SSH host key와 운영자 감사 label을 원자적으로 남기는 additive table을 추가합니다.
+기존 application query는 바꾸지 않으며 복구 executable을 실행하기 전에 별도 migration runner로 적용합니다.
+자세한 실행·권한·거절 조건은 `runtime/contract.yaml`의 `artifacts.failed_provision_recovery`를 따릅니다.
+
 적용 예정 순서는 파일 번호 순서입니다.
 
 1. `000001_identity_and_class.sql`

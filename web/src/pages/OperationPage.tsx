@@ -13,9 +13,14 @@ const activeOperationStatuses = new Set(['PENDING', 'RUNNING', 'RECONCILING'])
 
 // A reconciliation HOLD may await manual owner action for a long period.
 // Keep read-only state refresh available without polling every two seconds.
-export function operationPollingInterval(operation: Pick<Operation, 'status' | 'stage'> | undefined) {
+export function operationPollingInterval(operation: Pick<Operation, 'status' | 'stage' | 'error'> | undefined) {
   if (!operation || !activeOperationStatuses.has(operation.status)) return false
-  return operation.status === 'RECONCILING' && operation.stage === 'HOLD' ? 15_000 : 2000
+  // The server aggregates an item HOLD to parent stage RECONCILING and
+  // error.code=reconciliation_hold; parent stage HOLD is future-compatible.
+  const hold = operation.status === 'RECONCILING' && (
+    operation.stage === 'HOLD' || operation.error?.code === 'reconciliation_hold'
+  )
+  return hold ? 15_000 : 2000
 }
 const knownOperationStatuses = new Set([
   'PENDING',
@@ -65,6 +70,8 @@ function stageLabel(stage: string | undefined) {
       return '실제 상태 확인 중'
     case 'VERIFYING_READINESS':
       return 'Workspace 사용 가능 상태 확인 중'
+    case 'RECONCILING':
+      return 'Provider 상태 대조 중'
     case 'HOLD':
       return '운영 담당자 확인 필요 (HOLD)'
     default:
@@ -167,7 +174,9 @@ export function OperationPage() {
   const operation = operationQuery.data
   const isDeferredPending = operation.status === 'PENDING' && operation.stage === 'DEFERRED' && !operationQuery.error
   const isReconciling = operation.status === 'RECONCILING'
-  const isReconciliationHold = isReconciling && operation.stage === 'HOLD'
+  const isReconciliationHold = isReconciling && (
+    operation.stage === 'HOLD' || operation.error?.code === 'reconciliation_hold'
+  )
   const isUnknownStatus = !knownOperationStatuses.has(operation.status)
   const link = targetLink(operation)
   // Provider SUCCEEDED does not prove that the Workspace reached READY.
@@ -290,7 +299,7 @@ export function OperationPage() {
         </article>
         <article className="detail-card">
           <h2>현재 단계</h2>
-          <strong>{stageLabel(operation.stage)}</strong>
+          <strong>{isReconciliationHold ? '운영 담당자 확인 필요 (HOLD)' : stageLabel(operation.stage)}</strong>
         </article>
         <article className="detail-card">
           <h2>대상</h2>

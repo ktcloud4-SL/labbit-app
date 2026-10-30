@@ -1797,6 +1797,18 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(operationPollingInterval({ status: 'RUNNING', stage: 'VERIFYING_READINESS' })).toBe(2000)
     expect(operationPollingInterval({ status: 'RECONCILING', stage: 'VERIFY_PROVIDER_STATE' })).toBe(2000)
     expect(operationPollingInterval({ status: 'RECONCILING', stage: 'HOLD' })).toBe(15_000)
+    // Real Backend aggregate: Item.stage HOLD -> parent Operation.stage RECONCILING
+    // with Operation.error.code reconciliation_hold.
+    expect(operationPollingInterval({
+      status: 'RECONCILING',
+      stage: 'RECONCILING',
+      error: { code: 'reconciliation_hold' },
+    })).toBe(15_000)
+    expect(operationPollingInterval({
+      status: 'RECONCILING',
+      stage: 'RECONCILING',
+      error: { code: 'provision_response_unconfirmed' },
+    })).toBe(2000)
     expect(operationPollingInterval({ status: 'SUCCEEDED', stage: 'HOLD' })).toBe(false)
     expect(operationPollingInterval({ status: 'FAILED', stage: 'HOLD' })).toBe(false)
     expect(operationPollingInterval({ status: 'WAITING_FOR_PROVIDER', stage: 'HOLD' })).toBe(false)
@@ -1835,7 +1847,8 @@ describe('Auth·Class·LabSpec routing', () => {
       ...operationFixture,
       id: 'operation-hold',
       status: 'RECONCILING',
-      stage: 'HOLD',
+      stage: 'RECONCILING',
+      error: { code: 'reconciliation_hold' },
     }))
     renderRoute(
       '/operations/operation-hold',
@@ -1846,6 +1859,7 @@ describe('Auth·Class·LabSpec routing', () => {
       await screen.findByRole('heading', { name: '실제 Provider 상태 확인 중' }),
     ).toBeInTheDocument()
     expect(screen.getByText('운영 담당자 확인 필요 (HOLD)')).toBeInTheDocument()
+    expect(screen.getByText('reconciliation_hold')).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('위 작업 ID를 운영 담당자에게 전달')
     expect(screen.getByRole('status')).toHaveTextContent('Provision·Reset·Cleanup을 반복 요청')
     expect(screen.queryByRole('button', { name: '전체 실습 정리' })).not.toBeInTheDocument()

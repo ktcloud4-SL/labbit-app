@@ -10,6 +10,13 @@ import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
 const activeOperationStatuses = new Set(['PENDING', 'RUNNING', 'RECONCILING'])
+
+// A reconciliation HOLD may await manual owner action for a long period.
+// Keep read-only state refresh available without polling every two seconds.
+export function operationPollingInterval(operation: Pick<Operation, 'status' | 'stage'> | undefined) {
+  if (!operation || !activeOperationStatuses.has(operation.status)) return false
+  return operation.status === 'RECONCILING' && operation.stage === 'HOLD' ? 15_000 : 2000
+}
 const knownOperationStatuses = new Set([
   'PENDING',
   'RUNNING',
@@ -102,10 +109,7 @@ export function OperationPage() {
     queryFn: () => api.getOperation(resolvedOperationId),
     enabled: Boolean(resolvedOperationId),
     retry: false,
-    refetchInterval: (query) => {
-      const status = query.state.data?.status
-      return status && activeOperationStatuses.has(status) ? 2000 : false
-    },
+    refetchInterval: (query) => operationPollingInterval(query.state.data),
   })
 
   if (!resolvedOperationId) {
@@ -163,6 +167,7 @@ export function OperationPage() {
   const operation = operationQuery.data
   const isDeferredPending = operation.status === 'PENDING' && operation.stage === 'DEFERRED' && !operationQuery.error
   const isReconciling = operation.status === 'RECONCILING'
+  const isReconciliationHold = isReconciling && operation.stage === 'HOLD'
   const isUnknownStatus = !knownOperationStatuses.has(operation.status)
   const link = targetLink(operation)
   // Provider SUCCEEDED does not prove that the Workspace reached READY.
@@ -230,6 +235,16 @@ export function OperationPage() {
             HOLD 상태가 지속되면 위 작업 ID를 운영 담당자에게 전달해 확인을 요청하세요.
             Provision·Reset·Cleanup을 반복 요청하거나 Provider 자원을 직접 삭제하지 마세요.
           </p>
+          {isReconciliationHold && !operationQuery.error && (
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={operationQuery.isFetching}
+              onClick={() => void operationQuery.refetch()}
+            >
+              {operationQuery.isFetching ? '상태 확인 중...' : '상태 다시 확인'}
+            </button>
+          )}
         </section>
       )}
 

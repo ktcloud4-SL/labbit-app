@@ -1791,27 +1791,15 @@ describe('Auth·Class·LabSpec routing', () => {
     expect(getOperation).toHaveBeenCalledTimes(2)
   })
 
-  it('Operation 상태별 조회 주기는 HOLD만 완화하고 완료 상태는 중단한다', () => {
+  it('Operation 공개 상태 기준으로 RECONCILING 조회를 완화하고 종료 상태는 중단한다', () => {
     expect(operationPollingInterval(undefined)).toBe(false)
-    expect(operationPollingInterval({ status: 'PENDING', stage: 'DEFERRED' })).toBe(2000)
-    expect(operationPollingInterval({ status: 'RUNNING', stage: 'VERIFYING_READINESS' })).toBe(2000)
-    expect(operationPollingInterval({ status: 'RECONCILING', stage: 'VERIFY_PROVIDER_STATE' })).toBe(2000)
-    expect(operationPollingInterval({ status: 'RECONCILING', stage: 'HOLD' })).toBe(15_000)
-    // Real Backend aggregate: Item.stage HOLD -> parent Operation.stage RECONCILING
-    // with Operation.error.code reconciliation_hold.
-    expect(operationPollingInterval({
-      status: 'RECONCILING',
-      stage: 'RECONCILING',
-      error: { code: 'reconciliation_hold' },
-    })).toBe(15_000)
-    expect(operationPollingInterval({
-      status: 'RECONCILING',
-      stage: 'RECONCILING',
-      error: { code: 'provision_response_unconfirmed' },
-    })).toBe(2000)
-    expect(operationPollingInterval({ status: 'SUCCEEDED', stage: 'HOLD' })).toBe(false)
-    expect(operationPollingInterval({ status: 'FAILED', stage: 'HOLD' })).toBe(false)
-    expect(operationPollingInterval({ status: 'WAITING_FOR_PROVIDER', stage: 'HOLD' })).toBe(false)
+    expect(operationPollingInterval({ status: 'PENDING' })).toBe(2000)
+    expect(operationPollingInterval({ status: 'RUNNING' })).toBe(2000)
+    // The actual public RECONCILING response has no internal error code.
+    expect(operationPollingInterval({ status: 'RECONCILING' })).toBe(15_000)
+    expect(operationPollingInterval({ status: 'SUCCEEDED' })).toBe(false)
+    expect(operationPollingInterval({ status: 'FAILED' })).toBe(false)
+    expect(operationPollingInterval({ status: 'WAITING_FOR_PROVIDER' })).toBe(false)
   })
 
   it('Operation RECONCILING을 중복 재실행이 아닌 Provider 확인 상태로 표시한다', async () => {
@@ -1838,33 +1826,45 @@ describe('Auth·Class·LabSpec routing', () => {
       ),
     ).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('자동 완료를 보장하지 않습니다')
-    expect(screen.getByRole('status')).toHaveTextContent('HOLD 상태가 지속되면 위 작업 ID')
+    expect(screen.getByRole('status')).toHaveTextContent('이 상태가 지속되면 위 작업 ID')
     expect(screen.getByRole('status')).toHaveTextContent('Provider 자원을 직접 삭제하지 마세요')
   })
 
-  it('Operation RECONCILING/HOLD는 지원 담당자 인수·읽기 전용 조회를 제공하고 Cleanup 재시도를 유도하지 않는다', async () => {
-    const getOperation = vi.fn(async () => ({
-      ...operationFixture,
-      id: 'operation-hold',
-      status: 'RECONCILING',
-      stage: 'RECONCILING',
-      error: { code: 'reconciliation_hold' },
-    }))
+  it('Operation RECONCILING은 내부 오류 코드 없이 읽기 전용 재조회 후 종료 상태를 반영한다', async () => {
+    const getOperation = vi.fn<LabbitApi['getOperation']>()
+      .mockResolvedValueOnce({
+        ...operationFixture,
+        id: 'operation-reconciling',
+        status: 'RECONCILING',
+        stage: 'RECONCILING',
+        finishedAt: undefined,
+      })
+      .mockResolvedValue({
+        ...operationFixture,
+        id: 'operation-reconciling',
+        status: 'FAILED',
+        stage: 'FAILED',
+        error: { code: 'operation_failed', message: '작업을 완료하지 못했습니다.' },
+      })
     renderRoute(
-      '/operations/operation-hold',
+      '/operations/operation-reconciling',
       createApi({ getOperation }),
     )
 
     expect(
       await screen.findByRole('heading', { name: '실제 Provider 상태 확인 중' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('운영 담당자 확인 필요 (HOLD)')).toBeInTheDocument()
-    expect(screen.getByText('reconciliation_hold')).toBeInTheDocument()
+    expect(screen.getByText('Provider 상태 대조 중')).toBeInTheDocument()
+    expect(screen.queryByText('운영 담당자 확인 필요 (HOLD)')).not.toBeInTheDocument()
+    expect(screen.queryByText('reconciliation_hold')).not.toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('위 작업 ID를 운영 담당자에게 전달')
     expect(screen.getByRole('status')).toHaveTextContent('Provision·Reset·Cleanup을 반복 요청')
     expect(screen.queryByRole('button', { name: '전체 실습 정리' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '상태 다시 확인' }))
-    await waitFor(() => expect(getOperation).toHaveBeenCalledTimes(2))
+    expect(await screen.findByRole('heading', { name: '실패' })).toBeInTheDocument()
+    expect(getOperation).toHaveBeenCalledTimes(2)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '상태 다시 확인' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '전체 실습 정리' })).not.toBeInTheDocument()
   })
 

@@ -11,17 +11,13 @@ import { LoadingState } from '../shared/ui/LoadingState'
 
 const activeOperationStatuses = new Set(['PENDING', 'RUNNING', 'RECONCILING'])
 
-// A reconciliation HOLD may await manual owner action for a long period.
-// Keep read-only state refresh available without polling every two seconds.
-export function operationPollingInterval(operation: Pick<Operation, 'status' | 'stage' | 'error'> | undefined) {
+// The public Operation view omits internal reconciliation error codes.
+// Refresh RECONCILING conservatively without inferring an item-level HOLD.
+export function operationPollingInterval(operation: Pick<Operation, 'status'> | undefined) {
   if (!operation || !activeOperationStatuses.has(operation.status)) return false
-  // The server aggregates an item HOLD to parent stage RECONCILING and
-  // error.code=reconciliation_hold; parent stage HOLD is future-compatible.
-  const hold = operation.status === 'RECONCILING' && (
-    operation.stage === 'HOLD' || operation.error?.code === 'reconciliation_hold'
-  )
-  return hold ? 15_000 : 2000
+  return operation.status === 'RECONCILING' ? 15_000 : 2000
 }
+
 const knownOperationStatuses = new Set([
   'PENDING',
   'RUNNING',
@@ -174,9 +170,6 @@ export function OperationPage() {
   const operation = operationQuery.data
   const isDeferredPending = operation.status === 'PENDING' && operation.stage === 'DEFERRED' && !operationQuery.error
   const isReconciling = operation.status === 'RECONCILING'
-  const isReconciliationHold = isReconciling && (
-    operation.stage === 'HOLD' || operation.error?.code === 'reconciliation_hold'
-  )
   const isUnknownStatus = !knownOperationStatuses.has(operation.status)
   const link = targetLink(operation)
   // Provider SUCCEEDED does not prove that the Workspace reached READY.
@@ -241,10 +234,10 @@ export function OperationPage() {
           <strong>같은 작업을 다시 실행하지 않고 Provider의 실제 상태를 확인하고 있습니다.</strong>
           <p className="muted">
             RECONCILING은 실제 자원 결과를 대조하는 상태이며 자동 완료를 보장하지 않습니다.
-            HOLD 상태가 지속되면 위 작업 ID를 운영 담당자에게 전달해 확인을 요청하세요.
+            이 상태가 지속되면 위 작업 ID를 운영 담당자에게 전달해 확인을 요청하세요.
             Provision·Reset·Cleanup을 반복 요청하거나 Provider 자원을 직접 삭제하지 마세요.
           </p>
-          {isReconciliationHold && !operationQuery.error && (
+          {!operationQuery.error && (
             <button
               className="secondary-button"
               type="button"
@@ -299,7 +292,7 @@ export function OperationPage() {
         </article>
         <article className="detail-card">
           <h2>현재 단계</h2>
-          <strong>{isReconciliationHold ? '운영 담당자 확인 필요 (HOLD)' : stageLabel(operation.stage)}</strong>
+          <strong>{stageLabel(operation.stage)}</strong>
         </article>
         <article className="detail-card">
           <h2>대상</h2>

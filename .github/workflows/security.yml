@@ -40,14 +40,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Lint Backend Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: Dockerfile
           failure-threshold: error
           ignore: DL3018
       
       - name: Lint Web Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.5.0
         with: 
           dockerfile: web/Dockerfile
           failure-threshold: error

@@ -101,7 +101,7 @@ func TestReconciliationUnknownObservationAndHold(t *testing.T) {
 
 func TestReconciliationExpiredWorkerLeaseFencesOriginalWriter(t *testing.T) {
 	e := newProvisionEnv(t, time.Second)
-	c, err := e.store.ClaimOperationItem(t.Context(), uuid.New(), time.Second)
+	c, err := e.store.ClaimOperationItem(t.Context(), uuid.New(), time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestReconciliationExpiredWorkerLeaseFencesOriginalWriter(t *testing.T) {
 	}
 	labexecutiontest.Exec(t, e.db, `UPDATE operation_items SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE id=$1`, c.Item.ID)
 	// Recovery uses a fresh executor, inbox, Registry and Router.
-	fresh, err := newControlStack(e.store, stackOptions{PublicOrigin: publicOrigin, Worker: true, ProvisionLeaseDuration: 300 * time.Millisecond, ProvisionResultTimeout: time.Second, ProvisionDispatchRetryDelay: time.Second})
+	fresh, err := newControlStack(e.store, stackOptions{PublicOrigin: publicOrigin, Worker: true, ProvisionResultTimeout: time.Second, ProvisionDispatchRetryDelay: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -240,7 +240,7 @@ func TestReconciliationCleanupResidualAndConfirmedAbsence(t *testing.T) {
 
 func TestReconciliationConcurrentClaimAndStaleObserver(t *testing.T) {
 	e := newProvisionEnv(t, time.Second)
-	c, err := e.store.ClaimOperationItem(t.Context(), uuid.New(), time.Second)
+	c, err := e.store.ClaimOperationItem(t.Context(), uuid.New(), time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}

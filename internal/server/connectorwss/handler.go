@@ -28,6 +28,7 @@ import (
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 // Path는 Connector Control WSS endpoint다.
@@ -69,7 +70,7 @@ type HelloRecorder interface {
 
 // ConnectorRegistrar는 Connector 소유권의 수명주기를 외부 저장소(Valkey 등)에 알린다.
 type ConnectorRegistrar interface {
-	RegisterConnector(ctx context.Context, connectorID uuid.UUID, epoch int64, ttl time.Duration) error
+	RegisterConnector(ctx context.Context, connectorID uuid.UUID, epoch int64, ttl time.Duration, onLost ...func()) (int64, error)
 	ReleaseConnector(ctx context.Context, connectorID uuid.UUID, epoch int64) error
 }
 
@@ -139,9 +140,9 @@ func New(opts Options) (*Handler, error) {
 		logger = slog.New(slog.DiscardHandler)
 	}
 	h := &Handler{
-		auth:       opts.Auth,
-		heartbeats: opts.Heartbeats,
-		hellos:     opts.Hellos,
+		auth:         opts.Auth,
+		heartbeats:   opts.Heartbeats,
+		hellos:       opts.Hellos,
 		registry:     opts.Registry,
 		router:       opts.Router,
 		logger:       logger,
@@ -394,13 +395,33 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal, cre
 	// 종료로 끝나도록 그대로 진행한다(여기서 곧바로 반환하면 close code를 전달하기 전에 TCP를 닫을 수 있다).
 	// HELLO가 선언한 capability는 이 Session의 route가 열리기 전에 기록한다. SaaS는 선언한 capability의 message만 이 Session에 보낸다.
 	registration.SetCapabilities(helloCapabilities(data))
-	if registration.MarkReady(cc.route) {
-		if h.ownerLocator != nil {
-			registeredEpoch = time.Now().UnixNano()
-			_ = h.ownerLocator.RegisterConnector(context.Background(), principal.ConnectorID, registeredEpoch, 15*time.Second)
+
+	if h.ownerLocator != nil {
+		onLost := func() {
+			log.Warn("Connector Control 소유권 상실 - fail-closed 퇴역 및 연결 종료", "reason", "owner_lease_lost")
+			registration.Retire(connector.CloseReplaced)
 		}
-	} else {
+		regCtx, regCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		epoch, err := h.ownerLocator.RegisterConnector(regCtx, principal.ConnectorID, 0, 15*time.Second, onLost)
+		regCancel()
+		if err != nil {
+			log.Warn("Connector Control 소유자 등록 실패 - fail-closed 거절", "error", err)
+			if errors.Is(err, valkeyowner.ErrStaleEpoch) {
+				cc.close(closeReplaced, "superseded by newer session")
+			} else {
+				cc.close(websocket.CloseInternalServerErr, "owner registration failed")
+			}
+			return
+		}
+		registeredEpoch = epoch
+	}
+
+	if !registration.MarkReady(cc.route) {
 		log.Info("Connector Control connection이 ready 전에 교체·revoke됨")
+		if h.ownerLocator != nil && registeredEpoch > 0 {
+			_ = h.ownerLocator.ReleaseConnector(context.Background(), principal.ConnectorID, registeredEpoch)
+		}
+		return
 	}
 
 	// HELLO_ACK를 보낸 시점부터 OFFLINE timeout을 잰다. 이후에는 current Session의 유효한 HEARTBEAT를 받았을 때만 연장한다.

@@ -541,13 +541,13 @@ func TestValkey_NegativeSafety(t *testing.T) {
 
 	// 5a. Stale owner epoch
 	// Pod A registers with epoch 1
-	err := c.locatorA.RegisterConnector(t.Context(), c.connectorID, 1, 15*time.Second)
+	_, err := c.locatorA.RegisterConnector(t.Context(), c.connectorID, 1, 15*time.Second)
 	if err != nil {
 		t.Fatalf("RegisterConnector error = %v", err)
 	}
 
 	// Pod B registers with epoch 2 (reconnect takeover)
-	err = c.locatorB.RegisterConnector(t.Context(), c.connectorID, 2, 15*time.Second)
+	_, err = c.locatorB.RegisterConnector(t.Context(), c.connectorID, 2, 15*time.Second)
 	if err != nil {
 		t.Fatalf("Takeover error = %v", err)
 	}

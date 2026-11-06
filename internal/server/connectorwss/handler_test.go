@@ -20,6 +20,7 @@ import (
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 // 테스트용 Credential 원문이다. 실제 Credential이 아니며, 응답·frame·log에 나타나면 안 되는 고유 값이다.
@@ -1221,21 +1222,36 @@ func TestBearerCredentialParsing(t *testing.T) {
 	}
 }
 
-
 type fakeRegistrar struct {
 	mu         sync.Mutex
 	registered map[uuid.UUID]int64
 	released   map[uuid.UUID]int64
+	onLostCb   map[uuid.UUID]func()
+	regErr     error
+	epochGen   int64
 }
 
-func (f *fakeRegistrar) RegisterConnector(ctx context.Context, id uuid.UUID, epoch int64, ttl time.Duration) error {
+func (f *fakeRegistrar) RegisterConnector(ctx context.Context, id uuid.UUID, epoch int64, ttl time.Duration, onLost ...func()) (int64, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if f.regErr != nil {
+		return 0, f.regErr
+	}
 	if f.registered == nil {
 		f.registered = make(map[uuid.UUID]int64)
 	}
+	if f.onLostCb == nil {
+		f.onLostCb = make(map[uuid.UUID]func())
+	}
+	if epoch <= 0 {
+		f.epochGen++
+		epoch = f.epochGen
+	}
 	f.registered[id] = epoch
-	return nil
+	if len(onLost) > 0 {
+		f.onLostCb[id] = onLost[0]
+	}
+	return epoch, nil
 }
 
 func (f *fakeRegistrar) ReleaseConnector(ctx context.Context, id uuid.UUID, epoch int64) error {
@@ -1281,4 +1297,81 @@ func TestOwnerLocator_EpochConsistencyOnRegisterAndRelease(t *testing.T) {
 		relEpoch, ok := registrar.released[h.principal.ConnectorID]
 		return ok && relEpoch == regEpoch
 	})
+}
+
+func TestOwnerLocator_RegistrationFailureFailsClosed(t *testing.T) {
+	registrar := &fakeRegistrar{regErr: valkeyowner.ErrLocatorUnavailable}
+	h := newHarness(t, func(opts *Options) {
+		opts.OwnerLocator = registrar
+	})
+	conn := h.connect()
+	hello := validHello()
+	sendJSON(t, conn, hello)
+
+	// HELLO_ACK is sent before owner registration attempt
+	ack := readJSON(t, conn)
+	if ack["type"] != protocol.MessageTypeHelloAck {
+		t.Fatalf("expected HELLO_ACK, got %v", ack)
+	}
+
+	// Because RegisterConnector failed, local route must NOT be marked ready
+	// and connection must be closed
+	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	_, _, err := conn.ReadMessage()
+	if err == nil {
+		t.Fatal("expected connection to be closed after registration failure, but read succeeded")
+	}
+
+	// Verify route is NOT ready in registry (fail-closed)
+	routeErr := h.registry.WithReadyRoute(h.principal.ConnectorID, func(connector.Session, connector.Route) error {
+		return nil
+	})
+	if routeErr == nil {
+		t.Fatal("expected WithReadyRoute to fail, but succeeded")
+	}
+}
+
+func TestOwnerLocator_LeaseLossRetiresLocalRouteFailClosed(t *testing.T) {
+	registrar := &fakeRegistrar{}
+	h := newHarness(t, func(opts *Options) {
+		opts.OwnerLocator = registrar
+	})
+	conn := h.connect()
+	hello := validHello()
+	sendJSON(t, conn, hello)
+	_ = readJSON(t, conn) // HELLO_ACK
+
+	_ = h.waitRegistered()
+
+	// Verify route is ready
+	waitFor(t, "route ready", func() bool {
+		return h.registry.WithReadyRoute(h.principal.ConnectorID, func(connector.Session, connector.Route) error {
+			return nil
+		}) == nil
+	})
+
+	// Simulate lease loss (e.g. heartbeat detected stale epoch or TTL expired)
+	registrar.mu.Lock()
+	lostCb := registrar.onLostCb[h.principal.ConnectorID]
+	registrar.mu.Unlock()
+
+	if lostCb == nil {
+		t.Fatal("expected onLost callback to be registered")
+	}
+	lostCb()
+
+	// Route must be retired IMMEDIATELY: WithReadyRoute fails with ErrNotReady
+	waitFor(t, "route retired and sealed", func() bool {
+		err := h.registry.WithReadyRoute(h.principal.ConnectorID, func(connector.Session, connector.Route) error {
+			return nil
+		})
+		return errors.Is(err, connector.ErrNotReady) || errors.Is(err, connector.ErrNotConnected)
+	})
+
+	// Connection must be closed
+	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	_, _, err := conn.ReadMessage()
+	if err == nil {
+		t.Fatal("expected connection to be closed after lease loss")
+	}
 }

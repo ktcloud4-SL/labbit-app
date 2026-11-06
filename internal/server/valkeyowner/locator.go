@@ -98,22 +98,54 @@ func connectorKey(id uuid.UUID) string {
 	return "labbit:valkey:connector:owner:" + id.String()
 }
 
+func connectorEpochKey(id uuid.UUID) string {
+	return "labbit:valkey:connector:epoch:" + id.String()
+}
+
 func terminalKey(id string) string {
 	return "labbit:valkey:terminal:owner:" + id
 }
 
 // RegisterConnectorLua는 atomic conditional set을 수행한다.
-// 기존 epoch가 전달된 epoch보다 높거나 같으면 STALE_EPOCH를 반환한다.
+// requested_epoch(ARGV[4])가 0 이하이면 Valkey INCR로 단조 증가 epoch를 원자적으로 생성한다.
+// 전달된 epoch가 기존 epoch보다 낮거나 같으면 STALE_EPOCH를 반환한다.
 var registerConnectorLua = valkey.NewLuaScript(`
 local existing = redis.call('GET', KEYS[1])
+local current_epoch = 0
 if existing then
     local data = cjson.decode(existing)
-    if data and data.epoch and tonumber(data.epoch) >= tonumber(ARGV[3]) then
-        return redis.error_reply("STALE_EPOCH")
+    if data and data.epoch then
+        current_epoch = tonumber(data.epoch)
     end
 end
-redis.call('SET', KEYS[1], ARGV[1], 'EX', tonumber(ARGV[2]))
-return "OK"
+
+local target_epoch = tonumber(ARGV[4])
+if target_epoch <= 0 then
+    target_epoch = redis.call('INCR', KEYS[2])
+    if target_epoch <= current_epoch then
+        target_epoch = current_epoch + 1
+        redis.call('SET', KEYS[2], target_epoch)
+    end
+else
+    if target_epoch <= current_epoch then
+        return redis.error_reply("STALE_EPOCH")
+    end
+    local gen = redis.call('GET', KEYS[2])
+    if not gen or tonumber(gen) < target_epoch then
+        redis.call('SET', KEYS[2], target_epoch)
+    end
+end
+
+local record = {
+    connector_id = ARGV[5],
+    pod_id = ARGV[1],
+    pod_addr = ARGV[2],
+    epoch = target_epoch,
+    expires_at = ARGV[6]
+}
+local encoded = cjson.encode(record)
+redis.call('SET', KEYS[1], encoded, 'EX', tonumber(ARGV[3]))
+return target_epoch
 `)
 
 // refreshConnectorLua는 소유자와 epoch가 일치할 때만 TTL을 연장한다.
@@ -144,37 +176,39 @@ return "OK"
 `)
 
 // RegisterConnector는 Connector의 소유자를 등록하고 백그라운드 heartbeat를 시작한다.
-func (l *Locator) RegisterConnector(ctx context.Context, connectorID uuid.UUID, epoch int64, ttl time.Duration) error {
+// epoch가 0 이하이면 Valkey INCR 원자적 연산을 사용하여 분산 단조 증가 generation을 할당한다.
+// 반환값은 할당/검증된 atomic epoch와 에러이다.
+// 선택적 onLost 콜백이 제공되면 lease 만료, 소유자 교체, 또는 Valkey 장애 시 호출되어 fail-closed를 유도한다.
+func (l *Locator) RegisterConnector(ctx context.Context, connectorID uuid.UUID, epoch int64, ttl time.Duration, onLost ...func()) (int64, error) {
 	if ttl <= 0 {
 		ttl = 15 * time.Second
 	}
-	record := ConnectorOwnerRecord{
-		ConnectorID: connectorID,
-		PodID:       l.podID,
-		PodAddr:     l.podAddr,
-		Epoch:       epoch,
-		ExpiresAt:   time.Now().Add(ttl),
-	}
-	bytes, err := json.Marshal(record)
-	if err != nil {
-		return err
-	}
-
 	ttlSec := int(ttl.Seconds())
 	if ttlSec <= 0 {
 		ttlSec = 1
 	}
 
-	res := registerConnectorLua.Exec(ctx, l.client, []string{connectorKey(connectorID)}, []string{
-		string(bytes),
+	res := registerConnectorLua.Exec(ctx, l.client, []string{
+		connectorKey(connectorID),
+		connectorEpochKey(connectorID),
+	}, []string{
+		l.podID,
+		l.podAddr,
 		strconv.Itoa(ttlSec),
 		strconv.FormatInt(epoch, 10),
+		connectorID.String(),
+		time.Now().Add(ttl).Format(time.RFC3339Nano),
 	})
 	if res.Error() != nil {
 		if res.Error().Error() == "STALE_EPOCH" {
-			return ErrStaleEpoch
+			return 0, ErrStaleEpoch
 		}
-		return fmt.Errorf("%w: %v", ErrLocatorUnavailable, res.Error())
+		return 0, fmt.Errorf("%w: %v", ErrLocatorUnavailable, res.Error())
+	}
+
+	assignedEpoch, err := res.AsInt64()
+	if err != nil {
+		return 0, fmt.Errorf("%w: invalid epoch reply: %v", ErrLocatorUnavailable, err)
 	}
 
 	// 기존 heartbeat가 있다면 취소 후 새로 등록
@@ -186,19 +220,35 @@ func (l *Locator) RegisterConnector(ctx context.Context, connectorID uuid.UUID, 
 	l.heartbeat[connectorID] = hbCancel
 	l.mu.Unlock()
 
-	// 백그라운드 주기적 lease 갱신
-	go l.runHeartbeat(hbCtx, connectorID, epoch, ttl)
+	var lostCb func()
+	if len(onLost) > 0 && onLost[0] != nil {
+		lostCb = onLost[0]
+	}
 
-	return nil
+	// 백그라운드 주기적 lease 갱신
+	go l.runHeartbeat(hbCtx, connectorID, assignedEpoch, ttl, lostCb)
+
+	return assignedEpoch, nil
 }
 
-func (l *Locator) runHeartbeat(ctx context.Context, connectorID uuid.UUID, epoch int64, ttl time.Duration) {
+func (l *Locator) runHeartbeat(ctx context.Context, connectorID uuid.UUID, epoch int64, ttl time.Duration, onLost func()) {
 	interval := ttl / 3
 	if interval < 500*time.Millisecond {
 		interval = 500 * time.Millisecond
 	}
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
+
+	leaseExpiresAt := time.Now().Add(ttl)
+
+	notifyLost := func() {
+		l.mu.Lock()
+		delete(l.heartbeat, connectorID)
+		l.mu.Unlock()
+		if onLost != nil {
+			onLost()
+		}
+	}
 
 	for {
 		select {
@@ -209,14 +259,19 @@ func (l *Locator) runHeartbeat(ctx context.Context, connectorID uuid.UUID, epoch
 			err := l.RefreshConnector(refCtx, connectorID, epoch, ttl)
 			cancel()
 			if err != nil {
-				// 소유권 상실 또는 stale epoch 시 중단
+				// 소유권 상실 또는 stale epoch 시 중단 및 onLost 호출
 				if errors.Is(err, ErrStaleEpoch) || errors.Is(err, ErrNoOwner) {
-					l.mu.Lock()
-					delete(l.heartbeat, connectorID)
-					l.mu.Unlock()
+					notifyLost()
 					return
 				}
+				// Valkey 장애/지연 시: lease TTL 만료 검증
+				if time.Now().After(leaseExpiresAt) {
+					notifyLost()
+					return
+				}
+				continue
 			}
+			leaseExpiresAt = time.Now().Add(ttl)
 		}
 	}
 }

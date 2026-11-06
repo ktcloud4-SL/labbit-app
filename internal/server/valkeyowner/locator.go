@@ -103,12 +103,12 @@ func terminalKey(id string) string {
 }
 
 // RegisterConnectorLua는 atomic conditional set을 수행한다.
-// 기존 epoch가 전달된 epoch보다 높으면 STALE_EPOCH를 반환한다.
+// 기존 epoch가 전달된 epoch보다 높거나 같으면 STALE_EPOCH를 반환한다.
 var registerConnectorLua = valkey.NewLuaScript(`
 local existing = redis.call('GET', KEYS[1])
 if existing then
     local data = cjson.decode(existing)
-    if data and data.epoch and tonumber(data.epoch) > tonumber(ARGV[3]) then
+    if data and data.epoch and tonumber(data.epoch) >= tonumber(ARGV[3]) then
         return redis.error_reply("STALE_EPOCH")
     end
 end

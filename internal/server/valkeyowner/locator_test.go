@@ -58,6 +58,12 @@ func TestLocator_Lifecycle(t *testing.T) {
 		t.Fatalf("RegisterConnector with stale epoch err = %v, want ErrStaleEpoch", err)
 	}
 
+	// 4b. Equal epoch registration: Pod B tries to register with equal epoch 1 -> should also fail with ErrStaleEpoch
+	err = locB.RegisterConnector(ctx, connectorID, 1, 3*time.Second)
+	if !errors.Is(err, ErrStaleEpoch) {
+		t.Fatalf("RegisterConnector with equal epoch err = %v, want ErrStaleEpoch", err)
+	}
+
 	// 5. Reconnect: Pod B registers with higher epoch 2 -> takes ownership
 	if err := locB.RegisterConnector(ctx, connectorID, 2, 3*time.Second); err != nil {
 		t.Fatalf("RegisterConnector with higher epoch err = %v", err)

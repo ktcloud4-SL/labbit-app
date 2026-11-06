@@ -292,10 +292,11 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal, cre
 	// 등록된 Session은 소유자일 뿐 protocol-ready가 아니다. HELLO_ACK를 보내기 전에는 이 connection으로 나가는
 	// message가 없고, command routing도 아래 MarkReady로 이 Session의 route를 등록하기 전에는 이 connection을 사용하지 못한다.
 	// HELLO 실패·timeout이면 아래 Release가 이 Session만 제거하며 더 새로운 Session은 건드리지 않는다.
+	var registeredEpoch int64
 	registration := h.registry.Register(principal, cc.closeFor)
 	defer func() {
-		if h.ownerLocator != nil {
-			_ = h.ownerLocator.ReleaseConnector(context.Background(), principal.ConnectorID, 0)
+		if h.ownerLocator != nil && registeredEpoch > 0 {
+			_ = h.ownerLocator.ReleaseConnector(context.Background(), principal.ConnectorID, registeredEpoch)
 		}
 		registration.Release()
 	}()
@@ -395,7 +396,8 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal, cre
 	registration.SetCapabilities(helloCapabilities(data))
 	if registration.MarkReady(cc.route) {
 		if h.ownerLocator != nil {
-			_ = h.ownerLocator.RegisterConnector(context.Background(), principal.ConnectorID, time.Now().UnixNano(), 15*time.Second)
+			registeredEpoch = time.Now().UnixNano()
+			_ = h.ownerLocator.RegisterConnector(context.Background(), principal.ConnectorID, registeredEpoch, 15*time.Second)
 		}
 	} else {
 		log.Info("Connector Control connection이 ready 전에 교체·revoke됨")

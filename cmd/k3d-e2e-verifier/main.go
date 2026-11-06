@@ -241,10 +241,10 @@ func main() {
 	ctx := context.Background()
 
 	// 1. Connect to PostgreSQL and Valkey
-	log.Printf("[1/8] Connecting to PostgreSQL (%s)...", pgDSN)
+	log.Println("[1/8] Connecting to PostgreSQL...")
 	conn, err := pgx.Connect(ctx, pgDSN)
 	if err != nil {
-		log.Fatalf("FATAL: PostgreSQL connection failed: %v", err)
+		log.Fatalf("FATAL: PostgreSQL connection failed (credentials suppressed)")
 	}
 	defer conn.Close(ctx)
 
@@ -447,9 +447,9 @@ func main() {
 	}
 	defer resp.Body.Close()
 	respBody, _ := io.ReadAll(resp.Body)
-	log.Printf("[5/8] HTTP response from backend-1: status=%d, body=%s", resp.StatusCode, string(respBody))
+	log.Printf("[5/8] HTTP response from backend-1: status=%d", resp.StatusCode)
 	if resp.StatusCode != http.StatusCreated {
-		log.Fatalf("FATAL: Expected 201 Created from cross-pod proxy, got %d: %s", resp.StatusCode, string(respBody))
+		log.Fatalf("FATAL: Expected 201 Created from cross-pod proxy, got %d", resp.StatusCode)
 	}
 
 	var created struct {
@@ -457,7 +457,7 @@ func main() {
 		SessionToken string `json:"sessionToken"`
 	}
 	if err := json.Unmarshal(respBody, &created); err != nil {
-		log.Fatalf("unmarshal created response failed: %v", err)
+		log.Fatalf("unmarshal created response failed (body suppressed)")
 	}
 	capturedSessionID = created.ID
 	log.Printf("[5/8] Terminal session successfully created cross-pod: ID=%s", capturedSessionID)
@@ -483,7 +483,11 @@ func main() {
 	}
 	bWs, bResp, err := dialer.Dial(browserWSURL, wsHeaders)
 	if err != nil {
-		log.Fatalf("FATAL: Browser dial to backend-1 failed: %v, resp=%v", err, bResp)
+		var status int
+		if bResp != nil {
+			status = bResp.StatusCode
+		}
+		log.Fatalf("FATAL: Browser dial to backend-1 failed: %v (status=%d)", err, status)
 	}
 	defer bWs.Close()
 	log.Println("[6/8] Browser WebSocket connected to backend-1!")
@@ -506,9 +510,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("FATAL: Browser read frame failed: %v", err)
 	}
-	log.Printf("[6/8] Browser received frame (type=%d): %s", msgType, string(msgData))
+	log.Printf("[6/8] Browser received frame (type=%d, bytes=%d)", msgType, len(msgData))
 	if !strings.Contains(string(msgData), "TERMINAL_ATTACHED") {
-		log.Fatalf("FATAL: Expected TERMINAL_ATTACHED frame, got %s", string(msgData))
+		log.Fatalf("FATAL: Expected TERMINAL_ATTACHED frame, got message type %d", msgType)
 	}
 	log.Println("[6/8] VERIFIED: Browser WSS cross-pod attachment SUCCEEDED!")
 
@@ -543,10 +547,9 @@ func main() {
 	time.Sleep(500 * time.Millisecond)
 	delCheck, _ := vkClient.Do(ctx, vkClient.B().Get().Key(termKey).Build()).ToString()
 	if delCheck != "" {
-		log.Printf("Warning: Terminal key still present in Valkey: %s", delCheck)
-	} else {
-		log.Println("[7/8] VERIFIED: Terminal owner key deleted from Valkey!")
+		log.Fatalf("FATAL: Terminal key still present in Valkey after DELETE: %s", delCheck)
 	}
+	log.Println("[7/8] VERIFIED: Terminal owner key deleted from Valkey!")
 
 	// 8. Negative Safety: Valkey owner loss fail-closed test
 	log.Println("[8/8] Testing Negative Safety: Disconnecting Connector...")
@@ -554,16 +557,27 @@ func main() {
 	time.Sleep(1 * time.Second)
 
 	// HTTP POST Create when no connector is owned -> must fail-closed with 503
-	negResp, err := client.Do(req)
-	if err == nil {
-		defer negResp.Body.Close()
-		log.Printf("[8/8] Fail-closed response status: %d (expected 503)", negResp.StatusCode)
-		if negResp.StatusCode == http.StatusServiceUnavailable {
-			log.Println("[8/8] VERIFIED: When no owner exists, request fails-closed with 503!")
-		}
+	negReq, err := http.NewRequest(http.MethodPost, createURL, bytes.NewBufferString(bodyJSON))
+	if err != nil {
+		log.Fatalf("FATAL: Failed to build negative test request: %v", err)
 	}
+	negReq.Header.Set("Content-Type", "application/json")
+	negReq.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	negReq.Header.Set("Origin", "http://localhost:8080")
+
+	negResp, err := client.Do(negReq)
+	if err != nil {
+		log.Fatalf("FATAL: Negative safety request to backend-1 failed: %v", err)
+	}
+	defer negResp.Body.Close()
+	log.Printf("[8/8] Fail-closed response status: %d (expected 503)", negResp.StatusCode)
+	if negResp.StatusCode != http.StatusServiceUnavailable {
+		log.Fatalf("FATAL: Expected 503 Service Unavailable when no connector owner exists, got %d", negResp.StatusCode)
+	}
+	log.Println("[8/8] VERIFIED: When no owner exists, request fails-closed with 503!")
 
 	log.Println("=========================================================")
-	log.Println("🎉 ALL E2E PROOFS PASSED IN FEDORA k3d REAL MULTI-PODS! 🎉")
+	log.Println("PARTIAL POC VERIFIED: Synthetic Terminal Create/WSS-PTY/Delete & Owner Fail-Closed 503")
+	log.Println("NOTE: Worker async execution, File/Preview routes, and Live streams are NOT verified in this test")
 	log.Println("=========================================================")
 }

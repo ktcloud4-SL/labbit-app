@@ -177,12 +177,13 @@ func startSupervisorWithCustomMock(t *testing.T, serverURL string, mock *provide
 	return s
 }
 
-// 1. Worker Claim Avoidance & Exact-Once Execution:
+// 1. Worker Claim, Fail-Closed Deferral & Exact-Once Execution:
 // Connector connects to Pod A.
 // PENDING operation item exists in PostgreSQL.
-// Pod B Worker runs -> Valkey owner check shows Pod A owns the connector.
-// Pod B avoids claim (defers unsent fail-closed). Provider mutation count = 0.
-// Pod A Worker runs -> Pod A owns the connector -> dispatches to Connector -> Provider mutation count = 1.
+// Pod B Worker runs -> claims item from PostgreSQL. Since Pod B lacks a local route to the connector,
+// it safely aborts dispatch (0 provider mutations) and defers the item back to PENDING (stage DEFERRED).
+// (Note: There is NO pre-claim owner filter in PostgreSQL; worker claims first, then defers unsent fail-closed).
+// Pod A Worker runs -> Pod A owns the connector route -> dispatches to Connector -> Provider mutation count = 1.
 func TestValkey_Worker_CrossPodClaimAndExactOnceExecution(t *testing.T) {
 	c := newValkeyReplicaCluster(t, true, false)
 
@@ -270,18 +271,18 @@ func TestValkey_Worker_CrossPodClaimAndExactOnceExecution(t *testing.T) {
 		t.Fatalf("insert operation_item error = %v", err)
 	}
 
-	// 1) Pod B Worker polls first: non-owner avoids claim!
+	// 1) Pod B Worker polls first: non-owner claims item from DB, detects lack of route, and defers without provider mutation!
 	claimedB, err := c.podB.Provisions.RunOne(t.Context())
 	if err != nil {
 		t.Fatalf("Pod B RunOne error = %v", err)
 	}
 	if !claimedB {
-		t.Fatalf("Pod B claimed the item from DB")
+		t.Fatalf("Pod B expected to claim the PENDING item for evaluation, got false")
 	}
 
 	// Provider must NOT have executed
 	if provisions.Load() != 0 {
-		t.Fatalf("provisions called = %d, want 0 (Pod B non-owner avoided execution)", provisions.Load())
+		t.Fatalf("provisions called = %d, want 0 (Pod B non-owner deferred execution without provider mutation)", provisions.Load())
 	}
 
 	// Check item status in PostgreSQL: deferred back to PENDING

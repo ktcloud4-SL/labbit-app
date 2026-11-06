@@ -1220,3 +1220,65 @@ func TestBearerCredentialParsing(t *testing.T) {
 		})
 	}
 }
+
+
+type fakeRegistrar struct {
+	mu         sync.Mutex
+	registered map[uuid.UUID]int64
+	released   map[uuid.UUID]int64
+}
+
+func (f *fakeRegistrar) RegisterConnector(ctx context.Context, id uuid.UUID, epoch int64, ttl time.Duration) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.registered == nil {
+		f.registered = make(map[uuid.UUID]int64)
+	}
+	f.registered[id] = epoch
+	return nil
+}
+
+func (f *fakeRegistrar) ReleaseConnector(ctx context.Context, id uuid.UUID, epoch int64) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.released == nil {
+		f.released = make(map[uuid.UUID]int64)
+	}
+	f.released[id] = epoch
+	return nil
+}
+
+func TestOwnerLocator_EpochConsistencyOnRegisterAndRelease(t *testing.T) {
+	registrar := &fakeRegistrar{}
+	h := newHarness(t, func(opts *Options) {
+		opts.OwnerLocator = registrar
+	})
+	conn := h.connect()
+	hello := validHello()
+	sendJSON(t, conn, hello)
+	_ = readJSON(t, conn) // HELLO_ACK
+
+	_ = h.waitRegistered()
+
+	var regEpoch int64
+	waitFor(t, "owner registered with epoch > 0", func() bool {
+		registrar.mu.Lock()
+		defer registrar.mu.Unlock()
+		e, ok := registrar.registered[h.principal.ConnectorID]
+		if ok && e > 0 {
+			regEpoch = e
+			return true
+		}
+		return false
+	})
+
+	// Close connection and verify ReleaseConnector called with the exact registeredEpoch
+	_ = conn.Close()
+
+	waitFor(t, "owner released with matching registered epoch", func() bool {
+		registrar.mu.Lock()
+		defer registrar.mu.Unlock()
+		relEpoch, ok := registrar.released[h.principal.ConnectorID]
+		return ok && relEpoch == regEpoch
+	})
+}

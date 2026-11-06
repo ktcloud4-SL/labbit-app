@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext"
 )
@@ -23,6 +24,30 @@ type WorkerOptions struct {
 	// or interprets its error as a confirmed Provider outcome.
 	Execute func(context.Context, repository.OperationItemClaim) error
 	Tracer  trace.Tracer
+	Metrics *observability.WorkerMetrics
+}
+
+type outcomeContextKey struct{}
+
+// ContextWithOutcome attaches a mutable outcome slot to ctx for recording the durable execution result.
+func ContextWithOutcome(ctx context.Context) (context.Context, *string) {
+	var outcome string
+	return context.WithValue(ctx, outcomeContextKey{}, &outcome), &outcome
+}
+
+// RecordOutcome sets the durable result classification in ctx if present.
+func RecordOutcome(ctx context.Context, result string) {
+	if ptr, ok := ctx.Value(outcomeContextKey{}).(*string); ok && ptr != nil && result != "" {
+		*ptr = result
+	}
+}
+
+// OutcomeFromContext returns the outcome recorded in ctx, or empty string if none.
+func OutcomeFromContext(ctx context.Context) string {
+	if ptr, ok := ctx.Value(outcomeContextKey{}).(*string); ok && ptr != nil {
+		return *ptr
+	}
+	return ""
 }
 
 // Worker is a single-item execution boundary, with no scheduler or polling loop.
@@ -53,16 +78,48 @@ func (w *Worker) RunOne(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if err := ctx.Err(); err != nil {
+	var (
+		outcomePtr *string
+		start      time.Time
+		runErr     error
+	)
+	if w.opts.Metrics != nil {
+		w.opts.Metrics.ActiveOperations.Inc()
+		start = time.Now()
+		ctx, outcomePtr = ContextWithOutcome(ctx)
+		defer func() {
+			w.opts.Metrics.ActiveOperations.Dec()
+			res := ""
+			if ctx.Err() != nil || errors.Is(runErr, context.Canceled) || errors.Is(runErr, context.DeadlineExceeded) {
+				res = "cancel"
+			} else if runErr != nil {
+				res = "error"
+			} else if outcomePtr != nil && *outcomePtr != "" {
+				res = *outcomePtr
+			} else {
+				res = "unknown"
+			}
+			opType := claim.Operation.Type
+			if opType == "" {
+				opType = "unknown"
+			}
+			w.opts.Metrics.OperationsProcessed.WithLabelValues(opType, res).Inc()
+			w.opts.Metrics.OperationDuration.WithLabelValues(opType, res).Observe(time.Since(start).Seconds())
+		}()
+	}
+	if err = ctx.Err(); err != nil {
+		runErr = err
 		return true, err
 	}
 	// Recheck committed ownership immediately before entering the external
 	// boundary. A delayed commit response must not authorize expired execution.
 	claim.ExpiresAt, err = w.Renew(ctx, claim.Lease)
 	if err != nil {
+		runErr = err
 		return true, err
 	}
-	if err := ctx.Err(); err != nil {
+	if err = ctx.Err(); err != nil {
+		runErr = err
 		return true, err
 	}
 	// The durable parent, including an absent/invalid context, is authoritative;
@@ -77,6 +134,23 @@ func (w *Worker) RunOne(ctx context.Context) (bool, error) {
 	))
 	defer span.End()
 	err = w.opts.Execute(ctx, claim)
+	runErr = err
+	if err == nil && w.opts.Metrics != nil && outcomePtr != nil {
+		if status, statusErr := w.opts.Store.OperationItemStatus(ctx, claim.Item.ID); statusErr == nil && status != "" {
+			switch status {
+			case "SUCCEEDED":
+				*outcomePtr = "succeeded"
+			case "FAILED":
+				*outcomePtr = "failed"
+			case "RECONCILING":
+				*outcomePtr = "unknown"
+			case "PENDING":
+				*outcomePtr = "deferred"
+			default:
+				*outcomePtr = "unknown"
+			}
+		}
+	}
 	if err != nil {
 		// Callback errors may contain Provider payloads; do not record their text.
 		span.SetStatus(codes.Error, "execution boundary failed")

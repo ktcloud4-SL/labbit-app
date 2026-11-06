@@ -13,13 +13,14 @@ import (
 func TestApplicationMetricsRegistrationByRole(t *testing.T) {
 	for _, roles := range [][]string{{"api"}, {"realtime"}, {"worker"}, {"preview"}, {"api", "realtime", "worker"}} {
 		t.Run(strings.Join(roles, ","), func(t *testing.T) {
-			reg, hm, rm := applicationMetrics(roles)
-			hasAPI, hasRealtime := false, false
+			reg, hm, rm, wm := applicationMetrics(roles)
+			hasAPI, hasRealtime, hasWorker := false, false, false
 			for _, role := range roles {
 				hasAPI = hasAPI || role == "api"
 				hasRealtime = hasRealtime || role == "realtime"
+				hasWorker = hasWorker || role == "worker"
 			}
-			if (hm != nil) != hasAPI || (rm != nil) != hasRealtime {
+			if (hm != nil) != hasAPI || (rm != nil) != hasRealtime || (wm != nil) != hasWorker {
 				t.Fatal("role metric injection mismatch")
 			}
 			ready := &atomic.Bool{}
@@ -38,13 +39,19 @@ func TestApplicationMetricsRegistrationByRole(t *testing.T) {
 				if !strings.HasPrefix(rec.Header().Get("Content-Type"), "text/plain; version=0.0.4") {
 					t.Fatal("invalid metrics content type")
 				}
-				if strings.Contains(body, "labbit_http_") != hasAPI || strings.Contains(body, "labbit_realtime_") != hasRealtime {
+				if strings.Contains(body, "labbit_http_") != hasAPI || strings.Contains(body, "labbit_realtime_") != hasRealtime || strings.Contains(body, "labbit_worker_") != hasWorker {
 					t.Fatal("unrelated role metrics exposed")
 				}
-				for _, forbidden := range []string{"labbit_worker_", "live_subscriber", "go_", "process_", "labbit_http_requests_total"} {
+				if hasWorker && !strings.Contains(body, "labbit_worker_active_operations 0") {
+					t.Fatal("expected labbit_worker_active_operations 0 for worker role")
+				}
+				for _, forbidden := range []string{"live_subscriber", "go_", "process_", "labbit_http_requests_total"} {
 					if strings.Contains(body, forbidden) {
 						t.Errorf("unexpected metric/series %q", forbidden)
 					}
+				}
+				if !hasWorker && strings.Contains(body, "labbit_worker_") {
+					t.Errorf("unexpected labbit_worker_ metric exposed when worker role not enabled")
 				}
 			}
 		})

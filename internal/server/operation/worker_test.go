@@ -12,13 +12,17 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 type workerStoreFake struct {
-	claim func(context.Context, uuid.UUID, time.Duration) (repository.OperationItemClaim, error)
-	renew func(context.Context, repository.OperationItemLease, time.Duration) (time.Time, error)
+	claim  func(context.Context, uuid.UUID, time.Duration) (repository.OperationItemClaim, error)
+	renew  func(context.Context, repository.OperationItemLease, time.Duration) (time.Time, error)
+	status func(context.Context, uuid.UUID) (string, error)
 }
 
 func (f workerStoreFake) ClaimOperationItem(ctx context.Context, owner uuid.UUID, d time.Duration) (repository.OperationItemClaim, error) {
@@ -26,6 +30,12 @@ func (f workerStoreFake) ClaimOperationItem(ctx context.Context, owner uuid.UUID
 }
 func (f workerStoreFake) RenewOperationItemLease(ctx context.Context, lease repository.OperationItemLease, d time.Duration) (time.Time, error) {
 	return f.renew(ctx, lease, d)
+}
+func (f workerStoreFake) OperationItemStatus(ctx context.Context, id uuid.UUID) (string, error) {
+	if f.status != nil {
+		return f.status(ctx, id)
+	}
+	return "", nil
 }
 
 func TestWorkerDoesNotExecuteWithoutCommittedOwnership(t *testing.T) {
@@ -163,4 +173,110 @@ func TestWorkerRequiresExplicitExecutionAndLeaseDuration(t *testing.T) {
 			t.Fatalf("invalid worker options=%v", err)
 		}
 	}
+}
+
+func TestWorkerMetricsLifecycleAndOutcomes(t *testing.T) {
+	t.Run("empty poll does not change metrics", func(t *testing.T) {
+		reg := prometheus.NewRegistry()
+		m := observability.NewWorkerMetrics(reg)
+		store := workerStoreFake{
+			claim: func(context.Context, uuid.UUID, time.Duration) (repository.OperationItemClaim, error) {
+				return repository.OperationItemClaim{}, repository.ErrNotFound
+			},
+		}
+		w, err := NewWorker(WorkerOptions{Store: store, LeaseDuration: time.Minute, Metrics: m,
+			Execute: func(context.Context, repository.OperationItemClaim) error { return nil }})
+		if err != nil {
+			t.Fatal(err)
+		}
+		claimed, err := w.RunOne(t.Context())
+		if claimed || err != nil {
+			t.Fatalf("claimed=%v, err=%v", claimed, err)
+		}
+		if got := testutil.ToFloat64(m.ActiveOperations); got != 0 {
+			t.Fatalf("active_operations = %v, want 0", got)
+		}
+		if got := testutil.CollectAndCount(m.OperationsProcessed); got != 0 {
+			t.Fatalf("operations_processed count = %v, want 0", got)
+		}
+	})
+
+	t.Run("claim execute records active gauge and recorded outcome", func(t *testing.T) {
+		reg := prometheus.NewRegistry()
+		m := observability.NewWorkerMetrics(reg)
+		store := workerStoreFake{
+			claim: func(_ context.Context, owner uuid.UUID, _ time.Duration) (repository.OperationItemClaim, error) {
+				return repository.OperationItemClaim{
+					Lease: repository.OperationItemLease{ItemID: uuid.New(), Owner: owner},
+					Operation: repository.Operation{
+						ID:   uuid.New(),
+						Type: "PROVISION",
+					},
+				}, nil
+			},
+			renew: func(context.Context, repository.OperationItemLease, time.Duration) (time.Time, error) {
+				return time.Now().Add(time.Minute), nil
+			},
+			status: func(context.Context, uuid.UUID) (string, error) {
+				return "SUCCEEDED", nil
+			},
+		}
+		activeObserved := -1.0
+		w, err := NewWorker(WorkerOptions{Store: store, LeaseDuration: time.Minute, Metrics: m,
+			Execute: func(ctx context.Context, claim repository.OperationItemClaim) error {
+				activeObserved = testutil.ToFloat64(m.ActiveOperations)
+				return nil
+			}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		claimed, err := w.RunOne(t.Context())
+		if !claimed || err != nil {
+			t.Fatalf("claimed=%v, err=%v", claimed, err)
+		}
+		if activeObserved != 1 {
+			t.Fatalf("active_operations during execute = %v, want 1", activeObserved)
+		}
+		if got := testutil.ToFloat64(m.ActiveOperations); got != 0 {
+			t.Fatalf("active_operations after run = %v, want 0", got)
+		}
+		if got := testutil.ToFloat64(m.OperationsProcessed.WithLabelValues("PROVISION", "succeeded")); got != 1 {
+			t.Fatalf("operations_processed PROVISION succeeded = %v, want 1", got)
+		}
+		if got := testutil.CollectAndCount(m.OperationDuration); got != 1 {
+			t.Fatalf("operation_duration count = %v, want 1", got)
+		}
+	})
+
+	t.Run("canceled claim cleans up gauge and records cancel", func(t *testing.T) {
+		reg := prometheus.NewRegistry()
+		m := observability.NewWorkerMetrics(reg)
+		ctx, cancel := context.WithCancel(t.Context())
+		store := workerStoreFake{
+			claim: func(context.Context, uuid.UUID, time.Duration) (repository.OperationItemClaim, error) {
+				cancel()
+				return repository.OperationItemClaim{
+					Operation: repository.Operation{ID: uuid.New(), Type: "RESET"},
+				}, nil
+			},
+		}
+		w, err := NewWorker(WorkerOptions{Store: store, LeaseDuration: time.Minute, Metrics: m,
+			Execute: func(context.Context, repository.OperationItemClaim) error {
+				t.Fatal("execute should not be reached when canceled")
+				return nil
+			}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		claimed, err := w.RunOne(ctx)
+		if !claimed || !errors.Is(err, context.Canceled) {
+			t.Fatalf("claimed=%v, err=%v", claimed, err)
+		}
+		if got := testutil.ToFloat64(m.ActiveOperations); got != 0 {
+			t.Fatalf("active_operations after cancel = %v, want 0", got)
+		}
+		if got := testutil.ToFloat64(m.OperationsProcessed.WithLabelValues("RESET", "cancel")); got != 1 {
+			t.Fatalf("operations_processed RESET cancel = %v, want 1", got)
+		}
+	})
 }

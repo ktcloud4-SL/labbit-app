@@ -48,6 +48,7 @@ type stackOptions struct {
 	Realtime        bool
 	HTTPMetrics     *observability.HTTPMetrics
 	RealtimeMetrics *observability.RealtimeMetrics
+	WorkerMetrics   *observability.WorkerMetrics
 	// Tracer는 HTTP server Span과 Connector Control command/result Span을 만든다. nil이면 Span 없이 Trace Context만 전달한다.
 	Tracer trace.Tracer
 
@@ -135,6 +136,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	if opts.Worker {
 		stack.Provisions, err = provision.NewExecutor(provision.Options{
 			Store: store, Mutations: store, Reconciliation: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
+			Metrics: opts.WorkerMetrics,
 			CloseForMutation: func(ctx context.Context, d repository.ProvisionDispatch) error {
 				reason := "LAB_RESET"
 				if d.MutationType == "CLEANUP" {

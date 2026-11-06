@@ -35,4 +35,6 @@ type OperationWorkerStore interface {
 	// RUNNING item/parent. It cannot revive expired ownership or change status.
 	// PostgreSQL time is authoritative. Durations must be >= one microsecond.
 	RenewOperationItemLease(context.Context, OperationItemLease, time.Duration) (time.Time, error)
+	// OperationItemStatus returns the current committed status of the OperationItem.
+	OperationItemStatus(context.Context, uuid.UUID) (string, error)
 }

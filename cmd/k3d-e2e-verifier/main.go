@@ -124,6 +124,7 @@ func (sc *syntheticConnector) controlLoop() {
 		case "OPERATION_COMMAND":
 			sc.mutations.Add(1)
 			nowStr := time.Now().UTC().Format(time.RFC3339Nano)
+			srvID := "vm-srv-" + msg.LabInstanceID
 			sc.writeControl(map[string]any{
 				"type":             "OPERATION_ACK",
 				"messageId":        uuid.NewString(),
@@ -144,11 +145,16 @@ func (sc *syntheticConnector) controlLoop() {
 				"generation":       msg.Generation,
 				"payload": map[string]any{
 					"outcome": "SUCCEEDED",
+					"readiness": map[string]any{
+						"workspaceVmKey": "workspace",
+						"serverId":       srvID,
+						"generation":     msg.Generation,
+					},
 					"providerResources": []any{
 						map[string]any{
 							"resourceType":  "SERVER",
 							"logicalName":   "workspace",
-							"providerId":    "vm-srv-1",
+							"providerId":    srvID,
 							"generation":    msg.Generation,
 							"observedState": "ACTIVE",
 						},
@@ -591,11 +597,28 @@ func main() {
 
 	// 8. Testing Realistic Worker: Seeded Operation Claim, Non-Owner Defer & Owner Execution
 	log.Println("[8/10] Seeding operation and operation_item for realistic Worker test...")
+	workerUserID := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO users (id, organization_id, organization_role) VALUES ($1, $2, 'MEMBER')
+	`, workerUserID, orgID)
+	if err != nil {
+		log.Fatalf("insert worker user failed: %v", err)
+	}
+
+	workerInstanceID := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO lab_instances (id, organization_id, lab_execution_id, user_id, participant_role, status, generation)
+		VALUES ($1, $2, $3, $4, 'STUDENT', 'PENDING', 1)
+	`, workerInstanceID, orgID, execID, workerUserID)
+	if err != nil {
+		log.Fatalf("insert worker lab_instance failed: %v", err)
+	}
+
 	opID := uuid.New()
 	_, err = conn.Exec(ctx, `
 		INSERT INTO operations (id, organization_id, operation_type, requested_by_user_id, lab_execution_id, idempotency_key_hash, request_fingerprint, status, created_at)
 		VALUES ($1, $2, 'PROVISION', $3, $4, '\x02'::bytea, '\x02'::bytea, 'PENDING', now())
-	`, opID, orgID, userID, execID)
+	`, opID, orgID, workerUserID, execID)
 	if err != nil {
 		log.Fatalf("insert operation failed: %v", err)
 	}
@@ -604,7 +627,7 @@ func main() {
 	_, err = conn.Exec(ctx, `
 		INSERT INTO operation_items (id, organization_id, operation_id, lab_instance_id, generation, status, created_at)
 		VALUES ($1, $2, $3, $4, 1, 'PENDING', now())
-	`, itemID, orgID, opID, labInstanceID)
+	`, itemID, orgID, opID, workerInstanceID)
 	if err != nil {
 		log.Fatalf("insert operation_item failed: %v", err)
 	}
@@ -640,12 +663,17 @@ func main() {
 	}
 	log.Println("[9/10] VERIFIED: Connector owner mapping removed from Valkey upon release!")
 
-	// Seed another operation item when no connector owner exists
+	// Seed another operation item with fresh pending instance when no connector owner exists
+	workerUser2 := uuid.New()
+	_, _ = conn.Exec(ctx, `INSERT INTO users (id, organization_id, organization_role) VALUES ($1, $2, 'MEMBER')`, workerUser2, orgID)
+	workerInstance2 := uuid.New()
+	_, _ = conn.Exec(ctx, `INSERT INTO lab_instances (id, organization_id, lab_execution_id, user_id, participant_role, status, generation) VALUES ($1, $2, $3, $4, 'STUDENT', 'PENDING', 1)`, workerInstance2, orgID, execID, workerUser2)
+
 	opID2 := uuid.New()
 	_, err = conn.Exec(ctx, `
 		INSERT INTO operations (id, organization_id, operation_type, requested_by_user_id, lab_execution_id, idempotency_key_hash, request_fingerprint, status, created_at)
 		VALUES ($1, $2, 'PROVISION', $3, $4, '\x03'::bytea, '\x03'::bytea, 'PENDING', now())
-	`, opID2, orgID, userID, execID)
+	`, opID2, orgID, workerUser2, execID)
 	if err != nil {
 		log.Fatalf("insert operation 2 failed: %v", err)
 	}
@@ -654,7 +682,7 @@ func main() {
 	_, err = conn.Exec(ctx, `
 		INSERT INTO operation_items (id, organization_id, operation_id, lab_instance_id, generation, status, created_at)
 		VALUES ($1, $2, $3, $4, 1, 'PENDING', now())
-	`, itemID2, orgID, opID2, labInstanceID)
+	`, itemID2, orgID, opID2, workerInstance2)
 	if err != nil {
 		log.Fatalf("insert operation_item 2 failed: %v", err)
 	}

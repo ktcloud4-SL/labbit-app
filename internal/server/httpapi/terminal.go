@@ -138,19 +138,25 @@ func (a *api) createTerminalSession(w http.ResponseWriter, r *http.Request) {
 		a.internalError(w, r, "create_terminal_session", errors.New("인증 context가 없습니다"))
 		return
 	}
+	labID, err := uuid.Parse(r.PathValue("labInstanceId"))
+	if err != nil {
+		a.terminalError(w, r, "create_terminal_session", terminal.ErrNotFound)
+		return
+	}
 	if a.ownerLocator != nil && a.proxy != nil && !a.proxy.IsInternalPeer(r) {
-		if labID, err := uuid.Parse(r.PathValue("labInstanceId")); err == nil {
-			if connID, err := a.terminals.ConnectorForLabInstance(r.Context(), labID); err == nil && connID != uuid.Nil {
-				owner, err := a.ownerLocator.LookupConnector(r.Context(), connID)
-				if err != nil {
-					if !errors.Is(err, valkeyowner.ErrNoOwner) {
-						a.terminalError(w, r, "create_terminal_session", terminal.ErrUnavailable)
-						return
-					}
-				} else if owner.PodID != "" && owner.PodID != a.ownerLocator.PodID() {
-					a.proxy.ProxyHTTP(w, r, owner.PodAddr)
-					return
-				}
+		if connID, err := a.terminals.ConnectorForLabInstance(r.Context(), labID); err == nil && connID != uuid.Nil {
+			owner, err := a.ownerLocator.LookupConnector(r.Context(), connID)
+			if err != nil {
+				a.terminalError(w, r, "create_terminal_session", terminal.ErrUnavailable)
+				return
+			}
+			if owner == nil || owner.PodID == "" || (owner.PodID != a.ownerLocator.PodID() && owner.PodAddr == "") {
+				a.terminalError(w, r, "create_terminal_session", terminal.ErrUnavailable)
+				return
+			}
+			if owner.PodID != a.ownerLocator.PodID() {
+				a.proxy.ProxyHTTP(w, r, owner.PodAddr)
+				return
 			}
 		}
 	}

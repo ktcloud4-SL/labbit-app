@@ -714,13 +714,69 @@ func TestTerminalCloseLocatorErrorFailsClosed(t *testing.T) {
 	}
 }
 
-// TestTerminalCreateNoOwnerFallsThroughToLocalCreate ensures that when Valkey returns ErrNoOwner,
-// create proceeds to local handling.
-func TestTerminalCreateNoOwnerFallsThroughToLocalCreate(t *testing.T) {
+// TestTerminalCreateNoOwnerWithLocalRouteReadyFailsClosed ensures that when
+// Valkey returns ErrNoOwner, create fails closed with 503 even if local Connector route is ready.
+func TestTerminalCreateNoOwnerWithLocalRouteReadyFailsClosed(t *testing.T) {
 	connID := uuid.New()
 	locator := &fakeOwnerLocator{
 		connectorErr: valkeyowner.ErrNoOwner,
 		podID:        "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	rec := h.create(validCreateBody)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503 Service Unavailable: %s", rec.Code, rec.Body.String())
+	}
+	problem := decodeProblem(t, rec)
+	if problem.Code != codeTerminalUnavailable {
+		t.Fatalf("problem.Code = %q, want %q", problem.Code, codeTerminalUnavailable)
+	}
+	if len(h.terminals.createIn) != 0 {
+		t.Fatalf("terminals.Create was called %d times; expected fail-closed without calling local handler", len(h.terminals.createIn))
+	}
+}
+
+// TestTerminalCreateEmptyPodIDFailsClosed ensures that a malformed connector owner record
+// with empty PodID fails closed with 503 without calling local Create.
+func TestTerminalCreateEmptyPodIDFailsClosed(t *testing.T) {
+	connID := uuid.New()
+	locator := &fakeOwnerLocator{
+		connectorOwner: &valkeyowner.ConnectorOwnerRecord{
+			PodID:   "",
+			PodAddr: "10.42.0.10:8080",
+		},
+		podID: "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	rec := h.create(validCreateBody)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503 Service Unavailable: %s", rec.Code, rec.Body.String())
+	}
+	problem := decodeProblem(t, rec)
+	if problem.Code != codeTerminalUnavailable {
+		t.Fatalf("problem.Code = %q, want %q", problem.Code, codeTerminalUnavailable)
+	}
+	if len(h.terminals.createIn) != 0 {
+		t.Fatalf("terminals.Create was called %d times; expected fail-closed without calling local handler", len(h.terminals.createIn))
+	}
+}
+
+// TestTerminalCreateLocalOwnerPermits201 ensures normal Valkey owner lookup for this pod
+// permits local terminal creation and returns 201.
+func TestTerminalCreateLocalOwnerPermits201(t *testing.T) {
+	connID := uuid.New()
+	locator := &fakeOwnerLocator{
+		connectorOwner: &valkeyowner.ConnectorOwnerRecord{
+			PodID:   "pod-local",
+			PodAddr: "10.42.0.10:8080",
+		},
+		podID: "pod-local",
 	}
 	proxy := valkeyowner.NewProxy("test-secret")
 	h := newTerminalHarnessWithLocator(t, locator, proxy)
@@ -732,6 +788,110 @@ func TestTerminalCreateNoOwnerFallsThroughToLocalCreate(t *testing.T) {
 	}
 	if len(h.terminals.createIn) != 1 {
 		t.Fatalf("terminals.Create was called %d times, want 1", len(h.terminals.createIn))
+	}
+}
+
+// TestTerminalCreateNoValkeyN1Success ensures that without Valkey (N=1 mode),
+// terminal create proceeds locally and returns 201.
+func TestTerminalCreateNoValkeyN1Success(t *testing.T) {
+	h := newTerminalHarness(t)
+	h.terminals.connectorID = uuid.New()
+
+	rec := h.create(validCreateBody)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201 Created: %s", rec.Code, rec.Body.String())
+	}
+	if len(h.terminals.createIn) != 1 {
+		t.Fatalf("terminals.Create was called %d times, want 1", len(h.terminals.createIn))
+	}
+}
+
+// TestTerminalCreateRemoteOwnerProxies ensures that when another pod owns the connector,
+// createTerminalSession proxies the request to the remote pod and does not call local Create.
+func TestTerminalCreateRemoteOwnerProxies(t *testing.T) {
+	connID := uuid.New()
+	remoteCalled := false
+	remoteServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		remoteCalled = true
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"` + uuid.New().String() + `","generation":1,"sessionToken":"remote-token","tokenExpiresAt":"2026-10-01T17:00:00Z"}`))
+	}))
+	defer remoteServer.Close()
+
+	locator := &fakeOwnerLocator{
+		connectorOwner: &valkeyowner.ConnectorOwnerRecord{
+			PodID:   "pod-remote",
+			PodAddr: strings.TrimPrefix(remoteServer.URL, "http://"),
+		},
+		podID: "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	rec := h.create(validCreateBody)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201 Created: %s", rec.Code, rec.Body.String())
+	}
+	if !remoteCalled {
+		t.Fatalf("remote server was not called via proxy")
+	}
+	if len(h.terminals.createIn) != 0 {
+		t.Fatalf("local terminals.Create was called %d times; expected remote proxy only", len(h.terminals.createIn))
+	}
+}
+
+// TestTerminalCloseRemoteOwnerProxies ensures that when another pod owns the terminal session,
+// closeTerminalSession proxies the request to the remote pod and does not call local Close.
+func TestTerminalCloseRemoteOwnerProxies(t *testing.T) {
+	remoteCalled := false
+	remoteServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		remoteCalled = true
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer remoteServer.Close()
+
+	sessionID := uuid.New().String()
+	locator := &fakeOwnerLocator{
+		terminalOwner: &valkeyowner.TerminalOwnerRecord{
+			PodID:   "pod-remote",
+			PodAddr: strings.TrimPrefix(remoteServer.URL, "http://"),
+		},
+		podID: "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+
+	rec := h.send(http.MethodDelete, "/api/v1/terminal-sessions/"+sessionID, "",
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin))
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204 No Content: %s", rec.Code, rec.Body.String())
+	}
+	if !remoteCalled {
+		t.Fatalf("remote server was not called via proxy")
+	}
+	if len(h.terminals.closeIDs) != 0 {
+		t.Fatalf("local terminals.Close was called %d times; expected remote proxy only", len(h.terminals.closeIDs))
+	}
+}
+
+// TestTerminalCreateInvalidLabIDPreserves404 ensures malformed lab UUID returns 404
+// even when Valkey mode is enabled.
+func TestTerminalCreateInvalidLabIDPreserves404(t *testing.T) {
+	locator := &fakeOwnerLocator{
+		connectorErr: valkeyowner.ErrNoOwner,
+		podID:        "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+
+	rec := h.send(http.MethodPost, "/api/v1/lab-instances/not-a-valid-uuid/terminal-sessions", validCreateBody,
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin), withHeader("Content-Type", "application/json"))
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404 Not Found: %s", rec.Code, rec.Body.String())
 	}
 }
 

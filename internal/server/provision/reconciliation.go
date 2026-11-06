@@ -43,6 +43,12 @@ func (p *Executor) reconcile(ctx context.Context, claim repository.OperationItem
 	if err != nil {
 		return err
 	}
+	if p.opts.OwnerLocator != nil {
+		owner, err := p.opts.OwnerLocator.LookupConnector(ctx, d.ConnectorID)
+		if err != nil || owner.PodID != p.opts.PodID {
+			return p.opts.Reconciliation.WriteReconciliation(ctx, repository.ReconciliationUpdate{Dispatch: d, QueryFailed: true, RetryDelay: p.opts.DispatchRetryDelay})
+		}
+	}
 	router := p.opts.Router.(reconcileRouter)
 	corr := connector.Correlation{OperationID: d.OperationID.String(), LabInstanceID: d.LabInstanceID.String(), Generation: d.Generation}
 	key := provisionKey{d.ConnectorID, corr}

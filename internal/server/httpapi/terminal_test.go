@@ -58,6 +58,10 @@ func (f *fakeTerminals) Close(_ context.Context, _ repository.User, id string) e
 	return f.closeErr
 }
 
+func (f *fakeTerminals) ConnectorForLabInstance(context.Context, uuid.UUID) (uuid.UUID, error) {
+	return uuid.Nil, nil
+}
+
 type terminalHarness struct {
 	*harness
 	terminals *fakeTerminals

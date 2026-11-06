@@ -30,7 +30,16 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
+
+// TerminalOwnerLocator manages distributed terminal ownership in Valkey.
+type TerminalOwnerLocator interface {
+	RegisterTerminal(ctx context.Context, sessionID string, connectorID uuid.UUID, epoch int64, ttl time.Duration) error
+	ReleaseTerminal(ctx context.Context, sessionID string) error
+	LookupConnector(ctx context.Context, connectorID uuid.UUID) (*valkeyowner.ConnectorOwnerRecord, error)
+	PodID() string
+}
 
 const (
 	// LabInstanceStatusReady는 TerminalSession을 만들 수 있는 유일한 LabInstance 상태다.
@@ -91,17 +100,20 @@ type Options struct {
 	// Tracer는 Connector Control command 전송(TERMINAL_OPEN, TERMINAL_CLOSE)과 결과 수신(TERMINAL_OPEN_RESULT)의 Span을 만든다.
 	// nil이면 Span을 만들지 않고 호출 context의 유효한 Trace Context만 그대로 Connector에 전달한다.
 	Tracer trace.Tracer
+	// OwnerLocator enables distributed Valkey registration for terminal sessions.
+	OwnerLocator TerminalOwnerLocator
 }
 
 // Service는 TerminalSession use case이며 realtime.Control과 connector.TerminalSink를 구현한다.
 type Service struct {
-	store      Store
-	auth       Authenticator
-	connectors Connectors
-	relay      Relay
-	clock      realtime.Clock
-	logger     *slog.Logger
-	tracer     trace.Tracer
+	store        Store
+	auth         Authenticator
+	connectors   Connectors
+	relay        Relay
+	clock        realtime.Clock
+	logger       *slog.Logger
+	tracer       trace.Tracer
+	ownerLocator TerminalOwnerLocator
 
 	openTimeout time.Duration
 	grace       time.Duration
@@ -137,10 +149,11 @@ func NewService(opts Options) (*Service, error) {
 		relay:       opts.Relay,
 		clock:       opts.Clock,
 		logger:      opts.Logger,
-		tracer:      opts.Tracer,
-		openTimeout: opts.OpenTimeout,
-		grace:       opts.Grace,
-		opens:       make(map[string]*openWaiter),
+		tracer:       opts.Tracer,
+		ownerLocator: opts.OwnerLocator,
+		openTimeout:  opts.OpenTimeout,
+		grace:        opts.Grace,
+		opens:        make(map[string]*openWaiter),
 	}
 	if s.tracer == nil {
 		s.tracer = noop.NewTracerProvider().Tracer("")
@@ -180,6 +193,17 @@ func (s *Service) Shutdown(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+}
+
+// ConnectorForLabInstance returns the connector ID assigned to the given lab instance.
+func (s *Service) ConnectorForLabInstance(ctx context.Context, labID uuid.UUID) (uuid.UUID, error) {
+	var id uuid.UUID
+	err := s.store.WithinTransaction(ctx, func(ctx context.Context, repos repository.Repositories) error {
+		var err error
+		id, err = repos.ConnectorIDForLabInstance(ctx, labID)
+		return err
+	})
+	return id, err
 }
 
 // spawn은 Connector read loop의 fence 안에서 호출되는 handler가 오래 걸리는 일을 넘기는 곳이다. 종료 후에는 받지 않는다.
@@ -302,6 +326,9 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 
 	// 정리는 요청 context가 취소되어도 끝까지 수행한다.
 	abort := func(sentOpen bool) {
+		if s.ownerLocator != nil {
+			_ = s.ownerLocator.ReleaseTerminal(context.Background(), id)
+		}
 		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cleanupTimeout)
 		defer cancel()
 		s.abortCreate(cleanupCtx, log, relay, resolved.connectorID, sessionID, corr, in.RequestID, sentOpen)
@@ -314,6 +341,9 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 		log.Error("Relay 등록 실패", "error_code", "RELAY_UNAVAILABLE")
 		abort(false)
 		return Created{}, ErrUnavailable
+	}
+	if s.ownerLocator != nil {
+		_ = s.ownerLocator.RegisterTerminal(ctx, id, resolved.connectorID, 1, 10*time.Minute)
 	}
 	// TERMINAL_OPEN command의 client Span이다. 결과를 받거나 실패·시간 초과·취소로 기다림이 끝날 때 닫는다. wire의 traceparent는
 	// 이 Span의 Context이며 Connector는 그 Context를 TERMINAL_OPEN_RESULT까지 보존해 돌려준다.
@@ -455,6 +485,9 @@ func (s *Service) resolveTarget(ctx context.Context, repos repository.Repositori
 // abortCreate는 실패한 생성을 정리한다. 성공 상태로 남은 TerminalSession이 없도록 기록을 ENDED로 바꾸고 Relay 등록과
 // pending을 지운다. sentOpen이면 Connector가 PTY를 만들었을 수 있으므로 TERMINAL_CLOSE를 요청한다(실패해도 기록은 ENDED다).
 func (s *Service) abortCreate(ctx context.Context, log *slog.Logger, relay Relay, connectorID, sessionID uuid.UUID, corr connector.TerminalCorrelation, requestID string, sentOpen bool) {
+	if s.ownerLocator != nil {
+		_ = s.ownerLocator.ReleaseTerminal(ctx, corr.TerminalSessionID)
+	}
 	s.connectors.ForgetTerminalOpen(connectorID, corr.TerminalSessionID)
 	relay.Forget(corr.TerminalSessionID)
 	if _, err := s.store.EndTerminalSession(ctx, sessionID, s.clock.Now(), EndReasonOpenFailed); err != nil {
@@ -775,6 +808,9 @@ func (s *Service) Close(ctx context.Context, user repository.User, terminalSessi
 	}
 	if err := s.closeLifecycle(ctx, rec, realtime.EndReasonSessionClosed, ""); err != nil {
 		return err
+	}
+	if s.ownerLocator != nil {
+		_ = s.ownerLocator.ReleaseTerminal(ctx, terminalSessionID)
 	}
 	s.relay.Terminate(rec.ID.String(), realtime.End{Reason: realtime.EndReasonSessionClosed, Trace: connector.TraceFromContext(ctx)})
 	return nil

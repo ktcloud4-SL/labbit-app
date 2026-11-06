@@ -28,6 +28,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile"
 )
 
@@ -35,6 +36,9 @@ import (
 // 0이 아닌 값은 60초 grace나 heartbeat 같은 긴 시간을 test에서 기다리지 않도록 주입하는 용도다.
 type stackOptions struct {
 	Logger *slog.Logger
+	// OwnerLocator and PeerProxy enable Valkey-backed owner mapping and peer routing across Pods.
+	OwnerLocator *valkeyowner.Locator
+	PeerProxy    *valkeyowner.Proxy
 	// Worker enables PROVISION/RESET/CLEANUP on this api process's own Router.
 	Worker                                                                bool
 	ProvisionLeaseDuration, ProvisionResultTimeout, ProvisionPollInterval time.Duration
@@ -134,7 +138,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 
 	stack := &controlStack{Registry: registry, Router: router}
 	if opts.Worker {
-		stack.Provisions, err = provision.NewExecutor(provision.Options{
+		provOpts := provision.Options{
 			Store: store, Mutations: store, Reconciliation: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
 			Metrics: opts.WorkerMetrics,
 			CloseForMutation: func(ctx context.Context, d repository.ProvisionDispatch) error {
@@ -164,7 +168,12 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 			},
 			LeaseDuration: opts.ProvisionLeaseDuration, ResultTimeout: opts.ProvisionResultTimeout, PollInterval: opts.ProvisionPollInterval,
 			DispatchRetryDelay: opts.ProvisionDispatchRetryDelay,
-		})
+		}
+		if opts.OwnerLocator != nil {
+			provOpts.OwnerLocator = opts.OwnerLocator
+			provOpts.PodID = opts.OwnerLocator.PodID()
+		}
+		stack.Provisions, err = provision.NewExecutor(provOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -202,15 +211,19 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 			Clock:  opts.Clock,
 			Logger: logger,
 		})
-		service, err := terminal.NewService(terminal.Options{
+		termOpts := terminal.Options{
 			Store: store, Auth: authService, Connectors: router, Relay: relayFwd,
 			Clock: opts.Clock, Logger: logger, OpenTimeout: opts.OpenTimeout, Grace: opts.Grace, Tracer: opts.Tracer,
-		})
+		}
+		if opts.OwnerLocator != nil {
+			termOpts.OwnerLocator = opts.OwnerLocator
+		}
+		service, err := terminal.NewService(termOpts)
 		if err != nil {
 			return nil, err
 		}
 		trusted := opts.PublicOrigin
-		relay, err := realtime.New(realtime.Options{
+		relayOpts := realtime.Options{
 			Control:       service,
 			LiveControl:   liveService,
 			Connectors:    terminal.NewConnectorAuthenticator(connectorService),
@@ -221,7 +234,12 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 			Grace:         opts.Grace,
 			AttachTimeout: opts.AttachTimeout,
 			CloseGrace:    opts.CloseGrace,
-		})
+		}
+		if opts.OwnerLocator != nil {
+			relayOpts.OwnerLocator = opts.OwnerLocator
+			relayOpts.Proxy = opts.PeerProxy
+		}
+		relay, err := realtime.New(relayOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -269,7 +287,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 
 	registry.SetRevokeObserver(observers)
 
-	stack.API, err = httpapi.New(httpapi.Options{
+	apiOpts := httpapi.Options{
 		Connectors:    connector.NewEnrollmentService(store, registry, nil),
 		Auth:          authService,
 		Classes:       class.NewService(store),
@@ -284,18 +302,27 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		Logger:        logger,
 		Metrics:       opts.HTTPMetrics,
 		Tracer:        opts.Tracer,
-	})
+	}
+	if opts.OwnerLocator != nil {
+		apiOpts.OwnerLocator = opts.OwnerLocator
+		apiOpts.Proxy = opts.PeerProxy
+	}
+	stack.API, err = httpapi.New(apiOpts)
 	if err != nil {
 		return nil, err
 	}
-	stack.ConnectorControl, err = connectorwss.New(connectorwss.Options{
+	cwssOpts := connectorwss.Options{
 		Auth:       connectorService,
 		Heartbeats: connectorService,
 		Hellos:     connectorService,
 		Registry:   registry,
 		Router:     router,
 		Logger:     logger,
-	})
+	}
+	if opts.OwnerLocator != nil {
+		cwssOpts.OwnerLocator = opts.OwnerLocator
+	}
+	stack.ConnectorControl, err = connectorwss.New(cwssOpts)
 	if err != nil {
 		return nil, err
 	}

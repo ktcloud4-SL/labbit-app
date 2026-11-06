@@ -67,6 +67,12 @@ type HelloRecorder interface {
 	RecordHello(context.Context, connector.Principal, string, string) error
 }
 
+// ConnectorRegistrar는 Connector 소유권의 수명주기를 외부 저장소(Valkey 등)에 알린다.
+type ConnectorRegistrar interface {
+	RegisterConnector(ctx context.Context, connectorID uuid.UUID, epoch int64, ttl time.Duration) error
+	ReleaseConnector(ctx context.Context, connectorID uuid.UUID, epoch int64) error
+}
+
 // Options는 Handler 구성이다.
 type Options struct {
 	Auth       Authenticator
@@ -78,6 +84,8 @@ type Options struct {
 	Router *connector.Router
 	// Logger가 nil이면 로그를 남기지 않는다.
 	Logger *slog.Logger
+	// OwnerLocator는 활성 Control connection의 Valkey 소유자 등록을 담당한다(nil이면 비활성화).
+	OwnerLocator ConnectorRegistrar
 	// HelloTimeout은 Upgrade 후 HELLO를 기다리는 시간이다. 0이면 기본값을 사용한다.
 	HelloTimeout time.Duration
 	// HeartbeatInterval은 Connector가 HEARTBEAT를 보낼 주기이고, OfflineTimeout은 유효한 HEARTBEAT 없이
@@ -92,13 +100,14 @@ type Options struct {
 
 // Handler는 Connector Control WSS Upgrade 요청을 처리한다.
 type Handler struct {
-	auth       Authenticator
-	heartbeats HeartbeatRecorder
-	hellos     HelloRecorder
-	registry   *connector.Registry
-	router     *connector.Router
-	logger     *slog.Logger
-	upgrader   websocket.Upgrader
+	auth         Authenticator
+	heartbeats   HeartbeatRecorder
+	hellos       HelloRecorder
+	registry     *connector.Registry
+	router       *connector.Router
+	logger       *slog.Logger
+	ownerLocator ConnectorRegistrar
+	upgrader     websocket.Upgrader
 
 	helloTimeout      time.Duration
 	heartbeatInterval time.Duration
@@ -133,9 +142,10 @@ func New(opts Options) (*Handler, error) {
 		auth:       opts.Auth,
 		heartbeats: opts.Heartbeats,
 		hellos:     opts.Hellos,
-		registry:   opts.Registry,
-		router:     opts.Router,
-		logger:     logger,
+		registry:     opts.Registry,
+		router:       opts.Router,
+		logger:       logger,
+		ownerLocator: opts.OwnerLocator,
 		// CheckOrigin은 기본값을 유지한다. Connector는 Browser가 아니므로 Origin을 보내지 않으며,
 		// Browser가 보낸 cross-origin Upgrade는 거절된다.
 		upgrader: websocket.Upgrader{
@@ -283,7 +293,12 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal, cre
 	// message가 없고, command routing도 아래 MarkReady로 이 Session의 route를 등록하기 전에는 이 connection을 사용하지 못한다.
 	// HELLO 실패·timeout이면 아래 Release가 이 Session만 제거하며 더 새로운 Session은 건드리지 않는다.
 	registration := h.registry.Register(principal, cc.closeFor)
-	defer registration.Release()
+	defer func() {
+		if h.ownerLocator != nil {
+			_ = h.ownerLocator.ReleaseConnector(context.Background(), principal.ConnectorID, 0)
+		}
+		registration.Release()
+	}()
 	// Authentication may have finished before a concurrent revoke committed and
 	// notified the Registry. Recheck after registration: either this sees revoke,
 	// or a later revoke hook sees this registered connection. No DB/Registry lock overlap.
@@ -378,7 +393,11 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal, cre
 	// 종료로 끝나도록 그대로 진행한다(여기서 곧바로 반환하면 close code를 전달하기 전에 TCP를 닫을 수 있다).
 	// HELLO가 선언한 capability는 이 Session의 route가 열리기 전에 기록한다. SaaS는 선언한 capability의 message만 이 Session에 보낸다.
 	registration.SetCapabilities(helloCapabilities(data))
-	if !registration.MarkReady(cc.route) {
+	if registration.MarkReady(cc.route) {
+		if h.ownerLocator != nil {
+			_ = h.ownerLocator.RegisterConnector(context.Background(), principal.ConnectorID, time.Now().UnixNano(), 15*time.Second)
+		}
+	} else {
 		log.Info("Connector Control connection이 ready 전에 교체·revoke됨")
 	}
 

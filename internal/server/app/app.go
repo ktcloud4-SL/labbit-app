@@ -26,6 +26,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 const (
@@ -59,6 +60,12 @@ type Config struct {
 	// Tracing은 OTEL_* Trace 설정이다. 업무 필수 설정이 아니므로 오류가 있어도 LoadConfig는 실패하지 않고, Run이 안전한 진단을 남기고
 	// export 없이 계속한다. 값의 zero value는 export 없는 none이다.
 	Tracing tracing.Config
+
+	// Valkey owner locator configuration for multi-pod topologies (LBT-198)
+	ValkeyAddr string
+	PodID      string
+	PodAddr    string
+	PeerSecret string
 }
 
 // LoadConfig는 현재 구현된 role에 필요한 Runtime Contract 항목만 읽는다.
@@ -107,6 +114,23 @@ func LoadConfig() (Config, error) {
 		}
 	}
 
+	valkeyAddr := strings.TrimSpace(os.Getenv("LABBIT_VALKEY_ADDR"))
+	if valkeyAddr == "" {
+		valkeyAddr = strings.TrimSpace(os.Getenv("VALKEY_ADDR"))
+	}
+	podID := strings.TrimSpace(os.Getenv("LABBIT_POD_ID"))
+	if podID == "" {
+		podID = strings.TrimSpace(os.Getenv("POD_NAME"))
+	}
+	podAddr := strings.TrimSpace(os.Getenv("LABBIT_POD_ADDR"))
+	if podAddr == "" {
+		podIP := strings.TrimSpace(os.Getenv("POD_IP"))
+		if podIP != "" {
+			podAddr = podIP + ":8080"
+		}
+	}
+	peerSecret := strings.TrimSpace(os.Getenv("LABBIT_PEER_SECRET"))
+
 	cfg := Config{
 		Environment:   environment,
 		Roles:         roles,
@@ -117,6 +141,10 @@ func LoadConfig() (Config, error) {
 		DatabaseDSN:   databaseDSN,
 		PublicOrigin:  publicOrigin,
 		Tracing:       tracing.ConfigFromEnv(os.Getenv),
+		ValkeyAddr:    valkeyAddr,
+		PodID:         podID,
+		PodAddr:       podAddr,
+		PeerSecret:    peerSecret,
 	}
 
 	// preview role이 enabled되면 허용 port, TTL, Origin template이 모두 명시되어야 한다. 하나라도 없거나 올바르지 않으면 startup에 실패한다.
@@ -228,8 +256,26 @@ func Run(ctx context.Context, cfg Config) error {
 			// api role이 Auth/Class HTTP와 Connector Control WSS를 소유한다. realtime role이 같은 process에서 함께 enabled되면
 			// 같은 Connector Registry/Router 위에 Terminal Relay와 TerminalSession 생성/종료를 조립한다.
 			// PROVISION uses this process's Router; the tagged C1 harness remains an optional observer.
+			var ownerLocator *valkeyowner.Locator
+			var peerProxy *valkeyowner.Proxy
+			if cfg.ValkeyAddr != "" {
+				locator, err := valkeyowner.NewLocator(valkeyowner.Config{
+					ValkeyAddr: cfg.ValkeyAddr,
+					PodID:      cfg.PodID,
+					PodAddr:    cfg.PodAddr,
+				})
+				if err != nil {
+					return fmt.Errorf("valkey locator init failed: %w", err)
+				}
+				defer locator.Close()
+				ownerLocator = locator
+				peerProxy = valkeyowner.NewProxy(cfg.PeerSecret)
+			}
+
 			stack, err = newControlStack(postgres.NewStore(pool), stackOptions{
 				Logger:          logger,
+				OwnerLocator:    ownerLocator,
+				PeerProxy:       peerProxy,
 				OperationSink:   harness.sink(),
 				Worker:          slices.Contains(cfg.Roles, "worker"),
 				WorkerReady:     databaseReady,

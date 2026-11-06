@@ -76,11 +76,11 @@ func (r *Relay) serveBrowserHTTP(w http.ResponseWriter, req *http.Request) {
 		r.logger.Warn("Browser Terminal Upgrade 실패", "reason", "upgrade_failed")
 		return
 	}
-	r.serveBrowser(ws, session)
+	r.serveBrowser(ws, session, req.Header)
 }
 
 // serveBrowser는 Upgrade된 Browser connection 하나를 끝까지 처리한다. 첫 application message는 TERMINAL_ATTACH여야 한다.
-func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken) {
+func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken, reqHeader http.Header) {
 	ws.SetReadLimit(r.readLimit)
 	p := newPeer(ws, r.browserQueueBytes, r.browserQueueMessages, r.writeTimeout, r.closeGrace)
 
@@ -126,6 +126,27 @@ func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken) {
 		return
 	}
 	s := r.lookup(grant.TerminalSessionID)
+	if s == nil {
+		if r.ownerLocator != nil && r.proxy != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), controlTimeout)
+			owner, oerr := r.ownerLocator.LookupTerminal(ctx, grant.TerminalSessionID)
+			cancel()
+			if oerr == nil && owner.PodID != "" && owner.PodID != r.ownerLocator.PodID() {
+				extra := http.Header{}
+				if cookie := reqHeader.Get("Cookie"); cookie != "" {
+					extra.Set("Cookie", cookie)
+				}
+				if origin := reqHeader.Get("Origin"); origin != "" {
+					extra.Set("Origin", origin)
+				}
+				_ = ws.SetReadDeadline(time.Time{})
+				if err := r.proxy.ProxyWebSocketUpstream(ws, owner.PodAddr, BrowserPath, data, BrowserSubprotocol, extra); err != nil {
+					r.logger.Warn("Browser Terminal peer proxy failed", "error", err)
+				}
+				return
+			}
+		}
+	}
 	// Control이 허용한 TerminalSession이 Relay가 등록한 correlation과 정확히 같을 때만 사용한다.
 	if s == nil || s.corr.LabInstanceID != grant.LabInstanceID || s.corr.Generation != grant.Generation {
 		r.rejectAttach(p, withTrace(r.logger.With("terminal_session_id", boundID(msg.TerminalSessionID)), msg.Trace), ErrSessionNotFound, msg.MessageID, msg.Trace)

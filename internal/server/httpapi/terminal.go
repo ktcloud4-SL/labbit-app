@@ -13,6 +13,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/jsonnum"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 // maxTerminalBodyBytes는 TerminalSession 생성 요청 body 상한이다. 본문은 VM key와 정수 둘뿐이다.
@@ -140,7 +141,13 @@ func (a *api) createTerminalSession(w http.ResponseWriter, r *http.Request) {
 	if a.ownerLocator != nil && a.proxy != nil && !a.proxy.IsInternalPeer(r) {
 		if labID, err := uuid.Parse(r.PathValue("labInstanceId")); err == nil {
 			if connID, err := a.terminals.ConnectorForLabInstance(r.Context(), labID); err == nil && connID != uuid.Nil {
-				if owner, err := a.ownerLocator.LookupConnector(r.Context(), connID); err == nil && owner.PodID != "" && owner.PodID != a.ownerLocator.PodID() {
+				owner, err := a.ownerLocator.LookupConnector(r.Context(), connID)
+				if err != nil {
+					if !errors.Is(err, valkeyowner.ErrNoOwner) {
+						a.terminalError(w, r, "create_terminal_session", terminal.ErrUnavailable)
+						return
+					}
+				} else if owner.PodID != "" && owner.PodID != a.ownerLocator.PodID() {
 					a.proxy.ProxyHTTP(w, r, owner.PodAddr)
 					return
 				}
@@ -180,8 +187,18 @@ func (a *api) closeTerminalSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sessionID := r.PathValue("terminalSessionId")
+	if _, err := uuid.Parse(sessionID); err != nil {
+		a.terminalError(w, r, "close_terminal_session", terminal.ErrNotFound)
+		return
+	}
 	if a.ownerLocator != nil && a.proxy != nil && !a.proxy.IsInternalPeer(r) {
-		if owner, err := a.ownerLocator.LookupTerminal(r.Context(), sessionID); err == nil && owner.PodID != "" && owner.PodID != a.ownerLocator.PodID() {
+		owner, err := a.ownerLocator.LookupTerminal(r.Context(), sessionID)
+		if err != nil {
+			if !errors.Is(err, valkeyowner.ErrNoOwner) {
+				a.terminalError(w, r, "close_terminal_session", terminal.ErrUnavailable)
+				return
+			}
+		} else if owner.PodID != "" && owner.PodID != a.ownerLocator.PodID() {
 			a.proxy.ProxyHTTP(w, r, owner.PodAddr)
 			return
 		}

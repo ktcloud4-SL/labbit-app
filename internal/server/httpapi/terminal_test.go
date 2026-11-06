@@ -18,6 +18,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 const (
@@ -34,11 +35,13 @@ type fakeTerminals struct {
 	createFor  []repository.User
 	closeIDs   []string
 
-	targets    terminal.TargetCatalog
-	targetsErr error
-	created    terminal.Created
-	createErr  error
-	closeErr   error
+	targets      terminal.TargetCatalog
+	targetsErr   error
+	created      terminal.Created
+	createErr    error
+	closeErr     error
+	connectorID  uuid.UUID
+	connectorErr error
 }
 
 func (f *fakeTerminals) Targets(_ context.Context, user repository.User, labInstanceID string) (terminal.TargetCatalog, error) {
@@ -59,7 +62,33 @@ func (f *fakeTerminals) Close(_ context.Context, _ repository.User, id string) e
 }
 
 func (f *fakeTerminals) ConnectorForLabInstance(context.Context, uuid.UUID) (uuid.UUID, error) {
+	if f.connectorID != uuid.Nil || f.connectorErr != nil {
+		return f.connectorID, f.connectorErr
+	}
 	return uuid.Nil, nil
+}
+
+type fakeOwnerLocator struct {
+	connectorOwner *valkeyowner.ConnectorOwnerRecord
+	connectorErr   error
+	terminalOwner  *valkeyowner.TerminalOwnerRecord
+	terminalErr    error
+	podID          string
+}
+
+func (f *fakeOwnerLocator) LookupConnector(context.Context, uuid.UUID) (*valkeyowner.ConnectorOwnerRecord, error) {
+	return f.connectorOwner, f.connectorErr
+}
+
+func (f *fakeOwnerLocator) LookupTerminal(context.Context, string) (*valkeyowner.TerminalOwnerRecord, error) {
+	return f.terminalOwner, f.terminalErr
+}
+
+func (f *fakeOwnerLocator) PodID() string {
+	if f.podID != "" {
+		return f.podID
+	}
+	return "pod-local"
 }
 
 type terminalHarness struct {
@@ -590,5 +619,164 @@ func TestTerminalTargetsIsReadOnly(t *testing.T) {
 	}
 	if len(h.terminals.targetsIDs)+len(h.terminals.createIn)+len(h.terminals.closeIDs) != 0 {
 		t.Fatal("조회 전용 endpoint의 다른 method가 use case를 호출함")
+	}
+}
+
+func newTerminalHarnessWithLocator(t *testing.T, locator *fakeOwnerLocator, proxy *valkeyowner.Proxy) *terminalHarness {
+	t.Helper()
+	fake := newFakeAuth()
+	fake.sessions[terminalCookie] = fake.principal
+	classes := &fakeClasses{}
+	logs := &bytes.Buffer{}
+	h := &terminalHarness{
+		terminals: &fakeTerminals{},
+		expires:   time.Date(2026, 10, 1, 17, 0, 0, 0, time.UTC),
+		sessionID: uuid.New(),
+	}
+	h.terminals.created = terminal.Created{
+		ID: h.sessionID, Generation: 3, Token: realtime.AttachToken(issuedAttachToken), TokenExpiresAt: h.expires,
+	}
+	h.terminals.targets = terminal.TargetCatalog{
+		Generation: 3, WorkspaceVMKey: "vk-web",
+		Items: []terminal.Target{
+			{VMKey: "vk-web", Role: "web", InstanceIndex: 0},
+			{VMKey: "vk-worker-a", Role: "worker", InstanceIndex: 0},
+			{VMKey: "vk-worker-b", Role: "worker", InstanceIndex: 1},
+		},
+	}
+	handler, err := New(Options{
+		Auth:         fake,
+		Classes:      classes,
+		LabSpecs:     &fakeLabSpecs{},
+		Terminals:    h.terminals,
+		PublicOrigin: trustedOrigin,
+		Logger:       slog.New(slog.NewJSONHandler(logs, nil)),
+		OwnerLocator: locator,
+		Proxy:        proxy,
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	h.harness = &harness{handler: handler, auth: fake, classes: classes, logs: logs}
+	return h
+}
+
+// TestTerminalCreateLocatorErrorWithLocalRouteReadyFailsClosed ensures that when
+// Valkey locator returns ErrLocatorUnavailable, the API immediately fails-closed with 503
+// without falling through to local Create, even though the local Connector route is ready.
+func TestTerminalCreateLocatorErrorWithLocalRouteReadyFailsClosed(t *testing.T) {
+	connID := uuid.New()
+	locator := &fakeOwnerLocator{
+		connectorErr: valkeyowner.ErrLocatorUnavailable,
+		podID:        "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	rec := h.create(validCreateBody)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503 Service Unavailable: %s", rec.Code, rec.Body.String())
+	}
+	problem := decodeProblem(t, rec)
+	if problem.Code != codeTerminalUnavailable {
+		t.Fatalf("problem.Code = %q, want %q", problem.Code, codeTerminalUnavailable)
+	}
+	// Avoid false assurance: local Create must NOT have been called!
+	if len(h.terminals.createIn) != 0 {
+		t.Fatalf("terminals.Create was called %d times; expected fail-closed without calling local handler", len(h.terminals.createIn))
+	}
+}
+
+// TestTerminalCloseLocatorErrorFailsClosed ensures that when Valkey locator is unavailable,
+// closeTerminalSession fails closed with 503 without executing local close.
+func TestTerminalCloseLocatorErrorFailsClosed(t *testing.T) {
+	locator := &fakeOwnerLocator{
+		terminalErr: valkeyowner.ErrLocatorUnavailable,
+		podID:       "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+
+	sessionID := uuid.New().String()
+	rec := h.send(http.MethodDelete, "/api/v1/terminal-sessions/"+sessionID, "",
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin))
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503: %s", rec.Code, rec.Body.String())
+	}
+	problem := decodeProblem(t, rec)
+	if problem.Code != codeTerminalUnavailable {
+		t.Fatalf("problem.Code = %q, want %q", problem.Code, codeTerminalUnavailable)
+	}
+	if len(h.terminals.closeIDs) != 0 {
+		t.Fatalf("terminals.Close was called %d times; expected fail-closed without calling local close", len(h.terminals.closeIDs))
+	}
+}
+
+// TestTerminalCreateNoOwnerFallsThroughToLocalCreate ensures that when Valkey returns ErrNoOwner,
+// create proceeds to local handling.
+func TestTerminalCreateNoOwnerFallsThroughToLocalCreate(t *testing.T) {
+	connID := uuid.New()
+	locator := &fakeOwnerLocator{
+		connectorErr: valkeyowner.ErrNoOwner,
+		podID:        "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	rec := h.create(validCreateBody)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201 Created: %s", rec.Code, rec.Body.String())
+	}
+	if len(h.terminals.createIn) != 1 {
+		t.Fatalf("terminals.Create was called %d times, want 1", len(h.terminals.createIn))
+	}
+}
+
+// TestTerminalCloseNoOwnerFallsThroughToLocalClose ensures that when Valkey returns ErrNoOwner,
+// close proceeds to local handling.
+func TestTerminalCloseNoOwnerFallsThroughToLocalClose(t *testing.T) {
+	locator := &fakeOwnerLocator{
+		terminalErr: valkeyowner.ErrNoOwner,
+		podID:       "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+
+	sessionID := uuid.New().String()
+	rec := h.send(http.MethodDelete, "/api/v1/terminal-sessions/"+sessionID, "",
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin))
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204 No Content: %s", rec.Code, rec.Body.String())
+	}
+	if len(h.terminals.closeIDs) != 1 {
+		t.Fatalf("terminals.Close was called %d times, want 1", len(h.terminals.closeIDs))
+	}
+}
+
+// TestTerminalCloseInvalidSessionIDReturns404 ensures malformed UUID in terminalSessionId returns 404.
+func TestTerminalCloseInvalidSessionIDReturns404(t *testing.T) {
+	locator := &fakeOwnerLocator{
+		terminalErr: valkeyowner.ErrLocatorUnavailable,
+		podID:       "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+
+	rec := h.send(http.MethodDelete, "/api/v1/terminal-sessions/not-a-valid-uuid", "",
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin))
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404 Not Found: %s", rec.Code, rec.Body.String())
+	}
+	problem := decodeProblem(t, rec)
+	if problem.Code != codeNotFound {
+		t.Fatalf("problem.Code = %q, want %q", problem.Code, codeNotFound)
+	}
+	if len(h.terminals.closeIDs) != 0 {
+		t.Fatalf("terminals.Close was called; expected no call on invalid UUID")
 	}
 }

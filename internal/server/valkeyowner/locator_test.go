@@ -218,3 +218,53 @@ func TestLocator_TerminalOwner(t *testing.T) {
 		t.Fatalf("LookupTerminal after release err = %v, want ErrNoOwner", err)
 	}
 }
+
+func TestLocator_TerminalOwnerHeartbeatRenewal(t *testing.T) {
+	loc, err := NewLocator(Config{
+		ValkeyAddr: "127.0.0.1:6379",
+		PodID:      "pod-hb",
+		PodAddr:    "127.0.0.1:8083",
+	})
+	if err != nil {
+		t.Skipf("Valkey not available at 127.0.0.1:6379: %v", err)
+	}
+	defer loc.Close()
+
+	ctx := t.Context()
+	sessionID := uuid.New().String()
+	connectorID := uuid.New()
+
+	// Short TTL of 1 second (heartbeat interval is ~333ms)
+	ttl := 1 * time.Second
+	if err := loc.RegisterTerminal(ctx, sessionID, connectorID, 1, ttl); err != nil {
+		t.Fatalf("RegisterTerminal err = %v", err)
+	}
+
+	// Wait 1.3s (> initial 1.0s TTL). Without heartbeat renewal, key would expire.
+	time.Sleep(1300 * time.Millisecond)
+
+	rec, err := loc.LookupTerminal(ctx, sessionID)
+	if err != nil {
+		t.Fatalf("LookupTerminal after initial TTL elapsed should succeed via heartbeat renewal, got err = %v", err)
+	}
+	if rec == nil || rec.TerminalSessionID != sessionID || rec.PodID != "pod-hb" {
+		t.Fatalf("unexpected record after renewal: %+v", rec)
+	}
+
+	// Release terminal should stop heartbeat and remove record
+	if err := loc.ReleaseTerminal(ctx, sessionID); err != nil {
+		t.Fatalf("ReleaseTerminal err = %v", err)
+	}
+
+	_, err = loc.LookupTerminal(ctx, sessionID)
+	if !errors.Is(err, ErrNoOwner) {
+		t.Fatalf("LookupTerminal immediately after release err = %v, want ErrNoOwner", err)
+	}
+
+	// Wait 500ms to verify cancelled heartbeat does not re-create key
+	time.Sleep(500 * time.Millisecond)
+	_, err = loc.LookupTerminal(ctx, sessionID)
+	if !errors.Is(err, ErrNoOwner) {
+		t.Fatalf("LookupTerminal after heartbeat stopped err = %v, want ErrNoOwner", err)
+	}
+}

@@ -326,9 +326,6 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 
 	// 정리는 요청 context가 취소되어도 끝까지 수행한다.
 	abort := func(sentOpen bool) {
-		if s.ownerLocator != nil {
-			_ = s.ownerLocator.ReleaseTerminal(context.Background(), id)
-		}
 		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cleanupTimeout)
 		defer cancel()
 		s.abortCreate(cleanupCtx, log, relay, resolved.connectorID, sessionID, corr, in.RequestID, sentOpen)
@@ -343,7 +340,11 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 		return Created{}, ErrUnavailable
 	}
 	if s.ownerLocator != nil {
-		_ = s.ownerLocator.RegisterTerminal(ctx, id, resolved.connectorID, 1, 10*time.Minute)
+		if err := s.ownerLocator.RegisterTerminal(ctx, id, resolved.connectorID, 1, 15*time.Second); err != nil {
+			log.Error("Terminal owner 등록 실패", "error_code", "LOCATOR_UNAVAILABLE", "error", err)
+			abort(false)
+			return Created{}, ErrUnavailable
+		}
 	}
 	// TERMINAL_OPEN command의 client Span이다. 결과를 받거나 실패·시간 초과·취소로 기다림이 끝날 때 닫는다. wire의 traceparent는
 	// 이 Span의 Context이며 Connector는 그 Context를 TERMINAL_OPEN_RESULT까지 보존해 돌려준다.
@@ -782,6 +783,9 @@ func (s *Service) handleConnectorEnded(e connector.TerminalEndedEvent) {
 		log.Error("TerminalSession 종료 기록 실패", "error_code", classify(err))
 		return
 	}
+	if s.ownerLocator != nil {
+		_ = s.ownerLocator.ReleaseTerminal(ctx, e.Correlation.TerminalSessionID)
+	}
 	s.relay.Terminate(e.Correlation.TerminalSessionID, end)
 	log.Info("TerminalSession 종료 수신", "reason", end.Reason)
 }
@@ -808,9 +812,6 @@ func (s *Service) Close(ctx context.Context, user repository.User, terminalSessi
 	}
 	if err := s.closeLifecycle(ctx, rec, realtime.EndReasonSessionClosed, ""); err != nil {
 		return err
-	}
-	if s.ownerLocator != nil {
-		_ = s.ownerLocator.ReleaseTerminal(ctx, terminalSessionID)
 	}
 	s.relay.Terminate(rec.ID.String(), realtime.End{Reason: realtime.EndReasonSessionClosed, Trace: connector.TraceFromContext(ctx)})
 	return nil
@@ -867,6 +868,9 @@ func (s *Service) closeLifecycle(ctx context.Context, rec repository.TerminalSes
 	}
 	if !changed {
 		return nil
+	}
+	if s.ownerLocator != nil {
+		_ = s.ownerLocator.ReleaseTerminal(ctx, rec.ID.String())
 	}
 	log := s.logger.With(
 		"terminal_session_id", rec.ID.String(),
@@ -1059,6 +1063,9 @@ func (s *Service) SessionEnded(ctx context.Context, terminalSessionID string, en
 	})
 	if err != nil {
 		return fmt.Errorf("%w: %w", realtime.ErrDependencyUnavailable, err)
+	}
+	if s.ownerLocator != nil {
+		_ = s.ownerLocator.ReleaseTerminal(ctx, terminalSessionID)
 	}
 	return nil
 }

@@ -56,8 +56,9 @@ type Locator struct {
 	podID   string
 	podAddr string
 
-	mu        sync.Mutex
-	heartbeat map[uuid.UUID]context.CancelFunc
+	mu                sync.Mutex
+	heartbeat         map[uuid.UUID]context.CancelFunc
+	terminalHeartbeat map[string]context.CancelFunc
 }
 
 // NewLocator는 Valkey 클라이언트를 생성하고 Locator를 반환한다.
@@ -81,10 +82,11 @@ func NewLocator(cfg Config) (*Locator, error) {
 	}
 
 	return &Locator{
-		client:    client,
-		podID:     cfg.PodID,
-		podAddr:   cfg.PodAddr,
-		heartbeat: make(map[uuid.UUID]context.CancelFunc),
+		client:            client,
+		podID:             cfg.PodID,
+		podAddr:           cfg.PodAddr,
+		heartbeat:         make(map[uuid.UUID]context.CancelFunc),
+		terminalHeartbeat: make(map[string]context.CancelFunc),
 	}, nil
 }
 
@@ -170,6 +172,33 @@ if not existing then
 end
 local data = cjson.decode(existing)
 if data and data.pod_id == ARGV[1] and tonumber(data.epoch) == tonumber(ARGV[2]) then
+    redis.call('DEL', KEYS[1])
+end
+return "OK"
+`)
+
+// refreshTerminalLua는 소유자가 일치할 때만 TerminalSession lease를 연장한다.
+var refreshTerminalLua = valkey.NewLuaScript(`
+local existing = redis.call('GET', KEYS[1])
+if not existing then
+    return redis.error_reply("NO_OWNER")
+end
+local data = cjson.decode(existing)
+if not data or data.pod_id ~= ARGV[1] then
+    return redis.error_reply("STALE_EPOCH")
+end
+redis.call('SET', KEYS[1], ARGV[2], 'EX', tonumber(ARGV[3]))
+return "OK"
+`)
+
+// releaseTerminalLua는 소유자가 일치할 때만 TerminalSession 키를 삭제한다.
+var releaseTerminalLua = valkey.NewLuaScript(`
+local existing = redis.call('GET', KEYS[1])
+if not existing then
+    return "OK"
+end
+local data = cjson.decode(existing)
+if data and data.pod_id == ARGV[1] then
     redis.call('DEL', KEYS[1])
 end
 return "OK"
@@ -353,10 +382,10 @@ func (l *Locator) LookupConnector(ctx context.Context, connectorID uuid.UUID) (*
 	return &record, nil
 }
 
-// RegisterTerminal은 TerminalSession 소유자를 등록한다.
+// RegisterTerminal은 TerminalSession 소유자를 등록하고 백그라운드 heartbeat를 시작한다.
 func (l *Locator) RegisterTerminal(ctx context.Context, sessionID string, connectorID uuid.UUID, epoch int64, ttl time.Duration) error {
 	if ttl <= 0 {
-		ttl = 10 * time.Minute
+		ttl = 15 * time.Second
 	}
 	record := TerminalOwnerRecord{
 		TerminalSessionID: sessionID,
@@ -378,6 +407,91 @@ func (l *Locator) RegisterTerminal(ctx context.Context, sessionID string, connec
 	cmd := l.client.B().Set().Key(terminalKey(sessionID)).Value(string(bytes)).Ex(time.Duration(ttlSec) * time.Second).Build()
 	res := l.client.Do(ctx, cmd)
 	if res.Error() != nil {
+		return fmt.Errorf("%w: %v", ErrLocatorUnavailable, res.Error())
+	}
+
+	l.mu.Lock()
+	if cancel, exists := l.terminalHeartbeat[sessionID]; exists {
+		cancel()
+	}
+	hbCtx, hbCancel := context.WithCancel(context.Background())
+	l.terminalHeartbeat[sessionID] = hbCancel
+	l.mu.Unlock()
+
+	go l.runTerminalHeartbeat(hbCtx, sessionID, connectorID, epoch, ttl)
+
+	return nil
+}
+
+func (l *Locator) runTerminalHeartbeat(ctx context.Context, sessionID string, connectorID uuid.UUID, epoch int64, ttl time.Duration) {
+	interval := ttl / 3
+	if interval < 50*time.Millisecond {
+		interval = 50 * time.Millisecond
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	leaseExpiresAt := time.Now().Add(ttl)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			refCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			err := l.RefreshTerminal(refCtx, sessionID, connectorID, epoch, ttl)
+			cancel()
+			if err != nil {
+				if errors.Is(err, ErrStaleEpoch) || errors.Is(err, ErrNoOwner) {
+					l.mu.Lock()
+					delete(l.terminalHeartbeat, sessionID)
+					l.mu.Unlock()
+					return
+				}
+				if time.Now().After(leaseExpiresAt) {
+					l.mu.Lock()
+					delete(l.terminalHeartbeat, sessionID)
+					l.mu.Unlock()
+					return
+				}
+				continue
+			}
+			leaseExpiresAt = time.Now().Add(ttl)
+		}
+	}
+}
+
+// RefreshTerminal은 TerminalSession 소유자 lease를 갱신한다.
+func (l *Locator) RefreshTerminal(ctx context.Context, sessionID string, connectorID uuid.UUID, epoch int64, ttl time.Duration) error {
+	record := TerminalOwnerRecord{
+		TerminalSessionID: sessionID,
+		ConnectorID:       connectorID,
+		PodID:             l.podID,
+		PodAddr:           l.podAddr,
+		Epoch:             epoch,
+		ExpiresAt:         time.Now().Add(ttl),
+	}
+	bytes, err := json.Marshal(record)
+	if err != nil {
+		return err
+	}
+	ttlSec := int(ttl.Seconds())
+	if ttlSec <= 0 {
+		ttlSec = 1
+	}
+
+	res := refreshTerminalLua.Exec(ctx, l.client, []string{terminalKey(sessionID)}, []string{
+		l.podID,
+		string(bytes),
+		strconv.Itoa(ttlSec),
+	})
+	if res.Error() != nil {
+		if res.Error().Error() == "STALE_EPOCH" {
+			return ErrStaleEpoch
+		}
+		if res.Error().Error() == "NO_OWNER" {
+			return ErrNoOwner
+		}
 		return fmt.Errorf("%w: %v", ErrLocatorUnavailable, res.Error())
 	}
 	return nil
@@ -404,10 +518,18 @@ func (l *Locator) LookupTerminal(ctx context.Context, sessionID string) (*Termin
 	return &record, nil
 }
 
-// ReleaseTerminal은 TerminalSession 소유자 키를 삭제한다.
+// ReleaseTerminal은 TerminalSession 소유자 키를 삭제하고 heartbeat를 중지한다.
 func (l *Locator) ReleaseTerminal(ctx context.Context, sessionID string) error {
-	cmd := l.client.B().Del().Key(terminalKey(sessionID)).Build()
-	res := l.client.Do(ctx, cmd)
+	l.mu.Lock()
+	if cancel, exists := l.terminalHeartbeat[sessionID]; exists {
+		cancel()
+		delete(l.terminalHeartbeat, sessionID)
+	}
+	l.mu.Unlock()
+
+	res := releaseTerminalLua.Exec(ctx, l.client, []string{terminalKey(sessionID)}, []string{
+		l.podID,
+	})
 	if res.Error() != nil {
 		return fmt.Errorf("%w: %v", ErrLocatorUnavailable, res.Error())
 	}
@@ -421,6 +543,10 @@ func (l *Locator) Close() {
 		cancel()
 	}
 	l.heartbeat = make(map[uuid.UUID]context.CancelFunc)
+	for _, cancel := range l.terminalHeartbeat {
+		cancel()
+	}
+	l.terminalHeartbeat = make(map[string]context.CancelFunc)
 	l.mu.Unlock()
 	l.client.Close()
 }

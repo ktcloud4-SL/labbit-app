@@ -316,8 +316,6 @@ func main() {
 
 	// 2. Seed database fixture (Organization, User, Session, Class, LabInstance, ConnectorCredential)
 	log.Println("[2/13] Seeding DB fixture for E2E verification...")
-	_, _ = conn.Exec(ctx, `UPDATE operation_items SET status = 'FAILED', finished_at = now() WHERE status = 'PENDING'`)
-	_, _ = conn.Exec(ctx, `UPDATE operations SET status = 'FAILED', finished_at = now() WHERE status = 'PENDING'`)
 
 	orgID := uuid.New()
 	userID := uuid.New()
@@ -654,13 +652,22 @@ func main() {
 			if stage != nil && *stage == "DEFERRED" {
 				if !observedDeferred {
 					observedDeferred = true
-					// Non-owner deferral verified; reset dispatch_not_before to break 5s phase-lock and allow owner claim
-					_, _ = conn.Exec(ctx, `UPDATE operation_items SET dispatch_not_before = now() - interval '1 second' WHERE id = $1 AND status = 'PENDING'`, itemID)
+					// DEFERRED stage observed on test-owned item (note: non-owner pod attribution cannot be proven from stage alone).
+					// Accelerate dispatch_not_before strictly for this test item to allow owner claim without 5s deferral delay.
+					tag, err := conn.Exec(ctx, `UPDATE operation_items SET dispatch_not_before = now() - interval '1 second' WHERE id = $1 AND status = 'PENDING'`, itemID)
+					if err != nil {
+						log.Fatalf("FATAL: failed to reset dispatch_not_before for test item %s: %v", itemID, err)
+					}
+					if tag.RowsAffected() == 0 {
+						log.Printf("[8/13] Test-owned item %s was not PENDING when resetting dispatch_not_before (rows affected=0)", itemID)
+					}
 				}
 			}
 			if opItemStatus == "SUCCEEDED" {
 				break
 			}
+		} else {
+			log.Printf("[8/13] WARNING: scanning operation_item %s failed: %v", itemID, scanErr)
 		}
 		time.Sleep(500 * time.Millisecond)
 	}

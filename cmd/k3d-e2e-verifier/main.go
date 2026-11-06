@@ -316,6 +316,9 @@ func main() {
 
 	// 2. Seed database fixture (Organization, User, Session, Class, LabInstance, ConnectorCredential)
 	log.Println("[2/13] Seeding DB fixture for E2E verification...")
+	_, _ = conn.Exec(ctx, `UPDATE operation_items SET status = 'FAILED', finished_at = now() WHERE status = 'PENDING'`)
+	_, _ = conn.Exec(ctx, `UPDATE operations SET status = 'FAILED', finished_at = now() WHERE status = 'PENDING'`)
+
 	orgID := uuid.New()
 	userID := uuid.New()
 	rawToken := make([]byte, 32)
@@ -649,7 +652,11 @@ func main() {
 		row := conn.QueryRow(ctx, `SELECT status, stage FROM operation_items WHERE id = $1`, itemID)
 		if scanErr := row.Scan(&opItemStatus, &stage); scanErr == nil {
 			if stage != nil && *stage == "DEFERRED" {
-				observedDeferred = true
+				if !observedDeferred {
+					observedDeferred = true
+					// Non-owner deferral verified; reset dispatch_not_before to break 5s phase-lock and allow owner claim
+					_, _ = conn.Exec(ctx, `UPDATE operation_items SET dispatch_not_before = now() - interval '1 second' WHERE id = $1 AND status = 'PENDING'`, itemID)
+				}
 			}
 			if opItemStatus == "SUCCEEDED" {
 				break

@@ -721,13 +721,43 @@ func main() {
 		ownerRecB.PodID, ownerRecB.PodAddr, ownerRecB.Epoch, ownerRecA.Epoch)
 
 	// 11. Reverse Cross-Pod Terminal Route (backend-0 -> backend-1):
-	// Seed fresh lab instance & server
+	// Seed fresh user, auth session, class membership, lab instance & server
 	log.Println("[11/13] Testing Reverse Cross-Pod Route: Create Terminal on backend-0 (proxied to backend-1)...")
+	userID2 := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO users (id, organization_id, organization_role)
+		VALUES ($1, $2, 'MEMBER')
+	`, userID2, orgID)
+	if err != nil {
+		log.Fatalf("insert user 2 failed: %v", err)
+	}
+
+	rawToken2 := make([]byte, 32)
+	_, _ = rand.Read(rawToken2)
+	tokenHash2 := sha256.Sum256(rawToken2)
+	sessionToken2 := base64.RawURLEncoding.EncodeToString(rawToken2)
+
+	_, err = conn.Exec(ctx, `
+		INSERT INTO auth_sessions (id, user_id, token_hash, created_at, expires_at)
+		VALUES ($1, $2, $3, $4, $5)
+	`, uuid.New(), userID2, tokenHash2[:], now, now.Add(8*time.Hour))
+	if err != nil {
+		log.Fatalf("insert auth_sessions 2 failed: %v", err)
+	}
+
+	_, err = conn.Exec(ctx, `
+		INSERT INTO class_memberships (organization_id, class_id, user_id, role)
+		VALUES ($1, $2, $3, 'STUDENT')
+	`, orgID, classID, userID2)
+	if err != nil {
+		log.Fatalf("insert class_membership 2 failed: %v", err)
+	}
+
 	labInstanceID2 := uuid.New()
 	_, err = conn.Exec(ctx, `
 		INSERT INTO lab_instances (id, organization_id, lab_execution_id, user_id, participant_role, status, generation)
 		VALUES ($1, $2, $3, $4, 'STUDENT', 'READY', 1)
-	`, labInstanceID2, orgID, execID, userID)
+	`, labInstanceID2, orgID, execID, userID2)
 	if err != nil {
 		log.Fatalf("insert lab_instance 2 failed: %v", err)
 	}
@@ -747,7 +777,7 @@ func main() {
 		log.Fatalf("create request 2 error: %v", err)
 	}
 	req2.Header.Set("Content-Type", "application/json")
-	req2.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	req2.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken2))
 	req2.Header.Set("Origin", "http://localhost:8080")
 
 	resp2, err := client.Do(req2)
@@ -789,7 +819,11 @@ func main() {
 	// Browser connects to backend-0 (proxied to backend-1)
 	log.Printf("[11/13] Connecting Browser WebSocket to backend-0 (%s%s)...", url0, realtime.BrowserPath)
 	browserWSURL2 := strings.Replace(url0, "http://", "ws://", 1) + realtime.BrowserPath
-	bWs2, bResp2, err := dialer.Dial(browserWSURL2, wsHeaders)
+	wsHeaders2 := http.Header{
+		"Cookie": []string{fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken2)},
+		"Origin": []string{"http://localhost:8080"},
+	}
+	bWs2, bResp2, err := dialer.Dial(browserWSURL2, wsHeaders2)
 	if err != nil {
 		var status int
 		if bResp2 != nil {
@@ -838,7 +872,7 @@ func main() {
 	// Delete TerminalSession 2 via backend-0 (proxied to backend-1)
 	delURL2 := fmt.Sprintf("%s/api/v1/terminal-sessions/%s", url0, capturedSessionID2)
 	delReq2, _ := http.NewRequest(http.MethodDelete, delURL2, nil)
-	delReq2.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	delReq2.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken2))
 	delReq2.Header.Set("Origin", "http://localhost:8080")
 	delResp2, err := client.Do(delReq2)
 	if err != nil || delResp2.StatusCode != http.StatusNoContent {

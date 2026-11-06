@@ -68,3 +68,30 @@ func NewRealtimeMetrics(reg *prometheus.Registry) *RealtimeMetrics {
 	reg.MustRegister(connections, reconnects, rejected, m.Draining)
 	return m
 }
+
+// WorkerMetrics tracks worker OperationItem claim, execution, and reconciliation attempts.
+// It is registered only by the worker role.
+type WorkerMetrics struct {
+	ActiveOperations    prometheus.Gauge
+	OperationsProcessed *prometheus.CounterVec
+	OperationDuration   *prometheus.HistogramVec
+}
+
+func NewWorkerMetrics(reg *prometheus.Registry) *WorkerMetrics {
+	m := &WorkerMetrics{
+		ActiveOperations: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "labbit_worker_active_operations",
+			Help: "Worker OperationItem execution attempts currently claimed and in progress.",
+		}),
+		OperationsProcessed: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "labbit_worker_operations_processed_total",
+			Help: "Completed worker OperationItem execution attempts by operation type and durable outcome (succeeded, failed, unknown, deferred, cancel, error).",
+		}, []string{"operation_type", "result"}),
+		OperationDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Name: "labbit_worker_operation_duration_seconds",
+			Help: "Duration of worker OperationItem execution attempts in seconds by operation type and durable outcome.",
+		}, []string{"operation_type", "result"}),
+	}
+	reg.MustRegister(m.ActiveOperations, m.OperationsProcessed, m.OperationDuration)
+	return m
+}

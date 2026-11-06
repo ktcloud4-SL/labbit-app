@@ -182,7 +182,7 @@ func parsePreviewTTL(raw string) (time.Duration, error) {
 func Run(ctx context.Context, cfg Config) error {
 	logger := observability.NewJSONLogger("labbit-server", "bootstrap", cfg.Environment, cfg.LogLevel)
 	ready := &atomic.Bool{}
-	registry, httpMetrics, realtimeMetrics := applicationMetrics(cfg.Roles)
+	registry, httpMetrics, realtimeMetrics, workerMetrics := applicationMetrics(cfg.Roles)
 
 	// Trace는 업무 성공 조건이 아니다. Start는 실패하지 않으며 설정 오류와 exporter 초기화 실패는 안전한 진단 뒤 export만 끈다.
 	// exporter가 없어도 Span과 W3C Context 전파, log의 trace_id correlation은 그대로다.
@@ -237,6 +237,7 @@ func Run(ctx context.Context, cfg Config) error {
 				Realtime:        slices.Contains(cfg.Roles, "realtime"),
 				HTTPMetrics:     httpMetrics,
 				RealtimeMetrics: realtimeMetrics,
+				WorkerMetrics:   workerMetrics,
 				// preview role이 같은 process에 있으면 Preview Gateway와 PreviewSession use case를 함께 조립한다.
 				Preview:       slices.Contains(cfg.Roles, "preview"),
 				PreviewPolicy: cfg.PreviewAllowedPorts,
@@ -476,17 +477,21 @@ func adminHandler(ready *atomic.Bool, metrics http.Handler, checks ...func(conte
 	return mux
 }
 
-func applicationMetrics(roles []string) (*prometheus.Registry, *observability.HTTPMetrics, *observability.RealtimeMetrics) {
+func applicationMetrics(roles []string) (*prometheus.Registry, *observability.HTTPMetrics, *observability.RealtimeMetrics, *observability.WorkerMetrics) {
 	registry := prometheus.NewRegistry()
 	var httpMetrics *observability.HTTPMetrics
 	var realtimeMetrics *observability.RealtimeMetrics
+	var workerMetrics *observability.WorkerMetrics
 	if slices.Contains(roles, "api") {
 		httpMetrics = observability.NewHTTPMetrics(registry)
 	}
 	if slices.Contains(roles, "realtime") {
 		realtimeMetrics = observability.NewRealtimeMetrics(registry)
 	}
-	return registry, httpMetrics, realtimeMetrics
+	if slices.Contains(roles, "worker") {
+		workerMetrics = observability.NewWorkerMetrics(registry)
+	}
+	return registry, httpMetrics, realtimeMetrics, workerMetrics
 }
 
 func serve(logger *slog.Logger, name string, server *http.Server, errCh chan<- error) {

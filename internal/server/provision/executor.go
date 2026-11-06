@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/operation"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
@@ -33,6 +34,7 @@ type Options struct {
 	Router           Router
 	Tracer           trace.Tracer
 	Logger           *slog.Logger
+	Metrics          *observability.WorkerMetrics
 	// Ready checks application/schema compatibility before a new claim.
 	Ready                                      func(context.Context) error
 	LeaseDuration, ResultTimeout, PollInterval time.Duration
@@ -103,7 +105,7 @@ func NewExecutor(opts Options) (*Executor, error) {
 		}
 		claims = reconciliationClaims{OperationWorkerStore: claims, store: opts.Reconciliation}
 	}
-	w, err := operation.NewWorker(operation.WorkerOptions{Store: claims, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Execute: p.execute})
+	w, err := operation.NewWorker(operation.WorkerOptions{Store: claims, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Execute: p.execute, Metrics: opts.Metrics})
 	if err != nil {
 		return nil, err
 	}
@@ -410,6 +412,7 @@ func (p *Executor) result(ctx context.Context, d repository.ProvisionDispatch, r
 }
 
 func (p *Executor) write(ctx context.Context, u repository.ProvisionUpdate) error {
+	var err error
 	if u.Dispatch.MutationType != "" {
 		if u.Status == "RUNNING" {
 			u.Stage = "RESETTING"
@@ -417,13 +420,31 @@ func (p *Executor) write(ctx context.Context, u repository.ProvisionUpdate) erro
 				u.Stage = "CLEANING_UP"
 			}
 		}
-		return p.opts.Mutations.WriteMutation(ctx, u)
+		err = p.opts.Mutations.WriteMutation(ctx, u)
+	} else {
+		err = p.opts.Store.WriteProvision(ctx, u)
 	}
-	return p.opts.Store.WriteProvision(ctx, u)
+	if err == nil {
+		switch u.Status {
+		case "SUCCEEDED":
+			operation.RecordOutcome(ctx, "succeeded")
+		case "FAILED":
+			operation.RecordOutcome(ctx, "failed")
+		case "RECONCILING":
+			operation.RecordOutcome(ctx, "unknown")
+		}
+	}
+	return err
 }
 func (p *Executor) deferUnsent(ctx context.Context, d repository.ProvisionDispatch) error {
+	var err error
 	if d.MutationType != "" {
-		return p.opts.Mutations.DeferUnsentMutation(ctx, d, p.opts.DispatchRetryDelay)
+		err = p.opts.Mutations.DeferUnsentMutation(ctx, d, p.opts.DispatchRetryDelay)
+	} else {
+		err = p.opts.Store.DeferUnsentProvision(ctx, d, p.opts.DispatchRetryDelay)
 	}
-	return p.opts.Store.DeferUnsentProvision(ctx, d, p.opts.DispatchRetryDelay)
+	if err == nil {
+		operation.RecordOutcome(ctx, "deferred")
+	}
+	return err
 }

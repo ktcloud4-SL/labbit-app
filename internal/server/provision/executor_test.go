@@ -10,8 +10,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 type workerStoreFake struct {
@@ -79,7 +82,8 @@ func provisionTestStore(t *testing.T, writes chan repository.ProvisionUpdate) pr
 		copy.Lease = l
 		return copy, nil
 	},
-		write: func(_ context.Context, u repository.ProvisionUpdate) error { writes <- u; return nil },
+		write:       func(_ context.Context, u repository.ProvisionUpdate) error { writes <- u; return nil },
+		deferUnsent: func(_ context.Context, _ repository.ProvisionDispatch, _ time.Duration) error { return nil },
 	}
 	return f
 }
@@ -383,6 +387,108 @@ func TestExecutorShutdownAndAcceptedAckCannotAuthorizeDeferral(t *testing.T) {
 				if u := <-writes; u.Status != "RECONCILING" {
 					t.Fatalf("ACK=%+v", u)
 				}
+			}
+		})
+	}
+}
+
+func TestExecutorWorkerMetricsOutcomes(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		send       func(*Executor) func(context.Context, connector.OperationCommand) (connector.SentMessage, error)
+		cancelCtx  bool
+		wantResult string
+	}{
+		{
+			name: "succeeded outcome",
+			send: func(p *Executor) func(context.Context, connector.OperationCommand) (connector.SentMessage, error) {
+				return func(_ context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
+					p.HandleEvent(connector.OperationResultEvent{Routed: routedFor(c), Payload: protocol.OperationResultPayload{Outcome: protocol.OutcomeSucceeded}})
+					return connector.SentMessage{MessageID: "outbound-message"}, nil
+				}
+			},
+			wantResult: "succeeded",
+		},
+		{
+			name: "failed outcome on connector rejection",
+			send: func(p *Executor) func(context.Context, connector.OperationCommand) (connector.SentMessage, error) {
+				return func(_ context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
+					p.HandleEvent(connector.OperationAckEvent{Routed: routedFor(c), Payload: protocol.OperationAckPayload{Accepted: false}})
+					return connector.SentMessage{MessageID: "outbound-message"}, nil
+				}
+			},
+			wantResult: "failed",
+		},
+		{
+			name: "unknown outcome on unconfirmed dispatch",
+			send: func(*Executor) func(context.Context, connector.OperationCommand) (connector.SentMessage, error) {
+				return func(_ context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
+					return connector.SentMessage{}, connector.ErrSendFailed
+				}
+			},
+			wantResult: "unknown",
+		},
+		{
+			name: "deferred outcome on connector unavailable",
+			send: func(*Executor) func(context.Context, connector.OperationCommand) (connector.SentMessage, error) {
+				return func(_ context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
+					return connector.SentMessage{}, connector.ErrConnectorUnavailable
+				}
+			},
+			wantResult: "deferred",
+		},
+		{
+			name: "cancel outcome on context canceled",
+			send: func(*Executor) func(context.Context, connector.OperationCommand) (connector.SentMessage, error) {
+				return func(ctx context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
+					<-ctx.Done()
+					return connector.SentMessage{}, ctx.Err()
+				}
+			},
+			cancelCtx:  true,
+			wantResult: "cancel",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			reg := prometheus.NewRegistry()
+			metrics := observability.NewWorkerMetrics(reg)
+			writes := make(chan repository.ProvisionUpdate, 1)
+			store := provisionTestStore(t, writes)
+			router := provisionRouterFake{}
+			var p *Executor
+			router.send = func(ctx context.Context, c connector.OperationCommand) (connector.SentMessage, error) {
+				return tc.send(p)(ctx, c)
+			}
+			p, err := NewExecutor(Options{Store: store, Router: router, Metrics: metrics})
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			if tc.cancelCtx {
+				go func() {
+					time.Sleep(10 * time.Millisecond)
+					cancel()
+				}()
+			}
+			claimed, err := p.RunOne(ctx)
+			if !claimed {
+				t.Fatal("expected item to be claimed")
+			}
+			if tc.wantResult == "cancel" && !errors.Is(err, context.Canceled) {
+				t.Fatalf("expected context.Canceled, got %v", err)
+			}
+			// Active operations gauge must return to 0 (no leak)
+			if got := testutil.ToFloat64(metrics.ActiveOperations); got != 0 {
+				t.Fatalf("active_operations = %v, want 0", got)
+			}
+			// Counter must record the expected outcome for PROVISION
+			if got := testutil.ToFloat64(metrics.OperationsProcessed.WithLabelValues("PROVISION", tc.wantResult)); got != 1 {
+				t.Fatalf("operations_processed PROVISION %s = %v, want 1", tc.wantResult, got)
+			}
+			// Histogram must record duration
+			if got := testutil.CollectAndCount(metrics.OperationDuration); got < 1 {
+				t.Fatalf("operation_duration count = %v, want >= 1", got)
 			}
 		})
 	}

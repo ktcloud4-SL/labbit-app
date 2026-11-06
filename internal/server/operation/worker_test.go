@@ -20,8 +20,9 @@ import (
 )
 
 type workerStoreFake struct {
-	claim func(context.Context, uuid.UUID, time.Duration) (repository.OperationItemClaim, error)
-	renew func(context.Context, repository.OperationItemLease, time.Duration) (time.Time, error)
+	claim  func(context.Context, uuid.UUID, time.Duration) (repository.OperationItemClaim, error)
+	renew  func(context.Context, repository.OperationItemLease, time.Duration) (time.Time, error)
+	status func(context.Context, uuid.UUID) (string, error)
 }
 
 func (f workerStoreFake) ClaimOperationItem(ctx context.Context, owner uuid.UUID, d time.Duration) (repository.OperationItemClaim, error) {
@@ -29,6 +30,12 @@ func (f workerStoreFake) ClaimOperationItem(ctx context.Context, owner uuid.UUID
 }
 func (f workerStoreFake) RenewOperationItemLease(ctx context.Context, lease repository.OperationItemLease, d time.Duration) (time.Time, error) {
 	return f.renew(ctx, lease, d)
+}
+func (f workerStoreFake) OperationItemStatus(ctx context.Context, id uuid.UUID) (string, error) {
+	if f.status != nil {
+		return f.status(ctx, id)
+	}
+	return "", nil
 }
 
 func TestWorkerDoesNotExecuteWithoutCommittedOwnership(t *testing.T) {
@@ -210,12 +217,14 @@ func TestWorkerMetricsLifecycleAndOutcomes(t *testing.T) {
 			renew: func(context.Context, repository.OperationItemLease, time.Duration) (time.Time, error) {
 				return time.Now().Add(time.Minute), nil
 			},
+			status: func(context.Context, uuid.UUID) (string, error) {
+				return "SUCCEEDED", nil
+			},
 		}
 		activeObserved := -1.0
 		w, err := NewWorker(WorkerOptions{Store: store, LeaseDuration: time.Minute, Metrics: m,
 			Execute: func(ctx context.Context, claim repository.OperationItemClaim) error {
 				activeObserved = testutil.ToFloat64(m.ActiveOperations)
-				RecordOutcome(ctx, "succeeded")
 				return nil
 			}})
 		if err != nil {

@@ -90,17 +90,14 @@ func (w *Worker) RunOne(ctx context.Context) (bool, error) {
 		defer func() {
 			w.opts.Metrics.ActiveOperations.Dec()
 			res := ""
-			if outcomePtr != nil {
+			if ctx.Err() != nil || errors.Is(runErr, context.Canceled) || errors.Is(runErr, context.DeadlineExceeded) {
+				res = "cancel"
+			} else if runErr != nil {
+				res = "error"
+			} else if outcomePtr != nil && *outcomePtr != "" {
 				res = *outcomePtr
-			}
-			if res == "" {
-				if ctx.Err() != nil || errors.Is(runErr, context.Canceled) {
-					res = "cancel"
-				} else if runErr != nil {
-					res = "error"
-				} else {
-					res = "unknown"
-				}
+			} else {
+				res = "unknown"
 			}
 			opType := claim.Operation.Type
 			if opType == "" {
@@ -138,6 +135,22 @@ func (w *Worker) RunOne(ctx context.Context) (bool, error) {
 	defer span.End()
 	err = w.opts.Execute(ctx, claim)
 	runErr = err
+	if err == nil && w.opts.Metrics != nil && outcomePtr != nil {
+		if status, statusErr := w.opts.Store.OperationItemStatus(ctx, claim.Item.ID); statusErr == nil && status != "" {
+			switch status {
+			case "SUCCEEDED":
+				*outcomePtr = "succeeded"
+			case "FAILED":
+				*outcomePtr = "failed"
+			case "RECONCILING":
+				*outcomePtr = "unknown"
+			case "PENDING":
+				*outcomePtr = "deferred"
+			default:
+				*outcomePtr = "unknown"
+			}
+		}
+	}
 	if err != nil {
 		// Callback errors may contain Provider payloads; do not record their text.
 		span.SetStatus(codes.Error, "execution boundary failed")

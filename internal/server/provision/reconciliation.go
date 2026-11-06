@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
-	"github.com/ktcloud4-SL/labbit-app/internal/server/operation"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 )
 
@@ -75,11 +74,7 @@ func (p *Executor) reconcile(ctx context.Context, claim repository.OperationItem
 	sent, err = router.SendReconcileRequest(ctx, connector.ReconcileRequest{ConnectorID: d.ConnectorID, RequestID: claim.Operation.RequestID, Correlation: corr,
 		Payload: protocol.ReconcileRequestPayload{KnownResources: refs, DiscoverCandidates: &discover}, Trace: connector.TraceFromContext(ctx)})
 	hold := func() error {
-		err := p.opts.Reconciliation.WriteReconciliation(ctx, repository.ReconciliationUpdate{Dispatch: d, QueryFailed: true, RetryDelay: p.opts.DispatchRetryDelay})
-		if err == nil {
-			operation.RecordOutcome(ctx, "unknown")
-		}
-		return err
+		return p.opts.Reconciliation.WriteReconciliation(ctx, repository.ReconciliationUpdate{Dispatch: d, QueryFailed: true, RetryDelay: p.opts.DispatchRetryDelay})
 	}
 	if err != nil {
 		if ctx.Err() != nil {
@@ -112,22 +107,6 @@ func (p *Executor) reconcile(ctx context.Context, claim repository.OperationItem
 			err = p.opts.Reconciliation.WriteReconciliation(ctx, u)
 			if errors.Is(err, repository.ErrConstraintViolation) {
 				return hold()
-			}
-			if err == nil {
-				isCompleteCleanup := d.MutationType == "CLEANUP" && !u.QueryFailed && len(u.Observations) == len(d.Resources)
-				if isCompleteCleanup {
-					for _, obs := range u.Observations {
-						if obs.Exists {
-							isCompleteCleanup = false
-							break
-						}
-					}
-				}
-				if isCompleteCleanup {
-					operation.RecordOutcome(ctx, "succeeded")
-				} else {
-					operation.RecordOutcome(ctx, "unknown")
-				}
 			}
 			return err
 		}

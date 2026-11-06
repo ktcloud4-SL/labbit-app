@@ -18,8 +18,9 @@ import (
 )
 
 type workerStoreFake struct {
-	claim func(context.Context, uuid.UUID, time.Duration) (repository.OperationItemClaim, error)
-	renew func(context.Context, repository.OperationItemLease, time.Duration) (time.Time, error)
+	claim  func(context.Context, uuid.UUID, time.Duration) (repository.OperationItemClaim, error)
+	renew  func(context.Context, repository.OperationItemLease, time.Duration) (time.Time, error)
+	status func(context.Context, uuid.UUID) (string, error)
 }
 
 func (f workerStoreFake) ClaimOperationItem(ctx context.Context, owner uuid.UUID, d time.Duration) (repository.OperationItemClaim, error) {
@@ -27,6 +28,12 @@ func (f workerStoreFake) ClaimOperationItem(ctx context.Context, owner uuid.UUID
 }
 func (f workerStoreFake) RenewOperationItemLease(ctx context.Context, l repository.OperationItemLease, d time.Duration) (time.Time, error) {
 	return f.renew(ctx, l, d)
+}
+func (f workerStoreFake) OperationItemStatus(ctx context.Context, itemID uuid.UUID) (string, error) {
+	if f.status != nil {
+		return f.status(ctx, itemID)
+	}
+	return "", nil
 }
 
 type provisionStoreFake struct {
@@ -64,6 +71,7 @@ func provisionTestStore(t *testing.T, writes chan repository.ProvisionUpdate) pr
 	d.Snapshot, _ = json.Marshal(protocol.CreationSnapshot{ProviderConnectionID: d.ProviderConnectionID.String(), WorkspaceVMKey: "vm-1", VMs: []protocol.ResolvedVmSpec{{VMKey: "vm-1", Role: "web", ImageID: "immutable-image", FlavorID: "immutable-flavor", FlavorSpec: &protocol.ResolvedFlavorSpec{VCPUs: 1, RAMMiB: 512}}}})
 	var mu sync.Mutex
 	claimed := false
+	var lastStatus string
 	f := provisionStoreFake{workerStoreFake: workerStoreFake{
 		claim: func(_ context.Context, owner uuid.UUID, _ time.Duration) (repository.OperationItemClaim, error) {
 			mu.Lock()
@@ -77,13 +85,29 @@ func provisionTestStore(t *testing.T, writes chan repository.ProvisionUpdate) pr
 		renew: func(context.Context, repository.OperationItemLease, time.Duration) (time.Time, error) {
 			return time.Now().Add(time.Minute), nil
 		},
+		status: func(_ context.Context, _ uuid.UUID) (string, error) {
+			mu.Lock()
+			defer mu.Unlock()
+			return lastStatus, nil
+		},
 	}, prepare: func(_ context.Context, l repository.OperationItemLease) (repository.ProvisionDispatch, error) {
 		copy := d
 		copy.Lease = l
 		return copy, nil
 	},
-		write:       func(_ context.Context, u repository.ProvisionUpdate) error { writes <- u; return nil },
-		deferUnsent: func(_ context.Context, _ repository.ProvisionDispatch, _ time.Duration) error { return nil },
+		write: func(_ context.Context, u repository.ProvisionUpdate) error {
+			mu.Lock()
+			lastStatus = u.Status
+			mu.Unlock()
+			writes <- u
+			return nil
+		},
+		deferUnsent: func(_ context.Context, _ repository.ProvisionDispatch, _ time.Duration) error {
+			mu.Lock()
+			lastStatus = "PENDING"
+			mu.Unlock()
+			return nil
+		},
 	}
 	return f
 }

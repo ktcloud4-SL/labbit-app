@@ -25,6 +25,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/labexecution"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/labexecution/labexecutiontest"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest"
 )
@@ -343,5 +344,229 @@ func TestWorkerMetricsUnknownAndCancellationOutcomes(t *testing.T) {
 	}
 	if got := testutil.ToFloat64(cancelEnv.metrics.OperationsProcessed.WithLabelValues("PROVISION", "cancel")); got != 1 {
 		t.Fatalf("operations_processed PROVISION cancel = %v, want 1", got)
+	}
+}
+
+func (e *workerMetricsEnv) seedMutation() uuid.UUID {
+	e.t.Helper()
+	for {
+		claimed, err := e.stack.Provisions.RunOne(e.t.Context())
+		if err != nil {
+			e.t.Fatalf("seed claim err: %v", err)
+		}
+		if !claimed {
+			break
+		}
+	}
+	var id uuid.UUID
+	if err := e.db.QueryRow(e.t.Context(), `SELECT id FROM lab_instances WHERE lab_execution_id=$1 AND user_id=$2`, e.executionID, e.f.StudentAID).Scan(&id); err != nil {
+		e.t.Fatal(err)
+	}
+	labexecutiontest.Exec(e.t, e.db, `UPDATE lab_instances SET status='READY' WHERE lab_execution_id=$1`, e.executionID)
+	labexecutiontest.Exec(e.t, e.db, `UPDATE lab_executions SET status='ACTIVE' WHERE id=$1`, e.executionID)
+	return id
+}
+
+func (e *workerMetricsEnv) reset(id uuid.UUID, key string) {
+	e.t.Helper()
+	user, err := e.store.UserByID(e.t.Context(), e.f.InstructorID)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	a, err := labexecution.NewService(e.store).Reset(e.t.Context(), user, labexecution.ResetInput{LabInstanceID: id.String(), IdempotencyKey: key})
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	e.opID = a.OperationID
+}
+
+func (e *workerMetricsEnv) cleanup(key string) {
+	e.t.Helper()
+	user, err := e.store.UserByID(e.t.Context(), e.f.InstructorID)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	a, err := labexecution.NewService(e.store).Cleanup(e.t.Context(), user, labexecution.CleanupInput{LabExecutionID: e.executionID.String(), IdempotencyKey: key})
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	e.opID = a.OperationID
+}
+
+// Regression 1: PROVISION succeeded + invalid readiness -> DB RECONCILING/metric unknown
+func TestWorkerMetricsRegressionInvalidProvisionReadiness(t *testing.T) {
+	e := newWorkerMetricsEnv(t, 2*time.Second)
+
+	// Mock connector reports OutcomeSucceeded, but readiness attestation is invalid (e.g. wrong Generation / wrong VMKey).
+	// WriteProvision commits status='RECONCILING', stage='RECONCILING'.
+	e.startMock(&provider.MockProvider{ProvisionFunc: func(_ context.Context, r provider.ProvisionRequest) (provider.OperationResult, error) {
+		res := mockProvisionResult(r, provider.OutcomeSucceeded)
+		res.Readiness = &provider.Readiness{
+			WorkspaceVMKey: "invalid-vm-key",
+			ServerID:       "wrong-server",
+			Generation:     999,
+		}
+		return res, nil
+	}})
+
+	claimed, err := e.stack.Provisions.RunOne(t.Context())
+	if !claimed || err != nil {
+		t.Fatalf("claimed=%v, err=%v", claimed, err)
+	}
+
+	// Active gauge must return to 0
+	if got := testutil.ToFloat64(e.metrics.ActiveOperations); got != 0 {
+		t.Fatalf("active_operations after invalid readiness = %v, want 0", got)
+	}
+
+	// DB verification: operation_items status must be committed as RECONCILING, stage RECONCILING
+	var status, stage string
+	if err := e.db.QueryRow(t.Context(), `SELECT status, COALESCE(stage, '') FROM operation_items WHERE operation_id=$1 AND status='RECONCILING' LIMIT 1`, e.opID).Scan(&status, &stage); err != nil {
+		t.Fatal(err)
+	}
+	if status != "RECONCILING" || stage != "RECONCILING" {
+		t.Fatalf("DB status=%q stage=%q, want status=RECONCILING stage=RECONCILING", status, stage)
+	}
+
+	// Metric verification: must be unknown, NOT succeeded!
+	if got := testutil.ToFloat64(e.metrics.OperationsProcessed.WithLabelValues("PROVISION", "unknown")); got != 1 {
+		t.Fatalf("operations_processed PROVISION unknown = %v, want 1", got)
+	}
+	if got := testutil.ToFloat64(e.metrics.OperationsProcessed.WithLabelValues("PROVISION", "succeeded")); got != 0 {
+		t.Fatalf("operations_processed PROVISION succeeded = %v, want 0 (false success prevented!)", got)
+	}
+}
+
+// Regression 2: RESET/CLEANUP incomplete result -> DB RECONCILING/metric unknown
+func TestWorkerMetricsRegressionIncompleteResetMutation(t *testing.T) {
+	e := newWorkerMetricsEnv(t, 2*time.Second)
+
+	// Configure mock provider once for both initial provision and subsequent reset
+	e.startMock(&provider.MockProvider{
+		ProvisionFunc: func(_ context.Context, r provider.ProvisionRequest) (provider.OperationResult, error) {
+			return mockProvisionResult(r, provider.OutcomeSucceeded), nil
+		},
+		ResetFunc: func(_ context.Context, r provider.ResetRequest) (provider.OperationResult, error) {
+			deleted := make([]provider.ResourceResult, 0, len(r.ProviderResources))
+			for _, res := range r.ProviderResources {
+				deleted = append(deleted, provider.ResourceResult{ResourceRef: res, ObservedState: "DELETED"})
+			}
+			return provider.OperationResult{Outcome: provider.OutcomeSucceeded, ProviderResources: deleted}, nil
+		},
+	})
+
+	instanceID := e.seedMutation()
+
+	// Initiate Reset on the instance
+	e.reset(instanceID, "reset-incomplete-metrics-key")
+
+	claimed, err := e.stack.Provisions.RunOne(t.Context())
+	if !claimed || err != nil {
+		t.Fatalf("claimed=%v, err=%v", claimed, err)
+	}
+
+	// Active gauge must return to 0
+	if got := testutil.ToFloat64(e.metrics.ActiveOperations); got != 0 {
+		t.Fatalf("active_operations after incomplete reset = %v, want 0", got)
+	}
+
+	// DB verification: operation_items status must be committed as RECONCILING, stage RECONCILING
+	var status, stage string
+	if err := e.db.QueryRow(t.Context(), `SELECT status, COALESCE(stage, '') FROM operation_items WHERE operation_id=$1`, e.opID).Scan(&status, &stage); err != nil {
+		t.Fatal(err)
+	}
+	if status != "RECONCILING" || stage != "RECONCILING" {
+		t.Fatalf("DB status=%q stage=%q, want status=RECONCILING stage=RECONCILING", status, stage)
+	}
+
+	// Metric verification: RESET attempt recorded as unknown, NOT succeeded!
+	if got := testutil.ToFloat64(e.metrics.OperationsProcessed.WithLabelValues("RESET", "unknown")); got != 1 {
+		t.Fatalf("operations_processed RESET unknown = %v, want 1", got)
+	}
+	if got := testutil.ToFloat64(e.metrics.OperationsProcessed.WithLabelValues("RESET", "succeeded")); got != 0 {
+		t.Fatalf("operations_processed RESET succeeded = %v, want 0 (false success prevented!)", got)
+	}
+}
+
+// Regression 3: CLEANUP reconcile 불완전/비권위 observation -> DB HOLD/metric unknown
+func TestWorkerMetricsRegressionIncompleteCleanupReconciliation(t *testing.T) {
+	e := newWorkerMetricsEnv(t, 2*time.Second)
+
+	// Configure mock provider once for provision, cleanup mutation, and reconciliation
+	e.startMock(&provider.MockProvider{
+		ProvisionFunc: func(_ context.Context, r provider.ProvisionRequest) (provider.OperationResult, error) {
+			return mockProvisionResult(r, provider.OutcomeSucceeded), nil
+		},
+		CleanupFunc: func(_ context.Context, r provider.CleanupRequest) (provider.OperationResult, error) {
+			return provider.OperationResult{Outcome: provider.OutcomeUnknown}, nil
+		},
+		ReconcileFunc: func(_ context.Context, r provider.ReconcileRequest) (provider.ReconcileResult, error) {
+			obs := make([]provider.ResourceObservation, 0, len(r.KnownResources))
+			for _, ref := range r.KnownResources {
+				obs = append(obs, provider.ResourceObservation{
+					ResourceType:  ref.ResourceType,
+					ProviderID:    ref.ProviderID,
+					Generation:    ref.Generation,
+					LogicalName:   ref.LogicalName,
+					Source:        provider.SourceDiscoveredCandidate, // Non-authoritative candidate!
+					Exists:        false,
+					ObservedState: "ABSENT",
+				})
+			}
+			return provider.ReconcileResult{Observations: obs}, nil
+		},
+	})
+
+	_ = e.seedMutation()
+
+	// Initiate Cleanup
+	e.cleanup("cleanup-metrics-key")
+
+	// 1. Initial CLEANUP mutation claims: each item receives OutcomeUnknown -> status='RECONCILING'
+	for range 2 {
+		claimed, err := e.stack.Provisions.RunOne(t.Context())
+		if !claimed || err != nil {
+			t.Fatalf("cleanup mutation claim=%v err=%v", claimed, err)
+		}
+	}
+
+	var reconcilingCount int
+	if err := e.db.QueryRow(t.Context(), `SELECT count(*) FROM operation_items WHERE operation_id=$1 AND status='RECONCILING'`, e.opID).Scan(&reconcilingCount); err != nil {
+		t.Fatal(err)
+	}
+	if reconcilingCount != 2 {
+		t.Fatalf("reconciling items count=%d, want 2", reconcilingCount)
+	}
+
+	// Expire lease so reconciliation worker can immediately claim it
+	labexecutiontest.Exec(t, e.db, `UPDATE operation_items SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE operation_id=$1`, e.opID)
+
+	// 2. Reconciliation attempt: Provider returns non-authoritative candidate (Source != KNOWN_RESOURCE)
+	// DB commits status='RECONCILING', stage='HOLD'.
+	claimed, err := e.stack.Provisions.RunOne(t.Context())
+	if !claimed || err != nil {
+		t.Fatalf("reconcile claim=%v err=%v", claimed, err)
+	}
+
+	// Active gauge must return to 0
+	if got := testutil.ToFloat64(e.metrics.ActiveOperations); got != 0 {
+		t.Fatalf("active_operations after reconcile hold = %v, want 0", got)
+	}
+
+	// DB verification: at least one item must be status='RECONCILING', stage='HOLD'
+	var holdCount int
+	if err := e.db.QueryRow(t.Context(), `SELECT count(*) FROM operation_items WHERE operation_id=$1 AND status='RECONCILING' AND stage='HOLD'`, e.opID).Scan(&holdCount); err != nil {
+		t.Fatal(err)
+	}
+	if holdCount < 1 {
+		t.Fatalf("hold count=%d, want at least 1", holdCount)
+	}
+
+	// Metric verification: CLEANUP reconciliation recorded as unknown (2 mutations + 1 reconcile = 3), NOT succeeded!
+	if got := testutil.ToFloat64(e.metrics.OperationsProcessed.WithLabelValues("CLEANUP", "unknown")); got != 3 {
+		t.Fatalf("operations_processed CLEANUP unknown = %v, want 3", got)
+	}
+	if got := testutil.ToFloat64(e.metrics.OperationsProcessed.WithLabelValues("CLEANUP", "succeeded")); got != 0 {
+		t.Fatalf("operations_processed CLEANUP succeeded = %v, want 0 (false success prevented!)", got)
 	}
 }

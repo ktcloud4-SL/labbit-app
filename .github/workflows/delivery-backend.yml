@@ -124,6 +124,21 @@ jobs:
             git add "$MIGRATE_JOB"
             echo "Updated migration-job image tag to $SHORT_TAG"
           fi
+          # 4. AWS Osaka (추가: 파일이 있으면 갱신)
+          OSAKA_FILE="environments/aws-osaka/apps/backend-values.yaml"
+          if [ -f "$OSAKA_FILE" ]; then
+            if command -v yq >/dev/null 2>&1; then
+              yq -i ".image.tag = \"${SHORT_TAG}\"" "$OSAKA_FILE"
+            else
+              sed -i -E "s|([[:space:]]*tag:[[:space:]]*).*|\1\"${SHORT_TAG}\"|g" "$OSAKA_FILE"
+            fi
+            if ! grep -q "tag: \"${SHORT_TAG}\"" "$OSAKA_FILE"; then
+              echo "::error::Failed to update image tag in $OSAKA_FILE to $SHORT_TAG"
+              exit 1
+            fi
+            git add "$OSAKA_FILE"
+            echo "Updated backend tag in $OSAKA_FILE to $SHORT_TAG"
+          fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

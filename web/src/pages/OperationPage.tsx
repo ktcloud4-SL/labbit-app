@@ -10,6 +10,14 @@ import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
 
 const activeOperationStatuses = new Set(['PENDING', 'RUNNING', 'RECONCILING'])
+
+// The public Operation view omits internal reconciliation error codes.
+// Refresh RECONCILING conservatively without inferring an item-level HOLD.
+export function operationPollingInterval(operation: Pick<Operation, 'status'> | undefined) {
+  if (!operation || !activeOperationStatuses.has(operation.status)) return false
+  return operation.status === 'RECONCILING' ? 15_000 : 2000
+}
+
 const knownOperationStatuses = new Set([
   'PENDING',
   'RUNNING',
@@ -58,6 +66,10 @@ function stageLabel(stage: string | undefined) {
       return '실제 상태 확인 중'
     case 'VERIFYING_READINESS':
       return 'Workspace 사용 가능 상태 확인 중'
+    case 'RECONCILING':
+      return 'Provider 상태 대조 중'
+    case 'HOLD':
+      return '운영 담당자 확인 필요 (HOLD)'
     default:
       return stage ?? '확인 중'
   }
@@ -100,10 +112,7 @@ export function OperationPage() {
     queryFn: () => api.getOperation(resolvedOperationId),
     enabled: Boolean(resolvedOperationId),
     retry: false,
-    refetchInterval: (query) => {
-      const status = query.state.data?.status
-      return status && activeOperationStatuses.has(status) ? 2000 : false
-    },
+    refetchInterval: (query) => operationPollingInterval(query.state.data),
   })
 
   if (!resolvedOperationId) {
@@ -221,11 +230,23 @@ export function OperationPage() {
       )}
 
       {isReconciling && (
-        <section className="notice-card notice-warning">
+        <section className="notice-card notice-warning" role="status">
           <strong>같은 작업을 다시 실행하지 않고 Provider의 실제 상태를 확인하고 있습니다.</strong>
           <p className="muted">
-            현재 상태를 확인하는 동안 같은 작업을 다시 요청하지 않고 안전하게 결과를 기다립니다.
+            RECONCILING은 실제 자원 결과를 대조하는 상태이며 자동 완료를 보장하지 않습니다.
+            이 상태가 지속되면 위 작업 ID를 운영 담당자에게 전달해 확인을 요청하세요.
+            Provision·Reset·Cleanup을 반복 요청하거나 Provider 자원을 직접 삭제하지 마세요.
           </p>
+          {!operationQuery.error && (
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={operationQuery.isFetching}
+              onClick={() => void operationQuery.refetch()}
+            >
+              {operationQuery.isFetching ? '상태 확인 중...' : '상태 다시 확인'}
+            </button>
+          )}
         </section>
       )}
 

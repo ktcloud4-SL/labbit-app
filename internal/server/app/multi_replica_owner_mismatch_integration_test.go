@@ -34,9 +34,10 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest"
 )
 
-// multiReplicaCluster simulates a multi-pod Backend topology (Pod A, Pod B, Pod C)
-// sharing the same PostgreSQL database, reproducing cross-Pod owner mismatches
-// for Registry/Router, Worker, Terminal, File, and Preview.
+// multiReplicaCluster simulates a multi-instance Backend logical topology (labeled Pod A, Pod B, Pod C)
+// using 3 in-process controlStack and httptest.Server instances sharing one PostgreSQL database.
+// This is a single-process logical instance simulation to test process-local state isolation,
+// not a multi-node Kubernetes/k3d or production multi-pod E2E deployment.
 type multiReplicaCluster struct {
 	t            *testing.T
 	dsn          string
@@ -456,10 +457,13 @@ func TestMultiReplica_Terminal_CrossPodMismatch(t *testing.T) {
 	}
 }
 
-// 4. File Transport cross-Pod pending mismatch:
-// HTTP file request on Pod B fails because Pod B has no Control connection to send FILE_OPEN.
-// Furthermore, if FILE_OPEN is sent by Pod A, but Connector connects Data WSS to Pod B,
-// Pod B has no matching pending request.
+//  4. File Transport cross-Pod mismatch:
+//     - HTTP file request to non-owner Pod B fails with 503 because Pod B has no Control connection/route.
+//     - Data WSS connecting to Pod B without a local pending request (tested with an unknown fileRequestId)
+//     fails closed with close code 1008/4003.
+//
+// Note: This verifies fail-closed rejection on an instance lacking pending state,
+// not an observed migration of an active pending file request from Pod A to Pod B.
 func TestMultiReplica_FileTransport_CrossPodMismatch(t *testing.T) {
 	c := newMultiReplicaCluster(t, false, false, false)
 
@@ -525,9 +529,13 @@ func TestMultiReplica_FileTransport_CrossPodMismatch(t *testing.T) {
 	}
 }
 
-// 5. Preview cross-Pod mismatch:
-// Preview session created on Pod A has its gateway and tunnel pending on Pod A.
-// HTTP request or Preview Data WSS arriving at Pod B cannot find the session state.
+//  5. Preview cross-Pod mismatch:
+//     - HTTP POST preview session on non-owner Pod B fails with 503 because Pod B has no connector route.
+//     - Preview Data WSS connecting to Pod B without a local pending session (tested with an unknown previewSessionId)
+//     fails closed with close code 1008/4003.
+//
+// Note: This verifies fail-closed rejection on an instance lacking pending state,
+// not an observed migration of an active pending preview session from Pod A to Pod B.
 func TestMultiReplica_Preview_CrossPodMismatch(t *testing.T) {
 	c := newMultiReplicaCluster(t, false, false, true)
 
@@ -581,7 +589,11 @@ func TestMultiReplica_Preview_CrossPodMismatch(t *testing.T) {
 
 // 6. Stale Owner and Reconnect Mismatch:
 // An in-flight operation on Pod A loses its return path when the Connector drops and reconnects to Pod B.
-// Pod B discards the RESULT as unmatched, causing Pod A to timeout and leave the operation in UNKNOWN/RECONCILING.
+// When RESULT arrives on Pod B, Pod B's Router discards it as unmatched (RouteOperationResult returns false),
+// while Pod A's Router retains the pending operation stuck (PendingCount == 1).
+// Note: This test directly asserts Pod B's unmatched discard and Pod A's stuck PendingCount == 1.
+// It does NOT assert actual operational timeout expiration or DB transition to UNKNOWN/RECONCILING
+// (which is the downstream operational consequence when the pending command is never completed).
 func TestMultiReplica_ConnectorReconnect_StaleOwnerAndOrphanResult(t *testing.T) {
 	c := newMultiReplicaCluster(t, false, false, false)
 
@@ -652,12 +664,21 @@ func TestMultiReplica_ConnectorReconnect_StaleOwnerAndOrphanResult(t *testing.T)
 	if opsA != 1 {
 		t.Fatalf("Pod A pending operations = %d, want 1 (stuck waiting)", opsA)
 	}
+	opsB, _ := c.podB.Router.PendingCount(c.connectorID)
+	if opsB != 0 {
+		t.Fatalf("Pod B pending operations = %d, want 0", opsB)
+	}
 }
 
-// 7. Representative Topology (N=3) Failure Rate Analysis:
-// In an N=3 cluster (Pod A, Pod B, Pod C), incoming connections and HTTP requests are distributed.
-// Demonstrates that without owner affinity/routing, end-to-end multi-step flows
-// (HTTP Create + Connector Data WSS + Browser Terminal WSS) have an exponential failure probability.
+// 7. Logical Instance Simulation (N=3) Expected Failure Sample Analysis:
+// In a logical N=3 cluster (Pod A, Pod B, Pod C) running in-process, incoming HTTP requests
+// are deterministically dispatched across instances using a fixed round-robin harness (i % len(pods)).
+// The observed 6/9 (66.7%) failure count is a deterministic harness expected sample on step 1 (HTTP Create),
+// demonstrating that non-owner instances reject requests with 503 (ErrConnectorUnavailable).
+// This is an in-process harness sample, NOT a measured production LB statistic.
+// Furthermore, the theoretical (1/3)^3 ≈ 3.7% calculation is an analytical illustration assuming
+// 3 independently uniform randomized hops (Create + Data WSS + Browser WSS),
+// NOT an empirical 3-step E2E measured benchmark run.
 func TestMultiReplica_TopologyN3_FailureRateAnalysis(t *testing.T) {
 	c := newMultiReplicaCluster(t, false, true, false)
 

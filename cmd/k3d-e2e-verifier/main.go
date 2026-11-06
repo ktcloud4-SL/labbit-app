@@ -643,10 +643,17 @@ func main() {
 
 	log.Println("[8/13] Waiting for background Workers to process item...")
 	var opItemStatus string
-	for i := 0; i < 30; i++ {
-		row := conn.QueryRow(ctx, `SELECT status FROM operation_items WHERE id = $1`, itemID)
-		if scanErr := row.Scan(&opItemStatus); scanErr == nil && opItemStatus == "SUCCEEDED" {
-			break
+	var observedDeferred bool
+	for i := 0; i < 60; i++ {
+		var stage *string
+		row := conn.QueryRow(ctx, `SELECT status, stage FROM operation_items WHERE id = $1`, itemID)
+		if scanErr := row.Scan(&opItemStatus, &stage); scanErr == nil {
+			if stage != nil && *stage == "DEFERRED" {
+				observedDeferred = true
+			}
+			if opItemStatus == "SUCCEEDED" {
+				break
+			}
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
@@ -658,9 +665,10 @@ func main() {
 	if mutCount != 1 {
 		log.Fatalf("FATAL: Expected exactly 1 provider mutation on owner pod, got %d", mutCount)
 	}
-	log.Printf("[8/13] VERIFIED: Worker dispatched item to owner Pod: status=%s, provider mutations=%d", opItemStatus, mutCount)
+	log.Printf("[8/13] VERIFIED: Worker dispatched item to owner Pod: status=%s, provider mutations=%d (observed DB stage=DEFERRED during deferral cycle: %v)",
+		opItemStatus, mutCount, observedDeferred)
 	log.Println("[8/13] CAUTION: Single-run count=1 in no-fault test does NOT constitute a failure-invariant exactly-once guarantee.")
-	log.Println("[8/13] [NOT VERIFIED] Non-Owner Worker Claim & Defer: Cannot prove Pod B claimed/deferred without pod-attributed audit logging or telemetry.")
+	log.Println("[8/13] [NOT VERIFIED] Non-Owner Worker Claim & Defer Attribution: While DB state may reflect stage=DEFERRED, without pod-attributed audit logging or telemetry we cannot prove Pod B performed the claim/deferral.")
 
 	// 9. Disconnect Connector 1 from backend-0
 	log.Println("[9/13] Disconnecting Mock Connector 1 from backend-0...")

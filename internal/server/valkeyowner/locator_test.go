@@ -155,6 +155,21 @@ func TestLocator_AtomicGenerationAndOwnerLossCallback(t *testing.T) {
 		t.Fatal("timed out waiting for onLost callback on Pod A after Pod B takeover")
 	}
 
+	// 4. Stale Pod A refresh must fail-closed with ErrStaleEpoch
+	if err := locA.RefreshConnector(ctx, connectorID, epochA, 2*time.Second); !errors.Is(err, ErrStaleEpoch) {
+		t.Fatalf("expected ErrStaleEpoch on stale refresh, got %v", err)
+	}
+
+	// 5. Stale Pod A release with old epoch must NOT release Pod B's mapping
+	_ = locA.ReleaseConnector(ctx, connectorID, epochA)
+	recAfterStaleRelease, err := locB.LookupConnector(ctx, connectorID)
+	if err != nil || recAfterStaleRelease == nil {
+		t.Fatalf("expected owner mapping to remain Pod B, err=%v, rec=%+v", err, recAfterStaleRelease)
+	}
+	if recAfterStaleRelease.PodID != "pod-b" || recAfterStaleRelease.Epoch != epochB {
+		t.Fatalf("expected owner pod-b with epochB %d, got %+v", epochB, recAfterStaleRelease)
+	}
+
 	// Clean up Pod B
 	_ = locB.ReleaseConnector(ctx, connectorID, epochB)
 }

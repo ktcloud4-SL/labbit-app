@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1373,5 +1374,58 @@ func TestOwnerLocator_LeaseLossRetiresLocalRouteFailClosed(t *testing.T) {
 	_, _, err := conn.ReadMessage()
 	if err == nil {
 		t.Fatal("expected connection to be closed after lease loss")
+	}
+}
+
+func TestOwnerLocator_StalePodRejectsNewWritesAfterObservedOwnerLoss(t *testing.T) {
+	registrar := &fakeRegistrar{}
+	h := newHarness(t, func(opts *Options) {
+		opts.OwnerLocator = registrar
+	})
+	conn := h.connect()
+	hello := validHello()
+	sendJSON(t, conn, hello)
+	_ = readJSON(t, conn) // HELLO_ACK
+
+	_ = h.waitRegistered()
+
+	// 1. Before lease loss: route is ready
+	err := h.registry.WithReadyRoute(h.principal.ConnectorID, func(s connector.Session, r connector.Route) error {
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("expected route ready, got %v", err)
+	}
+
+	// 2. Simulate observed lease loss
+	registrar.mu.Lock()
+	lostCb := registrar.onLostCb[h.principal.ConnectorID]
+	registrar.mu.Unlock()
+	if lostCb == nil {
+		t.Fatal("expected onLost callback to be registered")
+	}
+	lostCb()
+
+	// 3. Stale pod must reject all new writes immediately fail-closed under concurrent attempts
+	const workers = 8
+	var wg sync.WaitGroup
+	var errCount atomic.Int64
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 50; j++ {
+				writeErr := h.registry.WithReadyRoute(h.principal.ConnectorID, func(s connector.Session, r connector.Route) error {
+					return r([]byte("test payload"))
+				})
+				if errors.Is(writeErr, connector.ErrNotReady) || errors.Is(writeErr, connector.ErrNotConnected) {
+					errCount.Add(1)
+				}
+			}
+		}()
+	}
+	wg.Wait()
+	if errCount.Load() != workers*50 {
+		t.Fatalf("expected all %d writes to fail closed, got %d", workers*50, errCount.Load())
 	}
 }

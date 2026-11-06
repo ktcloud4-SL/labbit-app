@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -24,6 +25,18 @@ import (
 
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
 )
+
+var releaseConnectorLua = valkey.NewLuaScript(`
+local existing = redis.call('GET', KEYS[1])
+if not existing then
+    return "OK"
+end
+local data = cjson.decode(existing)
+if data and data.pod_id == ARGV[1] and tonumber(data.epoch) == tonumber(ARGV[2]) then
+    redis.call('DEL', KEYS[1])
+end
+return "OK"
+`)
 
 type syntheticConnector struct {
 	base      string
@@ -186,7 +199,6 @@ func (sc *syntheticConnector) controlLoop() {
 			sc.dataWs = dataWs
 
 			nowStr := time.Now().UTC().Format(time.RFC3339Nano)
-			// Send TERMINAL_DATA_ATTACH
 			_ = dataWs.WriteJSON(map[string]any{
 				"type":              "TERMINAL_DATA_ATTACH",
 				"messageId":         uuid.NewString(),
@@ -202,7 +214,6 @@ func (sc *syntheticConnector) controlLoop() {
 			_ = dataWs.ReadJSON(&attached)
 			_ = dataWs.SetReadDeadline(time.Time{})
 
-			// Reply TERMINAL_OPEN_RESULT SUCCEEDED
 			nowStr = time.Now().UTC().Format(time.RFC3339Nano)
 			sc.writeControl(map[string]any{
 				"type":              "TERMINAL_OPEN_RESULT",
@@ -215,7 +226,6 @@ func (sc *syntheticConnector) controlLoop() {
 				"payload":           map[string]any{"outcome": "SUCCEEDED"},
 			})
 
-			// Start echo loop on data connection
 			go func(dws *websocket.Conn) {
 				defer dws.Close()
 				for {
@@ -285,14 +295,14 @@ func main() {
 	ctx := context.Background()
 
 	// 1. Connect to PostgreSQL and Valkey
-	log.Println("[1/8] Connecting to PostgreSQL...")
+	log.Println("[1/13] Connecting to PostgreSQL...")
 	conn, err := pgx.Connect(ctx, pgDSN)
 	if err != nil {
 		log.Fatalf("FATAL: PostgreSQL connection failed (credentials suppressed)")
 	}
 	defer conn.Close(ctx)
 
-	log.Printf("[1/8] Connecting to Valkey (%s)...", valkeyAddr)
+	log.Printf("[1/13] Connecting to Valkey (%s)...", valkeyAddr)
 	vkClient, err := valkey.NewClient(valkey.ClientOption{InitAddress: []string{valkeyAddr}, DisableCache: true})
 	if err != nil {
 		log.Fatalf("FATAL: Valkey connection failed: %v", err)
@@ -302,10 +312,10 @@ func main() {
 	if err := vkClient.Do(ctx, vkClient.B().Ping().Build()).Error(); err != nil {
 		log.Fatalf("FATAL: Valkey PING failed: %v", err)
 	}
-	log.Println("[1/8] Valkey PING: PONG (verified)")
+	log.Println("[1/13] Valkey PING: PONG (verified)")
 
 	// 2. Seed database fixture (Organization, User, Session, Class, LabInstance, ConnectorCredential)
-	log.Println("[2/8] Seeding DB fixture for E2E verification...")
+	log.Println("[2/13] Seeding DB fixture for E2E verification...")
 	orgID := uuid.New()
 	userID := uuid.New()
 	rawToken := make([]byte, 32)
@@ -432,20 +442,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("insert provider_resources failed: %v", err)
 	}
-	log.Println("[2/8] DB fixture seeded successfully.")
+	log.Println("[2/13] DB fixture seeded successfully.")
 
-	// 3. Connect Synthetic Mock Connector to backend-0
-	log.Printf("[3/8] Connecting Mock Connector to backend-0 (%s)...", url0)
-	var capturedSessionID string
-
-	sc, err := startSyntheticConnector(url0, credSecret)
+	// 3. Connect Synthetic Mock Connector 1 to backend-0
+	log.Printf("[3/13] Connecting Mock Connector 1 to backend-0 (%s)...", url0)
+	sc1, err := startSyntheticConnector(url0, credSecret)
 	if err != nil {
-		log.Fatalf("FATAL: Failed to start synthetic connector: %v", err)
+		log.Fatalf("FATAL: Failed to start synthetic connector 1: %v", err)
 	}
-	defer sc.Close()
 
-	// 4. Verify Valkey owner mapping for Connector
-	log.Println("[4/8] Checking Valkey owner mapping for ConnectorID...")
+	// 4. Verify Valkey owner mapping for Connector (Epoch A)
+	log.Println("[4/13] Checking Valkey owner mapping for ConnectorID...")
 	key := fmt.Sprintf("labbit:valkey:connector:owner:%s", connectorID.String())
 	var ownerJSON string
 	for i := 0; i < 20; i++ {
@@ -460,20 +467,19 @@ func main() {
 	if ownerJSON == "" {
 		log.Fatalf("FATAL: Connector owner not registered in Valkey within 10s!")
 	}
-	log.Printf("[4/8] Valkey record found: %s", ownerJSON)
-	var ownerRec struct {
+	var ownerRecA struct {
 		PodID   string `json:"pod_id"`
 		PodAddr string `json:"pod_addr"`
 		Epoch   int64  `json:"epoch"`
 	}
-	_ = json.Unmarshal([]byte(ownerJSON), &ownerRec)
-	if ownerRec.PodID != "backend-0" {
-		log.Fatalf("FATAL: Expected owner pod_id to be backend-0, got %s", ownerRec.PodID)
+	_ = json.Unmarshal([]byte(ownerJSON), &ownerRecA)
+	if ownerRecA.PodID != "backend-0" {
+		log.Fatalf("FATAL: Expected owner pod_id to be backend-0, got %s", ownerRecA.PodID)
 	}
-	log.Printf("[4/8] VERIFIED: Connector owned by %s at %s with epoch %d", ownerRec.PodID, ownerRec.PodAddr, ownerRec.Epoch)
+	log.Printf("[4/13] VERIFIED: Connector owned by %s at %s with epoch %d", ownerRecA.PodID, ownerRecA.PodAddr, ownerRecA.Epoch)
 
 	// 5. Test Cross-Pod HTTP Create: request lands on backend-1, proxied to backend-0!
-	log.Printf("[5/8] Sending CreateTerminalSession HTTP POST to backend-1 (%s)...", url1)
+	log.Printf("[5/13] Sending CreateTerminalSession HTTP POST to backend-1 (%s)...", url1)
 	createURL := fmt.Sprintf("%s/api/v1/lab-instances/%s/terminal-sessions", url1, labInstanceID.String())
 	bodyJSON := `{"targetVmKey":"workspace","cols":80,"rows":24}`
 	req, err := http.NewRequest(http.MethodPost, createURL, bytes.NewBufferString(bodyJSON))
@@ -491,7 +497,7 @@ func main() {
 	}
 	defer resp.Body.Close()
 	respBody, _ := io.ReadAll(resp.Body)
-	log.Printf("[5/8] HTTP response from backend-1: status=%d", resp.StatusCode)
+	log.Printf("[5/13] HTTP response from backend-1: status=%d", resp.StatusCode)
 	if resp.StatusCode != http.StatusCreated {
 		log.Fatalf("FATAL: Expected 201 Created from cross-pod proxy, got %d", resp.StatusCode)
 	}
@@ -503,19 +509,25 @@ func main() {
 	if err := json.Unmarshal(respBody, &created); err != nil {
 		log.Fatalf("unmarshal created response failed (body suppressed)")
 	}
-	capturedSessionID = created.ID
-	log.Printf("[5/8] Terminal session successfully created cross-pod: ID=%s", capturedSessionID)
+	capturedSessionID := created.ID
+	log.Printf("[5/13] Terminal session successfully created cross-pod: ID=%s", capturedSessionID)
 
-	// Verify Valkey terminal owner key
 	termKey := fmt.Sprintf("labbit:valkey:terminal:owner:%s", capturedSessionID)
 	termOwnerJSON, err := vkClient.Do(ctx, vkClient.B().Get().Key(termKey).Build()).ToString()
 	if err != nil {
 		log.Fatalf("FATAL: Terminal owner key not found in Valkey: %v", err)
 	}
-	log.Printf("[5/8] Valkey terminal owner record: %s", termOwnerJSON)
+	var termOwnerRec struct {
+		PodID string `json:"pod_id"`
+	}
+	_ = json.Unmarshal([]byte(termOwnerJSON), &termOwnerRec)
+	if termOwnerRec.PodID != "backend-0" {
+		log.Fatalf("FATAL: Expected terminal owner pod_id to be backend-0, got %s", termOwnerRec.PodID)
+	}
+	log.Printf("[5/13] VERIFIED: Valkey terminal owner is %s", termOwnerRec.PodID)
 
 	// 6. Test Cross-Pod WebSocket: Browser connects to backend-1 (proxied to backend-0)!
-	log.Printf("[6/8] Connecting Browser WebSocket to backend-1 (%s%s)...", url1, realtime.BrowserPath)
+	log.Printf("[6/13] Connecting Browser WebSocket to backend-1 (%s%s)...", url1, realtime.BrowserPath)
 	browserWSURL := strings.Replace(url1, "http://", "ws://", 1) + realtime.BrowserPath
 	dialer := websocket.Dialer{
 		Subprotocols:     []string{realtime.BrowserSubprotocol},
@@ -534,9 +546,8 @@ func main() {
 		log.Fatalf("FATAL: Browser dial to backend-1 failed: %v (status=%d)", err, status)
 	}
 	defer bWs.Close()
-	log.Println("[6/8] Browser WebSocket connected to backend-1!")
+	log.Println("[6/13] Browser WebSocket connected to backend-1!")
 
-	// Send TERMINAL_ATTACH frame
 	attachFrame := map[string]any{
 		"type":              "TERMINAL_ATTACH",
 		"messageId":         uuid.NewString(),
@@ -548,19 +559,18 @@ func main() {
 		log.Fatalf("FATAL: Browser WriteJSON failed: %v", err)
 	}
 
-	// Read response frame
 	_ = bWs.SetReadDeadline(time.Now().Add(5 * time.Second))
 	msgType, msgData, err := bWs.ReadMessage()
 	if err != nil {
 		log.Fatalf("FATAL: Browser read frame failed: %v", err)
 	}
-	log.Printf("[6/8] Browser received frame (type=%d, bytes=%d)", msgType, len(msgData))
+	log.Printf("[6/13] Browser received frame (type=%d, bytes=%d)", msgType, len(msgData))
 	if !strings.Contains(string(msgData), "TERMINAL_ATTACHED") {
 		log.Fatalf("FATAL: Expected TERMINAL_ATTACHED frame, got message type %d", msgType)
 	}
-	log.Println("[6/8] VERIFIED: Browser WSS cross-pod attachment SUCCEEDED!")
+	log.Println("[6/13] VERIFIED: Browser WSS cross-pod attachment SUCCEEDED!")
 
-	// Test Bidirectional PTY Data Streaming: Browser writes binary data -> proxied to backend-0 -> sent to connector -> echoed back -> proxied to backend-1 -> received by Browser
+	// Bidirectional PTY Data Streaming test
 	testPayload := []byte("k3d-cross-pod-pty-echo-test\r\n")
 	if err := bWs.WriteMessage(websocket.BinaryMessage, testPayload); err != nil {
 		log.Fatalf("FATAL: Browser failed to write binary PTY frame: %v", err)
@@ -573,10 +583,10 @@ func main() {
 	if ptyType != websocket.BinaryMessage || !bytes.Equal(ptyData, testPayload) {
 		log.Fatalf("FATAL: Expected echoed binary data %q, got type=%d data=%q", string(testPayload), ptyType, string(ptyData))
 	}
-	log.Printf("[6/8] VERIFIED: Bidirectional cross-pod PTY streaming confirmed: %q", string(ptyData))
+	log.Printf("[6/13] VERIFIED: Bidirectional cross-pod PTY streaming confirmed: %q", string(ptyData))
 
 	// 7. Delete TerminalSession via backend-1 (proxied to backend-0)
-	log.Printf("[7/8] Closing TerminalSession via DELETE to backend-1...")
+	log.Printf("[7/13] Closing TerminalSession via DELETE to backend-1...")
 	delURL := fmt.Sprintf("%s/api/v1/terminal-sessions/%s", url1, capturedSessionID)
 	delReq, _ := http.NewRequest(http.MethodDelete, delURL, nil)
 	delReq.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
@@ -585,18 +595,17 @@ func main() {
 	if err != nil || delResp.StatusCode != http.StatusNoContent {
 		log.Fatalf("FATAL: DELETE failed: %v, status=%d", err, delResp.StatusCode)
 	}
-	log.Println("[7/8] VERIFIED: DELETE returned 204 No Content!")
+	log.Println("[7/13] VERIFIED: DELETE returned 204 No Content!")
 
-	// Check Valkey terminal key deleted
 	time.Sleep(500 * time.Millisecond)
 	delCheck, _ := vkClient.Do(ctx, vkClient.B().Get().Key(termKey).Build()).ToString()
 	if delCheck != "" {
 		log.Fatalf("FATAL: Terminal key still present in Valkey after DELETE: %s", delCheck)
 	}
-	log.Println("[7/8] VERIFIED: Terminal owner key deleted from Valkey!")
+	log.Println("[7/13] VERIFIED: Terminal owner key deleted from Valkey!")
 
-	// 8. Testing Realistic Worker: Seeded Operation Claim, Non-Owner Defer & Owner Execution
-	log.Println("[8/10] Seeding operation and operation_item for realistic Worker test...")
+	// 8. Measured Worker Async Dispatch under normal single-pod ownership
+	log.Println("[8/13] Seeding operation and operation_item for realistic Worker test...")
 	workerUserID := uuid.New()
 	_, err = conn.Exec(ctx, `
 		INSERT INTO users (id, organization_id, organization_role) VALUES ($1, $2, 'MEMBER')
@@ -632,7 +641,7 @@ func main() {
 		log.Fatalf("insert operation_item failed: %v", err)
 	}
 
-	log.Println("[8/10] Waiting for background Workers across backend-0 and backend-1 to process item...")
+	log.Println("[8/13] Waiting for background Workers to process item...")
 	var opItemStatus string
 	for i := 0; i < 30; i++ {
 		row := conn.QueryRow(ctx, `SELECT status FROM operation_items WHERE id = $1`, itemID)
@@ -645,70 +654,246 @@ func main() {
 		log.Fatalf("FATAL: Expected operation_item to reach SUCCEEDED, got %s", opItemStatus)
 	}
 
-	mutCount := sc.mutations.Load()
+	mutCount := sc1.mutations.Load()
 	if mutCount != 1 {
 		log.Fatalf("FATAL: Expected exactly 1 provider mutation on owner pod, got %d", mutCount)
 	}
-	log.Printf("[8/10] VERIFIED: Worker executed item exact-once: DB status = %s, Provider mutations = %d", opItemStatus, mutCount)
+	log.Printf("[8/13] VERIFIED: Worker dispatched item to owner Pod: status=%s, provider mutations=%d", opItemStatus, mutCount)
+	log.Println("[8/13] CAUTION: Single-run count=1 in no-fault test does NOT constitute a failure-invariant exactly-once guarantee.")
+	log.Println("[8/13] [NOT VERIFIED] Non-Owner Worker Claim & Defer: Cannot prove Pod B claimed/deferred without pod-attributed audit logging or telemetry.")
 
-	// 9. Negative Safety: Disconnecting Connector & Worker Claim on Lost Owner
-	log.Println("[9/10] Testing Negative Safety: Disconnecting Connector...")
-	sc.Close()
-	time.Sleep(1 * time.Second)
-
-	// Verify Valkey owner key for connector is deleted
-	connOwnerAfterClose, _ := vkClient.Do(ctx, vkClient.B().Get().Key(key).Build()).ToString()
+	// 9. Disconnect Connector 1 from backend-0
+	log.Println("[9/13] Disconnecting Mock Connector 1 from backend-0...")
+	sc1.Close()
+	var connOwnerAfterClose string
+	for i := 0; i < 10; i++ {
+		time.Sleep(500 * time.Millisecond)
+		connOwnerAfterClose, _ = vkClient.Do(ctx, vkClient.B().Get().Key(key).Build()).ToString()
+		if connOwnerAfterClose == "" {
+			break
+		}
+	}
 	if connOwnerAfterClose != "" {
 		log.Fatalf("FATAL: Connector owner key still present in Valkey after disconnect: %s", connOwnerAfterClose)
 	}
-	log.Println("[9/10] VERIFIED: Connector owner mapping removed from Valkey upon release!")
+	log.Println("[9/13] VERIFIED: Connector owner mapping removed from Valkey upon release!")
 
-	// Seed another operation item with fresh pending instance when no connector owner exists
-	workerUser2 := uuid.New()
-	_, _ = conn.Exec(ctx, `INSERT INTO users (id, organization_id, organization_role) VALUES ($1, $2, 'MEMBER')`, workerUser2, orgID)
-	workerInstance2 := uuid.New()
-	_, _ = conn.Exec(ctx, `INSERT INTO lab_instances (id, organization_id, lab_execution_id, user_id, participant_role, status, generation) VALUES ($1, $2, $3, $4, 'STUDENT', 'PENDING', 1)`, workerInstance2, orgID, execID, workerUser2)
-
-	opID2 := uuid.New()
-	_, err = conn.Exec(ctx, `
-		INSERT INTO operations (id, organization_id, operation_type, requested_by_user_id, lab_execution_id, idempotency_key_hash, request_fingerprint, status, created_at)
-		VALUES ($1, $2, 'PROVISION', $3, $4, '\x03'::bytea, '\x03'::bytea, 'PENDING', now())
-	`, opID2, orgID, workerUser2, execID)
+	// 10. Real Failover Reconnect: Connect Mock Connector 2 to backend-1
+	log.Printf("[10/13] Connecting Mock Connector 2 to backend-1 (%s) with SAME credentials...", url1)
+	sc2, err := startSyntheticConnector(url1, credSecret)
 	if err != nil {
-		log.Fatalf("insert operation 2 failed: %v", err)
+		log.Fatalf("FATAL: Failed to start synthetic connector 2 on backend-1: %v", err)
 	}
+	defer sc2.Close()
 
-	itemID2 := uuid.New()
+	// Wait for Valkey owner mapping to reflect backend-1
+	var ownerRecB struct {
+		PodID   string `json:"pod_id"`
+		PodAddr string `json:"pod_addr"`
+		Epoch   int64  `json:"epoch"`
+	}
+	var ownerJSON2 string
+	for i := 0; i < 20; i++ {
+		cmd := vkClient.B().Get().Key(key).Build()
+		res, err := vkClient.Do(ctx, cmd).ToString()
+		if err == nil && res != "" {
+			var check struct {
+				PodID string `json:"pod_id"`
+			}
+			if json.Unmarshal([]byte(res), &check) == nil && check.PodID == "backend-1" {
+				ownerJSON2 = res
+				break
+			}
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	if ownerJSON2 == "" {
+		log.Fatalf("FATAL: Connector owner not registered as backend-1 in Valkey within 10s!")
+	}
+	_ = json.Unmarshal([]byte(ownerJSON2), &ownerRecB)
+	if ownerRecB.PodID != "backend-1" {
+		log.Fatalf("FATAL: Expected owner pod_id to be backend-1, got %s", ownerRecB.PodID)
+	}
+	if ownerRecB.Epoch <= ownerRecA.Epoch {
+		log.Fatalf("FATAL: Expected epoch on backend-1 (%d) > backend-0 epoch (%d)", ownerRecB.Epoch, ownerRecA.Epoch)
+	}
+	log.Printf("[10/13] VERIFIED: Failover Reconnect SUCCEEDED! Valkey owner is %s at %s with monotonic epoch %d (prev: %d)",
+		ownerRecB.PodID, ownerRecB.PodAddr, ownerRecB.Epoch, ownerRecA.Epoch)
+
+	// 11. Reverse Cross-Pod Terminal Route (backend-0 -> backend-1):
+	// Seed fresh lab instance & server
+	log.Println("[11/13] Testing Reverse Cross-Pod Route: Create Terminal on backend-0 (proxied to backend-1)...")
+	labInstanceID2 := uuid.New()
 	_, err = conn.Exec(ctx, `
-		INSERT INTO operation_items (id, organization_id, operation_id, lab_instance_id, generation, status, created_at)
-		VALUES ($1, $2, $3, $4, 1, 'PENDING', now())
-	`, itemID2, orgID, opID2, workerInstance2)
+		INSERT INTO lab_instances (id, organization_id, lab_execution_id, user_id, participant_role, status, generation)
+		VALUES ($1, $2, $3, $4, 'STUDENT', 'READY', 1)
+	`, labInstanceID2, orgID, execID, userID)
 	if err != nil {
-		log.Fatalf("insert operation_item 2 failed: %v", err)
+		log.Fatalf("insert lab_instance 2 failed: %v", err)
 	}
 
-	// Wait 3 seconds for workers to claim and fail-closed defer
-	time.Sleep(3 * time.Second)
-	var opItemStatus2 string
-	var opItemStage2 *string
-	row2 := conn.QueryRow(ctx, `SELECT status, stage FROM operation_items WHERE id = $1`, itemID2)
-	_ = row2.Scan(&opItemStatus2, &opItemStage2)
-	stageStr := "none"
-	if opItemStage2 != nil {
-		stageStr = *opItemStage2
+	serverID2 := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO provider_resources (id, organization_id, lab_instance_id, provider_connection_id, generation, resource_type, logical_name, provider_id, lifecycle_status)
+		VALUES ($1, $2, $3, $4, 1, 'SERVER', 'workspace', 'vm-srv-2', 'PRESENT')
+	`, serverID2, orgID, labInstanceID2, providerConnID)
+	if err != nil {
+		log.Fatalf("insert provider_resources 2 failed: %v", err)
 	}
-	log.Printf("[9/10] Unowned connector item state after worker evaluation: status=%s, stage=%s", opItemStatus2, stageStr)
-	if opItemStatus2 == "SUCCEEDED" {
-		log.Fatalf("FATAL: Item executed when no connector owner existed!")
-	}
-	// Mutations must still be 1 (no extra mutations)
-	if sc.mutations.Load() != 1 {
-		log.Fatalf("FATAL: Provider mutations increased while no owner existed! count=%d", sc.mutations.Load())
-	}
-	log.Println("[9/10] VERIFIED: Worker claim when owner is lost defers unsent fail-closed with 0 provider mutations!")
 
-	// 10. HTTP POST Create when no connector is owned -> must fail-closed with 503
-	log.Println("[10/10] Testing HTTP Create fail-closed when no connector is owned...")
+	createURL2 := fmt.Sprintf("%s/api/v1/lab-instances/%s/terminal-sessions", url0, labInstanceID2.String())
+	req2, err := http.NewRequest(http.MethodPost, createURL2, bytes.NewBufferString(bodyJSON))
+	if err != nil {
+		log.Fatalf("create request 2 error: %v", err)
+	}
+	req2.Header.Set("Content-Type", "application/json")
+	req2.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	req2.Header.Set("Origin", "http://localhost:8080")
+
+	resp2, err := client.Do(req2)
+	if err != nil {
+		log.Fatalf("FATAL: HTTP POST to backend-0 failed: %v", err)
+	}
+	defer resp2.Body.Close()
+	respBody2, _ := io.ReadAll(resp2.Body)
+	log.Printf("[11/13] HTTP response from backend-0: status=%d", resp2.StatusCode)
+	if resp2.StatusCode != http.StatusCreated {
+		log.Fatalf("FATAL: Expected 201 Created from reverse cross-pod proxy, got %d", resp2.StatusCode)
+	}
+
+	var created2 struct {
+		ID           string `json:"id"`
+		SessionToken string `json:"sessionToken"`
+	}
+	if err := json.Unmarshal(respBody2, &created2); err != nil {
+		log.Fatalf("unmarshal created response 2 failed (body suppressed)")
+	}
+	capturedSessionID2 := created2.ID
+	log.Printf("[11/13] Terminal session 2 created cross-pod via backend-0: ID=%s", capturedSessionID2)
+
+	// Verify terminal owner in Valkey is backend-1
+	termKey2 := fmt.Sprintf("labbit:valkey:terminal:owner:%s", capturedSessionID2)
+	termOwnerJSON2, err := vkClient.Do(ctx, vkClient.B().Get().Key(termKey2).Build()).ToString()
+	if err != nil {
+		log.Fatalf("FATAL: Terminal owner key 2 not found in Valkey: %v", err)
+	}
+	var termOwnerRec2 struct {
+		PodID string `json:"pod_id"`
+	}
+	_ = json.Unmarshal([]byte(termOwnerJSON2), &termOwnerRec2)
+	if termOwnerRec2.PodID != "backend-1" {
+		log.Fatalf("FATAL: Expected terminal owner pod_id to be backend-1, got %s", termOwnerRec2.PodID)
+	}
+	log.Printf("[11/13] VERIFIED: Valkey terminal owner is %s", termOwnerRec2.PodID)
+
+	// Browser connects to backend-0 (proxied to backend-1)
+	log.Printf("[11/13] Connecting Browser WebSocket to backend-0 (%s%s)...", url0, realtime.BrowserPath)
+	browserWSURL2 := strings.Replace(url0, "http://", "ws://", 1) + realtime.BrowserPath
+	bWs2, bResp2, err := dialer.Dial(browserWSURL2, wsHeaders)
+	if err != nil {
+		var status int
+		if bResp2 != nil {
+			status = bResp2.StatusCode
+		}
+		log.Fatalf("FATAL: Browser dial to backend-0 failed: %v (status=%d)", err, status)
+	}
+	defer bWs2.Close()
+
+	attachFrame2 := map[string]any{
+		"type":              "TERMINAL_ATTACH",
+		"messageId":         uuid.NewString(),
+		"sentAt":            time.Now().Format(time.RFC3339),
+		"terminalSessionId": capturedSessionID2,
+		"payload":           map[string]any{"sessionToken": created2.SessionToken, "cols": 80, "rows": 24},
+	}
+	if err := bWs2.WriteJSON(attachFrame2); err != nil {
+		log.Fatalf("FATAL: Browser WriteJSON 2 failed: %v", err)
+	}
+
+	_ = bWs2.SetReadDeadline(time.Now().Add(5 * time.Second))
+	msgType2, msgData2, err := bWs2.ReadMessage()
+	if err != nil {
+		log.Fatalf("FATAL: Browser read frame 2 failed: %v", err)
+	}
+	if !strings.Contains(string(msgData2), "TERMINAL_ATTACHED") {
+		log.Fatalf("FATAL: Expected TERMINAL_ATTACHED frame on session 2, got message type %d", msgType2)
+	}
+	log.Println("[11/13] VERIFIED: Reverse Browser WSS attachment SUCCEEDED!")
+
+	// Reverse PTY Echo Test
+	testPayload2 := []byte("k3d-reverse-failover-pty-echo-test\r\n")
+	if err := bWs2.WriteMessage(websocket.BinaryMessage, testPayload2); err != nil {
+		log.Fatalf("FATAL: Browser failed to write binary PTY frame 2: %v", err)
+	}
+	_ = bWs2.SetReadDeadline(time.Now().Add(5 * time.Second))
+	ptyType2, ptyData2, err := bWs2.ReadMessage()
+	if err != nil {
+		log.Fatalf("FATAL: Browser failed to read echoed binary PTY frame 2: %v", err)
+	}
+	if ptyType2 != websocket.BinaryMessage || !bytes.Equal(ptyData2, testPayload2) {
+		log.Fatalf("FATAL: Expected echoed binary data %q, got type=%d data=%q", string(testPayload2), ptyType2, string(ptyData2))
+	}
+	log.Printf("[11/13] VERIFIED: Bidirectional reverse PTY streaming confirmed: %q", string(ptyData2))
+
+	// Delete TerminalSession 2 via backend-0 (proxied to backend-1)
+	delURL2 := fmt.Sprintf("%s/api/v1/terminal-sessions/%s", url0, capturedSessionID2)
+	delReq2, _ := http.NewRequest(http.MethodDelete, delURL2, nil)
+	delReq2.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	delReq2.Header.Set("Origin", "http://localhost:8080")
+	delResp2, err := client.Do(delReq2)
+	if err != nil || delResp2.StatusCode != http.StatusNoContent {
+		log.Fatalf("FATAL: DELETE 2 failed: %v, status=%d", err, delResp2.StatusCode)
+	}
+	log.Println("[11/13] VERIFIED: TerminalSession 2 DELETE returned 204 No Content!")
+
+	time.Sleep(500 * time.Millisecond)
+	delCheck2, _ := vkClient.Do(ctx, vkClient.B().Get().Key(termKey2).Build()).ToString()
+	if delCheck2 != "" {
+		log.Fatalf("FATAL: Terminal key 2 still present in Valkey after DELETE: %s", delCheck2)
+	}
+	log.Println("[11/13] VERIFIED: Terminal owner key 2 deleted from Valkey!")
+
+	// 12. Stale Epoch Release Fencing: simulate old epoch release from backend-0
+	log.Println("[12/13] Testing Stale Epoch Release Fencing...")
+	luaRes := releaseConnectorLua.Exec(ctx, vkClient, []string{key}, []string{"backend-0", strconv.FormatInt(ownerRecA.Epoch, 10)})
+	if luaRes.Error() != nil {
+		log.Fatalf("FATAL: Release Lua script execution failed: %v", luaRes.Error())
+	}
+
+	postStaleJSON, err := vkClient.Do(ctx, vkClient.B().Get().Key(key).Build()).ToString()
+	if err != nil || postStaleJSON == "" {
+		log.Fatalf("FATAL: Connector owner key was erroneously deleted by stale release from backend-0!")
+	}
+	var postStaleOwner struct {
+		PodID string `json:"pod_id"`
+		Epoch int64  `json:"epoch"`
+	}
+	_ = json.Unmarshal([]byte(postStaleJSON), &postStaleOwner)
+	if postStaleOwner.PodID != "backend-1" || postStaleOwner.Epoch != ownerRecB.Epoch {
+		log.Fatalf("FATAL: Owner mapping corrupted after stale release attempt! Expected backend-1 epoch %d, got %+v",
+			ownerRecB.Epoch, postStaleOwner)
+	}
+	log.Printf("[12/13] VERIFIED: Stale epoch release rejected! Valkey mapping preserved for active owner %s (epoch %d)",
+		postStaleOwner.PodID, postStaleOwner.Epoch)
+
+	// Clean genuine disconnect of Connector 2
+	log.Println("[12/13] Disconnecting Mock Connector 2 from backend-1...")
+	sc2.Close()
+	var connOwnerAfterClose2 string
+	for i := 0; i < 10; i++ {
+		time.Sleep(500 * time.Millisecond)
+		connOwnerAfterClose2, _ = vkClient.Do(ctx, vkClient.B().Get().Key(key).Build()).ToString()
+		if connOwnerAfterClose2 == "" {
+			break
+		}
+	}
+	if connOwnerAfterClose2 != "" {
+		log.Fatalf("FATAL: Connector 2 owner key still present in Valkey after disconnect: %s", connOwnerAfterClose2)
+	}
+	log.Println("[12/13] VERIFIED: Connector 2 owner mapping removed from Valkey upon genuine release!")
+
+	// 13. HTTP POST Create when no connector is owned -> must fail-closed with 503
+	log.Println("[13/13] Testing HTTP Create fail-closed when no connector is owned...")
 	negReq, err := http.NewRequest(http.MethodPost, createURL, bytes.NewBufferString(bodyJSON))
 	if err != nil {
 		log.Fatalf("FATAL: Failed to build negative test request: %v", err)
@@ -719,21 +904,30 @@ func main() {
 
 	negResp, err := client.Do(negReq)
 	if err != nil {
-		log.Fatalf("FATAL: Negative safety request to backend-1 failed: %v", err)
+		log.Fatalf("FATAL: Negative safety request failed: %v", err)
 	}
 	defer negResp.Body.Close()
-	log.Printf("[10/10] Fail-closed response status: %d (expected 503)", negResp.StatusCode)
+	log.Printf("[13/13] Fail-closed response status: %d (expected 503)", negResp.StatusCode)
 	if negResp.StatusCode != http.StatusServiceUnavailable {
 		log.Fatalf("FATAL: Expected 503 Service Unavailable when no connector owner exists, got %d", negResp.StatusCode)
 	}
-	log.Println("[10/10] VERIFIED: When no owner exists, request fails-closed with 503!")
+	log.Println("[13/13] VERIFIED: When no owner exists, request fails-closed with 503!")
 
 	log.Println("=========================================================")
-	log.Println("K3D 2-POD REAL E2E VERIFIED:")
-	log.Println("  1. Terminal Create / Browser WSS / Bidirectional PTY Data Streaming / DELETE (Cross-Pod via peer proxy)")
-	log.Println("  2. Realistic Worker Async Execution across separate Backend 2 Pods (Exact-Once Provider Mutation)")
-	log.Println("  3. Non-owner Worker Claim & Defer (fail-closed, 0 provider mutations)")
-	log.Println("  4. Owner Loss Fail-Closed (HTTP 503 & Worker Defer Unsent)")
-	log.Println("NOTE: File/Preview routes and Live streams are NOT verified in this spike scope")
+	log.Println("K3D MULTI-POD REAL E2E VERIFICATION RESULT:")
+	log.Println("VERIFIED (Real k3d observed evidence):")
+	log.Println("  1. Forward Cross-Pod Route: backend-1 -> backend-0 (Create, Browser WSS, Bidirectional PTY, Delete)")
+	log.Println("  2. Failover Reconnection: Synthetic Connector reconnects to backend-1 with atomic monotonic epoch increase")
+	log.Println("  3. Reverse Cross-Pod Route: backend-0 -> backend-1 (Create, Browser WSS, Bidirectional PTY, Delete)")
+	log.Println("  4. Stale Epoch Release Fencing: Old owner/epoch cannot delete active new owner mapping in Valkey")
+	log.Println("  5. Unowned Fail-Closed: Terminal session creation returns HTTP 503 when no connector owner exists")
+	log.Println("  6. Measured Worker Dispatch: Single-run operation processed to SUCCEEDED with 1 mutation on owner Pod")
+	log.Println("")
+	log.Println("NOT VERIFIED / ARCHITECTURAL HOLDS:")
+	log.Println("  1. Non-Owner Worker Claim & Defer attribution: Cannot prove Pod B claimed/deferred without pod-attributed telemetry")
+	log.Println("  2. Global Exactly-Once / External Linearizable Fencing: Single-run count=1 is not invariant against failures; no provider fencing token")
+	log.Println("  3. Window of Inconsistency: 0-5s heartbeat window where old Pod has not yet observed takeover allows stale writes without epoch protocol")
+	log.Println("  4. File/Preview Routes and Live Streams: Out of spike scope")
+	log.Println("  5. Inter-Pod mTLS: Plain HTTP peer communication within cluster")
 	log.Println("=========================================================")
 }

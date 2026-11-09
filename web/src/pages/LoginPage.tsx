@@ -91,7 +91,7 @@ export function LoginPage() {
           L
         </div>
         <h1 id="login-title">Labbit에 로그인</h1>
-        <p className="muted">사전 생성된 Local Account로 수업과 실습 환경에 접속합니다.</p>
+        <p className="muted">계정으로 로그인하여 수업과 실습 환경을 이용하세요.</p>
 
         {state?.reason === 'sessionExpired' && (
           <div className="notice-card notice-warning" role="status">

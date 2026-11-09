@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/observability"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/operation"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
@@ -33,6 +34,7 @@ type Options struct {
 	Router           Router
 	Tracer           trace.Tracer
 	Logger           *slog.Logger
+	Metrics          *observability.WorkerMetrics
 	// Ready checks application/schema compatibility before a new claim.
 	Ready                                      func(context.Context) error
 	LeaseDuration, ResultTimeout, PollInterval time.Duration
@@ -103,7 +105,7 @@ func NewExecutor(opts Options) (*Executor, error) {
 		}
 		claims = reconciliationClaims{OperationWorkerStore: claims, store: opts.Reconciliation}
 	}
-	w, err := operation.NewWorker(operation.WorkerOptions{Store: claims, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Execute: p.execute})
+	w, err := operation.NewWorker(operation.WorkerOptions{Store: claims, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Execute: p.execute, Metrics: opts.Metrics})
 	if err != nil {
 		return nil, err
 	}

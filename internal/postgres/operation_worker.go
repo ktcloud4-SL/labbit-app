@@ -104,3 +104,19 @@ func (s *Store) RenewOperationItemLease(ctx context.Context, lease repository.Op
 	}
 	return expiresAt, nil
 }
+
+func (s *Store) OperationItemStatus(ctx context.Context, itemID uuid.UUID) (string, error) {
+	return s.queries.OperationItemStatus(ctx, itemID)
+}
+
+func (q queries) OperationItemStatus(ctx context.Context, itemID uuid.UUID) (string, error) {
+	if itemID == uuid.Nil {
+		return "", &repository.Error{Kind: repository.KindConstraintViolation, Op: "OperationItemStatus"}
+	}
+	var status string
+	err := q.db.QueryRow(ctx, `SELECT status FROM operation_items WHERE id=$1`, itemID).Scan(&status)
+	if err != nil {
+		return "", normalize("OperationItemStatus", err)
+	}
+	return status, nil
+}

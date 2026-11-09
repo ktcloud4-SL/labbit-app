@@ -15,7 +15,7 @@ import (
 )
 
 func TestApplicationMetricsExpositionOverProductStack(t *testing.T) {
-	reg, hm, rm := applicationMetrics([]string{"api", "realtime"})
+	reg, hm, rm, _ := applicationMetrics([]string{"api", "realtime"})
 	e := newTerminalEnv(t, func(o *stackOptions) { o.HTTPMetrics, o.RealtimeMetrics = hm, rm })
 	ready := &atomic.Bool{}
 	ready.Store(true)

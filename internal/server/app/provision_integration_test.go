@@ -57,8 +57,10 @@ func newProvisionEnv(t *testing.T, timeout time.Duration, register ...bool) *pro
 	t.Cleanup(pool.Close)
 	store := postgres.NewStore(pool)
 	events := &routedEvents{}
+	// Expiry scenarios move the DB deadline explicitly. Normal execution uses
+	// the executor's default lease to allow for DB scheduling delays.
 	stack, err := newControlStack(store, stackOptions{PublicOrigin: publicOrigin, Worker: true, OperationSink: events,
-		ProvisionLeaseDuration: 300 * time.Millisecond, ProvisionResultTimeout: timeout, ProvisionPollInterval: 10 * time.Millisecond, ProvisionDispatchRetryDelay: time.Second})
+		ProvisionResultTimeout: timeout, ProvisionPollInterval: 10 * time.Millisecond, ProvisionDispatchRetryDelay: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}

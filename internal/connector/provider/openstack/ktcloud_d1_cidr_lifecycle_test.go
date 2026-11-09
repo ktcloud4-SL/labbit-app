@@ -126,6 +126,7 @@ func TestKTCloudCIDRPublicLifecycleReturnsCompleteTopology(t *testing.T) {
 	a.provision = seed.provision
 	a.provision.SSHPrivateKeyFile = writeTestPrivateKey(t, "cidr-lifecycle")
 	a.sshProbe = func(context.Context, string) error { return nil }
+	a.startupProbe = func(context.Context, string, string) error { return nil }
 	if err := a.provider.SetTokenAndAuthResult(cidrTestAuth{}); err != nil {
 		t.Fatal(err)
 	}

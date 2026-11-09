@@ -1,5 +1,10 @@
 # Labbit Runtime Contract
 
+**v0.1.8 변경:** trusted infrastructure operator 전용 `labbit-recover-failed-provision`과
+Connector측 one-shot `labbit-recovery-evidence`를 추가합니다. 기본 동작은 dry-run이며 현재 계획의 SHA256을
+`--apply-plan`에 명시해야 반영합니다. 기존 자동 Reconcile의 후보 비채택 원칙은 유지합니다.
+실행 예시와 배포·복구 순서는 [FAILED Provision 복구](./failed-provision-recovery.md)를 참고합니다.
+
 이 디렉터리는 **Labbit 애플리케이션 ↔ 실행 플랫폼 사이의 Runtime Contract SSOT**입니다.
 
 - 기계 판독 기준: [`runtime/contract.yaml`](./contract.yaml)
@@ -234,6 +239,10 @@ Connector Credential과 Provider/OpenStack Credential 원문은 고객 환경 Se
 KT D1은 같은 `LABBIT_PROVIDER_CONFIG_FILE`과 `OS_CLOUD` 설정에서 `auth_url`을 `https://api.ucloudbiz.olleh.com/d1/identity/`로 지정합니다. OP-01은 Gophercloud의 Keystone v3 토큰 API와 공식 Compute/Image Gateway를 재사용합니다. 실제 404가 확인된 Neutron 경로는 NSM Tier/방화벽 API로 처리하며 기존 수명주기는 공통으로 사용합니다. 다른 OpenStack 주소는 기존 경로를 유지합니다.
 
 KT 설정은 `LABBIT_KTCLOUD_CONNECTOR_TIER_ID`에 Connector Tier의 NSM UUID(`networkId`), `LABBIT_KTCLOUD_MANAGEMENT_CIDR`에 실습 VM 전용 Tier의 미사용 `/24`, `LABBIT_OPENSTACK_SSH_ALLOWED_CIDR`에 Connector 주소 `/32`를 사용합니다. Lab CIDR도 미사용 `/24`여야 합니다. 기존 Management Network/SG/External Network 변수는 비웁니다. 실제 VM 연결은 별도의 `refId`를 사용합니다. 현재 지원 범위와 quota API 제약, 실제 리소스 종류 및 보안·Reset·Cleanup 경계는 [Connector 계약](../contracts/connector/README.md#kt-d1-호환-프로필-lbt-158)을 따릅니다. KT API의 부팅 볼륨과 2048 byte base64 User Data 제한을 Preflight하며, 다중 VM·Windows·인터넷 허용 Snapshot은 mutation 전에 거절합니다. 실제 Connector VM 수용 결과는 LBT-145에서 기록하며 C1 전체 수용은 LBT-16에서 별도로 검증합니다.
+
+KT 관리 SSH는 Ubuntu 이미지의 Python3/cloud-init/Netplan/systemd-networkd를 전제로 합니다. 관리 NIC의 Netplan ID는 실제 인터페이스 이름과 같아야 하며, `networkctl status --json=short`로 확인한 실제 활성 설정이 `/run/systemd/network/*netplan*.network`이고 별도 networkd drop-in이 없어야 합니다. 이 조건에 맞지 않는 이미지는 준비 검증에서 거절합니다. 별도 부팅 helper가 관리 NIC에 Connector `/32` 반환 경로를 관리 gateway로 영속 선언하고 networkd에 반영합니다. 사용자 StartupScript와 기존 cloud-init·Lab 경로는 보존하며, helper와 사용자 내용을 함께 압축한 최종 base64 2048 byte 한도를 생성 및 Reset 삭제 전에 검사합니다. StartupScript가 없어도 초기화 완료 및 영속 설정·실제 관리 반환 경로 검증을 거쳐야 READY입니다. 이미지별 첫 부팅·DHCP 갱신·재부팅·Reset은 실제 검증이 필요하며 코드/Mock 통과로 대체하지 않습니다. 기존 VM은 별도 보정 전까지 배포만으로 경로가 바뀌지 않습니다.
+
+관리 경로 helper는 `cloud-init`의 초기 부팅 단계에서 실행되므로 system D-Bus가 아직 준비되지 않았을 수 있습니다. root의 `systemctl reload systemd-networkd`가 PID 1의 private socket을 사용하도록 하며, 이 단계에서 system D-Bus를 요구하는 `networkctl reload`는 사용하지 않습니다. reload 실패는 계속 준비 실패로 처리하고, 이후 실제 활성 Netplan 설정과 관리 `/32` 반환 경로를 별도로 검증합니다. 지원 이미지는 초기 system D-Bus에 의존하지 않는 PID 1 native reload 동작을 제공해야 합니다. 현재 검증 이미지의 systemd-networkd는 `Type=notify-reload`를 사용하며, D-Bus가 필요한 별도 `ExecReload`를 사용하는 이미지는 검증 범위에 포함하지 않습니다.
 
 KT D1에서 여러 LabInstance를 운영할 때는 선택 설정 `LABBIT_KTCLOUD_CIDR_PAIRS`에 `[{"lab":"172.25.240.0/24","management":"172.25.241.0/24"},{"lab":"172.25.242.0/24","management":"172.25.243.0/24"}]`처럼 제한된 풀을 지정합니다. 이 값은 **형식 예시이며 운영 적용 승인이 아닙니다**. 1~64쌍의 canonical private IPv4 `/24`를 사용하며 모든 대역은 서로 겹치지 않아야 합니다. 풀을 켜면 기존 두 CIDR 변수 대신 Instance 예약의 CIDR을 Provision/RESET Preflight, Tier 생성 및 Management IP/SSH 검증에 사용합니다. 두 새 변수를 모두 생략하면 기존 KT 단일 Instance 설정과 일반 OpenStack 경로를 유지합니다.
 

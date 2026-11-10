@@ -7,6 +7,7 @@ const formatter = new Intl.DateTimeFormat('en-US', {
   day: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
+  second: '2-digit',
   hourCycle: 'h23',
 })
 
@@ -23,9 +24,9 @@ export function formatKstTimestamp(value: string | null | undefined): string {
   if (!Number.isFinite(instant)) return '확인 불가'
 
   const parts = formatter.formatToParts(new Date(instant))
-  const read = (type: 'year' | 'month' | 'day' | 'hour' | 'minute') =>
+  const read = (type: 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second') =>
     parts.find((part) => part.type === type)?.value ?? ''
 
   return read('year') + '-' + read('month') + '-' + read('day') +
-    ' ' + read('hour') + ':' + read('minute') + ' KST'
+    ' ' + read('hour') + ':' + read('minute') + ':' + read('second') + ' KST'
 }

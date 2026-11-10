@@ -369,4 +369,3 @@ func TestLoadConfigPeerAddrAndPodAddr(t *testing.T) {
 		}
 	})
 }
-

@@ -135,7 +135,7 @@ export function LabSpecListPage() {
                   className="primary-link"
                   to={`/lab-specs/${encodeURIComponent(labSpec.id)}`}
                 >
-                  편집
+                  {canCreate ? '편집' : '상세'}
                 </Link>
               </div>
             </article>

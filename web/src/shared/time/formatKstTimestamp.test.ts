@@ -5,13 +5,13 @@ import { formatKstTimestamp } from './formatKstTimestamp'
 describe('formatKstTimestamp', () => {
   it('UTC 자정을 넘는 서버 관측 시각을 KST로 표시한다', () => {
     expect(formatKstTimestamp('2026-11-09T23:38:22.456589Z')).toBe(
-      '2026-11-10 08:38 KST',
+      '2026-11-10 08:38:22 KST',
     )
   })
 
   it('명시적 timezone offset도 같은 시각으로 표시한다', () => {
     expect(formatKstTimestamp('2026-11-10T08:38:22+09:00')).toBe(
-      '2026-11-10 08:38 KST',
+      '2026-11-10 08:38:22 KST',
     )
   })
 

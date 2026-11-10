@@ -242,6 +242,27 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     expect(screen.getByText('등록 토큰을 취소했습니다.')).toBeInTheDocument()
   })
 
+  it('서버 관측 시각과 마지막 Heartbeat는 UTC 원문이 아닌 KST로 표시한다', async () => {
+    mount({ listConnectors: async () => ({
+      observedAt: '2026-11-09T23:38:22Z',
+      items: [{
+        id: 'conn-time', name: 'Timestamp connector',
+        registrationStatus: 'REGISTERED' as const,
+        connectionStatus: 'ONLINE' as const,
+        createdAt: '2026-11-09T00:00:00Z',
+        revokedAt: null,
+        lastSeenAt: '2026-11-09T23:37:02Z',
+        lastConnectorVersion: null,
+        lastRuntimeId: null,
+      }],
+    }) })
+
+    expect(await screen.findByText('Control ONLINE')).toBeInTheDocument()
+    expect(screen.getByText('서버 상태 관측 시각: 2026-11-10 08:38 KST')).toBeInTheDocument()
+    expect(screen.getByText('마지막 Heartbeat: 2026-11-10 08:37 KST')).toBeInTheDocument()
+    expect(screen.queryByText('마지막 Heartbeat: 2026-11-09T23:37:02Z')).not.toBeInTheDocument()
+  })
+
   it('서버 상태 NEVER_SEEN을 ONLINE으로 추정하지 않고 Provider READY는 미확인으로 표시한다', async () => {
     mount({ listConnectors: async () => ({
       observedAt: '2026-10-19T00:00:00Z',

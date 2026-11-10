@@ -50,6 +50,57 @@ function mountLabSpecFlow(
 }
 
 describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
+  it('조직 MEMBER여도 강사 Membership을 서버가 인정하면 생성 CTA를 표시한다', async () => {
+    // /me.organizationRole is not the Create permission. MappingOptions 200
+    // verifies any-Class INSTRUCTOR membership, independently of nonempty options.
+    mountLabSpecFlow({
+      getMe: async () => ({ ...mockMe, organizationRole: 'MEMBER' }),
+      listLabSpecMappingOptions: async () => ({ items: [] }),
+    })
+
+    expect(await screen.findByRole('link', { name: '새 실습 정의' })).toHaveAttribute(
+      'href',
+      '/lab-specs/new',
+    )
+  })
+
+  it('서버 MappingOptions 403이면 생성 CTA를 숨기고 기존 소유 LabSpec 목록은 유지한다', async () => {
+    const listLabSpecMappingOptions = vi.fn(async () => {
+      throw new HttpError(403)
+    })
+    mountLabSpecFlow({
+      listLabSpecMappingOptions,
+      listLabSpecs: async () => ({ items: [{
+        id: 'saved-spec',
+        name: '기존 LabSpec',
+        description: '기존 작성물',
+        ownerUserId: mockMe.id,
+      }] }),
+    })
+
+    expect(await screen.findByText('실습 정의 작성은 강사 권한이 필요합니다.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '새 실습 정의' })).not.toBeInTheDocument()
+    expect(screen.getByText('기존 LabSpec')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '편집' })).toHaveAttribute(
+      'href', '/lab-specs/saved-spec',
+    )
+    expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(1)
+  })
+
+  it('MappingOptions 503은 권한 없음으로 단정하지 않고 작성 CTA 대신 재확인을 제공한다', async () => {
+    const listLabSpecMappingOptions = vi.fn()
+      .mockRejectedValueOnce(new HttpError(503))
+      .mockResolvedValue({ items: [] })
+    mountLabSpecFlow({ listLabSpecMappingOptions })
+
+    expect(await screen.findByText('실습 정의 작성 권한을 확인하지 못했습니다.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '새 실습 정의' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '권한 다시 확인' }))
+
+    expect(await screen.findByRole('link', { name: '새 실습 정의' })).toBeInTheDocument()
+    expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(2)
+  })
+
   it('목록의 새 실습 정의 링크로 이동하고 빈 이름은 저장 요청 전에 차단한다', async () => {
     const createLabSpec = vi.fn(async () => {
       throw new Error('빈 입력에서는 호출하지 않아야 함')

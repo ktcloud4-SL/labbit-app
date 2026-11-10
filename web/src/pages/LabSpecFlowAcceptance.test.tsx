@@ -81,9 +81,10 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     expect(await screen.findByText('실습 정의 작성은 강사 권한이 필요합니다.')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: '새 실습 정의' })).not.toBeInTheDocument()
     expect(screen.getByText('기존 LabSpec')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '편집' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '상세' })).toHaveAttribute(
       'href', '/lab-specs/saved-spec',
     )
+    expect(screen.queryByRole('link', { name: '편집' })).not.toBeInTheDocument()
     expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(1)
   })
 

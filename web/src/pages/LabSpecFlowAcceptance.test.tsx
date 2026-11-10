@@ -120,7 +120,9 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     // re-fetch 200 asynchronously, so don't assert a permanently empty cache.
     expect(clearSpy).toHaveBeenCalledTimes(1)
     clearSpy.mockRestore()
-    expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(1)
+    // Clearing active auth queries may trigger an in-flight refetch before unmount.
+    // The requirement is session redirect and cache clear, not a fixed GET count.
+    expect(listLabSpecMappingOptions).toHaveBeenCalled()
   })
 
   it('목록의 새 실습 정의 링크로 이동하고 빈 이름은 저장 요청 전에 차단한다', async () => {

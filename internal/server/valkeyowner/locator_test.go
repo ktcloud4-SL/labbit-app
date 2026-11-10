@@ -295,6 +295,66 @@ func TestConnectorKeyAndEpochKeyShareClusterHashSlot(t *testing.T) {
 		if HashSlot(termKey) != ownerSlot {
 			t.Fatalf("expected TerminalKey(%s) to hash to same slot %d, got %d", id, ownerSlot, HashSlot(termKey))
 		}
+		prevKey := PreviewKey(id.String())
+		if HashSlot(prevKey) != ownerSlot {
+			t.Fatalf("expected PreviewKey(%s) to hash to same slot %d, got %d", id, ownerSlot, HashSlot(prevKey))
+		}
+	}
+}
+
+func TestLocator_PreviewOwner(t *testing.T) {
+	loc, err := NewLocator(Config{
+		ValkeyAddr: "127.0.0.1:6379",
+		PodID:      "pod-a",
+		PodAddr:    "127.0.0.1:8081",
+	})
+	if err != nil {
+		t.Skipf("Valkey not available: %v", err)
+	}
+	defer loc.Close()
+
+	ctx := t.Context()
+	sessionID := uuid.NewString()
+	connectorID := uuid.New()
+
+	// 1. Initial lookup should return ErrNoOwner
+	_, err = loc.LookupPreview(ctx, sessionID)
+	if !errors.Is(err, ErrNoOwner) {
+		t.Fatalf("LookupPreview before register err = %v, want ErrNoOwner", err)
+	}
+
+	// 2. Register preview with 2s TTL
+	if err := loc.RegisterPreview(ctx, sessionID, connectorID, 1, 2*time.Second); err != nil {
+		t.Fatalf("RegisterPreview err = %v", err)
+	}
+
+	rec, err := loc.LookupPreview(ctx, sessionID)
+	if err != nil {
+		t.Fatalf("LookupPreview err = %v", err)
+	}
+	if rec.PreviewSessionID != sessionID || rec.ConnectorID != connectorID || rec.PodID != "pod-a" || rec.PodAddr != "127.0.0.1:8081" {
+		t.Fatalf("unexpected preview owner record: %+v", rec)
+	}
+
+	// 3. Release preview
+	if err := loc.ReleasePreview(ctx, sessionID); err != nil {
+		t.Fatalf("ReleasePreview err = %v", err)
+	}
+
+	_, err = loc.LookupPreview(ctx, sessionID)
+	if !errors.Is(err, ErrNoOwner) {
+		t.Fatalf("LookupPreview after release err = %v, want ErrNoOwner", err)
+	}
+
+	// 4. Register preview with short TTL (1.2s) and verify it expires after sessionExpiresAt
+	shortID := uuid.NewString()
+	if err := loc.RegisterPreview(ctx, shortID, connectorID, 1, 1200*time.Millisecond); err != nil {
+		t.Fatalf("RegisterPreview short err = %v", err)
+	}
+	time.Sleep(1500 * time.Millisecond)
+	_, err = loc.LookupPreview(ctx, shortID)
+	if !errors.Is(err, ErrNoOwner) {
+		t.Fatalf("LookupPreview after TTL expiry err = %v, want ErrNoOwner", err)
 	}
 }
 
@@ -468,6 +528,57 @@ func TestProxy_PeerAuthSpoofingAndLoopPrevention(t *testing.T) {
 		proxy.ProxyHTTP(recSSRF, req, "169.254.169.254:80")
 		if recSSRF.Code != http.StatusServiceUnavailable {
 			t.Fatalf("expected 503 on SSRF target, got %d", recSSRF.Code)
+		}
+	})
+
+	t.Run("HTTP proxy preserves original Host header while dialing targetAddr", func(t *testing.T) {
+		var gotHost, gotOrigin, gotQuery, gotCookie string
+		var gotInternalPeer bool
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			gotHost = r.Host
+			gotOrigin = r.Header.Get("Origin")
+			gotQuery = r.URL.RawQuery
+			gotInternalPeer = proxy.IsInternalPeer(r)
+			if c, err := r.Cookie("labbit-preview"); err == nil {
+				gotCookie = c.Value
+			}
+			w.Header().Set("Set-Cookie", "app-cookie=ok; Path=/")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("proxied-ok"))
+		}))
+		defer upstream.Close()
+		upstreamAddr := strings.TrimPrefix(upstream.URL, "http://")
+
+		previewHost := "11111111-2222-4333-8444-555555555555.preview.example.com"
+		req := httptest.NewRequest(http.MethodGet, "http://"+previewHost+"/hello?foo=bar", nil)
+		req.Host = previewHost
+		req.Header.Set("Origin", "http://"+previewHost)
+		req.AddCookie(&http.Cookie{Name: "labbit-preview", Value: "tok-123"})
+
+		rec := httptest.NewRecorder()
+		if err := proxy.TryProxyHTTP(rec, req, upstreamAddr); err != nil {
+			t.Fatalf("TryProxyHTTP err = %v", err)
+		}
+		if rec.Code != http.StatusOK || rec.Body.String() != "proxied-ok" {
+			t.Fatalf("unexpected response: %d %q", rec.Code, rec.Body.String())
+		}
+		if gotHost != previewHost {
+			t.Fatalf("upstream r.Host = %q, want %q", gotHost, previewHost)
+		}
+		if gotOrigin != "http://"+previewHost {
+			t.Fatalf("upstream Origin = %q", gotOrigin)
+		}
+		if gotQuery != "foo=bar" {
+			t.Fatalf("upstream RawQuery = %q", gotQuery)
+		}
+		if gotCookie != "tok-123" {
+			t.Fatalf("upstream Cookie = %q", gotCookie)
+		}
+		if !gotInternalPeer {
+			t.Fatal("upstream did not observe valid internal peer header")
+		}
+		if gotSetCookie := rec.Header().Get("Set-Cookie"); !strings.Contains(gotSetCookie, "app-cookie=ok") {
+			t.Fatalf("Set-Cookie not preserved: %q", gotSetCookie)
 		}
 	})
 

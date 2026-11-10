@@ -278,11 +278,15 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		if err != nil {
 			return nil, err
 		}
-		service, err := previewsession.NewService(previewsession.Options{
+		previewServiceOpts := previewsession.Options{
 			Store: store, Connectors: router, Gateway: gateway,
 			Policy: opts.PreviewPolicy, TTL: opts.PreviewTTL, Clock: opts.PreviewClock,
 			Logger: logger, OpenTimeout: opts.PreviewOpenTimeout,
-		})
+		}
+		if opts.OwnerLocator != nil {
+			previewServiceOpts.OwnerLocator = opts.OwnerLocator
+		}
+		service, err := previewsession.NewService(previewServiceOpts)
 		if err != nil {
 			return nil, err
 		}

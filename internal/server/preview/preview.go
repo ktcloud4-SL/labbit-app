@@ -155,9 +155,10 @@ func (SystemClock) Now() time.Time { return time.Now() }
 
 func (SystemClock) AfterFunc(d time.Duration, f func()) Timer { return time.AfterFunc(d, f) }
 
-// OwnerLocator resolves the current Connector owner Pod in Valkey for cross-Pod Preview Data WSS routing.
+// OwnerLocator resolves the current Connector or PreviewSession owner Pod in Valkey for cross-Pod Preview Data WSS and Preview Origin routing.
 type OwnerLocator interface {
 	LookupConnector(ctx context.Context, connectorID uuid.UUID) (*valkeyowner.ConnectorOwnerRecord, error)
+	LookupPreview(ctx context.Context, sessionID string) (*valkeyowner.PreviewOwnerRecord, error)
 	PodID() string
 }
 

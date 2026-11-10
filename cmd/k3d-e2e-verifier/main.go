@@ -366,7 +366,6 @@ func (sc *syntheticConnector) controlLoop() {
 					log.Printf("Preview Data dial failed: %v", err)
 					return
 				}
-				defer pWs.Close()
 				_ = pWs.WriteJSON(map[string]any{
 					"type":             "PREVIEW_ATTACH",
 					"messageId":        uuid.NewString(),
@@ -384,7 +383,29 @@ func (sc *syntheticConnector) controlLoop() {
 				})
 				_ = pWs.SetReadDeadline(time.Now().Add(5 * time.Second))
 				var attached map[string]any
-				_ = pWs.ReadJSON(&attached)
+				if err := pWs.ReadJSON(&attached); err != nil {
+					_ = pWs.Close()
+					return
+				}
+				_ = pWs.SetReadDeadline(time.Time{})
+				go func(ws *websocket.Conn) {
+					defer ws.Close()
+					var reqBuf bytes.Buffer
+					for {
+						mType, mData, err := ws.ReadMessage()
+						if err != nil {
+							return
+						}
+						if mType == websocket.BinaryMessage {
+							reqBuf.Write(mData)
+							if bytes.Contains(reqBuf.Bytes(), []byte("\r\n\r\n")) {
+								reqBuf.Reset()
+								respHTTP := "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 24\r\n\r\nk3d-preview-workspace-ok"
+								_ = ws.WriteMessage(websocket.BinaryMessage, []byte(respHTTP))
+							}
+						}
+					}
+				}(pWs)
 			}(msg.PreviewSessionID, msg.LabInstanceID, msg.MessageID, msg.Generation, openPayload.TargetVMKey, openPayload.ServerID, openPayload.TargetPort)
 		}
 	}
@@ -824,8 +845,8 @@ func main() {
 	}
 	log.Printf("[6c/13] VERIFIED: Cross-Pod Workspace File HTTP + File Data WSS proxy SUCCEEDED!")
 
-	// 6d. Cross-Pod Preview Session Create (HTTP POST to targetPeerURL -> backend-0 owner, Preview Data WSS to url1 -> backend-0 owner)
-	log.Printf("[6d/13] Testing Cross-Pod Preview Session Create via %s (Preview Data WSS via %s)...", targetPeerURL, url1)
+	// 6d. Cross-Pod Preview Session Create + Preview Origin (Bootstrap -> Exchange -> GET) + Cross-Pod DELETE
+	log.Printf("[6d/13] Testing Cross-Pod Preview Session Create, Origin Routing, and DELETE via %s (Preview Data WSS via %s)...", targetPeerURL, url1)
 	prevReq, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/v1/lab-instances/%s/preview-sessions", targetPeerURL, labInstanceID.String()), strings.NewReader(`{"targetPort":3000}`))
 	prevReq.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
 	prevReq.Header.Set("Origin", "http://localhost:8080")
@@ -836,13 +857,102 @@ func main() {
 	}
 	prevBody, _ := io.ReadAll(prevResp.Body)
 	prevResp.Body.Close()
-	if prevResp.StatusCode == http.StatusCreated && strings.Contains(string(prevBody), "previewUrl") {
-		log.Printf("[6d/13] VERIFIED: Cross-Pod Preview Session Create + Preview Data WSS proxy SUCCEEDED!")
-	} else if prevResp.StatusCode == http.StatusServiceUnavailable && strings.Contains(string(prevBody), "preview_unavailable") {
-		log.Printf("[6d/13] OBSERVED: Cross-Pod POST /preview-sessions routed to owner and returned 503 preview_unavailable (LABBIT_PREVIEW_BASE_DOMAIN unset in k3d manifest; Preview Create+Data WSS verified in TestValkey_Preview_CrossPodCreateAndDataWSSProxy)")
-	} else {
-		log.Fatalf("FATAL: Cross-Pod POST /preview-sessions status=%d, body=%s", prevResp.StatusCode, string(prevBody))
+	if prevResp.StatusCode != http.StatusCreated || !strings.Contains(string(prevBody), "previewUrl") {
+		log.Fatalf("FATAL: Cross-Pod POST /preview-sessions status=%d (want 201), body=%s", prevResp.StatusCode, string(prevBody))
 	}
+	var createdPrev struct {
+		ID         string `json:"id"`
+		PreviewURL string `json:"previewUrl"`
+	}
+	if err := json.Unmarshal(prevBody, &createdPrev); err != nil || createdPrev.ID == "" || createdPrev.PreviewURL == "" {
+		log.Fatalf("FATAL: Failed to parse Created PreviewSession: err=%v, body=%s", err, string(prevBody))
+	}
+	prevKey := valkeyowner.PreviewKey(createdPrev.ID)
+	prevVal, err := vkClient.Do(ctx, vkClient.B().Get().Key(prevKey).Build()).ToString()
+	if err != nil || !strings.Contains(prevVal, `"pod_id":"backend-0"`) {
+		log.Fatalf("FATAL: Valkey preview owner key %s missing or wrong owner: err=%v, val=%s", prevKey, err, prevVal)
+	}
+	log.Printf("[6d/13] VERIFIED: Valkey Preview owner registered: %s -> %s", prevKey, prevVal)
+
+	beforeFrag, bootstrapCred, hasFrag := strings.Cut(createdPrev.PreviewURL, "#")
+	if !hasFrag || bootstrapCred == "" {
+		log.Fatalf("FATAL: previewUrl missing fragment credential: %s", createdPrev.PreviewURL)
+	}
+	previewOrigin := strings.TrimSuffix(beforeFrag, "/__labbit/bootstrap")
+	previewHost := strings.TrimPrefix(strings.TrimPrefix(previewOrigin, "http://"), "https://")
+
+	// Cross-Pod GET /__labbit/bootstrap via url1 (non-owner Pod when N>=2)
+	bootReq, _ := http.NewRequest(http.MethodGet, url1+"/__labbit/bootstrap", nil)
+	bootReq.Host = previewHost
+	bootResp, err := client.Do(bootReq)
+	if err != nil || bootResp.StatusCode != http.StatusOK {
+		log.Fatalf("FATAL: Cross-Pod GET /__labbit/bootstrap on %s failed: err=%v, status=%v", url1, err, bootResp)
+	}
+	_ = bootResp.Body.Close()
+
+	// Cross-Pod POST /__labbit/exchange via targetPeerURL (non-owner Pod when N>=2)
+	exReq, _ := http.NewRequest(http.MethodPost, targetPeerURL+"/__labbit/exchange", strings.NewReader(`{"credential":"`+bootstrapCred+`"}`))
+	exReq.Host = previewHost
+	exReq.Header.Set("Origin", previewOrigin)
+	exReq.Header.Set("Content-Type", "application/json")
+	exResp, err := client.Do(exReq)
+	if err != nil || exResp.StatusCode != http.StatusNoContent {
+		var b []byte
+		if exResp != nil {
+			b, _ = io.ReadAll(exResp.Body)
+			exResp.Body.Close()
+		}
+		log.Fatalf("FATAL: Cross-Pod POST /__labbit/exchange on %s failed: err=%v, status=%v, body=%s", targetPeerURL, err, exResp, string(b))
+	}
+	var previewCookie *http.Cookie
+	for _, ck := range exResp.Cookies() {
+		if ck.Name == "labbit-preview" || ck.Name == "__Host-labbit-preview" {
+			previewCookie = ck
+		}
+	}
+	exResp.Body.Close()
+	if previewCookie == nil {
+		log.Fatalf("FATAL: Cross-Pod POST /__labbit/exchange did not return preview cookie")
+	}
+
+	// Cross-Pod authenticated GET /hello via url1 (non-owner Pod when N>=2)
+	appReq, _ := http.NewRequest(http.MethodGet, url1+"/hello?k3d=1", nil)
+	appReq.Host = previewHost
+	appReq.AddCookie(previewCookie)
+	appResp, err := client.Do(appReq)
+	if err != nil {
+		log.Fatalf("FATAL: Cross-Pod Preview Origin GET /hello on %s failed: err=%v", url1, err)
+	}
+	appBody, _ := io.ReadAll(appResp.Body)
+	appResp.Body.Close()
+	if appResp.StatusCode != http.StatusOK || string(appBody) != "k3d-preview-workspace-ok" {
+		log.Fatalf("FATAL: Cross-Pod Preview Origin GET /hello status=%d, body=%q (want 200 k3d-preview-workspace-ok)", appResp.StatusCode, string(appBody))
+	}
+	log.Printf("[6d/13] VERIFIED: Cross-Pod Preview Origin Bootstrap -> Exchange -> Authenticated GET SUCCEEDED via %s & %s!", targetPeerURL, url1)
+
+	// Cross-Pod DELETE /api/v1/preview-sessions/{id} via targetPeerURL (non-owner Pod when N>=2)
+	prevDelReq, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/api/v1/preview-sessions/%s", targetPeerURL, createdPrev.ID), nil)
+	prevDelReq.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	prevDelReq.Header.Set("Origin", "http://localhost:8080")
+	prevDelResp, err := client.Do(prevDelReq)
+	if err != nil || prevDelResp.StatusCode != http.StatusNoContent {
+		log.Fatalf("FATAL: Cross-Pod DELETE /preview-sessions/%s on %s failed: err=%v, status=%v", createdPrev.ID, targetPeerURL, err, prevDelResp)
+	}
+	prevDelResp.Body.Close()
+	prevDelCheck, _ := vkClient.Do(ctx, vkClient.B().Get().Key(prevKey).Build()).ToString()
+	if prevDelCheck != "" {
+		log.Fatalf("FATAL: Preview owner key still present in Valkey after DELETE: %s", prevDelCheck)
+	}
+	// Verify subsequent Preview Origin GET on url1 returns 401
+	afterPrevReq, _ := http.NewRequest(http.MethodGet, url1+"/hello", nil)
+	afterPrevReq.Host = previewHost
+	afterPrevReq.AddCookie(previewCookie)
+	afterPrevResp, err := client.Do(afterPrevReq)
+	if err != nil || afterPrevResp.StatusCode != http.StatusUnauthorized {
+		log.Fatalf("FATAL: Expected 401 on Preview Origin GET after DELETE, got err=%v, resp=%v", err, afterPrevResp)
+	}
+	afterPrevResp.Body.Close()
+	log.Printf("[6d/13] VERIFIED: Cross-Pod Preview DELETE returned 204, removed Valkey key, and invalidated Preview Origin (401)!")
 
 	// 7. Delete TerminalSession via backend-1 (proxied to backend-0)
 	log.Printf("[7/13] Closing TerminalSession via DELETE to backend-1...")
@@ -1238,11 +1348,11 @@ func main() {
 	log.Println("  5. Unowned Fail-Closed: Terminal session creation returns HTTP 503 when no connector owner exists")
 	log.Println("  6. Measured Worker Dispatch: Single-run operation processed to SUCCEEDED with 1 mutation on owner Pod")
 	log.Println("  7. Cross-Pod LiveSession & Workspace File: Create, LIVE_SUBSCRIBE WS, PTY Fan-out, Delete, and File Tree/Data WSS")
+	log.Println("  8. Cross-Pod Preview Session & Origin: Create, Preview Data WSS, Preview Origin (Bootstrap -> Exchange -> GET), and Delete")
 	log.Println("")
 	log.Println("NOT VERIFIED / ARCHITECTURAL HOLDS:")
 	log.Println("  1. Non-Owner Worker Claim & Defer attribution: Cannot prove Pod B claimed/deferred without pod-attributed telemetry")
 	log.Println("  2. Global Exactly-Once / External Linearizable Fencing: Single-run count=1 is not invariant against failures; no provider fencing token")
-	log.Println("  3. Preview Origin & DELETE /preview-sessions/{id}: UUID-only sessionId without distributed PreviewSession store (HOLD for prod N=2)")
-	log.Println("  4. Inter-Pod mTLS: Plain HTTP peer communication in local k3d without Istio sidecar")
+	log.Println("  3. Inter-Pod mTLS: Plain HTTP peer communication in local k3d without Istio sidecar")
 	log.Println("=========================================================")
 }

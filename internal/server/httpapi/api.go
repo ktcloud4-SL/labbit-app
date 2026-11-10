@@ -78,10 +78,11 @@ type Options struct {
 	Proxy        *valkeyowner.Proxy
 }
 
-// ConnectorOwnerLocator allows checking connector and terminal ownership for peer routing.
+// ConnectorOwnerLocator allows checking connector, terminal, and preview ownership for peer routing.
 type ConnectorOwnerLocator interface {
 	LookupConnector(ctx context.Context, connectorID uuid.UUID) (*valkeyowner.ConnectorOwnerRecord, error)
 	LookupTerminal(ctx context.Context, terminalSessionID string) (*valkeyowner.TerminalOwnerRecord, error)
+	LookupPreview(ctx context.Context, previewSessionID string) (*valkeyowner.PreviewOwnerRecord, error)
 	PodID() string
 }
 

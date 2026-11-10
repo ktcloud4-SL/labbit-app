@@ -73,6 +73,8 @@ type fakeOwnerLocator struct {
 	connectorErr   error
 	terminalOwner  *valkeyowner.TerminalOwnerRecord
 	terminalErr    error
+	previewOwner   *valkeyowner.PreviewOwnerRecord
+	previewErr     error
 	podID          string
 }
 
@@ -82,6 +84,10 @@ func (f *fakeOwnerLocator) LookupConnector(context.Context, uuid.UUID) (*valkeyo
 
 func (f *fakeOwnerLocator) LookupTerminal(context.Context, string) (*valkeyowner.TerminalOwnerRecord, error) {
 	return f.terminalOwner, f.terminalErr
+}
+
+func (f *fakeOwnerLocator) LookupPreview(context.Context, string) (*valkeyowner.PreviewOwnerRecord, error) {
+	return f.previewOwner, f.previewErr
 }
 
 func (f *fakeOwnerLocator) PodID() string {

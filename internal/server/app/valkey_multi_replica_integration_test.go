@@ -809,17 +809,22 @@ func TestValkey_WorkspaceFile_CrossPodHTTPAndFileDataWSSProxy(t *testing.T) {
 	}
 }
 
-// 8. Cross-Pod Preview Create & Preview Data WSS Proxy:
+// 8. Cross-Pod Preview Create, Data WSS Proxy, Preview Origin (Bootstrap -> Exchange -> Cookie -> HTTP GET/POST),
+// Cross-Origin CSRF Defense, and Cross-Pod DELETE Authorization & Cleanup:
 // Connector connects Control WSS to Pod A, and dials Preview Data WSS to Pod B.
-// Browser sends POST /preview-sessions to Pod C.
-// Pod C proxies HTTP to Pod A, Pod B proxies Preview Data WSS to Pod A, and Browser receives 201 Created.
+// Browser sends POST /preview-sessions to Pod C -> proxied to Pod A, returns 201 Created and registers owner in Valkey.
+// Browser sends GET /__labbit/bootstrap to Pod B -> proxied to Pod A.
+// Browser sends POST /__labbit/exchange to Pod C -> proxied to Pod A, returns 204 + Set-Cookie (labbit-preview).
+// Browser sends authenticated GET/POST to Preview Origin on Pod B and Pod C -> proxied to Pod A -> Workspace app.
+// Non-owner user sends DELETE /preview-sessions/{id} to Pod B -> proxied to Pod A -> 403 Forbidden.
+// Owner sends DELETE /preview-sessions/{id} to Pod C -> proxied to Pod A -> 204 No Content, cleans up Valkey & Connector.
 func TestValkey_Preview_CrossPodCreateAndDataWSSProxy(t *testing.T) {
 	c := newValkeyReplicaCluster(t, false, false)
 	wsApp := newWorkspaceApp(t)
 
 	wsBaseA := "ws" + strings.TrimPrefix(c.urlA, "http")
 	wsBaseB := "ws" + strings.TrimPrefix(c.urlB, "http")
-	_ = previewtest.Start(t, previewtest.Config{
+	peer := previewtest.Start(t, previewtest.Config{
 		ControlURL:    wsBaseA + connectorwss.Path,
 		DataURL:       wsBaseB + preview.DataPath, // Preview Data WSS lands on non-owner Pod B!
 		Credential:    terminaltest.Credential,
@@ -846,7 +851,353 @@ func TestValkey_Preview_CrossPodCreateAndDataWSSProxy(t *testing.T) {
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("POST /preview-sessions on Pod C status = %d, want 201: %s", resp.StatusCode, body)
 	}
-	if !strings.Contains(body, "previewUrl") {
-		t.Fatalf("expected previewUrl in response, got: %s", body)
+	var created struct {
+		ID         string `json:"id"`
+		TargetPort int    `json:"targetPort"`
+		PreviewURL string `json:"previewUrl"`
+	}
+	if err := json.Unmarshal([]byte(body), &created); err != nil || created.ID == "" || created.PreviewURL == "" {
+		t.Fatalf("decode created preview session: err=%v body=%s", err, body)
+	}
+
+	// Verify Valkey preview owner index is registered to Pod A with only routing metadata (no credential/cookie)
+	previewRec, err := c.locatorB.LookupPreview(t.Context(), created.ID)
+	if err != nil {
+		t.Fatalf("LookupPreview on Pod B error = %v", err)
+	}
+	if previewRec.PodID != "pod-a" || previewRec.PreviewSessionID != created.ID || previewRec.ConnectorID != c.connectorID {
+		t.Fatalf("unexpected PreviewOwnerRecord: %+v", previewRec)
+	}
+
+	previewHost := created.ID + previewOriginSuffix
+	previewOriginVal := "http://" + previewHost
+	_, bootstrapCred, hasFrag := strings.Cut(created.PreviewURL, "#")
+	if !hasFrag || bootstrapCred == "" {
+		t.Fatalf("previewUrl missing fragment credential: %q", created.PreviewURL)
+	}
+
+	doPreviewReq := func(podURL, method, path, reqBody string, mod func(*http.Request)) (*http.Response, string) {
+		t.Helper()
+		req, err := http.NewRequest(method, podURL+path, strings.NewReader(reqBody))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Host = previewHost
+		if mod != nil {
+			mod(req)
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("%s %s on %s error = %v", method, path, podURL, err)
+		}
+		return res, readBody(t, res)
+	}
+
+	// 8a. Cross-Pod GET /__labbit/bootstrap on Pod B -> proxied to Pod A -> 200 OK
+	bootResp, bootBody := doPreviewReq(c.urlB, http.MethodGet, preview.BootstrapPath, "", nil)
+	if bootResp.StatusCode != http.StatusOK || !strings.Contains(bootBody, preview.ExchangePath) {
+		t.Fatalf("GET /__labbit/bootstrap on Pod B = %d %s", bootResp.StatusCode, bootBody)
+	}
+
+	exchangeBody := `{"credential":"` + bootstrapCred + `"}`
+
+	// 8b. Cross-Origin negative check on Pod B: POST /__labbit/exchange with API Origin must be rejected (403 csrf_rejected)
+	badOriginResp, badOriginBody := doPreviewReq(c.urlB, http.MethodPost, preview.ExchangePath, exchangeBody, func(r *http.Request) {
+		r.Header.Set("Origin", terminalTrustedOrigin)
+		r.Header.Set("Content-Type", "application/json")
+	})
+	if badOriginResp.StatusCode != http.StatusForbidden || !strings.Contains(badOriginBody, `"csrf_rejected"`) {
+		t.Fatalf("exchange with API Origin on Pod B = %d %s, want 403 csrf_rejected", badOriginResp.StatusCode, badOriginBody)
+	}
+
+	// 8c. Cross-Pod POST /__labbit/exchange on Pod C -> proxied to Pod A -> 204 No Content + Set-Cookie
+	exResp, exBody := doPreviewReq(c.urlC, http.MethodPost, preview.ExchangePath, exchangeBody, func(r *http.Request) {
+		r.Header.Set("Origin", previewOriginVal)
+		r.Header.Set("Content-Type", "application/json")
+	})
+	if exResp.StatusCode != http.StatusNoContent {
+		t.Fatalf("POST /__labbit/exchange on Pod C = %d %s", exResp.StatusCode, exBody)
+	}
+	var previewCookie *http.Cookie
+	for _, ck := range exResp.Cookies() {
+		if ck.Name == "labbit-preview" || ck.Name == "__Host-labbit-preview" {
+			previewCookie = ck
+		}
+	}
+	if previewCookie == nil {
+		t.Fatal("POST /__labbit/exchange on Pod C did not issue labbit-preview cookie")
+	}
+
+	// 8d. Replay of one-time bootstrap credential on Pod B or Pod A must fail with 401
+	replayResp, _ := doPreviewReq(c.urlB, http.MethodPost, preview.ExchangePath, exchangeBody, func(r *http.Request) {
+		r.Header.Set("Origin", previewOriginVal)
+		r.Header.Set("Content-Type", "application/json")
+	})
+	if replayResp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("replay exchange on Pod B = %d, want 401", replayResp.StatusCode)
+	}
+
+	// 8e. Cross-Pod authenticated GET on Pod B and POST on Pod C to Preview Origin
+	appGetResp, appGetBody := doPreviewReq(c.urlB, http.MethodGet, "/"+previewPathMarker+"?q="+previewQueryMarker, "", func(r *http.Request) {
+		r.AddCookie(previewCookie)
+		r.AddCookie(&http.Cookie{Name: realtime.SessionCookieName, Value: c.ownerCookie})
+		r.AddCookie(&http.Cookie{Name: "app-cookie", Value: previewAppCookie})
+		r.Header.Set("X-App-Custom", previewHeaderMarker)
+	})
+	if appGetResp.StatusCode != http.StatusOK || !strings.Contains(appGetBody, previewRespMarker) {
+		t.Fatalf("authenticated GET on Pod B = %d %q", appGetResp.StatusCode, appGetBody)
+	}
+
+	appPostResp, appPostBody := doPreviewReq(c.urlC, http.MethodPost, "/submit", previewBodyMarker, func(r *http.Request) {
+		r.AddCookie(previewCookie)
+	})
+	if appPostResp.StatusCode != http.StatusOK || !strings.Contains(appPostBody, previewRespMarker) {
+		t.Fatalf("authenticated POST on Pod C = %d %q", appPostResp.StatusCode, appPostBody)
+	}
+
+	// Verify Workspace app received original Host, custom headers, and app cookie, while Labbit cookies and peer secret were stripped
+	wsReqs := wsApp.all()
+	if len(wsReqs) != 2 {
+		t.Fatalf("workspace app received %d requests, want 2", len(wsReqs))
+	}
+	if wsReqs[0].Host != previewHost || wsReqs[0].Header.Get("X-Forwarded-Host") != previewHost {
+		t.Fatalf("workspace app Host=%q X-Forwarded-Host=%q, want %q", wsReqs[0].Host, wsReqs[0].Header.Get("X-Forwarded-Host"), previewHost)
+	}
+	if wsReqs[0].Header.Get("X-App-Custom") != previewHeaderMarker {
+		t.Fatalf("workspace app missing X-App-Custom: %+v", wsReqs[0].Header)
+	}
+	if gotCookie := wsReqs[0].Header.Get("Cookie"); gotCookie != "app-cookie="+previewAppCookie {
+		t.Fatalf("workspace app Cookie = %q, want only app-cookie", gotCookie)
+	}
+	for _, wr := range wsReqs {
+		if wr.Header.Get(valkeyowner.HeaderPeerSecret) != "" || wr.Header.Get(valkeyowner.HeaderInternalPeer) != "" {
+			t.Fatalf("internal peer headers leaked to workspace app: %+v", wr.Header)
+		}
+	}
+
+	// 8f. Cross-Origin negative check on API endpoint: DELETE with Preview Origin must be rejected (403 csrf_rejected)
+	badDelReq, _ := http.NewRequest(http.MethodDelete, c.urlB+"/api/v1/preview-sessions/"+created.ID, nil)
+	badDelReq.Header.Set("Cookie", realtime.SessionCookieName+"="+c.ownerCookie)
+	badDelReq.Header.Set("Origin", previewOriginVal)
+	badDelResp, err := http.DefaultClient.Do(badDelReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	badDelBody := readBody(t, badDelResp)
+	if badDelResp.StatusCode != http.StatusForbidden || !strings.Contains(badDelBody, `"csrf_rejected"`) {
+		t.Fatalf("DELETE with Preview Origin on Pod B = %d %s, want 403 csrf_rejected", badDelResp.StatusCode, badDelBody)
+	}
+
+	// 8g. Cross-Pod DELETE by forbidden users (peer student and instructor) on Pod B/C -> 403 Forbidden (session stays alive!)
+	for _, otherUserID := range []uuid.UUID{c.fixture.PeerID, c.fixture.InstructorID, c.fixture.ForeignID} {
+		otherCookie := terminaltest.LoginSession(t, c.conn, otherUserID)
+		forbReq, _ := http.NewRequest(http.MethodDelete, c.urlB+"/api/v1/preview-sessions/"+created.ID, nil)
+		forbReq.Header.Set("Cookie", realtime.SessionCookieName+"="+otherCookie)
+		forbReq.Header.Set("Origin", terminalTrustedOrigin)
+		forbResp, err := http.DefaultClient.Do(forbReq)
+		if err != nil {
+			t.Fatal(err)
+		}
+		forbBody := readBody(t, forbResp)
+		if forbResp.StatusCode != http.StatusForbidden || !strings.Contains(forbBody, `"forbidden"`) {
+			t.Fatalf("DELETE by non-owner %s on Pod B = %d %s, want 403 forbidden", otherUserID, forbResp.StatusCode, forbBody)
+		}
+	}
+
+	// Session must still be active after forbidden DELETE attempts
+	stillAliveResp, _ := doPreviewReq(c.urlC, http.MethodGet, "/still-alive", "", func(r *http.Request) {
+		r.AddCookie(previewCookie)
+	})
+	if stillAliveResp.StatusCode != http.StatusOK {
+		t.Fatalf("session should remain active after forbidden DELETE, got %d", stillAliveResp.StatusCode)
+	}
+
+	// 8h. Unknown session UUID on Pod B: DELETE -> 404 Not Found; Preview Origin GET -> 401 Unauthorized
+	unknownID := uuid.NewString()
+	unkDelReq, _ := http.NewRequest(http.MethodDelete, c.urlB+"/api/v1/preview-sessions/"+unknownID, nil)
+	unkDelReq.Header.Set("Cookie", realtime.SessionCookieName+"="+c.ownerCookie)
+	unkDelReq.Header.Set("Origin", terminalTrustedOrigin)
+	unkDelResp, err := http.DefaultClient.Do(unkDelReq)
+	if err != nil || unkDelResp.StatusCode != http.StatusNotFound {
+		t.Fatalf("unknown session DELETE on Pod B = %v %v, want 404", err, unkDelResp)
+	}
+	_ = unkDelResp.Body.Close()
+
+	unkOriginReq, _ := http.NewRequest(http.MethodGet, c.urlB+"/hello", nil)
+	unkOriginReq.Host = unknownID + previewOriginSuffix
+	unkOriginReq.AddCookie(previewCookie)
+	unkOriginResp, err := http.DefaultClient.Do(unkOriginReq)
+	if err != nil || unkOriginResp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unknown session Preview Origin GET on Pod B = %v %v, want 401", err, unkOriginResp)
+	}
+	_ = unkOriginResp.Body.Close()
+
+	// 8i. Cross-Pod DELETE by owner on Pod B -> proxied to Pod A -> 204 No Content, Valkey key released, PREVIEW_CLOSE sent
+	delReq, _ := http.NewRequest(http.MethodDelete, c.urlB+"/api/v1/preview-sessions/"+created.ID, nil)
+	delReq.Header.Set("Cookie", realtime.SessionCookieName+"="+c.ownerCookie)
+	delReq.Header.Set("Origin", terminalTrustedOrigin)
+	delResp, err := http.DefaultClient.Do(delReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if delResp.StatusCode != http.StatusNoContent {
+		t.Fatalf("owner DELETE on Pod B = %d, want 204: %s", delResp.StatusCode, readBody(t, delResp))
+	}
+	_ = delResp.Body.Close()
+
+	// Valkey preview owner key must be cleaned up
+	if _, err := c.locatorC.LookupPreview(t.Context(), created.ID); !errors.Is(err, valkeyowner.ErrNoOwner) {
+		t.Fatalf("LookupPreview after DELETE = %v, want ErrNoOwner", err)
+	}
+
+	// Connector must receive PREVIEW_CLOSE with SESSION_CLOSED
+	eventually(t, "Connector receives PREVIEW_CLOSE SESSION_CLOSED", 5*time.Second, func() bool {
+		for _, cl := range peer.Closes() {
+			if cl.PreviewSessionID == created.ID && cl.Reason == preview.EndSessionClosed {
+				return true
+			}
+		}
+		return false
+	})
+
+	// Subsequent Preview Origin GET on Pod A, Pod B, and Pod C must all return 401 Unauthorized
+	for _, podURL := range []string{c.urlA, c.urlB, c.urlC} {
+		afterResp, _ := doPreviewReq(podURL, http.MethodGet, "/after-close", "", func(r *http.Request) {
+			r.AddCookie(previewCookie)
+		})
+		if afterResp.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("Preview Origin GET after DELETE on %s = %d, want 401", podURL, afterResp.StatusCode)
+		}
+	}
+}
+
+// 9. Preview Session Expiry, Owner Pod Crash, and Valkey Outage Fail-Closed:
+// Verifies pointer cleanup on TTL expiry, fail-closed 503 when owner Pod A crashes or Valkey is down,
+// and fail-closed on Create when Valkey registration is unavailable.
+func TestValkey_Preview_ExpiryOwnerCrashAndValkeyOutageFailClosed(t *testing.T) {
+	c := newValkeyReplicaCluster(t, false, false)
+	wsApp := newWorkspaceApp(t)
+
+	wsBaseA := "ws" + strings.TrimPrefix(c.urlA, "http")
+	wsBaseB := "ws" + strings.TrimPrefix(c.urlB, "http")
+	_ = previewtest.Start(t, previewtest.Config{
+		ControlURL:    wsBaseA + connectorwss.Path,
+		DataURL:       wsBaseB + preview.DataPath,
+		Credential:    terminaltest.Credential,
+		Capabilities:  []string{"preview-v1"},
+		WorkspaceAddr: wsApp.addr(),
+	})
+
+	eventually(t, "Pod A route ready", 10*time.Second, func() bool {
+		return c.podA.Registry.WithReadyRoute(c.connectorID, func(connector.Session, connector.Route) error { return nil }) == nil
+	})
+	eventually(t, "Valkey owner is Pod A", 5*time.Second, func() bool {
+		rec, err := c.locatorB.LookupConnector(t.Context(), c.connectorID)
+		return err == nil && rec.PodID == "pod-a"
+	})
+
+	headers := http.Header{
+		"Cookie":       []string{realtime.SessionCookieName + "=" + c.ownerCookie},
+		"Origin":       []string{terminalTrustedOrigin},
+		"Content-Type": []string{"application/json"},
+	}
+
+	// Create session on Pod A (via Pod B)
+	resp := postHTTP(t, c.urlB+"/api/v1/lab-instances/"+c.fixture.LabInstanceID.String()+"/preview-sessions", headers, `{"targetPort":3000}`)
+	body := readBody(t, resp)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("create preview status = %d: %s", resp.StatusCode, body)
+	}
+	var created struct {
+		ID         string `json:"id"`
+		PreviewURL string `json:"previewUrl"`
+	}
+	_ = json.Unmarshal([]byte(body), &created)
+	previewHost := created.ID + previewOriginSuffix
+	_, bootstrapCred, _ := strings.Cut(created.PreviewURL, "#")
+
+	// Exchange credential via Pod C
+	exReq, _ := http.NewRequest(http.MethodPost, c.urlC+preview.ExchangePath, strings.NewReader(`{"credential":"`+bootstrapCred+`"}`))
+	exReq.Host = previewHost
+	exReq.Header.Set("Origin", "http://"+previewHost)
+	exReq.Header.Set("Content-Type", "application/json")
+	exResp, err := http.DefaultClient.Do(exReq)
+	if err != nil || exResp.StatusCode != http.StatusNoContent {
+		t.Fatalf("exchange on Pod C = %v %v", err, exResp)
+	}
+	var previewCookie *http.Cookie
+	for _, ck := range exResp.Cookies() {
+		if ck.Name == "labbit-preview" {
+			previewCookie = ck
+		}
+	}
+	_ = exResp.Body.Close()
+
+	// 9a. Simulate SESSION_EXPIRED on Pod A -> verifies SessionEnded releases Valkey pointer and Pod B/C return 401
+	c.podA.PreviewGateway.Terminate(created.ID, preview.End{Reason: preview.EndSessionExpired, NotifyConnector: true})
+	if _, err := c.locatorB.LookupPreview(t.Context(), created.ID); !errors.Is(err, valkeyowner.ErrNoOwner) {
+		t.Fatalf("LookupPreview after SESSION_EXPIRED = %v, want ErrNoOwner", err)
+	}
+	expGetReq, _ := http.NewRequest(http.MethodGet, c.urlB+"/hello", nil)
+	expGetReq.Host = previewHost
+	expGetReq.AddCookie(previewCookie)
+	expGetResp, err := http.DefaultClient.Do(expGetReq)
+	if err != nil || expGetResp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("Preview Origin GET on Pod B after expiry = %v %v, want 401", err, expGetResp)
+	}
+	_ = expGetResp.Body.Close()
+
+	// 9b. Create a second session on Pod A, then simulate Pod A crash (srvA.Close()) while Valkey record still exists
+	resp2 := postHTTP(t, c.urlA+"/api/v1/lab-instances/"+c.fixture.LabInstanceID.String()+"/preview-sessions", headers, `{"targetPort":3000}`)
+	body2 := readBody(t, resp2)
+	if resp2.StatusCode != http.StatusCreated {
+		t.Fatalf("create 2nd preview status = %d: %s", resp2.StatusCode, body2)
+	}
+	var created2 struct {
+		ID         string `json:"id"`
+		PreviewURL string `json:"previewUrl"`
+	}
+	_ = json.Unmarshal([]byte(body2), &created2)
+	previewHost2 := created2.ID + previewOriginSuffix
+
+	// Kill Pod A HTTP server without releasing Valkey key (simulates sudden Pod A crash before lease TTL expires)
+	c.srvA.Close()
+
+	// Request to Pod B for Preview Origin of crashed Pod A's session -> fails closed with 503 preview_unavailable
+	crashGetReq, _ := http.NewRequest(http.MethodGet, c.urlB+preview.BootstrapPath, nil)
+	crashGetReq.Host = previewHost2
+	crashGetResp, err := http.DefaultClient.Do(crashGetReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	crashGetBody := readBody(t, crashGetResp)
+	if crashGetResp.StatusCode != http.StatusServiceUnavailable || !strings.Contains(crashGetBody, `"preview_unavailable"`) {
+		t.Fatalf("Preview Origin GET on Pod B when Pod A crashed = %d %s, want 503 preview_unavailable", crashGetResp.StatusCode, crashGetBody)
+	}
+
+	// DELETE on Pod C for crashed Pod A's session -> fails closed with 503 preview_unavailable
+	crashDelReq, _ := http.NewRequest(http.MethodDelete, c.urlC+"/api/v1/preview-sessions/"+created2.ID, nil)
+	crashDelReq.Header.Set("Cookie", realtime.SessionCookieName+"="+c.ownerCookie)
+	crashDelReq.Header.Set("Origin", terminalTrustedOrigin)
+	crashDelResp, err := http.DefaultClient.Do(crashDelReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	crashDelBody := readBody(t, crashDelResp)
+	if crashDelResp.StatusCode != http.StatusServiceUnavailable || !strings.Contains(crashDelBody, `"preview_unavailable"`) {
+		t.Fatalf("DELETE on Pod C when Pod A crashed = %d %s, want 503 preview_unavailable", crashDelResp.StatusCode, crashDelBody)
+	}
+
+	// 9c. Simulate Valkey outage on Pod B (locatorB.Close()) -> Preview Origin and DELETE fail closed with 503
+	c.locatorB.Close()
+	outageGetReq, _ := http.NewRequest(http.MethodGet, c.urlB+preview.BootstrapPath, nil)
+	outageGetReq.Host = uuid.NewString() + previewOriginSuffix
+	outageGetResp, err := http.DefaultClient.Do(outageGetReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outageGetBody := readBody(t, outageGetResp)
+	if outageGetResp.StatusCode != http.StatusServiceUnavailable || !strings.Contains(outageGetBody, `"preview_unavailable"`) {
+		t.Fatalf("Preview Origin GET on Pod B during Valkey outage = %d %s, want 503 preview_unavailable", outageGetResp.StatusCode, outageGetBody)
 	}
 }

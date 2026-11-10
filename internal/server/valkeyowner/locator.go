@@ -46,6 +46,17 @@ type TerminalOwnerRecord struct {
 	ExpiresAt         time.Time `json:"expires_at"`
 }
 
+// PreviewOwnerRecord는 활성 PreviewSession의 소유 Pod 라우팅 메타데이터다.
+// bootstrap credential, Preview Cookie, tunnel, 요청/응답 본문이나 세션 상태는 저장하지 않는다.
+type PreviewOwnerRecord struct {
+	PreviewSessionID string    `json:"preview_session_id"`
+	ConnectorID      uuid.UUID `json:"connector_id"`
+	PodID            string    `json:"pod_id"`
+	PodAddr          string    `json:"pod_addr"`
+	Epoch            int64     `json:"epoch"`
+	ExpiresAt        time.Time `json:"expires_at"`
+}
+
 // Config는 Locator 초기화 설정이다.
 type Config struct {
 	ValkeyAddr        string
@@ -84,6 +95,12 @@ type terminalLease struct {
 	cancel context.CancelFunc
 }
 
+type previewLease struct {
+	epoch     int64
+	expiresAt time.Time
+	cancel    context.CancelFunc
+}
+
 // Locator는 Valkey 기반의 ephemeral owner mapping을 관리한다.
 type Locator struct {
 	client    valkey.Client
@@ -95,6 +112,7 @@ type Locator struct {
 	closed            bool
 	heartbeat         map[uuid.UUID]*connectorLease
 	terminalHeartbeat map[string]*terminalLease
+	previewHeartbeat  map[string]*previewLease
 }
 
 // LoadSecretValue는 *_FILE 환경변수를 우선하여 비밀값을 읽는다.
@@ -249,6 +267,7 @@ func NewLocator(cfg Config) (*Locator, error) {
 		podAddr:           cfg.PodAddr,
 		heartbeat:         make(map[uuid.UUID]*connectorLease),
 		terminalHeartbeat: make(map[string]*terminalLease),
+		previewHeartbeat:  make(map[string]*previewLease),
 	}, nil
 }
 
@@ -286,6 +305,11 @@ func TerminalKey(id string) string {
 	return "labbit:valkey:terminal:{" + id + "}:owner"
 }
 
+// PreviewKey는 PreviewSession 소유자 레코드의 Valkey key를 반환한다.
+func PreviewKey(id string) string {
+	return "labbit:valkey:preview:{" + id + "}:owner"
+}
+
 func connectorKey(id uuid.UUID) string {
 	return ConnectorKey(id)
 }
@@ -296,6 +320,10 @@ func connectorEpochKey(id uuid.UUID) string {
 
 func terminalKey(id string) string {
 	return TerminalKey(id)
+}
+
+func previewKey(id string) string {
+	return PreviewKey(id)
 }
 
 // HashSlot은 Valkey Cluster 규격(CRC16-XMODEM mod 16384, `{...}` 해시 태그 지원)에 따라 key의 슬롯을 계산한다.
@@ -849,6 +877,239 @@ func (l *Locator) ReleaseTerminal(ctx context.Context, sessionID string) error {
 	return nil
 }
 
+const maxPreviewLeaseTTL = 15 * time.Second
+
+func previewLeaseTTL(remaining time.Duration) time.Duration {
+	if remaining <= 0 {
+		return time.Second
+	}
+	if remaining > maxPreviewLeaseTTL {
+		return maxPreviewLeaseTTL
+	}
+	return remaining
+}
+
+// RegisterPreview는 PreviewSession 소유자 라우팅 인덱스를 등록하고 백그라운드 heartbeat를 시작한다.
+// ttl은 PreviewSession의 절대 수명(ExpiresAt 기준)이며, Valkey lease는 최대 15초 단위로 갱신하여
+// 소유 Pod 비정상 종료 시 오래된 포인터가 남지 않게 한다.
+func (l *Locator) RegisterPreview(ctx context.Context, sessionID string, connectorID uuid.UUID, epoch int64, ttl time.Duration) error {
+	if l == nil || l.client == nil {
+		return ErrLocatorUnavailable
+	}
+	if strings.TrimSpace(sessionID) == "" {
+		return ErrLocatorUnavailable
+	}
+	if ttl <= 0 {
+		ttl = maxPreviewLeaseTTL
+	}
+	if epoch <= 0 {
+		epoch = 1
+	}
+	now := time.Now()
+	sessionExpiresAt := now.Add(ttl)
+	leaseTTL := previewLeaseTTL(ttl)
+	record := PreviewOwnerRecord{
+		PreviewSessionID: sessionID,
+		ConnectorID:      connectorID,
+		PodID:            l.podID,
+		PodAddr:          l.podAddr,
+		Epoch:            epoch,
+		ExpiresAt:        sessionExpiresAt,
+	}
+	bytes, err := json.Marshal(record)
+	if err != nil {
+		return err
+	}
+	ttlSec := int(leaseTTL.Seconds())
+	if ttlSec <= 0 {
+		ttlSec = 1
+	}
+
+	cmd := l.client.B().Set().Key(previewKey(sessionID)).Value(string(bytes)).Ex(time.Duration(ttlSec) * time.Second).Build()
+	res := l.client.Do(ctx, cmd)
+	if res.Error() != nil {
+		return ErrLocatorUnavailable
+	}
+
+	l.mu.Lock()
+	if l.closed {
+		l.mu.Unlock()
+		return ErrLocatorUnavailable
+	}
+	if prev, exists := l.previewHeartbeat[sessionID]; exists {
+		prev.cancel()
+	}
+	hbCtx, hbCancel := context.WithCancel(context.Background())
+	pLease := &previewLease{
+		epoch:     epoch,
+		expiresAt: sessionExpiresAt,
+		cancel:    hbCancel,
+	}
+	l.previewHeartbeat[sessionID] = pLease
+	l.mu.Unlock()
+
+	go l.runPreviewHeartbeat(hbCtx, sessionID, connectorID, pLease, leaseTTL)
+
+	return nil
+}
+
+func (l *Locator) runPreviewHeartbeat(ctx context.Context, sessionID string, connectorID uuid.UUID, pLease *previewLease, leaseTTL time.Duration) {
+	interval := leaseTTL / 3
+	if interval < 50*time.Millisecond {
+		interval = 50 * time.Millisecond
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	leaseExpiresAt := time.Now().Add(leaseTTL)
+
+	clearLease := func() {
+		l.mu.Lock()
+		if current, ok := l.previewHeartbeat[sessionID]; ok && current == pLease {
+			delete(l.previewHeartbeat, sessionID)
+		}
+		l.mu.Unlock()
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			remaining := time.Until(pLease.expiresAt)
+			if remaining <= 0 {
+				clearLease()
+				relCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				_ = releaseTerminalLua.Exec(relCtx, l.client, []string{previewKey(sessionID)}, []string{
+					l.podID,
+					strconv.FormatInt(pLease.epoch, 10),
+				}).Error()
+				cancel()
+				return
+			}
+			nextLease := previewLeaseTTL(remaining)
+			refCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			err := l.RefreshPreview(refCtx, sessionID, connectorID, pLease.epoch, nextLease, pLease.expiresAt)
+			cancel()
+			if err != nil {
+				if errors.Is(err, ErrStaleEpoch) || errors.Is(err, ErrNoOwner) {
+					clearLease()
+					return
+				}
+				if time.Now().After(leaseExpiresAt) {
+					clearLease()
+					return
+				}
+				continue
+			}
+			leaseExpiresAt = time.Now().Add(nextLease)
+		}
+	}
+}
+
+// RefreshPreview는 PreviewSession 소유자 lease를 갱신한다.
+func (l *Locator) RefreshPreview(ctx context.Context, sessionID string, connectorID uuid.UUID, epoch int64, leaseTTL time.Duration, sessionExpiresAt time.Time) error {
+	if l == nil || l.client == nil {
+		return ErrLocatorUnavailable
+	}
+	if epoch <= 0 {
+		epoch = 1
+	}
+	if sessionExpiresAt.IsZero() {
+		sessionExpiresAt = time.Now().Add(leaseTTL)
+	}
+	if !time.Now().Before(sessionExpiresAt) {
+		return ErrNoOwner
+	}
+	record := PreviewOwnerRecord{
+		PreviewSessionID: sessionID,
+		ConnectorID:      connectorID,
+		PodID:            l.podID,
+		PodAddr:          l.podAddr,
+		Epoch:            epoch,
+		ExpiresAt:        sessionExpiresAt,
+	}
+	bytes, err := json.Marshal(record)
+	if err != nil {
+		return err
+	}
+	ttlSec := int(leaseTTL.Seconds())
+	if ttlSec <= 0 {
+		ttlSec = 1
+	}
+
+	res := refreshTerminalLua.Exec(ctx, l.client, []string{previewKey(sessionID)}, []string{
+		l.podID,
+		string(bytes),
+		strconv.Itoa(ttlSec),
+		strconv.FormatInt(epoch, 10),
+	})
+	if res.Error() != nil {
+		if res.Error().Error() == "STALE_EPOCH" {
+			return ErrStaleEpoch
+		}
+		if res.Error().Error() == "NO_OWNER" {
+			return ErrNoOwner
+		}
+		return ErrLocatorUnavailable
+	}
+	return nil
+}
+
+// LookupPreview는 PreviewSession의 소유 Pod를 조회한다.
+func (l *Locator) LookupPreview(ctx context.Context, sessionID string) (*PreviewOwnerRecord, error) {
+	if l == nil || l.client == nil {
+		return nil, ErrLocatorUnavailable
+	}
+	cmd := l.client.B().Get().Key(previewKey(sessionID)).Build()
+	res := l.client.Do(ctx, cmd)
+	if res.Error() != nil {
+		if valkey.IsValkeyNil(res.Error()) {
+			return nil, ErrNoOwner
+		}
+		return nil, ErrLocatorUnavailable
+	}
+	val, err := res.ToString()
+	if err != nil {
+		return nil, ErrLocatorUnavailable
+	}
+	var record PreviewOwnerRecord
+	if err := json.Unmarshal([]byte(val), &record); err != nil {
+		return nil, ErrLocatorUnavailable
+	}
+	if record.PodID == "" || ValidateTargetAddr(record.PodAddr, "") != nil {
+		return nil, ErrLocatorUnavailable
+	}
+	if !record.ExpiresAt.IsZero() && !time.Now().Before(record.ExpiresAt) {
+		return nil, ErrNoOwner
+	}
+	return &record, nil
+}
+
+// ReleasePreview는 PreviewSession 소유자 키를 삭제하고 heartbeat를 중지한다.
+func (l *Locator) ReleasePreview(ctx context.Context, sessionID string) error {
+	if l == nil || l.client == nil {
+		return ErrLocatorUnavailable
+	}
+	var epoch int64
+	l.mu.Lock()
+	if current, exists := l.previewHeartbeat[sessionID]; exists {
+		epoch = current.epoch
+		current.cancel()
+		delete(l.previewHeartbeat, sessionID)
+	}
+	l.mu.Unlock()
+
+	res := releaseTerminalLua.Exec(ctx, l.client, []string{previewKey(sessionID)}, []string{
+		l.podID,
+		strconv.FormatInt(epoch, 10),
+	})
+	if res.Error() != nil {
+		return ErrLocatorUnavailable
+	}
+	return nil
+}
+
 // Close는 활성 heartbeat를 모두 정리하고 클라이언트를 종료한다.
 func (l *Locator) Close() {
 	if l == nil {
@@ -864,6 +1125,10 @@ func (l *Locator) Close() {
 		tLease.cancel()
 	}
 	l.terminalHeartbeat = make(map[string]*terminalLease)
+	for _, pLease := range l.previewHeartbeat {
+		pLease.cancel()
+	}
+	l.previewHeartbeat = make(map[string]*previewLease)
 	l.mu.Unlock()
 	if l.client != nil {
 		l.client.Close()

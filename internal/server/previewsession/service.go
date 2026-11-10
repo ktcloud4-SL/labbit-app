@@ -84,6 +84,12 @@ type Gateway interface {
 	SetTunnelOpener(opener preview.TunnelOpener)
 }
 
+// PreviewOwnerLocator는 PreviewSession의 소유 Pod 라우팅 인덱스를 Valkey에 등록/해제하는 경계다.
+type PreviewOwnerLocator interface {
+	RegisterPreview(ctx context.Context, sessionID string, connectorID uuid.UUID, epoch int64, ttl time.Duration) error
+	ReleasePreview(ctx context.Context, sessionID string) error
+}
+
 // Options는 Service 구성이다.
 type Options struct {
 	Store      Store
@@ -99,17 +105,20 @@ type Options struct {
 	Logger *slog.Logger
 	// OpenTimeout은 PREVIEW_OPEN을 보낸 뒤 Connector의 Preview Data attach를 기다리는 시간이다. 0이면 30초다.
 	OpenTimeout time.Duration
+	// OwnerLocator가 설정되면 PreviewSession 생성/종료 시 Valkey 라우팅 인덱스를 동기화한다.
+	OwnerLocator PreviewOwnerLocator
 }
 
 // Service는 PreviewSession use case이며 preview.Lifecycle과 connector.PreviewSink를 구현한다.
 type Service struct {
-	store      Store
-	connectors Connectors
-	gateway    Gateway
-	policy     Policy
-	ttl        time.Duration
-	clock      preview.Clock
-	logger     *slog.Logger
+	store        Store
+	connectors   Connectors
+	gateway      Gateway
+	policy       Policy
+	ttl          time.Duration
+	clock        preview.Clock
+	logger       *slog.Logger
+	ownerLocator PreviewOwnerLocator
 
 	openTimeout time.Duration
 
@@ -139,7 +148,7 @@ func NewService(opts Options) (*Service, error) {
 	}
 	s := &Service{
 		store: opts.Store, connectors: opts.Connectors, gateway: opts.Gateway, policy: opts.Policy, ttl: opts.TTL,
-		clock: opts.Clock, logger: opts.Logger, openTimeout: opts.OpenTimeout,
+		clock: opts.Clock, logger: opts.Logger, openTimeout: opts.OpenTimeout, ownerLocator: opts.OwnerLocator,
 		opens: make(map[string]chan openOutcome),
 	}
 	if s.clock == nil {
@@ -283,6 +292,9 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 	abort := func(sentOpen bool, reason string) {
 		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cleanupTimeout)
 		defer cancel()
+		if s.ownerLocator != nil {
+			_ = s.ownerLocator.ReleasePreview(cleanupCtx, id)
+		}
 		s.gateway.Forget(id)
 		if sentOpen {
 			s.sendClose(cleanupCtx, log, resolved.connectorID, corr, in.RequestID, reason)
@@ -407,6 +419,13 @@ waiting:
 		log.Warn("PreviewSession 생성 실패", "reason", reason)
 		abort(true, "LAB_RESET")
 		return Created{}, err
+	}
+	if s.ownerLocator != nil {
+		if err := s.ownerLocator.RegisterPreview(ctx, id, resolved.connectorID, 1, s.ttl); err != nil {
+			log.Error("Preview owner 등록 실패", "error_code", "LOCATOR_UNAVAILABLE")
+			abort(true, closeReasonOpenFailed)
+			return Created{}, ErrUnavailable
+		}
 	}
 	activation, err := s.gateway.Activate(id)
 	if err != nil {
@@ -676,6 +695,11 @@ func (s *Service) HandlePreviewEvent(event connector.PreviewEvent) {
 // Reset/Cleanup, 서비스 재시작, 프로토콜 위반)에서만 Connector에 PREVIEW_CLOSE를 보낸다. Connector가 이미 아는 종료(tunnel 종료)나 Control이
 // 끊겨 보낼 수 없는 종료(Credential revoke, Control Session 교체)는 보내지 않는다. Connector는 Data WSS 종료로도 정리한다.
 func (s *Service) SessionEnded(e preview.Ended) {
+	if s.ownerLocator != nil {
+		relCtx, cancel := context.WithTimeout(context.Background(), cleanupTimeout)
+		_ = s.ownerLocator.ReleasePreview(relCtx, e.SessionID)
+		cancel()
+	}
 	log := withControlCorrelation(s.logger.With(
 		"preview_session_id", e.SessionID,
 		"lab_instance_id", e.LabInstanceID,

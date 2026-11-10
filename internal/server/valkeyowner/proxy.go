@@ -162,15 +162,15 @@ func (p *Proxy) HasSpoofedPeerHeaderFromHeader(h http.Header) bool {
 	return !p.IsInternalPeerFromHeader(h)
 }
 
-// ProxyHTTP는 들어온 HTTP 요청을 대상 Pod로 투명하게 중계한다.
-func (p *Proxy) ProxyHTTP(w http.ResponseWriter, req *http.Request, targetAddr string) {
+// TryProxyHTTP는 들어온 HTTP 요청을 대상 Pod로 투명하게 중계한다.
+// 대상 주소 검증이나 연결/전송 단계에서 실패하면 w에 아무것도 쓰지 않고 에러를 반환하므로,
+// 호출자가 자체 Problem Details 형식으로 응답할 수 있다.
+func (p *Proxy) TryProxyHTTP(w http.ResponseWriter, req *http.Request, targetAddr string) error {
 	if p == nil || p.secret == "" || p.IsInternalPeer(req) || p.HasSpoofedPeerHeader(req) {
-		http.Error(w, "peer proxy unavailable", http.StatusServiceUnavailable)
-		return
+		return ErrPeerAuthRequired
 	}
 	if err := ValidateTargetAddr(targetAddr, p.selfAddr); err != nil {
-		http.Error(w, "invalid peer target", http.StatusServiceUnavailable)
-		return
+		return err
 	}
 
 	targetURL := url.URL{
@@ -182,8 +182,10 @@ func (p *Proxy) ProxyHTTP(w http.ResponseWriter, req *http.Request, targetAddr s
 
 	proxyReq, err := http.NewRequestWithContext(req.Context(), req.Method, targetURL.String(), req.Body)
 	if err != nil {
-		http.Error(w, "internal proxy error", http.StatusInternalServerError)
-		return
+		return err
+	}
+	if req.Host != "" {
+		proxyReq.Host = req.Host
 	}
 
 	// 안전한 헤더만 복사 (hop-by-hop 및 내부 헤더 제거)
@@ -202,8 +204,7 @@ func (p *Proxy) ProxyHTTP(w http.ResponseWriter, req *http.Request, targetAddr s
 
 	resp, err := p.client.Do(proxyReq)
 	if err != nil {
-		http.Error(w, "peer communication error", http.StatusBadGateway)
-		return
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -219,6 +220,22 @@ func (p *Proxy) ProxyHTTP(w http.ResponseWriter, req *http.Request, targetAddr s
 	}
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
+	return nil
+}
+
+// ProxyHTTP는 들어온 HTTP 요청을 대상 Pod로 투명하게 중계한다.
+func (p *Proxy) ProxyHTTP(w http.ResponseWriter, req *http.Request, targetAddr string) {
+	if err := p.TryProxyHTTP(w, req, targetAddr); err != nil {
+		if errors.Is(err, ErrPeerAuthRequired) {
+			http.Error(w, "peer proxy unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		if errors.Is(err, ErrInvalidTargetAddr) {
+			http.Error(w, "invalid peer target", http.StatusServiceUnavailable)
+			return
+		}
+		http.Error(w, "peer communication error", http.StatusBadGateway)
+	}
 }
 
 // ProxyWebSocket은 클라이언트 WebSocket 연결을 업그레이드하고 대상 Pod로 양방향 프록시한다.

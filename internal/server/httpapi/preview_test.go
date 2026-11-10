@@ -17,6 +17,7 @@ import (
 
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 const (
@@ -450,5 +451,95 @@ func TestPreviewSessionHasNoOtherOperations(t *testing.T) {
 	}
 	if len(h.previews.createIn) != 0 || len(h.previews.closeIDs) != 0 {
 		t.Fatal("지원하지 않는 method가 use case에 도달함")
+	}
+}
+
+func TestClosePreviewSessionCrossPodRoutingAndFailClosed(t *testing.T) {
+	const peerSecret = "preview-delete-peer-secret"
+
+	// Owner Pod A
+	podAHarness := newPreviewHarness(t)
+	podAServer := httptest.NewServer(podAHarness.handler)
+	defer podAServer.Close()
+	podAAddr := strings.TrimPrefix(podAServer.URL, "http://")
+
+	sessionID := podAHarness.sessionID
+	locatorB := &fakeOwnerLocator{
+		podID: "pod-b",
+		previewOwner: &valkeyowner.PreviewOwnerRecord{
+			PreviewSessionID: sessionID,
+			PodID:            "pod-a",
+			PodAddr:          podAAddr,
+			Epoch:            1,
+			ExpiresAt:        time.Now().Add(10 * time.Minute),
+		},
+	}
+	proxyB := valkeyowner.NewProxy(peerSecret)
+
+	// Non-owner Pod B
+	fakeAuthB := newFakeAuth()
+	fakeAuthB.sessions[previewCookie] = fakeAuthB.principal
+	previewsB := &fakePreviews{}
+	handlerB, err := New(Options{
+		Auth:         fakeAuthB,
+		Classes:      &fakeClasses{},
+		LabSpecs:     &fakeLabSpecs{},
+		Previews:     previewsB,
+		PublicOrigin: trustedOrigin,
+		OwnerLocator: locatorB,
+		Proxy:        proxyB,
+	})
+	if err != nil {
+		t.Fatalf("New(Pod B) error = %v", err)
+	}
+	podB := &harness{handler: handlerB, auth: fakeAuthB, logs: &bytes.Buffer{}}
+
+	// 1. Cross-Pod DELETE on Pod B -> proxied to Pod A -> 204 No Content
+	rec := podB.send(http.MethodDelete, "/api/v1/preview-sessions/"+sessionID, "",
+		withCookie(previewCookie), withHeader("Origin", trustedOrigin))
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("cross-pod DELETE status = %d, want 204: %s", rec.Code, rec.Body.String())
+	}
+	if len(previewsB.closeIDs) != 0 {
+		t.Fatalf("Pod B local Previews.Close should not be called when proxied to Pod A, got %v", previewsB.closeIDs)
+	}
+	if len(podAHarness.previews.closeIDs) != 1 || podAHarness.previews.closeIDs[0] != sessionID {
+		t.Fatalf("Pod A Previews.Close = %v, want [%s]", podAHarness.previews.closeIDs, sessionID)
+	}
+
+	// 2. Forbidden user on Pod B -> proxied to Pod A -> Pod A returns 403 Forbidden
+	podAHarness.previews.closeErr = previewsession.ErrForbidden
+	recForbidden := podB.send(http.MethodDelete, "/api/v1/preview-sessions/"+sessionID, "",
+		withCookie(previewCookie), withHeader("Origin", trustedOrigin))
+	if recForbidden.Code != http.StatusForbidden || decodeProblem(t, recForbidden).Code != codeForbidden {
+		t.Fatalf("cross-pod forbidden DELETE = %d %s, want 403 forbidden", recForbidden.Code, recForbidden.Body.String())
+	}
+	podAHarness.previews.closeErr = nil
+
+	// 3. Spoofed peer header on Pod B -> rejected with 503 preview_unavailable
+	recSpoof := podB.send(http.MethodDelete, "/api/v1/preview-sessions/"+sessionID, "",
+		withCookie(previewCookie), withHeader("Origin", trustedOrigin),
+		withHeader(valkeyowner.HeaderInternalPeer, "true"),
+		withHeader(valkeyowner.HeaderPeerSecret, "spoofed-secret"))
+	if recSpoof.Code != http.StatusServiceUnavailable || decodeProblem(t, recSpoof).Code != codePreviewUnavailable {
+		t.Fatalf("spoofed header DELETE = %d %s, want 503 preview_unavailable", recSpoof.Code, recSpoof.Body.String())
+	}
+
+	// 4. Valkey outage (ErrLocatorUnavailable) on Pod B -> fail-closed 503 preview_unavailable
+	locatorB.previewErr = valkeyowner.ErrLocatorUnavailable
+	recOutage := podB.send(http.MethodDelete, "/api/v1/preview-sessions/"+sessionID, "",
+		withCookie(previewCookie), withHeader("Origin", trustedOrigin))
+	if recOutage.Code != http.StatusServiceUnavailable || decodeProblem(t, recOutage).Code != codePreviewUnavailable {
+		t.Fatalf("Valkey outage DELETE = %d %s, want 503 preview_unavailable", recOutage.Code, recOutage.Body.String())
+	}
+
+	// 5. Unknown session (ErrNoOwner) on Pod B -> falls through to local Previews.Close -> 404 Not Found
+	locatorB.previewErr = valkeyowner.ErrNoOwner
+	previewsB.closeErr = previewsession.ErrNotFound
+	unknownID := uuid.NewString()
+	recUnknown := podB.send(http.MethodDelete, "/api/v1/preview-sessions/"+unknownID, "",
+		withCookie(previewCookie), withHeader("Origin", trustedOrigin))
+	if recUnknown.Code != http.StatusNotFound || decodeProblem(t, recUnknown).Code != codeNotFound {
+		t.Fatalf("unknown session DELETE = %d %s, want 404 not_found", recUnknown.Code, recUnknown.Body.String())
 	}
 }

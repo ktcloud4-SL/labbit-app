@@ -12,13 +12,31 @@ const formatter = new Intl.DateTimeFormat('en-US', {
 })
 
 const rfc3339WithZone =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i
+
+// Date.parse accepts some nonexistent calendar dates by normalizing them
+// (e.g. February 30 -> March 2). Reject those instead of displaying a lie.
+function validCalendarInstant(parts: RegExpMatchArray): boolean {
+  const year = Number(parts[1])
+  const month = Number(parts[2])
+  const day = Number(parts[3])
+  const hour = Number(parts[4])
+  const minute = Number(parts[5])
+  const second = Number(parts[6])
+  if (year < 1 || month < 1 || month > 12 || hour > 23 || minute > 59 || second > 59) {
+    return false
+  }
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+  const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  return day >= 1 && day <= daysInMonth[month - 1]
+}
 
 /** Display a server-observed instant in Korea time, without changing status. */
 export function formatKstTimestamp(value: string | null | undefined): string {
   if (!value) return '확인 불가'
   const input = value.trim()
-  if (!rfc3339WithZone.test(input)) return '확인 불가'
+  const parsed = input.match(rfc3339WithZone)
+  if (!parsed || !validCalendarInstant(parsed)) return '확인 불가'
 
   const instant = Date.parse(input)
   if (!Number.isFinite(instant)) return '확인 불가'

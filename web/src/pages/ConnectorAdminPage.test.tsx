@@ -258,8 +258,8 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     }) })
 
     expect(await screen.findByText('Control ONLINE')).toBeInTheDocument()
-    expect(screen.getByText('서버 상태 관측 시각: 2026-11-10 08:38 KST')).toBeInTheDocument()
-    expect(screen.getByText('마지막 Heartbeat: 2026-11-10 08:37 KST')).toBeInTheDocument()
+    expect(screen.getByText('서버 상태 관측 시각: 2026-11-10 08:38:22 KST')).toBeInTheDocument()
+    expect(screen.getByText('마지막 Heartbeat: 2026-11-10 08:37:02 KST')).toBeInTheDocument()
     expect(screen.queryByText('마지막 Heartbeat: 2026-11-09T23:37:02Z')).not.toBeInTheDocument()
   })
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"slices"
@@ -32,6 +33,7 @@ import (
 const (
 	defaultHTTPAddr  = ":8080"
 	defaultAdminAddr = ":9090"
+	defaultPeerAddr  = ":8081"
 
 	readinessCheckTimeout = 2 * time.Second
 )
@@ -41,6 +43,7 @@ type Config struct {
 	Roles         []string
 	HTTPAddr      string
 	AdminAddr     string
+	PeerAddr      string
 	LogLevel      string
 	ShutdownGrace time.Duration
 	// DatabaseDSN은 Secret이다. 로그·오류 메시지에 기록하지 않는다.
@@ -122,6 +125,7 @@ func LoadConfig() (Config, error) {
 	if valkeyAddr == "" {
 		valkeyAddr = strings.TrimSpace(os.Getenv("VALKEY_ADDR"))
 	}
+	peerAddr := envOrDefault("LABBIT_PEER_ADDR", defaultPeerAddr)
 	podID := strings.TrimSpace(os.Getenv("LABBIT_POD_ID"))
 	if podID == "" {
 		podID = strings.TrimSpace(os.Getenv("POD_NAME"))
@@ -130,7 +134,14 @@ func LoadConfig() (Config, error) {
 	if podAddr == "" {
 		podIP := strings.TrimSpace(os.Getenv("POD_IP"))
 		if podIP != "" {
-			podAddr = podIP + ":8080"
+			peerPort := "8081"
+			if peerAddr != "" {
+				_, p, err := net.SplitHostPort(peerAddr)
+				if err == nil && p != "" {
+					peerPort = p
+				}
+			}
+			podAddr = net.JoinHostPort(podIP, peerPort)
 		}
 	}
 
@@ -162,6 +173,7 @@ func LoadConfig() (Config, error) {
 		Roles:               roles,
 		HTTPAddr:            envOrDefault("LABBIT_HTTP_ADDR", defaultHTTPAddr),
 		AdminAddr:           envOrDefault("LABBIT_ADMIN_ADDR", defaultAdminAddr),
+		PeerAddr:            peerAddr,
 		LogLevel:            envOrDefault("LABBIT_LOG_LEVEL", "info"),
 		ShutdownGrace:       grace,
 		DatabaseDSN:         databaseDSN,
@@ -364,17 +376,33 @@ func Run(ctx context.Context, cfg Config) error {
 		// Shutdown은 hijack된 WebSocket connection을 닫지 않으므로 handler가 새 Upgrade 거절과 기존 connection drain을 맡는다.
 		applicationServer.RegisterOnShutdown(stack.close)
 	}
+
+	var peerServer *http.Server
+	if cfg.ValkeyAddr != "" && cfg.PeerAddr != "" && cfg.PeerAddr != cfg.HTTPAddr {
+		peerServer = &http.Server{
+			Addr:              cfg.PeerAddr,
+			Handler:           applicationHandler(appRoutes),
+			ReadHeaderTimeout: 5 * time.Second,
+		}
+		if stack != nil {
+			peerServer.RegisterOnShutdown(stack.close)
+		}
+	}
+
 	adminServer := &http.Server{
 		Addr:              cfg.AdminAddr,
 		Handler:           adminHandler(ready, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}), checks...),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	errCh := make(chan error, 2)
+	errCh := make(chan error, 3)
 	go serve(logger, "application", applicationServer, errCh)
+	if peerServer != nil {
+		go serve(logger, "peer", peerServer, errCh)
+	}
 	go serve(logger, "admin", adminServer, errCh)
 
-	// 두 listener의 Serve goroutine을 시작한 뒤 startup 완료로 전환한다.
+	// 세 listener의 Serve goroutine을 시작한 뒤 startup 완료로 전환한다.
 	// DB가 필요한 role의 PostgreSQL/schema 조건은 /readyz 요청마다 별도로 확인한다.
 	ready.Store(true)
 	defer harness.start(ctx, stack, logger)()
@@ -407,6 +435,7 @@ func Run(ctx context.Context, cfg Config) error {
 		"roles", strings.Join(cfg.Roles, ","),
 		"http_addr", cfg.HTTPAddr,
 		"admin_addr", cfg.AdminAddr,
+		"peer_addr", cfg.PeerAddr,
 	)
 
 	select {
@@ -429,6 +458,11 @@ func Run(ctx context.Context, cfg Config) error {
 	defer cancel()
 
 	applicationErr := applicationServer.Shutdown(shutdownCtx)
+	if peerServer != nil {
+		if peerErr := peerServer.Shutdown(shutdownCtx); peerErr != nil {
+			applicationErr = errors.Join(applicationErr, peerErr)
+		}
+	}
 	if stack != nil {
 		// http.Server.Shutdown은 hijack된 WebSocket을 기다리지 않는다. active TerminalSession을 종료하고 열린 Control/Terminal
 		// connection이 정리될 때까지 기다린다.

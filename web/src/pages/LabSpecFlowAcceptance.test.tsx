@@ -108,6 +108,7 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
       throw new HttpError(401)
     })
     const { router, client } = mountLabSpecFlow({ listLabSpecMappingOptions })
+    const clearSpy = vi.spyOn(client, 'clear')
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
     expect(router.state.location.state).toMatchObject({
@@ -115,8 +116,10 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
       reason: 'sessionExpired',
     })
     expect(screen.getByText('로그인 화면')).toBeInTheDocument()
-    expect(client.getQueryData(labbitQueryKeys.me)).toBeUndefined()
-    expect(client.getQueryData(labbitQueryKeys.labSpecs)).toBeUndefined()
+    // clear() is the auth safety boundary. A still-mounted mock /me can
+    // re-fetch 200 asynchronously, so don't assert a permanently empty cache.
+    expect(clearSpy).toHaveBeenCalledTimes(1)
+    clearSpy.mockRestore()
     expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(1)
   })
 

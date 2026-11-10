@@ -21,6 +21,19 @@ export function LabSpecListPage() {
     retry: false,
   })
 
+  // The Backend uses ANY Organization ClassMembership(INSTRUCTOR) to authorize
+  // Create, independent of /me.organizationRole. MappingOptions enforces that
+  // exact same requireInstructor() rule, so it is a read-only capability probe.
+  const createPermissionQuery = useQuery({
+    queryKey: labbitQueryKeys.labSpecMappingOptions(
+      meQuery.data?.organization.id ?? '',
+      meQuery.data?.id ?? '',
+    ),
+    queryFn: () => api.listLabSpecMappingOptions(),
+    enabled: Boolean(meQuery.data),
+    retry: false,
+  })
+
   if (meQuery.isPending || labSpecsQuery.isPending) {
     return (
       <main className="app-page">
@@ -31,7 +44,8 @@ export function LabSpecListPage() {
 
   const authError =
     (meQuery.error instanceof HttpError && meQuery.error.status === 401) ||
-    (labSpecsQuery.error instanceof HttpError && labSpecsQuery.error.status === 401)
+    (labSpecsQuery.error instanceof HttpError && labSpecsQuery.error.status === 401) ||
+    (createPermissionQuery.error instanceof HttpError && createPermissionQuery.error.status === 401)
 
   if (authError) {
     return <LoginRedirect reason="sessionExpired" />
@@ -48,6 +62,12 @@ export function LabSpecListPage() {
   const ownedLabSpecs = labSpecsQuery.data.items.filter(
     (labSpec) => labSpec.ownerUserId === meQuery.data.id,
   )
+  // A 200 means the server has verified INSTRUCTOR membership, even if there
+  // are currently no active Image/Flavor options. A 403 is a denied capability;
+  // 5xx/network errors are UNKNOWN, not an inferred lack of permission.
+  const canCreate = createPermissionQuery.isSuccess
+  const forbidden = createPermissionQuery.error instanceof HttpError &&
+    createPermissionQuery.error.status === 403
 
   return (
     <main className="app-page">
@@ -62,15 +82,40 @@ export function LabSpecListPage() {
             실습 환경 구성을 미리 정의하고 관리합니다. 저장만으로 실제 실습 환경이 생성되지는 않습니다.
           </p>
         </div>
-        <Link className="primary-link header-action" to="/lab-specs/new">
-          새 실습 정의
-        </Link>
+        {canCreate ? (
+          <Link className="primary-link header-action" to="/lab-specs/new">
+            새 실습 정의
+          </Link>
+        ) : (
+          <div className="header-action">
+            <p className="muted" role="status">
+              {createPermissionQuery.isPending
+                ? '실습 정의 작성 권한 확인 중...'
+                : forbidden
+                  ? '실습 정의 작성은 강사 권한이 필요합니다.'
+                  : '실습 정의 작성 권한을 확인하지 못했습니다.'}
+            </p>
+            {!createPermissionQuery.isPending && !forbidden && (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => void createPermissionQuery.refetch()}
+              >
+                권한 다시 확인
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       {ownedLabSpecs.length === 0 ? (
         <section className="empty-state">
           <h2>저장된 LabSpec이 없습니다.</h2>
-          <p>새 LabSpec을 만들고 이후 Class Provision에서 사용할 수 있습니다.</p>
+          <p>
+            {canCreate
+              ? '새 LabSpec을 만들고 이후 Class Provision에서 사용할 수 있습니다.'
+              : '기존 실습 정의는 조회할 수 있으며, 새 실습 정의 작성은 강사 권한 확인 후 이용할 수 있습니다.'}
+          </p>
         </section>
       ) : (
         <section className="class-grid" aria-label="조회 가능한 LabSpec">

@@ -182,10 +182,15 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 
 	// Workspace File은 api role의 일이다. 권한 판정(workspacefile.Service)은 PostgreSQL 상태를 쓰고, 파일 I/O는 Connector Control의
 	// FILE_OPEN과 요청별 File Data WSS(filetransport.Broker)로 한다. Broker의 pending 요청은 process 안의 ephemeral 상태다.
-	fileBroker, err := filetransport.New(filetransport.Options{
+	fileBrokerOpts := filetransport.Options{
 		Control: router, Auth: connectorService, Logger: logger,
 		AttachTimeout: opts.FileAttachTimeout, OperationTimeout: opts.FileOperationTimeout,
-	})
+	}
+	if opts.OwnerLocator != nil {
+		fileBrokerOpts.OwnerLocator = opts.OwnerLocator
+		fileBrokerOpts.Proxy = opts.PeerProxy
+	}
+	fileBroker, err := filetransport.New(fileBrokerOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +261,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	// 좁은 interface(Connector Credential 인증, PreviewSession 종료 통지)로만 authority를 받는다. PreviewSession 상태는 process 안의 ephemeral 상태다.
 	var previews httpapi.Previews
 	if opts.Preview {
-		gateway, err := preview.New(preview.Options{
+		previewGatewayOpts := preview.Options{
 			Origin:          opts.PreviewOrigin,
 			Connectors:      previewsession.NewConnectorAuthenticator(connectorService),
 			Clock:           opts.PreviewClock,
@@ -264,7 +269,12 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 			AttachTimeout:   opts.PreviewAttachTimeout,
 			BootstrapTTL:    opts.PreviewBootstrapTTL,
 			UpstreamTimeout: opts.PreviewUpstreamTimeout,
-		})
+		}
+		if opts.OwnerLocator != nil {
+			previewGatewayOpts.OwnerLocator = opts.OwnerLocator
+			previewGatewayOpts.Proxy = opts.PeerProxy
+		}
+		gateway, err := preview.New(previewGatewayOpts)
 		if err != nil {
 			return nil, err
 		}

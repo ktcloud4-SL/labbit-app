@@ -143,12 +143,12 @@ func NewService(opts Options) (*Service, error) {
 		return nil, errors.New("terminal: Store, Auth, Connectors, Relay가 필요합니다")
 	}
 	s := &Service{
-		store:       opts.Store,
-		auth:        opts.Auth,
-		connectors:  opts.Connectors,
-		relay:       opts.Relay,
-		clock:       opts.Clock,
-		logger:      opts.Logger,
+		store:        opts.Store,
+		auth:         opts.Auth,
+		connectors:   opts.Connectors,
+		relay:        opts.Relay,
+		clock:        opts.Clock,
+		logger:       opts.Logger,
 		tracer:       opts.Tracer,
 		ownerLocator: opts.OwnerLocator,
 		openTimeout:  opts.OpenTimeout,
@@ -341,7 +341,7 @@ func (s *Service) Create(ctx context.Context, user repository.User, in CreateInp
 	}
 	if s.ownerLocator != nil {
 		if err := s.ownerLocator.RegisterTerminal(ctx, id, resolved.connectorID, 1, 15*time.Second); err != nil {
-			log.Error("Terminal owner 등록 실패", "error_code", "LOCATOR_UNAVAILABLE", "error", err)
+			log.Error("Terminal owner 등록 실패", "error_code", "LOCATOR_UNAVAILABLE")
 			abort(false)
 			return Created{}, ErrUnavailable
 		}

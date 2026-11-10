@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 // serveBrowserHTTP는 Upgrade 전에 Origin, Cookie, subprotocol, 현재 인증을 확인한다.
@@ -127,10 +128,14 @@ func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken, reqHeader
 	}
 	s := r.lookup(grant.TerminalSessionID)
 	if s == nil {
-		if r.ownerLocator != nil && r.proxy != nil {
+		if r.ownerLocator != nil && r.proxy != nil && !r.proxy.IsInternalPeerFromHeader(reqHeader) && !r.proxy.HasSpoofedPeerHeaderFromHeader(reqHeader) {
 			ctx, cancel := context.WithTimeout(context.Background(), controlTimeout)
 			owner, oerr := r.ownerLocator.LookupTerminal(ctx, grant.TerminalSessionID)
 			cancel()
+			if oerr != nil && !errors.Is(oerr, valkeyowner.ErrNoOwner) {
+				r.rejectAttach(p, withTrace(r.logger.With("terminal_session_id", boundID(msg.TerminalSessionID)), msg.Trace), ErrDependencyUnavailable, msg.MessageID, msg.Trace)
+				return
+			}
 			if oerr == nil && owner.PodID != "" && owner.PodID != r.ownerLocator.PodID() {
 				extra := http.Header{}
 				if cookie := reqHeader.Get("Cookie"); cookie != "" {
@@ -141,7 +146,7 @@ func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken, reqHeader
 				}
 				_ = ws.SetReadDeadline(time.Time{})
 				if err := r.proxy.ProxyWebSocketUpstream(ws, owner.PodAddr, BrowserPath, data, BrowserSubprotocol, extra); err != nil {
-					r.logger.Warn("Browser Terminal peer proxy failed", "error", err)
+					r.logger.Warn("Browser Terminal peer proxy failed", "reason", "peer_proxy_failed")
 				}
 				return
 			}

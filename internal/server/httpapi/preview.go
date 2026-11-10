@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/jsonnum"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
@@ -93,6 +94,35 @@ func (a *api) createPreviewSession(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		a.internalError(w, r, "create_preview_session", errors.New("인증 context가 없습니다"))
 		return
+	}
+	if a.ownerLocator != nil && a.proxy != nil {
+		if a.proxy.HasSpoofedPeerHeader(r) {
+			a.previewError(w, r, "create_preview_session", previewsession.ErrConnectorUnavailable)
+			return
+		}
+		if !a.proxy.IsInternalPeer(r) {
+			if labID, err := uuid.Parse(r.PathValue("labInstanceId")); err == nil {
+				connID, err := a.terminals.ConnectorForLabInstance(r.Context(), labID)
+				if (err != nil || connID == uuid.Nil) && a.previews != nil {
+					if resolver, ok := a.previews.(interface {
+						ConnectorForLabInstance(context.Context, uuid.UUID) (uuid.UUID, error)
+					}); ok {
+						connID, err = resolver.ConnectorForLabInstance(r.Context(), labID)
+					}
+				}
+				if err == nil && connID != uuid.Nil {
+					owner, err := a.ownerLocator.LookupConnector(r.Context(), connID)
+					if err != nil || owner == nil || owner.PodID == "" || (owner.PodID != a.ownerLocator.PodID() && owner.PodAddr == "") {
+						a.previewError(w, r, "create_preview_session", previewsession.ErrConnectorUnavailable)
+						return
+					}
+					if owner.PodID != a.ownerLocator.PodID() {
+						a.proxy.ProxyHTTP(w, r, owner.PodAddr)
+						return
+					}
+				}
+			}
+		}
 	}
 	port, ok := decodeCreatePreviewSessionRequest(w, r)
 	if !ok {

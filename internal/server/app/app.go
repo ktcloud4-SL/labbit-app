@@ -62,10 +62,14 @@ type Config struct {
 	Tracing tracing.Config
 
 	// Valkey owner locator configuration for multi-pod topologies (LBT-198)
-	ValkeyAddr string
-	PodID      string
-	PodAddr    string
-	PeerSecret string
+	ValkeyAddr          string
+	ValkeyUsername      string
+	ValkeyPassword      string
+	ValkeyTLS           bool
+	ValkeyTLSServerName string
+	PodID               string
+	PodAddr             string
+	PeerSecret          string
 }
 
 // LoadConfig는 현재 구현된 role에 필요한 Runtime Contract 항목만 읽는다.
@@ -129,22 +133,48 @@ func LoadConfig() (Config, error) {
 			podAddr = podIP + ":8080"
 		}
 	}
-	peerSecret := strings.TrimSpace(os.Getenv("LABBIT_PEER_SECRET"))
+
+	var valkeyUsername, valkeyPassword, valkeyTLSServerName, peerSecret string
+	var valkeyTLS bool
+	if valkeyAddr != "" {
+		valkeyUsername = strings.TrimSpace(os.Getenv("LABBIT_VALKEY_USERNAME"))
+		valkeyPassword, err = valkeyowner.LoadSecretValue(environment, "LABBIT_VALKEY_PASSWORD_FILE", "LABBIT_VALKEY_PASSWORD", false)
+		if err != nil {
+			return Config{}, err
+		}
+		rawTLS := strings.ToLower(strings.TrimSpace(os.Getenv("LABBIT_VALKEY_TLS")))
+		valkeyTLS = rawTLS == "true" || rawTLS == "1"
+		valkeyTLSServerName = strings.TrimSpace(os.Getenv("LABBIT_VALKEY_TLS_SERVER_NAME"))
+
+		peerSecret, err = valkeyowner.LoadSecretValue(environment, "LABBIT_PEER_SECRET_FILE", "LABBIT_PEER_SECRET", true)
+		if err != nil {
+			return Config{}, err
+		}
+		if peerSecret == "" {
+			return Config{}, errors.New("Valkey 활성화 시 LABBIT_PEER_SECRET_FILE 또는 LABBIT_PEER_SECRET이 필요합니다")
+		}
+	} else {
+		peerSecret = strings.TrimSpace(os.Getenv("LABBIT_PEER_SECRET"))
+	}
 
 	cfg := Config{
-		Environment:   environment,
-		Roles:         roles,
-		HTTPAddr:      envOrDefault("LABBIT_HTTP_ADDR", defaultHTTPAddr),
-		AdminAddr:     envOrDefault("LABBIT_ADMIN_ADDR", defaultAdminAddr),
-		LogLevel:      envOrDefault("LABBIT_LOG_LEVEL", "info"),
-		ShutdownGrace: grace,
-		DatabaseDSN:   databaseDSN,
-		PublicOrigin:  publicOrigin,
-		Tracing:       tracing.ConfigFromEnv(os.Getenv),
-		ValkeyAddr:    valkeyAddr,
-		PodID:         podID,
-		PodAddr:       podAddr,
-		PeerSecret:    peerSecret,
+		Environment:         environment,
+		Roles:               roles,
+		HTTPAddr:            envOrDefault("LABBIT_HTTP_ADDR", defaultHTTPAddr),
+		AdminAddr:           envOrDefault("LABBIT_ADMIN_ADDR", defaultAdminAddr),
+		LogLevel:            envOrDefault("LABBIT_LOG_LEVEL", "info"),
+		ShutdownGrace:       grace,
+		DatabaseDSN:         databaseDSN,
+		PublicOrigin:        publicOrigin,
+		Tracing:             tracing.ConfigFromEnv(os.Getenv),
+		ValkeyAddr:          valkeyAddr,
+		ValkeyUsername:      valkeyUsername,
+		ValkeyPassword:      valkeyPassword,
+		ValkeyTLS:           valkeyTLS,
+		ValkeyTLSServerName: valkeyTLSServerName,
+		PodID:               podID,
+		PodAddr:             podAddr,
+		PeerSecret:          peerSecret,
 	}
 
 	// preview role이 enabled되면 허용 port, TTL, Origin template이 모두 명시되어야 한다. 하나라도 없거나 올바르지 않으면 startup에 실패한다.
@@ -260,16 +290,21 @@ func Run(ctx context.Context, cfg Config) error {
 			var peerProxy *valkeyowner.Proxy
 			if cfg.ValkeyAddr != "" {
 				locator, err := valkeyowner.NewLocator(valkeyowner.Config{
-					ValkeyAddr: cfg.ValkeyAddr,
-					PodID:      cfg.PodID,
-					PodAddr:    cfg.PodAddr,
+					ValkeyAddr:    cfg.ValkeyAddr,
+					Username:      cfg.ValkeyUsername,
+					Password:      cfg.ValkeyPassword,
+					TLSEnabled:    cfg.ValkeyTLS,
+					TLSServerName: cfg.ValkeyTLSServerName,
+					PodID:         cfg.PodID,
+					PodAddr:       cfg.PodAddr,
+					PeerSecret:    cfg.PeerSecret,
 				})
 				if err != nil {
 					return fmt.Errorf("valkey locator init failed: %w", err)
 				}
 				defer locator.Close()
 				ownerLocator = locator
-				peerProxy = valkeyowner.NewProxy(cfg.PeerSecret)
+				peerProxy = valkeyowner.NewProxyWithSelf(cfg.PeerSecret, locator.PodAddr())
 			}
 
 			stack, err = newControlStack(postgres.NewStore(pool), stackOptions{

@@ -278,6 +278,12 @@ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemCl
 		if _, err := p.worker.Renew(ctx, d.Lease); err != nil {
 			return err
 		}
+		if p.opts.OwnerLocator != nil {
+			owner, err := p.opts.OwnerLocator.LookupConnector(ctx, d.ConnectorID)
+			if err != nil || owner.PodID != p.opts.PodID {
+				return p.deferUnsent(ctx, d)
+			}
+		}
 	}
 	sent, err := p.opts.Router.SendOperationCommand(ctx, connector.OperationCommand{
 		ConnectorID: d.ConnectorID, RequestID: claim.Operation.RequestID, Correlation: corr,

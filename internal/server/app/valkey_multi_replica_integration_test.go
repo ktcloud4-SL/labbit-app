@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -24,6 +25,12 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/filetransport"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/preview"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
@@ -94,20 +101,44 @@ func newValkeyReplicaCluster(t *testing.T, withWorker, withRealtime bool) *valke
 			PodAddr:    podAddr,
 		})
 		if err != nil {
+			server.Close()
+			if os.Getenv("CI") == "" && os.Getenv("LABBIT_TEST_VALKEY_REQUIRED") == "" {
+				t.Skipf("Valkey not available at %s: %v", valkeyTestAddr, err)
+			}
 			t.Fatalf("NewLocator(%s) error = %v", name, err)
 		}
 
 		proxy := valkeyowner.NewProxy("spike-p2p-secret")
 
+		previewPolicy, err := previewsession.ParseAllowedPorts("3000,5173,80")
+		if err != nil {
+			t.Fatal(err)
+		}
+		previewOrigin, err := preview.ParseOriginTemplate("http://{sessionId}"+previewOriginSuffix, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		opts := stackOptions{
-			Logger:        slog.New(slog.DiscardHandler),
-			PublicOrigin:  terminalTrustedOrigin,
-			Worker:        withWorker,
-			Realtime:      withRealtime,
-			OwnerLocator:  locator,
-			PeerProxy:     proxy,
-			AttachTimeout: 2 * time.Second,
-			CloseGrace:    200 * time.Millisecond,
+			Logger:                 slog.New(slog.DiscardHandler),
+			PublicOrigin:           terminalTrustedOrigin,
+			Worker:                 withWorker,
+			Realtime:               withRealtime,
+			Preview:                true,
+			PreviewPolicy:          previewPolicy,
+			PreviewTTL:             time.Hour,
+			PreviewOrigin:          previewOrigin,
+			PreviewOpenTimeout:     3 * time.Second,
+			PreviewAttachTimeout:   2 * time.Second,
+			PreviewUpstreamTimeout: 5 * time.Second,
+			PreviewBootstrapTTL:    2 * time.Minute,
+			OwnerLocator:           locator,
+			PeerProxy:              proxy,
+			AttachTimeout:          2 * time.Second,
+			CloseGrace:             200 * time.Millisecond,
+			FileAttachTimeout:      2 * time.Second,
+			FileOperationTimeout:   5 * time.Second,
+			MaxFileBytes:           1024,
 		}
 
 		stack, err := newControlStack(store, opts)
@@ -159,6 +190,40 @@ func newValkeyReplicaCluster(t *testing.T, withWorker, withRealtime bool) *valke
 		locatorC:     locC,
 		proxyC:       prxC,
 	}
+}
+
+type stoppableSupervisor struct {
+	cancel context.CancelFunc
+	done   <-chan error
+}
+
+func (s *stoppableSupervisor) Stop() {
+	if s == nil {
+		return
+	}
+	s.cancel()
+	select {
+	case <-s.done:
+	case <-time.After(5 * time.Second):
+	}
+}
+
+func postHTTP(t *testing.T, url string, headers http.Header, body string) *http.Response {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("http.NewRequest(%s): %v", url, err)
+	}
+	for k, vals := range headers {
+		for _, v := range vals {
+			req.Header.Add(k, v)
+		}
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("http.DefaultClient.Do(%s): %v", url, err)
+	}
+	return resp
 }
 
 func startSupervisorWithCustomMock(t *testing.T, serverURL string, mock *provider.MockProvider) *stoppableSupervisor {
@@ -449,7 +514,7 @@ func TestValkey_ControlledReverseRouting(t *testing.T) {
 			}}}, nil
 		},
 	}
-	startRoutingConnectorToURL(t, c.urlB, c.connectorID, mockProv)
+	startSupervisorWithCustomMock(t, c.urlB, mockProv)
 
 	eventually(t, "Pod B route ready", 10*time.Second, func() bool {
 		return c.podB.Registry.WithReadyRoute(c.connectorID, func(connector.Session, connector.Route) error { return nil }) == nil
@@ -583,5 +648,205 @@ func TestValkey_NegativeSafety(t *testing.T) {
 		if lookupErr == nil {
 			t.Fatalf("Lookup against down Valkey should return error")
 		}
+	}
+}
+
+// 6. Cross-Pod LiveSession Create, LIVE_SUBSCRIBE WS Proxy, PTY Fan-out & Close:
+// Connector connects to Pod A.
+// Instructor creates TerminalSession via Pod B -> proxied to Pod A.
+// Instructor creates LiveSession via Pod C -> proxied to Pod A.
+// Student connects /realtime/v1/live WS to Pod B -> proxied to Pod A, receives PTY output from Connector.
+// Instructor closes LiveSession via DELETE on Pod C -> proxied to Pod A.
+func TestValkey_LiveSession_CrossPodCreateSubscribeAndClose(t *testing.T) {
+	c := newValkeyReplicaCluster(t, false, true)
+	f := c.fixture
+
+	instructorLabID := uuid.New()
+	_, err := c.conn.Exec(t.Context(),
+		`INSERT INTO lab_instances (id, organization_id, lab_execution_id, user_id, participant_role, status, generation)
+		 VALUES ($1, $2, $3, $4, 'INSTRUCTOR', 'READY', 1)`,
+		instructorLabID, f.OrganizationID, f.LabExecutionID, f.InstructorID)
+	if err != nil {
+		t.Fatalf("insert instructor lab instance: %v", err)
+	}
+	f.AddResource(t, c.conn, instructorLabID, 1, "SERVER", "workspace", "PRESENT")
+	instructorCookie := terminaltest.LoginSession(t, c.conn, f.InstructorID)
+
+	conn := terminaltest.NewConnector(t, c.urlA, terminaltest.Credential)
+	conn.Start()
+
+	eventually(t, "Pod A route ready", 10*time.Second, func() bool {
+		return c.podA.Registry.WithReadyRoute(c.connectorID, func(connector.Session, connector.Route) error { return nil }) == nil
+	})
+	eventually(t, "Valkey owner is Pod A", 5*time.Second, func() bool {
+		rec, err := c.locatorA.LookupConnector(t.Context(), c.connectorID)
+		return err == nil && rec.PodID == "pod-a"
+	})
+
+	instructorHeaders := http.Header{
+		"Cookie":       []string{realtime.SessionCookieName + "=" + instructorCookie},
+		"Origin":       []string{terminalTrustedOrigin},
+		"Content-Type": []string{"application/json"},
+	}
+
+	// 1) Instructor creates TerminalSession via Pod B (proxied to Pod A)
+	createTermURL_B := c.urlB + "/api/v1/lab-instances/" + instructorLabID.String() + "/terminal-sessions"
+	respTerm := postHTTP(t, createTermURL_B, instructorHeaders, createBody)
+	if respTerm.StatusCode != http.StatusCreated {
+		t.Fatalf("Pod B terminal create status = %d, want 201: %s", respTerm.StatusCode, readBody(t, respTerm))
+	}
+	var createdTerm map[string]any
+	_ = json.NewDecoder(respTerm.Body).Decode(&createdTerm)
+	termSessionID := createdTerm["id"].(string)
+
+	eventually(t, "Valkey terminal owner is Pod A", 5*time.Second, func() bool {
+		rec, err := c.locatorC.LookupTerminal(t.Context(), termSessionID)
+		return err == nil && rec.PodID == "pod-a"
+	})
+
+	// 2) Instructor creates LiveSession via Pod C (proxied to Pod A)
+	createLiveURL_C := c.urlC + "/api/v1/terminal-sessions/" + termSessionID + "/live-sessions"
+	respLive := postHTTP(t, createLiveURL_C, instructorHeaders, "")
+	if respLive.StatusCode != http.StatusCreated {
+		t.Fatalf("Pod C live create status = %d, want 201: %s", respLive.StatusCode, readBody(t, respLive))
+	}
+	var createdLive map[string]any
+	_ = json.NewDecoder(respLive.Body).Decode(&createdLive)
+	liveID := createdLive["id"].(string)
+
+	// 3) Student connects /realtime/v1/live WebSocket to Pod B (proxied to Pod A)
+	liveWsURL_B := "ws" + strings.TrimPrefix(c.urlB, "http") + realtime.LivePath
+	liveDialer := websocket.Dialer{Subprotocols: []string{realtime.LiveSubprotocol}}
+	studentHeaders := http.Header{
+		"Cookie": []string{realtime.SessionCookieName + "=" + c.ownerCookie},
+		"Origin": []string{terminalTrustedOrigin},
+	}
+	sWs, sResp, err := liveDialer.Dial(liveWsURL_B, studentHeaders)
+	if err != nil {
+		t.Fatalf("Student live WS dial to Pod B error = %v, resp = %v", err, sResp)
+	}
+	defer sWs.Close()
+
+	if err := sWs.WriteJSON(map[string]any{
+		"type":          "LIVE_SUBSCRIBE",
+		"messageId":     "sub-1",
+		"sentAt":        time.Now().UTC().Format(time.RFC3339),
+		"liveSessionId": liveID,
+		"payload":       map[string]any{},
+	}); err != nil {
+		t.Fatalf("Student WriteJSON LIVE_SUBSCRIBE error = %v", err)
+	}
+
+	_ = sWs.SetReadDeadline(time.Now().Add(5 * time.Second))
+	_, subRaw, err := sWs.ReadMessage()
+	if err != nil || !strings.Contains(string(subRaw), "LIVE_SUBSCRIBED") {
+		t.Fatalf("expected LIVE_SUBSCRIBED from Pod B proxy, got err=%v, raw=%s", err, string(subRaw))
+	}
+
+	// 4) Connector sends PTY output to Pod A -> arrives at Student WS on Pod B
+	ptyOut := []byte("cross-pod live broadcast test\r\n")
+	conn.Output(termSessionID, ptyOut)
+
+	_ = sWs.SetReadDeadline(time.Now().Add(5 * time.Second))
+	msgType, gotBytes, err := sWs.ReadMessage()
+	if err != nil || msgType != websocket.BinaryMessage || string(gotBytes) != string(ptyOut) {
+		t.Fatalf("Student live binary output err=%v, type=%d, got=%q", err, msgType, string(gotBytes))
+	}
+
+	// 5) Instructor closes LiveSession via DELETE on Pod C (proxied to Pod A)
+	closeLiveURL_C := c.urlC + "/api/v1/live-sessions/" + liveID
+	delReq, _ := http.NewRequest(http.MethodDelete, closeLiveURL_C, nil)
+	delReq.Header.Set("Cookie", realtime.SessionCookieName+"="+instructorCookie)
+	delReq.Header.Set("Origin", terminalTrustedOrigin)
+	delResp, err := http.DefaultClient.Do(delReq)
+	if err != nil || delResp.StatusCode != http.StatusNoContent {
+		t.Fatalf("Pod C DELETE live session err=%v, status=%d", err, delResp.StatusCode)
+	}
+}
+
+// 7. Cross-Pod Workspace File HTTP & File Data WSS Proxy:
+// Connector connects Control WSS to Pod A, and dials File Data WSS to Pod B.
+// Browser sends GET /files/tree and GET /files/content to Pod C.
+// Pod C proxies HTTP to Pod A, Pod B proxies File Data WSS to Pod A, and Browser receives the result.
+func TestValkey_WorkspaceFile_CrossPodHTTPAndFileDataWSSProxy(t *testing.T) {
+	c := newValkeyReplicaCluster(t, false, false)
+
+	fs := filetest.NewFS()
+	fs.Put("hello.txt", []byte("cross-pod workspace file content\n"))
+
+	wsBaseA := "ws" + strings.TrimPrefix(c.urlA, "http")
+	wsBaseB := "ws" + strings.TrimPrefix(c.urlB, "http")
+	_ = filetest.Start(t, filetest.Config{
+		ControlURL:   wsBaseA + connectorwss.Path,
+		DataURL:      wsBaseB + filetransport.DataPath, // Data WSS lands on non-owner Pod B!
+		Credential:   terminaltest.Credential,
+		Capabilities: []string{"file-v1"},
+		FS:           fs,
+	})
+
+	eventually(t, "Pod A route ready", 10*time.Second, func() bool {
+		return c.podA.Registry.WithReadyRoute(c.connectorID, func(connector.Session, connector.Route) error { return nil }) == nil
+	})
+	eventually(t, "Valkey owner is Pod A", 5*time.Second, func() bool {
+		rec, err := c.locatorC.LookupConnector(t.Context(), c.connectorID)
+		return err == nil && rec.PodID == "pod-a"
+	})
+
+	// Browser sends GET /files/content to Pod C
+	readURL_C := c.urlC + "/api/v1/lab-instances/" + c.fixture.LabInstanceID.String() + "/files/content?path=hello.txt"
+	req, _ := http.NewRequest(http.MethodGet, readURL_C, nil)
+	req.Header.Set("Cookie", realtime.SessionCookieName+"="+c.ownerCookie)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("GET /files/content on Pod C error = %v", err)
+	}
+	body := readBody(t, resp)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET /files/content status = %d, want 200: %s", resp.StatusCode, body)
+	}
+	if !strings.Contains(body, "cross-pod workspace file content") {
+		t.Fatalf("unexpected file content body: %s", body)
+	}
+}
+
+// 8. Cross-Pod Preview Create & Preview Data WSS Proxy:
+// Connector connects Control WSS to Pod A, and dials Preview Data WSS to Pod B.
+// Browser sends POST /preview-sessions to Pod C.
+// Pod C proxies HTTP to Pod A, Pod B proxies Preview Data WSS to Pod A, and Browser receives 201 Created.
+func TestValkey_Preview_CrossPodCreateAndDataWSSProxy(t *testing.T) {
+	c := newValkeyReplicaCluster(t, false, false)
+	wsApp := newWorkspaceApp(t)
+
+	wsBaseA := "ws" + strings.TrimPrefix(c.urlA, "http")
+	wsBaseB := "ws" + strings.TrimPrefix(c.urlB, "http")
+	_ = previewtest.Start(t, previewtest.Config{
+		ControlURL:    wsBaseA + connectorwss.Path,
+		DataURL:       wsBaseB + preview.DataPath, // Preview Data WSS lands on non-owner Pod B!
+		Credential:    terminaltest.Credential,
+		Capabilities:  []string{"preview-v1"},
+		WorkspaceAddr: wsApp.addr(),
+	})
+
+	eventually(t, "Pod A route ready", 10*time.Second, func() bool {
+		return c.podA.Registry.WithReadyRoute(c.connectorID, func(connector.Session, connector.Route) error { return nil }) == nil
+	})
+	eventually(t, "Valkey owner is Pod A", 5*time.Second, func() bool {
+		rec, err := c.locatorC.LookupConnector(t.Context(), c.connectorID)
+		return err == nil && rec.PodID == "pod-a"
+	})
+
+	headers := http.Header{
+		"Cookie":       []string{realtime.SessionCookieName + "=" + c.ownerCookie},
+		"Origin":       []string{terminalTrustedOrigin},
+		"Content-Type": []string{"application/json"},
+	}
+	createPreviewURL_C := c.urlC + "/api/v1/lab-instances/" + c.fixture.LabInstanceID.String() + "/preview-sessions"
+	resp := postHTTP(t, createPreviewURL_C, headers, `{"targetPort":3000}`)
+	body := readBody(t, resp)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("POST /preview-sessions on Pod C status = %d, want 201: %s", resp.StatusCode, body)
+	}
+	if !strings.Contains(body, "previewUrl") {
+		t.Fatalf("expected previewUrl in response, got: %s", body)
 	}
 }

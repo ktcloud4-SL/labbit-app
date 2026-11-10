@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 // serveLiveHTTP는 Upgrade 전에 Origin, Cookie, subprotocol, 현재 인증을 확인한다.
@@ -74,11 +75,11 @@ func (r *Relay) serveLiveHTTP(w http.ResponseWriter, req *http.Request) {
 		r.logger.Warn("Browser Live Upgrade 실패", "reason", "upgrade_failed")
 		return
 	}
-	r.serveLive(ws, session)
+	r.serveLive(ws, session, req.Header)
 }
 
 // serveLive는 Upgrade된 학생 Browser Live connection 하나를 처리한다. 첫 application message는 LIVE_SUBSCRIBE여야 한다.
-func (r *Relay) serveLive(ws *websocket.Conn, session SessionToken) {
+func (r *Relay) serveLive(ws *websocket.Conn, session SessionToken, reqHeader http.Header) {
 	ws.SetReadLimit(r.readLimit)
 	p := newPeer(ws, r.browserQueueBytes, r.browserQueueMessages, r.writeTimeout, r.closeGrace)
 
@@ -135,6 +136,29 @@ func (r *Relay) serveLive(ws *websocket.Conn, session SessionToken) {
 	live := r.liveSessions[grant.LiveSessionID]
 	r.mu.Unlock()
 	if live == nil {
+		if r.ownerLocator != nil && r.proxy != nil && !r.proxy.IsInternalPeerFromHeader(reqHeader) && !r.proxy.HasSpoofedPeerHeaderFromHeader(reqHeader) && grant.SourceTerminalSessionID != "" {
+			lCtx, lCancel := context.WithTimeout(context.Background(), controlTimeout)
+			owner, oerr := r.ownerLocator.LookupTerminal(lCtx, grant.SourceTerminalSessionID)
+			lCancel()
+			if oerr != nil && !errors.Is(oerr, valkeyowner.ErrNoOwner) {
+				r.rejectLiveSubscribe(p, withTrace(r.logger.With("live_session_id", boundID(msg.LiveSessionID)), msg.Trace), ErrDependencyUnavailable, msg.MessageID, msg.LiveSessionID, msg.Trace)
+				return
+			}
+			if oerr == nil && owner.PodID != "" && owner.PodID != r.ownerLocator.PodID() {
+				extra := http.Header{}
+				if cookie := reqHeader.Get("Cookie"); cookie != "" {
+					extra.Set("Cookie", cookie)
+				}
+				if origin := reqHeader.Get("Origin"); origin != "" {
+					extra.Set("Origin", origin)
+				}
+				_ = ws.SetReadDeadline(time.Time{})
+				if err := r.proxy.ProxyWebSocketUpstream(ws, owner.PodAddr, LivePath, data, LiveSubprotocol, extra); err != nil {
+					r.logger.Warn("Browser Live peer proxy failed", "reason", "peer_proxy_failed")
+				}
+				return
+			}
+		}
 		r.rejectLiveSubscribe(p, withTrace(r.logger.With("live_session_id", boundID(msg.LiveSessionID)), msg.Trace), ErrSessionNotFound, msg.MessageID, msg.LiveSessionID, msg.Trace)
 		return
 	}

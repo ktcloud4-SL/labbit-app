@@ -12,6 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/google/uuid"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile"
 )
@@ -111,6 +112,44 @@ func filePathParam(r *http.Request) (value string, present, ok bool) {
 	}
 }
 
+func (a *api) routeFileToOwner(w http.ResponseWriter, r *http.Request, op string) bool {
+	if a.ownerLocator == nil || a.proxy == nil {
+		return false
+	}
+	if a.proxy.HasSpoofedPeerHeader(r) {
+		a.fileError(w, r, op, workspacefile.ErrConnectorUnavailable)
+		return true
+	}
+	if a.proxy.IsInternalPeer(r) {
+		return false
+	}
+	labID, err := uuid.Parse(r.PathValue("labInstanceId"))
+	if err != nil {
+		return false
+	}
+	connID, err := a.terminals.ConnectorForLabInstance(r.Context(), labID)
+	if (err != nil || connID == uuid.Nil) && a.files != nil {
+		if resolver, ok := a.files.(interface {
+			ConnectorForLabInstance(context.Context, uuid.UUID) (uuid.UUID, error)
+		}); ok {
+			connID, err = resolver.ConnectorForLabInstance(r.Context(), labID)
+		}
+	}
+	if err != nil || connID == uuid.Nil {
+		return false
+	}
+	owner, err := a.ownerLocator.LookupConnector(r.Context(), connID)
+	if err != nil || owner == nil || owner.PodID == "" || (owner.PodID != a.ownerLocator.PodID() && owner.PodAddr == "") {
+		a.fileError(w, r, op, workspacefile.ErrConnectorUnavailable)
+		return true
+	}
+	if owner.PodID != a.ownerLocator.PodID() {
+		a.proxy.ProxyHTTP(w, r, owner.PodAddr)
+		return true
+	}
+	return false
+}
+
 func (a *api) listWorkspaceFiles(w http.ResponseWriter, r *http.Request) {
 	principal, ok := PrincipalFrom(r.Context())
 	if !ok {
@@ -120,6 +159,9 @@ func (a *api) listWorkspaceFiles(w http.ResponseWriter, r *http.Request) {
 	raw, _, ok := filePathParam(r)
 	if !ok {
 		writeProblem(w, r, http.StatusBadRequest, codeInvalidRequest, "요청 형식이 올바르지 않습니다.")
+		return
+	}
+	if a.routeFileToOwner(w, r, "list_workspace_files") {
 		return
 	}
 
@@ -150,6 +192,9 @@ func (a *api) readWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 		writeProblem(w, r, http.StatusBadRequest, codeInvalidRequest, "요청 형식이 올바르지 않습니다.")
 		return
 	}
+	if a.routeFileToOwner(w, r, "read_workspace_file") {
+		return
+	}
 
 	file, err := a.files.Read(r.Context(), principal.User, workspacefile.ReadInput{
 		LabInstanceID: r.PathValue("labInstanceId"),
@@ -178,6 +223,9 @@ func (a *api) saveWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	revision, status, code := parseIfMatch(r.Header.Values("If-Match"))
 	if code != "" {
 		writeProblem(w, r, status, code, "If-Match가 필요하거나 올바르지 않습니다.")
+		return
+	}
+	if a.routeFileToOwner(w, r, "save_workspace_file") {
 		return
 	}
 	content, status, code := a.decodeSaveBody(w, r)

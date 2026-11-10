@@ -940,3 +940,95 @@ func TestTerminalCloseInvalidSessionIDReturns404(t *testing.T) {
 		t.Fatalf("terminals.Close was called; expected no call on invalid UUID")
 	}
 }
+
+func TestSpoofedPeerHeaderRejectedFailClosed(t *testing.T) {
+	connID := uuid.New()
+	locator := &fakeOwnerLocator{
+		connectorOwner: &valkeyowner.ConnectorOwnerRecord{
+			PodID:   "pod-local",
+			PodAddr: "10.42.0.10:8080",
+		},
+		podID: "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	// Attempt to spoof X-Labbit-Internal-Peer with wrong secret
+	rec := h.create(validCreateBody,
+		withHeader(valkeyowner.HeaderInternalPeer, "true"),
+		withHeader(valkeyowner.HeaderPeerSecret, "forged-secret"))
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503 Service Unavailable on spoofed peer header: %s", rec.Code, rec.Body.String())
+	}
+	if len(h.terminals.createIn) != 0 {
+		t.Fatalf("terminals.Create was called despite spoofed peer header")
+	}
+}
+
+func TestWorkspaceFileAndPreviewCrossPodProxy(t *testing.T) {
+	connID := uuid.New()
+	var remoteFileTreeCalled, remoteFileSaveCalled, remotePreviewCreateCalled bool
+	var receivedSaveBody string
+	remoteServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/files/tree"):
+			remoteFileTreeCalled = true
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"path":"","items":[]}`))
+		case r.Method == http.MethodPut && strings.HasSuffix(r.URL.Path, "/files/content"):
+			remoteFileSaveCalled = true
+			buf := new(bytes.Buffer)
+			_, _ = buf.ReadFrom(r.Body)
+			receivedSaveBody = buf.String()
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("ETag", `"rev-2"`)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"path":"main.go"}`))
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/preview-sessions"):
+			remotePreviewCreateCalled = true
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":"` + uuid.NewString() + `","targetPort":3000,"previewUrl":"https://preview.example.com","expiresAt":"2026-10-01T17:00:00Z"}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer remoteServer.Close()
+
+	locator := &fakeOwnerLocator{
+		connectorOwner: &valkeyowner.ConnectorOwnerRecord{
+			PodID:   "pod-remote",
+			PodAddr: strings.TrimPrefix(remoteServer.URL, "http://"),
+		},
+		podID: "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	// 1. Cross-pod GET /files/tree
+	recTree := h.send(http.MethodGet, "/api/v1/lab-instances/"+labInstanceID+"/files/tree", "",
+		withCookie(terminalCookie))
+	if recTree.Code != http.StatusOK || !remoteFileTreeCalled {
+		t.Fatalf("GET /files/tree status=%d, remoteCalled=%v", recTree.Code, remoteFileTreeCalled)
+	}
+
+	// 2. Cross-pod PUT /files/content (verifies body is preserved across ProxyHTTP!)
+	saveBody := `{"content":"package main\n"}`
+	recSave := h.send(http.MethodPut, "/api/v1/lab-instances/"+labInstanceID+"/files/content?path=main.go", saveBody,
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin),
+		withHeader("Content-Type", "application/json"), withHeader("If-Match", `"rev-1"`))
+	if recSave.Code != http.StatusOK || !remoteFileSaveCalled || receivedSaveBody != saveBody {
+		t.Fatalf("PUT /files/content status=%d, remoteCalled=%v, body=%q", recSave.Code, remoteFileSaveCalled, receivedSaveBody)
+	}
+
+	// 3. Cross-pod POST /preview-sessions
+	recPreview := h.send(http.MethodPost, "/api/v1/lab-instances/"+labInstanceID+"/preview-sessions", `{"targetPort":3000}`,
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin),
+		withHeader("Content-Type", "application/json"))
+	if recPreview.Code != http.StatusCreated || !remotePreviewCreateCalled {
+		t.Fatalf("POST /preview-sessions status=%d, remoteCalled=%v", recPreview.Code, remotePreviewCreateCalled)
+	}
+}

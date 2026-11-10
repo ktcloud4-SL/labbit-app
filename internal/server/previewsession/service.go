@@ -155,6 +155,17 @@ func NewService(opts Options) (*Service, error) {
 	return s, nil
 }
 
+// ConnectorForLabInstance returns the connector ID assigned to the given lab instance.
+func (s *Service) ConnectorForLabInstance(ctx context.Context, labID uuid.UUID) (uuid.UUID, error) {
+	var id uuid.UUID
+	err := s.store.WithinTransaction(ctx, func(ctx context.Context, repos repository.Repositories) error {
+		var err error
+		id, err = repos.ConnectorIDForLabInstance(ctx, labID)
+		return err
+	})
+	return id, err
+}
+
 // Shutdown은 새 PreviewSession 생성을 거절하고 진행 중인 생성이 끝나거나 ctx가 끝날 때까지 기다린다.
 func (s *Service) Shutdown(ctx context.Context) error {
 	s.mu.Lock()

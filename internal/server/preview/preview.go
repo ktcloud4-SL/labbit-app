@@ -22,6 +22,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 const (
@@ -153,6 +155,12 @@ func (SystemClock) Now() time.Time { return time.Now() }
 
 func (SystemClock) AfterFunc(d time.Duration, f func()) Timer { return time.AfterFunc(d, f) }
 
+// OwnerLocator resolves the current Connector owner Pod in Valkey for cross-Pod Preview Data WSS routing.
+type OwnerLocator interface {
+	LookupConnector(ctx context.Context, connectorID uuid.UUID) (*valkeyowner.ConnectorOwnerRecord, error)
+	PodID() string
+}
+
 // Options는 Gateway 구성이다.
 type Options struct {
 	// Origin은 Preview Origin template이다(ParseOriginTemplate). 필수다.
@@ -171,14 +179,19 @@ type Options struct {
 	UpstreamTimeout time.Duration
 	// MaxFrameBytes는 Data WSS Binary frame 하나의 최대 크기다. 0이면 1 MiB다. 구현 기본값이며 계약 수치가 아니다.
 	MaxFrameBytes int64
+	// OwnerLocator and Proxy enable cross-Pod Preview Data WSS proxying to the Connector owner Pod.
+	OwnerLocator OwnerLocator
+	Proxy        *valkeyowner.Proxy
 }
 
 // Gateway는 Preview Gateway의 ephemeral 상태(PreviewSession)와 Connector Preview Data tunnel, Preview Origin HTTP handler를 가진다.
 type Gateway struct {
-	origin     OriginTemplate
-	connectors ConnectorAuthenticator
-	clock      Clock
-	logger     *slog.Logger
+	origin       OriginTemplate
+	connectors   ConnectorAuthenticator
+	clock        Clock
+	logger       *slog.Logger
+	ownerLocator OwnerLocator
+	proxy        *valkeyowner.Proxy
 
 	attachTimeout   time.Duration
 	bootstrapTTL    time.Duration
@@ -205,6 +218,8 @@ func New(opts Options) (*Gateway, error) {
 		connectors:      opts.Connectors,
 		clock:           opts.Clock,
 		logger:          opts.Logger,
+		ownerLocator:    opts.OwnerLocator,
+		proxy:           opts.Proxy,
 		attachTimeout:   opts.AttachTimeout,
 		bootstrapTTL:    opts.BootstrapTTL,
 		upstreamTimeout: opts.UpstreamTimeout,

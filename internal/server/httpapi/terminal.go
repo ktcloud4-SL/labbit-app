@@ -143,20 +143,26 @@ func (a *api) createTerminalSession(w http.ResponseWriter, r *http.Request) {
 		a.terminalError(w, r, "create_terminal_session", terminal.ErrNotFound)
 		return
 	}
-	if a.ownerLocator != nil && a.proxy != nil && !a.proxy.IsInternalPeer(r) {
-		if connID, err := a.terminals.ConnectorForLabInstance(r.Context(), labID); err == nil && connID != uuid.Nil {
-			owner, err := a.ownerLocator.LookupConnector(r.Context(), connID)
-			if err != nil {
-				a.terminalError(w, r, "create_terminal_session", terminal.ErrUnavailable)
-				return
-			}
-			if owner == nil || owner.PodID == "" || (owner.PodID != a.ownerLocator.PodID() && owner.PodAddr == "") {
-				a.terminalError(w, r, "create_terminal_session", terminal.ErrUnavailable)
-				return
-			}
-			if owner.PodID != a.ownerLocator.PodID() {
-				a.proxy.ProxyHTTP(w, r, owner.PodAddr)
-				return
+	if a.ownerLocator != nil && a.proxy != nil {
+		if a.proxy.HasSpoofedPeerHeader(r) {
+			a.terminalError(w, r, "create_terminal_session", terminal.ErrUnavailable)
+			return
+		}
+		if !a.proxy.IsInternalPeer(r) {
+			if connID, err := a.terminals.ConnectorForLabInstance(r.Context(), labID); err == nil && connID != uuid.Nil {
+				owner, err := a.ownerLocator.LookupConnector(r.Context(), connID)
+				if err != nil {
+					a.terminalError(w, r, "create_terminal_session", terminal.ErrUnavailable)
+					return
+				}
+				if owner == nil || owner.PodID == "" || (owner.PodID != a.ownerLocator.PodID() && owner.PodAddr == "") {
+					a.terminalError(w, r, "create_terminal_session", terminal.ErrUnavailable)
+					return
+				}
+				if owner.PodID != a.ownerLocator.PodID() {
+					a.proxy.ProxyHTTP(w, r, owner.PodAddr)
+					return
+				}
 			}
 		}
 	}
@@ -197,16 +203,26 @@ func (a *api) closeTerminalSession(w http.ResponseWriter, r *http.Request) {
 		a.terminalError(w, r, "close_terminal_session", terminal.ErrNotFound)
 		return
 	}
-	if a.ownerLocator != nil && a.proxy != nil && !a.proxy.IsInternalPeer(r) {
-		owner, err := a.ownerLocator.LookupTerminal(r.Context(), sessionID)
-		if err != nil {
-			if !errors.Is(err, valkeyowner.ErrNoOwner) {
-				a.terminalError(w, r, "close_terminal_session", terminal.ErrUnavailable)
+	if a.ownerLocator != nil && a.proxy != nil {
+		if a.proxy.HasSpoofedPeerHeader(r) {
+			a.terminalError(w, r, "close_terminal_session", terminal.ErrUnavailable)
+			return
+		}
+		if !a.proxy.IsInternalPeer(r) {
+			owner, err := a.ownerLocator.LookupTerminal(r.Context(), sessionID)
+			if err != nil {
+				if !errors.Is(err, valkeyowner.ErrNoOwner) {
+					a.terminalError(w, r, "close_terminal_session", terminal.ErrUnavailable)
+					return
+				}
+			} else if owner != nil && owner.PodID != "" && owner.PodID != a.ownerLocator.PodID() {
+				if owner.PodAddr == "" {
+					a.terminalError(w, r, "close_terminal_session", terminal.ErrUnavailable)
+					return
+				}
+				a.proxy.ProxyHTTP(w, r, owner.PodAddr)
 				return
 			}
-		} else if owner.PodID != "" && owner.PodID != a.ownerLocator.PodID() {
-			a.proxy.ProxyHTTP(w, r, owner.PodAddr)
-			return
 		}
 	}
 	if err := a.terminals.Close(r.Context(), principal.User, sessionID); err != nil {

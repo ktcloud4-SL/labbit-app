@@ -2,10 +2,15 @@ package valkeyowner
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,34 +22,157 @@ const (
 	HeaderInternalPeer = "X-Labbit-Internal-Peer"
 	// HeaderPeerSecret은 peer-to-peer 인증용 공유 비밀값이다.
 	HeaderPeerSecret = "X-Labbit-Peer-Secret"
+
+	// maxProxyFrameBytes는 프록시 터널에서 허용하는 최대 WebSocket 프레임 크기(16 MiB)다.
+	// 초기 control 핸드셰이크의 낮은 ReadLimit(4 KiB)이 프록시 후 PTY/파일 바이너리 스트림을 차단하지 않도록 상향한다.
+	maxProxyFrameBytes = 16 << 20
 )
+
+var (
+	// ErrInvalidTargetAddr는 peer 대상 주소가 유효하지 않거나 SSRF 위험 대역임을 나타낸다.
+	ErrInvalidTargetAddr = errors.New("valkeyowner: 유효하지 않은 peer 대상 주소")
+	// ErrPeerAuthRequired는 peer secret 미설정 또는 다중 홉 루프 시도를 나타낸다.
+	ErrPeerAuthRequired = errors.New("valkeyowner: peer 인증 설정 필요 또는 프록시 루프 차단")
+)
+
+var hopByHopHeaders = map[string]bool{
+	"Connection":          true,
+	"Keep-Alive":          true,
+	"Proxy-Authenticate":  true,
+	"Proxy-Authorization": true,
+	"Te":                  true,
+	"Trailers":            true,
+	"Transfer-Encoding":   true,
+	"Upgrade":             true,
+}
+
+// ValidateTargetAddr는 peer 대상 주소(host:port)의 형식과 SSRF 안전성을 검증한다.
+// 메타데이터 IP(169.254.0.0/16, fd00:ec2::254), 미지정 주소(0.0.0.0, ::), 멀티캐스트,
+// 내부 관리 포트(9090), URL 제어문자 및 자기 자신(selfAddr)으로의 프록시를 거부한다.
+func ValidateTargetAddr(targetAddr string, selfAddr string) error {
+	targetAddr = strings.TrimSpace(targetAddr)
+	if targetAddr == "" {
+		return ErrInvalidTargetAddr
+	}
+	if selfAddr != "" && targetAddr == strings.TrimSpace(selfAddr) {
+		return ErrInvalidTargetAddr
+	}
+	if strings.ContainsAny(targetAddr, "/\\@?# \t\r\n") {
+		return ErrInvalidTargetAddr
+	}
+	host, portStr, err := net.SplitHostPort(targetAddr)
+	if err != nil || host == "" || portStr == "" {
+		return ErrInvalidTargetAddr
+	}
+	port, err := strconv.Atoi(portStr)
+	if err != nil || port < 1 || port > 65535 || port == 9090 {
+		return ErrInvalidTargetAddr
+	}
+
+	if ip := net.ParseIP(host); ip != nil {
+		if ip.IsUnspecified() || ip.IsMulticast() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+			return ErrInvalidTargetAddr
+		}
+		// AWS IPv6 IMDS (fd00:ec2::254) 차단
+		if strings.EqualFold(ip.String(), "fd00:ec2::254") {
+			return ErrInvalidTargetAddr
+		}
+		return nil
+	}
+
+	lowerHost := strings.ToLower(host)
+	if lowerHost == "metadata.google.internal" || lowerHost == "metadata" || lowerHost == "instance-data" {
+		return ErrInvalidTargetAddr
+	}
+	for i := 0; i < len(host); i++ {
+		c := host[i]
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '.') {
+			return ErrInvalidTargetAddr
+		}
+	}
+	return nil
+}
 
 // Proxy는 Pod 간 HTTP 및 WebSocket 터널링 프록시다.
 type Proxy struct {
-	secret string
-	client *http.Client
+	secret   string
+	selfAddr string
+	client   *http.Client
 }
 
 // NewProxy는 Proxy를 생성한다.
 func NewProxy(secret string) *Proxy {
+	return NewProxyWithSelf(secret, "")
+}
+
+// NewProxyWithSelf는 자기 자신의 PodAddr를 알고 있는 Proxy를 생성한다.
+func NewProxyWithSelf(secret, selfAddr string) *Proxy {
 	return &Proxy{
-		secret: secret,
+		secret:   secret,
+		selfAddr: strings.TrimSpace(selfAddr),
 		client: &http.Client{
 			Timeout: 30 * time.Second,
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
 		},
 	}
 }
 
-// IsInternalPeer는 요청이 신뢰할 수 있는 피어로부터 왔는지 검사한다.
+// IsInternalPeer는 요청이 신뢰할 수 있는 피어로부터 왔는지 상수 시간 비교로 검사한다.
 func (p *Proxy) IsInternalPeer(req *http.Request) bool {
-	if p.secret == "" {
+	if p == nil || req == nil {
 		return false
 	}
-	return req.Header.Get(HeaderInternalPeer) == "true" && req.Header.Get(HeaderPeerSecret) == p.secret
+	return p.IsInternalPeerFromHeader(req.Header)
+}
+
+// IsInternalPeerFromHeader는 헤더가 신뢰할 수 있는 피어로부터 왔는지 상수 시간 비교로 검사한다.
+func (p *Proxy) IsInternalPeerFromHeader(h http.Header) bool {
+	if p == nil || p.secret == "" || h == nil {
+		return false
+	}
+	if h.Get(HeaderInternalPeer) != "true" {
+		return false
+	}
+	got := h.Get(HeaderPeerSecret)
+	if len(got) != len(p.secret) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(got), []byte(p.secret)) == 1
+}
+
+// HasSpoofedPeerHeader는 외부 클라이언트가 유효하지 않은 내부 피어 헤더를 위조해 보냈는지 검사한다.
+func (p *Proxy) HasSpoofedPeerHeader(req *http.Request) bool {
+	if req == nil {
+		return false
+	}
+	return p.HasSpoofedPeerHeaderFromHeader(req.Header)
+}
+
+// HasSpoofedPeerHeaderFromHeader는 헤더에 위조된 내부 피어 헤더가 있는지 검사한다.
+func (p *Proxy) HasSpoofedPeerHeaderFromHeader(h http.Header) bool {
+	if h == nil {
+		return false
+	}
+	hasPeerHeader := h.Get(HeaderInternalPeer) != "" || h.Get(HeaderPeerSecret) != ""
+	if !hasPeerHeader {
+		return false
+	}
+	return !p.IsInternalPeerFromHeader(h)
 }
 
 // ProxyHTTP는 들어온 HTTP 요청을 대상 Pod로 투명하게 중계한다.
 func (p *Proxy) ProxyHTTP(w http.ResponseWriter, req *http.Request, targetAddr string) {
+	if p == nil || p.secret == "" || p.IsInternalPeer(req) || p.HasSpoofedPeerHeader(req) {
+		http.Error(w, "peer proxy unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	if err := ValidateTargetAddr(targetAddr, p.selfAddr); err != nil {
+		http.Error(w, "invalid peer target", http.StatusServiceUnavailable)
+		return
+	}
+
 	targetURL := url.URL{
 		Scheme:   "http",
 		Host:     targetAddr,
@@ -58,17 +186,19 @@ func (p *Proxy) ProxyHTTP(w http.ResponseWriter, req *http.Request, targetAddr s
 		return
 	}
 
-	// 헤더 복사
+	// 안전한 헤더만 복사 (hop-by-hop 및 내부 헤더 제거)
 	for k, vv := range req.Header {
+		canonical := http.CanonicalHeaderKey(k)
+		if hopByHopHeaders[canonical] || strings.HasPrefix(strings.ToLower(canonical), "x-labbit-") {
+			continue
+		}
 		for _, v := range vv {
-			proxyReq.Header.Add(k, v)
+			proxyReq.Header.Add(canonical, v)
 		}
 	}
 	// 피어 인증 헤더 추가
 	proxyReq.Header.Set(HeaderInternalPeer, "true")
-	if p.secret != "" {
-		proxyReq.Header.Set(HeaderPeerSecret, p.secret)
-	}
+	proxyReq.Header.Set(HeaderPeerSecret, p.secret)
 
 	resp, err := p.client.Do(proxyReq)
 	if err != nil {
@@ -77,10 +207,14 @@ func (p *Proxy) ProxyHTTP(w http.ResponseWriter, req *http.Request, targetAddr s
 	}
 	defer resp.Body.Close()
 
-	// 응답 복사
+	// 응답 복사 (hop-by-hop 제외)
 	for k, vv := range resp.Header {
+		canonical := http.CanonicalHeaderKey(k)
+		if hopByHopHeaders[canonical] {
+			continue
+		}
 		for _, v := range vv {
-			w.Header().Add(k, v)
+			w.Header().Add(canonical, v)
 		}
 	}
 	w.WriteHeader(resp.StatusCode)
@@ -90,6 +224,15 @@ func (p *Proxy) ProxyHTTP(w http.ResponseWriter, req *http.Request, targetAddr s
 // ProxyWebSocket은 클라이언트 WebSocket 연결을 업그레이드하고 대상 Pod로 양방향 프록시한다.
 // firstFrame이 제공되면 대상 Pod에 연결 후 즉시 전송한다 (attach correlation 전달용).
 func (p *Proxy) ProxyWebSocket(w http.ResponseWriter, req *http.Request, targetAddr string, firstFrame []byte, subprotocol string) error {
+	if p == nil || p.secret == "" || p.IsInternalPeer(req) || p.HasSpoofedPeerHeader(req) {
+		http.Error(w, "peer proxy unavailable", http.StatusServiceUnavailable)
+		return ErrPeerAuthRequired
+	}
+	if err := ValidateTargetAddr(targetAddr, p.selfAddr); err != nil {
+		http.Error(w, "invalid peer target", http.StatusServiceUnavailable)
+		return err
+	}
+
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
@@ -103,120 +246,51 @@ func (p *Proxy) ProxyWebSocket(w http.ResponseWriter, req *http.Request, targetA
 	}
 	defer clientConn.Close()
 
-	targetScheme := "ws"
-	if req.TLS != nil {
-		targetScheme = "wss"
-	}
-	targetWSURL := targetScheme + "://" + targetAddr + req.URL.RequestURI()
-
-	upstreamHeaders := http.Header{}
+	extra := http.Header{}
 	for _, cookie := range req.Cookies() {
-		upstreamHeaders.Add("Cookie", cookie.String())
+		extra.Add("Cookie", cookie.String())
 	}
 	if auth := req.Header.Get("Authorization"); auth != "" {
-		upstreamHeaders.Set("Authorization", auth)
+		extra.Set("Authorization", auth)
 	}
 	if origin := req.Header.Get("Origin"); origin != "" {
-		upstreamHeaders.Set("Origin", origin)
+		extra.Set("Origin", origin)
 	}
-	upstreamHeaders.Set(HeaderInternalPeer, "true")
-	if p.secret != "" {
-		upstreamHeaders.Set(HeaderPeerSecret, p.secret)
-	}
-
-	dialer := websocket.Dialer{
-		HandshakeTimeout: 5 * time.Second,
-	}
-	if subprotocol != "" {
-		dialer.Subprotocols = []string{subprotocol}
-	}
-
-	upstreamConn, _, err := dialer.DialContext(req.Context(), targetWSURL, upstreamHeaders)
-	if err != nil {
-		_ = clientConn.WriteMessage(websocket.CloseMessage,
-			websocket.FormatCloseMessage(4003, "peer connection failed"))
-		return err
-	}
-	defer upstreamConn.Close()
-
-	// 이미 수신한 첫 프레임(attach frame)이 있다면 upstream으로 즉시 전달
-	if len(firstFrame) > 0 {
-		if err := upstreamConn.WriteMessage(websocket.TextMessage, firstFrame); err != nil {
-			return err
-		}
-	}
-
-	// 양방향 터널 펌프 (메모리 스트리밍, PTY 비영속 원칙 준수)
-	ctx, cancel := context.WithCancel(req.Context())
-	defer cancel()
-
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	// client -> upstream
-	go func() {
-		defer wg.Done()
-		defer cancel()
-		for {
-			msgType, data, err := clientConn.ReadMessage()
-			if err != nil {
-				return
-			}
-			if err := upstreamConn.WriteMessage(msgType, data); err != nil {
-				return
-			}
-		}
-	}()
-
-	// upstream -> client
-	go func() {
-		defer wg.Done()
-		defer cancel()
-		for {
-			msgType, data, err := upstreamConn.ReadMessage()
-			if err != nil {
-				return
-			}
-			if err := clientConn.WriteMessage(msgType, data); err != nil {
-				return
-			}
-		}
-	}()
-
-	<-ctx.Done()
-	// graceful close signaling
-	_ = clientConn.WriteControl(websocket.CloseMessage,
-		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Now().Add(time.Second))
-	_ = upstreamConn.WriteControl(websocket.CloseMessage,
-		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Now().Add(time.Second))
-
-	// timeout으로 고아 고루틴 방지
-	done := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(done)
-	}()
-	select {
-	case <-done:
-	case <-time.After(500 * time.Millisecond):
-	}
-
-	return nil
+	return p.ProxyWebSocketUpstream(clientConn, targetAddr, req.URL.RequestURI(), firstFrame, subprotocol, extra)
 }
 
 // ProxyWebSocketUpstream은 이미 핸드셰이크된 clientConn을 대상 targetAddr의 path로 WebSocket 다이얼하여 연결하고 양방향으로 릴레이한다.
 func (p *Proxy) ProxyWebSocketUpstream(clientConn *websocket.Conn, targetAddr string, path string, initialMsg []byte, subprotocol string, extraHeaders http.Header) error {
+	if p == nil || p.secret == "" || p.IsInternalPeerFromHeader(extraHeaders) || p.HasSpoofedPeerHeaderFromHeader(extraHeaders) {
+		_ = clientConn.WriteControl(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseInternalServerErr, "peer proxy unavailable"), time.Now().Add(time.Second))
+		return ErrPeerAuthRequired
+	}
+	if err := ValidateTargetAddr(targetAddr, p.selfAddr); err != nil {
+		_ = clientConn.WriteControl(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseInternalServerErr, "invalid peer target"), time.Now().Add(time.Second))
+		return err
+	}
+	if path == "" || path[0] != '/' {
+		_ = clientConn.WriteControl(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseInternalServerErr, "invalid peer path"), time.Now().Add(time.Second))
+		return ErrInvalidTargetAddr
+	}
+
 	targetURL := "ws://" + targetAddr + path
 	headers := http.Header{}
 	for k, vv := range extraHeaders {
+		canonical := http.CanonicalHeaderKey(k)
+		if hopByHopHeaders[canonical] || strings.HasPrefix(strings.ToLower(canonical), "x-labbit-") {
+			continue
+		}
 		for _, v := range vv {
-			headers.Add(k, v)
+			headers.Add(canonical, v)
 		}
 	}
 	headers.Set(HeaderInternalPeer, "true")
-	if p.secret != "" {
-		headers.Set(HeaderPeerSecret, p.secret)
-	}
+	headers.Set(HeaderPeerSecret, p.secret)
+
 	dialer := websocket.Dialer{
 		HandshakeTimeout: 5 * time.Second,
 	}
@@ -225,11 +299,14 @@ func (p *Proxy) ProxyWebSocketUpstream(clientConn *websocket.Conn, targetAddr st
 	}
 	upstreamConn, _, err := dialer.Dial(targetURL, headers)
 	if err != nil {
-		_ = clientConn.WriteMessage(websocket.CloseMessage,
-			websocket.FormatCloseMessage(4003, "peer connection failed"))
+		_ = clientConn.WriteControl(websocket.CloseMessage,
+			websocket.FormatCloseMessage(4003, "peer connection failed"), time.Now().Add(time.Second))
 		return err
 	}
 	defer upstreamConn.Close()
+
+	clientConn.SetReadLimit(maxProxyFrameBytes)
+	upstreamConn.SetReadLimit(maxProxyFrameBytes)
 
 	if len(initialMsg) > 0 {
 		if err := upstreamConn.WriteMessage(websocket.TextMessage, initialMsg); err != nil {
@@ -240,6 +317,25 @@ func (p *Proxy) ProxyWebSocketUpstream(clientConn *websocket.Conn, targetAddr st
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	var closeOnce sync.Once
+	forwardClose := func(dst *websocket.Conn, err error) {
+		closeOnce.Do(func() {
+			code := websocket.CloseNormalClosure
+			text := ""
+			var closeErr *websocket.CloseError
+			if errors.As(err, &closeErr) {
+				code = closeErr.Code
+				text = closeErr.Text
+			}
+			if code == websocket.CloseNoStatusReceived || code == websocket.CloseAbnormalClosure || code == websocket.CloseTLSHandshake {
+				code = websocket.CloseNormalClosure
+				text = ""
+			}
+			_ = dst.WriteControl(websocket.CloseMessage,
+				websocket.FormatCloseMessage(code, text), time.Now().Add(time.Second))
+		})
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -250,6 +346,7 @@ func (p *Proxy) ProxyWebSocketUpstream(clientConn *websocket.Conn, targetAddr st
 		for {
 			msgType, data, err := clientConn.ReadMessage()
 			if err != nil {
+				forwardClose(upstreamConn, err)
 				return
 			}
 			if err := upstreamConn.WriteMessage(msgType, data); err != nil {
@@ -265,6 +362,7 @@ func (p *Proxy) ProxyWebSocketUpstream(clientConn *websocket.Conn, targetAddr st
 		for {
 			msgType, data, err := upstreamConn.ReadMessage()
 			if err != nil {
+				forwardClose(clientConn, err)
 				return
 			}
 			if err := clientConn.WriteMessage(msgType, data); err != nil {
@@ -274,10 +372,9 @@ func (p *Proxy) ProxyWebSocketUpstream(clientConn *websocket.Conn, targetAddr st
 	}()
 
 	<-ctx.Done()
-	_ = clientConn.WriteControl(websocket.CloseMessage,
-		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Now().Add(time.Second))
-	_ = upstreamConn.WriteControl(websocket.CloseMessage,
-		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Now().Add(time.Second))
+	forwardClose(clientConn, nil)
+	_ = clientConn.SetReadDeadline(time.Now())
+	_ = upstreamConn.SetReadDeadline(time.Now())
 
 	done := make(chan struct{})
 	go func() {

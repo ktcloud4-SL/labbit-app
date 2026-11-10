@@ -405,7 +405,11 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal, cre
 		epoch, err := h.ownerLocator.RegisterConnector(regCtx, principal.ConnectorID, 0, 15*time.Second, onLost)
 		regCancel()
 		if err != nil {
-			log.Warn("Connector Control 소유자 등록 실패 - fail-closed 거절", "error", err)
+			errCode := "LOCATOR_UNAVAILABLE"
+			if errors.Is(err, valkeyowner.ErrStaleEpoch) {
+				errCode = "STALE_EPOCH"
+			}
+			log.Warn("Connector Control 소유자 등록 실패 - fail-closed 거절", "error_code", errCode)
 			if errors.Is(err, valkeyowner.ErrStaleEpoch) {
 				cc.close(closeReplaced, "superseded by newer session")
 			} else {

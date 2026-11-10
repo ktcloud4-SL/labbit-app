@@ -131,7 +131,7 @@ func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket
 	// Connector identity는 credential에서 결정한 값이다. message가 주장한 값은 기대한 TerminalSession과 대조할 뿐 identity가 아니다.
 	s := r.lookup(msg.TerminalSessionID)
 	if s == nil {
-		if r.ownerLocator != nil && r.proxy != nil {
+		if r.ownerLocator != nil && r.proxy != nil && !r.proxy.IsInternalPeerFromHeader(reqHeader) && !r.proxy.HasSpoofedPeerHeaderFromHeader(reqHeader) {
 			ctx, cancel := context.WithTimeout(context.Background(), controlTimeout)
 			owner, oerr := r.ownerLocator.LookupTerminal(ctx, msg.TerminalSessionID)
 			cancel()
@@ -142,7 +142,7 @@ func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket
 				}
 				_ = ws.SetReadDeadline(time.Time{})
 				if err := r.proxy.ProxyWebSocketUpstream(ws, owner.PodAddr, DataPath, data, DataSubprotocol, extra); err != nil {
-					log.Warn("Connector Terminal Data peer proxy failed", "error", err)
+					log.Warn("Connector Terminal Data peer proxy failed", "reason", "peer_proxy_failed")
 				}
 				return
 			}

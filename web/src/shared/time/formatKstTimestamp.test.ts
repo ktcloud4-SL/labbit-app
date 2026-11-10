@@ -23,6 +23,18 @@ describe('formatKstTimestamp', () => {
     expect(formatKstTimestamp('2026-13-10T00:00:00Z')).toBe('확인 불가')
   })
 
+  it('존재하지 않는 날짜를 JS가 자동 보정하더라도 유효한 관측시각으로 표시하지 않는다', () => {
+    expect(formatKstTimestamp('2026-02-30T08:38:22Z')).toBe('확인 불가')
+    expect(formatKstTimestamp('2026-02-29T08:38:22Z')).toBe('확인 불가')
+    expect(formatKstTimestamp('2026-04-31T08:38:22Z')).toBe('확인 불가')
+    expect(formatKstTimestamp('2026-11-10T24:00:00Z')).toBe('확인 불가')
+    expect(formatKstTimestamp('2026-11-10T08:38:60Z')).toBe('확인 불가')
+  })
+
+  it('윤년의 2월 29일은 정상적으로 KST에 변환한다', () => {
+    expect(formatKstTimestamp('2024-02-29T08:38:22Z')).toBe('2024-02-29 17:38:22 KST')
+  })
+
   it('timezone 정보가 없는 시각은 브라우저 로컬 시각으로 추정하지 않는다', () => {
     expect(formatKstTimestamp('2026-11-10T08:38:22')).toBe('확인 불가')
   })

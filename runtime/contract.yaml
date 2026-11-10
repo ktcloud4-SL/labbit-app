@@ -1,4 +1,4 @@
-version: "0.1.8"
+version: "0.1.9"
 kind: "LabbitRuntimeContract"
 
 scope:
@@ -106,7 +106,32 @@ saas:
             운영 metric만 노출합니다. high-cardinality resource/request/session 식별자는
             metric label로 사용할 수 없습니다.
 
+
+  maintenance:
+    admission: >-
+      LABBIT_MAINTENANCE_FILE이 미설정이면 기존 동작입니다. 설정하면 매 admission마다 파일을 읽으며
+      공백을 제거한 내용이 open일 때만 허용합니다. closed, 누락, 읽기 오류, 16 byte 초과 입력은 차단합니다.
+      새 Provision/Reset/Cleanup 및 Terminal/Preview/Live session POST, Browser Terminal/Live WSS,
+      Preview Gateway의 모든 요청은 business side effect/Upgrade 전에 503(code maintenance)으로 거절합니다.
+      Connector Control과 Connector Data, 기존 API 읽기와 DELETE close는 유지합니다.
+      Worker는 새 claim을 멈추며 이미 허용한 claim/execution은 완료까지 추적합니다.
+    barrier: >-
+      각 process는 파일 관측과 admission 등록을 같은 lock으로 직렬화합니다. labbit_maintenance_closed=1과
+      labbit_maintenance_active{kind=http|browser|preview|worker}=0을 모든 serving process에서 확인해야 합니다.
+      Browser active는 Upgrade 이후 handler 종료까지 포함합니다. DB snapshot만으로 barrier를 대체할 수 없습니다.
+      기존 session은 close API로 drain합니다. 자동 강제 종료나 deadline 만료에 따른 자동 재개는 없습니다.
+    platform: >-
+      모든 serving Pod/role과 restart에 동일한 read-only 파일 설정을 강제해야 합니다.
+      파일 변경 권한은 trusted infrastructure operator에게만 주며 application ServiceAccount는 쓰기 권한이 없어야 합니다.
+      Kubernetes에서는 GitOps desired state의 ConfigMap directory mount(subPath 금지)와 기존 Kubernetes auth/RBAC를 사용합니다.
+      전파는 원자적이지 않으므로 모든 Pod 관측 전에는 진입 완료가 아닙니다. 진입/해제 확인 중 rollout/HPA 변경을 동결하고
+      새 Pod가 생기면 전체 barrier 확인을 다시 시작합니다. readiness는 Control 유지를 위해 maintenance로 내리지 않습니다.
+      timeout에는 rollout을 중단하고 명시적으로 open을 복원·검증합니다. 불명 상태에서 Connector를 변경하지 않습니다.
   config:
+    LABBIT_MAINTENANCE_FILE:
+      required: false
+      secret: false
+      note: "trusted operator가 관리하는 read-only admission mode 파일. 미설정은 maintenance 기능 비활성."
     LABBIT_RUNTIME_ROLES:
       required: true
       secret: false

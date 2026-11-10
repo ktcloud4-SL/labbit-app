@@ -23,6 +23,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/filetransport"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/maintenance"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
@@ -36,12 +37,13 @@ const (
 )
 
 type Config struct {
-	Environment   string
-	Roles         []string
-	HTTPAddr      string
-	AdminAddr     string
-	LogLevel      string
-	ShutdownGrace time.Duration
+	MaintenanceFile string
+	Environment     string
+	Roles           []string
+	HTTPAddr        string
+	AdminAddr       string
+	LogLevel        string
+	ShutdownGrace   time.Duration
 	// DatabaseDSN은 Secret이다. 로그·오류 메시지에 기록하지 않는다.
 	DatabaseDSN string
 	// PublicOrigin은 api role의 Browser unsafe-method Origin 검증과 realtime role의 Browser WSS Upgrade Origin 검증에 쓰는
@@ -108,15 +110,16 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
-		Environment:   environment,
-		Roles:         roles,
-		HTTPAddr:      envOrDefault("LABBIT_HTTP_ADDR", defaultHTTPAddr),
-		AdminAddr:     envOrDefault("LABBIT_ADMIN_ADDR", defaultAdminAddr),
-		LogLevel:      envOrDefault("LABBIT_LOG_LEVEL", "info"),
-		ShutdownGrace: grace,
-		DatabaseDSN:   databaseDSN,
-		PublicOrigin:  publicOrigin,
-		Tracing:       tracing.ConfigFromEnv(os.Getenv),
+		MaintenanceFile: os.Getenv("LABBIT_MAINTENANCE_FILE"),
+		Environment:     environment,
+		Roles:           roles,
+		HTTPAddr:        envOrDefault("LABBIT_HTTP_ADDR", defaultHTTPAddr),
+		AdminAddr:       envOrDefault("LABBIT_ADMIN_ADDR", defaultAdminAddr),
+		LogLevel:        envOrDefault("LABBIT_LOG_LEVEL", "info"),
+		ShutdownGrace:   grace,
+		DatabaseDSN:     databaseDSN,
+		PublicOrigin:    publicOrigin,
+		Tracing:         tracing.ConfigFromEnv(os.Getenv),
 	}
 
 	// preview role이 enabled되면 허용 port, TTL, Origin template이 모두 명시되어야 한다. 하나라도 없거나 올바르지 않으면 startup에 실패한다.
@@ -183,6 +186,8 @@ func Run(ctx context.Context, cfg Config) error {
 	logger := observability.NewJSONLogger("labbit-server", "bootstrap", cfg.Environment, cfg.LogLevel)
 	ready := &atomic.Bool{}
 	registry, httpMetrics, realtimeMetrics, workerMetrics := applicationMetrics(cfg.Roles)
+	gate := maintenance.New(cfg.MaintenanceFile)
+	registry.MustRegister(gate)
 
 	// Trace는 업무 성공 조건이 아니다. Start는 실패하지 않으며 설정 오류와 exporter 초기화 실패는 안전한 진단 뒤 export만 끈다.
 	// exporter가 없어도 Span과 W3C Context 전파, log의 trace_id correlation은 그대로다.
@@ -233,6 +238,7 @@ func Run(ctx context.Context, cfg Config) error {
 				OperationSink:   harness.sink(),
 				Worker:          slices.Contains(cfg.Roles, "worker"),
 				WorkerReady:     databaseReady,
+				Admission:       gate.Enter,
 				PublicOrigin:    cfg.PublicOrigin,
 				Realtime:        slices.Contains(cfg.Roles, "realtime"),
 				HTTPMetrics:     httpMetrics,
@@ -276,7 +282,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	applicationServer := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           applicationHandler(appRoutes),
+		Handler:           applicationHandler(maintenanceRoutes(appRoutes, gate)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	if stack != nil {
@@ -566,4 +572,35 @@ func envOrDefault(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// maintenanceRoutes wraps the existing handlers without changing their business
+// routing or the Connector Control/data paths needed by admitted work.
+func maintenanceRoutes(rt routes, gate *maintenance.Gate) routes {
+	if rt.API != nil {
+		next := rt.API
+		mux := http.NewServeMux()
+		mux.Handle("/", next)
+		for _, pattern := range []string{
+			"POST /api/v1/classes/{classId}/lab-executions",
+			"POST /api/v1/lab-executions/{labExecutionId}/cleanup",
+			"POST /api/v1/lab-instances/{labInstanceId}/reset",
+			"POST /api/v1/lab-instances/{labInstanceId}/terminal-sessions",
+			"POST /api/v1/lab-instances/{labInstanceId}/preview-sessions",
+			"POST /api/v1/terminal-sessions/{terminalSessionId}/live-sessions",
+		} {
+			mux.Handle(pattern, gate.Wrap("http", next))
+		}
+		rt.API = mux
+	}
+	if rt.BrowserTerminal != nil {
+		rt.BrowserTerminal = gate.Wrap("browser", rt.BrowserTerminal)
+	}
+	if rt.BrowserLive != nil {
+		rt.BrowserLive = gate.Wrap("browser", rt.BrowserLive)
+	}
+	if rt.PreviewGateway != nil {
+		rt.PreviewGateway = gate.Wrap("preview", rt.PreviewGateway)
+	}
+	return rt
 }

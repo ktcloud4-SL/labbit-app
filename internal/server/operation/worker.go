@@ -17,6 +17,7 @@ import (
 )
 
 type WorkerOptions struct {
+	Admission     func(string) (func(), bool)
 	Store         repository.OperationWorkerStore
 	LeaseDuration time.Duration
 	// Execute runs after claim commit, on the worker lifecycle context. The
@@ -68,6 +69,17 @@ func NewWorker(opts WorkerOptions) (*Worker, error) {
 // context. true means an item was durably claimed, including when execution fails.
 // Failure/cancellation leaves the RUNNING item intact for later reconciliation.
 func (w *Worker) RunOne(ctx context.Context) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	if w.opts.Admission != nil {
+		release, ok := w.opts.Admission("worker")
+		if !ok {
+			return false, nil
+		}
+		defer release()
+	}
+
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}

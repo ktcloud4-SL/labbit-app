@@ -298,3 +298,5 @@ v0.1 구현 시 최소한 다음을 검증합니다.
 - 느린 Terminal Browser가 Live fan-out을 block하지 않습니다.
 - Terminal/Live content가 로그·DB·trace·disk에 남지 않습니다.
 - JSON Schema 정상/비정상 control message validation이 동작합니다.
+
+Maintenance admission은 [Runtime Contract](../../runtime/contract.yaml)의 maintenance 경계를 따릅니다. 활성화 시 새 Browser Terminal/Live Upgrade는 503(code `maintenance`)이며 기존 연결은 close/drain까지 유지합니다.

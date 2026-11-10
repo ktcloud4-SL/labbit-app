@@ -27,6 +27,7 @@ type Router interface {
 // Options keeps PROVISION-only callers compatible; Mutations enables the other
 // durable operation types on the same Worker/Router/EventSink.
 type Options struct {
+	Admission        func(string) (func(), bool)
 	Store            repository.ProvisionWorkerStore
 	Mutations        repository.MutationWorkerStore
 	Reconciliation   repository.ReconciliationStore
@@ -105,7 +106,7 @@ func NewExecutor(opts Options) (*Executor, error) {
 		}
 		claims = reconciliationClaims{OperationWorkerStore: claims, store: opts.Reconciliation}
 	}
-	w, err := operation.NewWorker(operation.WorkerOptions{Store: claims, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Execute: p.execute, Metrics: opts.Metrics})
+	w, err := operation.NewWorker(operation.WorkerOptions{Store: claims, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Admission: opts.Admission, Execute: p.execute, Metrics: opts.Metrics})
 	if err != nil {
 		return nil, err
 	}

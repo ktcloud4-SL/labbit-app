@@ -67,3 +67,29 @@ LABBIT_WORKSPACE_SFTP_HELPER_SHA256=5a31b45369409b0420f4a3c3611b7e06eb65b315e3e5
 각 시험은 공식 Cleanup을 완료했고 마지막 시험은 생성부터 정리 완료까지 약 11분 38초였다. 소유 자원 10개 DELETED, 원래 Cloud baseline 일치, CIDR 4쌍 사용 가능을 확인했다. [검증 기록과 한계](evidence/LBT-147/2026-10-28-runtime-recovery/README.md)에 자동·fixture·실환경 범위를 구분했다.
 
 과거 강사 접속의 약 10초 timeout은 당시 상세 단계가 남지 않아 SSH 협상 지연과 요청 취소 중 정확한 유발 원인을 소급 확정하지 못했다. 공유 dial 취소 결함은 회귀로 재현·수정했고 현재 첫 접속은 실측했지만, 그 결함이 과거 장애의 유일한 원인이었다고 단정하지 않는다. 새 진단 로그는 동일 증상 재발 시 단계와 context 종료를 구분하기 위한 것이다.
+
+## LBT-197 Connector 교체 전 admission 점검 (독립 리뷰 필요)
+
+Backend 전체 중단은 co-located Connector Control도 끊으므로 Control 유지 조건을 만족하지 않는다. gateway directResponse는 direct Service/Pod 접근과 worker claim을 막지 못한다. admission 의미와 파일 형식은 [Runtime Contract](../../runtime/contract.yaml)의 maintenance가 원본이다. 이 절차는 운영 실행 승인이나 v0.1.4 배포 완료 증거가 아니다.
+
+사전 준비: 독립 리뷰·배포 승인을 받은 Backend artifact를 별도로 배포한다. GitOps desired state에서 모든 serving Pod에 LABBIT_MAINTENANCE_FILE과 같은 ConfigMap directory의 read-only mount를 설정한다. subPath 및 application writer 권한은 금지한다. 초기 파일 내용은 open이다. ConfigMap update 권한은 기존 Kubernetes 인증을 사용하는 trusted operator로 제한하고 application ServiceAccount와 일반 사용자에게 patch/update 권한이 없는지 kubectl auth can-i로 확인한다. admin mutation endpoint는 없다. GitOps reconciler의 소유권·복원 경로를 확인하며 imperative patch와 selfHeal을 경쟁시키지 않는다. 외부 GitOps/RBAC가 완료되었다고 간주하지 않는다.
+
+진입: 10분 budget 안에서 전파·drain·교체·복원을 마칠 시한과 담당자를 정한다. 복원 여유가 없으면 교체를 시작하지 않는다. rollout/HPA 변경을 동결하고 serving Pod UID 집합을 기록한다. desired file을 closed로 변경한다. 모든 Pod의 admin /metrics를 각각 조회하여 labbit_maintenance_closed=1과 모든 labbit_maintenance_active kind=0을 확인한다. 단일 Service scrape로 전체 Pod를 대표하지 않는다. 기존 Browser WSS/PreviewSession은 기존 DELETE close API로 종료한다. Control과 Data는 유지되어 admitted 작업이 완료될 수 있다. 새 Pod가 생기면 barrier 확인을 다시 시작한다. readiness는 Control 유지를 위해 정상이어야 한다.
+
+읽기 전용 DB 보조 증거: barrier 전후 같은 target DB에서 아래 snapshot을 얻는다. DSN/credential은 출력하지 않는다. PENDING/RECONCILING은 정지된 backlog이며 완료로 처리하지 않는다. 실행 중 lease/세션 또는 불명 Provider 결과가 남으면 교체를 중단한다. PreviewSession은 DB table이 아닌 runtime 상태이므로 DELETE close와 Preview lifecycle 증거로 확인한다. lifecycle sweep이 metadata를 바꿀 수 있으므로 DB 전체 무변경을 가정하지 않는다.
+
+```sql
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;
+SELECT status, count(*) FROM operations GROUP BY status;
+SELECT status, count(*), count(*) FILTER (WHERE lease_expires_at > now()) AS live_leases
+FROM operation_items GROUP BY status;
+SELECT status, count(*) FROM terminal_sessions GROUP BY status;
+SELECT count(*) AS unended_live FROM live_sessions WHERE ended_at IS NULL;
+COMMIT;
+```
+
+교체 전 실측: 양쪽 public host와 direct ClusterIP/Pod에서 여섯 POST admission, Browser Terminal/Live Upgrade, Preview host가 503인지 확인한다. GET state와 DELETE close, Control heartbeat는 유지되어야 한다. 기존 WSS 종료를 확인한다. barrier와 DB snapshot은 어느 하나로 대체하지 않는다. maintenance 중 restart/rolling replacement의 차단을 비운영 환경에서 먼저 확인한다. 기존 v0.1.3은 이 단계까지 계속 실행한다.
+
+실패/해제: 전파·drain·health timeout에는 교체를 시작하지 않고 desired file을 open으로 복원한다. 모든 Pod에서 closed=0, readiness, 정상 admission과 Control heartbeat를 재확인한다. 불확실한 교체 중 mutation을 피하려고 자동 만료/fail-open은 제공하지 않는다. 복원 실패는 incident로 보고하며 Connector writer를 임의 재시작하지 않는다. 반복 enter/exit는 동일 상태를 재확인한다.
+
+자동 검증 범위는 파일 누락/오류 차단, 같은 파일을 읽는 새 gate의 restart 차단, 반복 enter/exit, handler·preclaimed worker drain 경쟁, method/path/Host별 차단 및 Control/Data/close/read 유지다. 실제 전체 Pod 전파/RBAC, DB snapshot, 10분 내 복원, WSS drain 및 Connector 교체는 별도 인수 증거가 필요하다. 유료 VM 검증은 추가하지 않는다.

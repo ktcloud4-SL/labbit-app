@@ -34,7 +34,8 @@ import (
 // stackOptions는 api role의 조립 입력이다. 시간 값은 0이면 각 구성 요소의 계약 기본값이며, Run은 기본값만 쓴다.
 // 0이 아닌 값은 60초 grace나 heartbeat 같은 긴 시간을 test에서 기다리지 않도록 주입하는 용도다.
 type stackOptions struct {
-	Logger *slog.Logger
+	Admission func(string) (func(), bool)
+	Logger    *slog.Logger
 	// Worker enables PROVISION/RESET/CLEANUP on this api process's own Router.
 	Worker                                                                bool
 	ProvisionLeaseDuration, ProvisionResultTimeout, ProvisionPollInterval time.Duration
@@ -136,7 +137,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	if opts.Worker {
 		stack.Provisions, err = provision.NewExecutor(provision.Options{
 			Store: store, Mutations: store, Reconciliation: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
-			Metrics: opts.WorkerMetrics,
+			Metrics: opts.WorkerMetrics, Admission: opts.Admission,
 			CloseForMutation: func(ctx context.Context, d repository.ProvisionDispatch) error {
 				reason := "LAB_RESET"
 				if d.MutationType == "CLEANUP" {

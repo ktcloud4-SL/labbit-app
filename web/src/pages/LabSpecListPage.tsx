@@ -87,7 +87,7 @@ export function LabSpecListPage() {
             새 실습 정의
           </Link>
         ) : (
-          <div className="header-action">
+          <div className="header-action labspec-permission-action">
             <p className="muted" role="status">
               {createPermissionQuery.isPending
                 ? '실습 정의 작성 권한 확인 중...'

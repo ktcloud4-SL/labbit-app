@@ -56,6 +56,12 @@ describe('LoginPage', () => {
       </QueryClientProvider>,
     )
 
+    // The login hint must apply equally to Local and AWS accounts.
+    expect(
+      screen.getByText('계정으로 로그인하여 수업과 실습 환경을 이용하세요.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Local Account/i)).not.toBeInTheDocument()
+
     fireEvent.change(screen.getByLabelText('사용자 이름'), {
       target: { value: 'unknown-user' },
     })

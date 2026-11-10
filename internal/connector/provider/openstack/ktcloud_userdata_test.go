@@ -11,7 +11,10 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"mime"
+	"mime/multipart"
 	"net/http"
+	"net/mail"
 	"strings"
 	"testing"
 
@@ -110,7 +113,8 @@ func TestKTCloudCompressibleStartupPassesPreflightAndServerCreate(t *testing.T) 
 			}
 			decoded, readErr := io.ReadAll(reader)
 			closeErr := reader.Close()
-			if readErr != nil || closeErr != nil || !bytes.Equal(decoded, before) || fmt.Sprintf("%x", sha256.Sum256(decoded)) != digest {
+			startup := ktUserStartupPart(t, decoded)
+			if readErr != nil || closeErr != nil || !bytes.Equal(startup, before) || fmt.Sprintf("%x", sha256.Sum256(startup)) != digest {
 				t.Fatal("startup content or SHA256 changed during transport")
 			}
 			writeJSON(t, w, 202, map[string]any{"server": map[string]any{"id": "created-server"}})
@@ -154,12 +158,8 @@ func TestKTCloudServerPreservesStartupScriptThroughCompressedUserData(t *testing
 					if json.NewDecoder(r.Body).Decode(&body) != nil {
 						t.Fatal("invalid request JSON")
 					}
-					value, present := body.Server["user_data"]
-					if script == "" {
-						if present {
-							t.Fatal("empty startup must omit user_data")
-						}
-					} else {
+					value := body.Server["user_data"]
+					{
 						encoded, ok := value.(string)
 						if !ok {
 							t.Fatal("user_data must be base64 text")
@@ -174,7 +174,7 @@ func TestKTCloudServerPreservesStartupScriptThroughCompressedUserData(t *testing
 						}
 						decoded, err := io.ReadAll(reader)
 						closeErr := reader.Close()
-						if err != nil || closeErr != nil || !bytes.Equal(decoded, before) {
+						if err != nil || closeErr != nil || !bytes.Equal(ktUserStartupPart(t, decoded), before) {
 							t.Fatal("immutable startup content changed")
 						}
 					}
@@ -189,4 +189,37 @@ func TestKTCloudServerPreservesStartupScriptThroughCompressedUserData(t *testing
 			}
 		})
 	}
+}
+
+func ktUserStartupPart(t *testing.T, data []byte) []byte {
+	t.Helper()
+	message, err := mail.ReadMessage(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, params, err := mime.ParseMediaType(message.Header.Get("Content-Type"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader := multipart.NewReader(message.Body, params["boundary"])
+	bootstrap, err := reader.NextPart()
+	if err != nil || bootstrap.Header.Get("Content-Type") != "text/cloud-boothook" {
+		t.Fatal("management boot part is required even without user startup")
+	}
+	part, err := reader.NextPart()
+	if err == io.EOF {
+		return nil
+	}
+	if err != nil || part.FileName() != "labbit-user-startup" || part.Header.Get("Content-Transfer-Encoding") != "base64" {
+		t.Fatal("immutable startup must be a separate base64 MIME part")
+	}
+	encoded, err := io.ReadAll(part)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := base64.StdEncoding.DecodeString(string(encoded))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return decoded
 }

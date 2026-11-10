@@ -36,6 +36,7 @@ function mountLabSpecFlow(
       { path: '/lab-specs', element: <LabSpecListPage /> },
       { path: '/lab-specs/new', element: <LabSpecEditorPage /> },
       { path: '/lab-specs/:labSpecId', element: detailElement },
+      { path: '/login', element: <div>로그인 화면</div> },
     ],
     { initialEntries: [initialPath] },
   )
@@ -100,6 +101,23 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
 
     expect(await screen.findByRole('link', { name: '새 실습 정의' })).toBeInTheDocument()
     expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(2)
+  })
+
+  it('MappingOptions 401이면 인증 세션 만료로 이동하고 이전 Query 캐시를 정리한다', async () => {
+    const listLabSpecMappingOptions = vi.fn(async () => {
+      throw new HttpError(401)
+    })
+    const { router, client } = mountLabSpecFlow({ listLabSpecMappingOptions })
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
+    expect(router.state.location.state).toMatchObject({
+      from: '/lab-specs',
+      reason: 'sessionExpired',
+    })
+    expect(screen.getByText('로그인 화면')).toBeInTheDocument()
+    expect(client.getQueryData(labbitQueryKeys.me)).toBeUndefined()
+    expect(client.getQueryData(labbitQueryKeys.labSpecs)).toBeUndefined()
+    expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(1)
   })
 
   it('목록의 새 실습 정의 링크로 이동하고 빈 이름은 저장 요청 전에 차단한다', async () => {

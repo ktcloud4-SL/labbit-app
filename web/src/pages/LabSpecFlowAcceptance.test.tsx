@@ -167,7 +167,9 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: '새 실습 정의' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/lab-specs/new')
-    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
+    // A direct route entry revalidates cached Mapping permission first.
+    // Await the enabled form instead of racing the transient read-only state.
+    fireEvent.click(await screen.findByRole('button', { name: '실습 정의 저장' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('LabSpec 이름을 입력해 주세요.')
     expect(createLabSpec).not.toHaveBeenCalled()

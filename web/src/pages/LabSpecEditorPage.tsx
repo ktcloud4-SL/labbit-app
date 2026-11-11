@@ -59,6 +59,7 @@ interface LabSpecDraftBackup {
 interface LabSpecFormProps {
   mappingOptions: LabSpecMappingOptionsList
   mappingError?: 'forbidden' | 'unavailable'
+  permissionChecking: boolean
   initial: LabSpecWrite
   readOnly: boolean
   saving: boolean
@@ -76,6 +77,7 @@ function LabSpecForm({
   initial,
   mappingOptions,
   mappingError,
+  permissionChecking,
   readOnly,
   saving,
   saveError,
@@ -163,6 +165,8 @@ function LabSpecForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    // A stale cached capability is not permission to submit while revalidating.
+    if (readOnly || saving) return
     setValidationError(null)
 
     const normalized: LabSpecWrite = {
@@ -242,8 +246,10 @@ function LabSpecForm({
     <form className="labspec-form" onSubmit={handleSubmit}>
       {readOnly && (
         <div className="notice-card notice-warning">
-          {mappingError === 'forbidden'
-            ? 'Mapping 후보를 조회할 강사 권한이 없습니다. 기존 실습 정의는 읽기 전용으로 확인할 수 있지만 수정·저장할 수 없습니다.'
+          {permissionChecking
+            ? '실습 정의 작성 권한을 다시 확인하는 중입니다. 확인이 끝날 때까지 수정·저장할 수 없습니다.'
+            : mappingError === 'forbidden'
+              ? 'Mapping 후보를 조회할 강사 권한이 없습니다. 기존 실습 정의는 읽기 전용으로 확인할 수 있지만 수정·저장할 수 없습니다.'
             : mappingError === 'unavailable'
               ? 'Image/Size Mapping 후보를 불러오지 못했습니다. 기존 실습 정의는 읽기 전용으로 확인할 수 있지만 수정·저장할 수 없습니다.'
               : '다른 강사가 소유한 실습 정의입니다. 현재 계정에서는 내용을 확인만 할 수 있습니다.'}
@@ -782,9 +788,12 @@ export function LabSpecEditorPage() {
     )
   }
 
-  if (isNew && (mappingOptionsQuery.error || !mappingOptionsQuery.data)) {
-    const forbidden = mappingOptionsQuery.error instanceof HttpError &&
-      mappingOptionsQuery.error.status === 403
+  const mappingForbidden = mappingOptionsQuery.error instanceof HttpError &&
+    mappingOptionsQuery.error.status === 403
+  // Keep a dirty create form mounted on transient 5xx when cached Mapping data
+  // exists. The form remains read-only and offers retry; 403 still blocks it.
+  if (isNew && (mappingForbidden || !mappingOptionsQuery.data)) {
+    const forbidden = mappingForbidden
     return (
       <main className="app-page">
         <ErrorState message={forbidden
@@ -855,13 +864,14 @@ export function LabSpecEditorPage() {
       <LabSpecForm
         mappingOptions={mappingOptionsQuery.data ?? { items: [] }}
         mappingError={mappingError}
+        permissionChecking={mappingOptionsQuery.isFetching}
         key={
           isNew
             ? 'new-lab-spec'
             : `${resolvedLabSpecId}:${versionedLabSpec?.etag ?? 'missing-etag'}`
         }
         initial={initial}
-        readOnly={!isOwner || Boolean(mappingError)}
+        readOnly={!isOwner || Boolean(mappingError) || mappingOptionsQuery.isFetching}
         saving={saveMutation.isPending}
         saveError={saveMutation.error}
         requireEtag={requireEtag}

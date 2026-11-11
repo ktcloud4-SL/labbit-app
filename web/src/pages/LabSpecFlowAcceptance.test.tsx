@@ -20,6 +20,7 @@ function mountLabSpecFlow(
   overrides: Partial<typeof mockLabbitApi> = {},
   initialPath = '/lab-specs',
   detailElement: ReactNode = <div>LabSpec 저장 완료</div>,
+  setupClient?: (client: QueryClient) => void,
 ) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -31,6 +32,7 @@ function mountLabSpecFlow(
     listLabSpecMappingOptions: async () => mockLabSpecMappingOptions,
     ...overrides,
   }
+  setupClient?.(client)
   const router = createMemoryRouter(
     [
       { path: '/lab-specs', element: <LabSpecListPage /> },
@@ -51,6 +53,34 @@ function mountLabSpecFlow(
 }
 
 describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
+  it('캐시된 강사 권한이 서버 재검증 중이면 생성 CTA를 숨기고 403 결과를 반영한다', async () => {
+    let denyProbe!: (reason?: unknown) => void
+    const delayedProbe = new Promise<{ items: [] }>((_, reject) => {
+      denyProbe = reject
+    })
+    const listLabSpecMappingOptions = vi.fn(() => delayedProbe)
+    mountLabSpecFlow(
+      { listLabSpecMappingOptions },
+      '/lab-specs',
+      <div>LabSpec 저장 완료</div>,
+      (client) => client.setQueryData(
+        labbitQueryKeys.labSpecMappingOptions(mockMe.organization.id, mockMe.id),
+        { items: [] },
+      ),
+    )
+
+    await screen.findByRole('heading', { name: '실습 정의' })
+    await waitFor(() => expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(1))
+    // React Query may retain a previously successful result while refetching.
+    // Cached 200 must not expose a create CTA until a fresh capability decision.
+    expect(screen.queryByRole('link', { name: '새 실습 정의' })).not.toBeInTheDocument()
+    expect(screen.getByText('실습 정의 작성 권한 확인 중...')).toBeInTheDocument()
+
+    await act(async () => { denyProbe(new HttpError(403)) })
+    expect(await screen.findByText('실습 정의 작성은 강사 권한이 필요합니다.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '새 실습 정의' })).not.toBeInTheDocument()
+  })
+
   it('조직 MEMBER여도 강사 Membership을 서버가 인정하면 생성 CTA를 표시한다', async () => {
     // /me.organizationRole is not the Create permission. MappingOptions 200
     // verifies any-Class INSTRUCTOR membership, independently of nonempty options.

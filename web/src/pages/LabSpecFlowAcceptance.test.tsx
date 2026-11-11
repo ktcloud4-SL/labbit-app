@@ -424,6 +424,7 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
       })
     })
     expect(await screen.findByRole('button', { name: 'Mapping 후보 다시 시도' })).toBeInTheDocument()
+    expect(screen.getByText('Image/Size Mapping 후보를 불러오지 못했습니다. 다시 확인할 때까지 수정·저장할 수 없습니다.')).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('Unsent draft stays here')
     expect(screen.getByRole('textbox', { name: '이름' })).toBeDisabled()
     expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()

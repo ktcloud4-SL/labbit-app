@@ -335,6 +335,106 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     expect(createLabSpec).toHaveBeenCalledTimes(1)
   })
 
+  it('생성 화면 직접 접근 시 캐시된 200을 재검증하는 동안 입력·저장을 잠근 뒤 복구한다', async () => {
+    let confirmPermission!: (value: typeof mockLabSpecMappingOptions) => void
+    const pending = new Promise<typeof mockLabSpecMappingOptions>((resolve) => {
+      confirmPermission = resolve
+    })
+    const probe = vi.fn(() => pending)
+    const createLabSpec = vi.fn(async () => {
+      throw new Error('권한 재검증 중에는 호출하지 않아야 함')
+    })
+    mountLabSpecFlow(
+      { listLabSpecMappingOptions: probe, createLabSpec },
+      '/lab-specs/new',
+      <div>LabSpec 저장 완료</div>,
+      (client) => client.setQueryData(
+        labbitQueryKeys.labSpecMappingOptions(mockMe.organization.id, mockMe.id),
+        mockLabSpecMappingOptions,
+      ),
+    )
+
+    expect(await screen.findByRole('heading', { name: '새 실습 정의' })).toBeInTheDocument()
+    await waitFor(() => expect(probe).toHaveBeenCalledTimes(1))
+    expect(screen.getByText(/실습 정의 작성 권한을 다시 확인하는 중입니다/)).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '이름' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
+    expect(createLabSpec).not.toHaveBeenCalled()
+
+    await act(async () => { confirmPermission(mockLabSpecMappingOptions) })
+    expect(await screen.findByRole('button', { name: '실습 정의 저장' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '이름' })).toBeEnabled()
+    expect(createLabSpec).not.toHaveBeenCalled()
+  })
+
+  it('생성 화면에서 이전 200 캐시가 있어도 최신 401이면 로그인으로 이동하고 저장을 차단한다', async () => {
+    let rejectPermission!: (reason: unknown) => void
+    const pending = new Promise<typeof mockLabSpecMappingOptions>((_, reject) => {
+      rejectPermission = reject
+    })
+    const createLabSpec = vi.fn(async () => {
+      throw new Error('인증 만료 후 저장할 수 없음')
+    })
+    const { router, client } = mountLabSpecFlow(
+      { listLabSpecMappingOptions: () => pending, createLabSpec },
+      '/lab-specs/new',
+      <div>LabSpec 저장 완료</div>,
+      (queryClient) => queryClient.setQueryData(
+        labbitQueryKeys.labSpecMappingOptions(mockMe.organization.id, mockMe.id),
+        mockLabSpecMappingOptions,
+      ),
+    )
+    const clearSpy = vi.spyOn(client, 'clear')
+    expect(await screen.findByRole('heading', { name: '새 실습 정의' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
+
+    await act(async () => { rejectPermission(new HttpError(401)) })
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
+    expect(router.state.location.state).toMatchObject({
+      from: '/lab-specs/new',
+      reason: 'sessionExpired',
+    })
+    expect(clearSpy).toHaveBeenCalled()
+    expect(createLabSpec).not.toHaveBeenCalled()
+    clearSpy.mockRestore()
+  })
+
+  it('작성 중 Mapping 재조회 503은 미저장 입력을 보존하고 저장을 잠근 뒤 재시도 복구한다', async () => {
+    const listLabSpecMappingOptions = vi.fn()
+      .mockResolvedValueOnce(mockLabSpecMappingOptions)
+      .mockRejectedValueOnce(new HttpError(503))
+      .mockResolvedValueOnce(mockLabSpecMappingOptions)
+    const createLabSpec = vi.fn(async () => {
+      throw new Error('503 권한 미확인 동안 저장할 수 없음')
+    })
+    const { client } = mountLabSpecFlow(
+      { listLabSpecMappingOptions, createLabSpec },
+      '/lab-specs/new',
+    )
+    expect(await screen.findByRole('button', { name: '실습 정의 저장' })).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'Unsent draft stays here' },
+    })
+
+    await act(async () => {
+      await client.invalidateQueries({
+        queryKey: labbitQueryKeys.labSpecMappingOptions(mockMe.organization.id, mockMe.id),
+      })
+    })
+    expect(await screen.findByRole('button', { name: 'Mapping 후보 다시 시도' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('Unsent draft stays here')
+    expect(screen.getByRole('textbox', { name: '이름' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
+    expect(createLabSpec).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mapping 후보 다시 시도' }))
+    expect(await screen.findByRole('button', { name: '실습 정의 저장' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('Unsent draft stays here')
+    expect(screen.getByRole('textbox', { name: '이름' })).toBeEnabled()
+    expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(3)
+    expect(createLabSpec).not.toHaveBeenCalled()
+  })
+
   it('Mapping 권한 403이면 편집기를 차단하고 저장을 호출하지 않는다', async () => {
     const createLabSpec = vi.fn(async () => {
       throw new Error('403에서는 호출하지 않아야 함')

@@ -456,6 +456,39 @@ func (b *lockedBuffer) String() string {
 	return b.buf.String()
 }
 
+type fakePreviewOwnerLocator struct {
+	mu          sync.Mutex
+	registered  map[string]uuid.UUID
+	released    []string
+	registerErr error
+	releaseErr  error
+}
+
+func newFakePreviewOwnerLocator() *fakePreviewOwnerLocator {
+	return &fakePreviewOwnerLocator{registered: make(map[string]uuid.UUID)}
+}
+
+func (l *fakePreviewOwnerLocator) RegisterPreview(_ context.Context, sessionID string, connID uuid.UUID, _ int64, _ time.Duration) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.registerErr != nil {
+		return l.registerErr
+	}
+	l.registered[sessionID] = connID
+	return nil
+}
+
+func (l *fakePreviewOwnerLocator) ReleasePreview(_ context.Context, sessionID string) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.releaseErr != nil {
+		return l.releaseErr
+	}
+	delete(l.registered, sessionID)
+	l.released = append(l.released, sessionID)
+	return nil
+}
+
 // fixture는 Service와 fake 경계를 묶는다.
 type fixture struct {
 	t          *testing.T

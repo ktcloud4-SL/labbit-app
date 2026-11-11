@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/livesession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 // LiveSession 관련 Problem code다.
@@ -22,6 +24,10 @@ type LiveSessions interface {
 	Create(ctx context.Context, user repository.User, sourceTerminalSessionID string) (repository.LiveSession, error)
 	GetActive(ctx context.Context, user repository.User, classID string) (repository.LiveSession, error)
 	Close(ctx context.Context, user repository.User, liveSessionID string) error
+}
+
+type liveTerminalResolver interface {
+	SourceTerminalForLiveSession(ctx context.Context, liveSessionID string) (string, error)
 }
 
 type unavailableLiveSessions struct{}
@@ -52,7 +58,33 @@ func (a *api) createLiveSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := a.liveSessions.Create(r.Context(), principal.User, r.PathValue("terminalSessionId"))
+	termID := r.PathValue("terminalSessionId")
+	if _, err := uuid.Parse(termID); err == nil && a.ownerLocator != nil && a.proxy != nil {
+		if a.proxy.HasSpoofedPeerHeader(r) {
+			a.liveError(w, r, "create_live_session", livesession.ErrUnavailable)
+			return
+		}
+		if !a.proxy.IsInternalPeer(r) {
+			owner, err := a.ownerLocator.LookupTerminal(r.Context(), termID)
+			if err != nil {
+				if !errors.Is(err, valkeyowner.ErrNoOwner) {
+					a.liveError(w, r, "create_live_session", livesession.ErrUnavailable)
+					return
+				}
+			} else {
+				if owner == nil || owner.PodID == "" || (owner.PodID != a.ownerLocator.PodID() && owner.PodAddr == "") {
+					a.liveError(w, r, "create_live_session", livesession.ErrUnavailable)
+					return
+				}
+				if owner.PodID != a.ownerLocator.PodID() {
+					a.proxy.ProxyHTTP(w, r, owner.PodAddr)
+					return
+				}
+			}
+		}
+	}
+
+	session, err := a.liveSessions.Create(r.Context(), principal.User, termID)
 	if err != nil {
 		a.liveError(w, r, "create_live_session", err)
 		return
@@ -94,7 +126,37 @@ func (a *api) closeLiveSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.liveSessions.Close(r.Context(), principal.User, r.PathValue("liveSessionId")); err != nil {
+	liveID := r.PathValue("liveSessionId")
+	if _, err := uuid.Parse(liveID); err == nil && a.ownerLocator != nil && a.proxy != nil {
+		if a.proxy.HasSpoofedPeerHeader(r) {
+			a.liveError(w, r, "close_live_session", livesession.ErrUnavailable)
+			return
+		}
+		if !a.proxy.IsInternalPeer(r) {
+			if resolver, ok := a.liveSessions.(liveTerminalResolver); ok {
+				if termID, err := resolver.SourceTerminalForLiveSession(r.Context(), liveID); err == nil && termID != "" {
+					owner, lErr := a.ownerLocator.LookupTerminal(r.Context(), termID)
+					if lErr != nil {
+						if !errors.Is(lErr, valkeyowner.ErrNoOwner) {
+							a.liveError(w, r, "close_live_session", livesession.ErrUnavailable)
+							return
+						}
+					} else {
+						if owner == nil || owner.PodID == "" || (owner.PodID != a.ownerLocator.PodID() && owner.PodAddr == "") {
+							a.liveError(w, r, "close_live_session", livesession.ErrUnavailable)
+							return
+						}
+						if owner.PodID != a.ownerLocator.PodID() {
+							a.proxy.ProxyHTTP(w, r, owner.PodAddr)
+							return
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if err := a.liveSessions.Close(r.Context(), principal.User, liveID); err != nil {
 		a.liveError(w, r, "close_live_session", err)
 		return
 	}

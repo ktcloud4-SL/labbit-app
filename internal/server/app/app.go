@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"slices"
@@ -26,11 +27,13 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 const (
 	defaultHTTPAddr  = ":8080"
 	defaultAdminAddr = ":9090"
+	defaultPeerAddr  = ":8081"
 
 	readinessCheckTimeout = 2 * time.Second
 )
@@ -40,6 +43,7 @@ type Config struct {
 	Roles         []string
 	HTTPAddr      string
 	AdminAddr     string
+	PeerAddr      string
 	LogLevel      string
 	ShutdownGrace time.Duration
 	// DatabaseDSN은 Secret이다. 로그·오류 메시지에 기록하지 않는다.
@@ -59,6 +63,16 @@ type Config struct {
 	// Tracing은 OTEL_* Trace 설정이다. 업무 필수 설정이 아니므로 오류가 있어도 LoadConfig는 실패하지 않고, Run이 안전한 진단을 남기고
 	// export 없이 계속한다. 값의 zero value는 export 없는 none이다.
 	Tracing tracing.Config
+
+	// Valkey owner locator configuration for multi-pod topologies (LBT-198)
+	ValkeyAddr          string
+	ValkeyUsername      string
+	ValkeyPassword      string
+	ValkeyTLS           bool
+	ValkeyTLSServerName string
+	PodID               string
+	PodAddr             string
+	PeerSecret          string
 }
 
 // LoadConfig는 현재 구현된 role에 필요한 Runtime Contract 항목만 읽는다.
@@ -107,16 +121,72 @@ func LoadConfig() (Config, error) {
 		}
 	}
 
+	valkeyAddr := strings.TrimSpace(os.Getenv("LABBIT_VALKEY_ADDR"))
+	if valkeyAddr == "" {
+		valkeyAddr = strings.TrimSpace(os.Getenv("VALKEY_ADDR"))
+	}
+	peerAddr := envOrDefault("LABBIT_PEER_ADDR", defaultPeerAddr)
+	podID := strings.TrimSpace(os.Getenv("LABBIT_POD_ID"))
+	if podID == "" {
+		podID = strings.TrimSpace(os.Getenv("POD_NAME"))
+	}
+	podAddr := strings.TrimSpace(os.Getenv("LABBIT_POD_ADDR"))
+	if podAddr == "" {
+		podIP := strings.TrimSpace(os.Getenv("POD_IP"))
+		if podIP != "" {
+			peerPort := "8081"
+			if peerAddr != "" {
+				_, p, err := net.SplitHostPort(peerAddr)
+				if err == nil && p != "" {
+					peerPort = p
+				}
+			}
+			podAddr = net.JoinHostPort(podIP, peerPort)
+		}
+	}
+
+	var valkeyUsername, valkeyPassword, valkeyTLSServerName, peerSecret string
+	var valkeyTLS bool
+	if valkeyAddr != "" {
+		valkeyUsername = strings.TrimSpace(os.Getenv("LABBIT_VALKEY_USERNAME"))
+		valkeyPassword, err = valkeyowner.LoadSecretValue(environment, "LABBIT_VALKEY_PASSWORD_FILE", "LABBIT_VALKEY_PASSWORD", false)
+		if err != nil {
+			return Config{}, err
+		}
+		rawTLS := strings.ToLower(strings.TrimSpace(os.Getenv("LABBIT_VALKEY_TLS")))
+		valkeyTLS = rawTLS == "true" || rawTLS == "1"
+		valkeyTLSServerName = strings.TrimSpace(os.Getenv("LABBIT_VALKEY_TLS_SERVER_NAME"))
+
+		peerSecret, err = valkeyowner.LoadSecretValue(environment, "LABBIT_PEER_SECRET_FILE", "LABBIT_PEER_SECRET", true)
+		if err != nil {
+			return Config{}, err
+		}
+		if peerSecret == "" {
+			return Config{}, errors.New("Valkey 활성화 시 LABBIT_PEER_SECRET_FILE 또는 LABBIT_PEER_SECRET이 필요합니다")
+		}
+	} else {
+		peerSecret = strings.TrimSpace(os.Getenv("LABBIT_PEER_SECRET"))
+	}
+
 	cfg := Config{
-		Environment:   environment,
-		Roles:         roles,
-		HTTPAddr:      envOrDefault("LABBIT_HTTP_ADDR", defaultHTTPAddr),
-		AdminAddr:     envOrDefault("LABBIT_ADMIN_ADDR", defaultAdminAddr),
-		LogLevel:      envOrDefault("LABBIT_LOG_LEVEL", "info"),
-		ShutdownGrace: grace,
-		DatabaseDSN:   databaseDSN,
-		PublicOrigin:  publicOrigin,
-		Tracing:       tracing.ConfigFromEnv(os.Getenv),
+		Environment:         environment,
+		Roles:               roles,
+		HTTPAddr:            envOrDefault("LABBIT_HTTP_ADDR", defaultHTTPAddr),
+		AdminAddr:           envOrDefault("LABBIT_ADMIN_ADDR", defaultAdminAddr),
+		PeerAddr:            peerAddr,
+		LogLevel:            envOrDefault("LABBIT_LOG_LEVEL", "info"),
+		ShutdownGrace:       grace,
+		DatabaseDSN:         databaseDSN,
+		PublicOrigin:        publicOrigin,
+		Tracing:             tracing.ConfigFromEnv(os.Getenv),
+		ValkeyAddr:          valkeyAddr,
+		ValkeyUsername:      valkeyUsername,
+		ValkeyPassword:      valkeyPassword,
+		ValkeyTLS:           valkeyTLS,
+		ValkeyTLSServerName: valkeyTLSServerName,
+		PodID:               podID,
+		PodAddr:             podAddr,
+		PeerSecret:          peerSecret,
 	}
 
 	// preview role이 enabled되면 허용 port, TTL, Origin template이 모두 명시되어야 한다. 하나라도 없거나 올바르지 않으면 startup에 실패한다.
@@ -228,8 +298,31 @@ func Run(ctx context.Context, cfg Config) error {
 			// api role이 Auth/Class HTTP와 Connector Control WSS를 소유한다. realtime role이 같은 process에서 함께 enabled되면
 			// 같은 Connector Registry/Router 위에 Terminal Relay와 TerminalSession 생성/종료를 조립한다.
 			// PROVISION uses this process's Router; the tagged C1 harness remains an optional observer.
+			var ownerLocator *valkeyowner.Locator
+			var peerProxy *valkeyowner.Proxy
+			if cfg.ValkeyAddr != "" {
+				locator, err := valkeyowner.NewLocator(valkeyowner.Config{
+					ValkeyAddr:    cfg.ValkeyAddr,
+					Username:      cfg.ValkeyUsername,
+					Password:      cfg.ValkeyPassword,
+					TLSEnabled:    cfg.ValkeyTLS,
+					TLSServerName: cfg.ValkeyTLSServerName,
+					PodID:         cfg.PodID,
+					PodAddr:       cfg.PodAddr,
+					PeerSecret:    cfg.PeerSecret,
+				})
+				if err != nil {
+					return fmt.Errorf("valkey locator init failed: %w", err)
+				}
+				defer locator.Close()
+				ownerLocator = locator
+				peerProxy = valkeyowner.NewProxyWithSelf(cfg.PeerSecret, locator.PodAddr())
+			}
+
 			stack, err = newControlStack(postgres.NewStore(pool), stackOptions{
 				Logger:          logger,
+				OwnerLocator:    ownerLocator,
+				PeerProxy:       peerProxy,
 				OperationSink:   harness.sink(),
 				Worker:          slices.Contains(cfg.Roles, "worker"),
 				WorkerReady:     databaseReady,
@@ -283,17 +376,33 @@ func Run(ctx context.Context, cfg Config) error {
 		// Shutdown은 hijack된 WebSocket connection을 닫지 않으므로 handler가 새 Upgrade 거절과 기존 connection drain을 맡는다.
 		applicationServer.RegisterOnShutdown(stack.close)
 	}
+
+	var peerServer *http.Server
+	if cfg.ValkeyAddr != "" && cfg.PeerAddr != "" && cfg.PeerAddr != cfg.HTTPAddr {
+		peerServer = &http.Server{
+			Addr:              cfg.PeerAddr,
+			Handler:           applicationHandler(appRoutes),
+			ReadHeaderTimeout: 5 * time.Second,
+		}
+		if stack != nil {
+			peerServer.RegisterOnShutdown(stack.close)
+		}
+	}
+
 	adminServer := &http.Server{
 		Addr:              cfg.AdminAddr,
 		Handler:           adminHandler(ready, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}), checks...),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	errCh := make(chan error, 2)
+	errCh := make(chan error, 3)
 	go serve(logger, "application", applicationServer, errCh)
+	if peerServer != nil {
+		go serve(logger, "peer", peerServer, errCh)
+	}
 	go serve(logger, "admin", adminServer, errCh)
 
-	// 두 listener의 Serve goroutine을 시작한 뒤 startup 완료로 전환한다.
+	// 세 listener의 Serve goroutine을 시작한 뒤 startup 완료로 전환한다.
 	// DB가 필요한 role의 PostgreSQL/schema 조건은 /readyz 요청마다 별도로 확인한다.
 	ready.Store(true)
 	defer harness.start(ctx, stack, logger)()
@@ -326,6 +435,7 @@ func Run(ctx context.Context, cfg Config) error {
 		"roles", strings.Join(cfg.Roles, ","),
 		"http_addr", cfg.HTTPAddr,
 		"admin_addr", cfg.AdminAddr,
+		"peer_addr", cfg.PeerAddr,
 	)
 
 	select {
@@ -348,6 +458,11 @@ func Run(ctx context.Context, cfg Config) error {
 	defer cancel()
 
 	applicationErr := applicationServer.Shutdown(shutdownCtx)
+	if peerServer != nil {
+		if peerErr := peerServer.Shutdown(shutdownCtx); peerErr != nil {
+			applicationErr = errors.Join(applicationErr, peerErr)
+		}
+	}
 	if stack != nil {
 		// http.Server.Shutdown은 hijack된 WebSocket을 기다리지 않는다. active TerminalSession을 종료하고 열린 Control/Terminal
 		// connection이 정리될 때까지 기다린다.

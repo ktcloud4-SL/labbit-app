@@ -212,6 +212,22 @@ func (s *Service) GetActive(ctx context.Context, user repository.User, classID s
 	return active, nil
 }
 
+// SourceTerminalForLiveSession은 LiveSession의 원본 TerminalSession ID를 반환한다.
+func (s *Service) SourceTerminalForLiveSession(ctx context.Context, liveSessionID string) (string, error) {
+	id, err := uuid.Parse(liveSessionID)
+	if err != nil {
+		return "", ErrNotFound
+	}
+	live, err := s.store.LiveSessionByID(ctx, id)
+	if errors.Is(err, repository.ErrNotFound) {
+		return "", ErrNotFound
+	}
+	if err != nil {
+		return "", fmt.Errorf("live session 조회: %w", err)
+	}
+	return live.SourceTerminalSessionID.String(), nil
+}
+
 // Close는 강사가 LiveSession을 명시적으로 종료한다.
 // source TerminalSession은 종료되지 않고 유지된다.
 func (s *Service) Close(ctx context.Context, user repository.User, liveSessionID string) error {

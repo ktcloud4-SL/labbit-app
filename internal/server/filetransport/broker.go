@@ -26,6 +26,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile"
 )
 
@@ -64,6 +65,12 @@ type Authenticator interface {
 	Authenticate(ctx context.Context, credential connector.Credential) (connector.Principal, error)
 }
 
+// OwnerLocator resolves the current Connector owner Pod in Valkey for cross-Pod File Data WSS routing.
+type OwnerLocator interface {
+	LookupConnector(ctx context.Context, connectorID uuid.UUID) (*valkeyowner.ConnectorOwnerRecord, error)
+	PodID() string
+}
+
 // Options는 Broker 구성이다.
 type Options struct {
 	Control Control
@@ -74,13 +81,18 @@ type Options struct {
 	AttachTimeout time.Duration
 	// OperationTimeout은 attach 뒤 요청 frame을 보내고 결과를 받는 데 쓸 수 있는 시간이다. 0이면 30초다.
 	OperationTimeout time.Duration
+	// OwnerLocator and Proxy enable cross-Pod File Data WSS proxying to the Connector owner Pod.
+	OwnerLocator OwnerLocator
+	Proxy        *valkeyowner.Proxy
 }
 
 // Broker는 workspacefile.Transport를 구현하는 Connector File transport다. connector.FileSink와 connector.RevokeObserver도 구현한다.
 type Broker struct {
-	control Control
-	auth    Authenticator
-	logger  *slog.Logger
+	control      Control
+	auth         Authenticator
+	logger       *slog.Logger
+	ownerLocator OwnerLocator
+	proxy        *valkeyowner.Proxy
 
 	attachTimeout time.Duration
 	opTimeout     time.Duration
@@ -111,6 +123,8 @@ func New(opts Options) (*Broker, error) {
 		control:       opts.Control,
 		auth:          opts.Auth,
 		logger:        opts.Logger,
+		ownerLocator:  opts.OwnerLocator,
+		proxy:         opts.Proxy,
 		attachTimeout: opts.AttachTimeout,
 		opTimeout:     opts.OperationTimeout,
 		trust:         newDataTrust(),

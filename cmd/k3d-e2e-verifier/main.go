@@ -1,0 +1,1358 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
+	"github.com/jackc/pgx/v5"
+	"github.com/valkey-io/valkey-go"
+
+	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
+)
+
+var releaseConnectorLua = valkey.NewLuaScript(`
+local existing = redis.call('GET', KEYS[1])
+if not existing then
+    return "OK"
+end
+local data = cjson.decode(existing)
+if data and data.pod_id == ARGV[1] and tonumber(data.epoch) == tonumber(ARGV[2]) then
+    redis.call('DEL', KEYS[1])
+end
+return "OK"
+`)
+
+type syntheticConnector struct {
+	base         string
+	fileDataBase string
+	cred         string
+	ctrl         *websocket.Conn
+	ctrlWrite    sync.Mutex
+	dataWs       *websocket.Conn
+	closed       chan struct{}
+	mutations    atomic.Int32
+}
+
+func startSyntheticConnector(base, cred string, fileDataBase ...string) (*syntheticConnector, error) {
+	wsBase := "ws" + strings.TrimPrefix(base, "http")
+	fBase := wsBase
+	if len(fileDataBase) > 0 && fileDataBase[0] != "" {
+		fBase = "ws" + strings.TrimPrefix(fileDataBase[0], "http")
+	}
+	dialer := websocket.Dialer{
+		Subprotocols:     []string{"labbit.connector.v1"},
+		HandshakeTimeout: 5 * time.Second,
+	}
+	headers := http.Header{"Authorization": []string{"Bearer " + cred}}
+	ws, _, err := dialer.Dial(wsBase+"/connector/v1/control", headers)
+	if err != nil {
+		return nil, fmt.Errorf("control dial failed: %w", err)
+	}
+
+	sc := &syntheticConnector{
+		base:         wsBase,
+		fileDataBase: fBase,
+		cred:         cred,
+		ctrl:         ws,
+		closed:       make(chan struct{}),
+	}
+
+	// 1. HELLO
+	nowStr := time.Now().UTC().Format(time.RFC3339Nano)
+	hello := map[string]any{
+		"type":      "HELLO",
+		"messageId": uuid.NewString(),
+		"sentAt":    nowStr,
+		"payload": map[string]any{
+			"connectorVersion": "k3d-spike-1.0.0",
+			"runtimeId":        "k3d-spike-runtime",
+			"startedAt":        nowStr,
+			"capabilities":     []string{"file-v1", "preview-v1"},
+		},
+	}
+	sc.writeControl(hello)
+
+	_ = ws.SetReadDeadline(time.Now().Add(5 * time.Second))
+	var ack map[string]any
+	if err := ws.ReadJSON(&ack); err != nil || ack["type"] != "HELLO_ACK" {
+		ws.Close()
+		return nil, fmt.Errorf("expected HELLO_ACK, got %v, err=%v", ack, err)
+	}
+	_ = ws.SetReadDeadline(time.Time{})
+
+	// Background heartbeat
+	go func() {
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-sc.closed:
+				return
+			case <-ticker.C:
+				nowStr := time.Now().UTC().Format(time.RFC3339Nano)
+				sc.writeControl(map[string]any{
+					"type":      "HEARTBEAT",
+					"messageId": uuid.NewString(),
+					"sentAt":    nowStr,
+					"payload":   map[string]any{"observedAt": nowStr},
+				})
+			}
+		}
+	}()
+
+	go sc.controlLoop()
+	return sc, nil
+}
+
+func (sc *syntheticConnector) controlLoop() {
+	defer close(sc.closed)
+	for {
+		_, data, err := sc.ctrl.ReadMessage()
+		if err != nil {
+			return
+		}
+		var msg struct {
+			Type              string          `json:"type"`
+			MessageID         string          `json:"messageId"`
+			RequestID         string          `json:"requestId"`
+			OperationID       string          `json:"operationId"`
+			TerminalSessionID string          `json:"terminalSessionId"`
+			FileRequestID     string          `json:"fileRequestId"`
+			PreviewSessionID  string          `json:"previewSessionId"`
+			LabInstanceID     string          `json:"labInstanceId"`
+			Generation        int64           `json:"generation"`
+			Payload           json.RawMessage `json:"payload"`
+		}
+		if json.Unmarshal(data, &msg) != nil {
+			continue
+		}
+		switch msg.Type {
+		case "OPERATION_COMMAND":
+			sc.mutations.Add(1)
+			nowStr := time.Now().UTC().Format(time.RFC3339Nano)
+			srvID := "vm-srv-" + msg.LabInstanceID
+			sc.writeControl(map[string]any{
+				"type":             "OPERATION_ACK",
+				"messageId":        uuid.NewString(),
+				"replyToMessageId": msg.MessageID,
+				"sentAt":           nowStr,
+				"operationId":      msg.OperationID,
+				"labInstanceId":    msg.LabInstanceID,
+				"generation":       msg.Generation,
+				"payload":          map[string]any{"accepted": true},
+			})
+			sc.writeControl(map[string]any{
+				"type":             "OPERATION_RESULT",
+				"messageId":        uuid.NewString(),
+				"replyToMessageId": msg.MessageID,
+				"sentAt":           nowStr,
+				"operationId":      msg.OperationID,
+				"labInstanceId":    msg.LabInstanceID,
+				"generation":       msg.Generation,
+				"payload": map[string]any{
+					"outcome": "SUCCEEDED",
+					"readiness": map[string]any{
+						"workspaceVmKey": "workspace",
+						"serverId":       srvID,
+						"generation":     msg.Generation,
+					},
+					"providerResources": []any{
+						map[string]any{
+							"resourceType":  "SERVER",
+							"logicalName":   "workspace",
+							"providerId":    srvID,
+							"generation":    msg.Generation,
+							"observedState": "ACTIVE",
+						},
+					},
+				},
+			})
+
+		case "TERMINAL_OPEN":
+			dialer := websocket.Dialer{
+				Subprotocols:     []string{"labbit.connector-terminal.v1"},
+				HandshakeTimeout: 5 * time.Second,
+			}
+			dataWs, _, err := dialer.Dial(sc.base+"/connector/v1/terminal-data", http.Header{"Authorization": []string{"Bearer " + sc.cred}})
+			if err != nil {
+				log.Printf("Terminal Data dial failed: %v", err)
+				nowStr := time.Now().UTC().Format(time.RFC3339Nano)
+				sc.writeControl(map[string]any{
+					"type":              "TERMINAL_OPEN_RESULT",
+					"messageId":         uuid.NewString(),
+					"replyToMessageId":  msg.MessageID,
+					"sentAt":            nowStr,
+					"terminalSessionId": msg.TerminalSessionID,
+					"labInstanceId":     msg.LabInstanceID,
+					"generation":        msg.Generation,
+					"payload":           map[string]any{"outcome": "FAILED", "error": map[string]any{"code": "ATTACH_FAILED"}},
+				})
+				continue
+			}
+			sc.dataWs = dataWs
+
+			nowStr := time.Now().UTC().Format(time.RFC3339Nano)
+			_ = dataWs.WriteJSON(map[string]any{
+				"type":              "TERMINAL_DATA_ATTACH",
+				"messageId":         uuid.NewString(),
+				"sentAt":            nowStr,
+				"terminalSessionId": msg.TerminalSessionID,
+				"labInstanceId":     msg.LabInstanceID,
+				"generation":        msg.Generation,
+				"payload":           map[string]any{"runtimeId": "k3d-spike-runtime"},
+			})
+
+			var attached map[string]any
+			_ = dataWs.SetReadDeadline(time.Now().Add(5 * time.Second))
+			_ = dataWs.ReadJSON(&attached)
+			_ = dataWs.SetReadDeadline(time.Time{})
+
+			nowStr = time.Now().UTC().Format(time.RFC3339Nano)
+			sc.writeControl(map[string]any{
+				"type":              "TERMINAL_OPEN_RESULT",
+				"messageId":         uuid.NewString(),
+				"replyToMessageId":  msg.MessageID,
+				"sentAt":            nowStr,
+				"terminalSessionId": msg.TerminalSessionID,
+				"labInstanceId":     msg.LabInstanceID,
+				"generation":        msg.Generation,
+				"payload":           map[string]any{"outcome": "SUCCEEDED"},
+			})
+
+			go func(dws *websocket.Conn) {
+				defer dws.Close()
+				for {
+					mType, mData, err := dws.ReadMessage()
+					if err != nil {
+						return
+					}
+					if mType == websocket.BinaryMessage {
+						_ = dws.WriteMessage(websocket.BinaryMessage, mData)
+					}
+				}
+			}(dataWs)
+
+		case "TERMINAL_CLOSE":
+			if sc.dataWs != nil {
+				_ = sc.dataWs.Close()
+			}
+			nowStr := time.Now().UTC().Format(time.RFC3339Nano)
+			sc.writeControl(map[string]any{
+				"type":              "TERMINAL_ENDED",
+				"messageId":         uuid.NewString(),
+				"sentAt":            nowStr,
+				"terminalSessionId": msg.TerminalSessionID,
+				"labInstanceId":     msg.LabInstanceID,
+				"generation":        msg.Generation,
+				"payload":           map[string]any{"reason": "SESSION_CLOSED"},
+			})
+
+		case "FILE_OPEN":
+			var openPayload struct {
+				Operation   string `json:"operation"`
+				TargetVMKey string `json:"targetVmKey"`
+				ServerID    string `json:"providerServerId"`
+			}
+			_ = json.Unmarshal(msg.Payload, &openPayload)
+			go func(fileReqID, labID, openMsgID string, gen int64, vmKey, srvID string) {
+				dialer := websocket.Dialer{
+					Subprotocols:     []string{"labbit.connector-file.v1"},
+					HandshakeTimeout: 5 * time.Second,
+				}
+				fWs, _, err := dialer.Dial(sc.fileDataBase+"/connector/v1/file-data", http.Header{"Authorization": []string{"Bearer " + sc.cred}})
+				if err != nil {
+					log.Printf("File Data dial failed: %v", err)
+					return
+				}
+				defer fWs.Close()
+				nowStr := time.Now().UTC().Format(time.RFC3339Nano)
+				_ = fWs.WriteJSON(map[string]any{
+					"type":          "FILE_DATA_ATTACH",
+					"messageId":     uuid.NewString(),
+					"sentAt":        nowStr,
+					"fileRequestId": fileReqID,
+					"labInstanceId": labID,
+					"generation":    gen,
+					"payload": map[string]any{
+						"runtimeId":        "k3d-spike-runtime",
+						"targetVmKey":      vmKey,
+						"providerServerId": srvID,
+					},
+				})
+				sc.writeControl(map[string]any{
+					"type":             "FILE_OPEN_RESULT",
+					"messageId":        uuid.NewString(),
+					"replyToMessageId": openMsgID,
+					"sentAt":           nowStr,
+					"fileRequestId":    fileReqID,
+					"labInstanceId":    labID,
+					"generation":       gen,
+					"payload":          map[string]any{"outcome": "SUCCEEDED"},
+				})
+				_ = fWs.SetReadDeadline(time.Now().Add(5 * time.Second))
+				var attached map[string]any
+				if err := fWs.ReadJSON(&attached); err != nil {
+					return
+				}
+				var reqEnv struct {
+					Type      string `json:"type"`
+					MessageID string `json:"messageId"`
+				}
+				if err := fWs.ReadJSON(&reqEnv); err != nil {
+					return
+				}
+				if reqEnv.Type == "FILE_TREE" {
+					_ = fWs.WriteJSON(map[string]any{
+						"type":             "FILE_TREE_RESULT",
+						"messageId":        uuid.NewString(),
+						"replyToMessageId": reqEnv.MessageID,
+						"sentAt":           time.Now().UTC().Format(time.RFC3339Nano),
+						"fileRequestId":    fileReqID,
+						"labInstanceId":    labID,
+						"generation":       gen,
+						"payload": map[string]any{
+							"outcome": "SUCCEEDED",
+							"entries": []map[string]any{
+								{"name": "main.go", "path": "main.go", "kind": "file"},
+							},
+						},
+					})
+				}
+			}(msg.FileRequestID, msg.LabInstanceID, msg.MessageID, msg.Generation, openPayload.TargetVMKey, openPayload.ServerID)
+
+		case "PREVIEW_OPEN":
+			var openPayload struct {
+				TargetVMKey string `json:"targetVmKey"`
+				ServerID    string `json:"providerServerId"`
+				TargetPort  int    `json:"targetPort"`
+			}
+			_ = json.Unmarshal(msg.Payload, &openPayload)
+			go func(prevID, labID, openMsgID string, gen int64, vmKey, srvID string, port int) {
+				dialer := websocket.Dialer{
+					Subprotocols:     []string{"labbit.connector-preview.v1"},
+					HandshakeTimeout: 5 * time.Second,
+				}
+				hdr := http.Header{"Authorization": []string{"Bearer " + sc.cred}}
+				nowStr := time.Now().UTC().Format(time.RFC3339Nano)
+				sc.writeControl(map[string]any{
+					"type":             "PREVIEW_OPEN_RESULT",
+					"messageId":        uuid.NewString(),
+					"replyToMessageId": openMsgID,
+					"sentAt":           nowStr,
+					"previewSessionId": prevID,
+					"labInstanceId":    labID,
+					"generation":       gen,
+					"payload":          map[string]any{"outcome": "SUCCEEDED"},
+				})
+				pWs, _, err := dialer.Dial(sc.fileDataBase+"/connector/v1/preview-data", hdr)
+				if err != nil {
+					log.Printf("Preview Data dial failed: %v", err)
+					return
+				}
+				_ = pWs.WriteJSON(map[string]any{
+					"type":             "PREVIEW_ATTACH",
+					"messageId":        uuid.NewString(),
+					"replyToMessageId": openMsgID,
+					"sentAt":           time.Now().UTC().Format(time.RFC3339Nano),
+					"previewSessionId": prevID,
+					"labInstanceId":    labID,
+					"generation":       gen,
+					"payload": map[string]any{
+						"runtimeId":        "k3d-spike-runtime",
+						"targetVmKey":      vmKey,
+						"providerServerId": srvID,
+						"targetPort":       port,
+					},
+				})
+				_ = pWs.SetReadDeadline(time.Now().Add(5 * time.Second))
+				var attached map[string]any
+				if err := pWs.ReadJSON(&attached); err != nil {
+					_ = pWs.Close()
+					return
+				}
+				_ = pWs.SetReadDeadline(time.Time{})
+				go func(ws *websocket.Conn) {
+					defer ws.Close()
+					var reqBuf bytes.Buffer
+					for {
+						mType, mData, err := ws.ReadMessage()
+						if err != nil {
+							return
+						}
+						if mType == websocket.BinaryMessage {
+							reqBuf.Write(mData)
+							if bytes.Contains(reqBuf.Bytes(), []byte("\r\n\r\n")) {
+								reqBuf.Reset()
+								respHTTP := "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 24\r\n\r\nk3d-preview-workspace-ok"
+								_ = ws.WriteMessage(websocket.BinaryMessage, []byte(respHTTP))
+							}
+						}
+					}
+				}(pWs)
+			}(msg.PreviewSessionID, msg.LabInstanceID, msg.MessageID, msg.Generation, openPayload.TargetVMKey, openPayload.ServerID, openPayload.TargetPort)
+		}
+	}
+}
+
+func (sc *syntheticConnector) writeControl(v any) {
+	sc.ctrlWrite.Lock()
+	defer sc.ctrlWrite.Unlock()
+	_ = sc.ctrl.WriteJSON(v)
+}
+
+func (sc *syntheticConnector) Close() {
+	if sc.ctrl != nil {
+		_ = sc.ctrl.Close()
+	}
+	if sc.dataWs != nil {
+		_ = sc.dataWs.Close()
+	}
+}
+
+func main() {
+	log.Println("=== Starting LBT-198 k3d Multi-Pod E2E Proof ===")
+
+	pgDSN := os.Getenv("PG_DSN")
+	if pgDSN == "" {
+		pgDSN = "postgres://labbit:labbit-local-dummy@postgres.lbt198-valkey-poc.svc.cluster.local:5432/postgres?sslmode=disable"
+	}
+	valkeyAddr := os.Getenv("VALKEY_ADDR")
+	if valkeyAddr == "" {
+		valkeyAddr = "valkey.lbt198-valkey-poc.svc.cluster.local:6379"
+	}
+	url0 := os.Getenv("BACKEND_0_URL")
+	if url0 == "" {
+		url0 = "http://127.0.0.1:8080"
+	}
+	url1 := os.Getenv("BACKEND_1_URL")
+	if url1 == "" {
+		url1 = "http://backend-1.backend-headless.lbt198-valkey-poc.svc.cluster.local:8080"
+	}
+
+	ctx := context.Background()
+
+	// 1. Connect to PostgreSQL and Valkey
+	log.Println("[1/13] Connecting to PostgreSQL...")
+	conn, err := pgx.Connect(ctx, pgDSN)
+	if err != nil {
+		log.Fatalf("FATAL: PostgreSQL connection failed (credentials suppressed)")
+	}
+	defer conn.Close(ctx)
+
+	log.Printf("[1/13] Connecting to Valkey (%s)...", valkeyAddr)
+	vkClient, err := valkey.NewClient(valkey.ClientOption{InitAddress: []string{valkeyAddr}, DisableCache: true})
+	if err != nil {
+		log.Fatalf("FATAL: Valkey connection failed: %v", err)
+	}
+	defer vkClient.Close()
+
+	if err := vkClient.Do(ctx, vkClient.B().Ping().Build()).Error(); err != nil {
+		log.Fatalf("FATAL: Valkey PING failed: %v", err)
+	}
+	log.Println("[1/13] Valkey PING: PONG (verified)")
+
+	// 2. Seed database fixture (Organization, User, Session, Class, LabInstance, ConnectorCredential)
+	log.Println("[2/13] Seeding DB fixture for E2E verification...")
+
+	orgID := uuid.New()
+	userID := uuid.New()
+	rawToken := make([]byte, 32)
+	_, _ = rand.Read(rawToken)
+	tokenHash := sha256.Sum256(rawToken)
+	sessionToken := base64.RawURLEncoding.EncodeToString(rawToken)
+
+	_, err = conn.Exec(ctx, `
+		INSERT INTO organizations (id, name) VALUES ($1, 'k3d-test-org')
+	`, orgID)
+	if err != nil {
+		log.Fatalf("insert org failed: %v", err)
+	}
+
+	_, err = conn.Exec(ctx, `
+		INSERT INTO users (id, organization_id, organization_role)
+		VALUES ($1, $2, 'MEMBER')
+	`, userID, orgID)
+	if err != nil {
+		log.Fatalf("insert user failed: %v", err)
+	}
+
+	now := time.Now()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO auth_sessions (id, user_id, token_hash, created_at, expires_at)
+		VALUES ($1, $2, $3, $4, $5)
+	`, uuid.New(), userID, tokenHash[:], now, now.Add(8*time.Hour))
+	if err != nil {
+		log.Fatalf("insert auth_sessions failed: %v", err)
+	}
+
+	classID := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO classes (id, organization_id, name) VALUES ($1, $2, 'k3d-class')
+	`, classID, orgID)
+	if err != nil {
+		log.Fatalf("insert class failed: %v", err)
+	}
+
+	_, err = conn.Exec(ctx, `
+		INSERT INTO class_memberships (organization_id, class_id, user_id, role)
+		VALUES ($1, $2, $3, 'INSTRUCTOR')
+	`, orgID, classID, userID)
+	if err != nil {
+		log.Fatalf("insert class_membership failed: %v", err)
+	}
+
+	connectorID := uuid.New()
+	credSecret := fmt.Sprintf("e2e-cred-%s", uuid.NewString())
+	credHash := sha256.Sum256([]byte(credSecret))
+	_, err = conn.Exec(ctx, `
+		INSERT INTO connectors (id, organization_id, name) VALUES ($1, $2, 'k3d-connector')
+	`, connectorID, orgID)
+	if err != nil {
+		log.Fatalf("insert connectors failed: %v", err)
+	}
+
+	_, err = conn.Exec(ctx, `
+		INSERT INTO connector_credentials (id, connector_id, credential_hash)
+		VALUES ($1, $2, $3)
+	`, uuid.New(), connectorID, credHash[:])
+	if err != nil {
+		log.Fatalf("insert connector_credentials failed: %v", err)
+	}
+
+	labSpecID := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO lab_specs (id, organization_id, owner_user_id, name, revision, internet_outbound, workspace_role, workspace_instance_index)
+		VALUES ($1, $2, $3, 'k3d-spec', 1, false, 'workspace', 0)
+	`, labSpecID, orgID, userID)
+	if err != nil {
+		log.Fatalf("insert lab_specs failed: %v", err)
+	}
+
+	execID := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO lab_executions (id, organization_id, class_id, lab_spec_id, instructor_user_id, status)
+		VALUES ($1, $2, $3, $4, $5, 'ACTIVE')
+	`, execID, orgID, classID, labSpecID, userID)
+	if err != nil {
+		log.Fatalf("insert lab_executions failed: %v", err)
+	}
+
+	providerConnID := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO provider_connections (id, organization_id, connector_id, name, status)
+		VALUES ($1, $2, $3, 'k3d-conn', 'ACTIVE')
+	`, providerConnID, orgID, connectorID)
+	if err != nil {
+		log.Fatalf("insert provider_connections failed: %v", err)
+	}
+
+	snapshotJSON, _ := json.Marshal(map[string]any{
+		"providerConnectionId": providerConnID.String(),
+		"vms": []map[string]any{{
+			"vmKey": "workspace", "role": "workspace", "instanceIndex": 0,
+			"imageId": "img-1", "flavorId": "flv-1",
+			"flavorSpec": map[string]any{"vcpus": 1, "ramMiB": 512, "diskGiB": 10},
+		}},
+		"workspaceVmKey": "workspace",
+	})
+	_, err = conn.Exec(ctx, `
+		INSERT INTO creation_snapshots (id, organization_id, lab_execution_id, source_lab_spec_id, source_lab_spec_revision, provider_connection_id, snapshot)
+		VALUES ($1, $2, $3, $4, 1, $5, $6::jsonb)
+	`, uuid.New(), orgID, execID, labSpecID, providerConnID, snapshotJSON)
+	if err != nil {
+		log.Fatalf("insert creation_snapshots failed: %v", err)
+	}
+
+	labInstanceID := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO lab_instances (id, organization_id, lab_execution_id, user_id, participant_role, status, generation)
+		VALUES ($1, $2, $3, $4, 'INSTRUCTOR', 'READY', 1)
+	`, labInstanceID, orgID, execID, userID)
+	if err != nil {
+		log.Fatalf("insert lab_instances failed: %v", err)
+	}
+
+	serverID := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO provider_resources (id, organization_id, lab_instance_id, provider_connection_id, generation, resource_type, logical_name, provider_id, lifecycle_status)
+		VALUES ($1, $2, $3, $4, 1, 'SERVER', 'workspace', 'vm-srv-1', 'PRESENT')
+	`, serverID, orgID, labInstanceID, providerConnID)
+	if err != nil {
+		log.Fatalf("insert provider_resources failed: %v", err)
+	}
+	log.Println("[2/13] DB fixture seeded successfully.")
+
+	// 3. Connect Synthetic Mock Connector 1 to backend-0 (with File Data WSS dialing url1 to test cross-pod file-data WSS!)
+	log.Printf("[3/13] Connecting Mock Connector 1 to backend-0 (%s)...", url0)
+	sc1, err := startSyntheticConnector(url0, credSecret, url1)
+	if err != nil {
+		log.Fatalf("FATAL: Failed to start synthetic connector 1: %v", err)
+	}
+
+	// 4. Verify Valkey owner mapping for Connector (Epoch A)
+	log.Println("[4/13] Checking Valkey owner mapping for ConnectorID...")
+	key := valkeyowner.ConnectorKey(connectorID)
+	var ownerJSON string
+	for i := 0; i < 20; i++ {
+		cmd := vkClient.B().Get().Key(key).Build()
+		res, err := vkClient.Do(ctx, cmd).ToString()
+		if err == nil && res != "" {
+			ownerJSON = res
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	if ownerJSON == "" {
+		log.Fatalf("FATAL: Connector owner not registered in Valkey within 10s!")
+	}
+	var ownerRecA struct {
+		PodID   string `json:"pod_id"`
+		PodAddr string `json:"pod_addr"`
+		Epoch   int64  `json:"epoch"`
+	}
+	_ = json.Unmarshal([]byte(ownerJSON), &ownerRecA)
+	if ownerRecA.PodID != "backend-0" {
+		log.Fatalf("FATAL: Expected owner pod_id to be backend-0, got %s", ownerRecA.PodID)
+	}
+	log.Printf("[4/13] VERIFIED: Connector owned by %s at %s with epoch %d", ownerRecA.PodID, ownerRecA.PodAddr, ownerRecA.Epoch)
+
+	// 5. Test Cross-Pod HTTP Create: request lands on backend-1, proxied to backend-0!
+	log.Printf("[5/13] Sending CreateTerminalSession HTTP POST to backend-1 (%s)...", url1)
+	createURL := fmt.Sprintf("%s/api/v1/lab-instances/%s/terminal-sessions", url1, labInstanceID.String())
+	bodyJSON := `{"targetVmKey":"workspace","cols":80,"rows":24}`
+	req, err := http.NewRequest(http.MethodPost, createURL, bytes.NewBufferString(bodyJSON))
+	if err != nil {
+		log.Fatalf("create request error: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	req.Header.Set("Origin", "http://localhost:8080")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalf("FATAL: HTTP POST to backend-1 failed: %v", err)
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(resp.Body)
+	log.Printf("[5/13] HTTP response from backend-1: status=%d", resp.StatusCode)
+	if resp.StatusCode != http.StatusCreated {
+		log.Fatalf("FATAL: Expected 201 Created from cross-pod proxy, got %d", resp.StatusCode)
+	}
+
+	var created struct {
+		ID           string `json:"id"`
+		SessionToken string `json:"sessionToken"`
+	}
+	if err := json.Unmarshal(respBody, &created); err != nil {
+		log.Fatalf("unmarshal created response failed (body suppressed)")
+	}
+	capturedSessionID := created.ID
+	log.Printf("[5/13] Terminal session successfully created cross-pod: ID=%s", capturedSessionID)
+
+	termKey := valkeyowner.TerminalKey(capturedSessionID)
+	termOwnerJSON, err := vkClient.Do(ctx, vkClient.B().Get().Key(termKey).Build()).ToString()
+	if err != nil {
+		log.Fatalf("FATAL: Terminal owner key not found in Valkey: %v", err)
+	}
+	var termOwnerRec struct {
+		PodID string `json:"pod_id"`
+	}
+	_ = json.Unmarshal([]byte(termOwnerJSON), &termOwnerRec)
+	if termOwnerRec.PodID != "backend-0" {
+		log.Fatalf("FATAL: Expected terminal owner pod_id to be backend-0, got %s", termOwnerRec.PodID)
+	}
+	log.Printf("[5/13] VERIFIED: Valkey terminal owner is %s", termOwnerRec.PodID)
+
+	// 6. Test Cross-Pod WebSocket: Browser connects to backend-1 (proxied to backend-0)!
+	log.Printf("[6/13] Connecting Browser WebSocket to backend-1 (%s%s)...", url1, realtime.BrowserPath)
+	browserWSURL := strings.Replace(url1, "http://", "ws://", 1) + realtime.BrowserPath
+	dialer := websocket.Dialer{
+		Subprotocols:     []string{realtime.BrowserSubprotocol},
+		HandshakeTimeout: 5 * time.Second,
+	}
+	wsHeaders := http.Header{
+		"Cookie": []string{fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken)},
+		"Origin": []string{"http://localhost:8080"},
+	}
+	bWs, bResp, err := dialer.Dial(browserWSURL, wsHeaders)
+	if err != nil {
+		var status int
+		if bResp != nil {
+			status = bResp.StatusCode
+		}
+		log.Fatalf("FATAL: Browser dial to backend-1 failed: %v (status=%d)", err, status)
+	}
+	defer bWs.Close()
+	log.Println("[6/13] Browser WebSocket connected to backend-1!")
+
+	attachFrame := map[string]any{
+		"type":              "TERMINAL_ATTACH",
+		"messageId":         uuid.NewString(),
+		"sentAt":            time.Now().Format(time.RFC3339),
+		"terminalSessionId": capturedSessionID,
+		"payload":           map[string]any{"sessionToken": created.SessionToken, "cols": 80, "rows": 24},
+	}
+	if err := bWs.WriteJSON(attachFrame); err != nil {
+		log.Fatalf("FATAL: Browser WriteJSON failed: %v", err)
+	}
+
+	_ = bWs.SetReadDeadline(time.Now().Add(5 * time.Second))
+	msgType, msgData, err := bWs.ReadMessage()
+	if err != nil {
+		log.Fatalf("FATAL: Browser read frame failed: %v", err)
+	}
+	log.Printf("[6/13] Browser received frame (type=%d, bytes=%d)", msgType, len(msgData))
+	if !strings.Contains(string(msgData), "TERMINAL_ATTACHED") {
+		log.Fatalf("FATAL: Expected TERMINAL_ATTACHED frame, got message type %d", msgType)
+	}
+	log.Println("[6/13] VERIFIED: Browser WSS cross-pod attachment SUCCEEDED!")
+
+	// Bidirectional PTY Data Streaming test
+	testPayload := []byte("k3d-cross-pod-pty-echo-test\r\n")
+	if err := bWs.WriteMessage(websocket.BinaryMessage, testPayload); err != nil {
+		log.Fatalf("FATAL: Browser failed to write binary PTY frame: %v", err)
+	}
+	_ = bWs.SetReadDeadline(time.Now().Add(5 * time.Second))
+	ptyType, ptyData, err := bWs.ReadMessage()
+	if err != nil {
+		log.Fatalf("FATAL: Browser failed to read echoed binary PTY frame: %v", err)
+	}
+	if ptyType != websocket.BinaryMessage || !bytes.Equal(ptyData, testPayload) {
+		log.Fatalf("FATAL: Expected echoed binary data %q, got type=%d data=%q", string(testPayload), ptyType, string(ptyData))
+	}
+	log.Printf("[6/13] VERIFIED: Bidirectional cross-pod PTY streaming confirmed: %q", string(ptyData))
+
+	// 6b. Cross-Pod LiveSession Create, LIVE_SUBSCRIBE WS, PTY Fan-out, and Close
+	targetPeerURL := url1
+	if url2 := os.Getenv("BACKEND_2_URL"); url2 != "" {
+		targetPeerURL = url2
+	}
+	log.Printf("[6b/13] Testing Cross-Pod LiveSession via %s (owner is backend-0)...", targetPeerURL)
+	liveCreateURL := fmt.Sprintf("%s/api/v1/terminal-sessions/%s/live-sessions", targetPeerURL, capturedSessionID)
+	liveReq, _ := http.NewRequest(http.MethodPost, liveCreateURL, nil)
+	liveReq.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	liveReq.Header.Set("Origin", "http://localhost:8080")
+	liveResp, err := client.Do(liveReq)
+	if err != nil || liveResp.StatusCode != http.StatusCreated {
+		log.Fatalf("FATAL: Cross-Pod CreateLiveSession failed: err=%v, status=%d", err, liveResp.StatusCode)
+	}
+	liveRespBody, _ := io.ReadAll(liveResp.Body)
+	liveResp.Body.Close()
+	var createdLive struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(liveRespBody, &createdLive); err != nil || createdLive.ID == "" {
+		log.Fatalf("FATAL: Failed to parse CreateLiveSession response")
+	}
+	// Seed a STUDENT user & session in the same class to subscribe to LIVE_SUBSCRIBE
+	studentLiveUserID := uuid.New()
+	_, err = conn.Exec(ctx, `INSERT INTO users (id, organization_id, organization_role) VALUES ($1, $2, 'MEMBER')`, studentLiveUserID, orgID)
+	if err != nil {
+		log.Fatalf("insert student live user failed: %v", err)
+	}
+	_, err = conn.Exec(ctx, `INSERT INTO class_memberships (organization_id, class_id, user_id, role) VALUES ($1, $2, $3, 'STUDENT')`, orgID, classID, studentLiveUserID)
+	if err != nil {
+		log.Fatalf("insert student live class_membership failed: %v", err)
+	}
+	studentRawToken := make([]byte, 32)
+	_, _ = rand.Read(studentRawToken)
+	studentTokenHash := sha256.Sum256(studentRawToken)
+	studentSessionToken := base64.RawURLEncoding.EncodeToString(studentRawToken)
+	_, err = conn.Exec(ctx, `INSERT INTO auth_sessions (id, user_id, token_hash, created_at, expires_at) VALUES ($1, $2, $3, $4, $5)`,
+		uuid.New(), studentLiveUserID, studentTokenHash[:], now, now.Add(8*time.Hour))
+	if err != nil {
+		log.Fatalf("insert student live auth_sessions failed: %v", err)
+	}
+	studentWSHeaders := http.Header{
+		"Cookie": []string{fmt.Sprintf("%s=%s", realtime.SessionCookieName, studentSessionToken)},
+		"Origin": []string{"http://localhost:8080"},
+	}
+	liveWSURL := strings.Replace(targetPeerURL, "http://", "ws://", 1) + realtime.LivePath
+	liveDialer := websocket.Dialer{Subprotocols: []string{realtime.LiveSubprotocol}, HandshakeTimeout: 5 * time.Second}
+	lWs, _, err := liveDialer.Dial(liveWSURL, studentWSHeaders)
+	if err != nil {
+		log.Fatalf("FATAL: Live WS dial to %s failed: %v", targetPeerURL, err)
+	}
+	defer lWs.Close()
+	if err := lWs.WriteJSON(map[string]any{
+		"type":          "LIVE_SUBSCRIBE",
+		"messageId":     uuid.NewString(),
+		"sentAt":        time.Now().UTC().Format(time.RFC3339),
+		"liveSessionId": createdLive.ID,
+		"payload":       map[string]any{},
+	}); err != nil {
+		log.Fatalf("FATAL: Live WS WriteJSON failed: %v", err)
+	}
+	_ = lWs.SetReadDeadline(time.Now().Add(5 * time.Second))
+	_, lMsg, err := lWs.ReadMessage()
+	if err != nil || !strings.Contains(string(lMsg), "LIVE_SUBSCRIBED") {
+		log.Fatalf("FATAL: Expected LIVE_SUBSCRIBED from %s, err=%v", targetPeerURL, err)
+	}
+	livePayload := []byte("k3d-cross-pod-live-fanout-test\r\n")
+	if err := bWs.WriteMessage(websocket.BinaryMessage, livePayload); err != nil {
+		log.Fatalf("FATAL: Browser failed to write PTY frame for live test: %v", err)
+	}
+	_ = bWs.SetReadDeadline(time.Now().Add(5 * time.Second))
+	_, _, _ = bWs.ReadMessage()
+	_ = lWs.SetReadDeadline(time.Now().Add(5 * time.Second))
+	lType, lData, err := lWs.ReadMessage()
+	if err != nil || lType != websocket.BinaryMessage || !bytes.Equal(lData, livePayload) {
+		log.Fatalf("FATAL: Live viewer did not receive expected PTY fan-out: err=%v, data=%q", err, string(lData))
+	}
+	liveDelReq, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/api/v1/live-sessions/%s", targetPeerURL, createdLive.ID), nil)
+	liveDelReq.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	liveDelReq.Header.Set("Origin", "http://localhost:8080")
+	liveDelResp, err := client.Do(liveDelReq)
+	if err != nil || liveDelResp.StatusCode != http.StatusNoContent {
+		log.Fatalf("FATAL: Cross-Pod DELETE LiveSession failed: err=%v, status=%d", err, liveDelResp.StatusCode)
+	}
+	log.Printf("[6b/13] VERIFIED: Cross-Pod LiveSession Create, LIVE_SUBSCRIBE WS, PTY Fan-out, and Delete SUCCEEDED via %s!", targetPeerURL)
+
+	// 6c. Cross-Pod Workspace File Tree (HTTP to targetPeerURL -> backend-0 owner, File Data WSS to url1 -> backend-0 owner)
+	log.Printf("[6c/13] Testing Cross-Pod Workspace File Tree via %s (File Data WSS via %s)...", targetPeerURL, url1)
+	fileTreeReq, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/lab-instances/%s/files/tree", targetPeerURL, labInstanceID.String()), nil)
+	fileTreeReq.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	fileTreeResp, err := client.Do(fileTreeReq)
+	if err != nil {
+		log.Fatalf("FATAL: Cross-Pod GET /files/tree failed: err=%v", err)
+	}
+	if fileTreeResp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(fileTreeResp.Body)
+		log.Fatalf("FATAL: Cross-Pod GET /files/tree status=%d, body=%s", fileTreeResp.StatusCode, string(body))
+	}
+	fileTreeBody, _ := io.ReadAll(fileTreeResp.Body)
+	fileTreeResp.Body.Close()
+	if !strings.Contains(string(fileTreeBody), "main.go") {
+		log.Fatalf("FATAL: Expected main.go in cross-pod file tree response, got %s", string(fileTreeBody))
+	}
+	log.Printf("[6c/13] VERIFIED: Cross-Pod Workspace File HTTP + File Data WSS proxy SUCCEEDED!")
+
+	// 6d. Cross-Pod Preview Session Create + Preview Origin (Bootstrap -> Exchange -> GET) + Cross-Pod DELETE
+	log.Printf("[6d/13] Testing Cross-Pod Preview Session Create, Origin Routing, and DELETE via %s (Preview Data WSS via %s)...", targetPeerURL, url1)
+	prevReq, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/v1/lab-instances/%s/preview-sessions", targetPeerURL, labInstanceID.String()), strings.NewReader(`{"targetPort":3000}`))
+	prevReq.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	prevReq.Header.Set("Origin", "http://localhost:8080")
+	prevReq.Header.Set("Content-Type", "application/json")
+	prevResp, err := client.Do(prevReq)
+	if err != nil {
+		log.Fatalf("FATAL: Cross-Pod POST /preview-sessions failed: err=%v", err)
+	}
+	prevBody, _ := io.ReadAll(prevResp.Body)
+	prevResp.Body.Close()
+	if prevResp.StatusCode != http.StatusCreated || !strings.Contains(string(prevBody), "previewUrl") {
+		log.Fatalf("FATAL: Cross-Pod POST /preview-sessions status=%d (want 201), body=%s", prevResp.StatusCode, string(prevBody))
+	}
+	var createdPrev struct {
+		ID         string `json:"id"`
+		PreviewURL string `json:"previewUrl"`
+	}
+	if err := json.Unmarshal(prevBody, &createdPrev); err != nil || createdPrev.ID == "" || createdPrev.PreviewURL == "" {
+		log.Fatalf("FATAL: Failed to parse Created PreviewSession: err=%v, body=%s", err, string(prevBody))
+	}
+	prevKey := valkeyowner.PreviewKey(createdPrev.ID)
+	prevVal, err := vkClient.Do(ctx, vkClient.B().Get().Key(prevKey).Build()).ToString()
+	if err != nil || !strings.Contains(prevVal, `"pod_id":"backend-0"`) {
+		log.Fatalf("FATAL: Valkey preview owner key %s missing or wrong owner: err=%v, val=%s", prevKey, err, prevVal)
+	}
+	log.Printf("[6d/13] VERIFIED: Valkey Preview owner registered: %s -> %s", prevKey, prevVal)
+
+	beforeFrag, bootstrapCred, hasFrag := strings.Cut(createdPrev.PreviewURL, "#")
+	if !hasFrag || bootstrapCred == "" {
+		log.Fatalf("FATAL: previewUrl missing fragment credential: %s", createdPrev.PreviewURL)
+	}
+	previewOrigin := strings.TrimSuffix(beforeFrag, "/__labbit/bootstrap")
+	previewHost := strings.TrimPrefix(strings.TrimPrefix(previewOrigin, "http://"), "https://")
+
+	// Cross-Pod GET /__labbit/bootstrap via url1 (non-owner Pod when N>=2)
+	bootReq, _ := http.NewRequest(http.MethodGet, url1+"/__labbit/bootstrap", nil)
+	bootReq.Host = previewHost
+	bootResp, err := client.Do(bootReq)
+	if err != nil || bootResp.StatusCode != http.StatusOK {
+		log.Fatalf("FATAL: Cross-Pod GET /__labbit/bootstrap on %s failed: err=%v, status=%v", url1, err, bootResp)
+	}
+	_ = bootResp.Body.Close()
+
+	// Cross-Pod POST /__labbit/exchange via targetPeerURL (non-owner Pod when N>=2)
+	exReq, _ := http.NewRequest(http.MethodPost, targetPeerURL+"/__labbit/exchange", strings.NewReader(`{"credential":"`+bootstrapCred+`"}`))
+	exReq.Host = previewHost
+	exReq.Header.Set("Origin", previewOrigin)
+	exReq.Header.Set("Content-Type", "application/json")
+	exResp, err := client.Do(exReq)
+	if err != nil || exResp.StatusCode != http.StatusNoContent {
+		var b []byte
+		if exResp != nil {
+			b, _ = io.ReadAll(exResp.Body)
+			exResp.Body.Close()
+		}
+		log.Fatalf("FATAL: Cross-Pod POST /__labbit/exchange on %s failed: err=%v, status=%v, body=%s", targetPeerURL, err, exResp, string(b))
+	}
+	var previewCookie *http.Cookie
+	for _, ck := range exResp.Cookies() {
+		if ck.Name == "labbit-preview" || ck.Name == "__Host-labbit-preview" {
+			previewCookie = ck
+		}
+	}
+	exResp.Body.Close()
+	if previewCookie == nil {
+		log.Fatalf("FATAL: Cross-Pod POST /__labbit/exchange did not return preview cookie")
+	}
+
+	// Cross-Pod authenticated GET /hello via url1 (non-owner Pod when N>=2)
+	appReq, _ := http.NewRequest(http.MethodGet, url1+"/hello?k3d=1", nil)
+	appReq.Host = previewHost
+	appReq.AddCookie(previewCookie)
+	appResp, err := client.Do(appReq)
+	if err != nil {
+		log.Fatalf("FATAL: Cross-Pod Preview Origin GET /hello on %s failed: err=%v", url1, err)
+	}
+	appBody, _ := io.ReadAll(appResp.Body)
+	appResp.Body.Close()
+	if appResp.StatusCode != http.StatusOK || string(appBody) != "k3d-preview-workspace-ok" {
+		log.Fatalf("FATAL: Cross-Pod Preview Origin GET /hello status=%d, body=%q (want 200 k3d-preview-workspace-ok)", appResp.StatusCode, string(appBody))
+	}
+	log.Printf("[6d/13] VERIFIED: Cross-Pod Preview Origin Bootstrap -> Exchange -> Authenticated GET SUCCEEDED via %s & %s!", targetPeerURL, url1)
+
+	// Cross-Pod DELETE /api/v1/preview-sessions/{id} via targetPeerURL (non-owner Pod when N>=2)
+	prevDelReq, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/api/v1/preview-sessions/%s", targetPeerURL, createdPrev.ID), nil)
+	prevDelReq.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	prevDelReq.Header.Set("Origin", "http://localhost:8080")
+	prevDelResp, err := client.Do(prevDelReq)
+	if err != nil || prevDelResp.StatusCode != http.StatusNoContent {
+		log.Fatalf("FATAL: Cross-Pod DELETE /preview-sessions/%s on %s failed: err=%v, status=%v", createdPrev.ID, targetPeerURL, err, prevDelResp)
+	}
+	prevDelResp.Body.Close()
+	prevDelCheck, _ := vkClient.Do(ctx, vkClient.B().Get().Key(prevKey).Build()).ToString()
+	if prevDelCheck != "" {
+		log.Fatalf("FATAL: Preview owner key still present in Valkey after DELETE: %s", prevDelCheck)
+	}
+	// Verify subsequent Preview Origin GET on url1 returns 401
+	afterPrevReq, _ := http.NewRequest(http.MethodGet, url1+"/hello", nil)
+	afterPrevReq.Host = previewHost
+	afterPrevReq.AddCookie(previewCookie)
+	afterPrevResp, err := client.Do(afterPrevReq)
+	if err != nil || afterPrevResp.StatusCode != http.StatusUnauthorized {
+		log.Fatalf("FATAL: Expected 401 on Preview Origin GET after DELETE, got err=%v, resp=%v", err, afterPrevResp)
+	}
+	afterPrevResp.Body.Close()
+	log.Printf("[6d/13] VERIFIED: Cross-Pod Preview DELETE returned 204, removed Valkey key, and invalidated Preview Origin (401)!")
+
+	// 7. Delete TerminalSession via backend-1 (proxied to backend-0)
+	log.Printf("[7/13] Closing TerminalSession via DELETE to backend-1...")
+	delURL := fmt.Sprintf("%s/api/v1/terminal-sessions/%s", url1, capturedSessionID)
+	delReq, _ := http.NewRequest(http.MethodDelete, delURL, nil)
+	delReq.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	delReq.Header.Set("Origin", "http://localhost:8080")
+	delResp, err := client.Do(delReq)
+	if err != nil || delResp.StatusCode != http.StatusNoContent {
+		log.Fatalf("FATAL: DELETE failed: %v, status=%d", err, delResp.StatusCode)
+	}
+	log.Println("[7/13] VERIFIED: DELETE returned 204 No Content!")
+
+	time.Sleep(500 * time.Millisecond)
+	delCheck, _ := vkClient.Do(ctx, vkClient.B().Get().Key(termKey).Build()).ToString()
+	if delCheck != "" {
+		log.Fatalf("FATAL: Terminal key still present in Valkey after DELETE: %s", delCheck)
+	}
+	log.Println("[7/13] VERIFIED: Terminal owner key deleted from Valkey!")
+
+	// 8. Measured Worker Async Dispatch under normal single-pod ownership
+	log.Println("[8/13] Seeding operation and operation_item for realistic Worker test...")
+	workerUserID := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO users (id, organization_id, organization_role) VALUES ($1, $2, 'MEMBER')
+	`, workerUserID, orgID)
+	if err != nil {
+		log.Fatalf("insert worker user failed: %v", err)
+	}
+
+	workerInstanceID := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO lab_instances (id, organization_id, lab_execution_id, user_id, participant_role, status, generation)
+		VALUES ($1, $2, $3, $4, 'STUDENT', 'PENDING', 1)
+	`, workerInstanceID, orgID, execID, workerUserID)
+	if err != nil {
+		log.Fatalf("insert worker lab_instance failed: %v", err)
+	}
+
+	opID := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO operations (id, organization_id, operation_type, requested_by_user_id, lab_execution_id, idempotency_key_hash, request_fingerprint, status, created_at)
+		VALUES ($1, $2, 'PROVISION', $3, $4, '\x02'::bytea, '\x02'::bytea, 'PENDING', now())
+	`, opID, orgID, workerUserID, execID)
+	if err != nil {
+		log.Fatalf("insert operation failed: %v", err)
+	}
+
+	itemID := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO operation_items (id, organization_id, operation_id, lab_instance_id, generation, status, created_at)
+		VALUES ($1, $2, $3, $4, 1, 'PENDING', now())
+	`, itemID, orgID, opID, workerInstanceID)
+	if err != nil {
+		log.Fatalf("insert operation_item failed: %v", err)
+	}
+
+	log.Println("[8/13] Waiting for background Workers to process item...")
+	var opItemStatus string
+	var observedDeferred bool
+	for i := 0; i < 60; i++ {
+		var stage *string
+		row := conn.QueryRow(ctx, `SELECT status, stage FROM operation_items WHERE id = $1`, itemID)
+		if scanErr := row.Scan(&opItemStatus, &stage); scanErr == nil {
+			if stage != nil && *stage == "DEFERRED" && opItemStatus == "PENDING" {
+				observedDeferred = true
+				// DEFERRED stage observed on test-owned item (note: non-owner pod attribution cannot be proven from stage alone).
+				// Accelerate dispatch_not_before strictly for this test item to allow owner claim without 5s deferral delay.
+				time.Sleep(150 * time.Millisecond)
+				_, err := conn.Exec(ctx, `UPDATE operation_items SET dispatch_not_before = now() - interval '1 second' WHERE id = $1 AND status = 'PENDING'`, itemID)
+				if err != nil {
+					log.Fatalf("FATAL: failed to reset dispatch_not_before for test item %s: %v", itemID, err)
+				}
+			}
+			if opItemStatus == "SUCCEEDED" {
+				break
+			}
+		} else {
+			log.Printf("[8/13] WARNING: scanning operation_item %s failed: %v", itemID, scanErr)
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	if opItemStatus != "SUCCEEDED" {
+		log.Fatalf("FATAL: Expected operation_item to reach SUCCEEDED, got %s", opItemStatus)
+	}
+
+	mutCount := sc1.mutations.Load()
+	if mutCount != 1 {
+		log.Fatalf("FATAL: Expected exactly 1 provider mutation on owner pod, got %d", mutCount)
+	}
+	log.Printf("[8/13] VERIFIED: Worker dispatched item to owner Pod: status=%s, provider mutations=%d (observed DB stage=DEFERRED during deferral cycle: %v)",
+		opItemStatus, mutCount, observedDeferred)
+	log.Println("[8/13] CAUTION: Single-run count=1 in no-fault test does NOT constitute a failure-invariant exactly-once guarantee.")
+	log.Println("[8/13] [NOT VERIFIED] Non-Owner Worker Claim & Defer Attribution: While DB state may reflect stage=DEFERRED, without pod-attributed audit logging or telemetry we cannot prove Pod B performed the claim/deferral.")
+
+	// 9. Disconnect Connector 1 from backend-0
+	log.Println("[9/13] Disconnecting Mock Connector 1 from backend-0...")
+	sc1.Close()
+	var connOwnerAfterClose string
+	for i := 0; i < 10; i++ {
+		time.Sleep(500 * time.Millisecond)
+		connOwnerAfterClose, _ = vkClient.Do(ctx, vkClient.B().Get().Key(key).Build()).ToString()
+		if connOwnerAfterClose == "" {
+			break
+		}
+	}
+	if connOwnerAfterClose != "" {
+		log.Fatalf("FATAL: Connector owner key still present in Valkey after disconnect: %s", connOwnerAfterClose)
+	}
+	log.Println("[9/13] VERIFIED: Connector owner mapping removed from Valkey upon release!")
+
+	// 10. Real Failover Reconnect: Connect Mock Connector 2 to backend-1
+	log.Printf("[10/13] Connecting Mock Connector 2 to backend-1 (%s) with SAME credentials...", url1)
+	sc2, err := startSyntheticConnector(url1, credSecret)
+	if err != nil {
+		log.Fatalf("FATAL: Failed to start synthetic connector 2 on backend-1: %v", err)
+	}
+	defer sc2.Close()
+
+	expectedOwner1 := os.Getenv("EXPECTED_OWNER_1")
+	if expectedOwner1 == "" {
+		expectedOwner1 = "backend-1"
+	}
+
+	// Wait for Valkey owner mapping to reflect expectedOwner1
+	var ownerRecB struct {
+		PodID   string `json:"pod_id"`
+		PodAddr string `json:"pod_addr"`
+		Epoch   int64  `json:"epoch"`
+	}
+	var ownerJSON2 string
+	for i := 0; i < 20; i++ {
+		cmd := vkClient.B().Get().Key(key).Build()
+		res, err := vkClient.Do(ctx, cmd).ToString()
+		if err == nil && res != "" {
+			var check struct {
+				PodID string `json:"pod_id"`
+			}
+			if json.Unmarshal([]byte(res), &check) == nil && check.PodID == expectedOwner1 {
+				ownerJSON2 = res
+				break
+			}
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	if ownerJSON2 == "" {
+		log.Fatalf("FATAL: Connector owner not registered as %s in Valkey within 10s!", expectedOwner1)
+	}
+	_ = json.Unmarshal([]byte(ownerJSON2), &ownerRecB)
+	if ownerRecB.PodID != expectedOwner1 {
+		log.Fatalf("FATAL: Expected owner pod_id to be %s, got %s", expectedOwner1, ownerRecB.PodID)
+	}
+	if ownerRecB.Epoch <= ownerRecA.Epoch {
+		log.Fatalf("FATAL: Expected epoch on %s (%d) > backend-0 epoch (%d)", expectedOwner1, ownerRecB.Epoch, ownerRecA.Epoch)
+	}
+	log.Printf("[10/13] VERIFIED: Failover Reconnect SUCCEEDED! Valkey owner is %s at %s with monotonic epoch %d (prev: %d)",
+		ownerRecB.PodID, ownerRecB.PodAddr, ownerRecB.Epoch, ownerRecA.Epoch)
+
+	// 11. Reverse Cross-Pod Terminal Route (backend-0 -> backend-1):
+	// Seed fresh user, auth session, class membership, lab instance & server
+	log.Println("[11/13] Testing Reverse Cross-Pod Route: Create Terminal on backend-0 (proxied to backend-1)...")
+	userID2 := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO users (id, organization_id, organization_role)
+		VALUES ($1, $2, 'MEMBER')
+	`, userID2, orgID)
+	if err != nil {
+		log.Fatalf("insert user 2 failed: %v", err)
+	}
+
+	rawToken2 := make([]byte, 32)
+	_, _ = rand.Read(rawToken2)
+	tokenHash2 := sha256.Sum256(rawToken2)
+	sessionToken2 := base64.RawURLEncoding.EncodeToString(rawToken2)
+
+	_, err = conn.Exec(ctx, `
+		INSERT INTO auth_sessions (id, user_id, token_hash, created_at, expires_at)
+		VALUES ($1, $2, $3, $4, $5)
+	`, uuid.New(), userID2, tokenHash2[:], now, now.Add(8*time.Hour))
+	if err != nil {
+		log.Fatalf("insert auth_sessions 2 failed: %v", err)
+	}
+
+	_, err = conn.Exec(ctx, `
+		INSERT INTO class_memberships (organization_id, class_id, user_id, role)
+		VALUES ($1, $2, $3, 'STUDENT')
+	`, orgID, classID, userID2)
+	if err != nil {
+		log.Fatalf("insert class_membership 2 failed: %v", err)
+	}
+
+	labInstanceID2 := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO lab_instances (id, organization_id, lab_execution_id, user_id, participant_role, status, generation)
+		VALUES ($1, $2, $3, $4, 'STUDENT', 'READY', 1)
+	`, labInstanceID2, orgID, execID, userID2)
+	if err != nil {
+		log.Fatalf("insert lab_instance 2 failed: %v", err)
+	}
+
+	serverID2 := uuid.New()
+	_, err = conn.Exec(ctx, `
+		INSERT INTO provider_resources (id, organization_id, lab_instance_id, provider_connection_id, generation, resource_type, logical_name, provider_id, lifecycle_status)
+		VALUES ($1, $2, $3, $4, 1, 'SERVER', 'workspace', 'vm-srv-2', 'PRESENT')
+	`, serverID2, orgID, labInstanceID2, providerConnID)
+	if err != nil {
+		log.Fatalf("insert provider_resources 2 failed: %v", err)
+	}
+
+	createURL2 := fmt.Sprintf("%s/api/v1/lab-instances/%s/terminal-sessions", url0, labInstanceID2.String())
+	req2, err := http.NewRequest(http.MethodPost, createURL2, bytes.NewBufferString(bodyJSON))
+	if err != nil {
+		log.Fatalf("create request 2 error: %v", err)
+	}
+	req2.Header.Set("Content-Type", "application/json")
+	req2.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken2))
+	req2.Header.Set("Origin", "http://localhost:8080")
+
+	resp2, err := client.Do(req2)
+	if err != nil {
+		log.Fatalf("FATAL: HTTP POST to backend-0 failed: %v", err)
+	}
+	defer resp2.Body.Close()
+	respBody2, _ := io.ReadAll(resp2.Body)
+	log.Printf("[11/13] HTTP response from backend-0: status=%d", resp2.StatusCode)
+	if resp2.StatusCode != http.StatusCreated {
+		log.Fatalf("FATAL: Expected 201 Created from reverse cross-pod proxy, got %d", resp2.StatusCode)
+	}
+
+	var created2 struct {
+		ID           string `json:"id"`
+		SessionToken string `json:"sessionToken"`
+	}
+	if err := json.Unmarshal(respBody2, &created2); err != nil {
+		log.Fatalf("unmarshal created response 2 failed (body suppressed)")
+	}
+	capturedSessionID2 := created2.ID
+	log.Printf("[11/13] Terminal session 2 created cross-pod via backend-0: ID=%s", capturedSessionID2)
+
+	// Verify terminal owner in Valkey is backend-1
+	termKey2 := valkeyowner.TerminalKey(capturedSessionID2)
+	termOwnerJSON2, err := vkClient.Do(ctx, vkClient.B().Get().Key(termKey2).Build()).ToString()
+	if err != nil {
+		log.Fatalf("FATAL: Terminal owner key 2 not found in Valkey: %v", err)
+	}
+	var termOwnerRec2 struct {
+		PodID string `json:"pod_id"`
+	}
+	_ = json.Unmarshal([]byte(termOwnerJSON2), &termOwnerRec2)
+	if termOwnerRec2.PodID != expectedOwner1 {
+		log.Fatalf("FATAL: Expected terminal owner pod_id to be %s, got %s", expectedOwner1, termOwnerRec2.PodID)
+	}
+	log.Printf("[11/13] VERIFIED: Valkey terminal owner is %s", termOwnerRec2.PodID)
+
+	// Browser connects to backend-0 (proxied to backend-1)
+	log.Printf("[11/13] Connecting Browser WebSocket to backend-0 (%s%s)...", url0, realtime.BrowserPath)
+	browserWSURL2 := strings.Replace(url0, "http://", "ws://", 1) + realtime.BrowserPath
+	wsHeaders2 := http.Header{
+		"Cookie": []string{fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken2)},
+		"Origin": []string{"http://localhost:8080"},
+	}
+	bWs2, bResp2, err := dialer.Dial(browserWSURL2, wsHeaders2)
+	if err != nil {
+		var status int
+		if bResp2 != nil {
+			status = bResp2.StatusCode
+		}
+		log.Fatalf("FATAL: Browser dial to backend-0 failed: %v (status=%d)", err, status)
+	}
+	defer bWs2.Close()
+
+	attachFrame2 := map[string]any{
+		"type":              "TERMINAL_ATTACH",
+		"messageId":         uuid.NewString(),
+		"sentAt":            time.Now().Format(time.RFC3339),
+		"terminalSessionId": capturedSessionID2,
+		"payload":           map[string]any{"sessionToken": created2.SessionToken, "cols": 80, "rows": 24},
+	}
+	if err := bWs2.WriteJSON(attachFrame2); err != nil {
+		log.Fatalf("FATAL: Browser WriteJSON 2 failed: %v", err)
+	}
+
+	_ = bWs2.SetReadDeadline(time.Now().Add(5 * time.Second))
+	msgType2, msgData2, err := bWs2.ReadMessage()
+	if err != nil {
+		log.Fatalf("FATAL: Browser read frame 2 failed: %v", err)
+	}
+	if !strings.Contains(string(msgData2), "TERMINAL_ATTACHED") {
+		log.Fatalf("FATAL: Expected TERMINAL_ATTACHED frame on session 2, got message type %d", msgType2)
+	}
+	log.Println("[11/13] VERIFIED: Reverse Browser WSS attachment SUCCEEDED!")
+
+	// Reverse PTY Echo Test
+	testPayload2 := []byte("k3d-reverse-failover-pty-echo-test\r\n")
+	if err := bWs2.WriteMessage(websocket.BinaryMessage, testPayload2); err != nil {
+		log.Fatalf("FATAL: Browser failed to write binary PTY frame 2: %v", err)
+	}
+	_ = bWs2.SetReadDeadline(time.Now().Add(5 * time.Second))
+	ptyType2, ptyData2, err := bWs2.ReadMessage()
+	if err != nil {
+		log.Fatalf("FATAL: Browser failed to read echoed binary PTY frame 2: %v", err)
+	}
+	if ptyType2 != websocket.BinaryMessage || !bytes.Equal(ptyData2, testPayload2) {
+		log.Fatalf("FATAL: Expected echoed binary data %q, got type=%d data=%q", string(testPayload2), ptyType2, string(ptyData2))
+	}
+	log.Printf("[11/13] VERIFIED: Bidirectional reverse PTY streaming confirmed: %q", string(ptyData2))
+
+	// Delete TerminalSession 2 via backend-0 (proxied to backend-1)
+	delURL2 := fmt.Sprintf("%s/api/v1/terminal-sessions/%s", url0, capturedSessionID2)
+	delReq2, _ := http.NewRequest(http.MethodDelete, delURL2, nil)
+	delReq2.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken2))
+	delReq2.Header.Set("Origin", "http://localhost:8080")
+	delResp2, err := client.Do(delReq2)
+	if err != nil || delResp2.StatusCode != http.StatusNoContent {
+		log.Fatalf("FATAL: DELETE 2 failed: %v, status=%d", err, delResp2.StatusCode)
+	}
+	log.Println("[11/13] VERIFIED: TerminalSession 2 DELETE returned 204 No Content!")
+
+	time.Sleep(500 * time.Millisecond)
+	delCheck2, _ := vkClient.Do(ctx, vkClient.B().Get().Key(termKey2).Build()).ToString()
+	if delCheck2 != "" {
+		log.Fatalf("FATAL: Terminal key 2 still present in Valkey after DELETE: %s", delCheck2)
+	}
+	log.Println("[11/13] VERIFIED: Terminal owner key 2 deleted from Valkey!")
+
+	// 12. Stale Epoch Release Fencing: simulate old epoch release from backend-0
+	log.Println("[12/13] Testing Stale Epoch Release Fencing...")
+	luaRes := releaseConnectorLua.Exec(ctx, vkClient, []string{key}, []string{"backend-0", strconv.FormatInt(ownerRecA.Epoch, 10)})
+	if luaRes.Error() != nil {
+		log.Fatalf("FATAL: Release Lua script execution failed: %v", luaRes.Error())
+	}
+
+	postStaleJSON, err := vkClient.Do(ctx, vkClient.B().Get().Key(key).Build()).ToString()
+	if err != nil || postStaleJSON == "" {
+		log.Fatalf("FATAL: Connector owner key was erroneously deleted by stale release from backend-0!")
+	}
+	var postStaleOwner struct {
+		PodID string `json:"pod_id"`
+		Epoch int64  `json:"epoch"`
+	}
+	_ = json.Unmarshal([]byte(postStaleJSON), &postStaleOwner)
+	if postStaleOwner.PodID != expectedOwner1 || postStaleOwner.Epoch != ownerRecB.Epoch {
+		log.Fatalf("FATAL: Owner mapping corrupted after stale release attempt! Expected %s epoch %d, got %+v",
+			expectedOwner1, ownerRecB.Epoch, postStaleOwner)
+	}
+	log.Printf("[12/13] VERIFIED: Stale epoch release rejected! Valkey mapping preserved for active owner %s (epoch %d)",
+		postStaleOwner.PodID, postStaleOwner.Epoch)
+
+	// Clean genuine disconnect of Connector 2
+	log.Println("[12/13] Disconnecting Mock Connector 2 from backend-1...")
+	sc2.Close()
+	var connOwnerAfterClose2 string
+	for i := 0; i < 10; i++ {
+		time.Sleep(500 * time.Millisecond)
+		connOwnerAfterClose2, _ = vkClient.Do(ctx, vkClient.B().Get().Key(key).Build()).ToString()
+		if connOwnerAfterClose2 == "" {
+			break
+		}
+	}
+	if connOwnerAfterClose2 != "" {
+		log.Fatalf("FATAL: Connector 2 owner key still present in Valkey after disconnect: %s", connOwnerAfterClose2)
+	}
+	log.Println("[12/13] VERIFIED: Connector 2 owner mapping removed from Valkey upon genuine release!")
+
+	// 13. HTTP POST Create when no connector is owned -> must fail-closed with 503
+	log.Println("[13/13] Testing HTTP Create fail-closed when no connector is owned...")
+	negReq, err := http.NewRequest(http.MethodPost, createURL, bytes.NewBufferString(bodyJSON))
+	if err != nil {
+		log.Fatalf("FATAL: Failed to build negative test request: %v", err)
+	}
+	negReq.Header.Set("Content-Type", "application/json")
+	negReq.Header.Set("Cookie", fmt.Sprintf("%s=%s", realtime.SessionCookieName, sessionToken))
+	negReq.Header.Set("Origin", "http://localhost:8080")
+
+	negResp, err := client.Do(negReq)
+	if err != nil {
+		log.Fatalf("FATAL: Negative safety request failed: %v", err)
+	}
+	defer negResp.Body.Close()
+	log.Printf("[13/13] Fail-closed response status: %d (expected 503)", negResp.StatusCode)
+	if negResp.StatusCode != http.StatusServiceUnavailable {
+		log.Fatalf("FATAL: Expected 503 Service Unavailable when no connector owner exists, got %d", negResp.StatusCode)
+	}
+	log.Println("[13/13] VERIFIED: When no owner exists, request fails-closed with 503!")
+
+	log.Println("=========================================================")
+	log.Println("K3D MULTI-POD REAL E2E VERIFICATION RESULT:")
+	log.Println("VERIFIED (Real k3d observed evidence):")
+	log.Println("  1. Forward Cross-Pod Route: backend-1 -> backend-0 (Create, Browser WSS, Bidirectional PTY, Delete)")
+	log.Println("  2. Failover Reconnection: Synthetic Connector reconnects to backend-1 with atomic monotonic epoch increase")
+	log.Println("  3. Reverse Cross-Pod Route: backend-0 -> backend-1 (Create, Browser WSS, Bidirectional PTY, Delete)")
+	log.Println("  4. Stale Epoch Release Fencing: Old owner/epoch cannot delete active new owner mapping in Valkey")
+	log.Println("  5. Unowned Fail-Closed: Terminal session creation returns HTTP 503 when no connector owner exists")
+	log.Println("  6. Measured Worker Dispatch: Single-run operation processed to SUCCEEDED with 1 mutation on owner Pod")
+	log.Println("  7. Cross-Pod LiveSession & Workspace File: Create, LIVE_SUBSCRIBE WS, PTY Fan-out, Delete, and File Tree/Data WSS")
+	log.Println("  8. Cross-Pod Preview Session & Origin: Create, Preview Data WSS, Preview Origin (Bootstrap -> Exchange -> GET), and Delete")
+	log.Println("")
+	log.Println("NOT VERIFIED / ARCHITECTURAL HOLDS:")
+	log.Println("  1. Non-Owner Worker Claim & Defer attribution: Cannot prove Pod B claimed/deferred without pod-attributed telemetry")
+	log.Println("  2. Global Exactly-Once / External Linearizable Fencing: Single-run count=1 is not invariant against failures; no provider fencing token")
+	log.Println("  3. Inter-Pod mTLS: Plain HTTP peer communication in local k3d without Istio sidecar")
+	log.Println("=========================================================")
+}

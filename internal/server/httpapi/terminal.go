@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/jsonnum"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 // maxTerminalBodyBytes는 TerminalSession 생성 요청 body 상한이다. 본문은 VM key와 정수 둘뿐이다.
@@ -32,6 +34,7 @@ type Terminals interface {
 	Targets(ctx context.Context, user repository.User, labInstanceID string) (terminal.TargetCatalog, error)
 	Create(ctx context.Context, user repository.User, in terminal.CreateInput) (terminal.Created, error)
 	Close(ctx context.Context, user repository.User, terminalSessionID string) error
+	ConnectorForLabInstance(ctx context.Context, labID uuid.UUID) (uuid.UUID, error)
 }
 
 // unavailableTerminals는 Terminal Relay가 없는 배포 구성(예: realtime role 없이 api만 enabled)의 Terminals다.
@@ -48,6 +51,10 @@ func (unavailableTerminals) Create(context.Context, repository.User, terminal.Cr
 
 func (unavailableTerminals) Close(context.Context, repository.User, string) error {
 	return terminal.ErrUnavailable
+}
+
+func (unavailableTerminals) ConnectorForLabInstance(context.Context, uuid.UUID) (uuid.UUID, error) {
+	return uuid.Nil, terminal.ErrUnavailable
 }
 
 // createTerminalSessionRequest는 OpenAPI CreateTerminalSessionRequest다. cols/rows는 검증 전 원문으로 받는다.
@@ -131,6 +138,34 @@ func (a *api) createTerminalSession(w http.ResponseWriter, r *http.Request) {
 		a.internalError(w, r, "create_terminal_session", errors.New("인증 context가 없습니다"))
 		return
 	}
+	labID, err := uuid.Parse(r.PathValue("labInstanceId"))
+	if err != nil {
+		a.terminalError(w, r, "create_terminal_session", terminal.ErrNotFound)
+		return
+	}
+	if a.ownerLocator != nil && a.proxy != nil {
+		if a.proxy.HasSpoofedPeerHeader(r) {
+			a.terminalError(w, r, "create_terminal_session", terminal.ErrUnavailable)
+			return
+		}
+		if !a.proxy.IsInternalPeer(r) {
+			if connID, err := a.terminals.ConnectorForLabInstance(r.Context(), labID); err == nil && connID != uuid.Nil {
+				owner, err := a.ownerLocator.LookupConnector(r.Context(), connID)
+				if err != nil {
+					a.terminalError(w, r, "create_terminal_session", terminal.ErrUnavailable)
+					return
+				}
+				if owner == nil || owner.PodID == "" || (owner.PodID != a.ownerLocator.PodID() && owner.PodAddr == "") {
+					a.terminalError(w, r, "create_terminal_session", terminal.ErrUnavailable)
+					return
+				}
+				if owner.PodID != a.ownerLocator.PodID() {
+					a.proxy.ProxyHTTP(w, r, owner.PodAddr)
+					return
+				}
+			}
+		}
+	}
 	req, ok := decodeCreateTerminalSessionRequest(w, r)
 	if !ok {
 		writeProblem(w, r, http.StatusBadRequest, codeInvalidRequest, "요청 형식이 올바르지 않습니다.")
@@ -163,7 +198,34 @@ func (a *api) closeTerminalSession(w http.ResponseWriter, r *http.Request) {
 		a.internalError(w, r, "close_terminal_session", errors.New("인증 context가 없습니다"))
 		return
 	}
-	if err := a.terminals.Close(r.Context(), principal.User, r.PathValue("terminalSessionId")); err != nil {
+	sessionID := r.PathValue("terminalSessionId")
+	if _, err := uuid.Parse(sessionID); err != nil {
+		a.terminalError(w, r, "close_terminal_session", terminal.ErrNotFound)
+		return
+	}
+	if a.ownerLocator != nil && a.proxy != nil {
+		if a.proxy.HasSpoofedPeerHeader(r) {
+			a.terminalError(w, r, "close_terminal_session", terminal.ErrUnavailable)
+			return
+		}
+		if !a.proxy.IsInternalPeer(r) {
+			owner, err := a.ownerLocator.LookupTerminal(r.Context(), sessionID)
+			if err != nil {
+				if !errors.Is(err, valkeyowner.ErrNoOwner) {
+					a.terminalError(w, r, "close_terminal_session", terminal.ErrUnavailable)
+					return
+				}
+			} else if owner != nil && owner.PodID != "" && owner.PodID != a.ownerLocator.PodID() {
+				if owner.PodAddr == "" {
+					a.terminalError(w, r, "close_terminal_session", terminal.ErrUnavailable)
+					return
+				}
+				a.proxy.ProxyHTTP(w, r, owner.PodAddr)
+				return
+			}
+		}
+	}
+	if err := a.terminals.Close(r.Context(), principal.User, sessionID); err != nil {
 		a.terminalError(w, r, "close_terminal_session", err)
 		return
 	}

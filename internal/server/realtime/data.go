@@ -70,11 +70,11 @@ func (r *Relay) serveDataHTTP(w http.ResponseWriter, req *http.Request) {
 		r.logger.Warn("Connector Terminal Data Upgrade 실패", "connector_id", identity.ConnectorID, "reason", "upgrade_failed")
 		return
 	}
-	r.serveData(ws, identity, ticket)
+	r.serveData(ws, identity, ticket, req.Header)
 }
 
 // serveData는 Upgrade된 Connector connection 하나를 끝까지 처리한다. 첫 application message는 TERMINAL_DATA_ATTACH여야 한다.
-func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket *trustTicket) {
+func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket *trustTicket, reqHeader http.Header) {
 	ws.SetReadLimit(r.readLimit)
 	p := newPeer(ws, r.dataQueueBytes, r.dataQueueMessages, r.writeTimeout, r.closeGrace)
 	var attached atomic.Bool
@@ -130,6 +130,24 @@ func (r *Relay) serveData(ws *websocket.Conn, identity ConnectorIdentity, ticket
 
 	// Connector identity는 credential에서 결정한 값이다. message가 주장한 값은 기대한 TerminalSession과 대조할 뿐 identity가 아니다.
 	s := r.lookup(msg.TerminalSessionID)
+	if s == nil {
+		if r.ownerLocator != nil && r.proxy != nil && !r.proxy.IsInternalPeerFromHeader(reqHeader) && !r.proxy.HasSpoofedPeerHeaderFromHeader(reqHeader) {
+			ctx, cancel := context.WithTimeout(context.Background(), controlTimeout)
+			owner, oerr := r.ownerLocator.LookupTerminal(ctx, msg.TerminalSessionID)
+			cancel()
+			if oerr == nil && owner.PodID != "" && owner.PodID != r.ownerLocator.PodID() {
+				extra := http.Header{}
+				if auth := reqHeader.Get("Authorization"); auth != "" {
+					extra.Set("Authorization", auth)
+				}
+				_ = ws.SetReadDeadline(time.Time{})
+				if err := r.proxy.ProxyWebSocketUpstream(ws, owner.PodAddr, DataPath, data, DataSubprotocol, extra); err != nil {
+					log.Warn("Connector Terminal Data peer proxy failed", "reason", "peer_proxy_failed")
+				}
+				return
+			}
+		}
+	}
 	var code string
 	switch {
 	case s == nil:

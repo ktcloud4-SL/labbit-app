@@ -18,6 +18,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 const (
@@ -34,11 +35,13 @@ type fakeTerminals struct {
 	createFor  []repository.User
 	closeIDs   []string
 
-	targets    terminal.TargetCatalog
-	targetsErr error
-	created    terminal.Created
-	createErr  error
-	closeErr   error
+	targets      terminal.TargetCatalog
+	targetsErr   error
+	created      terminal.Created
+	createErr    error
+	closeErr     error
+	connectorID  uuid.UUID
+	connectorErr error
 }
 
 func (f *fakeTerminals) Targets(_ context.Context, user repository.User, labInstanceID string) (terminal.TargetCatalog, error) {
@@ -56,6 +59,42 @@ func (f *fakeTerminals) Create(_ context.Context, user repository.User, in termi
 func (f *fakeTerminals) Close(_ context.Context, _ repository.User, id string) error {
 	f.closeIDs = append(f.closeIDs, id)
 	return f.closeErr
+}
+
+func (f *fakeTerminals) ConnectorForLabInstance(context.Context, uuid.UUID) (uuid.UUID, error) {
+	if f.connectorID != uuid.Nil || f.connectorErr != nil {
+		return f.connectorID, f.connectorErr
+	}
+	return uuid.Nil, nil
+}
+
+type fakeOwnerLocator struct {
+	connectorOwner *valkeyowner.ConnectorOwnerRecord
+	connectorErr   error
+	terminalOwner  *valkeyowner.TerminalOwnerRecord
+	terminalErr    error
+	previewOwner   *valkeyowner.PreviewOwnerRecord
+	previewErr     error
+	podID          string
+}
+
+func (f *fakeOwnerLocator) LookupConnector(context.Context, uuid.UUID) (*valkeyowner.ConnectorOwnerRecord, error) {
+	return f.connectorOwner, f.connectorErr
+}
+
+func (f *fakeOwnerLocator) LookupTerminal(context.Context, string) (*valkeyowner.TerminalOwnerRecord, error) {
+	return f.terminalOwner, f.terminalErr
+}
+
+func (f *fakeOwnerLocator) LookupPreview(context.Context, string) (*valkeyowner.PreviewOwnerRecord, error) {
+	return f.previewOwner, f.previewErr
+}
+
+func (f *fakeOwnerLocator) PodID() string {
+	if f.podID != "" {
+		return f.podID
+	}
+	return "pod-local"
 }
 
 type terminalHarness struct {
@@ -586,5 +625,416 @@ func TestTerminalTargetsIsReadOnly(t *testing.T) {
 	}
 	if len(h.terminals.targetsIDs)+len(h.terminals.createIn)+len(h.terminals.closeIDs) != 0 {
 		t.Fatal("조회 전용 endpoint의 다른 method가 use case를 호출함")
+	}
+}
+
+func newTerminalHarnessWithLocator(t *testing.T, locator *fakeOwnerLocator, proxy *valkeyowner.Proxy) *terminalHarness {
+	t.Helper()
+	fake := newFakeAuth()
+	fake.sessions[terminalCookie] = fake.principal
+	classes := &fakeClasses{}
+	logs := &bytes.Buffer{}
+	h := &terminalHarness{
+		terminals: &fakeTerminals{},
+		expires:   time.Date(2026, 10, 1, 17, 0, 0, 0, time.UTC),
+		sessionID: uuid.New(),
+	}
+	h.terminals.created = terminal.Created{
+		ID: h.sessionID, Generation: 3, Token: realtime.AttachToken(issuedAttachToken), TokenExpiresAt: h.expires,
+	}
+	h.terminals.targets = terminal.TargetCatalog{
+		Generation: 3, WorkspaceVMKey: "vk-web",
+		Items: []terminal.Target{
+			{VMKey: "vk-web", Role: "web", InstanceIndex: 0},
+			{VMKey: "vk-worker-a", Role: "worker", InstanceIndex: 0},
+			{VMKey: "vk-worker-b", Role: "worker", InstanceIndex: 1},
+		},
+	}
+	handler, err := New(Options{
+		Auth:         fake,
+		Classes:      classes,
+		LabSpecs:     &fakeLabSpecs{},
+		Terminals:    h.terminals,
+		PublicOrigin: trustedOrigin,
+		Logger:       slog.New(slog.NewJSONHandler(logs, nil)),
+		OwnerLocator: locator,
+		Proxy:        proxy,
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	h.harness = &harness{handler: handler, auth: fake, classes: classes, logs: logs}
+	return h
+}
+
+// TestTerminalCreateLocatorErrorWithLocalRouteReadyFailsClosed ensures that when
+// Valkey locator returns ErrLocatorUnavailable, the API immediately fails-closed with 503
+// without falling through to local Create, even though the local Connector route is ready.
+func TestTerminalCreateLocatorErrorWithLocalRouteReadyFailsClosed(t *testing.T) {
+	connID := uuid.New()
+	locator := &fakeOwnerLocator{
+		connectorErr: valkeyowner.ErrLocatorUnavailable,
+		podID:        "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	rec := h.create(validCreateBody)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503 Service Unavailable: %s", rec.Code, rec.Body.String())
+	}
+	problem := decodeProblem(t, rec)
+	if problem.Code != codeTerminalUnavailable {
+		t.Fatalf("problem.Code = %q, want %q", problem.Code, codeTerminalUnavailable)
+	}
+	// Avoid false assurance: local Create must NOT have been called!
+	if len(h.terminals.createIn) != 0 {
+		t.Fatalf("terminals.Create was called %d times; expected fail-closed without calling local handler", len(h.terminals.createIn))
+	}
+}
+
+// TestTerminalCloseLocatorErrorFailsClosed ensures that when Valkey locator is unavailable,
+// closeTerminalSession fails closed with 503 without executing local close.
+func TestTerminalCloseLocatorErrorFailsClosed(t *testing.T) {
+	locator := &fakeOwnerLocator{
+		terminalErr: valkeyowner.ErrLocatorUnavailable,
+		podID:       "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+
+	sessionID := uuid.New().String()
+	rec := h.send(http.MethodDelete, "/api/v1/terminal-sessions/"+sessionID, "",
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin))
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503: %s", rec.Code, rec.Body.String())
+	}
+	problem := decodeProblem(t, rec)
+	if problem.Code != codeTerminalUnavailable {
+		t.Fatalf("problem.Code = %q, want %q", problem.Code, codeTerminalUnavailable)
+	}
+	if len(h.terminals.closeIDs) != 0 {
+		t.Fatalf("terminals.Close was called %d times; expected fail-closed without calling local close", len(h.terminals.closeIDs))
+	}
+}
+
+// TestTerminalCreateNoOwnerWithLocalRouteReadyFailsClosed ensures that when
+// Valkey returns ErrNoOwner, create fails closed with 503 even if local Connector route is ready.
+func TestTerminalCreateNoOwnerWithLocalRouteReadyFailsClosed(t *testing.T) {
+	connID := uuid.New()
+	locator := &fakeOwnerLocator{
+		connectorErr: valkeyowner.ErrNoOwner,
+		podID:        "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	rec := h.create(validCreateBody)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503 Service Unavailable: %s", rec.Code, rec.Body.String())
+	}
+	problem := decodeProblem(t, rec)
+	if problem.Code != codeTerminalUnavailable {
+		t.Fatalf("problem.Code = %q, want %q", problem.Code, codeTerminalUnavailable)
+	}
+	if len(h.terminals.createIn) != 0 {
+		t.Fatalf("terminals.Create was called %d times; expected fail-closed without calling local handler", len(h.terminals.createIn))
+	}
+}
+
+// TestTerminalCreateEmptyPodIDFailsClosed ensures that a malformed connector owner record
+// with empty PodID fails closed with 503 without calling local Create.
+func TestTerminalCreateEmptyPodIDFailsClosed(t *testing.T) {
+	connID := uuid.New()
+	locator := &fakeOwnerLocator{
+		connectorOwner: &valkeyowner.ConnectorOwnerRecord{
+			PodID:   "",
+			PodAddr: "10.42.0.10:8080",
+		},
+		podID: "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	rec := h.create(validCreateBody)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503 Service Unavailable: %s", rec.Code, rec.Body.String())
+	}
+	problem := decodeProblem(t, rec)
+	if problem.Code != codeTerminalUnavailable {
+		t.Fatalf("problem.Code = %q, want %q", problem.Code, codeTerminalUnavailable)
+	}
+	if len(h.terminals.createIn) != 0 {
+		t.Fatalf("terminals.Create was called %d times; expected fail-closed without calling local handler", len(h.terminals.createIn))
+	}
+}
+
+// TestTerminalCreateLocalOwnerPermits201 ensures normal Valkey owner lookup for this pod
+// permits local terminal creation and returns 201.
+func TestTerminalCreateLocalOwnerPermits201(t *testing.T) {
+	connID := uuid.New()
+	locator := &fakeOwnerLocator{
+		connectorOwner: &valkeyowner.ConnectorOwnerRecord{
+			PodID:   "pod-local",
+			PodAddr: "10.42.0.10:8080",
+		},
+		podID: "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	rec := h.create(validCreateBody)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201 Created: %s", rec.Code, rec.Body.String())
+	}
+	if len(h.terminals.createIn) != 1 {
+		t.Fatalf("terminals.Create was called %d times, want 1", len(h.terminals.createIn))
+	}
+}
+
+// TestTerminalCreateNoValkeyN1Success ensures that without Valkey (N=1 mode),
+// terminal create proceeds locally and returns 201.
+func TestTerminalCreateNoValkeyN1Success(t *testing.T) {
+	h := newTerminalHarness(t)
+	h.terminals.connectorID = uuid.New()
+
+	rec := h.create(validCreateBody)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201 Created: %s", rec.Code, rec.Body.String())
+	}
+	if len(h.terminals.createIn) != 1 {
+		t.Fatalf("terminals.Create was called %d times, want 1", len(h.terminals.createIn))
+	}
+}
+
+// TestTerminalCreateRemoteOwnerProxies ensures that when another pod owns the connector,
+// createTerminalSession proxies the request to the remote pod and does not call local Create.
+func TestTerminalCreateRemoteOwnerProxies(t *testing.T) {
+	connID := uuid.New()
+	remoteCalled := false
+	remoteServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		remoteCalled = true
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"` + uuid.New().String() + `","generation":1,"sessionToken":"remote-token","tokenExpiresAt":"2026-10-01T17:00:00Z"}`))
+	}))
+	defer remoteServer.Close()
+
+	locator := &fakeOwnerLocator{
+		connectorOwner: &valkeyowner.ConnectorOwnerRecord{
+			PodID:   "pod-remote",
+			PodAddr: strings.TrimPrefix(remoteServer.URL, "http://"),
+		},
+		podID: "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	rec := h.create(validCreateBody)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201 Created: %s", rec.Code, rec.Body.String())
+	}
+	if !remoteCalled {
+		t.Fatalf("remote server was not called via proxy")
+	}
+	if len(h.terminals.createIn) != 0 {
+		t.Fatalf("local terminals.Create was called %d times; expected remote proxy only", len(h.terminals.createIn))
+	}
+}
+
+// TestTerminalCloseRemoteOwnerProxies ensures that when another pod owns the terminal session,
+// closeTerminalSession proxies the request to the remote pod and does not call local Close.
+func TestTerminalCloseRemoteOwnerProxies(t *testing.T) {
+	remoteCalled := false
+	remoteServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		remoteCalled = true
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer remoteServer.Close()
+
+	sessionID := uuid.New().String()
+	locator := &fakeOwnerLocator{
+		terminalOwner: &valkeyowner.TerminalOwnerRecord{
+			PodID:   "pod-remote",
+			PodAddr: strings.TrimPrefix(remoteServer.URL, "http://"),
+		},
+		podID: "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+
+	rec := h.send(http.MethodDelete, "/api/v1/terminal-sessions/"+sessionID, "",
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin))
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204 No Content: %s", rec.Code, rec.Body.String())
+	}
+	if !remoteCalled {
+		t.Fatalf("remote server was not called via proxy")
+	}
+	if len(h.terminals.closeIDs) != 0 {
+		t.Fatalf("local terminals.Close was called %d times; expected remote proxy only", len(h.terminals.closeIDs))
+	}
+}
+
+// TestTerminalCreateInvalidLabIDPreserves404 ensures malformed lab UUID returns 404
+// even when Valkey mode is enabled.
+func TestTerminalCreateInvalidLabIDPreserves404(t *testing.T) {
+	locator := &fakeOwnerLocator{
+		connectorErr: valkeyowner.ErrNoOwner,
+		podID:        "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+
+	rec := h.send(http.MethodPost, "/api/v1/lab-instances/not-a-valid-uuid/terminal-sessions", validCreateBody,
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin), withHeader("Content-Type", "application/json"))
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404 Not Found: %s", rec.Code, rec.Body.String())
+	}
+}
+
+// TestTerminalCloseNoOwnerFallsThroughToLocalClose ensures that when Valkey returns ErrNoOwner,
+// close proceeds to local handling.
+func TestTerminalCloseNoOwnerFallsThroughToLocalClose(t *testing.T) {
+	locator := &fakeOwnerLocator{
+		terminalErr: valkeyowner.ErrNoOwner,
+		podID:       "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+
+	sessionID := uuid.New().String()
+	rec := h.send(http.MethodDelete, "/api/v1/terminal-sessions/"+sessionID, "",
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin))
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204 No Content: %s", rec.Code, rec.Body.String())
+	}
+	if len(h.terminals.closeIDs) != 1 {
+		t.Fatalf("terminals.Close was called %d times, want 1", len(h.terminals.closeIDs))
+	}
+}
+
+// TestTerminalCloseInvalidSessionIDReturns404 ensures malformed UUID in terminalSessionId returns 404.
+func TestTerminalCloseInvalidSessionIDReturns404(t *testing.T) {
+	locator := &fakeOwnerLocator{
+		terminalErr: valkeyowner.ErrLocatorUnavailable,
+		podID:       "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+
+	rec := h.send(http.MethodDelete, "/api/v1/terminal-sessions/not-a-valid-uuid", "",
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin))
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404 Not Found: %s", rec.Code, rec.Body.String())
+	}
+	problem := decodeProblem(t, rec)
+	if problem.Code != codeNotFound {
+		t.Fatalf("problem.Code = %q, want %q", problem.Code, codeNotFound)
+	}
+	if len(h.terminals.closeIDs) != 0 {
+		t.Fatalf("terminals.Close was called; expected no call on invalid UUID")
+	}
+}
+
+func TestSpoofedPeerHeaderRejectedFailClosed(t *testing.T) {
+	connID := uuid.New()
+	locator := &fakeOwnerLocator{
+		connectorOwner: &valkeyowner.ConnectorOwnerRecord{
+			PodID:   "pod-local",
+			PodAddr: "10.42.0.10:8080",
+		},
+		podID: "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	// Attempt to spoof X-Labbit-Internal-Peer with wrong secret
+	rec := h.create(validCreateBody,
+		withHeader(valkeyowner.HeaderInternalPeer, "true"),
+		withHeader(valkeyowner.HeaderPeerSecret, "forged-secret"))
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503 Service Unavailable on spoofed peer header: %s", rec.Code, rec.Body.String())
+	}
+	if len(h.terminals.createIn) != 0 {
+		t.Fatalf("terminals.Create was called despite spoofed peer header")
+	}
+}
+
+func TestWorkspaceFileAndPreviewCrossPodProxy(t *testing.T) {
+	connID := uuid.New()
+	var remoteFileTreeCalled, remoteFileSaveCalled, remotePreviewCreateCalled bool
+	var receivedSaveBody string
+	remoteServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/files/tree"):
+			remoteFileTreeCalled = true
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"path":"","items":[]}`))
+		case r.Method == http.MethodPut && strings.HasSuffix(r.URL.Path, "/files/content"):
+			remoteFileSaveCalled = true
+			buf := new(bytes.Buffer)
+			_, _ = buf.ReadFrom(r.Body)
+			receivedSaveBody = buf.String()
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("ETag", `"rev-2"`)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"path":"main.go"}`))
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/preview-sessions"):
+			remotePreviewCreateCalled = true
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":"` + uuid.NewString() + `","targetPort":3000,"previewUrl":"https://preview.example.com","expiresAt":"2026-10-01T17:00:00Z"}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer remoteServer.Close()
+
+	locator := &fakeOwnerLocator{
+		connectorOwner: &valkeyowner.ConnectorOwnerRecord{
+			PodID:   "pod-remote",
+			PodAddr: strings.TrimPrefix(remoteServer.URL, "http://"),
+		},
+		podID: "pod-local",
+	}
+	proxy := valkeyowner.NewProxy("test-secret")
+	h := newTerminalHarnessWithLocator(t, locator, proxy)
+	h.terminals.connectorID = connID
+
+	// 1. Cross-pod GET /files/tree
+	recTree := h.send(http.MethodGet, "/api/v1/lab-instances/"+labInstanceID+"/files/tree", "",
+		withCookie(terminalCookie))
+	if recTree.Code != http.StatusOK || !remoteFileTreeCalled {
+		t.Fatalf("GET /files/tree status=%d, remoteCalled=%v", recTree.Code, remoteFileTreeCalled)
+	}
+
+	// 2. Cross-pod PUT /files/content (verifies body is preserved across ProxyHTTP!)
+	saveBody := `{"content":"package main\n"}`
+	recSave := h.send(http.MethodPut, "/api/v1/lab-instances/"+labInstanceID+"/files/content?path=main.go", saveBody,
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin),
+		withHeader("Content-Type", "application/json"), withHeader("If-Match", `"rev-1"`))
+	if recSave.Code != http.StatusOK || !remoteFileSaveCalled || receivedSaveBody != saveBody {
+		t.Fatalf("PUT /files/content status=%d, remoteCalled=%v, body=%q", recSave.Code, remoteFileSaveCalled, receivedSaveBody)
+	}
+
+	// 3. Cross-pod POST /preview-sessions
+	recPreview := h.send(http.MethodPost, "/api/v1/lab-instances/"+labInstanceID+"/preview-sessions", `{"targetPort":3000}`,
+		withCookie(terminalCookie), withHeader("Origin", trustedOrigin),
+		withHeader("Content-Type", "application/json"))
+	if recPreview.Code != http.StatusCreated || !remotePreviewCreateCalled {
+		t.Fatalf("POST /preview-sessions status=%d, remoteCalled=%v", recPreview.Code, remotePreviewCreateCalled)
 	}
 }

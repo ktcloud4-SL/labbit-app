@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 // serveBrowserHTTP는 Upgrade 전에 Origin, Cookie, subprotocol, 현재 인증을 확인한다.
@@ -76,11 +77,11 @@ func (r *Relay) serveBrowserHTTP(w http.ResponseWriter, req *http.Request) {
 		r.logger.Warn("Browser Terminal Upgrade 실패", "reason", "upgrade_failed")
 		return
 	}
-	r.serveBrowser(ws, session)
+	r.serveBrowser(ws, session, req.Header)
 }
 
 // serveBrowser는 Upgrade된 Browser connection 하나를 끝까지 처리한다. 첫 application message는 TERMINAL_ATTACH여야 한다.
-func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken) {
+func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken, reqHeader http.Header) {
 	ws.SetReadLimit(r.readLimit)
 	p := newPeer(ws, r.browserQueueBytes, r.browserQueueMessages, r.writeTimeout, r.closeGrace)
 
@@ -126,6 +127,31 @@ func (r *Relay) serveBrowser(ws *websocket.Conn, session SessionToken) {
 		return
 	}
 	s := r.lookup(grant.TerminalSessionID)
+	if s == nil {
+		if r.ownerLocator != nil && r.proxy != nil && !r.proxy.IsInternalPeerFromHeader(reqHeader) && !r.proxy.HasSpoofedPeerHeaderFromHeader(reqHeader) {
+			ctx, cancel := context.WithTimeout(context.Background(), controlTimeout)
+			owner, oerr := r.ownerLocator.LookupTerminal(ctx, grant.TerminalSessionID)
+			cancel()
+			if oerr != nil && !errors.Is(oerr, valkeyowner.ErrNoOwner) {
+				r.rejectAttach(p, withTrace(r.logger.With("terminal_session_id", boundID(msg.TerminalSessionID)), msg.Trace), ErrDependencyUnavailable, msg.MessageID, msg.Trace)
+				return
+			}
+			if oerr == nil && owner.PodID != "" && owner.PodID != r.ownerLocator.PodID() {
+				extra := http.Header{}
+				if cookie := reqHeader.Get("Cookie"); cookie != "" {
+					extra.Set("Cookie", cookie)
+				}
+				if origin := reqHeader.Get("Origin"); origin != "" {
+					extra.Set("Origin", origin)
+				}
+				_ = ws.SetReadDeadline(time.Time{})
+				if err := r.proxy.ProxyWebSocketUpstream(ws, owner.PodAddr, BrowserPath, data, BrowserSubprotocol, extra); err != nil {
+					r.logger.Warn("Browser Terminal peer proxy failed", "reason", "peer_proxy_failed")
+				}
+				return
+			}
+		}
+	}
 	// Control이 허용한 TerminalSession이 Relay가 등록한 correlation과 정확히 같을 때만 사용한다.
 	if s == nil || s.corr.LabInstanceID != grant.LabInstanceID || s.corr.Generation != grant.Generation {
 		r.rejectAttach(p, withTrace(r.logger.With("terminal_session_id", boundID(msg.TerminalSessionID)), msg.Trace), ErrSessionNotFound, msg.MessageID, msg.Trace)

@@ -17,11 +17,17 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/operation"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 type Router interface {
 	SendOperationCommand(context.Context, connector.OperationCommand) (connector.SentMessage, error)
 	ForgetOperation(uuid.UUID, connector.Correlation) bool
+}
+
+// OwnerLocator allows worker to verify if this Pod is the current owner of a connector.
+type OwnerLocator interface {
+	LookupConnector(ctx context.Context, connectorID uuid.UUID) (*valkeyowner.ConnectorOwnerRecord, error)
 }
 
 // Options keeps PROVISION-only callers compatible; Mutations enables the other
@@ -35,6 +41,9 @@ type Options struct {
 	Tracer           trace.Tracer
 	Logger           *slog.Logger
 	Metrics          *observability.WorkerMetrics
+	// OwnerLocator and PodID restrict claim execution to the Pod owning the connector.
+	OwnerLocator OwnerLocator
+	PodID        string
 	// Ready checks application/schema compatibility before a new claim.
 	Ready                                      func(context.Context) error
 	LeaseDuration, ResultTimeout, PollInterval time.Duration
@@ -219,6 +228,13 @@ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemCl
 	if err != nil {
 		return err
 	}
+	if p.opts.OwnerLocator != nil {
+		owner, err := p.opts.OwnerLocator.LookupConnector(ctx, d.ConnectorID)
+		if err != nil || owner.PodID != p.opts.PodID {
+			// Non-owner Worker avoids claims; fail-closed on Valkey error/loss
+			return p.deferUnsent(ctx, d)
+		}
+	}
 	var snapshot protocol.CreationSnapshot
 	if d.MutationType != "CLEANUP" && json.Unmarshal(d.Snapshot, &snapshot) != nil {
 		return p.invalidCommand(ctx, d)
@@ -261,6 +277,12 @@ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemCl
 		}
 		if _, err := p.worker.Renew(ctx, d.Lease); err != nil {
 			return err
+		}
+		if p.opts.OwnerLocator != nil {
+			owner, err := p.opts.OwnerLocator.LookupConnector(ctx, d.ConnectorID)
+			if err != nil || owner.PodID != p.opts.PodID {
+				return p.deferUnsent(ctx, d)
+			}
 		}
 	}
 	sent, err := p.opts.Router.SendOperationCommand(ctx, connector.OperationCommand{

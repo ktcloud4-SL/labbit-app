@@ -65,8 +65,11 @@ export function LabSpecListPage() {
   // A 200 means the server has verified INSTRUCTOR membership, even if there
   // are currently no active Image/Flavor options. A 403 is a denied capability;
   // 5xx/network errors are UNKNOWN, not an inferred lack of permission.
-  const canCreate = createPermissionQuery.isSuccess
-  const forbidden = createPermissionQuery.error instanceof HttpError &&
+  // Cached success is not a fresh authorization decision while a refetch is in flight.
+  // Keep the create action hidden until the server has revalidated the capability.
+  const permissionChecking = createPermissionQuery.isPending || createPermissionQuery.isFetching
+  const canCreate = createPermissionQuery.isSuccess && !permissionChecking
+  const forbidden = !permissionChecking && createPermissionQuery.error instanceof HttpError &&
     createPermissionQuery.error.status === 403
 
   return (
@@ -89,13 +92,13 @@ export function LabSpecListPage() {
         ) : (
           <div className="header-action labspec-permission-action">
             <p className="muted" role="status">
-              {createPermissionQuery.isPending
+              {permissionChecking
                 ? '실습 정의 작성 권한 확인 중...'
                 : forbidden
                   ? '실습 정의 작성은 강사 권한이 필요합니다.'
                   : '실습 정의 작성 권한을 확인하지 못했습니다.'}
             </p>
-            {!createPermissionQuery.isPending && !forbidden && (
+            {!permissionChecking && !forbidden && (
               <button
                 className="secondary-button"
                 type="button"

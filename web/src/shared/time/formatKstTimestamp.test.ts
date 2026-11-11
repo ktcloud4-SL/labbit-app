@@ -15,6 +15,24 @@ describe('formatKstTimestamp', () => {
     )
   })
 
+  it('다른 offset으로 전년도·다음 연도로 넘어가는 시각을 한국 연도로 정확히 표시한다', () => {
+    expect(formatKstTimestamp('2026-01-01T00:00:00+14:00')).toBe(
+      '2025-12-31 19:00:00 KST',
+    )
+    expect(formatKstTimestamp('2026-12-31T23:59:59-12:00')).toBe(
+      '2027-01-01 20:59:59 KST',
+    )
+  })
+
+  it('잘못된 시간대 offset은 날짜처럼 정규화하거나 UTC로 간주하지 않는다', () => {
+    for (const invalid of [
+      '2026-11-10T08:38:22+24:00',
+      '2026-11-10T08:38:22+09:99',
+      '2026-11-10T08:38:22+00:60',
+    ]) {
+      expect(formatKstTimestamp(invalid)).toBe('확인 불가')
+    }
+  })
   it('서버 시각이 없거나 잘못됐을 때 임의의 현재시각을 만들지 않는다', () => {
     expect(formatKstTimestamp(null)).toBe('확인 불가')
     expect(formatKstTimestamp(undefined)).toBe('확인 불가')

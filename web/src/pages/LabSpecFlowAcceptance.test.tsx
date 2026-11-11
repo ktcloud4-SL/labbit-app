@@ -20,6 +20,7 @@ function mountLabSpecFlow(
   overrides: Partial<typeof mockLabbitApi> = {},
   initialPath = '/lab-specs',
   detailElement: ReactNode = <div>LabSpec 저장 완료</div>,
+  setupClient?: (client: QueryClient) => void,
 ) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -31,11 +32,13 @@ function mountLabSpecFlow(
     listLabSpecMappingOptions: async () => mockLabSpecMappingOptions,
     ...overrides,
   }
+  setupClient?.(client)
   const router = createMemoryRouter(
     [
       { path: '/lab-specs', element: <LabSpecListPage /> },
       { path: '/lab-specs/new', element: <LabSpecEditorPage /> },
       { path: '/lab-specs/:labSpecId', element: detailElement },
+      { path: '/login', element: <div>로그인 화면</div> },
     ],
     { initialEntries: [initialPath] },
   )
@@ -50,6 +53,108 @@ function mountLabSpecFlow(
 }
 
 describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
+  it('캐시된 강사 권한이 서버 재검증 중이면 생성 CTA를 숨기고 403 결과를 반영한다', async () => {
+    let denyProbe!: (reason?: unknown) => void
+    const delayedProbe = new Promise<{ items: [] }>((_, reject) => {
+      denyProbe = reject
+    })
+    const listLabSpecMappingOptions = vi.fn(() => delayedProbe)
+    mountLabSpecFlow(
+      { listLabSpecMappingOptions },
+      '/lab-specs',
+      <div>LabSpec 저장 완료</div>,
+      (client) => client.setQueryData(
+        labbitQueryKeys.labSpecMappingOptions(mockMe.organization.id, mockMe.id),
+        { items: [] },
+      ),
+    )
+
+    await screen.findByRole('heading', { name: '실습 정의' })
+    await waitFor(() => expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(1))
+    // React Query may retain a previously successful result while refetching.
+    // Cached 200 must not expose a create CTA until a fresh capability decision.
+    expect(screen.queryByRole('link', { name: '새 실습 정의' })).not.toBeInTheDocument()
+    expect(screen.getByText('실습 정의 작성 권한 확인 중...')).toBeInTheDocument()
+
+    await act(async () => { denyProbe(new HttpError(403)) })
+    expect(await screen.findByText('실습 정의 작성은 강사 권한이 필요합니다.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '새 실습 정의' })).not.toBeInTheDocument()
+  })
+
+  it('조직 MEMBER여도 강사 Membership을 서버가 인정하면 생성 CTA를 표시한다', async () => {
+    // /me.organizationRole is not the Create permission. MappingOptions 200
+    // verifies any-Class INSTRUCTOR membership, independently of nonempty options.
+    mountLabSpecFlow({
+      getMe: async () => ({ ...mockMe, organizationRole: 'MEMBER' }),
+      listLabSpecMappingOptions: async () => ({ items: [] }),
+    })
+
+    expect(await screen.findByRole('link', { name: '새 실습 정의' })).toHaveAttribute(
+      'href',
+      '/lab-specs/new',
+    )
+  })
+
+  it('서버 MappingOptions 403이면 생성 CTA를 숨기고 기존 소유 LabSpec 목록은 유지한다', async () => {
+    const listLabSpecMappingOptions = vi.fn(async () => {
+      throw new HttpError(403)
+    })
+    mountLabSpecFlow({
+      listLabSpecMappingOptions,
+      listLabSpecs: async () => ({ items: [{
+        id: 'saved-spec',
+        name: '기존 LabSpec',
+        description: '기존 작성물',
+        ownerUserId: mockMe.id,
+      }] }),
+    })
+
+    expect(await screen.findByText('실습 정의 작성은 강사 권한이 필요합니다.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '새 실습 정의' })).not.toBeInTheDocument()
+    expect(screen.getByText('기존 LabSpec')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '상세' })).toHaveAttribute(
+      'href', '/lab-specs/saved-spec',
+    )
+    expect(screen.queryByRole('link', { name: '편집' })).not.toBeInTheDocument()
+    expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(1)
+  })
+
+  it('MappingOptions 503은 권한 없음으로 단정하지 않고 작성 CTA 대신 재확인을 제공한다', async () => {
+    const listLabSpecMappingOptions = vi.fn()
+      .mockRejectedValueOnce(new HttpError(503))
+      .mockResolvedValue({ items: [] })
+    mountLabSpecFlow({ listLabSpecMappingOptions })
+
+    expect(await screen.findByText('실습 정의 작성 권한을 확인하지 못했습니다.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '새 실습 정의' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '권한 다시 확인' }))
+
+    expect(await screen.findByRole('link', { name: '새 실습 정의' })).toBeInTheDocument()
+    expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(2)
+  })
+
+  it('MappingOptions 401이면 인증 세션 만료로 이동하고 이전 Query 캐시를 정리한다', async () => {
+    const listLabSpecMappingOptions = vi.fn(async () => {
+      throw new HttpError(401)
+    })
+    const { router, client } = mountLabSpecFlow({ listLabSpecMappingOptions })
+    const clearSpy = vi.spyOn(client, 'clear')
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
+    expect(router.state.location.state).toMatchObject({
+      from: '/lab-specs',
+      reason: 'sessionExpired',
+    })
+    expect(screen.getByText('로그인 화면')).toBeInTheDocument()
+    // clear() is the auth safety boundary. A still-mounted mock /me can
+    // re-fetch 200 asynchronously, so don't assert a permanently empty cache.
+    expect(clearSpy).toHaveBeenCalledTimes(1)
+    clearSpy.mockRestore()
+    // Clearing active auth queries may trigger an in-flight refetch before unmount.
+    // The requirement is session redirect and cache clear, not a fixed GET count.
+    expect(listLabSpecMappingOptions).toHaveBeenCalled()
+  })
+
   it('목록의 새 실습 정의 링크로 이동하고 빈 이름은 저장 요청 전에 차단한다', async () => {
     const createLabSpec = vi.fn(async () => {
       throw new Error('빈 입력에서는 호출하지 않아야 함')
@@ -62,7 +167,9 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: '새 실습 정의' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/lab-specs/new')
-    fireEvent.click(screen.getByRole('button', { name: '실습 정의 저장' }))
+    // A direct route entry revalidates cached Mapping permission first.
+    // Await the enabled form instead of racing the transient read-only state.
+    fireEvent.click(await screen.findByRole('button', { name: '실습 정의 저장' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('LabSpec 이름을 입력해 주세요.')
     expect(createLabSpec).not.toHaveBeenCalled()
@@ -228,6 +335,107 @@ describe('FE-05 LabSpec navigation and validation (mock-only)', () => {
     expect(await screen.findByRole('textbox', { name: '이름' })).toHaveValue('One-time notice')
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(createLabSpec).toHaveBeenCalledTimes(1)
+  })
+
+  it('생성 화면 직접 접근 시 캐시된 200을 재검증하는 동안 입력·저장을 잠근 뒤 복구한다', async () => {
+    let confirmPermission!: (value: typeof mockLabSpecMappingOptions) => void
+    const pending = new Promise<typeof mockLabSpecMappingOptions>((resolve) => {
+      confirmPermission = resolve
+    })
+    const probe = vi.fn(() => pending)
+    const createLabSpec = vi.fn(async () => {
+      throw new Error('권한 재검증 중에는 호출하지 않아야 함')
+    })
+    mountLabSpecFlow(
+      { listLabSpecMappingOptions: probe, createLabSpec },
+      '/lab-specs/new',
+      <div>LabSpec 저장 완료</div>,
+      (client) => client.setQueryData(
+        labbitQueryKeys.labSpecMappingOptions(mockMe.organization.id, mockMe.id),
+        mockLabSpecMappingOptions,
+      ),
+    )
+
+    expect(await screen.findByRole('heading', { name: '새 실습 정의' })).toBeInTheDocument()
+    await waitFor(() => expect(probe).toHaveBeenCalledTimes(1))
+    expect(screen.getByText(/실습 정의 작성 권한을 다시 확인하는 중입니다/)).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '이름' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
+    expect(createLabSpec).not.toHaveBeenCalled()
+
+    await act(async () => { confirmPermission(mockLabSpecMappingOptions) })
+    expect(await screen.findByRole('button', { name: '실습 정의 저장' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '이름' })).toBeEnabled()
+    expect(createLabSpec).not.toHaveBeenCalled()
+  })
+
+  it('생성 화면에서 이전 200 캐시가 있어도 최신 401이면 로그인으로 이동하고 저장을 차단한다', async () => {
+    let rejectPermission!: (reason: unknown) => void
+    const pending = new Promise<typeof mockLabSpecMappingOptions>((_, reject) => {
+      rejectPermission = reject
+    })
+    const createLabSpec = vi.fn(async () => {
+      throw new Error('인증 만료 후 저장할 수 없음')
+    })
+    const { router, client } = mountLabSpecFlow(
+      { listLabSpecMappingOptions: () => pending, createLabSpec },
+      '/lab-specs/new',
+      <div>LabSpec 저장 완료</div>,
+      (queryClient) => queryClient.setQueryData(
+        labbitQueryKeys.labSpecMappingOptions(mockMe.organization.id, mockMe.id),
+        mockLabSpecMappingOptions,
+      ),
+    )
+    const clearSpy = vi.spyOn(client, 'clear')
+    expect(await screen.findByRole('heading', { name: '새 실습 정의' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
+
+    await act(async () => { rejectPermission(new HttpError(401)) })
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
+    expect(router.state.location.state).toMatchObject({
+      from: '/lab-specs/new',
+      reason: 'sessionExpired',
+    })
+    expect(clearSpy).toHaveBeenCalled()
+    expect(createLabSpec).not.toHaveBeenCalled()
+    clearSpy.mockRestore()
+  })
+
+  it('작성 중 Mapping 재조회 503은 미저장 입력을 보존하고 저장을 잠근 뒤 재시도 복구한다', async () => {
+    const listLabSpecMappingOptions = vi.fn()
+      .mockResolvedValueOnce(mockLabSpecMappingOptions)
+      .mockRejectedValueOnce(new HttpError(503))
+      .mockResolvedValueOnce(mockLabSpecMappingOptions)
+    const createLabSpec = vi.fn(async () => {
+      throw new Error('503 권한 미확인 동안 저장할 수 없음')
+    })
+    const { client } = mountLabSpecFlow(
+      { listLabSpecMappingOptions, createLabSpec },
+      '/lab-specs/new',
+    )
+    expect(await screen.findByRole('button', { name: '실습 정의 저장' })).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: '이름' }), {
+      target: { value: 'Unsent draft stays here' },
+    })
+
+    await act(async () => {
+      await client.invalidateQueries({
+        queryKey: labbitQueryKeys.labSpecMappingOptions(mockMe.organization.id, mockMe.id),
+      })
+    })
+    expect(await screen.findByRole('button', { name: 'Mapping 후보 다시 시도' })).toBeInTheDocument()
+    expect(screen.getByText('Image/Size Mapping 후보를 불러오지 못했습니다. 다시 확인할 때까지 수정·저장할 수 없습니다.')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('Unsent draft stays here')
+    expect(screen.getByRole('textbox', { name: '이름' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: '실습 정의 저장' })).not.toBeInTheDocument()
+    expect(createLabSpec).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mapping 후보 다시 시도' }))
+    expect(await screen.findByRole('button', { name: '실습 정의 저장' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '이름' })).toHaveValue('Unsent draft stays here')
+    expect(screen.getByRole('textbox', { name: '이름' })).toBeEnabled()
+    expect(listLabSpecMappingOptions).toHaveBeenCalledTimes(3)
+    expect(createLabSpec).not.toHaveBeenCalled()
   })
 
   it('Mapping 권한 403이면 편집기를 차단하고 저장을 호출하지 않는다', async () => {

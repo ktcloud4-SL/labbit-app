@@ -292,6 +292,23 @@ a {
   align-self: flex-start;
 }
 
+/* Permission lookup can show longer status/retry text than the normal CTA.
+   Allow wrapping on narrow screens without changing primary action buttons. */
+.page-header-with-action > .header-action.labspec-permission-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.labspec-permission-action > .muted {
+  margin: 0;
+}
+
 .card-link {
   margin-top: 18px;
 }

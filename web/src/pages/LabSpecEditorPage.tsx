@@ -251,7 +251,7 @@ function LabSpecForm({
             : mappingError === 'forbidden'
               ? 'Mapping 후보를 조회할 강사 권한이 없습니다. 기존 실습 정의는 읽기 전용으로 확인할 수 있지만 수정·저장할 수 없습니다.'
             : mappingError === 'unavailable'
-              ? 'Image/Size Mapping 후보를 불러오지 못했습니다. 기존 실습 정의는 읽기 전용으로 확인할 수 있지만 수정·저장할 수 없습니다.'
+              ? 'Image/Size Mapping 후보를 불러오지 못했습니다. 다시 확인할 때까지 수정·저장할 수 없습니다.'
               : '다른 강사가 소유한 실습 정의입니다. 현재 계정에서는 내용을 확인만 할 수 있습니다.'}
         </div>
       )}

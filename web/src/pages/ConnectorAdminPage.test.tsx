@@ -242,6 +242,49 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     expect(screen.getByText('등록 토큰을 취소했습니다.')).toBeInTheDocument()
   })
 
+  it('서버 관측 시각과 마지막 Heartbeat는 UTC 원문이 아닌 KST로 표시한다', async () => {
+    mount({ listConnectors: async () => ({
+      observedAt: '2026-11-09T23:38:22Z',
+      items: [{
+        id: 'conn-time', name: 'Timestamp connector',
+        registrationStatus: 'REGISTERED' as const,
+        connectionStatus: 'ONLINE' as const,
+        createdAt: '2026-11-09T00:00:00Z',
+        revokedAt: null,
+        lastSeenAt: '2026-11-09T23:37:02Z',
+        lastConnectorVersion: null,
+        lastRuntimeId: null,
+      }],
+    }) })
+
+    expect(await screen.findByText('Control ONLINE')).toBeInTheDocument()
+    expect(screen.getByText('서버 상태 관측 시각: 2026-11-10 08:38:22 KST')).toBeInTheDocument()
+    expect(screen.getByText('마지막 Heartbeat: 2026-11-10 08:37:02 KST')).toBeInTheDocument()
+    expect(screen.queryByText('마지막 Heartbeat: 2026-11-09T23:37:02Z')).not.toBeInTheDocument()
+  })
+
+  it('잘못된 서버 시각은 확인 불가로 표시하되 연결 상태를 추측하거나 고치지 않는다', async () => {
+    mount({ listConnectors: async () => ({
+      observedAt: '2026-11-10T08:38:22',
+      items: [{
+        id: 'conn-invalid-time', name: 'Invalid timestamp connector',
+        registrationStatus: 'REGISTERED' as const,
+        connectionStatus: 'NEVER_SEEN' as const,
+        createdAt: '2026-11-09T00:00:00Z',
+        revokedAt: null,
+        lastSeenAt: '2026-02-30T08:38:22Z',
+        lastConnectorVersion: null,
+        lastRuntimeId: null,
+      }],
+    }) })
+
+    expect(await screen.findByText('등록됨 · Heartbeat 대기')).toBeInTheDocument()
+    expect(screen.getByText('서버 상태 관측 시각: 확인 불가')).toBeInTheDocument()
+    expect(screen.getByText('마지막 Heartbeat: 확인 불가')).toBeInTheDocument()
+    expect(screen.getByText('Provider READY: 미확인 (별도 검증 필요)')).toBeInTheDocument()
+    expect(screen.queryByText('Control ONLINE')).not.toBeInTheDocument()
+  })
+
   it('서버 상태 NEVER_SEEN을 ONLINE으로 추정하지 않고 Provider READY는 미확인으로 표시한다', async () => {
     mount({ listConnectors: async () => ({
       observedAt: '2026-10-19T00:00:00Z',

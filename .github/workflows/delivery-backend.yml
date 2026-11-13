@@ -58,14 +58,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Configure AWS credentials (OIDC)
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && secrets.AWS_ECR_ROLE_ARN != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ECR_ROLE_ARN }}
           aws-region: ap-northeast-2
 
       - name: Log in to Amazon ECR
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && secrets.AWS_ECR_ROLE_ARN != ''
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
@@ -77,13 +77,13 @@ jobs:
             latest=false
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            name=${{ steps.login-ecr.outputs.registry }}/backend,enable=${{ github.event_name != 'pull_request' }}
+            name=${{ steps.login-ecr.outputs.registry }}/backend,enable=${{ github.event_name != 'pull_request' && steps.login-ecr.outputs.registry != '' }}
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
             type=sha,format=short
             type=ref,event=branch
-
+            
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:

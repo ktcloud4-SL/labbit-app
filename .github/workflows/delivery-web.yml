@@ -51,12 +51,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure AWS credentials (OIDC)
+        if: secrets.AWS_ECR_ROLE_ARN != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ECR_ROLE_ARN }}
           aws-region: ap-northeast-2
 
       - name: Log in to Amazon ECR
+        if: secrets.AWS_ECR_ROLE_ARN != ''
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
@@ -68,13 +70,13 @@ jobs:
             latest=false
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            ${{ steps.login-ecr.outputs.registry }}/web
+            name=${{ steps.login-ecr.outputs.registry }}/web,enable=${{ steps.login-ecr.outputs.registry != '' }}
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,format=short
             type=ref,event=branch
-
+            
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:

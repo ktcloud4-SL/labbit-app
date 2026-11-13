@@ -1,0 +1,10 @@
+title = "Labbit Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist for historical test evidence and benchmark logs"
+paths = [
+  '''(^|/)docs/connector/evidence/''',
+]

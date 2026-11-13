@@ -4,7 +4,12 @@ title = "Labbit Gitleaks Configuration"
 useDefault = true
 
 [allowlist]
-description = "Global allowlist for historical test evidence and benchmark logs"
+description = "Allowlist SHA-256 source and artifact checksum manifests in historical connector evidence"
 paths = [
-  '''(^|/)docs/connector/evidence/''',
+  '''(^|/)docs/connector/evidence/.*/source-manifest\.json$''',
+  '''(^|/)docs/connector/evidence/.*/artifact-checksums\.json$''',
+  '''(^|/)docs/connector/evidence/.*/artifact-manifest\.json$''',
+  '''(^|/)docs/connector/evidence/.*/execution-manifest\.json$''',
+  '''(^|/)docs/connector/evidence/.*/candidate-files\.json$''',
+  '''(^|/)docs/connector/evidence/.*/tested-source.*\.json$''',
 ]

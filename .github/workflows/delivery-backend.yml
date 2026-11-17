@@ -122,6 +122,7 @@ jobs:
             else
               sed -i -E "s|([[:space:]]*tag:[[:space:]]*).*|\1\"${SHORT_TAG}\"|g" "$AWS_FILE"
             fi
+            sed -i -E "s|(image:[[:space:]]*[^:]+/backend:).*|\1${SHORT_TAG}|g" "$AWS_FILE"
             if ! grep -q "tag: \"${SHORT_TAG}\"" "$AWS_FILE"; then
               echo "::error::Failed to update image tag in $AWS_FILE to $SHORT_TAG"
               exit 1

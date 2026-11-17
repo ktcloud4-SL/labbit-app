@@ -30,7 +30,8 @@ jobs:
       contents: read
       packages: write
       id-token: write
-
+    env:
+      AWS_ECR_ROLE_ARN: ${{ secrets.AWS_ECR_ROLE_ARN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -58,14 +59,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Configure AWS credentials (OIDC)
-        if: github.event_name != 'pull_request' && secrets.AWS_ECR_ROLE_ARN != ''
+        if: github.event_name != 'pull_request' && env.AWS_ECR_ROLE_ARN != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ECR_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_ECR_ROLE_ARN }}
           aws-region: ap-northeast-2
 
       - name: Log in to Amazon ECR
-        if: github.event_name != 'pull_request' && secrets.AWS_ECR_ROLE_ARN != ''
+        if: github.event_name != 'pull_request' && env.AWS_ECR_ROLE_ARN != ''
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 

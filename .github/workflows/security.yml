@@ -21,15 +21,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Gitleaks
+        run: |
+          mkdir -p /tmp/gitleaks
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz | tar -xz -C /tmp/gitleaks
+          sudo mv /tmp/gitleaks/gitleaks /usr/local/bin/gitleaks
+          rm -rf /tmp/gitleaks
+          
       - name: Run Gitleaks
         run: |
-          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz | tar -xz
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "Scanning new commits in PR (origin/main..HEAD)..."
-            ./gitleaks detect --log-opts="origin/main..HEAD" --verbose --redact
+            gitleaks detect --log-opts="origin/main..HEAD" --verbose --redact
           else
             echo "Scanning current workspace directory..."
-            ./gitleaks dir . --verbose --redact
+            gitleaks dir . --verbose --redact
           fi
   
   hadolint:

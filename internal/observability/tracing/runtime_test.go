@@ -22,7 +22,7 @@ const (
 	unsampledParent = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-00"
 
 	// headerSecret은 OTLP header Secret이다. 어떤 log, Span, resource에도 나타나면 안 된다.
-	headerSecret = "HEADER-SECRET-SENTINEL-7f3a"
+	headerSecret = "test-secret"
 )
 
 func startSpan(rt *Runtime, ctx context.Context, name string) (context.Context, trace.Span) {

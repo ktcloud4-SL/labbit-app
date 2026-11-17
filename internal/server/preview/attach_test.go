@@ -52,7 +52,7 @@ func TestDataUpgradeAuthentication(t *testing.T) {
 		req.Header.Set("Connection", "Upgrade")
 		req.Header.Set("Upgrade", "websocket")
 		req.Header.Set("Sec-WebSocket-Version", "13")
-		req.Header.Set("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
+		req.Header.Set("Sec-WebSocket-Key", "AAAAAAAAAAAAAAAAAAAAAA==")
 		req.Header.Set("Sec-WebSocket-Protocol", previewSubprotocol)
 		mod(req)
 		resp, err := http.DefaultClient.Do(req)

@@ -347,7 +347,7 @@ describe('LBT-183 Connector admin screen contract-only UI', () => {
     mount({
       listConnectors,
       createConnectorEnrollmentToken: async () => ({
-        tokenId: 'transient-503-fixture',
+        tokenId: 'test-id',
         enrollmentToken: TOKEN,
         expiresAt: FUTURE_EXPIRY,
       }),

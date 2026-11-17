@@ -3,13 +3,13 @@ title = "Labbit Gitleaks Configuration"
 [extend]
 useDefault = true
 
-[allowlist]
-description = "Allowlist SHA-256 source and artifact checksum manifests in historical connector evidence"
-paths = [
-  '''(^|/)docs/connector/evidence/.*/source-manifest\.json$''',
-  '''(^|/)docs/connector/evidence/.*/artifact-checksums\.json$''',
-  '''(^|/)docs/connector/evidence/.*/artifact-manifest\.json$''',
-  '''(^|/)docs/connector/evidence/.*/execution-manifest\.json$''',
-  '''(^|/)docs/connector/evidence/.*/candidate-files\.json$''',
-  '''(^|/)docs/connector/evidence/.*/tested-source.*\.json$''',
-]
+[[rules]]
+id = "generic-api-key"
+  [[rules.allowlists]]
+  description = "Connector evidence SHA-256 checksums, not API credentials"
+  condition = "AND"
+  paths = ["(^|/)docs/connector/evidence/"]
+  regexTarget = "match"
+  regexes = [
+    '''(?i)(?:\.(?:go|ts|tsx|yaml|json|txt|log|gz|md|py)|credential-tests)"\s*:\s*"[a-f0-9]{64}"'''
+  ]

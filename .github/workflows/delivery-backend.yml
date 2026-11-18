@@ -122,6 +122,11 @@ jobs:
             else
               sed -i -E "s|([[:space:]]*tag:[[:space:]]*).*|\1\"${SHORT_TAG}\"|g" "$AWS_FILE"
             fi
+            sed -i -E "s|(image:[[:space:]]*[^:]+/backend:).*|\1${SHORT_TAG}|g" "$AWS_FILE"
+            if [ "$(grep -Ec "^[[:space:]]*image:[[:space:]]*[^[:space:]]+/backend:${SHORT_TAG}[[:space:]]*$" "$AWS_FILE")" -ne 1 ]; then
+              echo "::error::Expected exactly one Seoul migration image tagged ${SHORT_TAG} in $AWS_FILE"
+              exit 1
+            fi
             if ! grep -q "tag: \"${SHORT_TAG}\"" "$AWS_FILE"; then
               echo "::error::Failed to update image tag in $AWS_FILE to $SHORT_TAG"
               exit 1

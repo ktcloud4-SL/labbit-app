@@ -4,6 +4,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { ClassDetail, OperationAccepted } from '../shared/api/contracts'
+import { HttpError } from '../shared/api/httpClient'
 import { LabbitApiProvider } from '../shared/api/LabbitApiProvider'
 import { mockLabbitApi, mockMe } from '../shared/api/mockLabbitApi'
 import { ProvisionPage } from './ProvisionPage'
@@ -108,4 +109,29 @@ describe('ProvisionPage Class navigation isolation', () => {
     expect(screen.getByRole('combobox', { name: 'LabSpec' })).toHaveValue('')
   })
 
+})
+
+describe('LBT-59 FE maintenance 503 message', () => {
+  it.each([
+    { code: 'maintenance', message: '운영 점검 중 새 실습 작업 접수가 중지되었습니다. 재개 안내 전에는 다시 시도하지 마세요.' },
+    { code: 'connector_unavailable', message: 'Connector 또는 Provider가 일시적으로 사용할 수 없습니다.' },
+  ])('Provision 503 code=$code의 오류 원인을 정확히 구분한다', async ({ code, message }) => {
+    const { router, createLabExecution } = mount(async () => {
+      throw new HttpError(503, {
+        type: 'about:blank',
+        title: 'Service Unavailable',
+        status: 503,
+        code,
+        requestId: 'synthetic-fe-maintenance',
+      })
+    })
+    await selectProvisionInputs()
+    fireEvent.click(screen.getByRole('button', { name: '생성 내용 확인' }))
+    fireEvent.click(screen.getByRole('button', { name: '환경 생성 시작' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message)
+    expect(createLabExecution).toHaveBeenCalledTimes(1)
+    expect(router.state.location.pathname).toBe('/classes/class-a/provision')
+    expect(screen.getByRole('button', { name: '환경 생성 시작' })).toBeEnabled()
+  })
 })

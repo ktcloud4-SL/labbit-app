@@ -9,7 +9,7 @@
 - 이번에는 제품 코드·migration·배포 설정을 추가 변경하지 않고, 기존 production 조립을 사용하는 통합 테스트와 계획을 추가했다. #194 제품 로직을 중복 구현하지 않는다.
 - 누적 base→HEAD 및 local delta 전체 파일·목적·SHA256은 validation.json의 inventory에 기록한다. 기존 변경은 이전 `2026-11-20-pr196-validation` 감사와 추적하고, 이번 달라진 파일을 독립 재검토했다. 누적 변경 중 제외 파일은 없다. 과거 Evidence는 과거 이력으로 검토하며 이번 실행의 증거로 바꾸지 않는다.
 - 미커밋 실행 소스는 inventory의 raw/LF SHA256으로 고정한다. 이 디렉터리 자체는 자기참조 hash에서 제외한다. stat상 dirty지만 HEAD 대비 내용이 같은 기존 8개 파일은 stage·수정하지 않는다.
-- 개인 로컬 로그는 validation의 경로·SHA256으로 식별한다. 최종 focused race는 이벤트 내용 변경 없이 CRLF→LF만 정규화해 함께 보관하고, 원본과 보관본 SHA256·크기를 구분한다. Go 1.27.1, Windows, PostgreSQL 16.15 loopback 전용 폐기 서버를 사용했다. 로컬 보조 도구는 제품 런타임 의존성이 아니다.
+- 개인 로컬 로그는 validation의 경로·SHA256으로 식별한다. Git 줄바꿈 변환 가능성을 검토하고 최종 focused race 원본·LF 보관본·staged blob의 동일 SHA256·크기를 확인했다. 실제 원본은 이미 LF라 바이트 변경이 없었다. Go 1.27.1, Windows, PostgreSQL 16.15 loopback 전용 폐기 서버를 사용했다. 로컬 보조 도구는 제품 런타임 의존성이 아니다.
 
 ## 최신 SSOT·추적성
 
@@ -35,7 +35,8 @@ PR196 리뷰, LBT-205/59/60 최신 본문·댓글, Confluence 검증 설계 9666
 | INTEGRATION-REVIEW-01 / P2 | 새 app test 이전:218–225. Provider 진입 직후 비동기 ACK가 DB 저장되기 전에 full row 비교하면 정상 stage 변경을 신규 claim으로 오인 | 정확한 in-flight instance와 kind별 ACK stage/미완료를 확인한 뒤 비교(:260). 최종 3회 race PASS |
 | INTEGRATION-LIFECYCLE-01 / P3 | 새 app test 이전:205/306/371. 중간 Fatal에서 RunOne goroutine join 없이 DB cleanup으로 갈 수 있음 | drStartWorker(:124)의 cancel+unblock+bounded join, goroutine 내 Fatal 제거. 정상 경로 실제 실행, 강제 Fatal 전체 시나리오 별도 주입은 미실행 |
 | EVIDENCE-PATH-01 / P3 | 기존 2026-11-20-maintenance-integration 경로는 과거 audit가 이미 점유 | 새 pr196-maintenance-regression 디렉터리와 양쪽 가이드 참조를 사용. 과거 기록 변경0 |
-| EVIDENCE-NEWLINE-01 / P3 | focused-race.jsonl:1부터 Windows raw CRLF가 Git autocrlf로 LF 저장되어 원본 raw SHA와 달라짐 | 보관본 LF 정규화와 별도 SHA·크기를 명시. JSON 이벤트 동일·원본 raw SHA 유지·staged blob 해시 대조 |
+
+추가 관찰: Git autocrlf에 따른 로그 해시 변경 가능성을 점검했다. 독립 byte 대조 결과 원본은 이미 LF였고 원본·보관본·Git blob의 SHA256이 같으므로, 실제 해시 불일치 finding으로 분류하지 않는다.
 
 새 테스트 작성 중 unused import compile 오류와 time.Time 구조체 `!=` 비교에 의한 receipt assertion 실패가 있었다. 후자는 UTC/Local 표현 차이이며 `.Equal`로 같은 instant를 비교하도록 수정했다. 최초 도구 출력은 있었지만 별도 원문 파일은 보존되지 않았으므로 재현 Evidence로 주장하지 않는다. 제품 오류로 해석하거나 최초부터 모든 시도가 PASS였다고 기록하지 않는다.
 

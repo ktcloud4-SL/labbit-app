@@ -746,7 +746,7 @@
   ],
   "archived_focused_log": {
     "path": "focused-race.jsonl",
-    "transformation": "CRLF to LF only; event content unchanged; Git blob uses LF",
+    "transformation": "LF preserved; original already LF so bytes unchanged; original/archive/Git blob SHA and size matched",
     "original_sha256": "838d02188acb729d314e30b92cda22d96a9f1b2d970affb9fb506ae4a8e5ae5e",
     "lf_sha256": "838d02188acb729d314e30b92cda22d96a9f1b2d970affb9fb506ae4a8e5ae5e",
     "lf_bytes": 46242

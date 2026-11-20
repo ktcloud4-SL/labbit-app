@@ -270,7 +270,10 @@ describe('LBT-59 FE maintenance 503 message', () => {
         requestId: 'synthetic-fe-maintenance',
       })
     }
-    const { router, cleanupLabExecution, resetLabInstance } = mount(failure, { resetLabInstance: failure })
+    // mount() returns its default Reset spy, but overrides replace that function.
+    // Capture the actual injected spy so the assertion observes the dispatched call.
+    const resetOverride = vi.fn(failure)
+    const { router, cleanupLabExecution } = mount(failure, { resetLabInstance: resetOverride })
     expect(await screen.findByText('execution-a')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: label }))
     fireEvent.click(screen.getByRole('button', { name: confirm }))
@@ -279,7 +282,7 @@ describe('LBT-59 FE maintenance 503 message', () => {
     const submit = screen.getByRole('button', { name: confirm })
     expect(submit).toBeDisabled()
     fireEvent.click(submit)
-    expect(label === '초기화' ? resetLabInstance : cleanupLabExecution).toHaveBeenCalledTimes(1)
+    expect(label === '초기화' ? resetOverride : cleanupLabExecution).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('button', { name: '취소' })).toBeEnabled()
     expect(router.state.location.pathname).toBe('/lab-executions/execution-a')
   })

@@ -270,12 +270,17 @@ describe('LBT-59 FE maintenance 503 message', () => {
         requestId: 'synthetic-fe-maintenance',
       })
     }
-    const { router } = mount(failure, { resetLabInstance: failure })
+    const { router, cleanupLabExecution, resetLabInstance } = mount(failure, { resetLabInstance: failure })
     expect(await screen.findByText('execution-a')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: label }))
     fireEvent.click(screen.getByRole('button', { name: confirm }))
     expect(await screen.findByRole('alert')).toHaveTextContent('운영 점검 중 새 실습 작업 접수가 중지되었습니다. 재개 안내 전에는 다시 시도하지 마세요.')
     expect(screen.getByRole('dialog')).toBeInTheDocument()
+    const submit = screen.getByRole('button', { name: confirm })
+    expect(submit).toBeDisabled()
+    fireEvent.click(submit)
+    expect(label === '초기화' ? resetLabInstance : cleanupLabExecution).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: '취소' })).toBeEnabled()
     expect(router.state.location.pathname).toBe('/lab-executions/execution-a')
   })
 
@@ -285,6 +290,7 @@ describe('LBT-59 FE maintenance 503 message', () => {
     fireEvent.click(screen.getByRole('button', { name: '전체 실습 정리' }))
     fireEvent.click(screen.getByRole('button', { name: '정리 시작' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('인프라 연결 구성요소를 일시적으로 사용할 수 없습니다.')
+    expect(screen.getByRole('button', { name: '정리 시작' })).toBeEnabled()
     expect(router.state.location.pathname).toBe('/lab-executions/execution-a')
   })
 })

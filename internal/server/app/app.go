@@ -375,7 +375,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	applicationServer := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           applicationHandler(maintenanceRoutes(appRoutes, gate)),
+		Handler:           applicationHandler(appRoutes),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	if stack != nil {
@@ -687,35 +687,4 @@ func envOrDefault(key, fallback string) string {
 		return value
 	}
 	return fallback
-}
-
-// maintenanceRoutes wraps the existing handlers without changing their business
-// routing or the Connector Control/data paths needed by admitted work.
-func maintenanceRoutes(rt routes, gate *maintenance.Gate) routes {
-	if rt.API != nil {
-		next := rt.API
-		mux := http.NewServeMux()
-		mux.Handle("/", next)
-		for _, pattern := range []string{
-			"POST /api/v1/classes/{classId}/lab-executions",
-			"POST /api/v1/lab-executions/{labExecutionId}/cleanup",
-			"POST /api/v1/lab-instances/{labInstanceId}/reset",
-			"POST /api/v1/lab-instances/{labInstanceId}/terminal-sessions",
-			"POST /api/v1/lab-instances/{labInstanceId}/preview-sessions",
-			"POST /api/v1/terminal-sessions/{terminalSessionId}/live-sessions",
-		} {
-			mux.Handle(pattern, gate.Wrap("http", next))
-		}
-		rt.API = mux
-	}
-	if rt.BrowserTerminal != nil {
-		rt.BrowserTerminal = gate.Wrap("browser", rt.BrowserTerminal)
-	}
-	if rt.BrowserLive != nil {
-		rt.BrowserLive = gate.Wrap("browser", rt.BrowserLive)
-	}
-	if rt.PreviewGateway != nil {
-		rt.PreviewGateway = gate.Wrap("preview", rt.PreviewGateway)
-	}
-	return rt
 }

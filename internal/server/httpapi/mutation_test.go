@@ -106,6 +106,7 @@ func TestResetAndCleanupErrorsMapToStableProblems(t *testing.T) {
 		{labexecution.ErrNotFound, 404, codeNotFound},
 		{labexecution.ErrForbidden, 403, codeForbidden},
 		{labexecution.ErrIdempotencyConflict, 409, "idempotency_key_reused"},
+		{labexecution.ErrMaintenance, 503, "maintenance"},
 		{labexecution.ErrMutationInProgress, 409, "operation_in_progress"},
 		{labexecution.ErrExecutionFinished, 409, "lab_execution_finished"},
 		{labexecution.ErrInvalidResetTarget, 422, "invalid_reset_target"},

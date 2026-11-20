@@ -101,6 +101,12 @@ func (s *Service) Reset(ctx context.Context, user repository.User, in ResetInput
 		return accepted, err
 	}
 
+	release, admitted := s.enter()
+	if !admitted {
+		return MutationAccepted{}, ErrMaintenance
+	}
+	defer release()
+
 	now := s.now()
 	var registered operation.Result
 	err = s.store.WithinTransaction(ctx, func(ctx context.Context, repos repository.Repositories) error {
@@ -175,6 +181,12 @@ func (s *Service) Cleanup(ctx context.Context, user repository.User, in CleanupI
 	if accepted, done, err := s.committedMutationReplay(ctx, user, operationTypeCleanup, in.IdempotencyKey, fingerprint, id); done {
 		return accepted, err
 	}
+
+	release, admitted := s.enter()
+	if !admitted {
+		return MutationAccepted{}, ErrMaintenance
+	}
+	defer release()
 
 	now := s.now()
 	var registered operation.Result

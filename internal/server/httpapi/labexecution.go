@@ -215,6 +215,8 @@ func newLabInstanceSummaryResponse(v labexecution.InstanceView) labInstanceSumma
 // 실제 Provider 값, 내부 오류 문자열을 복사하지 않는다.
 func (a *api) labExecutionError(w http.ResponseWriter, r *http.Request, op string, err error) {
 	switch {
+	case errors.Is(err, labexecution.ErrMaintenance):
+		writeProblem(w, r, http.StatusServiceUnavailable, "maintenance", "현재 새 작업을 접수할 수 없습니다.")
 	case errors.Is(err, labexecution.ErrInvalidRequest):
 		writeProblem(w, r, http.StatusBadRequest, codeInvalidRequest, "요청 형식이 올바르지 않습니다.")
 	case errors.Is(err, labexecution.ErrNotFound):

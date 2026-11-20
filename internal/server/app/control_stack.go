@@ -308,7 +308,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		Classes:       class.NewService(store),
 		LabSpecs:      labspec.NewService(store),
 		Operations:    operation.NewService(store),
-		LabExecutions: labexecution.NewService(store),
+		LabExecutions: labexecution.NewService(store, opts.Admission),
 		Terminals:     terminals,
 		Files:         files,
 		Previews:      previews,

@@ -1,8 +1,6 @@
 package maintenance
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"sync"
@@ -113,39 +111,36 @@ func TestDefaultCompatible(t *testing.T) {
 	release()
 }
 
-func TestAdmittedHandlerDrainsAcrossEnter(t *testing.T) {
+func TestIndependentReplicasObserveConfiguredState(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "mode")
+	replicas := []*Gate{New(path), New(path)}
+	for _, g := range replicas {
+		if _, ok := g.Enter("worker"); ok {
+			t.Fatal("missing mode admitted")
+		}
+	}
 	if err := os.WriteFile(path, []byte("open"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	gate := New(path)
-	entered := make(chan struct{})
-	resume := make(chan struct{})
-	done := make(chan struct{})
-	handler := gate.Wrap("browser", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		close(entered)
-		<-resume
-		w.WriteHeader(204)
-	}))
-	go func() {
-		defer close(done)
-		handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
-	}()
-	<-entered
+	for _, g := range replicas {
+		release, ok := g.Enter("http")
+		if !ok {
+			t.Fatal("open rejected")
+		}
+		release()
+	}
 	if err := os.WriteFile(path, []byte("closed"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if closed, active := gate.Snapshot(); !closed || active["browser"] != 1 {
-		t.Fatalf("handler barrier: %v", active)
+	var wg sync.WaitGroup
+	for _, g := range replicas {
+		wg.Go(func() {
+			for range 100 {
+				if _, ok := g.Enter("http"); ok {
+					t.Error("closed replica admitted")
+				}
+			}
+		})
 	}
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
-	if w.Code != 503 {
-		t.Fatal(w.Code)
-	}
-	close(resume)
-	<-done
-	if _, active := gate.Snapshot(); active["browser"] != 0 {
-		t.Fatal(active)
-	}
+	wg.Wait()
 }

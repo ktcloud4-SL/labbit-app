@@ -3,10 +3,7 @@
 package maintenance
 
 import (
-	"fmt"
-	"github.com/google/uuid"
 	"io"
-	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -61,23 +58,8 @@ func (g *Gate) Snapshot() (bool, map[string]int) {
 	return g.closedLocked(), counts
 }
 
-func (g *Gate) Wrap(kind string, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		release, ok := g.Enter(kind)
-		if !ok {
-			w.Header().Set("Content-Type", "application/problem+json")
-			w.Header().Set("Cache-Control", "no-store")
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = fmt.Fprintf(w, "{\"type\":\"about:blank\",\"title\":\"Service Unavailable\",\"status\":503,\"code\":\"maintenance\",\"requestId\":\"%s\"}\n", uuid.NewString())
-			return
-		}
-		defer release()
-		next.ServeHTTP(w, r)
-	})
-}
-
 var closedDesc = prometheus.NewDesc("labbit_maintenance_closed", "One when this process refuses maintenance admissions.", nil, nil)
-var activeDesc = prometheus.NewDesc("labbit_maintenance_active", "Admitted boundaries still executing, including upgraded browser connections.", []string{"kind"}, nil)
+var activeDesc = prometheus.NewDesc("labbit_maintenance_active", "Admitted operation requests and worker boundaries still executing.", []string{"kind"}, nil)
 
 func (g *Gate) Describe(ch chan<- *prometheus.Desc) { ch <- closedDesc; ch <- activeDesc }
 func (g *Gate) Collect(ch chan<- prometheus.Metric) {
@@ -87,7 +69,7 @@ func (g *Gate) Collect(ch chan<- prometheus.Metric) {
 		v = 1
 	}
 	ch <- prometheus.MustNewConstMetric(closedDesc, prometheus.GaugeValue, v)
-	for _, kind := range []string{"http", "browser", "preview", "worker"} {
+	for _, kind := range []string{"http", "worker"} {
 		ch <- prometheus.MustNewConstMetric(activeDesc, prometheus.GaugeValue, float64(active[kind]), kind)
 	}
 }

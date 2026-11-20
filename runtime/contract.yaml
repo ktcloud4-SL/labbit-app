@@ -418,10 +418,10 @@ saas:
         API admission은 maintenance 파일 경계이며 이 pause만으로 HTTP 신규 등록을 막지 않습니다.
       safety: >-
         이 migration을 포함한 build는 기존 schema readiness에도 영향을 주므로 향후 배포 전 별도 migration 적용과 호환성 확인이 필요합니다.
-        startup은 migration/bootstrap/권한 변경을 실행하지 않습니다. 실제 AWS/DB/서울 변경 없이 기존 FAIL/4NOT_VERIFIED/HOLD를 유지합니다.
+        startup은 migration/bootstrap/권한 변경을 실행하지 않습니다. AWS/공유 DB/서울 서비스 변경 없이 기존 FAIL/4NOT_VERIFIED/HOLD를 유지합니다.
     approved_resume:
-      status: "내부 opt-in 후보/모의 검증; 실제 승인·Fencing·DB·다중 Kubernetes Pod 미검증"
-      migration: "db/migrations/000013_worker_control_resume.sql"
+      status: "내부 opt-in 후보; 폐기용 PostgreSQL 16 검증, 실제 승인·Fencing·공유 DB·다중 Kubernetes Pod 미검증"
+      migration: "db/migrations/000014_worker_control_resume_applied_time.sql"
       request_fields: [CommandID, Scope, ExpectedRevision, ExpectedEpoch, Desired, TrialID, RunID, Phase, Principal, ApprovalRef, PlanSHA256, PreconditionsSHA256, RequestedAt, ValidUntil]
       desired: [ACTIVE, RECONCILE_ONLY]
       transitions: >-
@@ -431,6 +431,7 @@ saas:
         PASS로 확인해야 합니다. ACTIVE에는 WorkReconciled PASS도 필요하며 RECONCILE_ONLY는 exact-ID 정산만 허용합니다.
         이 PASS는 trusted Adapter의 입력 계약이고 이 코드 자체가 실제 Writer/Fencing을 검사했다는 증거가 아닙니다.
       journal: >-
+        물리 schema는 000013의 journal과 000014의 APPLIED 시각 제약을 함께 따릅니다.
         새 명령은 별도 transaction으로 INTENT를 commit한 뒤 그 creator만 Apply를 한 번 시도합니다.
         Apply는 같은 state row lock에서 target/revision/epoch/PAUSE_NEW·open boundary·승인/재검증 시각을 다시 확인합니다.
         state의 revision+1/epoch+1 및 APPLIED receipt를 같은 transaction으로 commit합니다. 외부 I/O 중 transaction을 유지하지 않습니다.

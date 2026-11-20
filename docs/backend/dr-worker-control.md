@@ -60,12 +60,12 @@ go test -race ./internal/server/workercontrol ./internal/server/provision ./inte
 Fake Repository·Router와 in-process route만 사용한다. mode/잘못된 값, zero/nil fail-closed, 병렬 Pause/drain,
 cancel 뒤 latch 유지, claim 응답 지연, prepare/lifecycle 경쟁, 직접 Router 우회 차단, 이미 전송한 결과·UNKNOWN 보존,
 복합 전송 오류, 정산 전용 mutation queue 우회, production의 공유 gate를 검증한다.
-실제 PostgreSQL transaction/다중 Pod·AWS·Provider/Browser E2E는 별도 미검증이다.
+실제 PostgreSQL transaction은 폐기용 DB에서 검증한다. 다중 Kubernetes Pod·AWS·Provider/Browser E2E는 별도 미검증이다.
 
 ## 11/20 영속 제어 연결 — opt-in 후보
 
 운영 설정 원본은 Runtime 0.1.12의 `LABBIT_WORKER_CONTROL_BACKEND` 및 `saas.worker.durable_boundaries`,
-물리 스키마 원본은 `db/migrations/000012_worker_control.sql`이다. 새 파일은 작성만 했으며 실제 DB에 적용하지 않았다.
+물리 스키마 원본은 `db/migrations/000012_worker_control.sql`이다. 공용/서울 DB에는 적용하지 않았다. 폐기용 PostgreSQL 16의 실제 적용·경쟁·재접속 검증은 `evidence/LBT-60/2026-11-20-pr196-validation/`에 기록한다.
 기존 admission·로컬 제어 audit는 당시 소스의 역사적 기록이고, 이번 tested source는 별도 11/20 audit의 inventory로 식별한다.
 
 `LoadConfig`에서 postgres backend와 전체 Scope/Revision/Epoch/PodID를 검증한 뒤,
@@ -108,10 +108,10 @@ Pause 이전에 진입한 경계는 끝날 수 있으므로 **Pause 요청 접�
 
 이번 여러 Pod 시험은 **독립 Control/Executor/Router 인스턴스 + 공유 Fake journal**이다.
 PostgreSQL adapter는 scripted driver Mock으로 commit/rollback/정확 ticket/원본 오류 비노출을 시험한다.
-실제 PostgreSQL row lock/MVCC/장애 내구성, Kubernetes Pod 배포·통신 단절은 검증하지 않았다.
-추가한 `TestWorkerControlPostgresCreatePauseAndConcurrentEnter`는 integration-tag 전용이며 이번에는 **실행하지 않는다**.
+실제 PostgreSQL row lock은 아래 폐기용 DB 시험으로 검증하며, DB crash/TCP 장애 내구성과 Kubernetes Pod 배포·통신 단절은 검증하지 않았다.
+`TestWorkerControlPostgresCreatePauseAndConcurrentEnter` 등 integration-tag 시험은 폐기용 PostgreSQL 16에서 실행한다. Fake와 실제 DB 결과는 최신 Evidence에서 구분한다.
 
-후속 승인된 폐기 DB에서 기존 `make go-integration-test`로 실제 migration·constraint·병렬 Enter/Pause를 검증해야 한다.
+기존 `make go-integration-test`로 migration·constraint·병렬 Enter/Pause를 재현할 수 있다. 실제 승인된 제어 DB·다중 Kubernetes Pod 및 DB crash/TCP commit-response-loss fault injection은 별도 미검증이다.
 미적용 migration도 새 build의 schema readiness 기준에 포함되므로 실제 배포 전 적용/호환성을 별도로 확인해야 한다.
 **기본 비활성이어도 새 build를 바로 서울에 배포해도 된다는 의미가 아니다.** 작업 브랜치 push·Draft PR만 사용자 승인 범위이며 merge/배포·DB 적용은 수행하지 않는다.
 
@@ -125,7 +125,7 @@ API 접수는 PR194 maintenance로 통일했다. 파일 변경과 영속 Worker 
 
 ## 승인 후 재개 — 오프라인 내부 구현
 
-현재 owning 의미는 Runtime `approved_resume`, 물리 schema는 새 `000013_worker_control_resume.sql`이다.
+현재 owning 의미는 Runtime `approved_resume`, 물리 schema는 `000013_worker_control_resume.sql`과 APPLIED 시각을 보강하는 additive `000014_worker_control_resume_applied_time.sql`이다.
 [11/20 LBT-205 #11251](https://samsunglions.atlassian.net/browse/LBT-205?focusedCommentId=11251) 및
 [App PR194](https://github.com/ktcloud4-SL/labbit-app/pull/194) HEAD34ed442의 접수·일반 Worker gate를
 #194 squash main `753eecbff737409a4c9cc8c542f3c6baa6acf0da` 기준으로 중복 없이 연결한다. `dr-mutation-admission.md`와 Runtime0.1.12를 따른다.
@@ -151,7 +151,7 @@ metric0이나 짧은 boundary0만으로 Provider 작업0·모든 DB 쓰기0·전
 
 실제 Authorizer/Rechecker, 승인된 제어 DB·migration/locking, GitOps 새 binding 전달과 전체 Pod 재검증,
 모드 개방 권한·전파·Failback old/new writer 확인이 남았다. startup 자동 재개·공개 제어 endpoint는 없다.
-GitOps126 merge 이후 desired state는 서울 open/오사카 closed다. 이 작업에서는 GitOps·실제 AWS/DB/서울/Slack을 변경하지 않는다.
+GitOps126 merge 이후 desired state는 서울 open/오사카 closed다. 이 작업에서는 GitOps·AWS·공유 DB·서울 서비스·Slack을 변경하지 않는다. PostgreSQL integration은 loopback의 폐기용 DB만 사용한다.
 사용자 승인 범위는 작업 브랜치 push와 별도 Draft PR까지이며 main merge/배포는 금지한다.
 최신 main 검증과 기존 감사 이력 구분은 `evidence/LBT-60/2026-11-20-main-refresh/`를 따른다.
 기존 ReplicaLag FAIL·네 NOT_VERIFIED·execution_gate=HOLD·recovery_authorized=false·cloud_verified=false를 유지한다.

@@ -1,0 +1,1462 @@
+{
+  "generated_at": "2026-11-20T06:18:36.299806+00:00",
+  "repository": "ktcloud4-SL/labbit-app",
+  "branch": "codex/feat/LBT-60-dr-admission-block-20261119",
+  "base_sha": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "parent_head": "5d37437397bebf5bcd5bd10741f8a4937b7832d2",
+  "tested_source": "Uncommitted source inventory; normalized SHA256 identifies exact working files. Audit files are excluded from self-hashing. Initial integration started before WSS cleanup edit; final affected app rerun recorded separately.",
+  "source_inventory": [
+    {
+      "path": "contracts/http/openapi.yaml",
+      "purpose": "Existing maintenance admission HTTP auth/replay and503 contract",
+      "bytes": 138694,
+      "sha256": "f06d98f3d4dd79b030106b539cf3c7479191a455efd0883b8700196640ad9336",
+      "lf_sha256": "6e54c56a8b10751edcfa168ef01c72d35e898fa352a84c476631ff44381def19"
+    },
+    {
+      "path": "db/migrations/000012_worker_control.sql",
+      "purpose": "Physical schema12/13+additive14 and existing migration checksum preservation",
+      "bytes": 2947,
+      "sha256": "f87fff6b5dce4ae111ccf8f4e2d950700faf46d9190625e2929ae0ebc4e838bc",
+      "lf_sha256": "f87fff6b5dce4ae111ccf8f4e2d950700faf46d9190625e2929ae0ebc4e838bc"
+    },
+    {
+      "path": "db/migrations/000013_worker_control_resume.sql",
+      "purpose": "Physical schema12/13+additive14 and existing migration checksum preservation",
+      "bytes": 880,
+      "sha256": "df5cd776a5166be952211d36d8f063322bdf86994ab1c5a559f37a24c60faf4f",
+      "lf_sha256": "df5cd776a5166be952211d36d8f063322bdf86994ab1c5a559f37a24c60faf4f"
+    },
+    {
+      "path": "db/migrations/000014_worker_control_resume_applied_time.sql",
+      "purpose": "Physical schema12/13+additive14 and existing migration checksum preservation",
+      "bytes": 455,
+      "sha256": "9ed3ad245e836e19569b7267b5ec6cdcb17531054423c83a75a41c3ec8d160ea",
+      "lf_sha256": "9ed3ad245e836e19569b7267b5ec6cdcb17531054423c83a75a41c3ec8d160ea"
+    },
+    {
+      "path": "db/migrations/README.md",
+      "purpose": "Physical schema12/13+additive14 and existing migration checksum preservation",
+      "bytes": 23324,
+      "sha256": "c5600fd50bd615cf120e74804eb5fe04650705370080c0d3694236e418d7cf9f",
+      "lf_sha256": "c5600fd50bd615cf120e74804eb5fe04650705370080c0d3694236e418d7cf9f"
+    },
+    {
+      "path": "docs/backend/dr-mutation-admission.md",
+      "purpose": "Operating boundaries / actual disposable DB versus unverified shared infrastructure",
+      "bytes": 4897,
+      "sha256": "6b076d898f833520425940956cb1f984606bba3a143ce3d21f147910cbc5eb7d",
+      "lf_sha256": "6b076d898f833520425940956cb1f984606bba3a143ce3d21f147910cbc5eb7d"
+    },
+    {
+      "path": "docs/backend/dr-worker-control.md",
+      "purpose": "Operating boundaries / actual disposable DB versus unverified shared infrastructure",
+      "bytes": 14858,
+      "sha256": "ae3ea0e77987d7531f8be68e2b7c553be5a90fa597f61f3d12b8cc056b4ef950",
+      "lf_sha256": "ae3ea0e77987d7531f8be68e2b7c553be5a90fa597f61f3d12b8cc056b4ef950"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-19-admission-local/audit.md",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "bytes": 15856,
+      "sha256": "0b0f57adabeb629ac13095e186ca5e50d20bcd230298c0e7a0b32c96dc0be3db",
+      "lf_sha256": "0b0f57adabeb629ac13095e186ca5e50d20bcd230298c0e7a0b32c96dc0be3db"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-19-admission-local/validation.json",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "bytes": 25811,
+      "sha256": "2383d03bed5ecada074561676808b32e2c69d8388923b0ef96870a7ab6abb721",
+      "lf_sha256": "2383d03bed5ecada074561676808b32e2c69d8388923b0ef96870a7ab6abb721"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-19-worker-control-local/audit.md",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "bytes": 19121,
+      "sha256": "08aef73e0b9bbaaf33b327c698a1fb04703a7a26ffcfe67c8fe49c0f54b3f129",
+      "lf_sha256": "08aef73e0b9bbaaf33b327c698a1fb04703a7a26ffcfe67c8fe49c0f54b3f129"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-19-worker-control-local/validation.json",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "bytes": 91587,
+      "sha256": "4f4d78db1d69a80edb6785a8270c19bd0895dd9a55b8eabfb6eede7b3c7e55e9",
+      "lf_sha256": "4f4d78db1d69a80edb6785a8270c19bd0895dd9a55b8eabfb6eede7b3c7e55e9"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-main-refresh/audit.md",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "bytes": 16134,
+      "sha256": "518195779bd3505238e6b91564ed6ad29b302101c9f2c20cfd4ece9c9bc1f562",
+      "lf_sha256": "518195779bd3505238e6b91564ed6ad29b302101c9f2c20cfd4ece9c9bc1f562"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-main-refresh/validation.json",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "bytes": 45358,
+      "sha256": "857e235ae68ce41964c6b190fa85b4cfc398cd148284aad9b1a2ebafe2d7ab55",
+      "lf_sha256": "9130a2b0f7f627c63f33850dc051b85c1500b447ba2a51010bab12b42074d714"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-maintenance-integration/audit.md",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "bytes": 22651,
+      "sha256": "c27d33feb65ad50d6ee6d533e5a925e39ac19f2e2ccd8ba07d93df7d7e6a575f",
+      "lf_sha256": "c27d33feb65ad50d6ee6d533e5a925e39ac19f2e2ccd8ba07d93df7d7e6a575f"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-maintenance-integration/validation.json",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "bytes": 42168,
+      "sha256": "b2c10722fae8c934fa0256bed946e235d5cf2997bc2aa2730170cf4132395b53",
+      "lf_sha256": "d6d49f06a067e8498a3ff80a5d0c59ca0e5a13393e6bbb253f21c2f92138cd53"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-worker-control-durable/audit.md",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "bytes": 19513,
+      "sha256": "3768a9c4c7d7d8539cd2c9a42c5b54e9de5104fe1da17235b2b7a09ad3238ae9",
+      "lf_sha256": "3768a9c4c7d7d8539cd2c9a42c5b54e9de5104fe1da17235b2b7a09ad3238ae9"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-worker-control-durable/validation.json",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "bytes": 101505,
+      "sha256": "8709d65291af1a36995f783e86ebb09096873b3dd5792c184d107504fa444c5d",
+      "lf_sha256": "202cf07b0d737c73c5e3973959a0002ac8dc9a16bf227a314702a3ae0d03a1b6"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-worker-control-resume/audit.md",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "bytes": 19524,
+      "sha256": "b60cf937bea31c3c63a2dd06e5c8ef6bdf9da14c27b432abf8d01bc6273cfd1f",
+      "lf_sha256": "568aa69987febf9067968b8ee9ef8b04eccbeb5cf49b2dc5344c685fddf33cd7"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-worker-control-resume/validation.json",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "bytes": 60055,
+      "sha256": "dc199c31307b6fb99289d36d5fff19f3d69a87513be6c77c1599bd146a298b93",
+      "lf_sha256": "91193bb7332b1a0c7688290b520690af7f8943588ecb8117fe17e12964e0e987"
+    },
+    {
+      "path": "internal/postgres/migrate_integration_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 21749,
+      "sha256": "ebbb4aee8ed807077c805eb7d68277c10a63a5315c98fce6b9a6678f91ada039",
+      "lf_sha256": "ebbb4aee8ed807077c805eb7d68277c10a63a5315c98fce6b9a6678f91ada039"
+    },
+    {
+      "path": "internal/postgres/migration_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 5470,
+      "sha256": "a4c2c830265613a6e848db58ce91428c1bdb80ee51af9f80ce645e0e2cb8c8cf",
+      "lf_sha256": "a4c2c830265613a6e848db58ce91428c1bdb80ee51af9f80ce645e0e2cb8c8cf"
+    },
+    {
+      "path": "internal/postgres/worker_control.go",
+      "purpose": "Durable authoritative state/ticket/resume transactions",
+      "bytes": 10215,
+      "sha256": "0461c119740e477fb331a85e6bf7ead7cddfd22f8e8a9c0ad73bc7df112e873b",
+      "lf_sha256": "0461c119740e477fb331a85e6bf7ead7cddfd22f8e8a9c0ad73bc7df112e873b"
+    },
+    {
+      "path": "internal/postgres/worker_control_integration_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 5163,
+      "sha256": "2c4d58fa8ee74e55c3f7d613d84498eedc308d9dbf6a14b4ee3029d7576caefa",
+      "lf_sha256": "2c4d58fa8ee74e55c3f7d613d84498eedc308d9dbf6a14b4ee3029d7576caefa"
+    },
+    {
+      "path": "internal/postgres/worker_control_lifecycle_integration_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 9683,
+      "sha256": "5e910a6c60a114dd415c85b563859f7153df22d1633d702812703ac63aa60690",
+      "lf_sha256": "5e910a6c60a114dd415c85b563859f7153df22d1633d702812703ac63aa60690"
+    },
+    {
+      "path": "internal/postgres/worker_control_resume.go",
+      "purpose": "Durable authoritative state/ticket/resume transactions",
+      "bytes": 6549,
+      "sha256": "398d6071d0d8f31dc1559f7fc8f9a12bb1de3497d659b0d57005a2a9f13d1c74",
+      "lf_sha256": "398d6071d0d8f31dc1559f7fc8f9a12bb1de3497d659b0d57005a2a9f13d1c74"
+    },
+    {
+      "path": "internal/postgres/worker_control_resume_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 7766,
+      "sha256": "28641f1f112a4a8a57df94687085ac4b74681f9b385d77d7b9ba7d0df769581a",
+      "lf_sha256": "28641f1f112a4a8a57df94687085ac4b74681f9b385d77d7b9ba7d0df769581a"
+    },
+    {
+      "path": "internal/postgres/worker_control_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 9090,
+      "sha256": "c6c9433679ba25583c5e95c11393df686efaf4c78d53235a55b9a39e263bc637",
+      "lf_sha256": "c6c9433679ba25583c5e95c11393df686efaf4c78d53235a55b9a39e263bc637"
+    },
+    {
+      "path": "internal/server/app/admission_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 3573,
+      "sha256": "5f00045d64158e66822a688f1a38b80f196dfcf05ba6f56d800db816414d5699",
+      "lf_sha256": "5f00045d64158e66822a688f1a38b80f196dfcf05ba6f56d800db816414d5699"
+    },
+    {
+      "path": "internal/server/app/app.go",
+      "purpose": "Runtime opt-in parsing, assembly and maintenance/durable bridge",
+      "bytes": 28715,
+      "sha256": "27b5159615b60000fed53bc9f3dbad4f04ad901605c68e6d974b82c1896a0873",
+      "lf_sha256": "27b5159615b60000fed53bc9f3dbad4f04ad901605c68e6d974b82c1896a0873"
+    },
+    {
+      "path": "internal/server/app/control_stack.go",
+      "purpose": "Runtime opt-in parsing, assembly and maintenance/durable bridge",
+      "bytes": 21499,
+      "sha256": "9c1a7ec84faac4e13e0bd8d9128f0820ff5a6a1a8c3609cb7315c132f214e865",
+      "lf_sha256": "9c1a7ec84faac4e13e0bd8d9128f0820ff5a6a1a8c3609cb7315c132f214e865"
+    },
+    {
+      "path": "internal/server/app/worker_control_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 6682,
+      "sha256": "30add9eac5858c82614a5af587a0ece1b9cae045d0f5cc5e80e911fa6c4524c9",
+      "lf_sha256": "30add9eac5858c82614a5af587a0ece1b9cae045d0f5cc5e80e911fa6c4524c9"
+    },
+    {
+      "path": "internal/server/connector/registry.go",
+      "purpose": "Exact-session dispatch/query controls and retirement notification",
+      "bytes": 18811,
+      "sha256": "980453ba302e9088f75496c557b275a83a09b8202b16eb7c547842113eb33bc7",
+      "lf_sha256": "980453ba302e9088f75496c557b275a83a09b8202b16eb7c547842113eb33bc7"
+    },
+    {
+      "path": "internal/server/connector/registry_close_notification_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 1174,
+      "sha256": "56ad7612a585944a208914125418b3ed091de0d2e2dd78af546f4c261ef11a4b",
+      "lf_sha256": "56ad7612a585944a208914125418b3ed091de0d2e2dd78af546f4c261ef11a4b"
+    },
+    {
+      "path": "internal/server/connector/router.go",
+      "purpose": "Exact-session dispatch/query controls and retirement notification",
+      "bytes": 22753,
+      "sha256": "0bebe97366e59d9e2ee9d06e77d1019f5e54cb21d6efa1b4d858086ac36600cb",
+      "lf_sha256": "0bebe97366e59d9e2ee9d06e77d1019f5e54cb21d6efa1b4d858086ac36600cb"
+    },
+    {
+      "path": "internal/server/connector/worker_control_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 3573,
+      "sha256": "85330d956b7b5cafe47ac5a4e601e93577826e3719f3355c0bdf8695095a2bf1",
+      "lf_sha256": "85330d956b7b5cafe47ac5a4e601e93577826e3719f3355c0bdf8695095a2bf1"
+    },
+    {
+      "path": "internal/server/connectorwss/close_cleanup_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 3402,
+      "sha256": "b29218f288e8b573db16ea3076d3407c2db41244613b79c8d2ea6b0012e3c191",
+      "lf_sha256": "b29218f288e8b573db16ea3076d3407c2db41244613b79c8d2ea6b0012e3c191"
+    },
+    {
+      "path": "internal/server/connectorwss/conn.go",
+      "purpose": "Close request registration/frame-attempt/cleanup lifecycle",
+      "bytes": 7071,
+      "sha256": "455f148c23ae682576f448aff1260066653c228e04324081866159dae6db8095",
+      "lf_sha256": "455f148c23ae682576f448aff1260066653c228e04324081866159dae6db8095"
+    },
+    {
+      "path": "internal/server/connectorwss/handler.go",
+      "purpose": "Close request registration/frame-attempt/cleanup lifecycle",
+      "bytes": 33343,
+      "sha256": "9f54fbf6a845956335add07b65ed4efa2b2aeb8eeeb00399cc72620756fd49bd",
+      "lf_sha256": "9f54fbf6a845956335add07b65ed4efa2b2aeb8eeeb00399cc72620756fd49bd"
+    },
+    {
+      "path": "internal/server/httpapi/admission_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 1610,
+      "sha256": "df41ffa1c13dae998ed771868c5a45e2818a2cfda0debf705637aae1021b7129",
+      "lf_sha256": "df41ffa1c13dae998ed771868c5a45e2818a2cfda0debf705637aae1021b7129"
+    },
+    {
+      "path": "internal/server/labexecution/admission_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 9072,
+      "sha256": "71122df92d3b7016d7f6497282ca03cc3ca808f8f0ca9dce62c4791d6390b8f0",
+      "lf_sha256": "71122df92d3b7016d7f6497282ca03cc3ca808f8f0ca9dce62c4791d6390b8f0"
+    },
+    {
+      "path": "internal/server/maintenance/gate.go",
+      "purpose": "Process-local admission/drain/query-only boundary",
+      "bytes": 3507,
+      "sha256": "5241719b79df403ff35e52612e6e5fcc5b56748f2fd0956994b80723f451b68e",
+      "lf_sha256": "5241719b79df403ff35e52612e6e5fcc5b56748f2fd0956994b80723f451b68e"
+    },
+    {
+      "path": "internal/server/maintenance/gate_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 4602,
+      "sha256": "14bb9cbf507bb773d82ecf1b338d86feaa97fb3262e22e36b57ccc8fdb99bc35",
+      "lf_sha256": "14bb9cbf507bb773d82ecf1b338d86feaa97fb3262e22e36b57ccc8fdb99bc35"
+    },
+    {
+      "path": "internal/server/provision/executor.go",
+      "purpose": "Worker/executor/reconciliation claim, prepare, dispatch and requeue consumers",
+      "bytes": 17595,
+      "sha256": "7933287bb3c34cfca8984f6a4e499960a175aa1562ddf2be5fe4921e33be53fe",
+      "lf_sha256": "7933287bb3c34cfca8984f6a4e499960a175aa1562ddf2be5fe4921e33be53fe"
+    },
+    {
+      "path": "internal/server/provision/maintenance_resume_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 9820,
+      "sha256": "1d4a16f87343fc6b20baa978add9770c4b99e36031ecb5f43ad449bd6cf5f3cf",
+      "lf_sha256": "1d4a16f87343fc6b20baa978add9770c4b99e36031ecb5f43ad449bd6cf5f3cf"
+    },
+    {
+      "path": "internal/server/provision/reconciliation.go",
+      "purpose": "Worker/executor/reconciliation claim, prepare, dispatch and requeue consumers",
+      "bytes": 5725,
+      "sha256": "c2e9bbdf7a6a16a672dcaf223f8ae135271a242620ea094d5e7f6d142ad83a98",
+      "lf_sha256": "c2e9bbdf7a6a16a672dcaf223f8ae135271a242620ea094d5e7f6d142ad83a98"
+    },
+    {
+      "path": "internal/server/provision/worker_control_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 25539,
+      "sha256": "29b16b15dbf31771cb02d6b3702cc2f5540afcf815bf0cdd0855675ddca235de",
+      "lf_sha256": "29b16b15dbf31771cb02d6b3702cc2f5540afcf815bf0cdd0855675ddca235de"
+    },
+    {
+      "path": "internal/server/provision/worker_resume_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 4327,
+      "sha256": "c4dc67737679ed1c4f7d98679a0c409e7b592b7436a07c4780192cd974dd0676",
+      "lf_sha256": "c4dc67737679ed1c4f7d98679a0c409e7b592b7436a07c4780192cd974dd0676"
+    },
+    {
+      "path": "internal/server/workercontrol/control.go",
+      "purpose": "Binding validation, fail-closed control and approved resume",
+      "bytes": 6078,
+      "sha256": "64ce09e4c5f4a256e265e7897c14c0878c82df76000c45a04c5fa9299224d9a0",
+      "lf_sha256": "64ce09e4c5f4a256e265e7897c14c0878c82df76000c45a04c5fa9299224d9a0"
+    },
+    {
+      "path": "internal/server/workercontrol/control_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 4456,
+      "sha256": "e450e9f00a36e6d19b71d1fda5fc7e66eb8ee91571cc2a6138e85cdb4d8f74fa",
+      "lf_sha256": "e450e9f00a36e6d19b71d1fda5fc7e66eb8ee91571cc2a6138e85cdb4d8f74fa"
+    },
+    {
+      "path": "internal/server/workercontrol/durable.go",
+      "purpose": "Binding validation, fail-closed control and approved resume",
+      "bytes": 5480,
+      "sha256": "08ab206a05682c1b496e62ab973d5808ac7d53cdeabce3712d8be5a5c3fa84e5",
+      "lf_sha256": "08ab206a05682c1b496e62ab973d5808ac7d53cdeabce3712d8be5a5c3fa84e5"
+    },
+    {
+      "path": "internal/server/workercontrol/durable_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 10850,
+      "sha256": "200b81aedc754c49247c6b117d141f10a47e02f8a219268322df7080c124a142",
+      "lf_sha256": "200b81aedc754c49247c6b117d141f10a47e02f8a219268322df7080c124a142"
+    },
+    {
+      "path": "internal/server/workercontrol/maintenance_resume.go",
+      "purpose": "Binding validation, fail-closed control and approved resume",
+      "bytes": 2074,
+      "sha256": "bc4850ca01c5315b652a329c500b8a2c8bc7e12f321ec73c0bf097dceccd1605",
+      "lf_sha256": "bc4850ca01c5315b652a329c500b8a2c8bc7e12f321ec73c0bf097dceccd1605"
+    },
+    {
+      "path": "internal/server/workercontrol/maintenance_resume_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 5989,
+      "sha256": "b66036d4660ed70b9f4b88ad75016af08ed02ba213abc74b4a4a350afd6824a4",
+      "lf_sha256": "b66036d4660ed70b9f4b88ad75016af08ed02ba213abc74b4a4a350afd6824a4"
+    },
+    {
+      "path": "internal/server/workercontrol/resume.go",
+      "purpose": "Binding validation, fail-closed control and approved resume",
+      "bytes": 8784,
+      "sha256": "4a1f30dbd6f996546d5a06cee08b4c178d395f68e088920bef68e82b959202b2",
+      "lf_sha256": "4a1f30dbd6f996546d5a06cee08b4c178d395f68e088920bef68e82b959202b2"
+    },
+    {
+      "path": "internal/server/workercontrol/resume_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "bytes": 16277,
+      "sha256": "6ecb53f56845b9cf65ffb06bae5377302fb4dbd51aa3e939c5d7ab8f63cabd4c",
+      "lf_sha256": "6ecb53f56845b9cf65ffb06bae5377302fb4dbd51aa3e939c5d7ab8f63cabd4c"
+    },
+    {
+      "path": "internal/server/workercontrol/settings.go",
+      "purpose": "Binding validation, fail-closed control and approved resume",
+      "bytes": 1268,
+      "sha256": "83729329725b3b28b6f1e8a624463cad9bf3d11a62d8ae7e8ebf070b5ec29248",
+      "lf_sha256": "83729329725b3b28b6f1e8a624463cad9bf3d11a62d8ae7e8ebf070b5ec29248"
+    },
+    {
+      "path": "internal/testsupport/workercontrolfake/resume.go",
+      "purpose": "In-process shared fake journal, not deployed infrastructure",
+      "bytes": 3067,
+      "sha256": "34101ad2de77fd713fc8f58db9ba79fe238d52f98d0673b68e79f944a77c4753",
+      "lf_sha256": "34101ad2de77fd713fc8f58db9ba79fe238d52f98d0673b68e79f944a77c4753"
+    },
+    {
+      "path": "internal/testsupport/workercontrolfake/store.go",
+      "purpose": "In-process shared fake journal, not deployed infrastructure",
+      "bytes": 3895,
+      "sha256": "2ddb82f7a79ebd06ff324f28bbf4055bb329fab0350d056cf7d57ad5a0da56c0",
+      "lf_sha256": "2ddb82f7a79ebd06ff324f28bbf4055bb329fab0350d056cf7d57ad5a0da56c0"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "purpose": "Runtime owning contract; opt-in controls, approval proof boundary, schema13+14",
+      "bytes": 68033,
+      "sha256": "5f687a920217319189bd9cbdc5585ee34fb2690455083ffc95960ab75ff81ad8",
+      "lf_sha256": "5f687a920217319189bd9cbdc5585ee34fb2690455083ffc95960ab75ff81ad8"
+    }
+  ],
+  "logs": [
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\baseline-fixture-failure.log",
+      "bytes": 240,
+      "sha256": "b3d0b064e1ae6bbf07a727dcbeccc8b58778ad36ece508e31681a555a756f4c0",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\cleanup.json",
+      "bytes": 436,
+      "sha256": "a6b62170c7fa4f1274f44cbb16aea5e266f1255347c927e9e1cbc900f2d9fd20",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\contracts.log",
+      "bytes": 696,
+      "sha256": "8b9f0f4a1adc1846135b36e4c2abbc3af445df6053edb8d3fb429fc2513df7b5",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\final-app-full-integration.jsonl",
+      "bytes": 479569,
+      "sha256": "a0ae2fcca82498955428a335f1985f3a9ffcfd1a8dd3038b7e66691e23695a47",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\final-app-maintenance-pg.jsonl",
+      "bytes": 28368,
+      "sha256": "935b7836b690201738001b1cc89c1bcfd024a369f7e79e25e60fd6619b4808b3",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\final-related-race.jsonl",
+      "bytes": 1150826,
+      "sha256": "c495c98fd9081676a285971a644ff01bbd30403816125b09e095c82758d2233c",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\format.json",
+      "bytes": 255,
+      "sha256": "4f9dddf5a5b5bbf0d1860b5a8b8f671ef268a14ffe76994361d2a3357cc977d7",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\go-full-unit.jsonl",
+      "bytes": 4488504,
+      "sha256": "d10b4e0d71ac395006f0a7948285953c71f44cb6be453d03fd9723ae7b052487",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\initdb-ascii-install.log",
+      "bytes": 1054,
+      "sha256": "a8b686846eacf3c185f8057fca70972838e5e913c45be33575ff68e510d063b2",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\initdb-ascii.log",
+      "bytes": 988,
+      "sha256": "40e25cc36c1659a517daffc6ea296029795bb3c8647cdad310de87872a7e67c2",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\initdb.log",
+      "bytes": 1030,
+      "sha256": "519099d2495b86d07ae5f67dc57bed4784a1bd7ba7da63567d5ad3518afe5210",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\local-pg-location.json",
+      "bytes": 454,
+      "sha256": "f8f225e5dbe46db97a0bba62e4c3ad5b11b8a6ae288542b4e66ec0088cdcbc38",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\pg-fixture-fixed.log",
+      "bytes": 65,
+      "sha256": "be32c6359006265396ebd3606f81ffffbf068e543872f8226ec4c23680b47d62",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\pg-full-integration.jsonl",
+      "bytes": 1723102,
+      "sha256": "29304e1434d4d97687becd428d32032873319dd1deaf5850edab182c56b4cc5a",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\pg-worker-lifecycle.log",
+      "bytes": 2087,
+      "sha256": "26c345bc397ee93d7cbb7ea62dea5d88ac977dfcea92bf1c98fe9db69d59d256",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\pg-worker-race.jsonl",
+      "bytes": 38779,
+      "sha256": "31d3906cec0e83b211d6eb58b75d007f2f313dfd64252d62bf79e1742bc1adbf",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\terminal-integration-targeted.jsonl",
+      "bytes": 1700,
+      "sha256": "d111636e18bdcd5ffcef6af1d5c1daa3d4ac0da6538c3a0f3d08ce8d368677ba",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\web-tests.json",
+      "bytes": 200580,
+      "sha256": "bea6402a4017732e3470fc7b4399de072f32fb31172066382f280956263f50b0",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\web-tests.log",
+      "bytes": 396,
+      "sha256": "83fac25ccfcd501790b4ac01f68b37b511ea30397159f42bd2c8ccf409b892bd",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\wss-cleanup-regression.log",
+      "bytes": 149,
+      "sha256": "f38c37aa6056da51260dba787ea1882af259077449500514d933b1a8d0b2226a",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-validation-20261120\\wss-first-fix.log",
+      "bytes": 150,
+      "sha256": "1acf50503682ae36ebc05a0f87df534f6238a1ae1d53a67149a39b5283c1d4e5",
+      "note": "Local execution raw Evidence; not deployment dependency"
+    },
+    {
+      "path": ".local\\wss-independent-review-20261120\\fixed-repeated.jsonl",
+      "bytes": 732711,
+      "sha256": "21db475ca9a4cf9a667e4cd775139449de1dfcdfed195d49593c305e4898f900",
+      "note": "Independent read-only local loopback/fake execution"
+    },
+    {
+      "path": ".local\\wss-independent-review-20261120\\head-repeated.jsonl",
+      "bytes": 194024,
+      "sha256": "b575ca05e57131251209753cde5654a8ba1fe8cded2d8e3c780885b504e548d2",
+      "note": "Independent read-only local loopback/fake execution"
+    },
+    {
+      "path": ".local\\wss-independent-review-20261120\\registry-final.jsonl",
+      "bytes": 60906,
+      "sha256": "db4c10d3fd3a371d2727e1d18cd3875fceac15248813d4a8de3d5a9974519615",
+      "note": "Independent read-only local loopback/fake execution"
+    },
+    {
+      "path": ".local\\wss-independent-review-20261120\\registry-repeated.jsonl",
+      "bytes": 100190,
+      "sha256": "0203a274a2ec98cdbc781d919882950f158a061d850fd8a99e3cb8b4fc8a97bb",
+      "note": "Independent read-only local loopback/fake execution"
+    }
+  ],
+  "executions": {
+    "final-app-full-integration": {
+      "passed_test_events": 442,
+      "failed_tests": [],
+      "skipped_tests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestDumpPreviewWireSamples"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_Worker_CrossPodClaimAndExactOnceExecution"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_Terminal_CrossPodCreateAndBrowserProxy"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_ControlledReverseRouting"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_N1_FallbackRegression_And_N3_Topology"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_NegativeSafety"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_LiveSession_CrossPodCreateSubscribeAndClose"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_WorkspaceFile_CrossPodHTTPAndFileDataWSSProxy"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_Preview_CrossPodCreateAndDataWSSProxy"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_Preview_ExpiryOwnerCrashAndValkeyOutageFailClosed"
+        }
+      ],
+      "unfinished_tests": [],
+      "package_results": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "action": "pass",
+          "elapsed": 271.13
+        }
+      ]
+    },
+    "final-app-maintenance-pg": {
+      "passed_test_events": 27,
+      "failed_tests": [],
+      "skipped_tests": [],
+      "unfinished_tests": [],
+      "package_results": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "action": "pass",
+          "elapsed": 1.2610000000000001
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi",
+          "action": "pass",
+          "elapsed": 2.648
+        }
+      ]
+    },
+    "final-related-race": {
+      "passed_test_events": 1005,
+      "failed_tests": [],
+      "skipped_tests": [],
+      "unfinished_tests": [],
+      "package_results": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/connector",
+          "action": "pass",
+          "elapsed": 3.8120000000000003
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol",
+          "action": "pass",
+          "elapsed": 2.31
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/postgres",
+          "action": "pass",
+          "elapsed": 3.75
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss",
+          "action": "pass",
+          "elapsed": 20.965
+        }
+      ]
+    },
+    "go-full-unit": {
+      "passed_test_events": 3947,
+      "failed_tests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudProvisionAcceptsLateActiveAfterFiveMinutes"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupReturnRestartAndDelayedCommands"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/unknown_create"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/legacy_intent"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/crashed_completion"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/server_without_root"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_occupied"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_failure"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/unlisted_live_resource"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupAllGenerationsAndStaleCleanup"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/tombstone_before_removal"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/lock"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPartialDeleteKeepsReservation"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupSerializesWithAllocation"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudHeldCIDRAllowsDifferentInstanceWithoutReleasingOldOwner"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPublicLifecycleReturnsCompleteTopology"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/invalid_config"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/foreign_lock"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolIsolationResetAndRestart"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/skip_shared"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/all_overlap"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/unknown_CIDR"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/pending_unmapped_Tier"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/installer",
+          "test": "TestInstallerScript_ShellSyntaxAndBehavioralSuite"
+        }
+      ],
+      "skipped_tests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+          "test": "TestSymlinkRejectedAndExcludedFromTree"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ControlWSSIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestFailedRecoveryEvidenceRequiresBoundCompleteOwnedTopology"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackFileTransportIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM1Integration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ProvisionIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM3LifecycleIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackInternetPolicyIntegration"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_Lifecycle"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_AtomicGenerationAndOwnerLossCallback"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_TerminalOwner"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_TerminalOwnerHeartbeatRenewal"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_PreviewOwner"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_LookupRetiresLocalStaleLeaseImmediately"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+          "test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+        }
+      ],
+      "unfinished_tests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolConcurrentAndUnknownMutation"
+        }
+      ],
+      "package_results": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/k3d-e2e-verifier",
+          "action": "pass",
+          "elapsed": 0
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector",
+          "action": "skip",
+          "elapsed": 0
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate",
+          "action": "skip",
+          "elapsed": 0
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-recovery-evidence",
+          "action": "skip",
+          "elapsed": 0
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-server",
+          "action": "skip",
+          "elapsed": 0
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-workspace-sftp",
+          "action": "skip",
+          "elapsed": 0
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/db/migrations",
+          "action": "skip",
+          "elapsed": 0
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/cmd/labbit-recover-failed-provision",
+          "action": "pass",
+          "elapsed": 3.846
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/heartbeat",
+          "action": "pass",
+          "elapsed": 0
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/mock",
+          "action": "pass",
+          "elapsed": 0.002
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider",
+          "action": "pass",
+          "elapsed": 0.002
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/protocol",
+          "action": "pass",
+          "elapsed": 0.004
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/filetransport",
+          "action": "pass",
+          "elapsed": 0.006
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/preview",
+          "action": "pass",
+          "elapsed": 0.005
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/version",
+          "action": "skip",
+          "elapsed": 0.002
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+          "action": "pass",
+          "elapsed": 0.001
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess",
+          "action": "pass",
+          "elapsed": 0.002
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/terminal",
+          "action": "pass",
+          "elapsed": 0.004
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/app",
+          "action": "pass",
+          "elapsed": 6.134
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/installer",
+          "action": "fail",
+          "elapsed": 64.73
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr",
+          "action": "skip",
+          "elapsed": 0
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefs",
+          "action": "pass",
+          "elapsed": 0.001
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/observability",
+          "action": "pass",
+          "elapsed": 0.001
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/jsonnum",
+          "action": "pass",
+          "elapsed": 0.001
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest",
+          "action": "skip",
+          "elapsed": 0
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/bootstrap",
+          "action": "pass",
+          "elapsed": 0.002
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution/labexecutiontest",
+          "action": "skip",
+          "elapsed": 0.001
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/jsonnum",
+          "action": "pass",
+          "elapsed": 0.002
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/operationrecovery",
+          "action": "pass",
+          "elapsed": 0.005
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/class",
+          "action": "pass",
+          "elapsed": 0.011
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/livesession",
+          "action": "pass",
+          "elapsed": 0.01
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/auth",
+          "action": "pass",
+          "elapsed": 0.017
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/observability/tracing",
+          "action": "pass",
+          "elapsed": 0.021
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/wss",
+          "action": "pass",
+          "elapsed": 0.023
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest",
+          "action": "pass",
+          "elapsed": 0.001
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest",
+          "action": "skip",
+          "elapsed": 0
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/repository",
+          "action": "pass",
+          "elapsed": 0.001
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest",
+          "action": "skip",
+          "elapsed": 0.001
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext",
+          "action": "pass",
+          "elapsed": 0.002
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "action": "pass",
+          "elapsed": 0.001
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/testsupport/workercontrolfake",
+          "action": "skip",
+          "elapsed": 0
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "action": "pass",
+          "elapsed": 0.982
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance",
+          "action": "pass",
+          "elapsed": 0.004
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-op02-bootstrap",
+          "action": "pass",
+          "elapsed": 0.002
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi",
+          "action": "pass",
+          "elapsed": 1.059
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/web/node_modules/flatted/golang/pkg/flatted",
+          "action": "skip",
+          "elapsed": 0
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/postgres",
+          "action": "pass",
+          "elapsed": 1.114
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/operation",
+          "action": "pass",
+          "elapsed": 1.198
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest",
+          "action": "pass",
+          "elapsed": 1.2770000000000001
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/terminal",
+          "action": "pass",
+          "elapsed": 1.309
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/connector",
+          "action": "pass",
+          "elapsed": 1.536
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+          "action": "pass",
+          "elapsed": 1.456
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport",
+          "action": "pass",
+          "elapsed": 1.567
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/previewsession",
+          "action": "pass",
+          "elapsed": 1.726
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol",
+          "action": "pass",
+          "elapsed": 1.978
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/labspec",
+          "action": "pass",
+          "elapsed": 2.096
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile",
+          "action": "pass",
+          "elapsed": 2.027
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/provision",
+          "action": "pass",
+          "elapsed": 2.1189999999999998
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/preview",
+          "action": "pass",
+          "elapsed": 3.059
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution",
+          "action": "pass",
+          "elapsed": 3.164
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/realtime",
+          "action": "pass",
+          "elapsed": 10.207
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/maintenance",
+          "action": "pass",
+          "elapsed": 15.131
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss",
+          "action": "pass",
+          "elapsed": 16.683
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "action": "fail",
+          "elapsed": 600.339
+        }
+      ]
+    },
+    "pg-full-integration": {
+      "passed_test_events": 1629,
+      "failed_tests": [],
+      "skipped_tests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestDumpPreviewWireSamples"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_Worker_CrossPodClaimAndExactOnceExecution"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_Terminal_CrossPodCreateAndBrowserProxy"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_ControlledReverseRouting"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_N1_FallbackRegression_And_N3_Topology"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_NegativeSafety"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_LiveSession_CrossPodCreateSubscribeAndClose"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_WorkspaceFile_CrossPodHTTPAndFileDataWSSProxy"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_Preview_CrossPodCreateAndDataWSSProxy"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_Preview_ExpiryOwnerCrashAndValkeyOutageFailClosed"
+        }
+      ],
+      "unfinished_tests": [],
+      "package_results": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest",
+          "action": "pass",
+          "elapsed": 4.657
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/auth",
+          "action": "pass",
+          "elapsed": 21.627
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi",
+          "action": "pass",
+          "elapsed": 46.972
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/postgres",
+          "action": "pass",
+          "elapsed": 379.307
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "action": "pass",
+          "elapsed": 458.912
+        }
+      ]
+    },
+    "pg-worker-race": {
+      "passed_test_events": 36,
+      "failed_tests": [],
+      "skipped_tests": [],
+      "unfinished_tests": [],
+      "package_results": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/postgres",
+          "action": "pass",
+          "elapsed": 73.648
+        }
+      ]
+    },
+    "terminal-integration-targeted": {
+      "passed_test_events": 1,
+      "failed_tests": [],
+      "skipped_tests": [],
+      "unfinished_tests": [],
+      "package_results": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "action": "pass",
+          "elapsed": 1.7610000000000001
+        }
+      ]
+    }
+  },
+  "db": {
+    "version": "PostgreSQL16.15",
+    "host": "127.0.0.1",
+    "port": 16596,
+    "role": "labbit_pr196_test",
+    "tls": false,
+    "purpose": "Ephemeral isolated loopback instance, no shared DB/AWS",
+    "response_loss": "Real Begin/Apply committed; injected caller-response drop and new pool. No TCP commit-loss or DB process crash fault injection.",
+    "approval_and_fencing": "Synthetic trusted ports only; no actual Writer/Pod/Provider proof",
+    "cleanup": {
+      "at_utc": "2026-11-20T06:18:14.0563573Z",
+      "remaining_test_databases": 0,
+      "server_stopped": true,
+      "loopback_port_16596_listening": false,
+      "retained_path": "C:\\Users\\user\\AppData\\Local\\LabbitPR196Test\\57c1b1c0008242cbad3bd1ef590ebd1a",
+      "temporary_folder_deletion": "Not executed: automatic approval review blocked combined cleanup command; detailed reason not provided",
+      "shared_resources_touched": false
+    }
+  },
+  "commands": {
+    "integration": "LABBIT_TEST_DATABASE_DSN=<disposable PostgreSQL16 DSN> go test -tags integration -count=1 ./internal/postgres ./internal/postgres/postgrestest ./internal/server/app ./internal/server/auth ./internal/server/httpapi",
+    "worker_race": "go test -race -tags integration -run ^TestWorkerControl -count=3 -timeout=120s ./internal/postgres",
+    "related_race": "go test -race ./internal/server/connector ./internal/server/connectorwss ./internal/server/workercontrol ./internal/postgres -count=1",
+    "basic": "go mod download; go vet ./...; go test ./...; go build ./...; npm run typecheck/lint/test/build in web; existing lockfile dependencies reused (fresh npm ci not rerun)",
+    "contracts": "Run unmodified Python bodies from .github/workflows/contracts.yml with its pinned validator packages"
+  },
+  "safety": {
+    "aws_mutation": false,
+    "shared_db_access": false,
+    "seoul_deployment": false,
+    "slack_sent": false,
+    "execution_gate": "HOLD",
+    "recovery_authorized": false,
+    "cloud_verified": false,
+    "existing_fail_and_four_not_verified": "preserved"
+  },
+  "status": "DRAFT: full basic verification has Windows/POSIX fixture failures; not merge/deployment acceptance",
+  "independent_executions": {
+    "fixed-repeated": {
+      "passed_test_events": 700,
+      "failed_tests": [],
+      "skipped_tests": [],
+      "unfinished_tests": [],
+      "package_results": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss",
+          "action": "pass",
+          "elapsed": 37.13
+        }
+      ]
+    },
+    "head-repeated": {
+      "passed_test_events": 199,
+      "failed_tests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss",
+          "test": "TestRevokeConnectorHookClosesActiveConnectionWith4001"
+        }
+      ],
+      "skipped_tests": [],
+      "unfinished_tests": [],
+      "package_results": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss",
+          "action": "fail",
+          "elapsed": 13.621
+        }
+      ]
+    },
+    "registry-final": {
+      "passed_test_events": 60,
+      "failed_tests": [],
+      "skipped_tests": [],
+      "unfinished_tests": [],
+      "package_results": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/connector",
+          "action": "pass",
+          "elapsed": 3.841
+        }
+      ]
+    },
+    "registry-repeated": {
+      "passed_test_events": 100,
+      "failed_tests": [],
+      "skipped_tests": [],
+      "unfinished_tests": [],
+      "package_results": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/connector",
+          "action": "pass",
+          "elapsed": 5.828
+        }
+      ]
+    }
+  },
+  "format": {
+    "go_files": 626,
+    "original_crlf_files": 573,
+    "normalized_gofmt_issues": [],
+    "result": "PASS",
+    "note": "Windows autocrlf working files normalized in ignored copy only. Original raw gofmt reports CRLF files; no unrelated source edits."
+  },
+  "web_tests": {
+    "numTotalTests": 493,
+    "numPassedTests": 491,
+    "numFailedTests": 2,
+    "success": false,
+    "failures": [
+      {
+        "test": "LBT-183 public Installer URL build-time safety Vite also rejects invalid final process config without echoing it",
+        "reason": [
+          "Error: EPERM, Permission denied: 'C:\\Users\\user\\AppData\\Local\\Temp\\labbit-installer-env-Zg5NNt'\n    at rmSync (node:fs:1282:18)\n    at C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-admission-20261119/web/scripts/validate-installer-build-env.test.mjs:90:7\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:2886:64\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:1632:35\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:2801:26\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:3338:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:3333:10)\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:3318:20\n    at new Promise (<anonymous>)"
+        ]
+      },
+      {
+        "test": "LBT-183 public Installer URL build-time safety Vite also rejects invalid final mode-file config without echoing it",
+        "reason": [
+          "Error: EPERM, Permission denied: 'C:\\Users\\user\\AppData\\Local\\Temp\\labbit-installer-env-8YKoz6'\n    at rmSync (node:fs:1282:18)\n    at C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-admission-20261119/web/scripts/validate-installer-build-env.test.mjs:90:7\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:2886:64\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:1632:35\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:2801:26\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:3338:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:3333:10)\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:3318:20\n    at new Promise (<anonymous>)"
+        ]
+      }
+    ]
+  },
+  "checks": {
+    "go_mod_download": "PASS",
+    "go_vet_final": "PASS",
+    "go_build_final": "PASS",
+    "contracts_actual_ci_programs": "PASS",
+    "web_typecheck": "PASS",
+    "web_lint": "PASS",
+    "web_build": "PASS",
+    "full_basic": "FAIL: existing Windows/POSIX and EPERM fixtures",
+    "router_harness": "NOT EXECUTED: Windows compile error undefined syscall.Stat_t (existing source)"
+  }
+}

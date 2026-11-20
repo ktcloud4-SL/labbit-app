@@ -64,14 +64,19 @@ plan/receipt/원장 hash, 고정 SSH host key와 운영자 감사 label을 원�
     - `worker_control_states`, `worker_control_changes`, `worker_control_boundaries` 추가.
     - 명시적 opt-in의 단일 authoritative 제어 Writer에서 revision/epoch와 경계 INTENT를 보존하는 후보 구현입니다.
     - 이 파일의 초기화는 PAUSE_NEW만 가능합니다. 승인 재개 이력은 다음 migration에서 추가하며 경계 기록의 자동 만료/삭제는 없습니다.
-    - migration 작성·driver Mock은 실제 PostgreSQL locking/내구성 검증이 아닙니다. 이번 작업에서 적용/실제 DB 조회는 하지 않았습니다.
+    - driver Mock과 실제 PostgreSQL 시험을 구분합니다. 폐기용 PostgreSQL 16의 적용·잠금·재접속 검증 근거는 `docs/backend/evidence/LBT-60/2026-11-20-pr196-validation/`을 따르며, 공용/서울 DB 적용은 하지 않았습니다.
     - app의 schema readiness가 이 파일도 요구하므로 실제 배포 전 별도 호환성·적용 검증이 필요합니다.
 
 13. `000013_worker_control_resume.sql`
     - `worker_control_resumes`에 exact 요청·검증 결과·승인 ID와 INTENT/APPLIED를 보존합니다.
     - approval ID 단일 소비, scope당 미해결 INTENT 1개, state revision/epoch 증가와 APPLIED의 원자적 연결 후보입니다.
-    - 실제 DB에 적용하지 않았습니다. driver Mock/공유 Fake는 PostgreSQL 제약·locking·내구성 증명이 아닙니다.
+    - 공용/서울 DB에 적용하지 않았습니다. 폐기용 PostgreSQL에서 적용 및 INTENT/APPLIED 정합성을 검증하며, driver Mock/공유 Fake와 구분합니다.
     - 이 파일도 새 build의 readiness에 포함되므로 실제 배포 전 migration 적용·권한·호환성을 별도 검증합니다.
+
+14. `000014_worker_control_resume_applied_time.sql`
+    - 기존 13번과 checksum을 보존하고 APPLIED의 `applied_at IS NOT NULL` 제약을 추가합니다.
+    - PostgreSQL CHECK의 NULL 허용을 보완합니다. 유효하지 않은 기존 row는 시각을 추정해 수정하지 않고 migration을 실패시킵니다.
+    - 기존 유효 INTENT/APPLIED와 과거 build 호환성을 유지합니다. 공용 DB 적용은 별도 승인·검증 대상입니다.
 
 ## 확정된 Domain/Data 모델과의 관계
 

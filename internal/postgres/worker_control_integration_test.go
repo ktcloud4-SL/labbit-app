@@ -15,8 +15,8 @@ import (
 	wc "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol"
 )
 
-// Added but deliberately NOT RUN in this increment: user prohibited actual DB
-// access. Run only against the approved disposable integration database later.
+// These integration tests use a disposable database created by postgrestest.
+// They never connect to the application database or authorize DR activation.
 func TestWorkerControlPostgresCreatePauseAndConcurrentEnter(t *testing.T) {
 	db := newTestDB(t)
 	s := postgres.NewWorkerControlStore(db.pool)
@@ -77,7 +77,7 @@ func TestWorkerControlPostgresCreatePauseAndConcurrentEnter(t *testing.T) {
 	}
 }
 
-// Compile only under the current user request: NOT executed against a DB.
+// Verify the journal and one-winner apply against actual PostgreSQL sessions.
 func TestWorkerControlPostgresApprovedResumeJournalAndConcurrentApply(t *testing.T) {
 	db := newTestDB(t)
 	s := postgres.NewWorkerControlStore(db.pool)

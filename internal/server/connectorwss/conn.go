@@ -59,6 +59,12 @@ type controlConn struct {
 	// closing은 mu를 잡고서만 true로 바꾼다. isClosing이 진행 중인 write를 기다리지 않도록 lock 없이 읽는다.
 	closing atomic.Bool
 	grace   atomic.Pointer[time.Timer]
+
+	// requestMu serializes close request registration with release. Unlike a
+	// WaitGroup, a sealed latch cannot accept work after cleanup has waited.
+	requestMu sync.Mutex
+	closeDone chan struct{}
+	released  bool
 }
 
 func newControlConn(conn wsConn) *controlConn {
@@ -103,6 +109,28 @@ func (c *controlConn) route(data []byte) error {
 // 아무것도 하지 않는다. 여러 goroutine에서 호출해도 안전하다.
 // read loop는 상대의 close 응답이나 connection 종료로 끝나며, 이 함수는 read loop를 기다리지 않는다.
 func (c *controlConn) close(code int, reason string) {
+	if done := c.requestClose(code, reason); done != nil {
+		<-done
+	}
+}
+
+func (c *controlConn) requestClose(code int, reason string) <-chan struct{} {
+	c.requestMu.Lock()
+	defer c.requestMu.Unlock()
+	if c.released {
+		return nil
+	}
+	if c.closeDone == nil {
+		c.closeDone = make(chan struct{})
+		go func() {
+			defer close(c.closeDone)
+			c.writeClose(code, reason)
+		}()
+	}
+	return c.closeDone
+}
+
+func (c *controlConn) writeClose(code int, reason string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.closing.Load() {
@@ -119,11 +147,11 @@ func (c *controlConn) close(code int, reason string) {
 func (c *controlConn) closeFor(reason connector.CloseReason) {
 	switch reason {
 	case connector.CloseRevoked:
-		go c.close(closeCredentialRevoked, "credential revoked")
+		c.requestClose(closeCredentialRevoked, "credential revoked")
 	case connector.CloseReplaced:
-		go c.close(closeReplaced, "replaced by a newer connection")
+		c.requestClose(closeReplaced, "replaced by a newer connection")
 	default:
-		go c.close(websocket.CloseGoingAway, "connection closed")
+		c.requestClose(websocket.CloseGoingAway, "connection closed")
 	}
 }
 
@@ -132,8 +160,16 @@ func (c *controlConn) isClosing() bool {
 	return c.closing.Load()
 }
 
-// release는 connection 종료 뒤에 남은 grace timer를 정리한다.
+// release seals future close requests and waits for the already-requested close
+// frame attempt before the caller closes TCP. It then stops the grace timer.
 func (c *controlConn) release() {
+	c.requestMu.Lock()
+	c.released = true
+	done := c.closeDone
+	c.requestMu.Unlock()
+	if done != nil {
+		<-done
+	}
 	if timer := c.grace.Load(); timer != nil {
 		timer.Stop()
 	}

@@ -1,0 +1,5 @@
+--- FAIL: TestWorkerControlPostgresCreatePauseAndConcurrentEnter (0.30s)
+    worker_control_integration_test.go:21: embedded migrations = 13, want 000001~000011
+FAIL
+FAIL	github.com/ktcloud4-SL/labbit-app/internal/postgres	0.578s
+FAIL

@@ -8,6 +8,7 @@ import type {
   LabExecution,
   OperationAccepted,
 } from '../shared/api/contracts'
+import { HttpError } from '../shared/api/httpClient'
 import { LabbitApiProvider } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
 import { mockLabbitApi, mockMe } from '../shared/api/mockLabbitApi'
@@ -253,4 +254,46 @@ describe('LBT-53 execution destructive action route isolation', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
+})
+
+describe('LBT-59 FE maintenance 503 message', () => {
+  it.each([
+    { action: 'RESET', label: '초기화', confirm: '초기화 시작' },
+    { action: 'CLEANUP', label: '전체 실습 정리', confirm: '정리 시작' },
+  ])('$action 503 maintenance 안내 후 실행 화면 및 기존 확인창을 유지한다', async ({ label, confirm }) => {
+    const failure = async (): Promise<OperationAccepted> => {
+      throw new HttpError(503, {
+        type: 'about:blank',
+        title: 'Service Unavailable',
+        status: 503,
+        code: 'maintenance',
+        requestId: 'synthetic-fe-maintenance',
+      })
+    }
+    // mount() returns its default Reset spy, but overrides replace that function.
+    // Capture the actual injected spy so the assertion observes the dispatched call.
+    const resetOverride = vi.fn(failure)
+    const { router, cleanupLabExecution } = mount(failure, { resetLabInstance: resetOverride })
+    expect(await screen.findByText('execution-a')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: label }))
+    fireEvent.click(screen.getByRole('button', { name: confirm }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('운영 점검 중 새 실습 작업 접수가 중지되었습니다. 재개 안내 전에는 다시 시도하지 마세요.')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    const submit = screen.getByRole('button', { name: confirm })
+    expect(submit).toBeDisabled()
+    fireEvent.click(submit)
+    expect(label === '초기화' ? resetOverride : cleanupLabExecution).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: '취소' })).toBeEnabled()
+    expect(router.state.location.pathname).toBe('/lab-executions/execution-a')
+  })
+
+  it('일반 503은 기존 인프라 장애 안내를 유지한다', async () => {
+    const { router } = mount(async () => { throw new HttpError(503) })
+    expect(await screen.findByText('execution-a')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '전체 실습 정리' }))
+    fireEvent.click(screen.getByRole('button', { name: '정리 시작' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('인프라 연결 구성요소를 일시적으로 사용할 수 없습니다.')
+    expect(screen.getByRole('button', { name: '정리 시작' })).toBeEnabled()
+    expect(router.state.location.pathname).toBe('/lab-executions/execution-a')
+  })
 })

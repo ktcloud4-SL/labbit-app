@@ -77,13 +77,27 @@ type Store interface {
 
 // Service는 Provision 접수와 조회 use case다.
 type Service struct {
-	store Store
-	newID func() uuid.UUID
-	now   func() time.Time
+	store     Store
+	admission func(string) (func(), bool)
+	newID     func() uuid.UUID
+	now       func() time.Time
 }
 
-func NewService(store Store) *Service {
-	return &Service{store: store, newID: uuid.New, now: time.Now}
+func NewService(store Store, admission ...func(string) (func(), bool)) *Service {
+	s := &Service{store: store, newID: uuid.New, now: time.Now}
+	if len(admission) > 0 {
+		s.admission = admission[0]
+	}
+	return s
+}
+
+var ErrMaintenance = errors.New("labexecution: maintenance admission closed")
+
+func (s *Service) enter() (func(), bool) {
+	if s.admission == nil {
+		return func() {}, true
+	}
+	return s.admission("http")
 }
 
 // ProvisionInput은 Provision 요청이다. ID는 Browser가 보낸 opaque 문자열 그대로다.
@@ -137,6 +151,12 @@ func (s *Service) Provision(ctx context.Context, user repository.User, in Provis
 	if accepted, done, err := s.committedReplay(ctx, user, in.IdempotencyKey, fingerprint); done {
 		return accepted, err
 	}
+
+	release, ok := s.enter()
+	if !ok {
+		return Accepted{}, ErrMaintenance
+	}
+	defer release()
 
 	now := s.now()
 	executionID := s.newID()

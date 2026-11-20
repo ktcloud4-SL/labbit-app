@@ -24,6 +24,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/filetransport"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/httpapi"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/maintenance"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
@@ -39,13 +40,14 @@ const (
 )
 
 type Config struct {
-	Environment   string
-	Roles         []string
-	HTTPAddr      string
-	AdminAddr     string
-	PeerAddr      string
-	LogLevel      string
-	ShutdownGrace time.Duration
+	MaintenanceFile string
+	Environment     string
+	Roles           []string
+	HTTPAddr        string
+	AdminAddr       string
+	PeerAddr        string
+	LogLevel        string
+	ShutdownGrace   time.Duration
 	// DatabaseDSN은 Secret이다. 로그·오류 메시지에 기록하지 않는다.
 	DatabaseDSN string
 	// PublicOrigin은 api role의 Browser unsafe-method Origin 검증과 realtime role의 Browser WSS Upgrade Origin 검증에 쓰는
@@ -169,6 +171,7 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
+		MaintenanceFile:     os.Getenv("LABBIT_MAINTENANCE_FILE"),
 		Environment:         environment,
 		Roles:               roles,
 		HTTPAddr:            envOrDefault("LABBIT_HTTP_ADDR", defaultHTTPAddr),
@@ -253,6 +256,8 @@ func Run(ctx context.Context, cfg Config) error {
 	logger := observability.NewJSONLogger("labbit-server", "bootstrap", cfg.Environment, cfg.LogLevel)
 	ready := &atomic.Bool{}
 	registry, httpMetrics, realtimeMetrics, workerMetrics := applicationMetrics(cfg.Roles)
+	gate := maintenance.New(cfg.MaintenanceFile)
+	registry.MustRegister(gate)
 
 	// Trace는 업무 성공 조건이 아니다. Start는 실패하지 않으며 설정 오류와 exporter 초기화 실패는 안전한 진단 뒤 export만 끈다.
 	// exporter가 없어도 Span과 W3C Context 전파, log의 trace_id correlation은 그대로다.
@@ -326,6 +331,7 @@ func Run(ctx context.Context, cfg Config) error {
 				OperationSink:   harness.sink(),
 				Worker:          slices.Contains(cfg.Roles, "worker"),
 				WorkerReady:     databaseReady,
+				Admission:       gate.Enter,
 				PublicOrigin:    cfg.PublicOrigin,
 				Realtime:        slices.Contains(cfg.Roles, "realtime"),
 				HTTPMetrics:     httpMetrics,

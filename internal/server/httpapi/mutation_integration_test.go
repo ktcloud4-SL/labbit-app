@@ -37,7 +37,7 @@ type labHTTP struct {
 	tokens map[uuid.UUID]string
 }
 
-func newLabHTTP(t *testing.T) *labHTTP {
+func newLabHTTP(t *testing.T, admission ...func(string) (func(), bool)) *labHTTP {
 	t.Helper()
 	dsn := postgrestest.NewDatabase(t)
 	migrations, err := postgres.LoadMigrations(migrationfiles.Files)
@@ -54,7 +54,7 @@ func newLabHTTP(t *testing.T) *labHTTP {
 	t.Cleanup(pool.Close)
 	store := postgres.NewStore(pool)
 	h, err := httpapi.New(httpapi.Options{Auth: auth.NewService(store, auth.Argon2id{}, nil), Classes: class.NewService(store), LabSpecs: labspec.NewService(store),
-		Operations: operation.NewService(store), LabExecutions: labexecution.NewService(store), PublicOrigin: trustedOrigin})
+		Operations: operation.NewService(store), LabExecutions: labexecution.NewService(store, admission...), PublicOrigin: trustedOrigin})
 	if err != nil {
 		t.Fatal(err)
 	}

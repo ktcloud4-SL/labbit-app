@@ -352,7 +352,9 @@ function LabExecutionForId({ executionId }: { executionId: string }) {
           ? '초기화 재현 조건 또는 제품 규칙을 만족하지 못했습니다. 재현이 불가능한 경우 기존 환경은 먼저 삭제되지 않습니다.'
           : '현재 실습 상태에서는 정리를 시작할 수 없습니다. 상태와 진행 중인 작업을 확인해 주세요.'
         : mutationError instanceof HttpError && mutationError.status === 503
-          ? '인프라 연결 구성요소를 일시적으로 사용할 수 없습니다.'
+          ? mutationError.problem?.code === 'maintenance'
+            ? '운영 점검 중 새 실습 작업 접수가 중지되었습니다. 재개 안내 전에는 다시 시도하지 마세요.'
+            : '인프라 연결 구성요소를 일시적으로 사용할 수 없습니다.'
           : mutationError
             ? '요청을 접수하지 못했습니다. 잠시 후 다시 시도해 주세요.'
             : null

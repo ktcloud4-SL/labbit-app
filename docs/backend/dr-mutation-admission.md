@@ -23,7 +23,9 @@ Provision·Reset·Cleanup은 형식·현재 권한·committed replay 뒤 새 ID/
 설정한 파일이 trim 후 open일 때만 새 등록을 허용하고 closed/누락/읽기 오류/잘못된 내용은 503 maintenance다.
 파일 경로 자체가 미설정이면 기존 호환 동작이다. 모든 Pod에 경로를 적용하는 운영 확인은 별도다.
 기존 replay 200·권한 거부·다른 의미의 key 충돌·조회 오류·기존 UNKNOWN은 유지한다.
-main의 PR194 HTTP integration source를 보존했으며 이 작업에서는 compile-only로 확인한다. 실제 PostgreSQL 시험은 실행하지 않았다.
+main의 PR194 HTTP integration을 재사용한다. 11/20 `9300209` 검증에서 폐기 PostgreSQL 16 integration을 실제 실행했다.
+추가 backlog/drain·replay/현재 권한·영속 Pause/재개 통합 시험과 운영 시험 경계는
+[공통 검증 계획](dr-maintenance-integration.md)을 따른다. 이 결과를 서울 공유 DB·실제 Pod 검증으로 확대하지 않는다.
 
 ## Worker/재개 연결
 
@@ -49,10 +51,12 @@ service/HTTP in-process Fake, maintenance 임시파일, 공유 journal Fake 및 
 
 readiness/auth/Terminal/Live/File/Preview/기수락 결과 수집을 maintenance로 끄지 않는다.
 이 제어는 DB 세션·Jobs·모든 쓰기 경로를 fencing하지 않으며 기존 ReplicaLag FAIL·4 NOT_VERIFIED·DR HOLD를 유지한다.
-실제 DB/AWS/서울/Slack/배포는 수행하지 않는다. 사용자 승인에 따라 작업 브랜치 push와 별도 Draft PR만 허용하며 merge하지 않는다.
+실제 SQL은 loopback의 폐기 DB에서만 검증한다. AWS·서울 서비스·공유 DB·Slack·배포는 변경하지 않는다.
+사용자 승인에 따라 기존 Draft PR196 브랜치에 반영하며 merge하지 않는다.
 
 GitOps #124→#125→#126 이후 main `ab830d7c9e046b0621477192aca39c6b269cbf30`은 서울 open/오사카 closed를 선언한다.
 이는 소스 확인이며 이 작업에서 live 상태·설정을 조회하거나 변경한 것은 아니다.
 App main merge는 image 게시와 서울 GitOps tag/PreSync migration 갱신·Argo auto-sync로 이어지므로 이 Draft는 merge 금지다.
-기존 감사 Evidence는 각 당시 base/소스에 대한 이력이며 최신 main 재검증 결과는 `evidence/LBT-60/2026-11-20-main-refresh/`를 따른다.
-운영 적용 전 migration12/13·실 SQL 동시성·실 승인·전체 Pod·별도 GitOps 계획을 재검증해야 한다.
+기존 감사 Evidence는 당시 base/소스의 이력이다. 실제 폐기 PG·migration12~14와 WSS 수정 검증은
+`evidence/LBT-60/2026-11-20-pr196-validation/`, 후속 공통 시험은 `evidence/LBT-60/2026-11-20-pr196-maintenance-regression/`을 따른다.
+운영 적용 전 공유 DB·실제 승인 Adapter·전체 Pod·Writer/Fencing·별도 GitOps 및 migration/복귀 계획을 검증해야 한다.

@@ -46,7 +46,7 @@ type workerMetricsEnv struct {
 	admin       http.Handler
 }
 
-func newWorkerMetricsEnv(t *testing.T, timeout time.Duration) *workerMetricsEnv {
+func newWorkerMetricsEnv(t *testing.T, timeout time.Duration, configure ...func(*stackOptions, string)) *workerMetricsEnv {
 	t.Helper()
 	dsn := postgrestest.NewDatabase(t)
 	postgrestest.Migrate(t, dsn, loadEmbeddedMigrations(t))
@@ -67,7 +67,7 @@ func newWorkerMetricsEnv(t *testing.T, timeout time.Duration) *workerMetricsEnv 
 	ready.Store(true)
 	admin := adminHandler(ready, promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
-	stack, err := newControlStack(store, stackOptions{
+	opts := stackOptions{
 		PublicOrigin:                publicOrigin,
 		Worker:                      true,
 		OperationSink:               events,
@@ -76,7 +76,11 @@ func newWorkerMetricsEnv(t *testing.T, timeout time.Duration) *workerMetricsEnv 
 		ProvisionResultTimeout:      timeout,
 		ProvisionPollInterval:       10 * time.Millisecond,
 		ProvisionDispatchRetryDelay: time.Second,
-	})
+	}
+	for _, apply := range configure {
+		apply(&opts, dsn)
+	}
+	stack, err := newControlStack(store, opts)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,0 +1,828 @@
+{
+  "generated_at": "2026-11-20T06:49:11.823583+00:00",
+  "repository": "ktcloud4-SL/labbit-app",
+  "branch": "codex/feat/LBT-60-dr-admission-block-20261119",
+  "base_sha": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "parent_head": "93002098d9867a0c00c0e3b39952dd4e290c6603",
+  "tested_source": "Uncommitted files; normalized inventory matches committed content. Current evidence folder excluded from self-hashing. Earlier full suite is explicitly pre-review, final changed tests rerun three times with race.",
+  "current_delta": [
+    "docs/backend/dr-maintenance-integration.md",
+    "docs/backend/dr-mutation-admission.md",
+    "internal/server/app/worker_metrics_integration_test.go",
+    "internal/server/app/dr_maintenance_integration_test.go",
+    "internal/server/httpapi/dr_maintenance_integration_test.go"
+  ],
+  "cumulative_inventory_file_count": 67,
+  "source_inventory": [
+    {
+      "path": "contracts/http/openapi.yaml",
+      "purpose": "Existing maintenance admission HTTP auth/replay and503 contract",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 138694,
+      "sha256": "f06d98f3d4dd79b030106b539cf3c7479191a455efd0883b8700196640ad9336",
+      "lf_sha256": "6e54c56a8b10751edcfa168ef01c72d35e898fa352a84c476631ff44381def19"
+    },
+    {
+      "path": "db/migrations/000012_worker_control.sql",
+      "purpose": "Physical schema12/13+additive14 and existing migration checksum preservation",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 2947,
+      "sha256": "f87fff6b5dce4ae111ccf8f4e2d950700faf46d9190625e2929ae0ebc4e838bc",
+      "lf_sha256": "f87fff6b5dce4ae111ccf8f4e2d950700faf46d9190625e2929ae0ebc4e838bc"
+    },
+    {
+      "path": "db/migrations/000013_worker_control_resume.sql",
+      "purpose": "Physical schema12/13+additive14 and existing migration checksum preservation",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 880,
+      "sha256": "df5cd776a5166be952211d36d8f063322bdf86994ab1c5a559f37a24c60faf4f",
+      "lf_sha256": "df5cd776a5166be952211d36d8f063322bdf86994ab1c5a559f37a24c60faf4f"
+    },
+    {
+      "path": "db/migrations/000014_worker_control_resume_applied_time.sql",
+      "purpose": "Physical schema12/13+additive14 and existing migration checksum preservation",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 455,
+      "sha256": "9ed3ad245e836e19569b7267b5ec6cdcb17531054423c83a75a41c3ec8d160ea",
+      "lf_sha256": "9ed3ad245e836e19569b7267b5ec6cdcb17531054423c83a75a41c3ec8d160ea"
+    },
+    {
+      "path": "db/migrations/README.md",
+      "purpose": "Physical schema12/13+additive14 and existing migration checksum preservation",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 23324,
+      "sha256": "c5600fd50bd615cf120e74804eb5fe04650705370080c0d3694236e418d7cf9f",
+      "lf_sha256": "c5600fd50bd615cf120e74804eb5fe04650705370080c0d3694236e418d7cf9f"
+    },
+    {
+      "path": "docs/backend/dr-maintenance-integration.md",
+      "purpose": "Common maintenance regression: disposable PG/loopback/Mock tests or test plan; no production/deployment change",
+      "review": "current delta reviewed",
+      "bytes": 11901,
+      "sha256": "bb991bacae2c5c0568fc69aaf197c73a15949935eb6322567d30f916fda004d2",
+      "lf_sha256": "bb991bacae2c5c0568fc69aaf197c73a15949935eb6322567d30f916fda004d2"
+    },
+    {
+      "path": "docs/backend/dr-mutation-admission.md",
+      "purpose": "Common maintenance regression: disposable PG/loopback/Mock tests or test plan; no production/deployment change",
+      "review": "current delta reviewed",
+      "bytes": 5313,
+      "sha256": "cc86a65e132b873857ef91d25d61107a1fad5228b45b4368c6694a4d44cca77f",
+      "lf_sha256": "cc86a65e132b873857ef91d25d61107a1fad5228b45b4368c6694a4d44cca77f"
+    },
+    {
+      "path": "docs/backend/dr-worker-control.md",
+      "purpose": "Operating boundaries / actual disposable DB versus unverified shared infrastructure",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 14858,
+      "sha256": "ae3ea0e77987d7531f8be68e2b7c553be5a90fa597f61f3d12b8cc056b4ef950",
+      "lf_sha256": "ae3ea0e77987d7531f8be68e2b7c553be5a90fa597f61f3d12b8cc056b4ef950"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-19-admission-local/audit.md",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 15856,
+      "sha256": "0b0f57adabeb629ac13095e186ca5e50d20bcd230298c0e7a0b32c96dc0be3db",
+      "lf_sha256": "0b0f57adabeb629ac13095e186ca5e50d20bcd230298c0e7a0b32c96dc0be3db"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-19-admission-local/validation.json",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 25811,
+      "sha256": "2383d03bed5ecada074561676808b32e2c69d8388923b0ef96870a7ab6abb721",
+      "lf_sha256": "2383d03bed5ecada074561676808b32e2c69d8388923b0ef96870a7ab6abb721"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-19-worker-control-local/audit.md",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 19121,
+      "sha256": "08aef73e0b9bbaaf33b327c698a1fb04703a7a26ffcfe67c8fe49c0f54b3f129",
+      "lf_sha256": "08aef73e0b9bbaaf33b327c698a1fb04703a7a26ffcfe67c8fe49c0f54b3f129"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-19-worker-control-local/validation.json",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 91587,
+      "sha256": "4f4d78db1d69a80edb6785a8270c19bd0895dd9a55b8eabfb6eede7b3c7e55e9",
+      "lf_sha256": "4f4d78db1d69a80edb6785a8270c19bd0895dd9a55b8eabfb6eede7b3c7e55e9"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-main-refresh/audit.md",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 16134,
+      "sha256": "518195779bd3505238e6b91564ed6ad29b302101c9f2c20cfd4ece9c9bc1f562",
+      "lf_sha256": "518195779bd3505238e6b91564ed6ad29b302101c9f2c20cfd4ece9c9bc1f562"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-main-refresh/validation.json",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 45358,
+      "sha256": "857e235ae68ce41964c6b190fa85b4cfc398cd148284aad9b1a2ebafe2d7ab55",
+      "lf_sha256": "9130a2b0f7f627c63f33850dc051b85c1500b447ba2a51010bab12b42074d714"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-maintenance-integration/audit.md",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 22651,
+      "sha256": "c27d33feb65ad50d6ee6d533e5a925e39ac19f2e2ccd8ba07d93df7d7e6a575f",
+      "lf_sha256": "c27d33feb65ad50d6ee6d533e5a925e39ac19f2e2ccd8ba07d93df7d7e6a575f"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-maintenance-integration/validation.json",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 42168,
+      "sha256": "b2c10722fae8c934fa0256bed946e235d5cf2997bc2aa2730170cf4132395b53",
+      "lf_sha256": "d6d49f06a067e8498a3ff80a5d0c59ca0e5a13393e6bbb253f21c2f92138cd53"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-pr196-validation/audit.md",
+      "purpose": "Historical evidence, not proof of this run",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 14714,
+      "sha256": "b4220efe3c024784e09a002d3bcb04b6ef858e5c41f6ec7dd70bbeab603ec5d4",
+      "lf_sha256": "b4220efe3c024784e09a002d3bcb04b6ef858e5c41f6ec7dd70bbeab603ec5d4"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-pr196-validation/baseline-fixture-failure.log",
+      "purpose": "Historical evidence, not proof of this run",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 240,
+      "sha256": "b3d0b064e1ae6bbf07a727dcbeccc8b58778ad36ece508e31681a555a756f4c0",
+      "lf_sha256": "a4d7129effa183055bc61bd48ba8df24488b7ce33658ab0ba6d9370779b64221"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-pr196-validation/postgres-targeted.log",
+      "purpose": "Historical evidence, not proof of this run",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 2087,
+      "sha256": "26c345bc397ee93d7cbb7ea62dea5d88ac977dfcea92bf1c98fe9db69d59d256",
+      "lf_sha256": "2ead8e1125bc6494e5a9a3ee2cca65087198bd83d17c44eb0f5329f5e55a1a85"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-pr196-validation/validation.json",
+      "purpose": "Historical evidence, not proof of this run",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 66526,
+      "sha256": "6a51031630879008159a2fe0896bedacfa9c2dc079611ef9471b3995bd14bd72",
+      "lf_sha256": "cd4d436a90cd5ff0d90fe3f5bd2c0eb3b1e992e3e4a87a9662dccfc32a385086"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-worker-control-durable/audit.md",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 19513,
+      "sha256": "3768a9c4c7d7d8539cd2c9a42c5b54e9de5104fe1da17235b2b7a09ad3238ae9",
+      "lf_sha256": "3768a9c4c7d7d8539cd2c9a42c5b54e9de5104fe1da17235b2b7a09ad3238ae9"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-worker-control-durable/validation.json",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 101505,
+      "sha256": "8709d65291af1a36995f783e86ebb09096873b3dd5792c184d107504fa444c5d",
+      "lf_sha256": "202cf07b0d737c73c5e3973959a0002ac8dc9a16bf227a314702a3ae0d03a1b6"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-worker-control-resume/audit.md",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 19524,
+      "sha256": "b60cf937bea31c3c63a2dd06e5c8ef6bdf9da14c27b432abf8d01bc6273cfd1f",
+      "lf_sha256": "568aa69987febf9067968b8ee9ef8b04eccbeb5cf49b2dc5344c685fddf33cd7"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-worker-control-resume/validation.json",
+      "purpose": "Historical audit / tested-source record; not current test proof",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 60055,
+      "sha256": "dc199c31307b6fb99289d36d5fff19f3d69a87513be6c77c1599bd146a298b93",
+      "lf_sha256": "91193bb7332b1a0c7688290b520690af7f8943588ecb8117fe17e12964e0e987"
+    },
+    {
+      "path": "internal/postgres/migrate_integration_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 21749,
+      "sha256": "ebbb4aee8ed807077c805eb7d68277c10a63a5315c98fce6b9a6678f91ada039",
+      "lf_sha256": "ebbb4aee8ed807077c805eb7d68277c10a63a5315c98fce6b9a6678f91ada039"
+    },
+    {
+      "path": "internal/postgres/migration_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 5470,
+      "sha256": "a4c2c830265613a6e848db58ce91428c1bdb80ee51af9f80ce645e0e2cb8c8cf",
+      "lf_sha256": "a4c2c830265613a6e848db58ce91428c1bdb80ee51af9f80ce645e0e2cb8c8cf"
+    },
+    {
+      "path": "internal/postgres/worker_control.go",
+      "purpose": "Durable authoritative state/ticket/resume transactions",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 10215,
+      "sha256": "0461c119740e477fb331a85e6bf7ead7cddfd22f8e8a9c0ad73bc7df112e873b",
+      "lf_sha256": "0461c119740e477fb331a85e6bf7ead7cddfd22f8e8a9c0ad73bc7df112e873b"
+    },
+    {
+      "path": "internal/postgres/worker_control_integration_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 5163,
+      "sha256": "2c4d58fa8ee74e55c3f7d613d84498eedc308d9dbf6a14b4ee3029d7576caefa",
+      "lf_sha256": "2c4d58fa8ee74e55c3f7d613d84498eedc308d9dbf6a14b4ee3029d7576caefa"
+    },
+    {
+      "path": "internal/postgres/worker_control_lifecycle_integration_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 9683,
+      "sha256": "5e910a6c60a114dd415c85b563859f7153df22d1633d702812703ac63aa60690",
+      "lf_sha256": "5e910a6c60a114dd415c85b563859f7153df22d1633d702812703ac63aa60690"
+    },
+    {
+      "path": "internal/postgres/worker_control_resume.go",
+      "purpose": "Durable authoritative state/ticket/resume transactions",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 6549,
+      "sha256": "398d6071d0d8f31dc1559f7fc8f9a12bb1de3497d659b0d57005a2a9f13d1c74",
+      "lf_sha256": "398d6071d0d8f31dc1559f7fc8f9a12bb1de3497d659b0d57005a2a9f13d1c74"
+    },
+    {
+      "path": "internal/postgres/worker_control_resume_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 7766,
+      "sha256": "28641f1f112a4a8a57df94687085ac4b74681f9b385d77d7b9ba7d0df769581a",
+      "lf_sha256": "28641f1f112a4a8a57df94687085ac4b74681f9b385d77d7b9ba7d0df769581a"
+    },
+    {
+      "path": "internal/postgres/worker_control_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 9090,
+      "sha256": "c6c9433679ba25583c5e95c11393df686efaf4c78d53235a55b9a39e263bc637",
+      "lf_sha256": "c6c9433679ba25583c5e95c11393df686efaf4c78d53235a55b9a39e263bc637"
+    },
+    {
+      "path": "internal/server/app/admission_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 3573,
+      "sha256": "5f00045d64158e66822a688f1a38b80f196dfcf05ba6f56d800db816414d5699",
+      "lf_sha256": "5f00045d64158e66822a688f1a38b80f196dfcf05ba6f56d800db816414d5699"
+    },
+    {
+      "path": "internal/server/app/app.go",
+      "purpose": "Runtime opt-in parsing, assembly and maintenance/durable bridge",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 28715,
+      "sha256": "27b5159615b60000fed53bc9f3dbad4f04ad901605c68e6d974b82c1896a0873",
+      "lf_sha256": "27b5159615b60000fed53bc9f3dbad4f04ad901605c68e6d974b82c1896a0873"
+    },
+    {
+      "path": "internal/server/app/control_stack.go",
+      "purpose": "Runtime opt-in parsing, assembly and maintenance/durable bridge",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 21499,
+      "sha256": "9c1a7ec84faac4e13e0bd8d9128f0820ff5a6a1a8c3609cb7315c132f214e865",
+      "lf_sha256": "9c1a7ec84faac4e13e0bd8d9128f0820ff5a6a1a8c3609cb7315c132f214e865"
+    },
+    {
+      "path": "internal/server/app/dr_maintenance_integration_test.go",
+      "purpose": "Common maintenance regression: disposable PG/loopback/Mock tests or test plan; no production/deployment change",
+      "review": "current delta reviewed",
+      "bytes": 20473,
+      "sha256": "8e2ca7e68012e74076ead0701d2a4eb36ef499daeda309b802bd0d1434b70742",
+      "lf_sha256": "8e2ca7e68012e74076ead0701d2a4eb36ef499daeda309b802bd0d1434b70742"
+    },
+    {
+      "path": "internal/server/app/worker_control_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 6682,
+      "sha256": "30add9eac5858c82614a5af587a0ece1b9cae045d0f5cc5e80e911fa6c4524c9",
+      "lf_sha256": "30add9eac5858c82614a5af587a0ece1b9cae045d0f5cc5e80e911fa6c4524c9"
+    },
+    {
+      "path": "internal/server/app/worker_metrics_integration_test.go",
+      "purpose": "Common maintenance regression: disposable PG/loopback/Mock tests or test plan; no production/deployment change",
+      "review": "current delta reviewed",
+      "bytes": 21870,
+      "sha256": "1736b97db8239606f6236cee59d97a2ba20147d89d8d7a606148b707e6e196cc",
+      "lf_sha256": "1736b97db8239606f6236cee59d97a2ba20147d89d8d7a606148b707e6e196cc"
+    },
+    {
+      "path": "internal/server/connector/registry.go",
+      "purpose": "Exact-session dispatch/query controls and retirement notification",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 18811,
+      "sha256": "980453ba302e9088f75496c557b275a83a09b8202b16eb7c547842113eb33bc7",
+      "lf_sha256": "980453ba302e9088f75496c557b275a83a09b8202b16eb7c547842113eb33bc7"
+    },
+    {
+      "path": "internal/server/connector/registry_close_notification_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 1174,
+      "sha256": "56ad7612a585944a208914125418b3ed091de0d2e2dd78af546f4c261ef11a4b",
+      "lf_sha256": "56ad7612a585944a208914125418b3ed091de0d2e2dd78af546f4c261ef11a4b"
+    },
+    {
+      "path": "internal/server/connector/router.go",
+      "purpose": "Exact-session dispatch/query controls and retirement notification",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 22753,
+      "sha256": "0bebe97366e59d9e2ee9d06e77d1019f5e54cb21d6efa1b4d858086ac36600cb",
+      "lf_sha256": "0bebe97366e59d9e2ee9d06e77d1019f5e54cb21d6efa1b4d858086ac36600cb"
+    },
+    {
+      "path": "internal/server/connector/worker_control_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 3573,
+      "sha256": "85330d956b7b5cafe47ac5a4e601e93577826e3719f3355c0bdf8695095a2bf1",
+      "lf_sha256": "85330d956b7b5cafe47ac5a4e601e93577826e3719f3355c0bdf8695095a2bf1"
+    },
+    {
+      "path": "internal/server/connectorwss/close_cleanup_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 3402,
+      "sha256": "b29218f288e8b573db16ea3076d3407c2db41244613b79c8d2ea6b0012e3c191",
+      "lf_sha256": "b29218f288e8b573db16ea3076d3407c2db41244613b79c8d2ea6b0012e3c191"
+    },
+    {
+      "path": "internal/server/connectorwss/conn.go",
+      "purpose": "Close request registration/frame-attempt/cleanup lifecycle",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 7071,
+      "sha256": "455f148c23ae682576f448aff1260066653c228e04324081866159dae6db8095",
+      "lf_sha256": "455f148c23ae682576f448aff1260066653c228e04324081866159dae6db8095"
+    },
+    {
+      "path": "internal/server/connectorwss/handler.go",
+      "purpose": "Close request registration/frame-attempt/cleanup lifecycle",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 33343,
+      "sha256": "9f54fbf6a845956335add07b65ed4efa2b2aeb8eeeb00399cc72620756fd49bd",
+      "lf_sha256": "9f54fbf6a845956335add07b65ed4efa2b2aeb8eeeb00399cc72620756fd49bd"
+    },
+    {
+      "path": "internal/server/httpapi/admission_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 1610,
+      "sha256": "df41ffa1c13dae998ed771868c5a45e2818a2cfda0debf705637aae1021b7129",
+      "lf_sha256": "df41ffa1c13dae998ed771868c5a45e2818a2cfda0debf705637aae1021b7129"
+    },
+    {
+      "path": "internal/server/httpapi/dr_maintenance_integration_test.go",
+      "purpose": "Common maintenance regression: disposable PG/loopback/Mock tests or test plan; no production/deployment change",
+      "review": "current delta reviewed",
+      "bytes": 3900,
+      "sha256": "550e4a1df8741ca07f5205b3122e7bd97452b6863c0b6f920abea58cd43eacd1",
+      "lf_sha256": "550e4a1df8741ca07f5205b3122e7bd97452b6863c0b6f920abea58cd43eacd1"
+    },
+    {
+      "path": "internal/server/labexecution/admission_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 9072,
+      "sha256": "71122df92d3b7016d7f6497282ca03cc3ca808f8f0ca9dce62c4791d6390b8f0",
+      "lf_sha256": "71122df92d3b7016d7f6497282ca03cc3ca808f8f0ca9dce62c4791d6390b8f0"
+    },
+    {
+      "path": "internal/server/maintenance/gate.go",
+      "purpose": "Process-local admission/drain/query-only boundary",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 3507,
+      "sha256": "5241719b79df403ff35e52612e6e5fcc5b56748f2fd0956994b80723f451b68e",
+      "lf_sha256": "5241719b79df403ff35e52612e6e5fcc5b56748f2fd0956994b80723f451b68e"
+    },
+    {
+      "path": "internal/server/maintenance/gate_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 4602,
+      "sha256": "14bb9cbf507bb773d82ecf1b338d86feaa97fb3262e22e36b57ccc8fdb99bc35",
+      "lf_sha256": "14bb9cbf507bb773d82ecf1b338d86feaa97fb3262e22e36b57ccc8fdb99bc35"
+    },
+    {
+      "path": "internal/server/provision/executor.go",
+      "purpose": "Worker/executor/reconciliation claim, prepare, dispatch and requeue consumers",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 17595,
+      "sha256": "7933287bb3c34cfca8984f6a4e499960a175aa1562ddf2be5fe4921e33be53fe",
+      "lf_sha256": "7933287bb3c34cfca8984f6a4e499960a175aa1562ddf2be5fe4921e33be53fe"
+    },
+    {
+      "path": "internal/server/provision/maintenance_resume_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 9820,
+      "sha256": "1d4a16f87343fc6b20baa978add9770c4b99e36031ecb5f43ad449bd6cf5f3cf",
+      "lf_sha256": "1d4a16f87343fc6b20baa978add9770c4b99e36031ecb5f43ad449bd6cf5f3cf"
+    },
+    {
+      "path": "internal/server/provision/reconciliation.go",
+      "purpose": "Worker/executor/reconciliation claim, prepare, dispatch and requeue consumers",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 5725,
+      "sha256": "c2e9bbdf7a6a16a672dcaf223f8ae135271a242620ea094d5e7f6d142ad83a98",
+      "lf_sha256": "c2e9bbdf7a6a16a672dcaf223f8ae135271a242620ea094d5e7f6d142ad83a98"
+    },
+    {
+      "path": "internal/server/provision/worker_control_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 25539,
+      "sha256": "29b16b15dbf31771cb02d6b3702cc2f5540afcf815bf0cdd0855675ddca235de",
+      "lf_sha256": "29b16b15dbf31771cb02d6b3702cc2f5540afcf815bf0cdd0855675ddca235de"
+    },
+    {
+      "path": "internal/server/provision/worker_resume_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 4327,
+      "sha256": "c4dc67737679ed1c4f7d98679a0c409e7b592b7436a07c4780192cd974dd0676",
+      "lf_sha256": "c4dc67737679ed1c4f7d98679a0c409e7b592b7436a07c4780192cd974dd0676"
+    },
+    {
+      "path": "internal/server/workercontrol/control.go",
+      "purpose": "Binding validation, fail-closed control and approved resume",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 6078,
+      "sha256": "64ce09e4c5f4a256e265e7897c14c0878c82df76000c45a04c5fa9299224d9a0",
+      "lf_sha256": "64ce09e4c5f4a256e265e7897c14c0878c82df76000c45a04c5fa9299224d9a0"
+    },
+    {
+      "path": "internal/server/workercontrol/control_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 4456,
+      "sha256": "e450e9f00a36e6d19b71d1fda5fc7e66eb8ee91571cc2a6138e85cdb4d8f74fa",
+      "lf_sha256": "e450e9f00a36e6d19b71d1fda5fc7e66eb8ee91571cc2a6138e85cdb4d8f74fa"
+    },
+    {
+      "path": "internal/server/workercontrol/durable.go",
+      "purpose": "Binding validation, fail-closed control and approved resume",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 5480,
+      "sha256": "08ab206a05682c1b496e62ab973d5808ac7d53cdeabce3712d8be5a5c3fa84e5",
+      "lf_sha256": "08ab206a05682c1b496e62ab973d5808ac7d53cdeabce3712d8be5a5c3fa84e5"
+    },
+    {
+      "path": "internal/server/workercontrol/durable_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 10850,
+      "sha256": "200b81aedc754c49247c6b117d141f10a47e02f8a219268322df7080c124a142",
+      "lf_sha256": "200b81aedc754c49247c6b117d141f10a47e02f8a219268322df7080c124a142"
+    },
+    {
+      "path": "internal/server/workercontrol/maintenance_resume.go",
+      "purpose": "Binding validation, fail-closed control and approved resume",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 2074,
+      "sha256": "bc4850ca01c5315b652a329c500b8a2c8bc7e12f321ec73c0bf097dceccd1605",
+      "lf_sha256": "bc4850ca01c5315b652a329c500b8a2c8bc7e12f321ec73c0bf097dceccd1605"
+    },
+    {
+      "path": "internal/server/workercontrol/maintenance_resume_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 5989,
+      "sha256": "b66036d4660ed70b9f4b88ad75016af08ed02ba213abc74b4a4a350afd6824a4",
+      "lf_sha256": "b66036d4660ed70b9f4b88ad75016af08ed02ba213abc74b4a4a350afd6824a4"
+    },
+    {
+      "path": "internal/server/workercontrol/resume.go",
+      "purpose": "Binding validation, fail-closed control and approved resume",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 8784,
+      "sha256": "4a1f30dbd6f996546d5a06cee08b4c178d395f68e088920bef68e82b959202b2",
+      "lf_sha256": "4a1f30dbd6f996546d5a06cee08b4c178d395f68e088920bef68e82b959202b2"
+    },
+    {
+      "path": "internal/server/workercontrol/resume_test.go",
+      "purpose": "Behavior/failure/concurrency regression; execution layer and results listed below",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 16277,
+      "sha256": "6ecb53f56845b9cf65ffb06bae5377302fb4dbd51aa3e939c5d7ab8f63cabd4c",
+      "lf_sha256": "6ecb53f56845b9cf65ffb06bae5377302fb4dbd51aa3e939c5d7ab8f63cabd4c"
+    },
+    {
+      "path": "internal/server/workercontrol/settings.go",
+      "purpose": "Binding validation, fail-closed control and approved resume",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 1268,
+      "sha256": "83729329725b3b28b6f1e8a624463cad9bf3d11a62d8ae7e8ebf070b5ec29248",
+      "lf_sha256": "83729329725b3b28b6f1e8a624463cad9bf3d11a62d8ae7e8ebf070b5ec29248"
+    },
+    {
+      "path": "internal/testsupport/workercontrolfake/resume.go",
+      "purpose": "In-process shared fake journal, not deployed infrastructure",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 3067,
+      "sha256": "34101ad2de77fd713fc8f58db9ba79fe238d52f98d0673b68e79f944a77c4753",
+      "lf_sha256": "34101ad2de77fd713fc8f58db9ba79fe238d52f98d0673b68e79f944a77c4753"
+    },
+    {
+      "path": "internal/testsupport/workercontrolfake/store.go",
+      "purpose": "In-process shared fake journal, not deployed infrastructure",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 3895,
+      "sha256": "2ddb82f7a79ebd06ff324f28bbf4055bb329fab0350d056cf7d57ad5a0da56c0",
+      "lf_sha256": "2ddb82f7a79ebd06ff324f28bbf4055bb329fab0350d056cf7d57ad5a0da56c0"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "purpose": "Runtime owning contract; opt-in controls, approval proof boundary, schema13+14",
+      "review": "unchanged from parent; cumulative SSOT and previous audit cross-check",
+      "bytes": 68033,
+      "sha256": "5f687a920217319189bd9cbdc5585ee34fb2690455083ffc95960ab75ff81ad8",
+      "lf_sha256": "5f687a920217319189bd9cbdc5585ee34fb2690455083ffc95960ab75ff81ad8"
+    }
+  ],
+  "executions": [
+    {
+      "command": "go test -tags integration -count=1 -json ./internal/server/app ./internal/server/httpapi",
+      "log": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-maintenance-integration-20261120\\app-http-full.jsonl",
+      "bytes": 1132002,
+      "sha256": "336437be47acb1c9b2c270ba0d09522236c8a92df031846bdbe90a1baace5f92",
+      "first_at": "2026-11-20T15:39:39.5849084+09:00",
+      "last_at": "2026-11-20T15:43:44.7786964+09:00",
+      "test_subtest_event_counts": {
+        "pass": 1072,
+        "fail": 0,
+        "skip": 10
+      },
+      "unique_test_subtest_results": 1082,
+      "packages": [
+        {
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi",
+          "Action": "pass",
+          "Elapsed": 29.387
+        },
+        {
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "Action": "pass",
+          "Elapsed": 245.194
+        }
+      ],
+      "skipped": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestDumpPreviewWireSamples"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_Worker_CrossPodClaimAndExactOnceExecution"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_Terminal_CrossPodCreateAndBrowserProxy"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_ControlledReverseRouting"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_N1_FallbackRegression_And_N3_Topology"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_NegativeSafety"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_LiveSession_CrossPodCreateSubscribeAndClose"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_WorkspaceFile_CrossPodHTTPAndFileDataWSSProxy"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_Preview_CrossPodCreateAndDataWSSProxy"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "test": "TestValkey_Preview_ExpiryOwnerCrashAndValkeyOutageFailClosed"
+        }
+      ],
+      "source_relation": "pre-review App test before ACK/join fixes; same final helper/HTTP/production; exact App snapshot not retained, not final-source proof"
+    },
+    {
+      "command": "go test -race -tags integration -run ^TestDRMaintenance -count=3 -json ./internal/server/app ./internal/server/httpapi",
+      "log": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-maintenance-integration-20261120\\dr-focused-race.jsonl",
+      "bytes": 46416,
+      "sha256": "60b8c27dfbf295afc01c611b3fae0f3b1a695559ccda38f83f4fcdf5888a41ca",
+      "first_at": "2026-11-20T15:43:47.7972296+09:00",
+      "last_at": "2026-11-20T15:44:13.0723517+09:00",
+      "test_subtest_event_counts": {
+        "pass": 42,
+        "fail": 0,
+        "skip": 0
+      },
+      "unique_test_subtest_results": 14,
+      "packages": [
+        {
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi",
+          "Action": "pass",
+          "Elapsed": 9.97
+        },
+        {
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "Action": "pass",
+          "Elapsed": 25.275
+        }
+      ],
+      "skipped": [],
+      "source_relation": "pre-review App test before ACK/join fixes; same final helper/HTTP/production; exact App snapshot not retained, not final-source proof"
+    },
+    {
+      "command": "go test -race -tags integration -run ^TestDRMaintenance -count=3 -json ./internal/server/app ./internal/server/httpapi",
+      "log": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-maintenance-integration-20261120\\dr-focused-race-final.jsonl",
+      "bytes": 46242,
+      "sha256": "838d02188acb729d314e30b92cda22d96a9f1b2d970affb9fb506ae4a8e5ae5e",
+      "first_at": "2026-11-20T15:45:00.5722293+09:00",
+      "last_at": "2026-11-20T15:45:25.7558112+09:00",
+      "test_subtest_event_counts": {
+        "pass": 42,
+        "fail": 0,
+        "skip": 0
+      },
+      "unique_test_subtest_results": 14,
+      "packages": [
+        {
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi",
+          "Action": "pass",
+          "Elapsed": 10.19
+        },
+        {
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/app",
+          "Action": "pass",
+          "Elapsed": 25.184
+        }
+      ],
+      "skipped": [],
+      "source_relation": "final normalized inventory"
+    },
+    {
+      "command": "go test -race -json ./internal/server/maintenance ./internal/server/workercontrol ./internal/server/provision ./internal/server/operation ./internal/server/connector",
+      "log": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-maintenance-integration-20261120\\related-unit-race.jsonl",
+      "bytes": 564179,
+      "sha256": "6fadeb3ad0c9b1528c04cd9d92da4647bba1da10f0c0f96f368484777640fcaf",
+      "first_at": "2026-11-20T15:45:29.9241489+09:00",
+      "last_at": "2026-11-20T15:45:37.4379236+09:00",
+      "test_subtest_event_counts": {
+        "pass": 531,
+        "fail": 0,
+        "skip": 0
+      },
+      "unique_test_subtest_results": 531,
+      "packages": [
+        {
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol",
+          "Action": "pass",
+          "Elapsed": 2.942
+        },
+        {
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/operation",
+          "Action": "pass",
+          "Elapsed": 1.937
+        },
+        {
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/connector",
+          "Action": "pass",
+          "Elapsed": 2.463
+        },
+        {
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/provision",
+          "Action": "pass",
+          "Elapsed": 3.463
+        },
+        {
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/server/maintenance",
+          "Action": "pass",
+          "Elapsed": 7.514
+        }
+      ],
+      "skipped": [],
+      "source_relation": "final normalized inventory"
+    },
+    {
+      "command": "go test -race -tags integration -run ^TestWorkerControl -count=1 -json ./internal/postgres",
+      "log": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\pr196-maintenance-integration-20261120\\workercontrol-pg-race.jsonl",
+      "bytes": 13308,
+      "sha256": "4756be92a8d19b5860c2d5203dcb7a532ba7a16b562515694d650ec599f29e42",
+      "first_at": "2026-11-20T15:45:41.1104292+09:00",
+      "last_at": "2026-11-20T15:45:46.4868805+09:00",
+      "test_subtest_event_counts": {
+        "pass": 12,
+        "fail": 0,
+        "skip": 0
+      },
+      "unique_test_subtest_results": 12,
+      "packages": [
+        {
+          "Package": "github.com/ktcloud4-SL/labbit-app/internal/postgres",
+          "Action": "pass",
+          "Elapsed": 5.376
+        }
+      ],
+      "skipped": [],
+      "source_relation": "final normalized inventory"
+    }
+  ],
+  "archived_focused_log": {
+    "path": "focused-race.jsonl",
+    "transformation": "CRLF to LF only; event content unchanged; Git blob uses LF",
+    "original_sha256": "838d02188acb729d314e30b92cda22d96a9f1b2d970affb9fb506ae4a8e5ae5e",
+    "lf_sha256": "838d02188acb729d314e30b92cda22d96a9f1b2d970affb9fb506ae4a8e5ae5e",
+    "lf_bytes": 46242
+  },
+  "final_results": {
+    "focused_race_exit": 0,
+    "completed_utc": "2026-11-20T06:45:46.6196081Z",
+    "postgres_race_exit": 0,
+    "vet_exit": 0,
+    "unit_race_exit": 0
+  },
+  "cleanup": {
+    "completed_utc": "2026-11-20T06:46:12.7345857Z",
+    "listening_after": 0,
+    "aws_changes": false,
+    "remaining_test_databases": 0,
+    "stop_exit": 0,
+    "retained_local_folder": "C:\\Users\\user\\AppData\\Local\\LabbitPR196Test\\57c1b1c0008242cbad3bd1ef590ebd1a"
+  },
+  "initial_failures": [
+    {
+      "kind": "compile",
+      "reason": "unused net/http import in new App test",
+      "resolution": "removed import",
+      "raw_log": "tool output only, not retained"
+    },
+    {
+      "kind": "assertion",
+      "reason": "time.Time != compared UTC/Local representation instead of instant",
+      "resolution": "AppliedAt.Equal, focused rerun passed",
+      "raw_log": "tool output only, not retained"
+    }
+  ],
+  "review": {
+    "reviewer": "/root/review_worker_resume",
+    "direct_execution": "integration compile-only two packages; actual PG tests run by parent",
+    "findings": [
+      "ACK row snapshot race resolved with exact ACK-stage barrier",
+      "worker cancel/unblock/bounded join before DB cleanup",
+      "new evidence path preserves prior audit"
+    ],
+    "final_evidence_review": "independent review completed: all 67 inventory raw/LF hashes and 5 raw logs size/hash/counts matched; missing/extra 0; ACK/lifecycle/path findings resolved; no additional blocker in this increment; overall PR remains Draft, no merge/deployment acceptance"
+  },
+  "environment": {
+    "os": "Windows",
+    "go": "1.27.1",
+    "postgres": "16.15 loopback disposable only",
+    "provider": "MockProvider",
+    "topology": "same process, two application stacks; no Kubernetes/Valkey cross-Pod claim"
+  },
+  "operational_validation": {
+    "performed": false,
+    "pending": [
+      "candidate immutable image and controlled deployment",
+      "authenticated operational Pause/Resume entry point and trusted Authorizer/Rechecker",
+      "shared DB migration/backup/rollback compatibility",
+      "full serving Pod barrier and real Provider inventory/reconciliation",
+      "Single Writer and Fencing"
+    ]
+  },
+  "safety": {
+    "aws_queries": false,
+    "aws_changes": false,
+    "seoul_service_changes": false,
+    "shared_database_changes": false,
+    "slack_sent": false,
+    "merge": false,
+    "execution_gate": "HOLD",
+    "recovery_authorized": false,
+    "cloud_verified": false,
+    "replica_lag_policy": "existing FAIL preserved",
+    "not_verified": [
+      "REQUIRED_SETTINGS",
+      "RUNTIME_PROVENANCE",
+      "SERVICE_FUNCTIONS",
+      "SINGLE_WRITER"
+    ]
+  }
+}

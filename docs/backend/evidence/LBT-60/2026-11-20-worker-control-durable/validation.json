@@ -1,0 +1,1474 @@
+{
+  "schema": "labbit.dr.worker-control-durable-audit.v1",
+  "date_kst": "2026-11-20",
+  "recorded_at_utc": "2026-11-20T00:18:57.346075+00:00",
+  "repository": "ktcloud4-SL/labbit-app",
+  "branch": "codex/feat/LBT-60-dr-admission-block-20261119",
+  "base_commit": "2bccdbb9264749251f65e710d9acd2ebf3bc7d8c",
+  "head_commit": "2bccdbb9264749251f65e710d9acd2ebf3bc7d8c",
+  "tested_source": "HEAD plus uncommitted cumulative Admission/local Worker/durable Worker source_inventory",
+  "source_inventory": [
+    {
+      "path": "contracts/http/openapi.yaml",
+      "bytes": 135540,
+      "sha256": "ab19ba1c5faf8961678a1ca76483d8a0c828238bfe90cd47312c865d3363db9d",
+      "lf_sha256": "ab19ba1c5faf8961678a1ca76483d8a0c828238bfe90cd47312c865d3363db9d"
+    },
+    {
+      "path": "db/migrations/000012_worker_control.sql",
+      "bytes": 2947,
+      "sha256": "f87fff6b5dce4ae111ccf8f4e2d950700faf46d9190625e2929ae0ebc4e838bc",
+      "lf_sha256": "f87fff6b5dce4ae111ccf8f4e2d950700faf46d9190625e2929ae0ebc4e838bc"
+    },
+    {
+      "path": "db/migrations/README.md",
+      "bytes": 22123,
+      "sha256": "5a60eb9928826f94f91871b82f464153e8a44cb2d1061658a933dd4902c14aac",
+      "lf_sha256": "5a60eb9928826f94f91871b82f464153e8a44cb2d1061658a933dd4902c14aac"
+    },
+    {
+      "path": "docs/backend/dr-mutation-admission.md",
+      "bytes": 5017,
+      "sha256": "4d6dba9346f539e23150ab4eac75cad114434368d109bbbbd1c958f65957edc7",
+      "lf_sha256": "4d6dba9346f539e23150ab4eac75cad114434368d109bbbbd1c958f65957edc7"
+    },
+    {
+      "path": "docs/backend/dr-worker-control.md",
+      "bytes": 11200,
+      "sha256": "a0ddefc6dc21c8e0c1b6181a1a518b824fa544993d038099644c899fa507e888",
+      "lf_sha256": "a0ddefc6dc21c8e0c1b6181a1a518b824fa544993d038099644c899fa507e888"
+    },
+    {
+      "path": "internal/postgres/migration_test.go",
+      "bytes": 5381,
+      "sha256": "6ca7c75e31765d5e8fe39bb3e7a3e6bf96876a2debf32700dc5e2b0ac02f9a4c",
+      "lf_sha256": "6ca7c75e31765d5e8fe39bb3e7a3e6bf96876a2debf32700dc5e2b0ac02f9a4c"
+    },
+    {
+      "path": "internal/postgres/worker_control.go",
+      "bytes": 10070,
+      "sha256": "b8de820f64401862036ba3ed8ea028cf766998c1a1088e091f974fa32438a085",
+      "lf_sha256": "b8de820f64401862036ba3ed8ea028cf766998c1a1088e091f974fa32438a085"
+    },
+    {
+      "path": "internal/postgres/worker_control_integration_test.go",
+      "bytes": 2436,
+      "sha256": "c34855b8bbecee16f1e0707fae00f054f604c804fdb041dc953ceac69fc84986",
+      "lf_sha256": "c34855b8bbecee16f1e0707fae00f054f604c804fdb041dc953ceac69fc84986"
+    },
+    {
+      "path": "internal/postgres/worker_control_test.go",
+      "bytes": 9080,
+      "sha256": "7fb2726fa3dda3fa92428bb045c207b96ed50422e98a1632ae091f408ae55f01",
+      "lf_sha256": "7fb2726fa3dda3fa92428bb045c207b96ed50422e98a1632ae091f408ae55f01"
+    },
+    {
+      "path": "internal/server/app/admission_test.go",
+      "bytes": 2069,
+      "sha256": "97983195e66197e220376990e112f774c5b0ab2fcf5cc94190157d1aec597396",
+      "lf_sha256": "97983195e66197e220376990e112f774c5b0ab2fcf5cc94190157d1aec597396"
+    },
+    {
+      "path": "internal/server/app/app.go",
+      "bytes": 28614,
+      "sha256": "73536b29ee05769fad6a797ec53f7747a724711e02dba8f2ae26e66e07fd3412",
+      "lf_sha256": "73536b29ee05769fad6a797ec53f7747a724711e02dba8f2ae26e66e07fd3412"
+    },
+    {
+      "path": "internal/server/app/control_stack.go",
+      "bytes": 21181,
+      "sha256": "015dbcdcf5db4772de4117e322cf0c88af0bf7e423eaa59eceb2b478969a1fa2",
+      "lf_sha256": "015dbcdcf5db4772de4117e322cf0c88af0bf7e423eaa59eceb2b478969a1fa2"
+    },
+    {
+      "path": "internal/server/app/worker_control_test.go",
+      "bytes": 6260,
+      "sha256": "11daf43df2262d26d70c05e10188adfc20d10bc8fae1ad24ae1ab2436c8bb22a",
+      "lf_sha256": "11daf43df2262d26d70c05e10188adfc20d10bc8fae1ad24ae1ab2436c8bb22a"
+    },
+    {
+      "path": "internal/server/connector/router.go",
+      "bytes": 22753,
+      "sha256": "0bebe97366e59d9e2ee9d06e77d1019f5e54cb21d6efa1b4d858086ac36600cb",
+      "lf_sha256": "0bebe97366e59d9e2ee9d06e77d1019f5e54cb21d6efa1b4d858086ac36600cb"
+    },
+    {
+      "path": "internal/server/connector/worker_control_test.go",
+      "bytes": 3573,
+      "sha256": "85330d956b7b5cafe47ac5a4e601e93577826e3719f3355c0bdf8695095a2bf1",
+      "lf_sha256": "85330d956b7b5cafe47ac5a4e601e93577826e3719f3355c0bdf8695095a2bf1"
+    },
+    {
+      "path": "internal/server/httpapi/admission_test.go",
+      "bytes": 1630,
+      "sha256": "e5a72e21053848ecbd1b8c758f6339df7be6d0885dbf2722092fc57b0dabb31d",
+      "lf_sha256": "e5a72e21053848ecbd1b8c758f6339df7be6d0885dbf2722092fc57b0dabb31d"
+    },
+    {
+      "path": "internal/server/httpapi/labexecution.go",
+      "bytes": 13425,
+      "sha256": "5c7d3859256d1df0275ef25b7d6c4bb67f3a72c53a2e456347c1db9e9e318aeb",
+      "lf_sha256": "5c7d3859256d1df0275ef25b7d6c4bb67f3a72c53a2e456347c1db9e9e318aeb"
+    },
+    {
+      "path": "internal/server/labexecution/admission.go",
+      "bytes": 1820,
+      "sha256": "ef4bbaec0dfe87f0ed25c802d994e45232211dbf04beffd21a701bba118f5b71",
+      "lf_sha256": "ef4bbaec0dfe87f0ed25c802d994e45232211dbf04beffd21a701bba118f5b71"
+    },
+    {
+      "path": "internal/server/labexecution/admission_test.go",
+      "bytes": 9858,
+      "sha256": "69f73d47c41854264ceef56418137ce61f78482c077f99f7bebfb37ef888a2e0",
+      "lf_sha256": "69f73d47c41854264ceef56418137ce61f78482c077f99f7bebfb37ef888a2e0"
+    },
+    {
+      "path": "internal/server/labexecution/mutation.go",
+      "bytes": 15120,
+      "sha256": "46f3e3467a36a188430e0e84e0c35ca237877280d6d778e756e47392d4f38368",
+      "lf_sha256": "46f3e3467a36a188430e0e84e0c35ca237877280d6d778e756e47392d4f38368"
+    },
+    {
+      "path": "internal/server/labexecution/service.go",
+      "bytes": 18828,
+      "sha256": "4b65c5a53b31daa8c6e2cde8bf09325f448533bde5c12d5b801b067aeee5051f",
+      "lf_sha256": "4b65c5a53b31daa8c6e2cde8bf09325f448533bde5c12d5b801b067aeee5051f"
+    },
+    {
+      "path": "internal/server/provision/executor.go",
+      "bytes": 16666,
+      "sha256": "84062af78bc71c4dacda2af972ea0e691f7b8e1a64023b7ab4b47edadf388514",
+      "lf_sha256": "84062af78bc71c4dacda2af972ea0e691f7b8e1a64023b7ab4b47edadf388514"
+    },
+    {
+      "path": "internal/server/provision/reconciliation.go",
+      "bytes": 5725,
+      "sha256": "c2e9bbdf7a6a16a672dcaf223f8ae135271a242620ea094d5e7f6d142ad83a98",
+      "lf_sha256": "c2e9bbdf7a6a16a672dcaf223f8ae135271a242620ea094d5e7f6d142ad83a98"
+    },
+    {
+      "path": "internal/server/provision/worker_control_test.go",
+      "bytes": 25465,
+      "sha256": "02931d3fae04a534268f6538bbece5ece027ac192b3e199d5dec44c7c2369293",
+      "lf_sha256": "02931d3fae04a534268f6538bbece5ece027ac192b3e199d5dec44c7c2369293"
+    },
+    {
+      "path": "internal/server/workercontrol/control.go",
+      "bytes": 6078,
+      "sha256": "64ce09e4c5f4a256e265e7897c14c0878c82df76000c45a04c5fa9299224d9a0",
+      "lf_sha256": "64ce09e4c5f4a256e265e7897c14c0878c82df76000c45a04c5fa9299224d9a0"
+    },
+    {
+      "path": "internal/server/workercontrol/control_test.go",
+      "bytes": 4456,
+      "sha256": "e450e9f00a36e6d19b71d1fda5fc7e66eb8ee91571cc2a6138e85cdb4d8f74fa",
+      "lf_sha256": "e450e9f00a36e6d19b71d1fda5fc7e66eb8ee91571cc2a6138e85cdb4d8f74fa"
+    },
+    {
+      "path": "internal/server/workercontrol/durable.go",
+      "bytes": 5179,
+      "sha256": "425d71fd9a82151d397e554902dd3c87a2a0f02a6e28f9c70264ea706612306a",
+      "lf_sha256": "425d71fd9a82151d397e554902dd3c87a2a0f02a6e28f9c70264ea706612306a"
+    },
+    {
+      "path": "internal/server/workercontrol/durable_test.go",
+      "bytes": 10774,
+      "sha256": "a1dd37ec26fa28e99888a51e194b08ccaeaf04e53488eaaaf067f23369ed437a",
+      "lf_sha256": "a1dd37ec26fa28e99888a51e194b08ccaeaf04e53488eaaaf067f23369ed437a"
+    },
+    {
+      "path": "internal/server/workercontrol/settings.go",
+      "bytes": 1268,
+      "sha256": "83729329725b3b28b6f1e8a624463cad9bf3d11a62d8ae7e8ebf070b5ec29248",
+      "lf_sha256": "83729329725b3b28b6f1e8a624463cad9bf3d11a62d8ae7e8ebf070b5ec29248"
+    },
+    {
+      "path": "internal/testsupport/workercontrolfake/store.go",
+      "bytes": 3403,
+      "sha256": "3299b601f94d4bfcad2b2918be96f46b2fe982b7b888be91cf015e58d8cf4f1d",
+      "lf_sha256": "3299b601f94d4bfcad2b2918be96f46b2fe982b7b888be91cf015e58d8cf4f1d"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "bytes": 59617,
+      "sha256": "c593d7847420b0aafb410e81ba5e4b59600d9ed91c8a3d2b1eb974593b6d99fd",
+      "lf_sha256": "c593d7847420b0aafb410e81ba5e4b59600d9ed91c8a3d2b1eb974593b6d99fd"
+    }
+  ],
+  "source_inventory_sha256": "90fb4d2267cc95608c498fd05742e57b4329bec646c521629a637d8ec134d002",
+  "metadata_files": [
+    "docs/backend/evidence/LBT-60/2026-11-19-admission-local/audit.md",
+    "docs/backend/evidence/LBT-60/2026-11-19-admission-local/validation.json",
+    "docs/backend/evidence/LBT-60/2026-11-19-worker-control-local/audit.md",
+    "docs/backend/evidence/LBT-60/2026-11-19-worker-control-local/validation.json",
+    "docs/backend/evidence/LBT-60/2026-11-20-worker-control-durable/audit.md",
+    "docs/backend/evidence/LBT-60/2026-11-20-worker-control-durable/validation.json"
+  ],
+  "historical_metadata": "Four 11/19 metadata files are prior increment snapshots. Their source hashes are not current; current source includes changed shared Control and new SQL/schema/settings/tests.",
+  "latest_ssot_directly_read": [
+    {
+      "key": "LBT-205",
+      "updated": "2026-11-19T18:15:49.840+0900",
+      "url": "https://samsunglions.atlassian.net/browse/LBT-205"
+    },
+    {
+      "key": "LBT-59",
+      "updated": "2026-11-19T18:57:09.302+0900",
+      "comments": [
+        "11242",
+        "11246"
+      ],
+      "url": "https://samsunglions.atlassian.net/browse/LBT-59"
+    },
+    {
+      "key": "LBT-60",
+      "updated": "2026-11-19T18:57:22.090+0900",
+      "comments": [
+        "11243",
+        "11244",
+        "11245"
+      ],
+      "url": "https://samsunglions.atlassian.net/browse/LBT-60"
+    },
+    {
+      "page": "63275012",
+      "section": "2026-11-19 top increment",
+      "version_number": "not exposed in this connector response",
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/63275012"
+    },
+    {
+      "repo": "labbit-infra",
+      "commit": "5987cb061092d406ba8effaf3259d56e260246b1",
+      "path": "runbooks/operations/aws-dr-backend-controls-proposal.md"
+    }
+  ],
+  "environment": {
+    "os": "Windows/amd64",
+    "go": "1.27.1",
+    "node": "24.22.3",
+    "python": "3.13.14",
+    "boundaries": "Fake repositories/shared journal, scripted pgx driver, in-process/loopback fixtures only",
+    "dependency_changes": false,
+    "tool_dependencies": "Existing node_modules and ignored .local/contract-validators; CI-pinned PyYAML6.0.3/openapi-spec-validator0.9.0/jsonschema4.26.0",
+    "source_format": "LF-normalized disposable mirror; no bulk source normalization"
+  },
+  "checks": {
+    "final_race": {
+      "command": "go test -race -json ./internal/postgres ./internal/server/workercontrol ./internal/server/app ./internal/server/provision ./internal/server/connector ./internal/server/operation ./internal/server/labexecution ./internal/server/httpapi -count=1 -timeout=120s",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/durable-checks/final-race.jsonl",
+        "bytes": 1326760,
+        "sha256": "86aa03ff0fa3308f57c8dc10849916bbeda3fcb44d6688b0b81f961e56e76c4a"
+      },
+      "packages": {
+        "pass": 8
+      },
+      "package_results": {
+        "github.com/ktcloud4-SL/labbit-app/internal/server/app": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/operation": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connector": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/provision": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution": "pass"
+      },
+      "test_events": {
+        "pass": 1278
+      },
+      "top_level_pass": 379,
+      "failed_tests": [],
+      "skipped_tests": [],
+      "failed_package_tail": [],
+      "race_warnings": 0
+    },
+    "final_full_go": {
+      "command": "go test -json ./... -count=1 -timeout=90s",
+      "exit_code": 1,
+      "log": {
+        "path": ".local/durable-checks/final-full-go.jsonl",
+        "bytes": 4333285,
+        "sha256": "be234093493f80aba1253a7251c28f8bffb67b50af70f948646a969dc6f177be"
+      },
+      "packages": {
+        "skip": 14,
+        "pass": 47,
+        "fail": 2
+      },
+      "package_results": {
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector": "skip",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate": "skip",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-recovery-evidence": "skip",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-server": "skip",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-workspace-sftp": "skip",
+        "github.com/ktcloud4-SL/labbit-app/db/migrations": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/version": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/heartbeat": "pass",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-recover-failed-provision": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/provider": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/protocol": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres": "pass",
+        "github.com/ktcloud4-SL/labbit-app/cmd/k3d-e2e-verifier": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/jsonnum": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/mock": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability/tracing": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/preview": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/operationrecovery": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/filetransport": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/app": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/bootstrap": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/class": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution/labexecutiontest": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/jsonnum": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/auth": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connector": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labspec": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/operation": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/livesession": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/repository": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/app": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/testsupport/workercontrolfake": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/previewsession": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/provision": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/terminal": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner": "pass",
+        "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol": "pass",
+        "github.com/ktcloud4-SL/labbit-app/web/node_modules/flatted/golang/pkg/flatted": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/wss": "pass",
+        "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-op02-bootstrap": "pass",
+        "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/realtime": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefs": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/terminal": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/installer": "fail",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack": "fail"
+      },
+      "test_events": {
+        "pass": 3821,
+        "fail": 39,
+        "skip": 15
+      },
+      "top_level_pass": 1288,
+      "failed_tests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudProvisionAcceptsLateActiveAfterFiveMinutes",
+          "output": "=== RUN   TestKTCloudProvisionAcceptsLateActiveAfterFiveMinutes\n    active_readiness_test.go:200: late ACTIVE readiness: outcome=UNKNOWN proof=<nil> gates=[] creates=0 elapsed=2562047h47m16.854775807s error=&{Code:ERR_UNKNOWN_RECONCILING Message:CIDR assignment is unavailable; reconciliation required} err=<nil>\n--- FAIL: TestKTCloudProvisionAcceptsLateActiveAfterFiveMinutes (0.05s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupReturnRestartAndDelayedCommands",
+          "output": "=== RUN   TestKTCloudCIDRCleanupReturnRestartAndDelayedCommands\n    ktcloud_d1_cidr_cleanup_test.go:16: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRCleanupReturnRestartAndDelayedCommands (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/unknown_create",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/unknown_create\n    ktcloud_d1_cidr_cleanup_test.go:105: uncertain reservation was released\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/unknown_create (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/legacy_intent",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/legacy_intent\n    ktcloud_d1_cidr_cleanup_test.go:87: remove C:\\Users\\user\\AppData\\Local\\Temp\\TestKTCloudCIDRCleanupPreservesUncertainReservationslegacy_inte3168547882\\002\\completion-000-1.json: The system cannot find the file specified.\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/legacy_intent (0.01s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/crashed_completion",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/crashed_completion\n    ktcloud_d1_cidr_cleanup_test.go:87: remove C:\\Users\\user\\AppData\\Local\\Temp\\TestKTCloudCIDRCleanupPreservesUncertainReservationscrashed_com1792194888\\002\\completion-000-1.json: The system cannot find the file specified.\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/crashed_completion (0.01s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/server_without_root",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/server_without_root\n    ktcloud_d1_cidr_cleanup_test.go:105: uncertain reservation was released\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/server_without_root (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_occupied",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_occupied\n    ktcloud_d1_cidr_cleanup_test.go:105: uncertain reservation was released\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_occupied (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_failure",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_failure\n    ktcloud_d1_cidr_cleanup_test.go:105: uncertain reservation was released\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_failure (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/unlisted_live_resource",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/unlisted_live_resource\n    ktcloud_d1_cidr_cleanup_test.go:105: uncertain reservation was released\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/unlisted_live_resource (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations (0.14s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupAllGenerationsAndStaleCleanup",
+          "output": "=== RUN   TestKTCloudCIDRCleanupAllGenerationsAndStaleCleanup\n    ktcloud_d1_cidr_cleanup_test.go:116: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRCleanupAllGenerationsAndStaleCleanup (0.01s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/tombstone_before_removal",
+          "output": "=== RUN   TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/tombstone_before_removal\n    ktcloud_d1_cidr_cleanup_test.go:142: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/tombstone_before_removal (0.01s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/lock",
+          "output": "=== RUN   TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/lock\n    ktcloud_d1_cidr_cleanup_test.go:142: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/lock (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock",
+          "output": "=== RUN   TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock\n--- FAIL: TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPartialDeleteKeepsReservation",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPartialDeleteKeepsReservation\n    ktcloud_d1_cidr_cleanup_test.go:167: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRCleanupPartialDeleteKeepsReservation (0.01s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupSerializesWithAllocation",
+          "output": "=== RUN   TestKTCloudCIDRCleanupSerializesWithAllocation\n    ktcloud_d1_cidr_cleanup_test.go:186: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRCleanupSerializesWithAllocation (0.01s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudHeldCIDRAllowsDifferentInstanceWithoutReleasingOldOwner",
+          "output": "=== RUN   TestKTCloudHeldCIDRAllowsDifferentInstanceWithoutReleasingOldOwner\n    ktcloud_d1_cidr_cleanup_test.go:233: fixture did not fail\n--- FAIL: TestKTCloudHeldCIDRAllowsDifferentInstanceWithoutReleasingOldOwner (0.01s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPublicLifecycleReturnsCompleteTopology",
+          "output": "=== RUN   TestKTCloudCIDRPublicLifecycleReturnsCompleteTopology\n    ktcloud_d1_cidr_lifecycle_test.go:142: public Provision old: {Readiness:<nil> Outcome:UNKNOWN ProviderResources:[] Error:0x2744bf2ac7c0} safeError=&{Code:ERR_UNKNOWN_RECONCILING Message:CIDR assignment is unavailable; reconciliation required} err=<nil>\n--- FAIL: TestKTCloudCIDRPublicLifecycleReturnsCompleteTopology (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config\n    ktcloud_d1_cidr_rejection_test.go:69: result={Readiness:<nil> Outcome:UNKNOWN ProviderResources:[] Error:0x2744bf2ac8e0} err=<nil> want=FAILED/ERR_CONNECTOR_INTERNAL\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted\n    ktcloud_d1_cidr_rejection_test.go:25: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted (0.01s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock\n    ktcloud_d1_cidr_rejection_test.go:30: sync C:\\Users\\user\\AppData\\Local\\Temp\\TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertaintyfor3478365669\\002: Access is denied.\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock\n    ktcloud_d1_cidr_rejection_test.go:35: sync C:\\Users\\user\\AppData\\Local\\Temp\\TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertaintysam2277388548\\002: Access is denied.\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config\n    ktcloud_d1_cidr_rejection_test.go:39: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config (0.01s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock\n    ktcloud_d1_cidr_rejection_test.go:39: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock (0.01s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool\n    ktcloud_d1_cidr_rejection_test.go:39: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool (0.01s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent\n    ktcloud_d1_cidr_rejection_test.go:39: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent\n    ktcloud_d1_cidr_rejection_test.go:39: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock\n    ktcloud_d1_cidr_rejection_test.go:39: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty (0.21s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/invalid_config",
+          "output": "=== RUN   TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/invalid_config\n    ktcloud_d1_cidr_rejection_test.go:84: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/invalid_config (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/foreign_lock",
+          "output": "=== RUN   TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/foreign_lock\n    ktcloud_d1_cidr_rejection_test.go:84: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/foreign_lock (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration",
+          "output": "=== RUN   TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration\n--- FAIL: TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration (0.07s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolIsolationResetAndRestart",
+          "output": "=== RUN   TestKTCloudCIDRPoolIsolationResetAndRestart\n    ktcloud_d1_cidr_test.go:67: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPoolIsolationResetAndRestart (0.04s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/skip_shared",
+          "output": "=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/skip_shared\n    ktcloud_d1_cidr_test.go:121: selected \"\", outcome UNKNOWN\n--- FAIL: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/skip_shared (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/all_overlap",
+          "output": "=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/all_overlap\n    ktcloud_d1_cidr_test.go:121: selected \"\", outcome UNKNOWN\n--- FAIL: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/all_overlap (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/unknown_CIDR",
+          "output": "=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/unknown_CIDR\n    ktcloud_d1_cidr_test.go:121: selected \"\", outcome UNKNOWN\n--- FAIL: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/unknown_CIDR (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/pending_unmapped_Tier",
+          "output": "=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/pending_unmapped_Tier\n    ktcloud_d1_cidr_test.go:121: selected \"\", outcome UNKNOWN\n--- FAIL: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/pending_unmapped_Tier (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory",
+          "output": "=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory\n    ktcloud_d1_cidr_test.go:132: read-only preflight failure was classified as a Provider side effect\n--- FAIL: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory (0.10s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/installer",
+          "test": "TestInstallerScript_ShellSyntaxAndBehavioralSuite",
+          "output": "=== RUN   TestInstallerScript_ShellSyntaxAndBehavioralSuite\n    installer_test.go:209: install_test.sh output:\n        ==> Running install.sh behavioral test suite...\n        --- Test 1: Non-root execution check ---\n        PASS: Non-root execution correctly rejected.\n        --- Test 2: Unsupported OS & Architecture check ---\n        PASS: Unsupported OS and Architecture correctly rejected.\n        --- Test 3: Concurrent lock ownership regression check ---\n        PASS: Lock directory preserved when second concurrent instance exits.\n        --- Test 4: SHA256SUMS 404 fail-closed check ---\n        PASS: SHA256SUMS 404 correctly aborted installation (fail-closed).\n        --- Test 5: TTY/stty validation & environment token prohibition ---\n        PASS: Environment token rejected, inaccessible TTY rejected, and stty -echo failure safely aborted with TTY state restored.\n        --- Test 6: Existing credential, connector.id & stopped service protection ---\n        PASS: Existing credential, connector.id, and stopped service state preserved without automatic restart.\n        --- Test 7: Full 201 Enrollment execution, file layout & uncertain outcome handling ---\n    installer_test.go:214: install_test.sh behavioral suite failed: exit status 1\n        Output:\n        ==> Running install.sh behavioral test suite...\n        --- Test 1: Non-root execution check ---\n        PASS: Non-root execution correctly rejected.\n        --- Test 2: Unsupported OS & Architecture check ---\n        PASS: Unsupported OS and Architecture correctly rejected.\n        --- Test 3: Concurrent lock ownership regression check ---\n        PASS: Lock directory preserved when second concurrent instance exits.\n        --- Test 4: SHA256SUMS 404 fail-closed check ---\n        PASS: SHA256SUMS 404 correctly aborted installation (fail-closed).\n        --- Test 5: TTY/stty validation & environment token prohibition ---\n        PASS: Environment token rejected, inaccessible TTY rejected, and stty -echo failure safely aborted with TTY state restored.\n        --- Test 6: Existing credential, connector.id & stopped service protection ---\n        PASS: Existing credential, connector.id, and stopped service state preserved without automatic restart.\n        --- Test 7: Full 201 Enrollment execution, file layout & uncertain outcome handling ---\n--- FAIL: TestInstallerScript_ShellSyntaxAndBehavioralSuite (30.62s)"
+        }
+      ],
+      "skipped_tests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ControlWSSIntegration",
+          "output": "=== RUN   TestOpenStackM2ControlWSSIntegration\n    control_wss_integration_test.go:22: set LABBIT_OPENSTACK_M2_WSS_TEST=1 for Provision or LABBIT_OPENSTACK_M3_WSS_TEST=1 for the full WSS lifecycle\n--- SKIP: TestOpenStackM2ControlWSSIntegration (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestFailedRecoveryEvidenceRequiresBoundCompleteOwnedTopology",
+          "output": "=== RUN   TestFailedRecoveryEvidenceRequiresBoundCompleteOwnedTopology\n    failed_recovery_test.go:19: Linux protected ledger ownership and fsync semantics\n--- SKIP: TestFailedRecoveryEvidenceRequiresBoundCompleteOwnedTopology (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackFileTransportIntegration",
+          "output": "=== RUN   TestOpenStackFileTransportIntegration\n    file_transport_integration_test.go:85: set LABBIT_OPENSTACK_FILE_TRANSPORT_TEST=1 for disposable local OpenStack File acceptance\n--- SKIP: TestOpenStackFileTransportIntegration (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM1Integration",
+          "output": "=== RUN   TestOpenStackM1Integration\n    integration_test.go:36: set LABBIT_OPENSTACK_INTEGRATION=1 to run against a local OpenStack cloud\n--- SKIP: TestOpenStackM1Integration (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ProvisionIntegration",
+          "output": "=== RUN   TestOpenStackM2ProvisionIntegration\n    integration_test.go:75: set LABBIT_OPENSTACK_M2_TEST=1 to create and clean one real Provision topology\n--- SKIP: TestOpenStackM2ProvisionIntegration (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM3LifecycleIntegration",
+          "output": "=== RUN   TestOpenStackM3LifecycleIntegration\n    integration_test.go:164: set LABBIT_OPENSTACK_M3_TEST=1 to run Provision, Reset, Reconcile, and Cleanup against a local OpenStack cloud\n--- SKIP: TestOpenStackM3LifecycleIntegration (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackInternetPolicyIntegration",
+          "output": "=== RUN   TestOpenStackInternetPolicyIntegration\n    integration_test.go:302: set LABBIT_OPENSTACK_INTERNET_POLICY_TEST=1 to verify real Internet ON/OFF reachability\n--- SKIP: TestOpenStackInternetPolicyIntegration (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+          "test": "TestSymlinkRejectedAndExcludedFromTree",
+          "output": "=== RUN   TestSymlinkRejectedAndExcludedFromTree\n    service_test.go:469: host cannot create symlink; real Linux fixture covers this\n--- SKIP: TestSymlinkRejectedAndExcludedFromTree (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+          "test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600",
+          "output": "=== RUN   TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600\n    main_test.go:155: Windows uses ACLs; POSIX mode and Windows ACL confidentiality are not verified by this assertion\n--- SKIP: TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600 (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_Lifecycle",
+          "output": "=== RUN   TestLocator_Lifecycle\n    locator_test.go:26: Valkey not available at 127.0.0.1:6379: valkeyowner: Valkey locator 접근 불가\n--- SKIP: TestLocator_Lifecycle (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_AtomicGenerationAndOwnerLossCallback",
+          "output": "=== RUN   TestLocator_AtomicGenerationAndOwnerLossCallback\n    locator_test.go:113: Valkey unavailable: valkeyowner: Valkey locator 접근 불가\n--- SKIP: TestLocator_AtomicGenerationAndOwnerLossCallback (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_TerminalOwner",
+          "output": "=== RUN   TestLocator_TerminalOwner\n    locator_test.go:191: Valkey not available: valkeyowner: Valkey locator 접근 불가\n--- SKIP: TestLocator_TerminalOwner (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_TerminalOwnerHeartbeatRenewal",
+          "output": "=== RUN   TestLocator_TerminalOwnerHeartbeatRenewal\n    locator_test.go:236: Valkey not available at 127.0.0.1:6379: valkeyowner: Valkey locator 접근 불가\n--- SKIP: TestLocator_TerminalOwnerHeartbeatRenewal (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_PreviewOwner",
+          "output": "=== RUN   TestLocator_PreviewOwner\n    locator_test.go:312: Valkey not available: valkeyowner: Valkey locator 접근 불가\n--- SKIP: TestLocator_PreviewOwner (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_LookupRetiresLocalStaleLeaseImmediately",
+          "output": "=== RUN   TestLocator_LookupRetiresLocalStaleLeaseImmediately\n    locator_test.go:671: Valkey unavailable: valkeyowner: Valkey locator 접근 불가\n--- SKIP: TestLocator_LookupRetiresLocalStaleLeaseImmediately (0.00s)"
+        }
+      ],
+      "failed_package_tail": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/installer",
+          "output": "FAIL\nFAIL\tgithub.com/ktcloud4-SL/labbit-app/internal/connector/installer\t31.441s\n"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "output": "FAIL\tgithub.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack\t90.330s\n"
+        }
+      ],
+      "race_warnings": 0,
+      "assessment": "Only unchanged Installer/OpenStack package families fail. Representative pristine-base failures were confirmed in prior audit; not all individual failures reproduced on pristine base this turn."
+    },
+    "initial_focused": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/durable-checks/initial-focused.jsonl",
+        "bytes": 126962,
+        "sha256": "afacc5aa195ec98fa67a8382a58d69a1c5cd17dfe1cb9962ea5c42819cfe394b"
+      },
+      "packages": {
+        "pass": 5
+      },
+      "package_results": {
+        "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/app": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connector": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/provision": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres": "pass"
+      },
+      "test_events": {
+        "pass": 116
+      },
+      "top_level_pass": 37,
+      "failed_tests": [],
+      "skipped_tests": [],
+      "failed_package_tail": [],
+      "race_warnings": 0,
+      "assessment": "Focused selection did not include embedded migration loader; not a substitute for subsequent full package checks"
+    },
+    "initial_related_full_race": {
+      "exit_code": 1,
+      "log": {
+        "path": ".local/durable-checks/focused-race.jsonl",
+        "bytes": 1315130,
+        "sha256": "02e76f3780d2c274b24d81ebefe654763b0321928430ab325d401fe5248f97fa"
+      },
+      "packages": {
+        "pass": 7,
+        "fail": 1
+      },
+      "package_results": {
+        "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/app": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/operation": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres": "fail",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/provision": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connector": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi": "pass"
+      },
+      "test_events": {
+        "pass": 1266,
+        "fail": 1
+      },
+      "top_level_pass": 377,
+      "failed_tests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/postgres",
+          "test": "TestLoadMigrationsReadsEmbeddedSSOTInVersionOrder",
+          "output": "=== RUN   TestLoadMigrationsReadsEmbeddedSSOTInVersionOrder\n    migration_test.go:15: LoadMigrations() error = 000012_worker_control.sql: migration은 최상위 BEGIN; ... COMMIT; 하나로 감싸야 합니다\n--- FAIL: TestLoadMigrationsReadsEmbeddedSSOTInVersionOrder (0.00s)"
+        }
+      ],
+      "skipped_tests": [],
+      "failed_package_tail": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/postgres",
+          "output": "FAIL\nFAIL\tgithub.com/ktcloud4-SL/labbit-app/internal/postgres\t2.050s\n"
+        }
+      ],
+      "race_warnings": 0,
+      "assessment": "Confirmed migration envelope failure; preserved before fix"
+    },
+    "initial_full_go": {
+      "exit_code": 1,
+      "log": {
+        "path": ".local/durable-checks/full-go.jsonl",
+        "bytes": 4326131,
+        "sha256": "9d5c841875b9b02398be2898aa20342721abab9e379770e524478c94228c4f4a"
+      },
+      "packages": {
+        "skip": 14,
+        "pass": 46,
+        "fail": 3
+      },
+      "package_results": {
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector": "skip",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate": "skip",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-recovery-evidence": "skip",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-server": "skip",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-workspace-sftp": "skip",
+        "github.com/ktcloud4-SL/labbit-app/db/migrations": "skip",
+        "github.com/ktcloud4-SL/labbit-app/cmd/k3d-e2e-verifier": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/provider": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/heartbeat": "pass",
+        "github.com/ktcloud4-SL/labbit-app/cmd/labbit-recover-failed-provision": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/protocol": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/mock": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/preview": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/filetransport": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/version": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/app": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres": "fail",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability/tracing": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/jsonnum": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/bootstrap": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution/labexecutiontest": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/class": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/jsonnum": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/observability": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/auth": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/operationrecovery": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/app": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connector": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/livesession": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/operation": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/testsupport/workercontrolfake": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/repository": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol": "pass",
+        "github.com/ktcloud4-SL/labbit-app/web/node_modules/flatted/golang/pkg/flatted": "skip",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labspec": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/provision": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/previewsession": "pass",
+        "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/terminal": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner": "pass",
+        "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-op02-bootstrap": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/preview": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/wss": "pass",
+        "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/realtime": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefs": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/terminal": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/installer": "fail",
+        "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack": "fail"
+      },
+      "test_events": {
+        "pass": 3813,
+        "fail": 40,
+        "skip": 15
+      },
+      "top_level_pass": 1286,
+      "failed_tests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudProvisionAcceptsLateActiveAfterFiveMinutes",
+          "output": "=== RUN   TestKTCloudProvisionAcceptsLateActiveAfterFiveMinutes\n    active_readiness_test.go:200: late ACTIVE readiness: outcome=UNKNOWN proof=<nil> gates=[] creates=0 elapsed=2562047h47m16.854775807s error=&{Code:ERR_UNKNOWN_RECONCILING Message:CIDR assignment is unavailable; reconciliation required} err=<nil>\n--- FAIL: TestKTCloudProvisionAcceptsLateActiveAfterFiveMinutes (0.01s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/postgres",
+          "test": "TestLoadMigrationsReadsEmbeddedSSOTInVersionOrder",
+          "output": "=== RUN   TestLoadMigrationsReadsEmbeddedSSOTInVersionOrder\n    migration_test.go:15: LoadMigrations() error = 000012_worker_control.sql: migration은 최상위 BEGIN; ... COMMIT; 하나로 감싸야 합니다\n--- FAIL: TestLoadMigrationsReadsEmbeddedSSOTInVersionOrder (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupReturnRestartAndDelayedCommands",
+          "output": "=== RUN   TestKTCloudCIDRCleanupReturnRestartAndDelayedCommands\n    ktcloud_d1_cidr_cleanup_test.go:16: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRCleanupReturnRestartAndDelayedCommands (0.10s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/unknown_create",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/unknown_create\n    ktcloud_d1_cidr_cleanup_test.go:105: uncertain reservation was released\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/unknown_create (0.13s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/legacy_intent",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/legacy_intent\n    ktcloud_d1_cidr_cleanup_test.go:87: remove C:\\Users\\user\\AppData\\Local\\Temp\\TestKTCloudCIDRCleanupPreservesUncertainReservationslegacy_inte1453663065\\002\\completion-000-1.json: The system cannot find the file specified.\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/legacy_intent (0.04s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/crashed_completion",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/crashed_completion\n    ktcloud_d1_cidr_cleanup_test.go:87: remove C:\\Users\\user\\AppData\\Local\\Temp\\TestKTCloudCIDRCleanupPreservesUncertainReservationscrashed_com2694680377\\002\\completion-000-1.json: The system cannot find the file specified.\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/crashed_completion (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/server_without_root",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/server_without_root\n    ktcloud_d1_cidr_cleanup_test.go:105: uncertain reservation was released\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/server_without_root (0.08s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_occupied",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_occupied\n    ktcloud_d1_cidr_cleanup_test.go:105: uncertain reservation was released\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_occupied (0.09s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_failure",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_failure\n    ktcloud_d1_cidr_cleanup_test.go:105: uncertain reservation was released\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_failure (0.05s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/unlisted_live_resource",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations/unlisted_live_resource\n    ktcloud_d1_cidr_cleanup_test.go:105: uncertain reservation was released\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations/unlisted_live_resource (0.06s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPreservesUncertainReservations\n--- FAIL: TestKTCloudCIDRCleanupPreservesUncertainReservations (0.48s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupAllGenerationsAndStaleCleanup",
+          "output": "=== RUN   TestKTCloudCIDRCleanupAllGenerationsAndStaleCleanup\n    ktcloud_d1_cidr_cleanup_test.go:116: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRCleanupAllGenerationsAndStaleCleanup (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/tombstone_before_removal",
+          "output": "=== RUN   TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/tombstone_before_removal\n    ktcloud_d1_cidr_cleanup_test.go:142: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/tombstone_before_removal (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/lock",
+          "output": "=== RUN   TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/lock\n    ktcloud_d1_cidr_cleanup_test.go:142: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/lock (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock",
+          "output": "=== RUN   TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock\n--- FAIL: TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock (0.06s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupPartialDeleteKeepsReservation",
+          "output": "=== RUN   TestKTCloudCIDRCleanupPartialDeleteKeepsReservation\n    ktcloud_d1_cidr_cleanup_test.go:167: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRCleanupPartialDeleteKeepsReservation (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRCleanupSerializesWithAllocation",
+          "output": "=== RUN   TestKTCloudCIDRCleanupSerializesWithAllocation\n    ktcloud_d1_cidr_cleanup_test.go:186: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRCleanupSerializesWithAllocation (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudHeldCIDRAllowsDifferentInstanceWithoutReleasingOldOwner",
+          "output": "=== RUN   TestKTCloudHeldCIDRAllowsDifferentInstanceWithoutReleasingOldOwner\n    ktcloud_d1_cidr_cleanup_test.go:233: fixture did not fail\n--- FAIL: TestKTCloudHeldCIDRAllowsDifferentInstanceWithoutReleasingOldOwner (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPublicLifecycleReturnsCompleteTopology",
+          "output": "=== RUN   TestKTCloudCIDRPublicLifecycleReturnsCompleteTopology\n    ktcloud_d1_cidr_lifecycle_test.go:142: public Provision old: {Readiness:<nil> Outcome:UNKNOWN ProviderResources:[] Error:0x19b877a64c0} safeError=&{Code:ERR_UNKNOWN_RECONCILING Message:CIDR assignment is unavailable; reconciliation required} err=<nil>\n--- FAIL: TestKTCloudCIDRPublicLifecycleReturnsCompleteTopology (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config\n    ktcloud_d1_cidr_rejection_test.go:69: result={Readiness:<nil> Outcome:UNKNOWN ProviderResources:[] Error:0x19b877a65e0} err=<nil> want=FAILED/ERR_CONNECTOR_INTERNAL\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted\n    ktcloud_d1_cidr_rejection_test.go:25: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock\n    ktcloud_d1_cidr_rejection_test.go:30: sync C:\\Users\\user\\AppData\\Local\\Temp\\TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertaintyfor1418649549\\002: Access is denied.\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock\n    ktcloud_d1_cidr_rejection_test.go:35: sync C:\\Users\\user\\AppData\\Local\\Temp\\TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertaintysam1808230351\\002: Access is denied.\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config\n    ktcloud_d1_cidr_rejection_test.go:39: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock\n    ktcloud_d1_cidr_rejection_test.go:39: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool\n    ktcloud_d1_cidr_rejection_test.go:39: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool (0.01s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent\n    ktcloud_d1_cidr_rejection_test.go:39: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent\n    ktcloud_d1_cidr_rejection_test.go:39: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent (0.04s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock\n    ktcloud_d1_cidr_rejection_test.go:39: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock (0.04s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty",
+          "output": "=== RUN   TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty\n--- FAIL: TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty (0.28s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/invalid_config",
+          "output": "=== RUN   TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/invalid_config\n    ktcloud_d1_cidr_rejection_test.go:84: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/invalid_config (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/foreign_lock",
+          "output": "=== RUN   TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/foreign_lock\n    ktcloud_d1_cidr_rejection_test.go:84: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/foreign_lock (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration",
+          "output": "=== RUN   TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration\n--- FAIL: TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration (0.06s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolIsolationResetAndRestart",
+          "output": "=== RUN   TestKTCloudCIDRPoolIsolationResetAndRestart\n    ktcloud_d1_cidr_test.go:67: claim: <nil> UNKNOWN\n--- FAIL: TestKTCloudCIDRPoolIsolationResetAndRestart (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/skip_shared",
+          "output": "=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/skip_shared\n    ktcloud_d1_cidr_test.go:121: selected \"\", outcome UNKNOWN\n--- FAIL: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/skip_shared (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/all_overlap",
+          "output": "=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/all_overlap\n    ktcloud_d1_cidr_test.go:121: selected \"\", outcome UNKNOWN\n--- FAIL: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/all_overlap (0.03s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/unknown_CIDR",
+          "output": "=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/unknown_CIDR\n    ktcloud_d1_cidr_test.go:121: selected \"\", outcome UNKNOWN\n--- FAIL: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/unknown_CIDR (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/pending_unmapped_Tier",
+          "output": "=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/pending_unmapped_Tier\n    ktcloud_d1_cidr_test.go:121: selected \"\", outcome UNKNOWN\n--- FAIL: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/pending_unmapped_Tier (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory",
+          "output": "=== RUN   TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory\n    ktcloud_d1_cidr_test.go:132: read-only preflight failure was classified as a Provider side effect\n--- FAIL: TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory (0.12s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/installer",
+          "test": "TestInstallerScript_ShellSyntaxAndBehavioralSuite",
+          "output": "=== RUN   TestInstallerScript_ShellSyntaxAndBehavioralSuite\n    installer_test.go:209: install_test.sh output:\n        ==> Running install.sh behavioral test suite...\n        --- Test 1: Non-root execution check ---\n        PASS: Non-root execution correctly rejected.\n        --- Test 2: Unsupported OS & Architecture check ---\n        PASS: Unsupported OS and Architecture correctly rejected.\n        --- Test 3: Concurrent lock ownership regression check ---\n        PASS: Lock directory preserved when second concurrent instance exits.\n        --- Test 4: SHA256SUMS 404 fail-closed check ---\n        PASS: SHA256SUMS 404 correctly aborted installation (fail-closed).\n        --- Test 5: TTY/stty validation & environment token prohibition ---\n        PASS: Environment token rejected, inaccessible TTY rejected, and stty -echo failure safely aborted with TTY state restored.\n        --- Test 6: Existing credential, connector.id & stopped service protection ---\n        PASS: Existing credential, connector.id, and stopped service state preserved without automatic restart.\n        --- Test 7: Full 201 Enrollment execution, file layout & uncertain outcome handling ---\n    installer_test.go:214: install_test.sh behavioral suite failed: exit status 1\n        Output:\n        ==> Running install.sh behavioral test suite...\n        --- Test 1: Non-root execution check ---\n        PASS: Non-root execution correctly rejected.\n        --- Test 2: Unsupported OS & Architecture check ---\n        PASS: Unsupported OS and Architecture correctly rejected.\n        --- Test 3: Concurrent lock ownership regression check ---\n        PASS: Lock directory preserved when second concurrent instance exits.\n        --- Test 4: SHA256SUMS 404 fail-closed check ---\n        PASS: SHA256SUMS 404 correctly aborted installation (fail-closed).\n        --- Test 5: TTY/stty validation & environment token prohibition ---\n        PASS: Environment token rejected, inaccessible TTY rejected, and stty -echo failure safely aborted with TTY state restored.\n        --- Test 6: Existing credential, connector.id & stopped service protection ---\n        PASS: Existing credential, connector.id, and stopped service state preserved without automatic restart.\n        --- Test 7: Full 201 Enrollment execution, file layout & uncertain outcome handling ---\n--- FAIL: TestInstallerScript_ShellSyntaxAndBehavioralSuite (36.37s)"
+        }
+      ],
+      "skipped_tests": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ControlWSSIntegration",
+          "output": "=== RUN   TestOpenStackM2ControlWSSIntegration\n    control_wss_integration_test.go:22: set LABBIT_OPENSTACK_M2_WSS_TEST=1 for Provision or LABBIT_OPENSTACK_M3_WSS_TEST=1 for the full WSS lifecycle\n--- SKIP: TestOpenStackM2ControlWSSIntegration (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestFailedRecoveryEvidenceRequiresBoundCompleteOwnedTopology",
+          "output": "=== RUN   TestFailedRecoveryEvidenceRequiresBoundCompleteOwnedTopology\n    failed_recovery_test.go:19: Linux protected ledger ownership and fsync semantics\n--- SKIP: TestFailedRecoveryEvidenceRequiresBoundCompleteOwnedTopology (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackFileTransportIntegration",
+          "output": "=== RUN   TestOpenStackFileTransportIntegration\n    file_transport_integration_test.go:85: set LABBIT_OPENSTACK_FILE_TRANSPORT_TEST=1 for disposable local OpenStack File acceptance\n--- SKIP: TestOpenStackFileTransportIntegration (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM1Integration",
+          "output": "=== RUN   TestOpenStackM1Integration\n    integration_test.go:36: set LABBIT_OPENSTACK_INTEGRATION=1 to run against a local OpenStack cloud\n--- SKIP: TestOpenStackM1Integration (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM2ProvisionIntegration",
+          "output": "=== RUN   TestOpenStackM2ProvisionIntegration\n    integration_test.go:75: set LABBIT_OPENSTACK_M2_TEST=1 to create and clean one real Provision topology\n--- SKIP: TestOpenStackM2ProvisionIntegration (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackM3LifecycleIntegration",
+          "output": "=== RUN   TestOpenStackM3LifecycleIntegration\n    integration_test.go:164: set LABBIT_OPENSTACK_M3_TEST=1 to run Provision, Reset, Reconcile, and Cleanup against a local OpenStack cloud\n--- SKIP: TestOpenStackM3LifecycleIntegration (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "test": "TestOpenStackInternetPolicyIntegration",
+          "output": "=== RUN   TestOpenStackInternetPolicyIntegration\n    integration_test.go:302: set LABBIT_OPENSTACK_INTERNET_POLICY_TEST=1 to verify real Internet ON/OFF reachability\n--- SKIP: TestOpenStackInternetPolicyIntegration (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+          "test": "TestSymlinkRejectedAndExcludedFromTree",
+          "output": "=== RUN   TestSymlinkRejectedAndExcludedFromTree\n    service_test.go:469: host cannot create symlink; real Linux fixture covers this\n--- SKIP: TestSymlinkRejectedAndExcludedFromTree (0.06s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+          "test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600",
+          "output": "=== RUN   TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600\n    main_test.go:155: Windows uses ACLs; POSIX mode and Windows ACL confidentiality are not verified by this assertion\n--- SKIP: TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600 (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_Lifecycle",
+          "output": "=== RUN   TestLocator_Lifecycle\n    locator_test.go:26: Valkey not available at 127.0.0.1:6379: valkeyowner: Valkey locator 접근 불가\n--- SKIP: TestLocator_Lifecycle (0.02s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_AtomicGenerationAndOwnerLossCallback",
+          "output": "=== RUN   TestLocator_AtomicGenerationAndOwnerLossCallback\n    locator_test.go:113: Valkey unavailable: valkeyowner: Valkey locator 접근 불가\n--- SKIP: TestLocator_AtomicGenerationAndOwnerLossCallback (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_TerminalOwner",
+          "output": "=== RUN   TestLocator_TerminalOwner\n    locator_test.go:191: Valkey not available: valkeyowner: Valkey locator 접근 불가\n--- SKIP: TestLocator_TerminalOwner (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_TerminalOwnerHeartbeatRenewal",
+          "output": "=== RUN   TestLocator_TerminalOwnerHeartbeatRenewal\n    locator_test.go:236: Valkey not available at 127.0.0.1:6379: valkeyowner: Valkey locator 접근 불가\n--- SKIP: TestLocator_TerminalOwnerHeartbeatRenewal (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_PreviewOwner",
+          "output": "=== RUN   TestLocator_PreviewOwner\n    locator_test.go:312: Valkey not available: valkeyowner: Valkey locator 접근 불가\n--- SKIP: TestLocator_PreviewOwner (0.00s)"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+          "test": "TestLocator_LookupRetiresLocalStaleLeaseImmediately",
+          "output": "=== RUN   TestLocator_LookupRetiresLocalStaleLeaseImmediately\n    locator_test.go:671: Valkey unavailable: valkeyowner: Valkey locator 접근 불가\n--- SKIP: TestLocator_LookupRetiresLocalStaleLeaseImmediately (0.00s)"
+        }
+      ],
+      "failed_package_tail": [
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/postgres",
+          "output": "FAIL\nFAIL\tgithub.com/ktcloud4-SL/labbit-app/internal/postgres\t0.626s\n"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/installer",
+          "output": "FAIL\nFAIL\tgithub.com/ktcloud4-SL/labbit-app/internal/connector/installer\t37.320s\n"
+        },
+        {
+          "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+          "output": "FAIL\tgithub.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack\t90.346s\n"
+        }
+      ],
+      "race_warnings": 0,
+      "assessment": "Includes new migration loader failure plus unchanged baseline failures"
+    },
+    "intermediate_related_race": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/durable-checks/final-focused-race.jsonl",
+        "bytes": 1319018,
+        "sha256": "c047777a69eaca7001b06edae422719c9af67a4215551c89ff3b83e4cc37d09b"
+      },
+      "packages": {
+        "pass": 8
+      },
+      "package_results": {
+        "github.com/ktcloud4-SL/labbit-app/internal/server/app": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/operation": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/provision": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/connector": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/postgres": "pass",
+        "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi": "pass"
+      },
+      "test_events": {
+        "pass": 1271
+      },
+      "top_level_pass": 378,
+      "failed_tests": [],
+      "skipped_tests": [],
+      "failed_package_tail": [],
+      "race_warnings": 0,
+      "assessment": "Later extra malformed-report/deadline tests rerun in final_race; only final inventory is authoritative"
+    },
+    "go_vet": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/durable-checks/go-vet.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "go_build": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/durable-checks/go-build.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "integration_compile_only": {
+      "command": "go test -tags integration ./internal/postgres -run '^$' -count=1",
+      "exit_code": 0,
+      "log": {
+        "path": ".local/durable-checks/integration-compile.log",
+        "bytes": 83,
+        "sha256": "e046dfcd68ced8ece8fb6686ff9c7671b604d04e59666a41ffab18694c9da78e"
+      },
+      "tests_run": 0,
+      "actual_db_access": 0,
+      "limit": "Compiled new integration test, not executed. No TestMain/init DB hooks found."
+    },
+    "contracts": {
+      "openapi": "PASS",
+      "runtime": "PASS",
+      "json_schemas": 8,
+      "migrations": 12,
+      "envelope": "PASS",
+      "actual_database_access": 0
+    },
+    "gofmt": {
+      "files": 610,
+      "format": "LF-normalized disposable mirror",
+      "pass": true,
+      "requires_format": []
+    },
+    "web_typecheck": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/durable-checks/web-typecheck.log",
+        "bytes": 73,
+        "sha256": "aba894f572e9ac7ee2f2eadf84fd0e3046664c688a9a8c910bb6ebede1b59d1c"
+      }
+    },
+    "web_lint": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/durable-checks/web-lint.log",
+        "bytes": 81,
+        "sha256": "02b4047a480d163dc10a96d5080362e0c13af108fd20f9cf202b56299bed9771"
+      }
+    },
+    "web_build": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/durable-checks/web-build.log",
+        "bytes": 794,
+        "sha256": "b5b3de405f7146cb36c1509b446c5d56872a02a57a9f5fb26eac1ed1793628b5"
+      },
+      "warning": "Existing large chunk advisory"
+    },
+    "web_full": {
+      "exit_code": 1,
+      "log": {
+        "path": ".local/durable-checks/web-tests.json",
+        "bytes": 200596,
+        "sha256": "f87ef0eb1630a83512049153ca5c0bb2d9ab641565fdd830d98363224a8dde18"
+      },
+      "numTotalTests": 493,
+      "numPassedTests": 491,
+      "numFailedTests": 2,
+      "numPendingTests": 0,
+      "success": false,
+      "failures": [
+        {
+          "name": "LBT-183 public Installer URL build-time safety Vite also rejects invalid final process config without echoing it",
+          "messages": [
+            "Error: EPERM, Permission denied: 'C:\\Users\\user\\AppData\\Local\\Temp\\labbit-installer-env-t39TMM'\n    at rmSync (node:fs:1282:18)\n    at C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-admission-20261119/web/scripts/validate-installer-build-env.test.mjs:90:7\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:2886:64\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:1632:35\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:2801:26\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:3338:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:3333:10)\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:3318:20\n    at new Promise (<anonymous>)"
+          ]
+        },
+        {
+          "name": "LBT-183 public Installer URL build-time safety Vite also rejects invalid final mode-file config without echoing it",
+          "messages": [
+            "Error: EPERM, Permission denied: 'C:\\Users\\user\\AppData\\Local\\Temp\\labbit-installer-env-2S7NvH'\n    at rmSync (node:fs:1282:18)\n    at C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-admission-20261119/web/scripts/validate-installer-build-env.test.mjs:90:7\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:2886:64\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:1632:35\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:2801:26\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:3338:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:3333:10)\n    at file:///C:/Users/user/Documents/ChatGPT/3%EC%B0%A8%202/tmp/labbit-dr-admission-20261119/web/node_modules/vitest/dist/chunks/run.BPv-BBRv.js:3318:20\n    at new Promise (<anonymous>)"
+          ]
+        }
+      ],
+      "assessment": "Two unchanged Installer environment tests fail Windows rmSync temporary-directory cleanup with EPERM"
+    },
+    "web_focused": {
+      "exit_code": 0,
+      "log": {
+        "path": ".local/durable-checks/web-focused.json",
+        "bytes": 11625,
+        "sha256": "e2d0b96bd988936421c577b233b0e5a83464bd28d2474cd62a77525ea3c7f9f1"
+      },
+      "numTotalTests": 30,
+      "numPassedTests": 30,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "success": true,
+      "failures": [],
+      "assessment": "Same unchanged file 30/30 passes alone. Original full test failure remains recorded."
+    },
+    "git_diff_check": {
+      "exit_code": 0,
+      "LF_CRLF_warnings": "core.autocrlf=true warnings do not mean behavioral failure"
+    }
+  },
+  "raw_logs": [
+    {
+      "path": ".local/durable-checks/contracts.json",
+      "bytes": 147,
+      "sha256": "27cc6500065f0f189e6bbd6cf492aa0e26fdc1e12002fcb356e2d6bfea986365"
+    },
+    {
+      "path": ".local/durable-checks/final-focused-race.jsonl",
+      "bytes": 1319018,
+      "sha256": "c047777a69eaca7001b06edae422719c9af67a4215551c89ff3b83e4cc37d09b"
+    },
+    {
+      "path": ".local/durable-checks/final-focused-race.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/durable-checks/final-full-go.jsonl",
+      "bytes": 4333285,
+      "sha256": "be234093493f80aba1253a7251c28f8bffb67b50af70f948646a969dc6f177be"
+    },
+    {
+      "path": ".local/durable-checks/final-full-go.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/durable-checks/final-race.jsonl",
+      "bytes": 1326760,
+      "sha256": "86aa03ff0fa3308f57c8dc10849916bbeda3fcb44d6688b0b81f961e56e76c4a"
+    },
+    {
+      "path": ".local/durable-checks/final-race.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/durable-checks/focused-race.jsonl",
+      "bytes": 1315130,
+      "sha256": "02e76f3780d2c274b24d81ebefe654763b0321928430ab325d401fe5248f97fa"
+    },
+    {
+      "path": ".local/durable-checks/focused-race.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/durable-checks/full-go.jsonl",
+      "bytes": 4326131,
+      "sha256": "9d5c841875b9b02398be2898aa20342721abab9e379770e524478c94228c4f4a"
+    },
+    {
+      "path": ".local/durable-checks/full-go.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/durable-checks/go-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/durable-checks/go-vet.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/durable-checks/gofmt.json",
+      "bytes": 113,
+      "sha256": "7a4aebb65eb37be9c286e4265fa2c0bfd89011c0ed30c40de1ae6f7441d48202"
+    },
+    {
+      "path": ".local/durable-checks/initial-focused.jsonl",
+      "bytes": 126962,
+      "sha256": "afacc5aa195ec98fa67a8382a58d69a1c5cd17dfe1cb9962ea5c42819cfe394b"
+    },
+    {
+      "path": ".local/durable-checks/initial-focused.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/durable-checks/integration-compile.log",
+      "bytes": 83,
+      "sha256": "e046dfcd68ced8ece8fb6686ff9c7671b604d04e59666a41ffab18694c9da78e"
+    },
+    {
+      "path": ".local/durable-checks/web-build.log",
+      "bytes": 794,
+      "sha256": "b5b3de405f7146cb36c1509b446c5d56872a02a57a9f5fb26eac1ed1793628b5"
+    },
+    {
+      "path": ".local/durable-checks/web-focused.json",
+      "bytes": 11625,
+      "sha256": "e2d0b96bd988936421c577b233b0e5a83464bd28d2474cd62a77525ea3c7f9f1"
+    },
+    {
+      "path": ".local/durable-checks/web-focused.log",
+      "bytes": 318,
+      "sha256": "2ac16b57cc941c0646b55122936a329d40bc3f61e1525cd84a4e3da94ab263f5"
+    },
+    {
+      "path": ".local/durable-checks/web-lint.log",
+      "bytes": 81,
+      "sha256": "02b4047a480d163dc10a96d5080362e0c13af108fd20f9cf202b56299bed9771"
+    },
+    {
+      "path": ".local/durable-checks/web-test.log",
+      "bytes": 369,
+      "sha256": "b59e8907c1bfbb67c56b0844975b8ff14444b2796ae659f9ca1760bef8bcbe55"
+    },
+    {
+      "path": ".local/durable-checks/web-tests.json",
+      "bytes": 200596,
+      "sha256": "f87ef0eb1630a83512049153ca5c0bb2d9ab641565fdd830d98363224a8dde18"
+    },
+    {
+      "path": ".local/durable-checks/web-typecheck.log",
+      "bytes": 73,
+      "sha256": "aba894f572e9ac7ee2f2eadf84fd0e3046664c688a9a8c910bb6ebede1b59d1c"
+    }
+  ],
+  "prior_baseline": {
+    "historical": true,
+    "commit": "2bccdbb9264749251f65e710d9acd2ebf3bc7d8c",
+    "logs": [
+      {
+        "path": ".local/admission-checks/baseline-failures.jsonl",
+        "bytes": 14713,
+        "sha256": "2ba9e88e29b1ad62cf13e6cd64dbd61ee741c58e6d635828abb8b85425023eab"
+      },
+      {
+        "path": ".local/admission-checks/baseline-hang.jsonl",
+        "bytes": 17082,
+        "sha256": "217c0cbd8cd7640555e345626a784db8e4d59a019ccc53cee14645fcf89bb690"
+      }
+    ],
+    "limit": "Representative Installer/OpenStack and CIDR timeout only, not every failed case"
+  },
+  "findings": [
+    {
+      "id": "DC-01",
+      "severity": "P2",
+      "status": "RESOLVED",
+      "before": "Pause replay compared revision/epoch without original mode/pod/boot",
+      "fix": "Persist and compare full request binding/target; changed mode/pod/boot/history-target regression",
+      "independent_confirmation": true
+    },
+    {
+      "id": "DC-02",
+      "severity": "P1",
+      "initial_parent_severity": "P2; escalated to P1 for new-build loader/readiness impact",
+      "status": "RESOLVED",
+      "before": "Migration000012 lacked required BEGIN/COMMIT and expected migration list omitted12",
+      "fix": "Envelope and embedded loader list fixed; final postgres package race PASS",
+      "independent_reproduction": true
+    },
+    {
+      "id": "DC-TEST-01",
+      "severity": "P3",
+      "status": "RESOLVED",
+      "before": "New app settings fixture missed mandatory PUBLIC_ORIGIN and exited before intended policy branch",
+      "fix": "Supply fixture origin and recheck config branches",
+      "raw_log": "Not separately retained; initial tool output in conversation only. Do not claim archived original."
+    }
+  ],
+  "independent_review": {
+    "reviewer": "/root/review_admission_local",
+    "scope": "New internal contract, durable adapter/schema, runtime configuration, production assembly, callers/consumers, Fake multi-instance tests and owning docs; prior cumulative Admission/local review linked",
+    "latest_jira": "Parent read directly and supplied reviewer; no separate reviewer external lookup claimed",
+    "command": "go test -race ./internal/server/workercontrol ./internal/server/provision ./internal/server/connector ./internal/server/app ./internal/postgres -run 'Durable|WorkerControl|Pause|ModesAndUninitialized|CanceledRequest|LoadMigrations' -count=1 -timeout=90s",
+    "exit_code": 0,
+    "packages_pass": 5,
+    "findings_resolved": [
+      "DC-01",
+      "DC-02"
+    ],
+    "remaining_confirmed_P0_P1_P2": 0,
+    "limit": "No actual DB/Pod verification. Unrun integration source does concurrent Enter then Pause, not real Enter/Pause contention."
+  },
+  "not_run": [
+    "New integration TestWorkerControlPostgresCreatePauseAndConcurrentEnter (compiled only)",
+    "Actual PostgreSQL migration/row-lock/MVCC/constraints/durability and real Enter/Pause contention",
+    "Real process kill/DB commit response loss/network partition",
+    "Kubernetes Pod rollout and all-participant discovery/coverage",
+    "Operational DB principal/retention/permissions and actual authoritative control-store placement",
+    "AWS/Seoul/Connector Provider/VM/Browser E2E",
+    "Remote Linux/Windows CI for local changes (push prohibited)"
+  ],
+  "implementation_limits": [
+    "Default backend remains process-local; partial persistent configuration cannot downgrade to it",
+    "Immutable expected revision/epoch/mode and per-boot tickets for participating processes on one authoritative Writer only",
+    "Create-only PAUSE_NEW; no ACTIVE/RECONCILE_ONLY setter, authenticated resume, epoch transition or approval API",
+    "RUN/Plan/operator/approval-window and Writer/settlement/RECHECK/INTENT resume integration is not implemented",
+    "Report Drained does not prove full Pod coverage, zero sent Provider work, full DB write fencing or DR GO",
+    "API admission remains separate startup BLOCK_NEW; no atomic shared API+Worker switch",
+    "Async regional replicas/control DB forks, older images, local/other scope or direct writers are outside guarantee",
+    "Unresolved intents never expire automatically; operator investigation and future resource retention remain",
+    "Including migration000012 changes schema readiness even with local backend; later deployment requires separate schema compatibility checks"
+  ],
+  "safety": {
+    "actual_db_access": 0,
+    "aws_queries": 0,
+    "aws_mutations": 0,
+    "slack_sends": 0,
+    "seoul_service_changes": 0,
+    "deployments": 0,
+    "commits": 0,
+    "pushes": 0,
+    "pull_requests": 0,
+    "execution_gate": "HOLD",
+    "recovery_authorized": false,
+    "cloud_verified": false,
+    "preserved": "Existing ReplicaLag FAIL and four NOT_VERIFIED"
+  },
+  "assessment": {
+    "requested_increment": "SCOPED_CODE_AND_OFFLINE_TESTS_VERIFIED",
+    "real_persistence_and_all_pods": "NOT_VERIFIED",
+    "LBT-205": "PARTIAL_NOT_COMPLETE",
+    "overall_repo_tests": "NOT_ALL_PASS; baseline Go families and full-run Windows Web EPERM",
+    "pr_readiness": "NOT_DECLARED; no push authorization",
+    "metadata_second_pass": "PASS: verified 31 source hashes and inventory digest, 24 current raw logs, 2 historical baseline logs; exact 37-file cumulative diff; test counts, unchanged HEAD/branch and whitespace checks"
+  }
+}

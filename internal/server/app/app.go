@@ -29,6 +29,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/realtime"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol"
 )
 
 const (
@@ -40,19 +41,21 @@ const (
 )
 
 type Config struct {
-	MaintenanceFile string
-	Environment     string
-	Roles           []string
-	HTTPAddr        string
-	AdminAddr       string
-	PeerAddr        string
-	LogLevel        string
-	ShutdownGrace   time.Duration
+	Environment   string
+	Roles         []string
+	HTTPAddr      string
+	AdminAddr     string
+	PeerAddr      string
+	LogLevel      string
+	ShutdownGrace time.Duration
 	// DatabaseDSN은 Secret이다. 로그·오류 메시지에 기록하지 않는다.
 	DatabaseDSN string
 	// PublicOrigin은 api role의 Browser unsafe-method Origin 검증과 realtime role의 Browser WSS Upgrade Origin 검증에 쓰는
 	// trusted origin이다. LABBIT_PUBLIC_ORIGIN을 httpapi.ParseOrigin으로 정규화한 값이며 request Host에서 만들지 않는다.
-	PublicOrigin string
+	PublicOrigin          string
+	MaintenanceFile       string
+	WorkerControlMode     workercontrol.Mode
+	WorkerControlSettings workercontrol.Settings
 	// 아래는 preview role이 enabled된 process의 Preview 설정이다. role이 없으면 zero value다.
 	//
 	// PreviewAllowedPorts는 Backend의 명시적 허용 port 목록(LABBIT_PREVIEW_ALLOWED_PORTS)이다. 숫자 범위로 자동 승인하지 않고 기본 port가 없다.
@@ -123,6 +126,23 @@ func LoadConfig() (Config, error) {
 		}
 	}
 
+	// Never silently ignore a former blocking configuration after consolidation.
+	if os.Getenv("LABBIT_MUTATION_ADMISSION_MODE") != "" {
+		return Config{}, errors.New("LABBIT_MUTATION_ADMISSION_MODE is retired; configure LABBIT_MAINTENANCE_FILE")
+	}
+	var workerMode workercontrol.Mode
+	var workerSettings workercontrol.Settings
+	if slices.Contains(roles, "api") || slices.Contains(roles, "worker") {
+		workerSettings, err = workercontrol.LoadSettings(os.Getenv)
+		if err != nil {
+			return Config{}, err
+		}
+		workerMode, err = workercontrol.ParseMode(os.Getenv("LABBIT_WORKER_CONTROL_MODE"))
+		if err != nil {
+			return Config{}, fmt.Errorf("LABBIT_WORKER_CONTROL_MODE: %w", err)
+		}
+	}
+
 	valkeyAddr := strings.TrimSpace(os.Getenv("LABBIT_VALKEY_ADDR"))
 	if valkeyAddr == "" {
 		valkeyAddr = strings.TrimSpace(os.Getenv("VALKEY_ADDR"))
@@ -147,6 +167,14 @@ func LoadConfig() (Config, error) {
 		}
 	}
 
+	if slices.Contains(roles, "api") || slices.Contains(roles, "worker") {
+		if err := workerSettings.Validate(podID); err != nil {
+			return Config{}, err
+		}
+		if workerMode == workercontrol.ReconcileOnly && !workerSettings.Enabled() {
+			return Config{}, workercontrol.ErrInvalidBinding
+		}
+	}
 	var valkeyUsername, valkeyPassword, valkeyTLSServerName, peerSecret string
 	var valkeyTLS bool
 	if valkeyAddr != "" {
@@ -171,25 +199,27 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
-		MaintenanceFile:     os.Getenv("LABBIT_MAINTENANCE_FILE"),
-		Environment:         environment,
-		Roles:               roles,
-		HTTPAddr:            envOrDefault("LABBIT_HTTP_ADDR", defaultHTTPAddr),
-		AdminAddr:           envOrDefault("LABBIT_ADMIN_ADDR", defaultAdminAddr),
-		PeerAddr:            peerAddr,
-		LogLevel:            envOrDefault("LABBIT_LOG_LEVEL", "info"),
-		ShutdownGrace:       grace,
-		DatabaseDSN:         databaseDSN,
-		PublicOrigin:        publicOrigin,
-		Tracing:             tracing.ConfigFromEnv(os.Getenv),
-		ValkeyAddr:          valkeyAddr,
-		ValkeyUsername:      valkeyUsername,
-		ValkeyPassword:      valkeyPassword,
-		ValkeyTLS:           valkeyTLS,
-		ValkeyTLSServerName: valkeyTLSServerName,
-		PodID:               podID,
-		PodAddr:             podAddr,
-		PeerSecret:          peerSecret,
+		Environment:           environment,
+		Roles:                 roles,
+		HTTPAddr:              envOrDefault("LABBIT_HTTP_ADDR", defaultHTTPAddr),
+		AdminAddr:             envOrDefault("LABBIT_ADMIN_ADDR", defaultAdminAddr),
+		PeerAddr:              peerAddr,
+		LogLevel:              envOrDefault("LABBIT_LOG_LEVEL", "info"),
+		ShutdownGrace:         grace,
+		DatabaseDSN:           databaseDSN,
+		PublicOrigin:          publicOrigin,
+		MaintenanceFile:       os.Getenv("LABBIT_MAINTENANCE_FILE"),
+		WorkerControlMode:     workerMode,
+		WorkerControlSettings: workerSettings,
+		Tracing:               tracing.ConfigFromEnv(os.Getenv),
+		ValkeyAddr:            valkeyAddr,
+		ValkeyUsername:        valkeyUsername,
+		ValkeyPassword:        valkeyPassword,
+		ValkeyTLS:             valkeyTLS,
+		ValkeyTLSServerName:   valkeyTLSServerName,
+		PodID:                 podID,
+		PodAddr:               podAddr,
+		PeerSecret:            peerSecret,
 	}
 
 	// preview role이 enabled되면 허용 port, TTL, Origin template이 모두 명시되어야 한다. 하나라도 없거나 올바르지 않으면 startup에 실패한다.
@@ -253,6 +283,20 @@ func parsePreviewTTL(raw string) (time.Duration, error) {
 }
 
 func Run(ctx context.Context, cfg Config) error {
+	if slices.Contains(cfg.Roles, "api") || slices.Contains(cfg.Roles, "worker") {
+		if cfg.WorkerControlMode == workercontrol.ReconcileOnly && !cfg.WorkerControlSettings.Enabled() {
+			return workercontrol.ErrInvalidBinding
+		}
+		if err := cfg.WorkerControlSettings.Validate(cfg.PodID); err != nil {
+			return err
+		}
+		if cfg.WorkerControlSettings.Enabled() && cfg.DatabaseDSN == "" {
+			return workercontrol.ErrInvalidBinding
+		}
+		if err := cfg.WorkerControlMode.Validate(); err != nil {
+			return err
+		}
+	}
 	logger := observability.NewJSONLogger("labbit-server", "bootstrap", cfg.Environment, cfg.LogLevel)
 	ready := &atomic.Bool{}
 	registry, httpMetrics, realtimeMetrics, workerMetrics := applicationMetrics(cfg.Roles)
@@ -324,19 +368,27 @@ func Run(ctx context.Context, cfg Config) error {
 				peerProxy = valkeyowner.NewProxyWithSelf(cfg.PeerSecret, locator.PodAddr())
 			}
 
+			var controlStore workercontrol.DurableStore
+			if cfg.WorkerControlSettings.Enabled() {
+				controlStore = postgres.NewWorkerControlStore(pool)
+			}
 			stack, err = newControlStack(postgres.NewStore(pool), stackOptions{
-				Logger:          logger,
-				OwnerLocator:    ownerLocator,
-				PeerProxy:       peerProxy,
-				OperationSink:   harness.sink(),
-				Worker:          slices.Contains(cfg.Roles, "worker"),
-				WorkerReady:     databaseReady,
-				Admission:       gate.Enter,
-				PublicOrigin:    cfg.PublicOrigin,
-				Realtime:        slices.Contains(cfg.Roles, "realtime"),
-				HTTPMetrics:     httpMetrics,
-				RealtimeMetrics: realtimeMetrics,
-				WorkerMetrics:   workerMetrics,
+				Logger:                logger,
+				OwnerLocator:          ownerLocator,
+				PeerProxy:             peerProxy,
+				OperationSink:         harness.sink(),
+				Worker:                slices.Contains(cfg.Roles, "worker"),
+				WorkerReady:           databaseReady,
+				PublicOrigin:          cfg.PublicOrigin,
+				Maintenance:           gate,
+				WorkerControlMode:     cfg.WorkerControlMode,
+				WorkerControlSettings: cfg.WorkerControlSettings,
+				WorkerControlStore:    controlStore,
+				WorkerControlPodID:    cfg.PodID,
+				Realtime:              slices.Contains(cfg.Roles, "realtime"),
+				HTTPMetrics:           httpMetrics,
+				RealtimeMetrics:       realtimeMetrics,
+				WorkerMetrics:         workerMetrics,
 				// preview role이 같은 process에 있으면 Preview Gateway와 PreviewSession use case를 함께 조립한다.
 				Preview:       slices.Contains(cfg.Roles, "preview"),
 				PreviewPolicy: cfg.PreviewAllowedPorts,

@@ -1,0 +1,26 @@
+=== RUN   TestWorkerControlPostgresCreatePauseAndConcurrentEnter
+--- PASS: TestWorkerControlPostgresCreatePauseAndConcurrentEnter (0.90s)
+=== RUN   TestWorkerControlPostgresApprovedResumeJournalAndConcurrentApply
+--- PASS: TestWorkerControlPostgresApprovedResumeJournalAndConcurrentApply (0.83s)
+=== RUN   TestWorkerControlResumeAppliedTimeConstraintIsAdditive
+=== RUN   TestWorkerControlResumeAppliedTimeConstraintIsAdditive/intent-null
+=== RUN   TestWorkerControlResumeAppliedTimeConstraintIsAdditive/applied-null
+=== RUN   TestWorkerControlResumeAppliedTimeConstraintIsAdditive/applied-before-created
+=== RUN   TestWorkerControlResumeAppliedTimeConstraintIsAdditive/intent-with-time
+=== RUN   TestWorkerControlResumeAppliedTimeConstraintIsAdditive/applied-at-created
+--- PASS: TestWorkerControlResumeAppliedTimeConstraintIsAdditive (0.68s)
+    --- PASS: TestWorkerControlResumeAppliedTimeConstraintIsAdditive/intent-null (0.00s)
+    --- PASS: TestWorkerControlResumeAppliedTimeConstraintIsAdditive/applied-null (0.00s)
+    --- PASS: TestWorkerControlResumeAppliedTimeConstraintIsAdditive/applied-before-created (0.00s)
+    --- PASS: TestWorkerControlResumeAppliedTimeConstraintIsAdditive/intent-with-time (0.00s)
+    --- PASS: TestWorkerControlResumeAppliedTimeConstraintIsAdditive/applied-at-created (0.00s)
+=== RUN   TestWorkerControlPostgresPauseSerializesQueuedEnter
+--- PASS: TestWorkerControlPostgresPauseSerializesQueuedEnter (0.71s)
+=== RUN   TestWorkerControlPostgresLostResponseAndReconnectNeverAutoApplies
+=== RUN   TestWorkerControlPostgresLostResponseAndReconnectNeverAutoApplies/begin-response
+=== RUN   TestWorkerControlPostgresLostResponseAndReconnectNeverAutoApplies/apply-response
+--- PASS: TestWorkerControlPostgresLostResponseAndReconnectNeverAutoApplies (1.30s)
+    --- PASS: TestWorkerControlPostgresLostResponseAndReconnectNeverAutoApplies/begin-response (0.63s)
+    --- PASS: TestWorkerControlPostgresLostResponseAndReconnectNeverAutoApplies/apply-response (0.67s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/postgres	4.626s

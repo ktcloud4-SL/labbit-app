@@ -300,6 +300,7 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal, cre
 			_ = h.ownerLocator.ReleaseConnector(context.Background(), principal.ConnectorID, registeredEpoch)
 		}
 		registration.Release()
+		registration.WaitCloseNotification()
 	}()
 	// Authentication may have finished before a concurrent revoke committed and
 	// notified the Registry. Recheck after registration: either this sees revoke,

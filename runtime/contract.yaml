@@ -1,4 +1,4 @@
-version: "0.1.9"
+version: "0.1.12"
 kind: "LabbitRuntimeContract"
 
 scope:
@@ -29,6 +29,7 @@ artifacts:
     command: "up"
     lifecycle: "one-shot"
     run_by: "application rollout 전 platform/CI deployment step"
+
     config:
       - LABBIT_ENVIRONMENT
       - LABBIT_DATABASE_DSN_FILE
@@ -106,31 +107,20 @@ saas:
             운영 metric만 노출합니다. high-cardinality resource/request/session 식별자는
             metric label로 사용할 수 없습니다.
 
-
   maintenance:
     admission: >-
-      LABBIT_MAINTENANCE_FILE이 미설정이면 기존 동작입니다. 설정하면 매 admission마다 파일을 읽으며
-      공백을 제거한 내용이 open일 때만 허용합니다. closed, 누락, 읽기 오류, 16 byte 초과 입력은 차단합니다.
-      인증·권한·committed replay 확인 뒤 새 Provision/Reset/Cleanup을 저장 전에 503(code maintenance)으로 거절합니다.
-      Worker는 새 claim을 멈추며 이미 허용한 claim/execution은 완료까지 추적합니다.
+      LABBIT_MAINTENANCE_FILE이 미설정이면 기존 동작입니다. 설정하면 매 admission마다 파일을 읽으며 공백을 제거한 내용이 open일 때만 허용합니다. closed, 누락, 읽기 오류, 16 byte 초과 입력은 차단합니다. 인증·권한·committed replay 확인 뒤 새 Provision/Reset/Cleanup을 저장 전에 503(code maintenance)으로 거절합니다. Worker는 새 claim을 멈추며 이미 허용한 claim/execution은 완료까지 추적합니다.
+      인증·현재 권한·committed idempotency replay 확인 뒤 신규 Provision/Reset/Cleanup 등록 전에 503(code maintenance)으로 거절합니다. Replay 200과 기존 401/403/409·조회/session 동작은 유지합니다. Retry-After와 사용자 header/body 제어 우회는 제공하지 않습니다. Public/peer/internal service가 같은 경계를 사용합니다.
     barrier: >-
-      각 process는 파일 관측과 admission 등록을 같은 lock으로 직렬화합니다. 모든 serving process에서
-      labbit_maintenance_closed=1과 labbit_maintenance_active{kind=http|worker}=0을 확인해야 합니다.
-      이미 전송된 외부 작업과 결과 불명 작업은 별도 drain 및 reconciliation이 필요합니다.
-      이 경계는 DB 및 모든 writer fencing을 보장하지 않습니다.
+      각 process는 파일 관측과 admission 등록을 같은 lock으로 직렬화합니다. 모든 serving process에서 labbit_maintenance_closed=1과 labbit_maintenance_active{kind=http|worker}=0을 확인해야 합니다. 이미 전송된 외부 작업과 결과 불명 작업은 별도 drain 및 reconciliation이 필요합니다. 이 경계는 DB 및 모든 writer fencing을 보장하지 않습니다.
+      PR194의 process-local lock은 파일 관측과 admission 등록을 직렬화합니다. 일반 Worker는 새 RunOne을 중지하고 이미 admission한 실행은 종료까지 kind=worker로 추적합니다. 이 drain 동안 기존 WorkerControl ACTIVE라면 기수락 작업이 dispatch될 수 있습니다. 별도의 WorkerControl Pause는 이후 claim/prepare/dispatch/requeue를 차단하여 미완료 claim/UNKNOWN을 보존합니다. 모든 process의 labbit_maintenance_closed=1 및 active{kind=http|worker|reconciliation}=0, authoritative Report·기수락/UNKNOWN 목록을 함께 확인해야 하며 집계 metric만으로 전역 정지를 선언하지 않습니다.
     platform: >-
-      모든 serving Pod/role과 restart에 동일한 read-only 파일 설정을 강제해야 합니다.
-      파일 변경 권한은 trusted infrastructure operator에게만 주며 application ServiceAccount는 쓰기 권한이 없어야 합니다.
-      Kubernetes에서는 GitOps desired state의 ConfigMap directory mount(subPath 금지)와 기존 Kubernetes auth/RBAC를 사용합니다.
-      전파는 원자적이지 않으므로 모든 Pod 관측 전에는 진입 완료가 아닙니다. 진입/해제 확인 중 rollout/HPA 변경을 동결하고
-      새 Pod가 생기면 전체 barrier 확인을 다시 시작합니다. readiness는 Control 유지를 위해 maintenance로 내리지 않습니다.
-      불명 상태에서는 닫힌 상태를 유지합니다. 재개는 DB 단일 writer와 fencing, 기수락 작업 정산 및 승인된 운영 재검증 후
-      trusted operator가 명시적으로 open을 설정한 경우에만 허용합니다. 자동 TTL이나 재개는 없습니다.
+      모든 serving Pod/role과 restart에 동일한 read-only 파일 설정을 강제해야 합니다. 파일 변경 권한은 trusted infrastructure operator에게만 주며 application ServiceAccount는 쓰기 권한이 없어야 합니다. Kubernetes에서는 GitOps desired state의 ConfigMap directory mount(subPath 금지)와 기존 Kubernetes auth/RBAC를 사용합니다. 전파는 원자적이지 않으므로 모든 Pod 관측 전에는 진입 완료가 아닙니다. 진입/해제 확인 중 rollout/HPA 변경을 동결하고 새 Pod가 생기면 전체 barrier 확인을 다시 시작합니다. readiness는 Control 유지를 위해 maintenance로 내리지 않습니다. 불명 상태에서는 닫힌 상태를 유지합니다. 재개는 DB 단일 writer와 fencing, 기수락 작업 정산 및 승인된 운영 재검증 후 trusted operator가 명시적으로 open을 설정한 경우에만 허용합니다. 자동 TTL이나 재개는 없습니다.
+      모든 serving Pod/role/restart에 operator 소유 read-only ConfigMap directory mount(subPath 금지)를 적용해야 합니다. 전파는 원자적이지 않으므로 전체 Pod 관측 전 GO 금지이며 rollout/HPA 변경 시 coverage를 재확인합니다. Application은 mode 파일을 쓰거나 Pod를 rollout하지 않습니다. readiness를 maintenance 때문에 내리지 않습니다. File open과 영속 제어 ACTIVE는 독립 조건입니다. 파일 개방만으로 이전 revision/epoch나 pause latch가 유효해지지 않습니다. 실제 배포·모드 변경·단일 Writer/Fencing 검증과 운영 승인 Adapter는 이번 오프라인 통합 밖입니다.
+    reconciliation: >-
+      RECONCILE_ONLY 조립에서 maintenance의 일괄 claim 차단은 적용하지 않고 전체 RunOne의 query/결과 기록을 별도 kind=reconciliation으로 관측합니다. 이는 허용 스위치가 아닙니다. 이 경로는 persistent WorkerControl과 관측 callback을 모두 요구하고 매 typed claim/prepare/Router send에서 exact authoritative binding을 검사합니다. Mutation queue·prepare·dispatch는 계속 차단합니다. Reconciliation 결과/lease 기록도 DB 쓰기이므로 별도 승인된 Writer·Fencing·작업 정산 근거가 필요합니다.
+
   config:
-    LABBIT_MAINTENANCE_FILE:
-      required: false
-      secret: false
-      note: "trusted operator가 관리하는 read-only admission mode 파일. 미설정은 maintenance 기능 비활성."
     LABBIT_RUNTIME_ROLES:
       required: true
       secret: false
@@ -165,6 +155,63 @@ saas:
         request Host/X-Forwarded-Host를 신뢰해 동적으로 결정하지 않습니다.
         개발자 PC에서는 Vite Browser origin, 공유 Local/AWS에서는 실제 public HTTPS app origin을 주입합니다.
         realtime role 때문에 이 값이 필요해지는 것이며 PostgreSQL DSN 요구를 추가하지 않습니다.
+    LABBIT_MAINTENANCE_FILE:
+      required: false
+      secret: false
+      note: >-
+        PR194의 trusted operator 소유 read-only mode 파일입니다. 미설정이면 기존 접수 동작을 유지합니다.
+        설정하면 매 신규 접수/일반 Worker RunOne 진입마다 읽고 trim한 내용이 open일 때만 허용합니다.
+        closed, 누락, 읽기 오류, 16 byte 초과 및 알 수 없는 값은 차단합니다.
+        기존 미배포 후보 설정 LABBIT_MUTATION_ADMISSION_MODE는 제거했으며 비어 있지 않으면 startup을 거절합니다.
+    LABBIT_WORKER_CONTROL_MODE:
+      required: false
+      secret: false
+      default: "ACTIVE"
+      allowed: ["ACTIVE", "PAUSE_NEW", "RECONCILE_ONLY"]
+      applies_when: "api 또는 worker role이 enabled된 process"
+      note: >-
+        시작 모드를 같은 process의 Worker와 Connector Router에 공유합니다. 미설정·빈 값은 기존 ACTIVE이며
+        다른 값은 startup 오류입니다. PAUSE_NEW는 신규 mutation 및 reconciliation claim/전송을 차단합니다.
+        RECONCILE_ONLY는 앱 조립 시 postgres 영속 제어가 필수이며 mutation claim을 건너뛰고 기존 조회 전용 Reconciliation만 허용합니다.
+        Reconciliation lease·결과 기록은 DB 쓰기이므로 승인된 Writer와 계보·Single Writer 선행 검증 없이
+        복제본/Writer=NONE 단계에서 사용하면 안 됩니다. 이 설정이 해당 승인이나 Single Writer를 검증하지 않습니다.
+        Worker 없이 api만 실행돼도 Router의 직접 Operation/Reconcile 전송에 동일 모드를 적용합니다.
+        실행 중 제한은 아래 local_pause 경계를 따릅니다. /readyz는 기존 의존성 기준이며 작업 허용/DR GO를 뜻하지 않습니다.
+        기본 ACTIVE 또는 설정 유실 후 재시작은 fail-closed DR 준비가 아닙니다. 플랫폼이 PAUSE_NEW를 명시·보존해야 합니다.
+    LABBIT_WORKER_CONTROL_BACKEND:
+      required: false
+      secret: false
+      default: "local"
+      allowed: ["local", "postgres"]
+      applies_when: "api 또는 worker role이 enabled된 process"
+      note: >-
+        local은 기존 프로세스 범위 제어입니다. postgres는 아래 durable_boundaries 계약의 명시적 opt-in이며
+        기존 LABBIT_DATABASE_DSN pool을 단일 authoritative 제어 Writer로 사용하는 후보 adapter입니다.
+        누락 row·권한/조회 실패·binding 불일치에서 local/ACTIVE로 fallback하지 않습니다.
+        업무 DB 복제본 또는 리전별 비동기 복제 DB를 독립 control Writer로 사용하면 안 됩니다.
+        실제 DR 제어 저장소 위치·분리 권한·장애 중 접근 경로는 미인수이며 이 옵션으로 자동 확정하지 않습니다.
+    LABBIT_WORKER_CONTROL_ID:
+      required_when: "LABBIT_WORKER_CONTROL_BACKEND=postgres"
+      secret: false
+      note: "승인 계획에 고정한 control scope ID. 영숫자 시작, 영숫자/._:-로만 최대128자. 요청에서 추론하지 않습니다."
+    LABBIT_WORKER_CONTROL_REGION:
+      required_when: "LABBIT_WORKER_CONTROL_BACKEND=postgres"
+      secret: false
+      note: "제어 대상 리전 label, ID와 같은 문자열 규칙. 저장소 접속 리전이나 STS 신원을 입증하지 않습니다."
+    LABBIT_WORKER_CONTROL_CLUSTER:
+      required_when: "LABBIT_WORKER_CONTROL_BACKEND=postgres"
+      secret: false
+      note: "제어 대상 클러스터 label, ID와 같은 문자열 규칙. 실제 배포 소유권의 증거가 아닙니다."
+    LABBIT_WORKER_CONTROL_REVISION:
+      required_when: "LABBIT_WORKER_CONTROL_BACKEND=postgres"
+      secret: false
+      note: "명시적으로 고정한 양의 int64 revision. 최신 값을 자동 채택하지 않습니다."
+    LABBIT_WORKER_CONTROL_EPOCH:
+      required_when: "LABBIT_WORKER_CONTROL_BACKEND=postgres"
+      secret: false
+      note: >-
+        명시적으로 고정한 양의 int64 epoch. postgres 설정은 LABBIT_POD_ID 또는 POD_NAME의 유효 label과 DB DSN도 필요하며
+        process마다 별도 boot UUID를 생성합니다. local과 persistent 필드가 혼합된 부분 설정은 startup 오류입니다.
     LABBIT_ADMIN_ADDR:
       required: false
       secret: false
@@ -321,6 +368,95 @@ saas:
         migration별 호환성 metadata는 두지 않습니다. 이 invariant는 review와 integration validation으로 확인합니다.
 
   worker:
+    local_pause:
+      scope: "같은 process의 Executor/Router 공유 제어, 전역·영속 barrier 아님"
+      semantics: >-
+        Executor.Pause(ctx)는 먼저 PAUSE_NEW를 latch한 뒤 이미 진입한 짧은 claim/prepare/send 및 미전송 재등록
+        경계가 끝날 때까지 기다립니다. claim commit 응답 지연과 전송 중인 경계는 drain 전까지 남을 수 있습니다.
+        새 경계는 즉시 거절합니다. prepare/lifecycle 처리 후 전송 직전에도 재검사하고 직접 Router 호출도 차단합니다.
+        Pause 이후 미전송 작업을 자동 PENDING으로 되돌리거나 새 mutation을 재전송하지 않습니다.
+        Pause 전에 진입한 미전송 재등록 transaction은 완료될 수 있으므로 Pause 성공 전에는 정지를 주장하지 않습니다.
+        timeout/cancel은 이미 latch한 pause를 해제하지 않으며 quiescence를 입증하지 않습니다.
+        이미 전송된 Provider 작업을 취소/삭제하지 않고 pending correlation·lease 갱신·ACK/RESULT 수집을 유지합니다.
+        Quiesced는 로컬 짧은 경계 drain만 의미하며 inflight Provider 0건·DB 쓰기 중지·전체 Fencing을 뜻하지 않습니다.
+      activation_limit: >-
+        실행 중 ACTIVE/RECONCILE_ONLY로 되돌리는 setter나 공개 운영 endpoint는 제공하지 않습니다.
+        다른 시작 모드로 재배포/재시작하려면 별도 승인과 기존 작업 정산·Writer 검증이 필요합니다.
+        local backend는 durable 상태/다중 process 검증을 제공하지 않습니다. postgres opt-in의 추가 경계는 durable_boundaries를 따릅니다.
+        영속 backend의 승인 재개 후보는 approved_resume를 따릅니다. 실제 인증/검증 Adapter와 배포 연동은 후속 범위입니다.
+        이 로컬 기능으로 기존 DR HOLD·NOT_VERIFIED·ReplicaLag FAIL을 해소하지 않습니다.
+    durable_boundaries:
+      status: "미배포 후보 구현; Fake/driver Mock 검증과 실제 PostgreSQL·다중 Pod 인수 구분"
+      migration: "db/migrations/000012_worker_control.sql"
+      binding:
+        fields: [control_id, region, cluster, revision, epoch, mode, pod_id, boot_id]
+        fixed_for_process: true
+        newer_revision_is_not_approval: true
+      ticket:
+        fields: [id, binding, kind, phase]
+        kinds: [MUTATION, RECONCILIATION]
+        phases: [MUTATION_CLAIM, MUTATION_PREPARE, MUTATION_DISPATCH, MUTATION_REQUEUE, RECONCILIATION_CLAIM, RECONCILIATION_PREPARE, RECONCILIATION_DISPATCH]
+        lifecycle: "Enter COMMIT -> 경계 처리 -> Leave COMMIT; 응답 유실은 HOLD이며 작업을 자동 재실행하지 않음"
+      semantics: >-
+        각 claim/prepare/dispatch/미전송 재등록은 단일 authoritative state row를 잠그고 전체 binding·mode를 확인한 뒤
+        open intent를 commit하고 실행합니다. Pause는 같은 row를 CAS하여 revision을 증가시키고 PAUSE_NEW로 제한합니다.
+        영속 CAS 실패/timeout을 전체 Pod 중단 성공으로 처리하지 않습니다. 이미 Enter한 짧은 경계는 완료될 수 있고
+        새 경계는 거부되며 전체 revision/boot의 open intent가 0이 될 때까지 HOLD입니다. 외부 I/O 중 DB transaction을 유지하지 않습니다.
+        Enter 실패/응답 유실은 새 ticket으로 재시도하거나 자동 Leave하지 않고 작업을 시작하지 않으며 남을 수 있는 intent를 보존합니다.
+        Leave는 진입 당시의 전체 ticket만 멱등하게 닫으며 현재 revision이 달라져도 종료할 수 있습니다.
+        Leave 실패는 로컬의 미검증 상태를 latch합니다. intent의 자동 TTL/Pod 소멸 GC는 없고 재시작/epoch 변경으로 삭제하지 않습니다.
+        상태는 매번 새로운 authoritative 작업으로 확인하며 cache PASS나 Pod 생존으로 대체하지 않습니다.
+      provisioning: >-
+        초기화는 create-only PAUSE_NEW/revision1/epoch1이며 기존 scope/target/epoch를 덮어쓰지 않습니다.
+        승인된 PAUSE_NEW -> ACTIVE/RECONCILE_ONLY 전환과 revision/epoch 증가는 approved_resume의 내부 후보 구현을 따릅니다.
+        실제 승인/Writer 검증 Adapter·운영 HTTP endpoint·startup 자동 재개는 제공하지 않습니다.
+      report: >-
+        Report는 state와 전체 open boundary 및 미해결 resume INTENT 수를 단일 snapshot에서 조회합니다.
+        PendingResumes > 0이면 Drained/Pause는 HOLD이며 기존 activation 결과를 소급 성공으로 치환하지 않습니다. Drained는 같은 control Writer에 참여한 구현의
+        짧은 경계에 한정되며 전체 Pod coverage·이미 전송된 Provider 작업0건·DB 쓰기 중지·Single Writer·DR GO가 아닙니다.
+        구 image/local 설정, 다른 scope, 다른 DB/비동기 replica, 직접 Provider writer는 이 제어 범위 밖입니다.
+        API admission은 maintenance 파일 경계이며 이 pause만으로 HTTP 신규 등록을 막지 않습니다.
+      safety: >-
+        이 migration을 포함한 build는 기존 schema readiness에도 영향을 주므로 향후 배포 전 별도 migration 적용과 호환성 확인이 필요합니다.
+        startup은 migration/bootstrap/권한 변경을 실행하지 않습니다. AWS/공유 DB/서울 서비스 변경 없이 기존 FAIL/4NOT_VERIFIED/HOLD를 유지합니다.
+    approved_resume:
+      status: "내부 opt-in 후보; 폐기용 PostgreSQL 16 검증, 실제 승인·Fencing·공유 DB·다중 Kubernetes Pod 미검증"
+      migration: "db/migrations/000014_worker_control_resume_applied_time.sql"
+      request_fields: [CommandID, Scope, ExpectedRevision, ExpectedEpoch, Desired, TrialID, RunID, Phase, Principal, ApprovalRef, PlanSHA256, PreconditionsSHA256, RequestedAt, ValidUntil]
+      desired: [ACTIVE, RECONCILE_ONLY]
+      transitions: >-
+        현재 PAUSE_NEW 및 expected revision/epoch/대상 일치, 전체 open boundary 0, pending resume INTENT 0에서만 새 명령을 준비합니다.
+        trusted Authorizer는 실제 인증·권한·승인 ID의 정확 요청 SHA binding을 확인해야 하며 reference/approved=true만 신뢰하지 않습니다.
+        trusted Rechecker는 같은 RUN/Plan/Target/단계/epoch의 AdmissionBlocked, SingleWriter, Fencing, WorkInventory, PodCoverage를
+        PASS로 확인해야 합니다. ACTIVE에는 WorkReconciled PASS도 필요하며 RECONCILE_ONLY는 exact-ID 정산만 허용합니다.
+        이 PASS는 trusted Adapter의 입력 계약이고 이 코드 자체가 실제 Writer/Fencing을 검사했다는 증거가 아닙니다.
+      journal: >-
+        물리 schema는 000013의 journal과 000014의 APPLIED 시각 제약을 함께 따릅니다.
+        새 명령은 별도 transaction으로 INTENT를 commit한 뒤 그 creator만 Apply를 한 번 시도합니다.
+        Apply는 같은 state row lock에서 target/revision/epoch/PAUSE_NEW·open boundary·승인/재검증 시각을 다시 확인합니다.
+        state의 revision+1/epoch+1 및 APPLIED receipt를 같은 transaction으로 commit합니다. 외부 I/O 중 transaction을 유지하지 않습니다.
+        동일 CommandID의 다른 payload는 거절하며, 동일 payload의 기존 APPLIED는 역사적 결과 재생만 합니다.
+        기존 INTENT는 UNKNOWN/HOLD이며 재시작·재호출이 자동 Apply/삭제/재전송하지 않습니다. 다른 command도 이를 우회하지 못합니다.
+        Approval ID는 한 command에서만 소비합니다. 과거 결과나 Failover 승인을 새 Failback·단계 승인으로 재사용하지 않습니다.
+      time_policy: >-
+        모든 입력 시각은 UTC microsecond 및 연도 1~9999입니다. now >= RequestedAt/NotBefore, now < ValidUntil/ExpiresAt,
+        RequestedAt <= ObservedAt <= now < checks.ValidUntil을 요구하며 정확 만료 시점은 거절합니다.
+        기본 승인 TTL/시계 허용 오차를 임의로 설정하지 않습니다. 실제 정책과 시계 신뢰는 운영 연계 전 확정해야 합니다.
+        승인·관측 유효기간은 제어 명령의 유효성 검사이며 작업 실행 lease가 아닙니다.
+      consumers: >-
+        기존 Control은 immutable binding과 pause/unverified latch를 유지하여 자동으로 열리지 않습니다.
+        재개 receipt 자체는 dispatch 권한이 아닙니다. 별도 승인 배포에서 새 revision/epoch/mode로 구성된 process만
+        매 claim/prepare/dispatch의 authoritative Enter를 통과할 수 있습니다. 배포·mode file 변경은 수행하지 않습니다.
+      boundaries: >-
+        Resumer/ResumeStore는 trusted 내부 포트이며 public API·운영 CLI·웹 승인 UI 또는 인증 구현이 아닙니다.
+        실제 Adapter가 없으면 생성/승인이 fail-closed합니다. 운영자 endpoint/재개 자동 loop는 없습니다.
+        api admission OPEN이나 Slack, Step Functions 실연계, Single Writer/전체 Pod coverage/Provider 실행0은 증명하지 않습니다.
+        App PR194의 maintenance/service/Worker admission을 로컬 통합했으며 NewMaintenanceResumer는
+        configured exact closed 및 http/worker/reconciliation 전체 local count0을 진입/INTENT/Apply 직전에 추가 확인합니다.
+        외부 AdmissionBlocked/PodCoverage PASS를 생성하거나 덮어쓰지 않습니다. 알 수 없는 파일은 차단되지만 verified closed가 아닙니다.
+        로컬 파일 snapshot과 DB commit은 원자적이지 않으므로 외부 변경 통제·전체 Pod 관측은 여전히 필수입니다.
+        APPLIED readback은 역사적 receipt일 뿐이며 자동 파일 개방·배포·startup 재개는 없습니다.
+        기존 ReplicaLag FAIL·4NOT_VERIFIED·execution_gate=HOLD·recovery_authorized=false·cloud_verified=false를 유지합니다.
     v0_1_topology:
       required_co_located_roles:
         - api
@@ -330,7 +466,7 @@ saas:
         - CLEANUP
       authority_provider: >-
         PROVISION/RESET/CLEANUP은 같은 process의 api role이 소유한 Connector Control Registry/Router로 실행합니다.
-        worker role은 호환 PostgreSQL schema를 확인한 뒤 PENDING Item을 mutation 실행용으로 claim합니다.
+        worker role은 호환 PostgreSQL schema와 로컬 Worker 제어가 허용할 때 PENDING Item을 mutation 실행용으로 claim합니다.
         만료된 RUNNING 및 RECONCILING Item은 새 lease로 조회 전용 Reconciliation을 수행하며 mutation을 다시 실행하지 않습니다.
         저장된 exact ID·generation·제품 소유관계를 기존 RECONCILE_REQUEST/RESULT로 대조합니다.
         불확실성·발견 후보는 RECONCILING/HOLD를 유지하고 자동 채택·삭제하지 않습니다.

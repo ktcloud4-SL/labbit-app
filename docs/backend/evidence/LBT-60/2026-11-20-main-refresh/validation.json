@@ -1,0 +1,985 @@
+{
+  "date": "2026-11-20",
+  "environment": "Windows LAPTOP-5ICSOOU4; Go 1.27.1, Node 24.22.3, Python 3.13.14",
+  "repository": "ktcloud4-SL/labbit-app",
+  "branch": "codex/feat/LBT-60-dr-admission-block-20261119",
+  "base": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "tested_head": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "tested_source": "Uncommitted candidate identified by per-file raw and LF-canonical SHA256; final two documentation corrections do not affect executed Go/web source",
+  "source_inventory": [
+    {
+      "path": "contracts/http/openapi.yaml",
+      "purpose": "HTTP 503 maintenance, current auth/replay precedence; PR194 main preserved",
+      "bytes": 138694,
+      "sha256": "f06d98f3d4dd79b030106b539cf3c7479191a455efd0883b8700196640ad9336",
+      "lf_sha256": "6e54c56a8b10751edcfa168ef01c72d35e898fa352a84c476631ff44381def19"
+    },
+    {
+      "path": "db/migrations/000012_worker_control.sql",
+      "purpose": "New migrations 12/13 and operational schema-readiness instructions; no applied DDL",
+      "bytes": 2947,
+      "sha256": "f87fff6b5dce4ae111ccf8f4e2d950700faf46d9190625e2929ae0ebc4e838bc",
+      "lf_sha256": "f87fff6b5dce4ae111ccf8f4e2d950700faf46d9190625e2929ae0ebc4e838bc"
+    },
+    {
+      "path": "db/migrations/000013_worker_control_resume.sql",
+      "purpose": "New migrations 12/13 and operational schema-readiness instructions; no applied DDL",
+      "bytes": 880,
+      "sha256": "df5cd776a5166be952211d36d8f063322bdf86994ab1c5a559f37a24c60faf4f",
+      "lf_sha256": "df5cd776a5166be952211d36d8f063322bdf86994ab1c5a559f37a24c60faf4f"
+    },
+    {
+      "path": "db/migrations/README.md",
+      "purpose": "New migrations 12/13 and operational schema-readiness instructions; no applied DDL",
+      "bytes": 22996,
+      "sha256": "cbf670ae7ee816f27353e3a5a03eb77066a33cfa97f313bcb8e948df8ada577d",
+      "lf_sha256": "e1e2a3a401d58f4ed548e5f79d2e2b310d9d217dd18bdfb37369ceb8b355f71b"
+    },
+    {
+      "path": "docs/backend/dr-mutation-admission.md",
+      "purpose": "Candidate operation guide, boundaries and deployment constraints",
+      "bytes": 4897,
+      "sha256": "6b076d898f833520425940956cb1f984606bba3a143ce3d21f147910cbc5eb7d",
+      "lf_sha256": "6b076d898f833520425940956cb1f984606bba3a143ce3d21f147910cbc5eb7d"
+    },
+    {
+      "path": "docs/backend/dr-worker-control.md",
+      "purpose": "Candidate operation guide, boundaries and deployment constraints",
+      "bytes": 14483,
+      "sha256": "3e83828bd8a39f5f723fc8799bbf6106ef49c8295b352a550dc8f8b1d01aa1f0",
+      "lf_sha256": "bc8d831245984eb7b7b43e1b0f258ff7bec93a247105a7a37f85d9c6c0d57fa1"
+    },
+    {
+      "path": "internal/postgres/migration_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 5419,
+      "sha256": "e4e8e7cad504ff79f6d3781135004c5a4f30b8e017bac0741974138139aed2ba",
+      "lf_sha256": "e4e8e7cad504ff79f6d3781135004c5a4f30b8e017bac0741974138139aed2ba"
+    },
+    {
+      "path": "internal/postgres/worker_control.go",
+      "purpose": "SQL worker state, tickets, independently committed resume INTENT/APPLIED",
+      "bytes": 10215,
+      "sha256": "0461c119740e477fb331a85e6bf7ead7cddfd22f8e8a9c0ad73bc7df112e873b",
+      "lf_sha256": "0461c119740e477fb331a85e6bf7ead7cddfd22f8e8a9c0ad73bc7df112e873b"
+    },
+    {
+      "path": "internal/postgres/worker_control_integration_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 5162,
+      "sha256": "1fce8628cb161abc77ff20ff337adcdae423bfeef31b6a5ca5f75eabcf01c4b0",
+      "lf_sha256": "1fce8628cb161abc77ff20ff337adcdae423bfeef31b6a5ca5f75eabcf01c4b0"
+    },
+    {
+      "path": "internal/postgres/worker_control_resume.go",
+      "purpose": "SQL worker state, tickets, independently committed resume INTENT/APPLIED",
+      "bytes": 6549,
+      "sha256": "398d6071d0d8f31dc1559f7fc8f9a12bb1de3497d659b0d57005a2a9f13d1c74",
+      "lf_sha256": "398d6071d0d8f31dc1559f7fc8f9a12bb1de3497d659b0d57005a2a9f13d1c74"
+    },
+    {
+      "path": "internal/postgres/worker_control_resume_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 7766,
+      "sha256": "28641f1f112a4a8a57df94687085ac4b74681f9b385d77d7b9ba7d0df769581a",
+      "lf_sha256": "28641f1f112a4a8a57df94687085ac4b74681f9b385d77d7b9ba7d0df769581a"
+    },
+    {
+      "path": "internal/postgres/worker_control_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 9090,
+      "sha256": "c6c9433679ba25583c5e95c11393df686efaf4c78d53235a55b9a39e263bc637",
+      "lf_sha256": "c6c9433679ba25583c5e95c11393df686efaf4c78d53235a55b9a39e263bc637"
+    },
+    {
+      "path": "internal/server/app/admission_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 3573,
+      "sha256": "5f00045d64158e66822a688f1a38b80f196dfcf05ba6f56d800db816414d5699",
+      "lf_sha256": "5f00045d64158e66822a688f1a38b80f196dfcf05ba6f56d800db816414d5699"
+    },
+    {
+      "path": "internal/server/app/app.go",
+      "purpose": "Config validation and production gate/control assembly",
+      "bytes": 28715,
+      "sha256": "27b5159615b60000fed53bc9f3dbad4f04ad901605c68e6d974b82c1896a0873",
+      "lf_sha256": "27b5159615b60000fed53bc9f3dbad4f04ad901605c68e6d974b82c1896a0873"
+    },
+    {
+      "path": "internal/server/app/control_stack.go",
+      "purpose": "Config validation and production gate/control assembly",
+      "bytes": 21499,
+      "sha256": "9c1a7ec84faac4e13e0bd8d9128f0820ff5a6a1a8c3609cb7315c132f214e865",
+      "lf_sha256": "9c1a7ec84faac4e13e0bd8d9128f0820ff5a6a1a8c3609cb7315c132f214e865"
+    },
+    {
+      "path": "internal/server/app/worker_control_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 6682,
+      "sha256": "30add9eac5858c82614a5af587a0ece1b9cae045d0f5cc5e80e911fa6c4524c9",
+      "lf_sha256": "30add9eac5858c82614a5af587a0ece1b9cae045d0f5cc5e80e911fa6c4524c9"
+    },
+    {
+      "path": "internal/server/connector/router.go",
+      "purpose": "Typed final dispatch/query boundary enforcement",
+      "bytes": 22753,
+      "sha256": "0bebe97366e59d9e2ee9d06e77d1019f5e54cb21d6efa1b4d858086ac36600cb",
+      "lf_sha256": "0bebe97366e59d9e2ee9d06e77d1019f5e54cb21d6efa1b4d858086ac36600cb"
+    },
+    {
+      "path": "internal/server/connector/worker_control_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 3573,
+      "sha256": "85330d956b7b5cafe47ac5a4e601e93577826e3719f3355c0bdf8695095a2bf1",
+      "lf_sha256": "85330d956b7b5cafe47ac5a4e601e93577826e3719f3355c0bdf8695095a2bf1"
+    },
+    {
+      "path": "internal/server/httpapi/admission_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 1610,
+      "sha256": "df41ffa1c13dae998ed771868c5a45e2818a2cfda0debf705637aae1021b7129",
+      "lf_sha256": "df41ffa1c13dae998ed771868c5a45e2818a2cfda0debf705637aae1021b7129"
+    },
+    {
+      "path": "internal/server/labexecution/admission_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 9072,
+      "sha256": "71122df92d3b7016d7f6497282ca03cc3ca808f8f0ca9dce62c4791d6390b8f0",
+      "lf_sha256": "71122df92d3b7016d7f6497282ca03cc3ca808f8f0ca9dce62c4791d6390b8f0"
+    },
+    {
+      "path": "internal/server/maintenance/gate.go",
+      "purpose": "Local query drain observation and exact-closed resume readiness",
+      "bytes": 3507,
+      "sha256": "5241719b79df403ff35e52612e6e5fcc5b56748f2fd0956994b80723f451b68e",
+      "lf_sha256": "5241719b79df403ff35e52612e6e5fcc5b56748f2fd0956994b80723f451b68e"
+    },
+    {
+      "path": "internal/server/maintenance/gate_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 4602,
+      "sha256": "14bb9cbf507bb773d82ecf1b338d86feaa97fb3262e22e36b57ccc8fdb99bc35",
+      "lf_sha256": "14bb9cbf507bb773d82ecf1b338d86feaa97fb3262e22e36b57ccc8fdb99bc35"
+    },
+    {
+      "path": "internal/server/provision/executor.go",
+      "purpose": "Executor/Reconciliation claim, prepare, dispatch, requeue and query-only boundary",
+      "bytes": 17595,
+      "sha256": "7933287bb3c34cfca8984f6a4e499960a175aa1562ddf2be5fe4921e33be53fe",
+      "lf_sha256": "7933287bb3c34cfca8984f6a4e499960a175aa1562ddf2be5fe4921e33be53fe"
+    },
+    {
+      "path": "internal/server/provision/maintenance_resume_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 9820,
+      "sha256": "1d4a16f87343fc6b20baa978add9770c4b99e36031ecb5f43ad449bd6cf5f3cf",
+      "lf_sha256": "1d4a16f87343fc6b20baa978add9770c4b99e36031ecb5f43ad449bd6cf5f3cf"
+    },
+    {
+      "path": "internal/server/provision/reconciliation.go",
+      "purpose": "Executor/Reconciliation claim, prepare, dispatch, requeue and query-only boundary",
+      "bytes": 5725,
+      "sha256": "c2e9bbdf7a6a16a672dcaf223f8ae135271a242620ea094d5e7f6d142ad83a98",
+      "lf_sha256": "c2e9bbdf7a6a16a672dcaf223f8ae135271a242620ea094d5e7f6d142ad83a98"
+    },
+    {
+      "path": "internal/server/provision/worker_control_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 25539,
+      "sha256": "29b16b15dbf31771cb02d6b3702cc2f5540afcf815bf0cdd0855675ddca235de",
+      "lf_sha256": "29b16b15dbf31771cb02d6b3702cc2f5540afcf815bf0cdd0855675ddca235de"
+    },
+    {
+      "path": "internal/server/provision/worker_resume_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 4327,
+      "sha256": "c4dc67737679ed1c4f7d98679a0c409e7b592b7436a07c4780192cd974dd0676",
+      "lf_sha256": "c4dc67737679ed1c4f7d98679a0c409e7b592b7436a07c4780192cd974dd0676"
+    },
+    {
+      "path": "internal/server/workercontrol/control.go",
+      "purpose": "Scoped fail-closed controls, revision/epoch, approval/recheck contracts and resume",
+      "bytes": 6078,
+      "sha256": "64ce09e4c5f4a256e265e7897c14c0878c82df76000c45a04c5fa9299224d9a0",
+      "lf_sha256": "64ce09e4c5f4a256e265e7897c14c0878c82df76000c45a04c5fa9299224d9a0"
+    },
+    {
+      "path": "internal/server/workercontrol/control_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 4456,
+      "sha256": "e450e9f00a36e6d19b71d1fda5fc7e66eb8ee91571cc2a6138e85cdb4d8f74fa",
+      "lf_sha256": "e450e9f00a36e6d19b71d1fda5fc7e66eb8ee91571cc2a6138e85cdb4d8f74fa"
+    },
+    {
+      "path": "internal/server/workercontrol/durable.go",
+      "purpose": "Scoped fail-closed controls, revision/epoch, approval/recheck contracts and resume",
+      "bytes": 5480,
+      "sha256": "08ab206a05682c1b496e62ab973d5808ac7d53cdeabce3712d8be5a5c3fa84e5",
+      "lf_sha256": "08ab206a05682c1b496e62ab973d5808ac7d53cdeabce3712d8be5a5c3fa84e5"
+    },
+    {
+      "path": "internal/server/workercontrol/durable_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 10850,
+      "sha256": "200b81aedc754c49247c6b117d141f10a47e02f8a219268322df7080c124a142",
+      "lf_sha256": "200b81aedc754c49247c6b117d141f10a47e02f8a219268322df7080c124a142"
+    },
+    {
+      "path": "internal/server/workercontrol/maintenance_resume.go",
+      "purpose": "Scoped fail-closed controls, revision/epoch, approval/recheck contracts and resume",
+      "bytes": 2074,
+      "sha256": "bc4850ca01c5315b652a329c500b8a2c8bc7e12f321ec73c0bf097dceccd1605",
+      "lf_sha256": "bc4850ca01c5315b652a329c500b8a2c8bc7e12f321ec73c0bf097dceccd1605"
+    },
+    {
+      "path": "internal/server/workercontrol/maintenance_resume_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 5989,
+      "sha256": "b66036d4660ed70b9f4b88ad75016af08ed02ba213abc74b4a4a350afd6824a4",
+      "lf_sha256": "b66036d4660ed70b9f4b88ad75016af08ed02ba213abc74b4a4a350afd6824a4"
+    },
+    {
+      "path": "internal/server/workercontrol/resume.go",
+      "purpose": "Scoped fail-closed controls, revision/epoch, approval/recheck contracts and resume",
+      "bytes": 8784,
+      "sha256": "4a1f30dbd6f996546d5a06cee08b4c178d395f68e088920bef68e82b959202b2",
+      "lf_sha256": "4a1f30dbd6f996546d5a06cee08b4c178d395f68e088920bef68e82b959202b2"
+    },
+    {
+      "path": "internal/server/workercontrol/resume_test.go",
+      "purpose": "Behavior/failure regression; fake or scripted SQL except integration-tag compile-only",
+      "bytes": 16277,
+      "sha256": "6ecb53f56845b9cf65ffb06bae5377302fb4dbd51aa3e939c5d7ab8f63cabd4c",
+      "lf_sha256": "6ecb53f56845b9cf65ffb06bae5377302fb4dbd51aa3e939c5d7ab8f63cabd4c"
+    },
+    {
+      "path": "internal/server/workercontrol/settings.go",
+      "purpose": "Scoped fail-closed controls, revision/epoch, approval/recheck contracts and resume",
+      "bytes": 1268,
+      "sha256": "83729329725b3b28b6f1e8a624463cad9bf3d11a62d8ae7e8ebf070b5ec29248",
+      "lf_sha256": "83729329725b3b28b6f1e8a624463cad9bf3d11a62d8ae7e8ebf070b5ec29248"
+    },
+    {
+      "path": "internal/testsupport/workercontrolfake/resume.go",
+      "purpose": "Shared fake journal for multi-instance/restart/failure regression; not production storage",
+      "bytes": 3067,
+      "sha256": "34101ad2de77fd713fc8f58db9ba79fe238d52f98d0673b68e79f944a77c4753",
+      "lf_sha256": "34101ad2de77fd713fc8f58db9ba79fe238d52f98d0673b68e79f944a77c4753"
+    },
+    {
+      "path": "internal/testsupport/workercontrolfake/store.go",
+      "purpose": "Shared fake journal for multi-instance/restart/failure regression; not production storage",
+      "bytes": 3895,
+      "sha256": "2ddb82f7a79ebd06ff324f28bbf4055bb329fab0350d056cf7d57ad5a0da56c0",
+      "lf_sha256": "2ddb82f7a79ebd06ff324f28bbf4055bb329fab0350d056cf7d57ad5a0da56c0"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "purpose": "Runtime opt-in worker control, durable resume and local maintenance bridge; main semantics preserved",
+      "bytes": 67883,
+      "sha256": "336faf63fadceb8f90c411d770060bef4214d988fe236525ff1f32d7152d52d5",
+      "lf_sha256": "336faf63fadceb8f90c411d770060bef4214d988fe236525ff1f32d7152d52d5"
+    }
+  ],
+  "historical_evidence": [
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-19-admission-local/audit.md",
+      "purpose": "Historical audit: old source/base; not current-source test PASS",
+      "bytes": 15856,
+      "sha256": "0b0f57adabeb629ac13095e186ca5e50d20bcd230298c0e7a0b32c96dc0be3db",
+      "lf_sha256": "0b0f57adabeb629ac13095e186ca5e50d20bcd230298c0e7a0b32c96dc0be3db"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-19-admission-local/validation.json",
+      "purpose": "Historical audit: old source/base; not current-source test PASS",
+      "bytes": 25811,
+      "sha256": "2383d03bed5ecada074561676808b32e2c69d8388923b0ef96870a7ab6abb721",
+      "lf_sha256": "2383d03bed5ecada074561676808b32e2c69d8388923b0ef96870a7ab6abb721"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-19-worker-control-local/audit.md",
+      "purpose": "Historical audit: old source/base; not current-source test PASS",
+      "bytes": 19121,
+      "sha256": "08aef73e0b9bbaaf33b327c698a1fb04703a7a26ffcfe67c8fe49c0f54b3f129",
+      "lf_sha256": "08aef73e0b9bbaaf33b327c698a1fb04703a7a26ffcfe67c8fe49c0f54b3f129"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-19-worker-control-local/validation.json",
+      "purpose": "Historical audit: old source/base; not current-source test PASS",
+      "bytes": 91587,
+      "sha256": "4f4d78db1d69a80edb6785a8270c19bd0895dd9a55b8eabfb6eede7b3c7e55e9",
+      "lf_sha256": "4f4d78db1d69a80edb6785a8270c19bd0895dd9a55b8eabfb6eede7b3c7e55e9"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-maintenance-integration/audit.md",
+      "purpose": "Historical audit: old source/base; not current-source test PASS",
+      "bytes": 22651,
+      "sha256": "c27d33feb65ad50d6ee6d533e5a925e39ac19f2e2ccd8ba07d93df7d7e6a575f",
+      "lf_sha256": "c27d33feb65ad50d6ee6d533e5a925e39ac19f2e2ccd8ba07d93df7d7e6a575f"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-maintenance-integration/validation.json",
+      "purpose": "Historical audit: old source/base; not current-source test PASS",
+      "bytes": 42168,
+      "sha256": "b2c10722fae8c934fa0256bed946e235d5cf2997bc2aa2730170cf4132395b53",
+      "lf_sha256": "d6d49f06a067e8498a3ff80a5d0c59ca0e5a13393e6bbb253f21c2f92138cd53"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-worker-control-durable/audit.md",
+      "purpose": "Historical audit: old source/base; not current-source test PASS",
+      "bytes": 19513,
+      "sha256": "3768a9c4c7d7d8539cd2c9a42c5b54e9de5104fe1da17235b2b7a09ad3238ae9",
+      "lf_sha256": "3768a9c4c7d7d8539cd2c9a42c5b54e9de5104fe1da17235b2b7a09ad3238ae9"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-worker-control-durable/validation.json",
+      "purpose": "Historical audit: old source/base; not current-source test PASS",
+      "bytes": 101505,
+      "sha256": "8709d65291af1a36995f783e86ebb09096873b3dd5792c184d107504fa444c5d",
+      "lf_sha256": "202cf07b0d737c73c5e3973959a0002ac8dc9a16bf227a314702a3ae0d03a1b6"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-worker-control-resume/audit.md",
+      "purpose": "Historical audit: old source/base; not current-source test PASS",
+      "bytes": 19524,
+      "sha256": "b60cf937bea31c3c63a2dd06e5c8ef6bdf9da14c27b432abf8d01bc6273cfd1f",
+      "lf_sha256": "568aa69987febf9067968b8ee9ef8b04eccbeb5cf49b2dc5344c685fddf33cd7"
+    },
+    {
+      "path": "docs/backend/evidence/LBT-60/2026-11-20-worker-control-resume/validation.json",
+      "purpose": "Historical audit: old source/base; not current-source test PASS",
+      "bytes": 60055,
+      "sha256": "dc199c31307b6fb99289d36d5fff19f3d69a87513be6c77c1599bd146a298b93",
+      "lf_sha256": "91193bb7332b1a0c7688290b520690af7f8943588ecb8117fe17e12964e0e987"
+    }
+  ],
+  "self_exclusion": "This directory audit.md and validation.json are review metadata, excluded from self-referential source hashes",
+  "test_commands": [
+    {
+      "name": "final-race",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "test",
+        "-race",
+        "-json",
+        "./internal/postgres",
+        "./internal/server/workercontrol",
+        "./internal/server/maintenance",
+        "./internal/server/provision",
+        "./internal/server/connector",
+        "./internal/server/app",
+        "./internal/server/operation",
+        "./internal/server/labexecution",
+        "./internal/server/httpapi",
+        "-count=1",
+        "-timeout=120s"
+      ],
+      "exit_code": 0,
+      "seconds": 13.72,
+      "stdout": ".local\\main-refresh-checks\\final-race.jsonl",
+      "stderr": ".local\\main-refresh-checks\\final-race.stderr.log"
+    },
+    {
+      "name": "go-vet",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "vet",
+        "./..."
+      ],
+      "exit_code": 0,
+      "seconds": 13.12,
+      "stdout": ".local\\main-refresh-checks\\go-vet.log",
+      "stderr": ".local\\main-refresh-checks\\go-vet.stderr.log"
+    },
+    {
+      "name": "go-build",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "build",
+        "./..."
+      ],
+      "exit_code": 0,
+      "seconds": 6.64,
+      "stdout": ".local\\main-refresh-checks\\go-build.log",
+      "stderr": ".local\\main-refresh-checks\\go-build.stderr.log"
+    },
+    {
+      "name": "integration-compile",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "test",
+        "-tags",
+        "integration",
+        "./internal/postgres",
+        "./internal/server/httpapi",
+        "-run",
+        "^$",
+        "-count=1"
+      ],
+      "exit_code": 0,
+      "seconds": 2.31,
+      "stdout": ".local\\main-refresh-checks\\integration-compile.log",
+      "stderr": ".local\\main-refresh-checks\\integration-compile.stderr.log"
+    },
+    {
+      "name": "full-go",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+        "test",
+        "-json",
+        "./...",
+        "-count=1",
+        "-timeout=90s"
+      ],
+      "exit_code": 1,
+      "seconds": 96.4,
+      "stdout": ".local\\main-refresh-checks\\full-go.jsonl",
+      "stderr": ".local\\main-refresh-checks\\full-go.stderr.log"
+    },
+    {
+      "name": "web-typecheck",
+      "command": [
+        "node",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\workspace-bootstrap-20261022\\npm-runtime\\package\\bin\\npm-cli.js",
+        "run",
+        "typecheck"
+      ],
+      "exit_code": 0,
+      "seconds": 7.02,
+      "stdout": ".local\\main-refresh-checks\\web-typecheck.log",
+      "stderr": ".local\\main-refresh-checks\\web-typecheck.stderr.log"
+    },
+    {
+      "name": "web-lint",
+      "command": [
+        "node",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\workspace-bootstrap-20261022\\npm-runtime\\package\\bin\\npm-cli.js",
+        "run",
+        "lint"
+      ],
+      "exit_code": 0,
+      "seconds": 7.54,
+      "stdout": ".local\\main-refresh-checks\\web-lint.log",
+      "stderr": ".local\\main-refresh-checks\\web-lint.stderr.log"
+    },
+    {
+      "name": "web-tests",
+      "command": [
+        "node",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\workspace-bootstrap-20261022\\npm-runtime\\package\\bin\\npm-cli.js",
+        "run",
+        "test",
+        "--",
+        "--reporter=json",
+        "--outputFile=C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-admission-20261119\\.local\\main-refresh-checks\\web-tests.json"
+      ],
+      "exit_code": 1,
+      "seconds": 15.73,
+      "stdout": ".local\\main-refresh-checks\\web-tests.log",
+      "stderr": ".local\\main-refresh-checks\\web-tests.stderr.log"
+    },
+    {
+      "name": "web-build",
+      "command": [
+        "node",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\workspace-bootstrap-20261022\\npm-runtime\\package\\bin\\npm-cli.js",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "seconds": 0.96,
+      "stdout": ".local\\main-refresh-checks\\web-build.log",
+      "stderr": ".local\\main-refresh-checks\\web-build.stderr.log"
+    }
+  ],
+  "race": {
+    "counts": {
+      "run": 1398,
+      "output": 2796,
+      "pass": 1398
+    },
+    "failed_packages": [],
+    "failed_tests": [],
+    "skipped_tests": [],
+    "unfinished_tests": []
+  },
+  "full_go": {
+    "counts": {
+      "run": 3996,
+      "output": 8549,
+      "pass": 3941,
+      "fail": 39,
+      "skip": 15,
+      "pause": 193,
+      "cont": 193
+    },
+    "failed_packages": [
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/installer",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack"
+    ],
+    "failed_tests": [
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudProvisionAcceptsLateActiveAfterFiveMinutes"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupReturnRestartAndDelayedCommands"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/unknown_create"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/legacy_intent"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/crashed_completion"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/server_without_root"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_occupied"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_failure"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/unlisted_live_resource"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupAllGenerationsAndStaleCleanup"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/tombstone_before_removal"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPartialDeleteKeepsReservation"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupSerializesWithAllocation"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudHeldCIDRAllowsDifferentInstanceWithoutReleasingOldOwner"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPublicLifecycleReturnsCompleteTopology"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/invalid_config"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/foreign_lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolIsolationResetAndRestart"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/skip_shared"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/all_overlap"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/unknown_CIDR"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/pending_unmapped_Tier"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/installer",
+        "test": "TestInstallerScript_ShellSyntaxAndBehavioralSuite"
+      }
+    ],
+    "skipped_tests": [
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM2ControlWSSIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestFailedRecoveryEvidenceRequiresBoundCompleteOwnedTopology"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackFileTransportIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM1Integration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM2ProvisionIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM3LifecycleIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackInternetPolicyIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+        "test": "TestSymlinkRejectedAndExcludedFromTree"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+        "test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+        "test": "TestLocator_Lifecycle"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+        "test": "TestLocator_AtomicGenerationAndOwnerLossCallback"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+        "test": "TestLocator_TerminalOwner"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+        "test": "TestLocator_TerminalOwnerHeartbeatRenewal"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+        "test": "TestLocator_PreviewOwner"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+        "test": "TestLocator_LookupRetiresLocalStaleLeaseImmediately"
+      }
+    ],
+    "unfinished_tests": [
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolConcurrentAndUnknownMutation"
+      }
+    ],
+    "same_failed_set_as_prior_candidate": true
+  },
+  "web": {
+    "numTotalTestSuites": 75,
+    "numPassedTestSuites": 73,
+    "numFailedTestSuites": 2,
+    "numPendingTestSuites": 0,
+    "numTotalTests": 493,
+    "numPassedTests": 492,
+    "numFailedTests": 1,
+    "numPendingTests": 0,
+    "numTodoTests": 0,
+    "failures": [
+      {
+        "path": "web/scripts/validate-installer-build-env.test.mjs",
+        "test": "LBT-183 public Installer URL build-time safety Vite also rejects invalid final process config without echoing it",
+        "reason": "Windows temp directory rmSync EPERM; existing unchanged fixture line 90"
+      }
+    ]
+  },
+  "contracts": {
+    "openapi": "PASS",
+    "json_schemas": 8,
+    "local_refs": "PASS",
+    "runtime_version": "0.1.12",
+    "main_maintenance_semantics_preserved": "PASS",
+    "migration_config_structure": "PASS",
+    "migration_numbers": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13
+    ],
+    "gofmt": "PASS",
+    "go_files_checked": 32,
+    "delivery_build_dependencies_unchanged": "PASS"
+  },
+  "final_contract_ci_programs": "PASS after P3 OpenAPI correction",
+  "raw_log_inventory": [
+    {
+      "path": ".local/main-refresh-checks/contracts.json",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 436,
+      "sha256": "9469ec6242c2e98b475d060a629b68e57bf460e75c55a2879359a19e690a5709",
+      "lf_sha256": "76dc59bb1353c4c2837815a885a47d3663e5a8a578c482b17b7962525b87074b"
+    },
+    {
+      "path": ".local/main-refresh-checks/final-race.jsonl",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 1458009,
+      "sha256": "b26541a32fa9d026923a170984e2fe3d01bdd3d2873d1c7ebbc36c879ae54e59",
+      "lf_sha256": "b26541a32fa9d026923a170984e2fe3d01bdd3d2873d1c7ebbc36c879ae54e59"
+    },
+    {
+      "path": ".local/main-refresh-checks/final-race.stderr.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "lf_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/main-refresh-checks/full-go.jsonl",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 4464564,
+      "sha256": "8fae59fda3f7ea1c4d802956f189b80c703f81cad60e1391128acacb736a6afc",
+      "lf_sha256": "8fae59fda3f7ea1c4d802956f189b80c703f81cad60e1391128acacb736a6afc"
+    },
+    {
+      "path": ".local/main-refresh-checks/full-go.stderr.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "lf_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/main-refresh-checks/go-build.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "lf_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/main-refresh-checks/go-build.stderr.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "lf_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/main-refresh-checks/go-results.json",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 2333,
+      "sha256": "d634e03dead22810b4554bcd8da33ea08c6076bb239b9df95fec46c088789660",
+      "lf_sha256": "eec44b46d7827d183a22de2b5faf59248aa2c50b351c168b60e1c6d626d19c22"
+    },
+    {
+      "path": ".local/main-refresh-checks/go-vet.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "lf_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/main-refresh-checks/go-vet.stderr.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "lf_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/main-refresh-checks/integration-compile.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 170,
+      "sha256": "fcfd0111afb3b8cd23b075764ef07df71df5ea7ae072b889b04f5e9084458cbf",
+      "lf_sha256": "fcfd0111afb3b8cd23b075764ef07df71df5ea7ae072b889b04f5e9084458cbf"
+    },
+    {
+      "path": ".local/main-refresh-checks/integration-compile.stderr.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "lf_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/main-refresh-checks/runner.py",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 1931,
+      "sha256": "0b8a215b379e69bc3c27a06c9cd3a8268941db39d36fe35a9ece7735027b98d0",
+      "lf_sha256": "fd10bfa05855968fd95a02db8f8fddf73e652c9e8d166832f21002d7fcc624d4"
+    },
+    {
+      "path": ".local/main-refresh-checks/web-build.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 352,
+      "sha256": "71a018de91896ac35fe015e363e17368393a3a98d405c5d875f36bdcfe869d2a",
+      "lf_sha256": "71a018de91896ac35fe015e363e17368393a3a98d405c5d875f36bdcfe869d2a"
+    },
+    {
+      "path": ".local/main-refresh-checks/web-build.stderr.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 425,
+      "sha256": "242face42edbaf26901c4178fc12351213054ca96559baec862fb14b18db4e87",
+      "lf_sha256": "242face42edbaf26901c4178fc12351213054ca96559baec862fb14b18db4e87"
+    },
+    {
+      "path": ".local/main-refresh-checks/web-lint.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "lf_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/main-refresh-checks/web-lint.stderr.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 79,
+      "sha256": "ed0a5e347cb72f707f8184df2866feefe29387e8789aefc66dd051efe0c789a4",
+      "lf_sha256": "ed0a5e347cb72f707f8184df2866feefe29387e8789aefc66dd051efe0c789a4"
+    },
+    {
+      "path": ".local/main-refresh-checks/web-results.json",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 1858,
+      "sha256": "64fa05ed321236e524e997889467b5d4dca3fc962fe6557bd5c36c3e095f3bb9",
+      "lf_sha256": "6560dea7a1f47e13b9c7fbb12fb969755ccf6009827fb99da962e30f68b94f10"
+    },
+    {
+      "path": ".local/main-refresh-checks/web-tests.json",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 199259,
+      "sha256": "6a2c6a8bf245335dbd305098bf30d700784a1c47891d02d1c02f90c7eb608887",
+      "lf_sha256": "6a2c6a8bf245335dbd305098bf30d700784a1c47891d02d1c02f90c7eb608887"
+    },
+    {
+      "path": ".local/main-refresh-checks/web-tests.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 137,
+      "sha256": "2600460140fb47679eba2fc04b674d7dcacb4a04d084f0ad1896578bd4116387",
+      "lf_sha256": "2600460140fb47679eba2fc04b674d7dcacb4a04d084f0ad1896578bd4116387"
+    },
+    {
+      "path": ".local/main-refresh-checks/web-tests.stderr.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 307,
+      "sha256": "3eb8cd3121c3bc20fc58ac923e29dad25e6aa0bb3aefd313e9f775480deaa5c5",
+      "lf_sha256": "3eb8cd3121c3bc20fc58ac923e29dad25e6aa0bb3aefd313e9f775480deaa5c5"
+    },
+    {
+      "path": ".local/main-refresh-checks/web-typecheck.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "lf_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".local/main-refresh-checks/web-typecheck.stderr.log",
+      "purpose": "Local execution output; ignored and not required for runtime",
+      "bytes": 71,
+      "sha256": "8bdd33d70ef4a3cd15b34cdfe518239ba12b1c08df2cad3e5a1359f62be1a2a4",
+      "lf_sha256": "8bdd33d70ef4a3cd15b34cdfe518239ba12b1c08df2cad3e5a1359f62be1a2a4"
+    }
+  ],
+  "external_validation": {
+    "shared_database": false,
+    "AWS": false,
+    "Seoul": false,
+    "Kubernetes": false,
+    "Slack": false,
+    "Provider": false,
+    "integration": "PostgreSQL/HTTP integration-tag compile-only: -run ^$; no actual DB tests executed"
+  },
+  "independent_review": {
+    "agent": "/root/review_worker_resume",
+    "base": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+    "scope": "Entire cumulative diff, snapshot comparison, SQL/approval/assembly, latest Jira, workflow triggers; 9pkg race and DB/HTTP compile-only independently PASS",
+    "findings": [
+      "I-REFRESH-DOC-01/P3 obsolete no-push wording corrected",
+      "I-REFRESH-DOC-02/P3 Cleanup reset-only 422 description corrected"
+    ]
+  },
+  "decision": "보완 필요: full baseline checks not green, real DB/adapters/rollout/global writer evidence outstanding. User-authorized Draft review publication only; not ready to merge/deploy.",
+  "safety": {
+    "replica_lag": "FAIL unchanged",
+    "required_settings": "NOT_VERIFIED",
+    "runtime_provenance": "NOT_VERIFIED",
+    "service_functions": "NOT_VERIFIED",
+    "single_writer": "NOT_VERIFIED",
+    "execution_gate": "HOLD",
+    "recovery_authorized": false,
+    "cloud_verified": false
+  }
+}

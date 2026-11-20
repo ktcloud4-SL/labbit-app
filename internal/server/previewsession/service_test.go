@@ -1042,3 +1042,60 @@ func TestOpenTunnelContextCancelClearsRouterPendingAndAllowsRetry(t *testing.T) 
 		t.Fatalf("ForgetPreviewOpen count = %d, want 2", len(forgottenB))
 	}
 }
+
+func TestCreateWithOwnerLocatorFailsClosedWhenRegisterPreviewFails(t *testing.T) {
+	loc := newFakePreviewOwnerLocator()
+	loc.registerErr = errors.New("valkey down")
+	f := newFixture(t, func(o *Options) { o.OwnerLocator = loc })
+
+	_, err := f.create(5173)
+	if !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("Create() error = %v, want ErrUnavailable", err)
+	}
+	if len(f.gateway.activatedIDs()) != 0 {
+		t.Fatalf("Activate should not be called when RegisterPreview fails: %v", f.gateway.activatedIDs())
+	}
+	if len(f.gateway.forgotIDs()) != 1 {
+		t.Fatalf("Gateway.Forget count = %d, want 1", len(f.gateway.forgotIDs()))
+	}
+	closes := f.connectors.closeList()
+	if len(closes) != 1 || closes[0].Reason != closeReasonOpenFailed {
+		t.Fatalf("PREVIEW_CLOSE = %+v, want 1 OPEN_FAILED", closes)
+	}
+}
+
+func TestOwnerLocatorRegistersOnCreateAndReleasesOnSessionEnd(t *testing.T) {
+	loc := newFakePreviewOwnerLocator()
+	f := newFixture(t, func(o *Options) { o.OwnerLocator = loc })
+
+	created, err := f.create(5173)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	loc.mu.Lock()
+	regConn, exists := loc.registered[created.ID]
+	loc.mu.Unlock()
+	if !exists || regConn != connectorID {
+		t.Fatalf("expected session %s to be registered in OwnerLocator for connector %s", created.ID, connectorID)
+	}
+
+	// Simulate SessionEnded (even when NotifyConnector is false, e.g., CREDENTIAL_REVOKED)
+	f.service.SessionEnded(preview.Ended{
+		SessionID:       created.ID,
+		ConnectorID:     connectorID,
+		LabInstanceID:   labID.String(),
+		Generation:      3,
+		Reason:          preview.EndCredentialRevoked,
+		NotifyConnector: false,
+	})
+	loc.mu.Lock()
+	_, stillExists := loc.registered[created.ID]
+	released := append([]string(nil), loc.released...)
+	loc.mu.Unlock()
+	if stillExists {
+		t.Fatalf("expected session %s to be removed from OwnerLocator after SessionEnded", created.ID)
+	}
+	if len(released) == 0 || released[len(released)-1] != created.ID {
+		t.Fatalf("expected ReleasePreview(%s), got %v", created.ID, released)
+	}
+}

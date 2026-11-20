@@ -312,15 +312,33 @@ func (g *Registration) MarkReady(route Route) bool {
 	return true
 }
 
-// Release는 이 Session이 아직 current일 때만 registry에서 제거한다. 여러 번 호출해도 안전하다.
+// Retire는 이 Session을 더 이상 current 및 ready가 아닌 것으로 표시하고 route를 영구 봉인하며 종료를 요청한다.
+// 이미 교체·revoke된 Session이면 아무것도 하지 않는다.
+func (g *Registration) Retire(reason CloseReason) {
+	g.registry.mu.Lock()
+	if g.registry.current[g.entry.session.ConnectorID] == g.entry {
+		delete(g.registry.current, g.entry.session.ConnectorID)
+	}
+	g.registry.mu.Unlock()
+
+	g.entry.retire(reason)
+	g.registry.sessionRetired(g.entry.session, reason)
+}
+
+// Release는 이 Session이 아직 current일 때만 registry에서 제거하고 route를 영구 봉인한다. 여러 번 호출해도 안전하다.
 // 이미 다른 Session이 current가 되었다면 그것을 지우지 않는다.
 func (g *Registration) Release() {
 	r := g.registry
 	r.mu.Lock()
-	defer r.mu.Unlock()
 	if r.current[g.entry.session.ConnectorID] == g.entry {
 		delete(r.current, g.entry.session.ConnectorID)
 	}
+	r.mu.Unlock()
+
+	g.entry.routeMu.Lock()
+	g.entry.route = nil
+	g.entry.sealed = true
+	g.entry.routeMu.Unlock()
 }
 
 // WithReadyRoute는 connectorID의 current Session이 protocol-ready일 때만 fn을 실행한다.

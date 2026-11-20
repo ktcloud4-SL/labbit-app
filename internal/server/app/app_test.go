@@ -326,3 +326,46 @@ func TestAdminHandlerReadinessRequiresEveryCheck(t *testing.T) {
 func emptyMetricsHandler() http.Handler {
 	return promhttp.HandlerFor(prometheus.NewRegistry(), promhttp.HandlerOpts{})
 }
+
+func TestLoadConfigPeerAddrAndPodAddr(t *testing.T) {
+	t.Run("default peerAddr is :8081 and derives podAddr from POD_IP", func(t *testing.T) {
+		t.Setenv("LABBIT_ENVIRONMENT", "development")
+		t.Setenv("LABBIT_RUNTIME_ROLES", "api")
+		t.Setenv("LABBIT_SHUTDOWN_GRACE", "5s")
+		t.Setenv("LABBIT_DATABASE_DSN", "postgres://labbit:dummy@localhost:5432/labbit")
+		t.Setenv("LABBIT_PUBLIC_ORIGIN", "https://labbit.example.com")
+		t.Setenv("POD_IP", "10.0.12.34")
+		t.Setenv("LABBIT_POD_ADDR", "")
+		t.Setenv("LABBIT_PEER_ADDR", "")
+
+		cfg, err := LoadConfig()
+		if err != nil {
+			t.Fatalf("LoadConfig() error = %v", err)
+		}
+		if cfg.PeerAddr != ":8081" {
+			t.Errorf("PeerAddr = %q, want :8081", cfg.PeerAddr)
+		}
+		if cfg.PodAddr != "10.0.12.34:8081" {
+			t.Errorf("PodAddr = %q, want 10.0.12.34:8081", cfg.PodAddr)
+		}
+	})
+
+	t.Run("explicit LABBIT_POD_ADDR overrides default", func(t *testing.T) {
+		t.Setenv("LABBIT_ENVIRONMENT", "development")
+		t.Setenv("LABBIT_RUNTIME_ROLES", "api")
+		t.Setenv("LABBIT_SHUTDOWN_GRACE", "5s")
+		t.Setenv("LABBIT_DATABASE_DSN", "postgres://labbit:dummy@localhost:5432/labbit")
+		t.Setenv("LABBIT_PUBLIC_ORIGIN", "https://labbit.example.com")
+		t.Setenv("POD_IP", "10.0.12.34")
+		t.Setenv("LABBIT_POD_ADDR", "10.0.12.34:8081")
+		t.Setenv("LABBIT_PEER_ADDR", ":8081")
+
+		cfg, err := LoadConfig()
+		if err != nil {
+			t.Fatalf("LoadConfig() error = %v", err)
+		}
+		if cfg.PodAddr != "10.0.12.34:8081" {
+			t.Errorf("PodAddr = %q, want 10.0.12.34:8081", cfg.PodAddr)
+		}
+	})
+}

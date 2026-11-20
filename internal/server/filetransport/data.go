@@ -82,12 +82,12 @@ func (b *Broker) serveHTTP(w http.ResponseWriter, r *http.Request) {
 		b.logger.Warn("Connector File Data Upgrade 실패", "connector_id", principal.ConnectorID.String(), "reason", "upgrade_failed")
 		return
 	}
-	b.serveData(ws, principal, ticket)
+	b.serveData(ws, principal, ticket, r.Header)
 }
 
 // serveData는 Upgrade된 Connector connection 하나를 끝까지 처리한다. 첫 application message는 FILE_DATA_ATTACH여야 한다.
 // attach가 성립하면 이 goroutine이 요청 frame을 쓰고 결과 frame을 읽은 뒤 요청에 결과를 전하고 connection을 닫는다.
-func (b *Broker) serveData(ws *websocket.Conn, principal connector.Principal, ticket *trustTicket) {
+func (b *Broker) serveData(ws *websocket.Conn, principal connector.Principal, ticket *trustTicket, reqHeaders http.Header) {
 	d := &dataConn{ws: ws, credentialID: principal.CredentialID, connectorID: principal.ConnectorID}
 	defer ws.Close()
 	log := b.logger.With("connector_id", principal.ConnectorID.String())
@@ -140,6 +140,26 @@ func (b *Broker) serveData(ws *websocket.Conn, principal connector.Principal, ti
 	// Connector identity는 credential 인증 결과다. message가 주장한 값은 기대한 요청과 대조할 뿐 identity가 아니다.
 	// 하나라도 다르면 요청을 건드리지 않고 이 connection만 거절한다. 다른 Connector가 pending 요청을 취소하거나 완료시킬 수 없다.
 	req := b.lookup(env.FileRequestID)
+	if req == nil && b.ownerLocator != nil && b.proxy != nil {
+		if b.proxy.IsInternalPeerFromHeader(reqHeaders) || b.proxy.HasSpoofedPeerHeaderFromHeader(reqHeaders) {
+			log.Warn("Connector File Data attach 거절", "reason", "unknown_request")
+			d.closeNow(closePolicy, "attach rejected")
+			return
+		}
+		lookupCtx, cancel := context.WithTimeout(context.Background(), authTimeout)
+		owner, err := b.ownerLocator.LookupConnector(lookupCtx, principal.ConnectorID)
+		cancel()
+		if err == nil && owner != nil && owner.PodID != "" && owner.PodID != b.ownerLocator.PodID() && owner.PodAddr != "" {
+			extra := http.Header{}
+			if auth := reqHeaders.Get("Authorization"); auth != "" {
+				extra.Set("Authorization", auth)
+			}
+			if err := b.proxy.ProxyWebSocketUpstream(ws, owner.PodAddr, DataPath, data, protocol.SubprotocolFileData, extra); err != nil {
+				log.Warn("Connector File Data proxy 실패", "error_code", "PROXY_FAILED")
+			}
+			return
+		}
+	}
 	reject := ""
 	switch {
 	case req == nil:

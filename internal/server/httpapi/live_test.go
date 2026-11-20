@@ -40,6 +40,13 @@ func (f *fakeLiveSessions) Close(_ context.Context, _ repository.User, _ string)
 	return f.closeErr
 }
 
+func (f *fakeLiveSessions) SourceTerminalForLiveSession(_ context.Context, _ string) (string, error) {
+	if f.active.SourceTerminalSessionID != uuid.Nil {
+		return f.active.SourceTerminalSessionID.String(), nil
+	}
+	return "", nil
+}
+
 type liveHarness struct {
 	liveSessions *fakeLiveSessions
 	liveID       uuid.UUID

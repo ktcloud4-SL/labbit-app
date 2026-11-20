@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/jsonnum"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 // maxPreviewBodyBytes는 PreviewSession 생성 요청 body 상한이다. 본문은 정수 하나뿐이다.
@@ -94,6 +96,37 @@ func (a *api) createPreviewSession(w http.ResponseWriter, r *http.Request) {
 		a.internalError(w, r, "create_preview_session", errors.New("인증 context가 없습니다"))
 		return
 	}
+	if a.ownerLocator != nil && a.proxy != nil {
+		if a.proxy.HasSpoofedPeerHeader(r) {
+			a.previewError(w, r, "create_preview_session", previewsession.ErrConnectorUnavailable)
+			return
+		}
+		if !a.proxy.IsInternalPeer(r) {
+			if labID, err := uuid.Parse(r.PathValue("labInstanceId")); err == nil {
+				connID, err := a.terminals.ConnectorForLabInstance(r.Context(), labID)
+				if (err != nil || connID == uuid.Nil) && a.previews != nil {
+					if resolver, ok := a.previews.(interface {
+						ConnectorForLabInstance(context.Context, uuid.UUID) (uuid.UUID, error)
+					}); ok {
+						connID, err = resolver.ConnectorForLabInstance(r.Context(), labID)
+					}
+				}
+				if err == nil && connID != uuid.Nil {
+					owner, err := a.ownerLocator.LookupConnector(r.Context(), connID)
+					if err != nil || owner == nil || owner.PodID == "" || (owner.PodID != a.ownerLocator.PodID() && owner.PodAddr == "") {
+						a.previewError(w, r, "create_preview_session", previewsession.ErrConnectorUnavailable)
+						return
+					}
+					if owner.PodID != a.ownerLocator.PodID() {
+						if err := a.proxy.TryProxyHTTP(w, r, owner.PodAddr); err != nil {
+							a.previewError(w, r, "create_preview_session", previewsession.ErrConnectorUnavailable)
+						}
+						return
+					}
+				}
+			}
+		}
+	}
 	port, ok := decodeCreatePreviewSessionRequest(w, r)
 	if !ok {
 		writeProblem(w, r, http.StatusBadRequest, codeInvalidRequest, "요청 형식이 올바르지 않습니다.")
@@ -124,7 +157,33 @@ func (a *api) closePreviewSession(w http.ResponseWriter, r *http.Request) {
 		a.internalError(w, r, "close_preview_session", errors.New("인증 context가 없습니다"))
 		return
 	}
-	if err := a.previews.Close(r.Context(), principal.User, r.PathValue("previewSessionId")); err != nil {
+	sessionID := r.PathValue("previewSessionId")
+	if a.ownerLocator != nil && a.proxy != nil {
+		if a.proxy.HasSpoofedPeerHeader(r) {
+			a.previewError(w, r, "close_preview_session", previewsession.ErrUnavailable)
+			return
+		}
+		if !a.proxy.IsInternalPeer(r) {
+			if parsed, err := uuid.Parse(sessionID); err == nil && parsed.String() == sessionID {
+				owner, err := a.ownerLocator.LookupPreview(r.Context(), sessionID)
+				if err != nil {
+					if !errors.Is(err, valkeyowner.ErrNoOwner) {
+						a.previewError(w, r, "close_preview_session", previewsession.ErrUnavailable)
+						return
+					}
+				} else if owner == nil || owner.PodID == "" || (owner.PodID != a.ownerLocator.PodID() && owner.PodAddr == "") {
+					a.previewError(w, r, "close_preview_session", previewsession.ErrUnavailable)
+					return
+				} else if owner.PodID != a.ownerLocator.PodID() {
+					if err := a.proxy.TryProxyHTTP(w, r, owner.PodAddr); err != nil {
+						a.previewError(w, r, "close_preview_session", previewsession.ErrUnavailable)
+					}
+					return
+				}
+			}
+		}
+	}
+	if err := a.previews.Close(r.Context(), principal.User, sessionID); err != nil {
 		a.previewError(w, r, "close_preview_session", err)
 		return
 	}

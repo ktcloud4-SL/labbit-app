@@ -11,7 +11,14 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
+
+// TerminalOwnerLocator allows resolving terminal session owner for peer routing.
+type TerminalOwnerLocator interface {
+	LookupTerminal(ctx context.Context, terminalSessionID string) (*valkeyowner.TerminalOwnerRecord, error)
+	PodID() string
+}
 
 // Relay가 Control과 주고받는 I/O 하나의 상한이다. 저장소 호출이 이 시간을 넘으면 실패로 처리한다.
 const controlTimeout = 10 * time.Second
@@ -96,17 +103,23 @@ type Options struct {
 	DataQueueMessages    int
 	// MaxBinaryMessage는 Binary PTY message 하나의 읽기 상한이다. 0이면 1 MiB다. JSON Text 한도(1 MiB)와 무관하다.
 	MaxBinaryMessage int64
+
+	// OwnerLocator and Proxy enable peer WebSocket routing to the owner Pod.
+	OwnerLocator TerminalOwnerLocator
+	Proxy        *valkeyowner.Proxy
 }
 
 // Relay는 TerminalSession별 Browser attachment와 Connector data channel을 이어 주는 ephemeral hub다.
 type Relay struct {
-	control     Control
-	liveControl LiveControl
-	connectors  ConnectorAuthenticator
-	allowOrigin func(string) bool
-	clock       Clock
-	logger      *slog.Logger
-	metrics     *observability.RealtimeMetrics
+	control      Control
+	liveControl  LiveControl
+	connectors   ConnectorAuthenticator
+	allowOrigin  func(string) bool
+	clock        Clock
+	logger       *slog.Logger
+	metrics      *observability.RealtimeMetrics
+	ownerLocator TerminalOwnerLocator
+	proxy        *valkeyowner.Proxy
 
 	grace         time.Duration
 	attachTimeout time.Duration
@@ -168,6 +181,8 @@ func New(opts Options) (*Relay, error) {
 		terminalToLive:       make(map[string]*liveSession),
 		liveControl:          opts.LiveControl,
 		trust:                newDataTrust(),
+		ownerLocator:         opts.OwnerLocator,
+		proxy:                opts.Proxy,
 		done:                 make(chan struct{}),
 	}
 	if r.clock == nil {

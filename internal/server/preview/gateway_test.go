@@ -17,6 +17,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 // ---- Browser 인증: bootstrap → exchange → Cookie ----
@@ -1293,6 +1295,159 @@ func TestPreviewContentNeverReachesLogsOrLifecycle(t *testing.T) {
 	for _, want := range []string{"preview_session_id", s.SessionID, "request_id"} {
 		if !strings.Contains(logs, want) {
 			t.Errorf("log에 %q가 없음", want)
+		}
+	}
+}
+
+type fakeGatewayOwnerLocator struct {
+	podID        string
+	previewOwner map[string]*valkeyowner.PreviewOwnerRecord
+	previewErr   error
+}
+
+func (f *fakeGatewayOwnerLocator) LookupConnector(context.Context, uuid.UUID) (*valkeyowner.ConnectorOwnerRecord, error) {
+	return nil, valkeyowner.ErrNoOwner
+}
+
+func (f *fakeGatewayOwnerLocator) LookupPreview(_ context.Context, sessionID string) (*valkeyowner.PreviewOwnerRecord, error) {
+	if f.previewErr != nil {
+		return nil, f.previewErr
+	}
+	if rec, ok := f.previewOwner[sessionID]; ok {
+		return rec, nil
+	}
+	return nil, valkeyowner.ErrNoOwner
+}
+
+func (f *fakeGatewayOwnerLocator) PodID() string {
+	return f.podID
+}
+
+func TestCrossPodPreviewOriginRoutingAndHeaderSanitization(t *testing.T) {
+	const peerSecret = "super-secret-peer-key-do-not-leak"
+
+	locA := &fakeGatewayOwnerLocator{podID: "pod-a", previewOwner: map[string]*valkeyowner.PreviewOwnerRecord{}}
+	proxyA := valkeyowner.NewProxy(peerSecret)
+	envA := newEnv(t, func(o *Options) {
+		o.OwnerLocator = locA
+		o.Proxy = proxyA
+	})
+	sess := envA.activate()
+
+	var observedUpstreamHost string
+	var observedPeerSecretHeader string
+	var observedInternalPeerHeader string
+	var observedCustomHeader string
+	envA.app.setHandler(func(w http.ResponseWriter, r *http.Request) {
+		observedUpstreamHost = r.Host
+		observedPeerSecretHeader = r.Header.Get(valkeyowner.HeaderPeerSecret)
+		observedInternalPeerHeader = r.Header.Get(valkeyowner.HeaderInternalPeer)
+		observedCustomHeader = r.Header.Get("X-Student-App")
+		w.Header().Set("X-Workspace-Reply", "from-pod-a-workspace")
+		_, _ = io.WriteString(w, "hello-cross-pod:"+r.URL.Path+"?"+r.URL.RawQuery)
+	})
+
+	addrA := strings.TrimPrefix(envA.originServer.URL, "http://")
+	locB := &fakeGatewayOwnerLocator{
+		podID: "pod-b",
+		previewOwner: map[string]*valkeyowner.PreviewOwnerRecord{
+			sess.SessionID: {
+				PreviewSessionID: sess.SessionID,
+				ConnectorID:      envA.connectorID,
+				PodID:            "pod-a",
+				PodAddr:          addrA,
+				Epoch:            1,
+				ExpiresAt:        time.Now().Add(10 * time.Minute),
+			},
+		},
+	}
+	proxyB := valkeyowner.NewProxy(peerSecret)
+	envB := newEnv(t, func(o *Options) {
+		o.OwnerLocator = locB
+		o.Proxy = proxyB
+	})
+
+	// 1. Cross-Pod GET /__labbit/bootstrap on Pod B -> proxied to Pod A -> 200 OK
+	respBoot, bodyBoot := envB.do(sess.Expected, http.MethodGet, BootstrapPath, "")
+	if respBoot.StatusCode != http.StatusOK || !strings.Contains(bodyBoot, "/__labbit/exchange") {
+		t.Fatalf("cross-pod bootstrap on Pod B = %d %q", respBoot.StatusCode, bodyBoot)
+	}
+
+	// 2. Cross-Pod POST /__labbit/exchange on Pod B -> proxied to Pod A -> 204 + Set-Cookie
+	respEx, bodyEx := envB.exchange(sess.Expected, sess.Credential)
+	if respEx.StatusCode != http.StatusNoContent {
+		t.Fatalf("cross-pod exchange on Pod B = %d %q", respEx.StatusCode, bodyEx)
+	}
+	var previewCookie *http.Cookie
+	for _, c := range respEx.Cookies() {
+		if c.Name == plainCookieName || c.Name == secureCookieName {
+			previewCookie = c
+		}
+	}
+	if previewCookie == nil {
+		t.Fatal("cross-pod exchange on Pod B did not return Set-Cookie")
+	}
+
+	// 3. Replaying bootstrap credential on Pod B or Pod A must fail with 401 (one-time credential consumed on Pod A)
+	if respReplay, _ := envB.exchange(sess.Expected, sess.Credential); respReplay.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("replay exchange on Pod B = %d, want 401", respReplay.StatusCode)
+	}
+
+	// 4. Cross-Pod authenticated GET /api/items?page=2 on Pod B -> proxied to Pod A -> Workspace app
+	respApp, bodyApp := envB.do(sess.Expected, http.MethodGet, "/api/items?page=2", "", func(r *http.Request) {
+		r.AddCookie(previewCookie)
+		r.Header.Set("X-Student-App", "custom-val")
+	})
+	if respApp.StatusCode != http.StatusOK || bodyApp != "hello-cross-pod:/api/items?page=2" {
+		t.Fatalf("cross-pod app GET on Pod B = %d %q", respApp.StatusCode, bodyApp)
+	}
+	if observedUpstreamHost != envB.host(sess.Expected) {
+		t.Fatalf("Workspace app saw Host = %q, want %q", observedUpstreamHost, envB.host(sess.Expected))
+	}
+	if observedCustomHeader != "custom-val" {
+		t.Fatalf("Workspace app saw X-Student-App = %q, want custom-val", observedCustomHeader)
+	}
+	// CRITICAL: Workspace app must NEVER receive X-Labbit-Peer-Secret or X-Labbit-Internal-Peer!
+	if observedPeerSecretHeader != "" || observedInternalPeerHeader != "" {
+		t.Fatalf("internal peer headers leaked to Workspace app: secret=%q internal=%q", observedPeerSecretHeader, observedInternalPeerHeader)
+	}
+
+	// 5. Spoofed peer header sent to Pod B or Pod A must fail-closed with 503 preview_unavailable
+	respSpoof, bodySpoof := envB.do(sess.Expected, http.MethodGet, "/api/items", "", func(r *http.Request) {
+		r.AddCookie(previewCookie)
+		r.Header.Set(valkeyowner.HeaderInternalPeer, "true")
+		r.Header.Set(valkeyowner.HeaderPeerSecret, "wrong-secret")
+	})
+	if respSpoof.StatusCode != http.StatusServiceUnavailable || !strings.Contains(bodySpoof, `"preview_unavailable"`) {
+		t.Fatalf("spoofed peer header on Pod B = %d %q, want 503 preview_unavailable", respSpoof.StatusCode, bodySpoof)
+	}
+
+	// 6. Unknown session on Pod B (ErrNoOwner) returns 401 preview_unauthenticated
+	unknownExp := envB.expected()
+	respUnknown, bodyUnknown := envB.get(unknownExp, previewCookie, "/api/items")
+	if respUnknown.StatusCode != http.StatusUnauthorized || !strings.Contains(bodyUnknown, `"preview_unauthenticated"`) {
+		t.Fatalf("unknown session on Pod B = %d %q, want 401 preview_unauthenticated", respUnknown.StatusCode, bodyUnknown)
+	}
+
+	// 7. Valkey outage (ErrLocatorUnavailable) on Pod B fails closed with 503 preview_unavailable
+	locB.previewErr = valkeyowner.ErrLocatorUnavailable
+	respOutage, bodyOutage := envB.get(sess.Expected, previewCookie, "/api/items")
+	if respOutage.StatusCode != http.StatusServiceUnavailable || !strings.Contains(bodyOutage, `"preview_unavailable"`) {
+		t.Fatalf("Valkey outage on Pod B = %d %q, want 503 preview_unavailable", respOutage.StatusCode, bodyOutage)
+	}
+	locB.previewErr = nil
+
+	// 8. Owner Pod A unreachable fails closed with 503 preview_unavailable
+	envA.originServer.Close()
+	respDead, bodyDead := envB.get(sess.Expected, previewCookie, "/api/items")
+	if respDead.StatusCode != http.StatusServiceUnavailable || !strings.Contains(bodyDead, `"preview_unavailable"`) {
+		t.Fatalf("dead owner Pod A on Pod B = %d %q, want 503 preview_unavailable", respDead.StatusCode, bodyDead)
+	}
+
+	// Ensure peerSecret never appears in logs on either Pod
+	for _, logs := range []string{envA.logs.String(), envB.logs.String()} {
+		if strings.Contains(logs, peerSecret) {
+			t.Fatalf("peerSecret leaked in logs: %s", logs)
 		}
 	}
 }

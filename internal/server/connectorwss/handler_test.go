@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 // 테스트용 Credential 원문이다. 실제 Credential이 아니며, 응답·frame·log에 나타나면 안 되는 고유 값이다.
@@ -1218,5 +1220,212 @@ func TestBearerCredentialParsing(t *testing.T) {
 				t.Fatalf("bearerCredential() = %q, %v, want %q, %v", string(got), ok, tt.want, tt.ok)
 			}
 		})
+	}
+}
+
+type fakeRegistrar struct {
+	mu         sync.Mutex
+	registered map[uuid.UUID]int64
+	released   map[uuid.UUID]int64
+	onLostCb   map[uuid.UUID]func()
+	regErr     error
+	epochGen   int64
+}
+
+func (f *fakeRegistrar) RegisterConnector(ctx context.Context, id uuid.UUID, epoch int64, ttl time.Duration, onLost ...func()) (int64, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.regErr != nil {
+		return 0, f.regErr
+	}
+	if f.registered == nil {
+		f.registered = make(map[uuid.UUID]int64)
+	}
+	if f.onLostCb == nil {
+		f.onLostCb = make(map[uuid.UUID]func())
+	}
+	if epoch <= 0 {
+		f.epochGen++
+		epoch = f.epochGen
+	}
+	f.registered[id] = epoch
+	if len(onLost) > 0 {
+		f.onLostCb[id] = onLost[0]
+	}
+	return epoch, nil
+}
+
+func (f *fakeRegistrar) ReleaseConnector(ctx context.Context, id uuid.UUID, epoch int64) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.released == nil {
+		f.released = make(map[uuid.UUID]int64)
+	}
+	f.released[id] = epoch
+	return nil
+}
+
+func TestOwnerLocator_EpochConsistencyOnRegisterAndRelease(t *testing.T) {
+	registrar := &fakeRegistrar{}
+	h := newHarness(t, func(opts *Options) {
+		opts.OwnerLocator = registrar
+	})
+	conn := h.connect()
+	hello := validHello()
+	sendJSON(t, conn, hello)
+	_ = readJSON(t, conn) // HELLO_ACK
+
+	_ = h.waitRegistered()
+
+	var regEpoch int64
+	waitFor(t, "owner registered with epoch > 0", func() bool {
+		registrar.mu.Lock()
+		defer registrar.mu.Unlock()
+		e, ok := registrar.registered[h.principal.ConnectorID]
+		if ok && e > 0 {
+			regEpoch = e
+			return true
+		}
+		return false
+	})
+
+	// Close connection and verify ReleaseConnector called with the exact registeredEpoch
+	_ = conn.Close()
+
+	waitFor(t, "owner released with matching registered epoch", func() bool {
+		registrar.mu.Lock()
+		defer registrar.mu.Unlock()
+		relEpoch, ok := registrar.released[h.principal.ConnectorID]
+		return ok && relEpoch == regEpoch
+	})
+}
+
+func TestOwnerLocator_RegistrationFailureFailsClosed(t *testing.T) {
+	registrar := &fakeRegistrar{regErr: valkeyowner.ErrLocatorUnavailable}
+	h := newHarness(t, func(opts *Options) {
+		opts.OwnerLocator = registrar
+	})
+	conn := h.connect()
+	hello := validHello()
+	sendJSON(t, conn, hello)
+
+	// HELLO_ACK is sent before owner registration attempt
+	ack := readJSON(t, conn)
+	if ack["type"] != protocol.MessageTypeHelloAck {
+		t.Fatalf("expected HELLO_ACK, got %v", ack)
+	}
+
+	// Because RegisterConnector failed, local route must NOT be marked ready
+	// and connection must be closed
+	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	_, _, err := conn.ReadMessage()
+	if err == nil {
+		t.Fatal("expected connection to be closed after registration failure, but read succeeded")
+	}
+
+	// Verify route is NOT ready in registry (fail-closed)
+	routeErr := h.registry.WithReadyRoute(h.principal.ConnectorID, func(connector.Session, connector.Route) error {
+		return nil
+	})
+	if routeErr == nil {
+		t.Fatal("expected WithReadyRoute to fail, but succeeded")
+	}
+}
+
+func TestOwnerLocator_LeaseLossRetiresLocalRouteFailClosed(t *testing.T) {
+	registrar := &fakeRegistrar{}
+	h := newHarness(t, func(opts *Options) {
+		opts.OwnerLocator = registrar
+	})
+	conn := h.connect()
+	hello := validHello()
+	sendJSON(t, conn, hello)
+	_ = readJSON(t, conn) // HELLO_ACK
+
+	_ = h.waitRegistered()
+
+	// Verify route is ready
+	waitFor(t, "route ready", func() bool {
+		return h.registry.WithReadyRoute(h.principal.ConnectorID, func(connector.Session, connector.Route) error {
+			return nil
+		}) == nil
+	})
+
+	// Simulate lease loss (e.g. heartbeat detected stale epoch or TTL expired)
+	registrar.mu.Lock()
+	lostCb := registrar.onLostCb[h.principal.ConnectorID]
+	registrar.mu.Unlock()
+
+	if lostCb == nil {
+		t.Fatal("expected onLost callback to be registered")
+	}
+	lostCb()
+
+	// Route must be retired IMMEDIATELY: WithReadyRoute fails with ErrNotReady
+	waitFor(t, "route retired and sealed", func() bool {
+		err := h.registry.WithReadyRoute(h.principal.ConnectorID, func(connector.Session, connector.Route) error {
+			return nil
+		})
+		return errors.Is(err, connector.ErrNotReady) || errors.Is(err, connector.ErrNotConnected)
+	})
+
+	// Connection must be closed
+	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	_, _, err := conn.ReadMessage()
+	if err == nil {
+		t.Fatal("expected connection to be closed after lease loss")
+	}
+}
+
+func TestOwnerLocator_StalePodRejectsNewWritesAfterObservedOwnerLoss(t *testing.T) {
+	registrar := &fakeRegistrar{}
+	h := newHarness(t, func(opts *Options) {
+		opts.OwnerLocator = registrar
+	})
+	conn := h.connect()
+	hello := validHello()
+	sendJSON(t, conn, hello)
+	_ = readJSON(t, conn) // HELLO_ACK
+
+	_ = h.waitRegistered()
+
+	// 1. Before lease loss: route is ready
+	err := h.registry.WithReadyRoute(h.principal.ConnectorID, func(s connector.Session, r connector.Route) error {
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("expected route ready, got %v", err)
+	}
+
+	// 2. Simulate observed lease loss
+	registrar.mu.Lock()
+	lostCb := registrar.onLostCb[h.principal.ConnectorID]
+	registrar.mu.Unlock()
+	if lostCb == nil {
+		t.Fatal("expected onLost callback to be registered")
+	}
+	lostCb()
+
+	// 3. Stale pod must reject all new writes immediately fail-closed under concurrent attempts
+	const workers = 8
+	var wg sync.WaitGroup
+	var errCount atomic.Int64
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 50; j++ {
+				writeErr := h.registry.WithReadyRoute(h.principal.ConnectorID, func(s connector.Session, r connector.Route) error {
+					return r([]byte("test payload"))
+				})
+				if errors.Is(writeErr, connector.ErrNotReady) || errors.Is(writeErr, connector.ErrNotConnected) {
+					errCount.Add(1)
+				}
+			}
+		}()
+	}
+	wg.Wait()
+	if errCount.Load() != workers*50 {
+		t.Fatalf("expected all %d writes to fail closed, got %d", workers*50, errCount.Load())
 	}
 }

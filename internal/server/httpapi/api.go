@@ -27,6 +27,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile"
 )
 
@@ -72,6 +73,17 @@ type Options struct {
 	Metrics *observability.HTTPMetrics
 	// Tracer는 HTTP request의 server Span을 만든다. nil이면 Span을 만들지 않지만(noop) 요청의 유효한 W3C Context는 handler로 전달한다.
 	Tracer trace.Tracer
+	// OwnerLocator and Proxy enable peer forwarding of HTTP requests to the owner Pod.
+	OwnerLocator ConnectorOwnerLocator
+	Proxy        *valkeyowner.Proxy
+}
+
+// ConnectorOwnerLocator allows checking connector, terminal, and preview ownership for peer routing.
+type ConnectorOwnerLocator interface {
+	LookupConnector(ctx context.Context, connectorID uuid.UUID) (*valkeyowner.ConnectorOwnerRecord, error)
+	LookupTerminal(ctx context.Context, terminalSessionID string) (*valkeyowner.TerminalOwnerRecord, error)
+	LookupPreview(ctx context.Context, previewSessionID string) (*valkeyowner.PreviewOwnerRecord, error)
+	PodID() string
 }
 
 type api struct {
@@ -87,6 +99,8 @@ type api struct {
 	liveSessions  LiveSessions
 	origin        string
 	logger        *slog.Logger
+	ownerLocator  ConnectorOwnerLocator
+	proxy         *valkeyowner.Proxy
 }
 
 // New는 /api/v1 아래 Auth와 Class endpoint를 제공하는 http.Handler를 만든다.
@@ -129,7 +143,22 @@ func New(opts Options) (http.Handler, error) {
 		liveSessions = unavailableLiveSessions{}
 	}
 
-	a := &api{connectors: opts.Connectors, operations: opts.Operations, labExecutions: opts.LabExecutions, auth: opts.Auth, classes: opts.Classes, labSpecs: opts.LabSpecs, terminals: terminals, files: files, previews: previews, liveSessions: liveSessions, origin: origin, logger: logger}
+	a := &api{
+		connectors:    opts.Connectors,
+		operations:    opts.Operations,
+		labExecutions: opts.LabExecutions,
+		auth:          opts.Auth,
+		classes:       opts.Classes,
+		labSpecs:      opts.LabSpecs,
+		terminals:     terminals,
+		files:         files,
+		previews:      previews,
+		liveSessions:  liveSessions,
+		origin:        origin,
+		logger:        logger,
+		ownerLocator:  opts.OwnerLocator,
+		proxy:         opts.Proxy,
+	}
 	mux := http.NewServeMux()
 	routes := make(map[string]string)
 	handle := func(pattern string, handler http.Handler) {

@@ -81,6 +81,17 @@ func NewService(opts Options) (*Service, error) {
 // MaxFileBytes는 이 Service가 받아들이는 파일 본문의 최대 byte 수다. HTTP layer가 요청 body 상한을 정할 때 쓴다.
 func (s *Service) MaxFileBytes() int64 { return s.maxBytes }
 
+// ConnectorForLabInstance returns the connector ID assigned to the given lab instance.
+func (s *Service) ConnectorForLabInstance(ctx context.Context, labID uuid.UUID) (uuid.UUID, error) {
+	var id uuid.UUID
+	err := s.store.WithinTransaction(ctx, func(ctx context.Context, repos repository.Repositories) error {
+		var err error
+		id, err = repos.ConnectorIDForLabInstance(ctx, labID)
+		return err
+	})
+	return id, err
+}
+
 // TreeInput은 Tree의 입력이다. 모든 값은 검증되지 않았다.
 type TreeInput struct {
 	LabInstanceID string

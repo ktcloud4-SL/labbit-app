@@ -62,12 +62,12 @@ func (g *Gateway) serveDataHTTP(w http.ResponseWriter, r *http.Request) {
 		g.logger.Warn("Connector Preview Data Upgrade 실패", "connector_id", identity.ConnectorID.String(), "reason", "upgrade_failed")
 		return
 	}
-	g.serveData(ws, identity)
+	g.serveData(ws, identity, r.Header)
 }
 
 // serveData는 Upgrade된 Connector connection 하나를 끝까지 처리한다. 첫 application message는 PREVIEW_ATTACH여야 한다.
 // attach가 성립하면 이 goroutine이 tunnel을 운영하고 tunnel이 끝나면 PreviewSession을 끝낸다.
-func (g *Gateway) serveData(ws *websocket.Conn, identity ConnectorIdentity) {
+func (g *Gateway) serveData(ws *websocket.Conn, identity ConnectorIdentity, reqHeaders http.Header) {
 	d := &dataConn{ws: ws}
 	defer ws.Close()
 	log := g.logger.With("connector_id", identity.ConnectorID.String())
@@ -115,6 +115,26 @@ func (g *Gateway) serveData(ws *websocket.Conn, identity ConnectorIdentity) {
 	// Connector identity는 credential 인증 결과다. message가 주장한 값은 기대한 PreviewSession과 대조할 뿐 identity가 아니다.
 	// 하나라도 다르면 PreviewSession을 건드리지 않고 이 connection만 거절한다. 다른 Connector나 다른 PreviewSession의 값으로 fallback하지 않는다.
 	s := g.lookup(env.PreviewSessionID)
+	if s == nil && g.ownerLocator != nil && g.proxy != nil {
+		if g.proxy.IsInternalPeerFromHeader(reqHeaders) || g.proxy.HasSpoofedPeerHeaderFromHeader(reqHeaders) {
+			log.Warn("Connector Preview Data attach 거절", "reason", "unknown_session")
+			d.closeNow(closePolicy, "attach rejected")
+			return
+		}
+		lookupCtx, cancel := context.WithTimeout(context.Background(), authTimeout)
+		owner, err := g.ownerLocator.LookupConnector(lookupCtx, identity.ConnectorID)
+		cancel()
+		if err == nil && owner != nil && owner.PodID != "" && owner.PodID != g.ownerLocator.PodID() && owner.PodAddr != "" {
+			extra := http.Header{}
+			if auth := reqHeaders.Get("Authorization"); auth != "" {
+				extra.Set("Authorization", auth)
+			}
+			if err := g.proxy.ProxyWebSocketUpstream(ws, owner.PodAddr, DataPath, data, protocol.SubprotocolPreviewData, extra); err != nil {
+				log.Warn("Connector Preview Data proxy 실패", "error_code", "PROXY_FAILED")
+			}
+			return
+		}
+	}
 	reject := ""
 	switch {
 	case s == nil:

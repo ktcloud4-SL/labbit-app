@@ -10,6 +10,7 @@ import { useLabbitApi } from '../shared/api/LabbitApiProvider'
 import { labbitQueryKeys } from '../shared/api/labbitApi'
 import { ErrorState } from '../shared/ui/ErrorState'
 import { LoadingState } from '../shared/ui/LoadingState'
+import { formatKstTimestamp } from '../shared/time/formatKstTimestamp'
 import { LoginRedirect } from '../shared/ui/LoginRedirect'
 
 function statusLabel(status: string) {
@@ -316,14 +317,14 @@ function ConnectorAdminForPrincipal({
           </div>
         ) : (
           <>
-            <p className="muted">서버 상태 관측 시각: {connectorsQuery.data.observedAt}</p>
+            <p className="muted">서버 상태 관측 시각: {formatKstTimestamp(connectorsQuery.data.observedAt)}</p>
             <div className="class-grid">
               {connectorsQuery.data.items.map((connector) => (
                 <article className="class-card" key={connector.id}>
                   <h3 style={{ overflowWrap: 'anywhere' }}>{connector.name}</h3>
                   <p><strong>{statusLabel(connector.connectionStatus)}</strong></p>
                   <p className="muted">등록: {connector.registrationStatus}</p>
-                  <p className="muted">마지막 Heartbeat: {connector.lastSeenAt ?? '없음'}</p>
+                  <p className="muted">마지막 Heartbeat: {connector.lastSeenAt == null ? '없음' : formatKstTimestamp(connector.lastSeenAt)}</p>
                   <p className="muted">Connector Version: {connector.lastConnectorVersion ?? '미확인'}</p>
                   <p className="muted">Provider READY: 미확인 (별도 검증 필요)</p>
                   {connector.registrationStatus !== 'REVOKED' && (

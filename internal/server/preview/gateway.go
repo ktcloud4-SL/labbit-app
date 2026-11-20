@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/observability"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 // Preview Origin이 직접 만드는 오류 응답의 code다(openapi.yaml PreviewGatewayProblem). Workspace application의 응답은 이 code로 바꾸지 않는다.
@@ -69,6 +70,30 @@ func (g *Gateway) route(w http.ResponseWriter, r *http.Request, id string) {
 		return
 	}
 	defer g.wg.Done()
+
+	if g.ownerLocator != nil && g.proxy != nil {
+		if g.proxy.HasSpoofedPeerHeader(r) {
+			g.problem(w, r, http.StatusServiceUnavailable, codeUnavailable, "Preview를 지금 사용할 수 없습니다.")
+			return
+		}
+		if g.lookup(id) == nil && !g.proxy.IsInternalPeer(r) {
+			owner, err := g.ownerLocator.LookupPreview(r.Context(), id)
+			if err != nil {
+				if !errors.Is(err, valkeyowner.ErrNoOwner) {
+					g.problem(w, r, http.StatusServiceUnavailable, codeUnavailable, "Preview를 지금 사용할 수 없습니다.")
+					return
+				}
+			} else if owner == nil || owner.PodID == "" || (owner.PodID != g.ownerLocator.PodID() && owner.PodAddr == "") {
+				g.problem(w, r, http.StatusServiceUnavailable, codeUnavailable, "Preview를 지금 사용할 수 없습니다.")
+				return
+			} else if owner.PodID != g.ownerLocator.PodID() {
+				if err := g.proxy.TryProxyHTTP(w, r, owner.PodAddr); err != nil {
+					g.problem(w, r, http.StatusServiceUnavailable, codeUnavailable, "Preview를 지금 사용할 수 없습니다.")
+				}
+				return
+			}
+		}
+	}
 
 	if path := r.URL.Path; path == ReservedPrefix || strings.HasPrefix(path, ReservedPrefix+"/") {
 		switch path {
@@ -161,6 +186,11 @@ func (g *Gateway) rewrite(pr *httputil.ProxyRequest) {
 	out.URL.Host = upstreamHost
 	out.Host = pr.In.Host
 	stripLabbitCookies(out.Header)
+	for k := range out.Header {
+		if strings.HasPrefix(strings.ToLower(k), "x-labbit-") {
+			out.Header.Del(k)
+		}
+	}
 	out.Header.Set("X-Forwarded-Host", pr.In.Host)
 	out.Header.Set("X-Forwarded-Proto", g.origin.Scheme())
 	// Browser가 요청을 중단해도 tunnel(TCP 연결 하나)을 끊지 않도록 요청의 취소를 Workspace 쪽으로 전달하지 않는다.

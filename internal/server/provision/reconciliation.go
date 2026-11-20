@@ -8,7 +8,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/operation"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol"
 )
 
 type reconcileRouter interface {
@@ -20,25 +22,48 @@ type reconcileRouter interface {
 // boundary. Reconciliation gets a new claim owner and cannot dispatch mutations.
 type reconciliationClaims struct {
 	repository.OperationWorkerStore
-	store repository.ReconciliationStore
+	store   repository.ReconciliationStore
+	control *workercontrol.Control
 }
 
 func (s reconciliationClaims) ClaimOperationItem(ctx context.Context, owner uuid.UUID, duration time.Duration) (repository.OperationItemClaim, error) {
-	c, err := s.OperationWorkerStore.ClaimOperationItem(ctx, owner, duration)
-	if errors.Is(err, repository.ErrNotFound) {
-		return s.store.ClaimReconciliation(ctx, owner, duration)
+	release, err := s.control.AcquireMutationFor(ctx, workercontrol.MutationClaim)
+	if err == nil {
+		c, claimErr := s.OperationWorkerStore.ClaimOperationItem(ctx, owner, duration)
+		release()
+		if !errors.Is(claimErr, repository.ErrNotFound) {
+			return c, claimErr
+		}
+	} else if !errors.Is(err, workercontrol.ErrPaused) || s.control.Snapshot().Mode != workercontrol.ReconcileOnly {
+		return repository.OperationItemClaim{}, err
 	}
-	return c, err
+	if s.store == nil {
+		return repository.OperationItemClaim{}, repository.ErrNotFound
+	}
+	release, err = s.control.AcquireReconciliationFor(ctx, workercontrol.ReconciliationClaim)
+	if err != nil {
+		return repository.OperationItemClaim{}, err
+	}
+	defer release()
+	return s.store.ClaimReconciliation(ctx, owner, duration)
 }
 func (s reconciliationClaims) RenewOperationItemLease(ctx context.Context, lease repository.OperationItemLease, duration time.Duration) (time.Time, error) {
 	at, err := s.OperationWorkerStore.RenewOperationItemLease(ctx, lease, duration)
-	if errors.Is(err, repository.ErrOperationLeaseLost) {
+	if errors.Is(err, repository.ErrOperationLeaseLost) && s.store != nil {
 		return s.store.RenewReconciliation(ctx, lease, duration)
 	}
 	return at, err
 }
 
 func (p *Executor) reconcile(ctx context.Context, claim repository.OperationItemClaim) error {
+	release, err := p.opts.WorkerControl.AcquireReconciliationFor(ctx, workercontrol.ReconciliationPrepare)
+	if err != nil {
+		return err
+	}
+	defer release()
+	if p.opts.Reconciliation == nil {
+		return operation.ErrInvalid
+	}
 	d, err := p.opts.Reconciliation.PrepareReconciliation(ctx, claim.Lease)
 	if err != nil {
 		return err
@@ -77,12 +102,21 @@ func (p *Executor) reconcile(ctx context.Context, claim repository.OperationItem
 		return err
 	}
 	discover := true
+	endSend, err := p.opts.WorkerControl.AcquireReconciliation(ctx)
+	if err != nil {
+		return err
+	}
 	sent, err = router.SendReconcileRequest(ctx, connector.ReconcileRequest{ConnectorID: d.ConnectorID, RequestID: claim.Operation.RequestID, Correlation: corr,
 		Payload: protocol.ReconcileRequestPayload{KnownResources: refs, DiscoverCandidates: &discover}, Trace: connector.TraceFromContext(ctx)})
+	endSend()
+	release()
 	hold := func() error {
 		return p.opts.Reconciliation.WriteReconciliation(ctx, repository.ReconciliationUpdate{Dispatch: d, QueryFailed: true, RetryDelay: p.opts.DispatchRetryDelay})
 	}
 	if err != nil {
+		if workercontrol.GuaranteedNoDispatch(err) {
+			return err
+		}
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}

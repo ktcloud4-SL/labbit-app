@@ -21,6 +21,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/labexecution"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/labspec"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/livesession"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/maintenance"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/operation"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/preview"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/previewsession"
@@ -29,14 +30,14 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/terminal"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile"
 )
 
 // stackOptions는 api role의 조립 입력이다. 시간 값은 0이면 각 구성 요소의 계약 기본값이며, Run은 기본값만 쓴다.
 // 0이 아닌 값은 60초 grace나 heartbeat 같은 긴 시간을 test에서 기다리지 않도록 주입하는 용도다.
 type stackOptions struct {
-	Admission func(string) (func(), bool)
-	Logger    *slog.Logger
+	Logger *slog.Logger
 	// OwnerLocator and PeerProxy enable Valkey-backed owner mapping and peer routing across Pods.
 	OwnerLocator *valkeyowner.Locator
 	PeerProxy    *valkeyowner.Proxy
@@ -48,7 +49,12 @@ type stackOptions struct {
 	// OperationSink is an optional observer, including the tagged C1 harness.
 	OperationSink connector.EventSink
 	// PublicOrigin은 httpapi.ParseOrigin으로 정규화한 trusted origin이다. HTTP unsafe method와 Browser WSS Upgrade의 Origin 검증에 쓴다.
-	PublicOrigin string
+	PublicOrigin          string
+	Maintenance           *maintenance.Gate
+	WorkerControlMode     workercontrol.Mode
+	WorkerControlSettings workercontrol.Settings
+	WorkerControlStore    workercontrol.DurableStore
+	WorkerControlPodID    string
 	// Realtime이 true이면 Terminal Relay와 TerminalSession 생성/종료를 함께 조립한다(api와 realtime role이 같은 process).
 	Realtime        bool
 	HTTPMetrics     *observability.HTTPMetrics
@@ -109,6 +115,31 @@ type controlStack struct {
 
 // newControlStack은 store 위에서 Auth, Class, Connector Control, (선택) Terminal을 조립한다.
 func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, error) {
+	if opts.WorkerControlMode == workercontrol.ReconcileOnly && !opts.WorkerControlSettings.Enabled() {
+		return nil, workercontrol.ErrInvalidBinding
+	}
+	if err := opts.WorkerControlSettings.Validate(opts.WorkerControlPodID); err != nil {
+		return nil, err
+	}
+	var workerControl *workercontrol.Control
+	var err error
+	if opts.WorkerControlSettings.Enabled() {
+		cfg := opts.WorkerControlSettings
+		workerControl, err = workercontrol.NewDurable(workercontrol.Binding{Scope: cfg.Scope, Revision: cfg.Revision, Epoch: cfg.Epoch, Mode: opts.WorkerControlMode, PodID: opts.WorkerControlPodID, BootID: uuid.New()}, opts.WorkerControlStore)
+	} else {
+		if opts.WorkerControlStore != nil {
+			return nil, workercontrol.ErrInvalidBinding
+		}
+		workerControl, err = workercontrol.New(opts.WorkerControlMode)
+	}
+	if err != nil {
+		return nil, err
+	}
+	gate := opts.Maintenance
+	if gate == nil {
+		gate = maintenance.New("")
+	}
+	executions := labexecution.NewService(store, gate.Enter)
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
@@ -125,7 +156,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	// Preview도 같은 관계다. Router가 PREVIEW_OPEN_RESULT를 PreviewSession use case에 넘기고 use case가 Router로 PREVIEW_OPEN을 보낸다.
 	previewSink := &previewSinkForwarder{}
 	operationSink := &operationSinkForwarder{observer: opts.OperationSink}
-	routerOpts := connector.RouterOptions{Registry: registry, Logger: logger, FileSink: fileSink, Sink: operationSink}
+	routerOpts := connector.RouterOptions{Registry: registry, Logger: logger, FileSink: fileSink, Sink: operationSink, WorkerControl: workerControl}
 	if opts.Preview {
 		routerOpts.PreviewSink = previewSink
 	}
@@ -140,8 +171,11 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	stack := &controlStack{Registry: registry, Router: router}
 	if opts.Worker {
 		provOpts := provision.Options{
-			Store: store, Mutations: store, Reconciliation: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
-			Metrics: opts.WorkerMetrics, Admission: opts.Admission,
+			Admission:             gate.Enter,
+			ObserveReconciliation: gate.ObserveReconciliation,
+			WorkerControl:         workerControl,
+			Store:                 store, Mutations: store, Reconciliation: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,
+			Metrics: opts.WorkerMetrics,
 			CloseForMutation: func(ctx context.Context, d repository.ProvisionDispatch) error {
 				reason := "LAB_RESET"
 				if d.MutationType == "CLEANUP" {
@@ -308,7 +342,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		Classes:       class.NewService(store),
 		LabSpecs:      labspec.NewService(store),
 		Operations:    operation.NewService(store),
-		LabExecutions: labexecution.NewService(store, opts.Admission),
+		LabExecutions: executions,
 		Terminals:     terminals,
 		Files:         files,
 		Previews:      previews,

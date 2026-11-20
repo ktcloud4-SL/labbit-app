@@ -18,6 +18,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/server/operation"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol"
 )
 
 type Router interface {
@@ -33,15 +34,21 @@ type OwnerLocator interface {
 // Options keeps PROVISION-only callers compatible; Mutations enables the other
 // durable operation types on the same Worker/Router/EventSink.
 type Options struct {
-	Admission        func(string) (func(), bool)
-	Store            repository.ProvisionWorkerStore
-	Mutations        repository.MutationWorkerStore
-	Reconciliation   repository.ReconciliationStore
-	CloseForMutation func(context.Context, repository.ProvisionDispatch) error
-	Router           Router
-	Tracer           trace.Tracer
-	Logger           *slog.Logger
-	Metrics          *observability.WorkerMetrics
+	// Admission is PR194's process-wide new-claim barrier. It is held through
+	// execution. The typed WorkerControl remains the final dispatch authority.
+	Admission func(string) (func(), bool)
+	// Telemetry only: it never authorizes a query. The durable typed gates do.
+	ObserveReconciliation func() func()
+	Store                 repository.ProvisionWorkerStore
+	Mutations             repository.MutationWorkerStore
+	Reconciliation        repository.ReconciliationStore
+	CloseForMutation      func(context.Context, repository.ProvisionDispatch) error
+	Router                Router
+	Tracer                trace.Tracer
+	Logger                *slog.Logger
+	Metrics               *observability.WorkerMetrics
+	// WorkerControl is shared with the production Router; nil preserves ACTIVE.
+	WorkerControl *workercontrol.Control
 	// OwnerLocator and PodID restrict claim execution to the Pod owning the connector.
 	OwnerLocator OwnerLocator
 	PodID        string
@@ -86,6 +93,12 @@ func NewExecutor(opts Options) (*Executor, error) {
 	if opts.Store == nil || opts.Router == nil {
 		return nil, operation.ErrInvalid
 	}
+	if opts.WorkerControl == nil {
+		opts.WorkerControl, _ = workercontrol.New(workercontrol.Active)
+	}
+	if opts.WorkerControl.Snapshot().Mode == workercontrol.ReconcileOnly && opts.Reconciliation == nil {
+		return nil, operation.ErrInvalid
+	}
 	if opts.LeaseDuration == 0 {
 		opts.LeaseDuration = 30 * time.Second
 	}
@@ -113,9 +126,19 @@ func NewExecutor(opts Options) (*Executor, error) {
 		if _, ok := opts.Router.(reconcileRouter); !ok {
 			return nil, operation.ErrInvalid
 		}
-		claims = reconciliationClaims{OperationWorkerStore: claims, store: opts.Reconciliation}
 	}
-	w, err := operation.NewWorker(operation.WorkerOptions{Store: claims, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Admission: opts.Admission, Execute: p.execute, Metrics: opts.Metrics})
+	claims = reconciliationClaims{OperationWorkerStore: claims, store: opts.Reconciliation, control: opts.WorkerControl}
+	admission := opts.Admission
+	if opts.WorkerControl.Snapshot().Mode == workercontrol.ReconcileOnly && admission != nil {
+		// A closed API barrier must not prevent authorized exact-ID queries.
+		// Only a persistent, exact binding can take this path; every query still
+		// passes the authoritative claim/prepare/Router reconciliation gates.
+		if !opts.WorkerControl.Persistent() || opts.ObserveReconciliation == nil {
+			return nil, workercontrol.ErrInvalidBinding
+		}
+		admission = func(string) (func(), bool) { return opts.ObserveReconciliation(), true }
+	}
+	w, err := operation.NewWorker(operation.WorkerOptions{Store: claims, LeaseDuration: opts.LeaseDuration, Tracer: opts.Tracer, Admission: admission, Execute: p.execute, Metrics: opts.Metrics})
 	if err != nil {
 		return nil, err
 	}
@@ -124,6 +147,13 @@ func NewExecutor(opts Options) (*Executor, error) {
 }
 
 func (p *Executor) RunOne(ctx context.Context) (bool, error) { return p.worker.RunOne(ctx) }
+
+// Pause latches local boundaries. With an explicit durable backend it also
+// requests the shared pause and reports HOLD while peer intents remain. Neither
+// mode cancels sent work or proves Provider/DB/global Writer fencing.
+func (p *Executor) Pause(ctx context.Context) error { return p.opts.WorkerControl.Pause(ctx) }
+
+func (p *Executor) ControlState() workercontrol.Snapshot { return p.opts.WorkerControl.Snapshot() }
 
 // Run has a small fixed number of independent slots, no separate deployment or
 // queue. Process cancellation stops claims and leaves uncertain work durable.
@@ -216,8 +246,12 @@ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemCl
 	if claim.Item.Status == "RECONCILING" {
 		return p.reconcile(ctx, claim)
 	}
+	release, err := p.opts.WorkerControl.AcquireMutationFor(ctx, workercontrol.MutationPrepare)
+	if err != nil {
+		return err // Preserve the committed claim for reconciliation; never requeue.
+	}
+	defer release()
 	var d repository.ProvisionDispatch
-	var err error
 	if claim.Operation.Type == "RESET" || claim.Operation.Type == "CLEANUP" {
 		if p.opts.Mutations == nil {
 			return operation.ErrInvalid
@@ -286,12 +320,23 @@ func (p *Executor) execute(ctx context.Context, claim repository.OperationItemCl
 			}
 		}
 	}
+	// Recheck after preparation/lifecycle work, even for a non-production Router.
+	// Pause may have latched while the outer boundary was running.
+	endSend, err := p.opts.WorkerControl.AcquireMutation(ctx)
+	if err != nil {
+		return err
+	}
 	sent, err := p.opts.Router.SendOperationCommand(ctx, connector.OperationCommand{
 		ConnectorID: d.ConnectorID, RequestID: claim.Operation.RequestID, Correlation: corr,
 		Payload: payload,
 		Trace:   connector.TraceFromContext(ctx),
 	})
+	endSend()
+	release() // Do not hold the pause barrier while waiting for ACK/RESULT.
 	if err != nil {
+		if workercontrol.GuaranteedNoDispatch(err) {
+			return err // Explicit no-write pause, no automatic mutation retry.
+		}
 		// Even if the write returned an error, an immediate correlated RESULT
 		// may prove the actual outcome. Otherwise classify the Router error.
 		select {
@@ -447,6 +492,11 @@ func (p *Executor) write(ctx context.Context, u repository.ProvisionUpdate) erro
 	return p.opts.Store.WriteProvision(ctx, u)
 }
 func (p *Executor) deferUnsent(ctx context.Context, d repository.ProvisionDispatch) error {
+	release, err := p.opts.WorkerControl.AcquireMutationFor(ctx, workercontrol.MutationRequeue)
+	if err != nil {
+		return err // A latched pause must not requeue even confirmed unsent work.
+	}
+	defer release()
 	if d.MutationType != "" {
 		return p.opts.Mutations.DeferUnsentMutation(ctx, d, p.opts.DispatchRetryDelay)
 	}

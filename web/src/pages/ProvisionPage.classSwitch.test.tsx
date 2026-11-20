@@ -132,6 +132,16 @@ describe('LBT-59 FE maintenance 503 message', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(message)
     expect(createLabExecution).toHaveBeenCalledTimes(1)
     expect(router.state.location.pathname).toBe('/classes/class-a/provision')
-    expect(screen.getByRole('button', { name: '환경 생성 시작' })).toBeEnabled()
+    const submit = screen.getByRole('button', { name: '환경 생성 시작' })
+    if (code === 'maintenance') {
+      expect(submit).toBeDisabled()
+      fireEvent.click(submit)
+      expect(createLabExecution).toHaveBeenCalledTimes(1)
+      // Explicitly returning to the selection screen clears the rejected attempt.
+      fireEvent.click(screen.getByRole('button', { name: '다시 선택' }))
+      expect(screen.getByRole('button', { name: '생성 내용 확인' })).toBeEnabled()
+    } else {
+      expect(submit).toBeEnabled()
+    }
   })
 })

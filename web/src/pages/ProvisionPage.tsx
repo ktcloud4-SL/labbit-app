@@ -263,6 +263,10 @@ function ProvisionPageForClass({ resolvedClassId }: { resolvedClassId: string })
   const mutationError = provisionMutation.error
   const conflictError =
     mutationError instanceof HttpError && mutationError.status === 409
+  const maintenanceError =
+    mutationError instanceof HttpError &&
+    mutationError.status === 503 &&
+    mutationError.problem?.code === 'maintenance'
   const errorMessage =
     mutationError instanceof HttpError && mutationError.status === 403
       ? '현재 계정에는 이 Class의 Provision 권한이 없습니다. 권한이 변경되었을 수 있습니다.'
@@ -271,7 +275,7 @@ function ProvisionPageForClass({ resolvedClassId }: { resolvedClassId: string })
       : mutationError instanceof HttpError && mutationError.status === 422
         ? '선택한 LabSpec 또는 학생 대상이 현재 Class 규칙과 맞지 않습니다.'
         : mutationError instanceof HttpError && mutationError.status === 503
-          ? mutationError.problem?.code === 'maintenance'
+          ? maintenanceError
             ? '운영 점검 중 새 실습 작업 접수가 중지되었습니다. 재개 안내 전에는 다시 시도하지 마세요.'
             : 'Connector 또는 Provider가 일시적으로 사용할 수 없습니다.'
           : mutationError
@@ -437,7 +441,7 @@ function ProvisionPageForClass({ resolvedClassId }: { resolvedClassId: string })
             <button
               className="primary-button"
               type="button"
-              disabled={provisionMutation.isPending || conflictError}
+              disabled={provisionMutation.isPending || conflictError || maintenanceError}
               onClick={() => provisionMutation.mutate(confirmation)}
             >
               {provisionMutation.isPending ? '요청 중...' : '환경 생성 시작'}

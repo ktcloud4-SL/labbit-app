@@ -1,0 +1,124 @@
+{
+  "files": [
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/AUDIT.md",
+      "size": 12178,
+      "sha256": "51ff27b69444143e28578944e1465713d4108ef469fa45d177c84cd422fa8715"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/cleanup.log",
+      "size": 188,
+      "sha256": "b074dd5db76441449a0a5828701257f963a153ddf10a2a1841c1ecbcae822d50"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/control-final.jsonl",
+      "size": 388641,
+      "sha256": "0dbe4e3b94ac6efe63dafcea38dcde66157457d0d07031493d1e2708e8c7e8ca"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/control-race.jsonl",
+      "size": 51369,
+      "sha256": "ed60061b9a9955f045148c11cefcd5ed3933d65c313e4c8860e997cb52cad856"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/go-build.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/go-test.jsonl",
+      "size": 4523221,
+      "sha256": "1039e4a072016760d709a02882748734dded3163e08e4188c08ecf964eb7a7a9"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/go-vet.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/gofmt-canonical.json",
+      "size": 109,
+      "sha256": "6cc9c32755c3e4b50ca57f4b60e1e87435185cb2f28546242d34a38c183a0d89"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/gofmt-check.log",
+      "size": 28947,
+      "sha256": "9885292a4f1b822e61ee6221d5657afa2ea94be41fd4fc1e79ea64a7466dc639"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/integration-all.jsonl",
+      "size": 1784445,
+      "sha256": "ea3922539c49ebcbbd48b462c81b3caf3bfa9b32e8ab78f03adc6c77db04c7a3"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/integration-vet.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/maintenance-postgres-final.jsonl",
+      "size": 12304,
+      "sha256": "7bddf57cd82ba397788ebffe8a47588175cfc4f0e428af896bfe27c894e06d6f"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/maintenance-postgres.jsonl",
+      "size": 1329,
+      "sha256": "1e1fbec98a912bc064aa3da55b6e6669bbecc684342f9d4e031fbd7eb100b0e3"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/npm-ci.log",
+      "size": 26,
+      "sha256": "1ad155c8120f2d30f245e563ee6bf117fc97e9cf390efbc485f55cf6d6d94006"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/postgres.jsonl",
+      "size": 50610,
+      "sha256": "26392546d778b841ddc9d8a18cb09e9d13713bb9f1890448cb51308fcd5bfe96"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/README.md",
+      "size": 3998,
+      "sha256": "70ebd896ffc3d4d13df34928f5e0b639665d3687d2bb710be151350f09a76be6"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/runtime-metadata.log",
+      "size": 43,
+      "sha256": "4f19d03c9eec05f8f9e3035649f95e49d222cca52b0f2a3c75fa6407a531b93c"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/source-manifest.json",
+      "size": 4425,
+      "sha256": "9bd014d1c06b0e2c15daaa390dc15f16cad32ae4bd965ee0ecb504038f209c6d"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/test-summary.json",
+      "size": 12172,
+      "sha256": "6dec839604e2117313f1bf9839e4101cc19a56225ed6b2ba2f20e04bcf2b6a3f"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/web-build.log",
+      "size": 794,
+      "sha256": "84207f66c1d3cae8b02615a7235e31ef445387d4ef52e621fdd5b91418c6b2d3"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/web-lint.log",
+      "size": 81,
+      "sha256": "02b4047a480d163dc10a96d5080362e0c13af108fd20f9cf202b56299bed9771"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/web-test-recheck.log",
+      "size": 384,
+      "sha256": "2e1b331382d98e3b3319579cb89edddf4854d70846f6badb01456a606a626c32"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/web-test.log",
+      "size": 1687,
+      "sha256": "b9815da40d29e674b9d3a21288f5111192cdb7859e8f5d14a362b6a100375911"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-21-stage3-offline/web-typecheck.log",
+      "size": 73,
+      "sha256": "aba894f572e9ac7ee2f2eadf84fd0e3046664c688a9a8c910bb6ebede1b59d1c"
+    }
+  ]
+}

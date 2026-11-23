@@ -10,7 +10,7 @@ LABBIT_DEV_PUBLIC_ORIGIN ?= http://localhost:5173
 # Integration Test는 이 server에 test별 database를 만들고 삭제한다. 개발 DB(labbit) 상태에 의존하지 않는다.
 LABBIT_TEST_DATABASE_DSN ?= postgres://labbit:labbit-local-dummy@127.0.0.1:$(LABBIT_DEV_DB_PORT)/postgres?sslmode=disable
 # `//go:build integration` test가 있는 package만 둔다. 일반 unit test 전체는 go-test가 한 번만 실행한다.
-GO_INTEGRATION_PACKAGES ?= ./internal/postgres ./internal/postgres/postgrestest ./internal/server/app ./internal/server/auth ./internal/server/httpapi
+GO_INTEGRATION_PACKAGES ?= ./internal/postgres ./internal/postgres/postgrestest ./internal/server/app ./internal/server/auth ./internal/server/httpapi ./internal/drcontrol
 
 .PHONY: setup test go-fmt-check go-vet go-test go-build go-integration-test web-install web-typecheck web-lint web-test web-build dev-db-up dev-db-down dev-db-migrate dev-auth-class-fixture server connector web
 

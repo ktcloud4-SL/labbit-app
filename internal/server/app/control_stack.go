@@ -139,6 +139,13 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	if gate == nil {
 		gate = maintenance.New("")
 	}
+	workerAdmission := gate.Enter
+	if opts.WorkerControlSettings.AdmissionPolicy == "APPROVED_CONTROL" {
+		if !workerControl.Persistent() || !gate.Configured() {
+			return nil, workercontrol.ErrInvalidBinding
+		}
+		workerAdmission = gate.EnterControlledWorker
+	}
 	executions := labexecution.NewService(store, gate.Enter)
 	logger := opts.Logger
 	if logger == nil {
@@ -171,7 +178,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 	stack := &controlStack{Registry: registry, Router: router}
 	if opts.Worker {
 		provOpts := provision.Options{
-			Admission:             gate.Enter,
+			Admission:             workerAdmission,
 			ObserveReconciliation: gate.ObserveReconciliation,
 			WorkerControl:         workerControl,
 			Store:                 store, Mutations: store, Reconciliation: store, Router: router, Logger: logger, Tracer: opts.Tracer, Ready: opts.WorkerReady,

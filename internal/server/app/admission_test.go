@@ -84,3 +84,27 @@ func TestMaintenanceProductionAssemblyBlocksClaimWithoutDatabase(t *testing.T) {
 		t.Fatal("closed idle gate not observed")
 	}
 }
+
+func TestApprovedControlAssemblyNeverFallsBackToUnconfiguredOrLocal(t *testing.T) {
+	if _, err := newControlStack(nil, stackOptions{Worker: true, WorkerControlSettings: workercontrol.Settings{AdmissionPolicy: "APPROVED_CONTROL"}}); !errors.Is(err, workercontrol.ErrInvalidBinding) {
+		t.Fatal("local policy accepted", err)
+	}
+	scope := workercontrol.Scope{ID: "trial", Region: "region-fixture", Cluster: "cluster-fixture"}
+	s := workercontrolfake.New(workercontrol.State{Scope: scope, Revision: 1, Epoch: 1, Mode: workercontrol.PauseNew})
+	opts := stackOptions{Worker: true, PublicOrigin: "http://localhost:5173", WorkerControlMode: workercontrol.PauseNew, WorkerControlPodID: "pod", WorkerControlStore: s, WorkerControlSettings: workercontrol.Settings{Backend: "postgres", Scope: scope, Revision: 1, Epoch: 1, AdmissionPolicy: "APPROVED_CONTROL"}}
+	if _, err := newControlStack(nil, opts); !errors.Is(err, workercontrol.ErrInvalidBinding) {
+		t.Fatal("unconfigured maintenance accepted", err)
+	}
+	path := filepath.Join(t.TempDir(), "mode")
+	if os.WriteFile(path, []byte("closed"), 0600) != nil {
+		t.Fatal("fixture")
+	}
+	opts.Maintenance = maintenance.New(path)
+	stack, err := newControlStack(nil, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if claimed, err := stack.Provisions.RunOne(t.Context()); claimed || !errors.Is(err, workercontrol.ErrPaused) {
+		t.Fatal("paused durable binding reached claim", claimed, err)
+	}
+}

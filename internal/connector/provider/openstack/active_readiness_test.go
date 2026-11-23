@@ -36,6 +36,8 @@ func (rt readinessTransport) RoundTrip(r *http.Request) (*http.Response, error) 
 }
 
 func readinessFixture(t *testing.T, wrap func(http.Handler) http.Handler) (*Adapter, coreprovider.CreationSnapshot) {
+	t.Helper()
+	requireProtectedCIDRFixture(t)
 
 	key := testPrivateKey("cidr-lifecycle")
 	pub, err := ssh.NewPublicKey(key.Public())
@@ -174,6 +176,7 @@ func readinessFixture(t *testing.T, wrap func(http.Handler) http.Handler) (*Adap
 }
 
 func TestKTCloudProvisionAcceptsLateActiveAfterFiveMinutes(t *testing.T) {
+	requireProtectedCIDRFixture(t)
 	synctest.Test(t, func(t *testing.T) {
 		var created time.Time
 		creates := 0

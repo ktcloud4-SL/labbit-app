@@ -87,6 +87,33 @@ func (g *Gate) Enter(kind string) (release func(), ok bool) {
 	return func() { once.Do(func() { g.mu.Lock(); defer g.mu.Unlock(); g.active[kind]-- }) }, true
 }
 
+// EnterControlledWorker checks file integrity and tracks Worker lifetime but
+// permits a verified closed API barrier. It is telemetry/file validation, NOT
+// Worker authorization: production assembly only selects it with an explicit
+// APPROVED_CONTROL policy plus a persistent immutable binding. Every claim,
+// prepare and Router dispatch must still pass the authoritative control Store.
+// Default Enter behavior, including PR194 closed Worker blocking, is unchanged.
+func (g *Gate) EnterControlledWorker(kind string) (func(), bool) {
+	if !g.Configured() || kind != "worker" {
+		return nil, false
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	f, err := os.Open(g.path)
+	if err != nil {
+		return nil, false
+	}
+	defer f.Close()
+	b, err := io.ReadAll(io.LimitReader(f, 17))
+	mode := strings.TrimSpace(string(b))
+	if err != nil || len(b) > 16 || (mode != "open" && mode != "closed") {
+		return nil, false
+	}
+	g.active["worker"]++
+	var once sync.Once
+	return func() { once.Do(func() { g.mu.Lock(); defer g.mu.Unlock(); g.active["worker"]-- }) }, true
+}
+
 func (g *Gate) Snapshot() (bool, map[string]int) {
 	g.mu.Lock()
 	defer g.mu.Unlock()

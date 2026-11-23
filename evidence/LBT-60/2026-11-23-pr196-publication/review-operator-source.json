@@ -1,0 +1,47 @@
+[
+  {
+    "Path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-offline-20261121\\internal\\drcontrol\\awscli_test.go",
+    "SHA256": "661C644C6E689FCE6B04D7BAFFF5E0777E67BD1C5BDD56F80B15BD0AB3CBA5D2",
+    "Bytes": 4503
+  },
+  {
+    "Path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-offline-20261121\\internal\\drcontrol\\awscli.go",
+    "SHA256": "6AF62FA59B9C12AF8FDC43BB237C4A9B5B552CD103EC4B7A3B3E8C91F0CE1985",
+    "Bytes": 5444
+  },
+  {
+    "Path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-offline-20261121\\internal\\drcontrol\\contract.go",
+    "SHA256": "CCA698152B52ED2D788945B0B4407279C586C1812409E35DC5ADDBECDCCA9B1C",
+    "Bytes": 9329
+  },
+  {
+    "Path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-offline-20261121\\internal\\drcontrol\\database_integration_test.go",
+    "SHA256": "8AA161654F8709985F11B3CD62BCC90242FD0A74E059E6162FDC02C8ECB2FE59",
+    "Bytes": 2990
+  },
+  {
+    "Path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-offline-20261121\\internal\\drcontrol\\database.go",
+    "SHA256": "BED00BF1AD0F8BE7E8129EB41292BE176311C21EB143C4EC817AA2BA37F7B317",
+    "Bytes": 1480
+  },
+  {
+    "Path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-offline-20261121\\internal\\drcontrol\\verified_test.go",
+    "SHA256": "D1D9560C7B02C51FBD6A4A4B12EF25B5A26B30DCEC51885DD66963DF7192A8A6",
+    "Bytes": 12333
+  },
+  {
+    "Path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-offline-20261121\\internal\\drcontrol\\verified.go",
+    "SHA256": "FDFEB220350F237100A79748D29D6D77D71E7929A890290A5987C10B13607EF7",
+    "Bytes": 5906
+  },
+  {
+    "Path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-offline-20261121\\cmd\\labbit-dr-control\\main_test.go",
+    "SHA256": "37852466E9471F11FC7D5071EBF326EC15003F88F8920D34D572EBA5C5CA7F4B",
+    "Bytes": 2928
+  },
+  {
+    "Path": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-offline-20261121\\cmd\\labbit-dr-control\\main.go",
+    "SHA256": "8F2F96C02DB8A8A0CA123B00AA56F7CE81E2B56F60DE0DEF68EBB4B53AFACF8B",
+    "Bytes": 3687
+  }
+]

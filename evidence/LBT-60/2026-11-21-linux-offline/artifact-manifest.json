@@ -1,0 +1,94 @@
+{
+  "files": [
+    {
+      "path": "AUDIT.md",
+      "size": 11029,
+      "sha256": "36dbc0739d23f319473a414ca9ae5f6ae2878f3533243fc15d370cb6e9867718"
+    },
+    {
+      "path": "downloads-manifest-attempt01.json",
+      "size": 9216,
+      "sha256": "20764e8303d4b0bd815dd4a5ce58b3318a6ce574fdf5fefd6180724add5510a9"
+    },
+    {
+      "path": "downloads-manifest.json",
+      "size": 12018,
+      "sha256": "6a97a4b63a96ab7569168828a92626422076a27844e08de0c4f93fa42653cd30"
+    },
+    {
+      "path": "environment.json",
+      "size": 2038,
+      "sha256": "609c291b2af18a2b06be3a101d0c75b4cf1675a7e4b7b1bb386775364b68f648"
+    },
+    {
+      "path": "go-credential.jsonl",
+      "size": 6511,
+      "sha256": "0c826a244fd500a668c46de75b134185b5616034638f1590758f9849bbdf5f55"
+    },
+    {
+      "path": "go-installer-final.jsonl",
+      "size": 13990,
+      "sha256": "a73e9d4b9e0a87cd6b7062fac17a6c09ea81c3865294f14108a578bfc7fbc98b"
+    },
+    {
+      "path": "go-installer-initial.jsonl",
+      "size": 11033,
+      "sha256": "fc729a500e8e49150005f56e7f1fde2b20ad40ea1ba296a0bf740222757e194f"
+    },
+    {
+      "path": "go-openstack.jsonl",
+      "size": 740488,
+      "sha256": "0692da8de2172069107060ff5cec8abe3a6cea4930d49672d201e6df1544c58b"
+    },
+    {
+      "path": "go-workspacefile.jsonl",
+      "size": 1394,
+      "sha256": "777bd589a94ac40c0672563d27f134be44cfecc866f37ef905a054d2a2ab1d74"
+    },
+    {
+      "path": "harness-manifest.json",
+      "size": 956,
+      "sha256": "2c452985a84e9f97d9867e7f0ff22ca8746314284ed64d06ead184e8bbdbc0cd"
+    },
+    {
+      "path": "payload-manifest-attempt01.json",
+      "size": 19980,
+      "sha256": "d85d830d9e92ed52877ad1c8fbd12fc898af92dc7c914b34a97830a5fc322761"
+    },
+    {
+      "path": "payload-manifest.json",
+      "size": 20995,
+      "sha256": "79ff2e206014b4b99bfee812555276e86a9d6ffba20141cec7d36095fc27083e"
+    },
+    {
+      "path": "python-normal.log",
+      "size": 1861,
+      "sha256": "5d0818b23287dee746d6a12513c029bce50e30fa93e3420bbb818f120e18bf27"
+    },
+    {
+      "path": "python-optimized.log",
+      "size": 1861,
+      "sha256": "b45d8eda87c529a9aafab65eaf4765e83f44058c8af737e24752804f4f63e92f"
+    },
+    {
+      "path": "qemu-attempt01.log",
+      "size": 776913,
+      "sha256": "f195dd58785ccdc2f2e015608fd645d604e693516ccb6dbac8ae28921966c1d3"
+    },
+    {
+      "path": "qemu-attempt02.log",
+      "size": 43300,
+      "sha256": "9da5dcd4b8449d6a13acc799594c0f855126df487d6740fbfa2180122c527d95"
+    },
+    {
+      "path": "source-comparison.json",
+      "size": 314,
+      "sha256": "102569b36ed302779b30495d0a983bdeeff47fa7504b14aa29406a66c85dc588"
+    },
+    {
+      "path": "test-summary.json",
+      "size": 2910,
+      "sha256": "8646cca319320c014af6f7a0a480e30b17099eec61717f875b04aadb17156c69"
+    }
+  ]
+}

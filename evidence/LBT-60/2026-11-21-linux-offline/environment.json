@@ -1,0 +1,74 @@
+{
+  "created_at_utc": "2026-11-21T06:59:12.619048+00:00",
+  "qemu": {
+    "path": "qemu-system-x86_64.exe",
+    "size": 9662424,
+    "sha256": "357ea738a5b33cf70206e4c05492bc00b845ee58bc485dcabad91e95cf91e771",
+    "version": "2.11.0 (v2.11.0-11693-g21057c841e-dirty)",
+    "installed_directory_name": "qemu-3.1.0"
+  },
+  "guest": {
+    "alpine": "3.23.8",
+    "kernel": "6.18.60-0-virt",
+    "bash": "5.3.3",
+    "python": "3.12.16",
+    "coreutils": "9.8",
+    "filesystem": "RAM rootfs + tmpfs /tmp; Linux fsync API exercised, no disk crash durability proof"
+  },
+  "kernel": {
+    "path": "vmlinuz-virt",
+    "size": 12649472,
+    "sha256": "0c41150f2c75a1edf0456ffeb54880837fd9cba86cbf3a351c4a1c94b6ab7978"
+  },
+  "rootfs_published_sha256_verified": true,
+  "kernel_apk_publisher_signature_verified": false,
+  "qemu_args": [
+    "-nodefaults",
+    "-no-user-config",
+    "-display",
+    "none",
+    "-monitor",
+    "none",
+    "-serial",
+    "stdio",
+    "-no-reboot",
+    "-m",
+    "1536",
+    "-smp",
+    "2",
+    "-accel",
+    "tcg",
+    "-net",
+    "none",
+    "-kernel",
+    "<vmlinuz-virt>",
+    "-initrd",
+    "<image>",
+    "-append",
+    "console=ttyS0 rdinit=/init panic=1"
+  ],
+  "initramfs_attempt01_sha256": "1db548cd1f566a2780ce5ec9b06417fa1174fc9a57a887733ad923ef3edbb017",
+  "initramfs_attempt02": {
+    "path": "test-initramfs.gz",
+    "size": 53049781,
+    "sha256": "89b1f26569e9c3854a5e201f421ab61f889f04edce6b92e2ba858b345f92b976"
+  },
+  "build": {
+    "go": "1.27.1",
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "CGO_ENABLED": "0",
+    "race": false
+  },
+  "qemu_exit_codes": {
+    "attempt01": 0,
+    "attempt02": 0
+  },
+  "guest_network_interfaces": [
+    "lo"
+  ],
+  "host_shared_directories": [],
+  "guest_disks": [],
+  "host_credentials_in_guest": false,
+  "cleanup": "Both guests powered down; ephemeral RAM filesystems discarded. Host scratch files retained for reproducibility; no installed services/WSL/registry changes."
+}

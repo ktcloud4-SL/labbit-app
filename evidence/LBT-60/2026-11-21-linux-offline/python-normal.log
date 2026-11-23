@@ -1,0 +1,15 @@
+test_failure_phase_and_kind_without_command_or_output (ktcloud_management_route_guest_test.ManagementRouteDiagnosticsTest.test_failure_phase_and_kind_without_command_or_output) ... ok
+test_active_config_read_failure_has_own_phase (ktcloud_management_route_guest_test.ManagementRouteTest.test_active_config_read_failure_has_own_phase) ... ok
+test_filesystem_failure_is_not_misattributed_to_last_command (ktcloud_management_route_guest_test.ManagementRouteTest.test_filesystem_failure_is_not_misattributed_to_last_command) ... ok
+test_foreign_overlay_and_symlink_are_never_overwritten (ktcloud_management_route_guest_test.ManagementRouteTest.test_foreign_overlay_and_symlink_are_never_overwritten) ... ok
+test_inactive_generated_file_or_dropin_cannot_prove_persistence (ktcloud_management_route_guest_test.ManagementRouteTest.test_inactive_generated_file_or_dropin_cannot_prove_persistence) ... ok
+test_missing_or_ambiguous_management_interface_rejected (ktcloud_management_route_guest_test.ManagementRouteTest.test_missing_or_ambiguous_management_interface_rejected) ... ok
+test_netplan_or_reload_failure_is_not_success (ktcloud_management_route_guest_test.ManagementRouteTest.test_netplan_or_reload_failure_is_not_success) ... ok
+test_persistent_route_preserves_original_and_dynamic_address (ktcloud_management_route_guest_test.ManagementRouteTest.test_persistent_route_preserves_original_and_dynamic_address) ... ok
+test_verify_is_readonly_and_rejects_lucky_default_route (ktcloud_management_route_guest_test.ManagementRouteTest.test_verify_is_readonly_and_rejects_lucky_default_route) ... ok
+test_wrong_return_path_or_protocol_rejected (ktcloud_management_route_guest_test.ManagementRouteTest.test_wrong_return_path_or_protocol_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 1.378s
+
+OK

@@ -9,17 +9,80 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	coreprovider "github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 )
 
 const testCIDRPairs = `[{"lab":"172.25.240.0/24","management":"172.25.241.0/24"},{"lab":"172.25.242.0/24","management":"172.25.243.0/24"}]`
 
+// Production requires exact POSIX permissions and directory fsync. Windows
+// cannot establish this fixture; do not weaken the production checks to pass it.
+// The unsupported-host rejection is tested separately below. Linux CI executes
+// these positive ledger lifecycle cases without this skip.
+func requireProtectedCIDRFixture(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX 0700/0600 and directory fsync fixture unsupported on Windows; run Linux CI")
+	}
+}
+
+func TestKTCloudCIDRPoolUnsupportedWindowsPermissionsFailClosed(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows-specific filesystem rejection; POSIX lifecycle is covered by Linux fixtures")
+	}
+	for _, existingIntent := range []bool{false, true} {
+		t.Run(fmt.Sprintf("existing-intent-%t", existingIntent), func(t *testing.T) {
+			var requests atomic.Int32
+			a := ktTopologyAdapter(t, func(w http.ResponseWriter, r *http.Request) {
+				requests.Add(1)
+				w.WriteHeader(http.StatusInternalServerError)
+			})
+			a.provision.KTCloudCIDRPairs = testCIDRPairs
+			dir := t.TempDir()
+			a.provision.KTCloudCIDRStateDir = dir
+			if err := os.Chmod(dir, 0700); err != nil {
+				t.Fatal(err)
+			}
+			const intent = `{"pending":"unresolved"}`
+			intentPath := filepath.Join(dir, intentName(0, 1))
+			if existingIntent {
+				if err := os.WriteFile(intentPath, []byte(intent), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			called := false
+			result, err := a.withCIDRScope(t.Context(), cidrCorrelation("student", 1), false, func(*Adapter) (coreprovider.OperationResult, error) {
+				called = true
+				return coreprovider.OperationResult{Outcome: coreprovider.OutcomeSucceeded}, nil
+			})
+			if err != nil || result.Outcome != coreprovider.OutcomeUnknown || called || requests.Load() != 0 {
+				t.Fatalf("unsupported filesystem must HOLD without callback/provider I/O: outcome=%s err=%v callback=%t requests=%d", result.Outcome, err, called, requests.Load())
+			}
+			entries, err := os.ReadDir(dir)
+			wantEntries := 0
+			if existingIntent {
+				wantEntries = 1
+				data, err := os.ReadFile(intentPath)
+				if err != nil || string(data) != intent {
+					t.Fatal("existing unresolved intent was changed")
+				}
+			}
+			if err != nil || len(entries) != wantEntries {
+				t.Fatalf("rejected request changed ledger: entries=%d err=%v", len(entries), err)
+			}
+		})
+	}
+}
+
 func pooledKTAdapter(t *testing.T, tiers []ktCloudTier) *Adapter {
 	t.Helper()
+	requireProtectedCIDRFixture(t)
 	a := ktTopologyAdapter(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" || r.URL.Path != "/compute/v2/nsm/network" {
 			if r.URL.Path != "/compute/v2/nsm/unavailable/network" {
@@ -135,20 +198,36 @@ func TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory(t *testing.T) {
 func TestKTCloudCIDRPoolConcurrentAndUnknownMutation(t *testing.T) {
 	a := pooledKTAdapter(t, nil)
 	entered, release := make(chan struct{}), make(chan struct{})
+	finished := make(chan struct{})
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	var releaseOnce sync.Once
+	unblock := func() { releaseOnce.Do(func() { close(release) }) }
+	defer unblock()
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		a.withCIDRScope(context.Background(), cidrCorrelation("student", 1), false, func(scoped *Adapter) (coreprovider.OperationResult, error) {
+		defer close(finished)
+		a.withCIDRScope(ctx, cidrCorrelation("student", 1), false, func(scoped *Adapter) (coreprovider.OperationResult, error) {
 			if err := scoped.startCIDRMutation(cidrCorrelation("student", 1)); err != nil {
 				t.Error(err)
 			}
 			close(entered)
-			<-release
+			select {
+			case <-release:
+			case <-ctx.Done():
+			}
 			return unknownResult(nil, "lost create response"), nil
 		})
 	}()
-	<-entered
+	select {
+	case <-entered:
+	case <-finished:
+		t.Fatal("CIDR fixture returned before entering mutation callback")
+	case <-ctx.Done():
+		t.Fatal("CIDR fixture did not enter mutation callback within its test deadline")
+	}
 	other := *a
 	result, _ := other.withCIDRScope(context.Background(), cidrCorrelation("teacher", 1), false, func(*Adapter) (coreprovider.OperationResult, error) {
 		t.Error("concurrent mutation entered")
@@ -157,7 +236,7 @@ func TestKTCloudCIDRPoolConcurrentAndUnknownMutation(t *testing.T) {
 	if result.Outcome != coreprovider.OutcomeFailed || result.Error == nil || result.Error.Code != errorInvalidProvision {
 		t.Error("unattempted concurrent operation was not rejected deterministically")
 	}
-	close(release)
+	unblock()
 	wg.Wait()
 	// Missing provider inventory after a lost response cannot release the slot or intent.
 	result, _ = other.withCIDRScope(context.Background(), cidrCorrelation("student", 1), false, func(*Adapter) (coreprovider.OperationResult, error) {

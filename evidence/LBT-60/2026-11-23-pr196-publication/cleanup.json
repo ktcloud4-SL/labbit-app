@@ -1,0 +1,6 @@
+{
+  "port": 55439,
+  "listening_after_cleanup": false,
+  "data_retained": true,
+  "owned_fixture_only": true
+}

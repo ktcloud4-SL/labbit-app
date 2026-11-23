@@ -108,6 +108,7 @@ func TestKTManagementInvalidMIMEAndFinalOverflowRejectBeforeProvisionOrReset(t *
 }
 
 func TestKTManagementRouteGateRequiredWithoutUserStartup(t *testing.T) {
+	requireProtectedCIDRFixture(t)
 	synctest.Test(t, func(t *testing.T) {
 		a, snapshot := readinessFixture(t, func(next http.Handler) http.Handler { return next })
 		a.provision.StartupReadyTimeout = 2 * time.Second

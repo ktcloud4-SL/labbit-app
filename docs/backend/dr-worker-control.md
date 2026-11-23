@@ -142,7 +142,17 @@ Run은 하나의 maintenance Gate를 Service/Executor/metrics에 공유하고 Wo
 4. NewMaintenanceResumer는 configured exact closed와 모든 local count0을 진입/Begin/Apply에 추가한다.
    외부 승인·Writer·Fencing·PodCoverage와 WorkInventory/WorkReconciled 검증을 대체하지 않는다.
 5. APPLIED는 영속 제어 상태의 전이 기록이다. 앱은 파일을 열거나 Pod를 변경하지 않는다.
-   새 binding의 승인 배포와 운영자 파일 개방은 별도로 진행·관측해야 하며 old Control은 자동으로 열리지 않는다.
+   기본 MAINTENANCE 정책에서는 새 binding의 승인 배포와 운영자 파일 개방을 별도로 진행·관측해야 하며 old Control은 자동으로 열리지 않는다.
+
+### 11/21 추가 후보: 접수 closed와 승인 Worker의 분리
+
+Runtime0.1.13의 `LABBIT_WORKER_ADMISSION_POLICY=APPROVED_CONTROL`은 postgres 제어와 구성된
+maintenance 파일을 요구한다. HTTP 신규 접수는 closed에서 계속 거절하되, Worker는 유효한 파일과
+매 claim/prepare/dispatch의 영속 권한을 검사한다. 이 모드에서는 **closed 파일만으로 Worker를 중지할 수 없다**.
+별도 durable Pause·전체 경계 drain·UNKNOWN 정산이 필요하며, ACTIVE 재개는 새 승인과 새 binding을 요구한다.
+특정 Operation ID 필터는 아니므로 전체 backlog 정산과 변경 동결이 필수다. 기존 #194 기본 동작은 유지한다.
+RECONCILE_ONLY는 기존 typed query 관측 경계를 유지한다. 후보 운영 CLI와 신뢰 경계는
+[Runtime 운영 도구 계약](../../runtime/dr-control.md), 배포 전 조건은 [Stage3 계획](dr-stage3-deployment.md)을 따른다.
 
 파일 snapshot과 journal commit은 원자적이지 않다. 외부 변경 통제·전체 Pod coverage가 계속 필요하다.
 metric0이나 짧은 boundary0만으로 Provider 작업0·모든 DB 쓰기0·전체 DR GO를 선언하지 않는다.

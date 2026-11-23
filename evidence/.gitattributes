@@ -1,0 +1,2 @@
+# Evidence hashes identify original bytes; disable checkout/checkin newline conversion.
+* -text

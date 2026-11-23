@@ -1,0 +1,8 @@
+waiting for server to shut down.... done
+server stopped
+{
+  "stop_exit": 0,
+  "port_55439_listening": false,
+  "fixture_database_list_exit": 0,
+  "data_directory_retained": true
+}

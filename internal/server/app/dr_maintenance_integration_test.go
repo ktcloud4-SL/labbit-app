@@ -18,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	"github.com/ktcloud4-SL/labbit-app/internal/postgres"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/maintenance"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/provision"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/repository"
@@ -453,6 +454,14 @@ func (f drResumeFixture) RecheckResume(_ context.Context, r wc.ResumeRequest) (w
 }
 
 func TestDRMaintenanceResumeRequiresNewBindingAndExplicitOpenAgainstPostgres(t *testing.T) {
+	testDRMaintenanceResumeAdmissionPolicy(t, "MAINTENANCE")
+}
+
+func TestDRMaintenanceApprovedControlProcessesBacklogWhileHTTPClosedAgainstPostgres(t *testing.T) {
+	testDRMaintenanceResumeAdmissionPolicy(t, "APPROVED_CONTROL")
+}
+
+func testDRMaintenanceResumeAdmissionPolicy(t *testing.T, policy string) {
 	p := newDRMaintenancePair(t, true)
 	p.mode(t, "closed")
 	if err := p.b.Provisions.Pause(t.Context()); err != nil {
@@ -478,7 +487,7 @@ func TestDRMaintenanceResumeRequiresNewBindingAndExplicitOpenAgainstPostgres(t *
 	// Recreate a production stack with the exact new revision/epoch and boot.
 	next := r.NextState()
 	gate := maintenance.New(p.path)
-	stack, err := newControlStack(p.a.store, stackOptions{Worker: true, PublicOrigin: publicOrigin, Maintenance: gate, WorkerControlSettings: wc.Settings{Backend: "postgres", Scope: scope, Revision: next.Revision, Epoch: next.Epoch}, WorkerControlStore: p.journal, WorkerControlMode: wc.Active, WorkerControlPodID: "new-approved-stack", ProvisionLeaseDuration: time.Minute, ProvisionResultTimeout: 5 * time.Second})
+	stack, err := newControlStack(p.a.store, stackOptions{Worker: true, PublicOrigin: publicOrigin, Maintenance: gate, WorkerControlSettings: wc.Settings{Backend: "postgres", AdmissionPolicy: policy, Scope: scope, Revision: next.Revision, Epoch: next.Epoch}, WorkerControlStore: p.journal, WorkerControlMode: wc.Active, WorkerControlPodID: "new-approved-stack", ProvisionLeaseDuration: time.Minute, ProvisionResultTimeout: 5 * time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -498,20 +507,29 @@ func TestDRMaintenanceResumeRequiresNewBindingAndExplicitOpenAgainstPostgres(t *
 		return mockProvisionResult(r, provider.OutcomeSucceeded), nil
 	}})
 	before := p.items(t)
-	if claimed, err := stack.Provisions.RunOne(t.Context()); claimed || err != nil {
-		t.Fatal("APPLIED opened maintenance file")
-	}
-	if p.items(t) != before || calls.Load() != 0 {
-		t.Fatal("closed new binding changed backlog")
-	}
-	p.mode(t, "open")
-	for _, e := range []*provision.Executor{p.a.stack.Provisions, p.b.Provisions} {
-		if claimed, err := e.RunOne(t.Context()); claimed || err == nil {
-			t.Fatal("APPLIED revived old binding")
+	if policy == "MAINTENANCE" {
+		if claimed, err := stack.Provisions.RunOne(t.Context()); claimed || err != nil {
+			t.Fatal("APPLIED opened maintenance file")
 		}
-	}
-	if p.items(t) != before {
-		t.Fatal("old binding changed work")
+		if p.items(t) != before || calls.Load() != 0 {
+			t.Fatal("closed new binding changed backlog")
+		}
+		p.mode(t, "open")
+		for _, e := range []*provision.Executor{p.a.stack.Provisions, p.b.Provisions} {
+			if claimed, err := e.RunOne(t.Context()); claimed || err == nil {
+				t.Fatal("APPLIED revived old binding")
+			}
+		}
+		if p.items(t) != before {
+			t.Fatal("old binding changed work")
+		}
+	} else {
+		if _, ok := gate.Enter("http"); ok {
+			t.Fatal("new HTTP admission opened")
+		}
+		if _, err := p.a.stack.Router.SendOperationCommand(t.Context(), connector.OperationCommand{}); err == nil {
+			t.Fatal("old Router binding accepted")
+		}
 	}
 	for range 2 {
 		drRunOne(t, stack.Provisions)

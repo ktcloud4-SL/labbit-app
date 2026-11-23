@@ -1,0 +1,8 @@
+{
+  "base_head": "c11b70a8e9fb81691e0fadb6b4114ee9a5f47fac",
+  "branch": "codex/feat/LBT-60-stage3-offline-20261121",
+  "current_head": "c11b70a8e9fb81691e0fadb6b4114ee9a5f47fac",
+  "previous_snapshot": "../2026-11-21-regression-diagnosis/source-manifest.json",
+  "checked_files": 29,
+  "mismatches": []
+}

@@ -2,6 +2,11 @@
 
 2026-11-20 · LBT-205 / LBT-59 / LBT-60 · 기존 Draft PR196에서 관리한다.
 
+이 문서의 open 전제는 기존 MAINTENANCE 정책 시험 범위다. 11/21 별도 후보의
+APPROVED_CONTROL은 HTTP closed를 유지한 승인 Worker 처리 경로를 추가한다.
+추가 계약과 제한은 [Runtime 운영 도구](../../runtime/dr-control.md) 및
+[Worker 제어](dr-worker-control.md)의 11/21 절을 따른다. AWS 시험 인수로 합산하지 않는다.
+
 ## 목적과 판정 경계
 
 PR194의 제품 코드를 다시 구현하지 않는다. main `753eecb`의 maintenance를 재사용한 PR196 후보에서

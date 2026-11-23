@@ -1,0 +1,17 @@
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+Finding:     api_key = "[1;3;mREDACTED[0m"
+Secret:      [1;3;mREDACTED[0m
+RuleID:      generic-api-key
+Entropy:     4.864727
+File:        C:/Users/user/.codex/tmp/pr196-gitleaks-8.28-20261123/negative-control/synthetic.txt
+Line:        1
+Fingerprint: C:/Users/user/.codex/tmp/pr196-gitleaks-8.28-20261123/negative-control/synthetic.txt:generic-api-key:1
+
+9:36AM INF scanned ~51 bytes (51 bytes) in 17.5ms
+9:36AM WRN leaks found: 1

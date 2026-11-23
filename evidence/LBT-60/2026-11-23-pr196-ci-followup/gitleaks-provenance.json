@@ -1,0 +1,6 @@
+{
+  "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_windows_x64.zip",
+  "sha256": "da6458e8864af553807de1c46a7a8eac0880bd6b99ba56288e87e86a45af884f",
+  "checksum_match": true,
+  "limitation": "HTTPS upstream release checksum; no detached publisher signature verification"
+}

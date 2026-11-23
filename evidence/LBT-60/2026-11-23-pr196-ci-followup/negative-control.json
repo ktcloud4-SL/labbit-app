@@ -1,0 +1,22 @@
+[
+ {
+  "RuleID": "generic-api-key",
+  "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+  "StartLine": 1,
+  "EndLine": 1,
+  "StartColumn": 1,
+  "EndColumn": 49,
+  "Match": "api_key = \"REDACTED\"",
+  "Secret": "REDACTED",
+  "File": "C:/Users/user/.codex/tmp/pr196-gitleaks-8.28-20261123/negative-control/synthetic.txt",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 4.8647265,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [],
+  "Fingerprint": "C:/Users/user/.codex/tmp/pr196-gitleaks-8.28-20261123/negative-control/synthetic.txt:generic-api-key:1"
+ }
+]

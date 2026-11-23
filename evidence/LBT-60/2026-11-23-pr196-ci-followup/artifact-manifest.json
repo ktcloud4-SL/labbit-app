@@ -1,0 +1,140 @@
+{
+  "files": [
+    {
+      "path": "AUDIT.md",
+      "size": 5834,
+      "sha256": "56bb3757590b04a63ff7bfc4b33f68cec3954cd8cc08fd73af9ddd1eceef1618"
+    },
+    {
+      "path": "ci-initial.json",
+      "size": 4655,
+      "sha256": "9c7593eeca5d36fcaae956094f3bd90d4a8bbcffc9ec6a938f6e2516ee72ace7"
+    },
+    {
+      "path": "commands.json",
+      "size": 1122,
+      "sha256": "432c680b01d4137a56ee6385bfade76d2dd76551465d80cb1ef988e7024e6827"
+    },
+    {
+      "path": "directory-command.json",
+      "size": 735,
+      "sha256": "58181ae8d6759d3a798dfadc2c7f027b86c12e0e973485c2bbbc37309556205a"
+    },
+    {
+      "path": "final-history-command.json",
+      "size": 785,
+      "sha256": "8442760d8b6f29e59fdd0914b13b9f7a2d2b2b42d6504980aa9489605201d7e4"
+    },
+    {
+      "path": "gitleaks-baseline.json",
+      "size": 1915,
+      "sha256": "51de4b43e1a37f21014e92afd959f0c04624faa57a3996329442890e7a6f62fe"
+    },
+    {
+      "path": "gitleaks-baseline.log",
+      "size": 1542,
+      "sha256": "f047595d806634007536df3cf6853263a3d36b8e5ea21c59fc2db58e264f12ac"
+    },
+    {
+      "path": "gitleaks-ci-initial.log",
+      "size": 16839,
+      "sha256": "8842ee5c3525caa5785dc65f0367f6b0497797c93ea096223cfe6275b93c628a"
+    },
+    {
+      "path": "gitleaks-directory-final.json",
+      "size": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "gitleaks-directory-final.log",
+      "size": 146,
+      "sha256": "7a3648539560f99461ba35f611eb83724f0843236ea94469a9432abbe06b7b42"
+    },
+    {
+      "path": "gitleaks-final.json",
+      "size": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "gitleaks-final.log",
+      "size": 176,
+      "sha256": "b0cf1b38746e33445db6ece8db3826ca2786b4be3a654ad654e941e5146c3ab8"
+    },
+    {
+      "path": "gitleaks-history-final.json",
+      "size": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "gitleaks-history-final.log",
+      "size": 176,
+      "sha256": "ee72fdf82a95510b5d90da6143a8d8461e404417efb46f0778e22ab8fe12c6a5"
+    },
+    {
+      "path": "gitleaks-line-anchor-initial.json",
+      "size": 1915,
+      "sha256": "51de4b43e1a37f21014e92afd959f0c04624faa57a3996329442890e7a6f62fe"
+    },
+    {
+      "path": "gitleaks-line-anchor-initial.log",
+      "size": 1542,
+      "sha256": "fae3abc4ef393368a4b24a80c61909eec8d260fe301129ae5d34ab9e2fcf972c"
+    },
+    {
+      "path": "gitleaks-line-anchor-second.json",
+      "size": 1915,
+      "sha256": "51de4b43e1a37f21014e92afd959f0c04624faa57a3996329442890e7a6f62fe"
+    },
+    {
+      "path": "gitleaks-line-anchor-second.log",
+      "size": 1542,
+      "sha256": "bb549ed917e138f23db7c85bcfdea1880a78a12a6b0e17842a54c959c1da40c6"
+    },
+    {
+      "path": "gitleaks-provenance.json",
+      "size": 317,
+      "sha256": "73f4d8943eee95d525f2e8e68059f78f6f66df2e0b6c69077bbf1dd8a4336165"
+    },
+    {
+      "path": "negative-control-command.json",
+      "size": 801,
+      "sha256": "ad6def8453fd05b1ed21f9b773339ac8eafb0b143e347c61c73ac07aed4d2530"
+    },
+    {
+      "path": "negative-control.json",
+      "size": 654,
+      "sha256": "4dd2df86d5fdb34a3af019ad97430ec48e40d207c842f07b5347cd3a7528710c"
+    },
+    {
+      "path": "negative-control.log",
+      "size": 500,
+      "sha256": "3b7a519822dfb4e51088f552f36c1812ef5205440c8db40c99c94e975fccde16"
+    },
+    {
+      "path": "review.md",
+      "size": 8616,
+      "sha256": "c0c75f72c490ad03ab39124c4b78a4e7a739f9f168b40077ee7ad02ce1a3c5e6"
+    },
+    {
+      "path": "scope-negative-command.json",
+      "size": 809,
+      "sha256": "58cf95f96468b96e3422bc9c21c3ae0d66147038427824604207a2e840239707"
+    },
+    {
+      "path": "scope-negative-final.json",
+      "size": 1702,
+      "sha256": "9fcc4180b54e79e7d3652bebefc929bc34ba6c795d488581fdf2c8a0dfdd8872"
+    },
+    {
+      "path": "scope-negative-final.log",
+      "size": 1012,
+      "sha256": "0aabc1a0ad340e56a2285fe7ad17fae9e971b6462ee9290fa48ccdd8fefe30ee"
+    },
+    {
+      "path": "source.json",
+      "size": 528,
+      "sha256": "f1b7baae66cf576460db468fc8022d4c2dcd0edc502828f4da540fa0dc2239c2"
+    }
+  ],
+  "self_excluded": true
+}

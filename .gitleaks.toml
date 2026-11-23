@@ -13,3 +13,12 @@ id = "generic-api-key"
   regexes = [
     '''(?i)^(?:[^"\n]*/)?(?:build\-linux\-credential\-tests\-result\.json|build\-linux\-credential\-tests\.log|vm_access_integration_test\.go|credential\-tests\-build\.log\.gz|vm_access_lifecycle_test\.go|after\-vmaccess\-overlay\.json|auth_integration_test\.go|auth\-class\-http\-smoke\.md|labbitApi\.class\.test\.ts|connector_auth_test\.go|access_unknown_test\.go|vmaccess\-overlay\.json|vm_access_test\.go\.txt|fix_api_and_helper\.py|LabbitApiProvider\.tsx|before\-vmaccess\.log|secret\-screen\.json|credential_test\.go|after\-vmaccess\.log|vm_access_test\.go|labbitApi\.test\.ts|connector_auth\.go|vm_access\.go\.txt|secret\-scan\.json|password_test\.go|mockLabbitApi\.ts|credential\-tests|auth\-session\.md|apiMode\.test\.ts|reauth_test\.go|access_test\.go|token_test\.go|credential\.go|vm_access\.go|openapi\.yaml|labbitApi\.ts|auth_test\.go|password\.go|api_test\.go|apiMode\.ts|access\.go|token\.go|auth\.go|api\.go)"\s*:\s*"[a-f0-9]{64}"$'''
   ]
+
+  [[rules.allowlists]]
+  description = "Public Alpine kernel X.509 identifier in the two fixed DR Linux boot logs; not a secret"
+  condition = "AND"
+  paths = ['''(^|/)evidence/LBT-60/2026-11-21-linux-offline/qemu-attempt0[12]\.log$''']
+  regexTarget = "match"
+  regexes = [
+    '''^key: d76a695f66ad9cd28f5c22a8508f36e91f521f7a'$'''
+  ]

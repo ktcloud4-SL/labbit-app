@@ -1,0 +1,29 @@
+{
+  "created_utc": "2026-11-23T03:15:47.672449+00:00",
+  "base": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "parent_head": "f5413c91282888115ad2b497d5c2183ab58f2e70",
+  "remote_pr_branch": "codex/feat/LBT-60-dr-admission-block-20261119",
+  "remote_main_unchanged": true,
+  "remote_pr_head_unchanged": true,
+  "source_files_verified": 344,
+  "original_artifacts_verified": 37,
+  "jira_updated": "2026-11-23T11:59:27.377+0900",
+  "jira_comment": "11266",
+  "confluence_pages_refreshed": [
+    "9666637",
+    "63275012"
+  ],
+  "confluence_material_drift": false,
+  "product_delta": [
+    "internal/drcontrol/collector.go",
+    "internal/drcontrol/collector_adapters_test.go",
+    "internal/drcontrol/verified_test.go",
+    "runtime/dr-control.md"
+  ],
+  "historical_packet_unchanged": true,
+  "real_aws_seoul_shared_db_access": false,
+  "merge": false,
+  "colleague_message_sent": false,
+  "publication_authorized": true,
+  "future_ci_not_yet_observed": true
+}

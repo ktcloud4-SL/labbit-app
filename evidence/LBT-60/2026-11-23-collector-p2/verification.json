@@ -1,0 +1,15 @@
+{
+  "source_files": 344,
+  "source_hashes_match": true,
+  "independent_review_source_matches": true,
+  "source_delta": [
+    "internal/drcontrol/collector.go",
+    "internal/drcontrol/collector_adapters_test.go",
+    "internal/drcontrol/verified_test.go",
+    "runtime/dr-control.md"
+  ],
+  "real_environment_access": false,
+  "pushed": false,
+  "dr_gate": "HOLD",
+  "scope": "local P2 classification correction and offline verification only"
+}

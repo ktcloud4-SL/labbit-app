@@ -1,0 +1,37 @@
+{
+  "jira": {
+    "key": "LBT-60",
+    "updated": "2026-11-23T11:59:27.377+0900",
+    "comment": "11266",
+    "url": "https://samsunglions.atlassian.net/browse/LBT-60?focusedCommentId=11266"
+  },
+  "pr": {
+    "number": 196,
+    "head": "f5413c91282888115ad2b497d5c2183ab58f2e70",
+    "draft": true,
+    "review": "https://github.com/ktcloud4-SL/labbit-app/pull/196#pullrequestreview-6015992658"
+  },
+  "confluence": [
+    {
+      "id": "9666637",
+      "title": "검증 설계 — 테스트 전략·추적성",
+      "version": 4,
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/9666637"
+    },
+    {
+      "id": "63275012",
+      "title": "2026-11-11 · Osaka DR G5/G6 잔여 Gate·Owner 인수표 (실행 승인 전)",
+      "version": 14,
+      "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/63275012/2026-11-11+Osaka+DR+G5+G6+Gate+Owner"
+    }
+  ],
+  "owning_contract": {
+    "version": "0.1.14",
+    "files": [
+      "runtime/contract.yaml",
+      "runtime/dr-control.md"
+    ]
+  },
+  "runtime_schema_changed": false,
+  "access": "GitHub/Jira/Confluence read-only; no AWS/service calls"
+}

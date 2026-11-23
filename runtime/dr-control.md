@@ -124,6 +124,9 @@ SQLWorkReader는 exact RDS/DSN/TLS/SQL 신원 확인 뒤 read-only repeatable-re
 DB 전체의 Operation/Item/lease, Provider 미해결, 모든 control boundary·Resume/Restriction INTENT를 센다.
 명령 allowlist나 현재 Pod의 작업으로만 범위를 줄이지 않는다. WorkInventory PASS는 목록 조회에 한정되며,
 카운트0만으로 Provider 작업 완료·SingleWriter를 추정하지 않는다.
+신원·대상·revision/epoch·시각·비음수 카운트가 검증된 DB 조회에서 미정산 카운트가 하나라도 양수이면,
+외부 SafetyAttestation이 없거나 유효하지 않아도 WorkReconciled는 FAIL이다. 카운트가 모두 0이어도
+외부 Provider 정산 근거 없이는 NOT_VERIFIED이며, DB 조회 자체가 불확실하면 양수 값을 신뢰하지 않는다.
 
 SingleWriter/Fencing/Provider 정산에는 별도의 trusted collector가 발행한 `SafetyAttestation`이 필요하다.
 이는 Version/Source=LIVE_READBACK, exact EvidenceBinding/DBResourceID/UTC TTL, 세 판정과

@@ -213,8 +213,14 @@ func Collect(ctx context.Context, p Policy, i Invocation, plan CollectionPlan, p
 			validWork = false
 		}
 	}
+	dbUnreconciled := w.OpenBoundaries > 0 || w.PendingResumes > 0 || w.PendingRestrictions > 0 || w.Operations > 0 || w.Items > 0 || w.ProviderUnresolved > 0
 	if validWork {
 		o.WorkInventory = "PASS"
+		// A trusted DB observation can establish unfinished work independently
+		// of external safety evidence. Zero counts still cannot establish PASS.
+		if dbUnreconciled {
+			o.WorkReconciled = "FAIL"
+		}
 		raw, _ := json.Marshal(w)
 		result.SourceSHA256 = append(result.SourceSHA256, Hash(raw))
 	} else {
@@ -261,9 +267,9 @@ func Collect(ctx context.Context, p Policy, i Invocation, plan CollectionPlan, p
 			if a.ValidUntil.Before(o.ValidUntil) {
 				o.ValidUntil = a.ValidUntil
 			}
-			if w.OpenBoundaries == 0 && w.PendingResumes == 0 && w.PendingRestrictions == 0 && w.Operations == 0 && w.Items == 0 && w.ProviderUnresolved == 0 && a.ProviderReconciled == "PASS" {
+			if !dbUnreconciled && a.ProviderReconciled == "PASS" {
 				o.WorkReconciled = "PASS"
-			} else if w.OpenBoundaries > 0 || w.PendingResumes > 0 || w.PendingRestrictions > 0 || w.Operations > 0 || w.Items > 0 || w.ProviderUnresolved > 0 || a.ProviderReconciled == "FAIL" {
+			} else if dbUnreconciled || a.ProviderReconciled == "FAIL" {
 				o.WorkReconciled = "FAIL"
 			}
 		} else {

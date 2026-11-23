@@ -1,0 +1,6 @@
+{
+  "method": "gofmt stdin compared to LF-normalized tracked/local Go, no source rewrite",
+  "files_checked": 658,
+  "failures": [],
+  "initial_raw_checkout_check": "collector-p2-format.txt.gz includes CRLF-only names; not hidden or bulk-formatted"
+}

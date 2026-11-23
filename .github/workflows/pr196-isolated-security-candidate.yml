@@ -62,9 +62,10 @@ jobs:
       - name: Check runtime package without application startup
         run: |
           docker run --rm --entrypoint /bin/sh "$CANDIDATE" -ec '
-            version="$(apk info -v zlib)"
+            version="$(sed -n "/^P:zlib$/,/^$/s/^V://p" /lib/apk/db/installed)"
+            test -n "$version"
             echo "$version"
-            comparison="$(apk version -t "${version#zlib-}" 1.4-r0)" || exit 1
+            comparison="$(apk version -t "$version" 1.4-r0)" || exit 1
             case "$comparison" in "="|">") ;; *) exit 1 ;; esac
             test -x /app/labbit-server
             test -x /app/labbit-migrate

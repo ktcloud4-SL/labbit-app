@@ -1,0 +1,98 @@
+name: PR196 isolated zlib14 candidate artifact
+on:
+  push:
+    branches:
+      - codex/build/LBT-60-pr196-candidate-20261123
+    paths:
+      - .github/workflows/pr196-isolated-security-candidate.yml
+permissions:
+  contents: read
+concurrency:
+  group: pr196-isolated-security-candidate-20261123
+  cancel-in-progress: false
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SOURCE_SHA: be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+      CANDIDATE: labbit-dr196:be4d0ba
+      DOCKER_BUILD_RECORD_UPLOAD: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+          persist-credentials: false
+      - name: Assert exact source
+        run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          mkdir -p /tmp/pr196-artifact
+          git ls-files -s Dockerfile .dockerignore go.mod go.sum db/migrations > /tmp/pr196-artifact/source-files.txt
+      - name: Prepare audited runtime package correction
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          old=Path('Dockerfile').read_bytes()
+          before=b'RUN apk --no-cache add ca-certificates tzdata'
+          after=b"RUN apk --no-cache add --upgrade ca-certificates tzdata 'zlib>=1.4-r0'"
+          if old.count(before)!=1: raise SystemExit('DOCKERFILE_PATCH_TARGET_MISMATCH')
+          new=old.replace(before,after)
+          Path('/tmp/pr196-runtime.Dockerfile').write_bytes(new)
+          Path('/tmp/pr196-artifact/runtime.Dockerfile').write_bytes(new)
+          Path('/tmp/pr196-artifact/runtime-dockerfile.sha256').write_text(hashlib.sha256(new).hexdigest()+'\n')
+          PY
+          test -z "$(git status --porcelain)"
+      - uses: docker/setup-buildx-action@v3
+      - name: Build pinned app with corrected runtime package
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: /tmp/pr196-runtime.Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: labbit-dr196:be4d0ba
+          labels: |
+            org.opencontainers.image.revision=be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+            org.opencontainers.image.source=https://github.com/ktcloud4-SL/labbit-app
+            labbit.trial.scope=PR196-candidate-not-deployed
+            labbit.trial.runtime-patch=zlib-minimum-1.4-r0
+      - name: Check runtime package without application startup
+        run: |
+          docker run --rm --entrypoint /bin/sh "$CANDIDATE" -ec '
+            version="$(apk info -v zlib)"
+            echo "$version"
+            comparison="$(apk version -t "${version#zlib-}" 1.4-r0)" || exit 1
+            case "$comparison" in "="|">") ;; *) exit 1 ;; esac
+            test -x /app/labbit-server
+            test -x /app/labbit-migrate
+            test "$(id -un)" = appuser
+          ' > /tmp/pr196-artifact/runtime-package-check.txt
+      - name: Inspect and export candidate only
+        env:
+          BUILD_WORKFLOW_SHA: ${{ github.sha }}
+          BUILD_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          docker image inspect "$CANDIDATE" > /tmp/pr196-artifact/image-inspect.json
+          docker save "$CANDIDATE" -o /tmp/pr196-artifact/candidate.tar
+          sha256sum /tmp/pr196-artifact/candidate.tar > /tmp/pr196-artifact/candidate.tar.sha256
+          python3 - <<'PY'
+          import json, os
+          p='/tmp/pr196-artifact'
+          x=json.load(open(p+'/image-inspect.json'))[0]
+          assert x['Os']=='linux' and x['Architecture']=='amd64'
+          assert x['Config']['User']=='appuser'
+          assert x['Config']['Entrypoint']==['/app/labbit-server']
+          assert x['Config']['Labels']['org.opencontainers.image.revision']==os.environ['SOURCE_SHA']
+          json.dump(dict(source_sha=os.environ['SOURCE_SHA'],workflow_sha=os.environ['BUILD_WORKFLOW_SHA'],run_id=os.environ['BUILD_RUN_ID'],image_id=x['Id'],deployed=False,aws_credentials_used=False,gitops_changed=False),open(p+'/build-summary.json','w'),indent=2)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr196-be4d0ba-zlib14-candidate
+          path: /tmp/pr196-artifact/
+          if-no-files-found: error
+          retention-days: 1
+

@@ -94,7 +94,7 @@ func (s *WorkerControlStore) BeginResume(ctx context.Context, r wc.ResumeRequest
 			return wc.ErrStale
 		}
 		var unresolved int64
-		if tx.QueryRow(ctx, `SELECT (SELECT count(*) FROM worker_control_boundaries WHERE control_id=$1 AND closed_at IS NULL)+(SELECT count(*) FROM worker_control_resumes WHERE control_id=$1 AND status='INTENT')`, r.Scope.ID).Scan(&unresolved) != nil {
+		if tx.QueryRow(ctx, `SELECT (SELECT count(*) FROM worker_control_boundaries WHERE control_id=$1 AND closed_at IS NULL)+(SELECT count(*) FROM worker_control_resumes WHERE control_id=$1 AND status='INTENT')+(SELECT count(*) FROM worker_control_restrictions WHERE control_id=$1 AND status='INTENT')`, r.Scope.ID).Scan(&unresolved) != nil {
 			return wc.ErrUnavailable
 		}
 		if unresolved != 0 {
@@ -154,7 +154,7 @@ func (s *WorkerControlStore) ApplyResume(ctx context.Context, r wc.ResumeRequest
 			return wc.ErrStale
 		}
 		var open int64
-		if tx.QueryRow(ctx, `SELECT count(*) FROM worker_control_boundaries WHERE control_id=$1 AND closed_at IS NULL`, r.Scope.ID).Scan(&open) != nil {
+		if tx.QueryRow(ctx, `SELECT (SELECT count(*) FROM worker_control_boundaries WHERE control_id=$1 AND closed_at IS NULL)+(SELECT count(*) FROM worker_control_restrictions WHERE control_id=$1 AND status='INTENT')`, r.Scope.ID).Scan(&open) != nil {
 			return wc.ErrUnavailable
 		}
 		if open != 0 {

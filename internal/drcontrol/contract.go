@@ -49,6 +49,7 @@ type Database struct {
 	Port                                      uint16
 }
 type Policy struct {
+	CollectionPlanSHA256                                  string `json:",omitempty"`
 	Version, AccountID, Region, AWSExecutable, AWSProfile string
 	Target                                                wc.Scope
 	Actors                                                []Actor
@@ -205,6 +206,9 @@ func Strict(b []byte, dst any) error {
 }
 
 func (p Policy) Validate() error {
+	if p.CollectionPlanSHA256 != "" && !sha256Pattern.MatchString(p.CollectionPlanSHA256) {
+		return ErrInput
+	}
 	if p.Version != Version || !accountPattern.MatchString(p.AccountID) || (p.Region != "ap-northeast-2" && p.Region != "ap-northeast-3") || p.Target.Validate() != nil || p.Target.Region != p.Region || p.AWSExecutable == "" || p.AWSProfile == "" || len(p.Actors) == 0 || len(p.ApprovalKeys) == 0 || len(p.ObservationKeys) == 0 || p.ApprovalMaxSeconds < 1 || p.ApprovalMaxSeconds > 86400 || p.EvidenceMaxSeconds < 1 || p.EvidenceMaxSeconds > 86400 || p.ArtifactBucket == "" || p.ArtifactPrefix == "" || strings.HasSuffix(p.ArtifactPrefix, "/") {
 		return ErrInput
 	}
@@ -221,7 +225,7 @@ func (p Policy) Validate() error {
 		seen[a.ARN] = true
 		principals[a.Principal] = true
 		for _, action := range a.Actions {
-			if action != "resume" && action != "inspect" {
+			if action != "resume" && action != "inspect" && action != "init" && action != "pause" && action != "inspect-restriction" && action != "collect" {
 				return ErrInput
 			}
 		}

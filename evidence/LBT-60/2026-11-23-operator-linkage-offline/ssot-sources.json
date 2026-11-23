@@ -1,0 +1,47 @@
+[
+  {
+    "id": "ari:cloud:jira:0a0b7f22-56a2-46ed-b62e-98fbcc892578:issue/LBT-205",
+    "title": "[BE][DR B] API 신규 Mutation 접수 차단·Worker Pause/Claim/Dispatch 안전 제어",
+    "url": "https://api.atlassian.com/ex/jira/0a0b7f22-56a2-46ed-b62e-98fbcc892578/rest/api/3/issue/10447",
+    "metadata": {
+      "cloudId": "0a0b7f22-56a2-46ed-b62e-98fbcc892578",
+      "status": "아이디어",
+      "priority": "Medium",
+      "issueType": "Subtask",
+      "reporter": "박희철",
+      "created": "2026-11-19T18:15:49.595+0900",
+      "updated": "2026-11-23T09:04:20.269+0900"
+    },
+    "requirements": "API 접수/claim/dispatch 분리; default maintenance 유지; 검증된 운영 승인과 별도 DR GO"
+  },
+  {
+    "id": "ari:cloud:jira:0a0b7f22-56a2-46ed-b62e-98fbcc892578:issue/LBT-60",
+    "title": "[OB-06] DR Failover / Failback Drill",
+    "url": "https://api.atlassian.com/ex/jira/0a0b7f22-56a2-46ed-b62e-98fbcc892578/rest/api/3/issue/10269",
+    "metadata": {
+      "cloudId": "0a0b7f22-56a2-46ed-b62e-98fbcc892578",
+      "status": "해야 할 일",
+      "assignee": "박희철",
+      "priority": "Medium",
+      "issueType": "작업",
+      "reporter": "오지은",
+      "created": "2026-09-27T20:37:54.139+0900",
+      "updated": "2026-11-23T09:59:48.818+0900"
+    },
+    "requirements": "API/Worker/Job 동결, 기수락/UNKNOWN 정산, 기존 Writer 재시작 통제; 전체 HOLD"
+  },
+  {
+    "id": "ari:cloud:confluence:0a0b7f22-56a2-46ed-b62e-98fbcc892578:page/9666637",
+    "title": "검증 설계 — 테스트 전략·추적성",
+    "url": "https://samsunglions.atlassian.net/wiki/spaces/SL/pages/9666637",
+    "metadata": {
+      "cloudId": "0a0b7f22-56a2-46ed-b62e-98fbcc892578",
+      "spaceId": "983045",
+      "authorId": "712020:aaa28d25-701d-43db-bf3d-955085c038cc",
+      "createdAt": "2026-09-16T03:33:28.193Z",
+      "status": "current",
+      "version": 4
+    },
+    "requirements": "합성/실제 검증 범위와 tested source 구분; 기존 FAIL/미검증 보존"
+  }
+]

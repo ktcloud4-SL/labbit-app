@@ -1,0 +1,29 @@
+{
+  "command": [
+    "C:\\Program Files\\GNS3\\qemu-3.1.0\\qemu-system-x86_64.exe",
+    "-accel",
+    "tcg",
+    "-m",
+    "768M",
+    "-display",
+    "none",
+    "-monitor",
+    "none",
+    "-serial",
+    "file:C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-dr-stage3-live-prep-20261123\\.local\\linkage-linux-serial.log",
+    "-no-reboot",
+    "-net",
+    "none",
+    "-kernel",
+    "C:\\Users\\user\\.codex\\tmp\\stage3-linux-20261121\\downloads\\vmlinuz-virt",
+    "-initrd",
+    "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-dr-stage3-live-prep-20261123\\.local\\linkage-linux-initramfs.gz",
+    "-append",
+    "console=ttyS0 quiet panic=-1"
+  ],
+  "network": "none; loopback only",
+  "disks": [],
+  "binary_sha256": "f9563521dacf105c46e6a8df266c0b627934bd449a5e242caa7db03630dae0d1",
+  "image_sha256": "942a2ed39b989fe414ed72ddec4016c4332303f8e931ccc9cd55f8ce20dae3d5",
+  "cache_checksums_verified": true
+}

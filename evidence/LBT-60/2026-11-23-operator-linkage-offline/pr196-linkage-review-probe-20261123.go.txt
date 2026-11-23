@@ -1,0 +1,22 @@
+package drcontrol
+
+import (
+ "context"
+ "testing"
+ "time"
+)
+
+func TestIndependentReviewPreservesVerifiedExternalFailureOnSQLUnavailable(t *testing.T) {
+ f,p,k,w := collectorFixture(t)
+ raw := []byte(`{"source":"fixed-readback"}`)
+ ref := Reference{f.p.ArtifactBucket, f.p.ArtifactPrefix+"/raw-review.json", "review-raw", Hash(raw), int64(len(raw))}
+ f.art.values[ref.VersionID] = raw
+ a := SafetyAttestation{Version:Version, Source:"LIVE_READBACK", DBResourceID:f.p.Database.ResourceID, Binding:Bind(f.i.Request), ObservedAt:f.now, ValidUntil:f.now.Add(5*time.Second), SingleWriter:"FAIL", Fencing:"FAIL", ProviderReconciled:"PASS", Sources:[]Reference{ref}}
+ signed := signedFixture(t,a,"observer","safety-attestation",f.ob)
+ r := Reference{f.p.ArtifactBucket,f.p.ArtifactPrefix+"/attestation-review.json","review-attestation",Hash(signed),int64(len(signed))}
+ f.art.values[r.VersionID] = signed
+ w.err = context.DeadlineExceeded
+ report,e := Collect(t.Context(),f.p,f.i,p,k,w,f.art,&r,func() time.Time{return f.now})
+ if e != nil {t.Fatal(e)}
+ if report.Observation.SingleWriter != "FAIL" || report.Observation.Fencing != "FAIL" {t.Fatalf("verified external FAIL was downgraded: SingleWriter=%s Fencing=%s Reasons=%v",report.Observation.SingleWriter,report.Observation.Fencing,report.Reasons)}
+}

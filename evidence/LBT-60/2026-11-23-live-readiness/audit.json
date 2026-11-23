@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "date_kst": "2026-11-23",
+  "scope": "Read-only readiness, offline preview, allowlisted AWS metadata smoke and two documentation corrections; no product implementation or runtime change",
+  "base": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "head": "94fe1f61d7e398761291a967fab9820bfb08bc3d",
+  "branch": "codex/feat/LBT-60-stage3-live-prep-20261123",
+  "committed": false,
+  "pushed": false,
+  "full_diff_review": {
+    "base_to_head": "Existing230-file PR delta at exact unchanged HEAD; full source/SSOT/lifecycle review and tests reused from publication and CI-followup AUDITs, not rerun or claimed as this turn's execution.",
+    "prior_audits": [
+      "../2026-11-23-pr196-publication/AUDIT.md",
+      "../2026-11-23-pr196-ci-followup/AUDIT.md"
+    ],
+    "current_delta": [
+      "docs/backend/dr-stage3-deployment.md",
+      "docs/backend/dr-maintenance-integration.md",
+      "current evidence directory"
+    ],
+    "verification": "verification.json: publication inventory72 source files compared using Git-normalized blob hash;70 unchanged and only the2 documented files differ. Current tracked diff contains only2 docs; ignored helper/binaries are explicitly inventoried below.",
+    "excluded": [
+      "No product, contract, schema, dependency, Dockerfile, workflow or runtime setting change.",
+      "Other worktrees' uncommitted App/Infra/GitOps changes not edited and not accepted as deployed evidence."
+    ],
+    "ignored_dependencies": [
+      ".local/labbit-dr-control.exe built from exact94fe1f6; SHA256896f8a107160a0b049512046325a0520184cd55c69a899a7fede5d88a78cff3c",
+      ".local/readonly-aws/main.go exact source copied as readonly-aws.go.txt; binary/source hashes in readonly-metadata-smoke-receipt.json",
+      "Task-local kubeconfigs remain outside this packet; CA/exec config contains no exported login tokens; global kubeconfig not changed."
+    ]
+  },
+  "ssot_trace": [
+    {
+      "requirement": "Candidate QA is not real deployment/DR approval",
+      "source": "PR196 review6015500915, LBT60, testing strategy9666637v4 (ssot-source.json)",
+      "implementation": "runtime/dr-control.md; drcontrol CLI and updated deployment guide",
+      "automatic": "54 offline tests and preview/disabled results this turn; original exactHEAD CI reviewed separately",
+      "actual": "STS/RDS read-only smoke only",
+      "gap": "Live functional test not run; all DR flags HOLD/NV remain"
+    },
+    {
+      "requirement": "Identify exact caller and DB; reject stale/wrong target",
+      "source": "runtime/dr-control.md; internal/drcontrol/{contract,awscli,database}.go",
+      "implementation": "Unmodified AWSCLI.Identity/VerifyDatabase via allowlisted harness",
+      "automatic": "Existing drcontrol tests rerun; 54 combined tests",
+      "actual": "STS actualaccount/exactARN and RDS metadata match; wrongResourceID rejected;3calls",
+      "gap": "Does not verify Authenticate principal/action, IAM deny, signed artifacts, SQL/TLS or Writer safety"
+    },
+    {
+      "requirement": "Fresh all-serving coverage and exact maintenance declaration",
+      "source": "runtime/contract.yaml; dr-maintenance-integration.md",
+      "implementation": "Fresh local kubeconfigs and selected read-only metadata",
+      "automatic": "JSON/expected artifacts parsed and compared",
+      "actual": "Seoul2ReadyPods, mainimage, ConfigMapmode=open declaration; Osakaapp/Argoabsent at snapshot",
+      "gap": "NoPodexec/boot/actualmount/fullworkinventory or signed safety evidence"
+    },
+    {
+      "requirement": "Schema/backup/recovery before sharedDDL",
+      "source": "db/migrations12-14; deployment guide; PR196 latestreview",
+      "implementation": "Unmodified additive migrations; docs identify actual gate",
+      "automatic": "Prior exactHEAD isolatedPG tests reused, not rerun here",
+      "actual": "MigrationJob reports11; RDS7-daybackups/latestrestorablemetadata",
+      "gap": "Current SQL/checksum and actualrestore unverified; noDDL executed"
+    },
+    {
+      "requirement": "Separate restricted partial test from complete DR",
+      "source": "LBT60 drill AC and9666637v4",
+      "implementation": "Updated docs and readiness.json distinguish SeoulM194/M196 vs Osaka/promotion/DNS/failback",
+      "automatic": "Gate values and fixture outputs checked",
+      "actual": "NoProvider/Failover/Failback tests",
+      "gap": "No operationalDRGO; fullDr4NV/ReplicaLagFAIL retained"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-01",
+      "severity": "P3",
+      "file": "docs/backend/dr-stage3-deployment.md",
+      "original_lines": "3-4,29",
+      "condition": "Read guide at94fe1f6 afterAWSrebuild",
+      "impact": "Stale c11b70a/local/AWSdown wording can misstate current readiness",
+      "basis": "Document/code/actualmetadata mismatch; not product defect",
+      "reported_before_fix": true,
+      "resolution": "CurrentHEAD and historical/current execution split updated; direct evidence linked",
+      "regression": "Review docs against actual snapshot and immutable source hash; no new product test required"
+    },
+    {
+      "id": "F-02",
+      "severity": "P3",
+      "file": "docs/backend/dr-maintenance-integration.md",
+      "original_line": 78,
+      "condition": "Read old statement that allPause/Resume/Authorizer/Rechecker are unimplemented",
+      "impact": "Hides implemented opt-inResume candidate and remaining live operational gaps",
+      "basis": "Exact source94fe1f6",
+      "reported_before_fix": true,
+      "resolution": "Distinguish implementedResume verifier from missingPause/init/livecollectors/key operations",
+      "regression": "Cross-file Runtime/CLI/guide review; no behavior changed"
+    }
+  ],
+  "precondition_findings_not_product_defects": [
+    "Candidate digest not available from exact tag lookup",
+    "Live trustedPause/init, realcollectors/signingkeyoperations not ready",
+    "Current SQL/schema/restore, wholePod/workinventory and actualwindow incomplete",
+    "No need to require Osaka activation/promotion/DNS/fullFailback as prerequisites for Seoul-only partialtest"
+  ],
+  "failure_security_lifecycle": [
+    "Allowlisted helper denies all operations except STSgetcalleridentity/RDSdescribe, uses existing bounded command runner and parent10s deadline; EnableExecution=false required. It never calls SQL/S3/Execute/Resume or provider.",
+    "Wrong ResourceId negative is a read, not a resource mutation. It validates only metadata rejection.",
+    "Preview fixtures use nonexistent executable/endpoint and public dummy trust bytes; no private key or authorization is created.",
+    "ConfigMap projected field initially recorded maintenance_mode=null because actual key is mode. Original projection preserved, corrected separate observation added. No claim of mounted file propagation.",
+    "RDS stopped/resumed events and negative/missing-timeLag behavior preserved; available/replicating is not correctness/RPO/SingleWriter proof.",
+    "No migrations, journal deletes, automaticretry, globalpolicychange, imagepublish/rollout, sharedresourcecleanup or temporarycloudresource creation.",
+    "Rollback plan forbids blind journal/drop/down migration and oldimage rollback when it would lose durable guards.",
+    "Credentials, tokens, DSN, Secret values, private keys, raw terminal/provider payload and full state are not in this packet. SQLDBname/user and keys in smoke policy are explicitlysynthetic."
+  ],
+  "tests": {
+    "executed": {
+      "windows_unit_tests": {
+        "pass": 54,
+        "fail": 0,
+        "skip": 0,
+        "packages": [
+          "cmd/labbit-dr-control",
+          "internal/drcontrol"
+        ],
+        "race": false,
+        "integration_tag": false
+      },
+      "built_cli_preview": {
+        "preview_exit": 0,
+        "disabled_execute_exit": 2,
+        "external_io": false
+      },
+      "aws_metadata_smoke": {
+        "exit": 0,
+        "calls": 3,
+        "sts": 1,
+        "rds": 2,
+        "identity_metadata": "MATCH",
+        "rds_metadata": "MATCH",
+        "wrong_resource_id": "REJECTED",
+        "scope": "actualAWStransport/metadata only"
+      }
+    },
+    "not_rerun": [
+      "Go full suite",
+      "Web suite",
+      "isolatedPostgreSQL integration",
+      "Linux fixtures",
+      "remoteCI (existing exactHEAD results only)"
+    ],
+    "reason": "No product/config/schema change. Focused existing tests plus real read-only adapter smoke are sufficient for this documentation/readiness delta, not for livefunctional acceptance.",
+    "artifact_integrity": "artifact-manifest.json excludes itself; no signing/private authority claimed"
+  },
+  "independent_review": {
+    "reviewer": "/root/audit_pr196_operator",
+    "method": "Read-only source/docs/rawEvidence inspection, independent54-event recount, helper allowlist review before actual3-call smoke; noAWSorDB performed by reviewer",
+    "report": "independent-review.md",
+    "result": "No new confirmed blocker in scoped preparation; document corrections accepted; live gates maintained",
+    "limits": "Reviewer did not independently query AWS or execute production operations"
+  },
+  "decision": {
+    "scope": "PASS_SCOPED_READONLY_AND_OFFLINE_PREPARATION",
+    "live_functional_test": "NOT_STARTED_PRECONDITIONS_MISSING",
+    "stage3_complete": false,
+    "pr_ready_or_merge_authorization": false,
+    "execution_gate": "HOLD",
+    "recovery_authorized": false,
+    "cloud_verified": false
+  },
+  "follow_up": "Implement/review missing trusted operational paths and prepare exact service-impact diff/backup/recovery and window before live mutations. Request user coordination on shared Seoul window; no external teammate message sent."
+}

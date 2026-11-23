@@ -1,5 +1,7 @@
 # Labbit Runtime Contract
 
+**v0.1.14 후보:** 명시 승인된 DR init/Pause journal, 목적별 보호 키 서명과 읽기 전용 Pod/DB collector를 추가합니다. 비공개 Admin `GET /dr-control/status`는 persistent control opt-in일 때만 제공됩니다. 세부 계약은 [DR 운영 경계](./dr-control.md)를 따릅니다. 실제 배포/키 운영/Writer Fencing 검증은 미완료입니다.
+
 **v0.1.8 변경:** trusted infrastructure operator 전용 `labbit-recover-failed-provision`과
 Connector측 one-shot `labbit-recovery-evidence`를 추가합니다. 기본 동작은 dry-run이며 현재 계획의 SHA256을
 `--apply-plan`에 명시해야 반영합니다. 기존 자동 Reconcile의 후보 비채택 원칙은 유지합니다.

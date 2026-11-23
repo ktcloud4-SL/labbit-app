@@ -78,6 +78,12 @@ plan/receipt/원장 hash, 고정 SSH host key와 운영자 감사 label을 원�
     - PostgreSQL CHECK의 NULL 허용을 보완합니다. 유효하지 않은 기존 row는 시각을 추정해 수정하지 않고 migration을 실패시킵니다.
     - 기존 유효 INTENT/APPLIED와 과거 build 호환성을 유지합니다. 공용 DB 적용은 별도 승인·검증 대상입니다.
 
+15. `000015_worker_control_restrictions.sql`
+    - 승인된 init/Pause의 full Request SHA·승인 ID·INTENT/APPLIED를 별도 보존합니다. init 이전 INTENT를 위해 state FK는 없습니다.
+    - scope당 pending 1개, 승인 ID 단일 사용, APPLIED 시각 필수 및 상태 변경/receipt 동일 transaction입니다.
+    - 기존 1~14 SQL/checksum은 변경하지 않습니다. 미해결 restriction은 Resume와 drain 판정을 막습니다.
+    - 자동 초기화/DDL/재시도/만료 삭제는 없으며 공용 DB에 적용하지 않았습니다.
+
 ## 확정된 Domain/Data 모델과의 관계
 
 Physical Schema는 다음 논리 모델과 불변조건을 구현합니다. 실제 적용·검증 결과는 해당 revision의 CI·Jira·실행 Evidence를 따릅니다.

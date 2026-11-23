@@ -1,0 +1,178 @@
+{
+  "version": "labbit-dr-live-readiness/v1",
+  "date_kst": "2026-11-23",
+  "purpose": "PR196 real partial-test preparation; not DR execution approval",
+  "source": {
+    "repository": "ktcloud4-SL/labbit-app",
+    "pr": 196,
+    "url": "https://github.com/ktcloud4-SL/labbit-app/pull/196",
+    "head": "94fe1f61d7e398761291a967fab9820bfb08bc3d",
+    "base": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+    "branch": "codex/feat/LBT-60-stage3-live-prep-20261123",
+    "product_changed": false,
+    "pr_draft": true,
+    "merged": false
+  },
+  "current_evidence_scope": {
+    "real": [
+      "AWS STS identity",
+      "EKS deployment/Pod/Argo metadata via fresh task-specific local kubeconfigs",
+      "maintenance ConfigMap declaration only",
+      "migration Job completion and selected log fields",
+      "RDS metadata/events/CloudWatch ReplicaLag",
+      "one exact ECR candidate tag lookup",
+      "PR196 AWSCLI adapter metadata smoke: actual STS identity and exact Seoul RDS metadata match; intentionally wrong ResourceID rejected; three read-only calls"
+    ],
+    "offline": [
+      "54 Go tests in cmd/labbit-dr-control and internal/drcontrol; no integration tag; no race",
+      "Windows operator binary build",
+      "synthetic preview and disabled-execute invocations"
+    ],
+    "not_executed": [
+      "shared DB SQL/schema/checksum",
+      "migration12-14 or backup restore",
+      "Pod exec/mounted maintenance file read",
+      "candidate image publication or rollout",
+      "production signed approval/observation, durable Pause/init or Resume",
+      "Provider operations",
+      "RDS promotion/DNS/fencing/failback",
+      "Slack transmission"
+    ]
+  },
+  "observations": [
+    {
+      "id": "SEOUL_BASELINE",
+      "status": "OBSERVED_METADATA",
+      "evidence": [
+        "seoul-observation.json",
+        "seoul-control-settings.json",
+        "seoul-maintenance-declaration.json"
+      ],
+      "meaning": "2/2 backend sha-753eecb; declared roles api,realtime,worker,preview; ConfigMap mode=open; durable env absent. Not mounted-file or Worker runtime coverage proof."
+    },
+    {
+      "id": "MIGRATION_JOB",
+      "status": "OBSERVED_LOG_SUMMARY",
+      "evidence": [
+        "migration-job-summary.json"
+      ],
+      "meaning": "Job reports applied_count=11/latest_known_version=11; not a direct current SQL schema/checksum query."
+    },
+    {
+      "id": "RDS_READ_REPLICATION",
+      "status": "OBSERVED_METADATA",
+      "evidence": [
+        "aws-observation.json",
+        "seoul-rds.json"
+      ],
+      "meaning": "Osaka available/replicating at snapshot; stopped10:08KST then resumed10:10KST. No business RPO, Single Writer, or historical FAIL replacement."
+    },
+    {
+      "id": "OSAKA_APPLICATIONS",
+      "status": "OBSERVED_ABSENT_AT_SNAPSHOT",
+      "evidence": [
+        "osaka-observation.json"
+      ],
+      "meaning": "labbit Deployment/Pod absent and Application API absent; argocd Deployment zero additionally observed in transcript. Not a prerequisite for Seoul-only PR196 partial testing."
+    },
+    {
+      "id": "CANDIDATE_IMAGE",
+      "status": "EXACT_TAG_NOT_FOUND",
+      "evidence": [
+        "ecr-candidate-tag.json"
+      ],
+      "meaning": "Only ECR Seoul backend tag sha-94fe1f6 queried; other tags/registries not exhausted."
+    },
+    {
+      "id": "CLI_PREVIEW",
+      "status": "PASS_OFFLINE_ONLY",
+      "evidence": [
+        "cli-preview-results.json",
+        "operator-offline-tests.jsonl",
+        "preview-only-input.json",
+        "preview-only-policy.json"
+      ],
+      "meaning": "54 test PASS/0FAIL/0SKIP; preview exit0 and disabled execute exit2. Fixture has no real authorization/private keys, no AWS/DB/S3 calls."
+    },
+    {
+      "id": "PR196_AWS_ADAPTER_METADATA_SMOKE",
+      "status": "PASS_SCOPED_METADATA_ONLY",
+      "evidence": [
+        "readonly-metadata-smoke-result.json",
+        "readonly-metadata-smoke-receipt.json",
+        "readonly-metadata-smoke-policy.json",
+        "readonly-aws.go.txt"
+      ],
+      "meaning": "Exact source94fe1f6 AWSCLI/CommandRunner used with an allowlisted helper. STS1+RDS2, metadata MATCH and wrong ResourceID REJECTED. Synthetic trust fields, not Authenticate/Policy principal/action or signature/SQL/S3/Resume/SingleWriter validation."
+    }
+  ],
+  "gates": {
+    "execution_gate": "HOLD",
+    "recovery_authorized": false,
+    "cloud_verified": false,
+    "live_test_ready": false,
+    "replica_lag_policy": "EXISTING_FAIL_PRESERVED",
+    "required_settings": "NOT_VERIFIED",
+    "runtime_provenance": "NOT_VERIFIED",
+    "service_functions": "NOT_VERIFIED",
+    "single_writer": "NOT_VERIFIED"
+  },
+  "preconditions": [
+    {
+      "id": "SOURCE_IMAGE",
+      "status": "NOT_VERIFIED",
+      "next": "Choose explicit non-main candidate publication path and fixed digest; verify built source and migration content.",
+      "service_impact": "Publishing alone does not change running Pods; changing GitOps/main can trigger rollout/PreSync."
+    },
+    {
+      "id": "SCHEMA_BACKUP_RECOVERY",
+      "status": "NOT_VERIFIED",
+      "next": "Read actual migration versions/checksums and compatibility; define backup/restore owner and forward-fix/restore criteria before applying12-14.",
+      "service_impact": "Shared DB DDL/locks and PreSync migration; no blind down migration or journal deletion."
+    },
+    {
+      "id": "PAUSE_INIT_ENTRYPOINT",
+      "status": "NOT_IMPLEMENTED_IN_OPERATOR_CLI",
+      "next": "Prepare authenticated target/CAS-bound trusted Pause and initial PAUSE_NEW provisioning; reuse existing store semantics, not fixture SQL.",
+      "service_impact": "Pause blocks claim/dispatch; partial existing work may remain. No automatic open or retry."
+    },
+    {
+      "id": "SIGNED_REAL_OBSERVATION",
+      "status": "NOT_VERIFIED",
+      "next": "Establish protected policy, separate purpose keys and signing authority; actual scoped Pod/boot/admission/work/safety observations. Never sign synthetic PASS as LIVE_READBACK.",
+      "service_impact": "No service mutation required for reading/signing; policy/key/IAM deployment must be explicitly bounded."
+    },
+    {
+      "id": "POD_AND_WORK_INVENTORY",
+      "status": "PARTIAL_METADATA_ONLY",
+      "next": "Fresh all-serving Pod UID/boot/binding/roles and global work/UNKNOWN/Provider reconciliation; define change freeze. Boundary0 is not total work0.",
+      "service_impact": "Metadata read can proceed; freeze/Pause/reconciliation mutations need stated scope."
+    },
+    {
+      "id": "TRIAL_WINDOW_INPUTS",
+      "status": "NOT_CONFIRMED",
+      "next": "Confirm actual window and absence of other users/demo; fix dedicated organization/class/operations, cost/resources, independent QA and restoration owners.",
+      "service_impact": "closed blocks new Provision/Reset/Cleanup; no shared targets may be reset/deleted."
+    }
+  ],
+  "ordered_next_actions": [
+    "Finish required Pause/init and trusted observation/key integration offline with tests and review, without new generic controller or weakened safety contract.",
+    "Prepare exact candidate publish/digest, actual DB read/backup/recovery and GitOps per-resource diff. Tell user service impact and rollback before applying.",
+    "Execute only ready M194/M196 test rows in an agreed window; leave unavailable rows NOT_VERIFIED. Do not wait for unrelated full-DR operations.",
+    "Resume only with real six safety proofs, exact binding, fresh approval and recheck; otherwise HOLD.",
+    "Capture per-row raw evidence, current state/unknowns and restoration; request independent scoped QA. No automatic merge."
+  ],
+  "not_required_before_seoul_partial_test": [
+    "Osaka app/Argo activation",
+    "ReplicaLag15-second policy remediation",
+    "RDS promotion",
+    "DNS traffic switch",
+    "complete22-step Failover/Failback"
+  ],
+  "evidence_limits": [
+    "Observations are time-bound snapshots and must be refreshed before a later operation.",
+    "Selected metadata/log fields are saved; full raw kubeconfigs, Pod specs, SQL data and logs are not stored.",
+    "Initial obsolete global kubeconfig DNS failure and exact ECR ImageNotFound were observed in tool transcript; the latter is recorded as a selected result, not fabricated raw response.",
+    "No real DR safety predicate is asserted PASS by this readiness file."
+  ]
+}

@@ -92,6 +92,7 @@ type stackOptions struct {
 // controlStack은 api role이 소유하는 handler와 Connector Control 경계, 그리고 선택적으로 같은 process의 Terminal Relay다.
 // Run과 통합 test가 같은 조립을 사용한다.
 type controlStack struct {
+	WorkerControl    *workercontrol.Control
 	API              http.Handler
 	ConnectorControl *connectorwss.Handler
 	Registry         *connector.Registry
@@ -175,7 +176,7 @@ func newControlStack(store *postgres.Store, opts stackOptions) (*controlStack, e
 		return nil, err
 	}
 
-	stack := &controlStack{Registry: registry, Router: router}
+	stack := &controlStack{Registry: registry, Router: router, WorkerControl: workerControl}
 	if opts.Worker {
 		provOpts := provision.Options{
 			Admission:             workerAdmission,

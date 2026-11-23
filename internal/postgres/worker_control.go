@@ -145,47 +145,49 @@ func (s *WorkerControlStore) Pause(ctx context.Context, b workercontrol.Binding,
 	if b.Validate() != nil || requestID == uuid.Nil {
 		return workercontrol.ErrInvalidBinding
 	}
-	return s.transaction(ctx, func(tx pgx.Tx) error {
-		st, err := scanWorkerState(tx.QueryRow(ctx, `SELECT `+workerStateColumns+` FROM worker_control_states WHERE control_id=$1 FOR UPDATE`, b.Scope.ID))
-		if err != nil {
-			return err
-		}
-		if st.Scope != b.Scope || st.Epoch != b.Epoch {
-			return workercontrol.ErrStale
-		}
-		var expected, revision, epoch int64
-		var region, cluster string
-		var fromMode, podID *string
-		var bootID *uuid.UUID
-		err = tx.QueryRow(ctx, `SELECT expected_revision,revision,epoch,region,cluster,from_mode,pod_id,boot_id FROM worker_control_changes WHERE control_id=$1 AND request_id=$2`, b.Scope.ID, requestID).Scan(&expected, &revision, &epoch, &region, &cluster, &fromMode, &podID, &bootID)
-		if err == nil {
-			if expected == b.Revision && revision == st.Revision && epoch == b.Epoch && region == b.Scope.Region && cluster == b.Scope.Cluster && fromMode != nil && *fromMode == workerModeName(b.Mode) && podID != nil && *podID == b.PodID && bootID != nil && *bootID == b.BootID && st.Mode == workercontrol.PauseNew {
-				return nil
-			}
-			return workercontrol.ErrStale
-		}
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return workercontrol.ErrUnavailable
-		}
-		if !st.Matches(b) {
-			return workercontrol.ErrStale
-		}
-		if st.Mode == workercontrol.PauseNew {
+	return s.transaction(ctx, func(tx pgx.Tx) error { return pauseWorkerTx(ctx, tx, b, requestID) })
+}
+
+func pauseWorkerTx(ctx context.Context, tx pgx.Tx, b workercontrol.Binding, requestID uuid.UUID) error {
+	st, err := scanWorkerState(tx.QueryRow(ctx, `SELECT `+workerStateColumns+` FROM worker_control_states WHERE control_id=$1 FOR UPDATE`, b.Scope.ID))
+	if err != nil {
+		return err
+	}
+	if st.Scope != b.Scope || st.Epoch != b.Epoch {
+		return workercontrol.ErrStale
+	}
+	var expected, revision, epoch int64
+	var region, cluster string
+	var fromMode, podID *string
+	var bootID *uuid.UUID
+	err = tx.QueryRow(ctx, `SELECT expected_revision,revision,epoch,region,cluster,from_mode,pod_id,boot_id FROM worker_control_changes WHERE control_id=$1 AND request_id=$2`, b.Scope.ID, requestID).Scan(&expected, &revision, &epoch, &region, &cluster, &fromMode, &podID, &bootID)
+	if err == nil {
+		if expected == b.Revision && revision == st.Revision && epoch == b.Epoch && region == b.Scope.Region && cluster == b.Scope.Cluster && fromMode != nil && *fromMode == workerModeName(b.Mode) && podID != nil && *podID == b.PodID && bootID != nil && *bootID == b.BootID && st.Mode == workercontrol.PauseNew {
 			return nil
-		} // Observation only; no new revision or implicit activation.
-		if st.Revision == math.MaxInt64 {
-			return workercontrol.ErrStale
 		}
-		_, err = tx.Exec(ctx, `UPDATE worker_control_states SET revision=revision+1,mode='PAUSE_NEW',updated_at=clock_timestamp() WHERE control_id=$1`, b.Scope.ID)
-		if err != nil {
-			return workercontrol.ErrUnavailable
-		}
-		_, err = tx.Exec(ctx, `INSERT INTO worker_control_changes (control_id,request_id,expected_revision,revision,epoch,mode,region,cluster,from_mode,pod_id,boot_id) VALUES ($1,$2,$3,$4,$5,'PAUSE_NEW',$6,$7,$8,$9,$10)`, b.Scope.ID, requestID, b.Revision, b.Revision+1, b.Epoch, b.Scope.Region, b.Scope.Cluster, workerModeName(b.Mode), b.PodID, b.BootID)
-		if err != nil {
-			return workercontrol.ErrUnavailable
-		}
+		return workercontrol.ErrStale
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return workercontrol.ErrUnavailable
+	}
+	if !st.Matches(b) {
+		return workercontrol.ErrStale
+	}
+	if st.Mode == workercontrol.PauseNew {
 		return nil
-	})
+	} // Observation only; no new revision or implicit activation.
+	if st.Revision == math.MaxInt64 {
+		return workercontrol.ErrStale
+	}
+	_, err = tx.Exec(ctx, `UPDATE worker_control_states SET revision=revision+1,mode='PAUSE_NEW',updated_at=clock_timestamp() WHERE control_id=$1`, b.Scope.ID)
+	if err != nil {
+		return workercontrol.ErrUnavailable
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO worker_control_changes (control_id,request_id,expected_revision,revision,epoch,mode,region,cluster,from_mode,pod_id,boot_id) VALUES ($1,$2,$3,$4,$5,'PAUSE_NEW',$6,$7,$8,$9,$10)`, b.Scope.ID, requestID, b.Revision, b.Revision+1, b.Epoch, b.Scope.Region, b.Scope.Cluster, workerModeName(b.Mode), b.PodID, b.BootID)
+	if err != nil {
+		return workercontrol.ErrUnavailable
+	}
+	return nil
 }
 
 // CreatePaused is trusted provisioning only, not an operator API. It cannot
@@ -194,36 +196,38 @@ func (s *WorkerControlStore) CreatePaused(ctx context.Context, scope workercontr
 	if scope.Validate() != nil || requestID == uuid.Nil {
 		return workercontrol.ErrInvalidBinding
 	}
-	return s.transaction(ctx, func(tx pgx.Tx) error {
-		_, err := tx.Exec(ctx, `INSERT INTO worker_control_states (control_id,region,cluster,revision,epoch,mode) VALUES ($1,$2,$3,1,1,'PAUSE_NEW') ON CONFLICT (control_id) DO NOTHING`, scope.ID, scope.Region, scope.Cluster)
-		if err != nil {
-			return workercontrol.ErrUnavailable
+	return s.transaction(ctx, func(tx pgx.Tx) error { return createPausedWorkerTx(ctx, tx, scope, requestID) })
+}
+
+func createPausedWorkerTx(ctx context.Context, tx pgx.Tx, scope workercontrol.Scope, requestID uuid.UUID) error {
+	_, err := tx.Exec(ctx, `INSERT INTO worker_control_states (control_id,region,cluster,revision,epoch,mode) VALUES ($1,$2,$3,1,1,'PAUSE_NEW') ON CONFLICT (control_id) DO NOTHING`, scope.ID, scope.Region, scope.Cluster)
+	if err != nil {
+		return workercontrol.ErrUnavailable
+	}
+	st, err := scanWorkerState(tx.QueryRow(ctx, `SELECT `+workerStateColumns+` FROM worker_control_states WHERE control_id=$1 FOR UPDATE`, scope.ID))
+	if err != nil {
+		return err
+	}
+	if st.Scope != scope || st.Revision != 1 || st.Epoch != 1 || st.Mode != workercontrol.PauseNew {
+		return workercontrol.ErrStale
+	}
+	// Same target with a different creation request is a conflict, not reset.
+	var prior uuid.UUID
+	err = tx.QueryRow(ctx, `SELECT request_id FROM worker_control_changes WHERE control_id=$1 AND revision=1`, scope.ID).Scan(&prior)
+	if err == nil {
+		if prior == requestID {
+			return nil
 		}
-		st, err := scanWorkerState(tx.QueryRow(ctx, `SELECT `+workerStateColumns+` FROM worker_control_states WHERE control_id=$1 FOR UPDATE`, scope.ID))
-		if err != nil {
-			return err
-		}
-		if st.Scope != scope || st.Revision != 1 || st.Epoch != 1 || st.Mode != workercontrol.PauseNew {
-			return workercontrol.ErrStale
-		}
-		// Same target with a different creation request is a conflict, not reset.
-		var prior uuid.UUID
-		err = tx.QueryRow(ctx, `SELECT request_id FROM worker_control_changes WHERE control_id=$1 AND revision=1`, scope.ID).Scan(&prior)
-		if err == nil {
-			if prior == requestID {
-				return nil
-			}
-			return workercontrol.ErrStale
-		}
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return workercontrol.ErrUnavailable
-		}
-		_, err = tx.Exec(ctx, `INSERT INTO worker_control_changes (control_id,request_id,expected_revision,revision,epoch,mode,region,cluster) VALUES ($1,$2,0,1,1,'PAUSE_NEW',$3,$4)`, scope.ID, requestID, scope.Region, scope.Cluster)
-		if err != nil {
-			return workercontrol.ErrUnavailable
-		}
-		return nil
-	})
+		return workercontrol.ErrStale
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return workercontrol.ErrUnavailable
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO worker_control_changes (control_id,request_id,expected_revision,revision,epoch,mode,region,cluster) VALUES ($1,$2,0,1,1,'PAUSE_NEW',$3,$4)`, scope.ID, requestID, scope.Region, scope.Cluster)
+	if err != nil {
+		return workercontrol.ErrUnavailable
+	}
+	return nil
 }
 
 func (s *WorkerControlStore) Report(ctx context.Context, scope workercontrol.Scope) (workercontrol.Report, error) {
@@ -236,12 +240,12 @@ func (s *WorkerControlStore) Report(ctx context.Context, scope workercontrol.Sco
 	var r workercontrol.Report
 	var mode string
 	// A single MVCC statement includes all open revisions/boots, not just this Pod.
-	err := s.db.QueryRow(ctx, `SELECT s.control_id,s.region,s.cluster,s.revision,s.epoch,s.mode,(SELECT count(*) FROM worker_control_boundaries b WHERE b.control_id=s.control_id AND b.closed_at IS NULL),(SELECT count(*) FROM worker_control_resumes x WHERE x.control_id=s.control_id AND x.status='INTENT'),clock_timestamp() FROM worker_control_states s WHERE s.control_id=$1`, scope.ID).Scan(&r.State.Scope.ID, &r.State.Scope.Region, &r.State.Scope.Cluster, &r.State.Revision, &r.State.Epoch, &mode, &r.OpenBoundaries, &r.PendingResumes, &r.ObservedAt)
+	err := s.db.QueryRow(ctx, `SELECT s.control_id,s.region,s.cluster,s.revision,s.epoch,s.mode,(SELECT count(*) FROM worker_control_boundaries b WHERE b.control_id=s.control_id AND b.closed_at IS NULL),(SELECT count(*) FROM worker_control_resumes x WHERE x.control_id=s.control_id AND x.status='INTENT'),(SELECT count(*) FROM worker_control_restrictions x WHERE x.control_id=s.control_id AND x.status='INTENT'),clock_timestamp() FROM worker_control_states s WHERE s.control_id=$1`, scope.ID).Scan(&r.State.Scope.ID, &r.State.Scope.Region, &r.State.Scope.Cluster, &r.State.Revision, &r.State.Epoch, &mode, &r.OpenBoundaries, &r.PendingResumes, &r.PendingRestrictions, &r.ObservedAt)
 	if err != nil {
 		return workercontrol.Report{}, workercontrol.ErrUnavailable
 	}
 	r.State.Mode, err = workerMode(mode)
-	if err != nil || r.State.Scope != scope || r.State.Revision < 1 || r.State.Epoch < 1 || r.OpenBoundaries < 0 || r.PendingResumes < 0 || r.ObservedAt.IsZero() {
+	if err != nil || r.State.Scope != scope || r.State.Revision < 1 || r.State.Epoch < 1 || r.OpenBoundaries < 0 || r.PendingResumes < 0 || r.PendingRestrictions < 0 || r.ObservedAt.IsZero() {
 		return workercontrol.Report{}, workercontrol.ErrUnavailable
 	}
 	return r, nil

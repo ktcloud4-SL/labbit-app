@@ -124,6 +124,31 @@ func (g *Gate) Snapshot() (bool, map[string]int) {
 	return g.closedLocked(), counts
 }
 
+// Readback observes exact configuration and counts under one lock. A file that
+// fails closed is not evidence of a verified closed configuration.
+func (g *Gate) Readback() (string, map[string]int) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	counts := map[string]int{"http": 0, "worker": 0, "reconciliation": 0}
+	for k, n := range g.active {
+		counts[k] = n
+	}
+	if g.path == "" {
+		return "NOT_VERIFIED", counts
+	}
+	f, err := os.Open(g.path)
+	if err != nil {
+		return "NOT_VERIFIED", counts
+	}
+	defer f.Close()
+	b, err := io.ReadAll(io.LimitReader(f, 17))
+	state := strings.TrimSpace(string(b))
+	if err != nil || len(b) > 16 || (state != "open" && state != "closed") {
+		return "NOT_VERIFIED", counts
+	}
+	return state, counts
+}
+
 var closedDesc = prometheus.NewDesc("labbit_maintenance_closed", "One when this process refuses maintenance admissions.", nil, nil)
 var activeDesc = prometheus.NewDesc("labbit_maintenance_active", "Admitted operation requests and worker boundaries still executing.", []string{"kind"}, nil)
 

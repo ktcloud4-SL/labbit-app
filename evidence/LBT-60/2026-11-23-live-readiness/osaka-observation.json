@@ -1,0 +1,9 @@
+{
+  "region": "osaka",
+  "observed_at_utc": "2026-11-23T01:12:47.0176484Z",
+  "deployment_exit": 0,
+  "deployments": [],
+  "pod_exit": 0,
+  "pods": [],
+  "argo_exit": 1
+}

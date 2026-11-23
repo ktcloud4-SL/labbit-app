@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "source_commit": "94fe1f61d7e398761291a967fab9820bfb08bc3d",
+  "scope": "Local uncommitted read-only/offline readiness artifacts; manifest excludes itself; not immutable remote archive or signed evidence",
+  "files": [
+    {
+      "file": "audit.json",
+      "bytes": 9667,
+      "sha256": "90fcd34f109e68a0e3c6e70fe9dfeaa797b9348d17a399b376822f1f844fc00e"
+    },
+    {
+      "file": "aws-observation.json",
+      "bytes": 4391,
+      "sha256": "be6510c1816181b0c70acc961f72df4e0cedbcafc0e7ff7bc3e9b51fbb7e3821"
+    },
+    {
+      "file": "cli-preview-results.json",
+      "bytes": 1276,
+      "sha256": "5f45cfd1d6941b8e0c693756c073f592d2a6f2ed18a8f1c6e1b1deffd617159a"
+    },
+    {
+      "file": "commands.json",
+      "bytes": 3149,
+      "sha256": "b880befc5c6a41862e95c52e8ca6e1a5e019d4fb74419dbd840564d9d2136ea9"
+    },
+    {
+      "file": "disabled-execute.stderr.txt",
+      "bytes": 45,
+      "sha256": "91bc1ea15a4caf5ece627aef46be7fc702061c15dfaf69f9e14476c92180c9bb"
+    },
+    {
+      "file": "ecr-candidate-tag.json",
+      "bytes": 386,
+      "sha256": "f7c7c61b6e08f4417132a8ab80eac5635ffd1fafd7e3401f19c4ecc5c699771d"
+    },
+    {
+      "file": "independent-review.md",
+      "bytes": 17393,
+      "sha256": "70406c1bd99f948412452c8d167d9e664d3cecdb7b723bac961e3a899f62c24e"
+    },
+    {
+      "file": "migration-job-summary.json",
+      "bytes": 314,
+      "sha256": "41e8b701d402cd0d8a5d8bb888c0bc7f486cd14633fb8e388fd9e3152fa2e1ee"
+    },
+    {
+      "file": "operator-offline-tests.jsonl",
+      "bytes": 51349,
+      "sha256": "181159781f2bbb260e3de3c3586050ab406e1ceec4b1eec994c3d8cb504d7203"
+    },
+    {
+      "file": "operator-offline-tests.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "osaka-observation.json",
+      "bytes": 178,
+      "sha256": "224d604c4eb3bc6019166e2441fc74f58be2eb57abb348f99cab7ca4289da9e2"
+    },
+    {
+      "file": "preview-only-input.json",
+      "bytes": 788,
+      "sha256": "435e8ce096574e7d51cb897d6711be2581994011faabed85b68ef251802ea3b9"
+    },
+    {
+      "file": "preview-only-policy.json",
+      "bytes": 1369,
+      "sha256": "a0d2c1f60cc26132ca56d0bf136cb4d30b8403e72a717671fa8392d52dadad6d"
+    },
+    {
+      "file": "preview.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "readiness.json",
+      "bytes": 8320,
+      "sha256": "ad3483ec8d31ee04e934ba74644c98b93e21609efefc379116c29e631b96791c"
+    },
+    {
+      "file": "readonly-aws.go.txt",
+      "bytes": 2240,
+      "sha256": "3fcd18335a9ccf0050eaeda45f0df920f9fe6a207f1a509c7d8775c04ee5038c"
+    },
+    {
+      "file": "readonly-metadata-smoke-policy.json",
+      "bytes": 1412,
+      "sha256": "94e75b50a833717bf1ff61453bd05e12a520a97acbf6990fce93ae23c6afe536"
+    },
+    {
+      "file": "readonly-metadata-smoke-receipt.json",
+      "bytes": 464,
+      "sha256": "e5a41e2bffa2fe404f250a85fba6f1d57ab415ca0aadc7ae8b49773072c154c0"
+    },
+    {
+      "file": "readonly-metadata-smoke-result.json",
+      "bytes": 427,
+      "sha256": "16c6da839c87f51c391ad6435ff87ad18e82413ef78152b0641ec7cecb1c9d81"
+    },
+    {
+      "file": "readonly-metadata-smoke.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "seoul-control-settings.json",
+      "bytes": 1364,
+      "sha256": "0edc5b16fbfbe45d5368a92690a3652dd7b87db143ff29b8da4e8d65af9da910"
+    },
+    {
+      "file": "seoul-maintenance-declaration.json",
+      "bytes": 314,
+      "sha256": "6ce926446456846b40949af66b7c582badeaa4e5d7dda80bdab8ce5eb4b6c7d9"
+    },
+    {
+      "file": "seoul-observation.json",
+      "bytes": 9925,
+      "sha256": "1f2f85777ceb5f7e1a3d0ec7bcb10982547608a0bed1a52698206810e7cbb435"
+    },
+    {
+      "file": "seoul-rds.json",
+      "bytes": 548,
+      "sha256": "9c45ffa99a39ddcb52651b5c132ab9daee4658352014cb23779fd0d42a7b84bd"
+    },
+    {
+      "file": "ssot-source.json",
+      "bytes": 15256,
+      "sha256": "55521d699d4c05164a481dbdaa55221334c423920963ee0733ac855143c92892"
+    },
+    {
+      "file": "verification.json",
+      "bytes": 35170,
+      "sha256": "66016d454889cd26cf26bf4639104d14a237872f6cda68c9c698f533340c1a76"
+    }
+  ]
+}

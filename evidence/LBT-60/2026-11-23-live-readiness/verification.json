@@ -1,0 +1,709 @@
+{
+  "observed_at_utc": "2026-11-23T01:26:46.525258+00:00",
+  "head": "94fe1f61d7e398761291a967fab9820bfb08bc3d",
+  "main": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "unchanged_pr_inventory": [
+    "M\t.gitleaks.toml",
+    "M\tMakefile",
+    "A\tcmd/labbit-dr-control/main.go",
+    "A\tcmd/labbit-dr-control/main_test.go",
+    "M\tcontracts/http/openapi.yaml",
+    "A\tdb/migrations/000012_worker_control.sql",
+    "A\tdb/migrations/000013_worker_control_resume.sql",
+    "A\tdb/migrations/000014_worker_control_resume_applied_time.sql",
+    "M\tdb/migrations/README.md",
+    "A\tdocs/backend/dr-maintenance-integration.md",
+    "A\tdocs/backend/dr-mutation-admission.md",
+    "A\tdocs/backend/dr-stage3-deployment.md",
+    "A\tdocs/backend/dr-worker-control.md",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-19-admission-local/audit.md",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-19-admission-local/validation.json",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-19-worker-control-local/audit.md",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-19-worker-control-local/validation.json",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-main-refresh/audit.md",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-main-refresh/validation.json",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-maintenance-integration/audit.md",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-maintenance-integration/validation.json",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-pr196-maintenance-regression/audit.md",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-pr196-maintenance-regression/focused-race.jsonl",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-pr196-maintenance-regression/validation.json",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-pr196-validation/audit.md",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-pr196-validation/baseline-fixture-failure.log",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-pr196-validation/postgres-targeted.log",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-pr196-validation/validation.json",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-worker-control-durable/audit.md",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-worker-control-durable/validation.json",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-worker-control-resume/audit.md",
+    "A\tdocs/backend/evidence/LBT-60/2026-11-20-worker-control-resume/validation.json",
+    "A\tevidence/.gitattributes",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/AUDIT.md",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/artifact-manifest.json",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/downloads-manifest-attempt01.json",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/downloads-manifest.json",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/environment.json",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/go-credential.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/go-installer-final.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/go-installer-initial.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/go-openstack.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/go-workspacefile.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/harness-manifest.json",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/harness/build_image.py",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/harness/build_image_attempt01.py",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/harness/finalize_evidence.py",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/harness/init-attempt01.sh",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/harness/init.sh",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/harness/prepare_linux.py",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/payload-manifest-attempt01.json",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/payload-manifest.json",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/python-normal.log",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/python-optimized.log",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/qemu-attempt01.log",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/qemu-attempt02.log",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/source-comparison.json",
+    "A\tevidence/LBT-60/2026-11-21-linux-offline/test-summary.json",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/AUDIT.md",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/artifact-manifest.json",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/base-installer-trace.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/base-installer.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/base-openstack-timeout.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/base-openstack.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/base-pty.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/connector-final.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/connector-race-final.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/connector-recheck.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/go-all-final.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/go-build.log",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/go-vet.log",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/gofmt-canonical.json",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/linux-compile.log",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/prior-source-comparison.json",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/source-manifest.json",
+    "A\tevidence/LBT-60/2026-11-21-regression-diagnosis/test-summary.json",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/AUDIT.md",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/README.md",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/artifact-manifest.json",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/cleanup.log",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/control-final.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/control-race.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/go-build.log",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/go-test.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/go-vet.log",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/gofmt-canonical.json",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/gofmt-check.log",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/integration-all.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/integration-vet.log",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/maintenance-postgres-final.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/maintenance-postgres.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/npm-ci.log",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/postgres.jsonl",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/runtime-metadata.log",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/source-manifest.json",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/test-summary.json",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/web-build.log",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/web-lint.log",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/web-test-recheck.log",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/web-test.log",
+    "A\tevidence/LBT-60/2026-11-21-stage3-offline/web-typecheck.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/AUDIT.md",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/artifact-manifest.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/ci-initial.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/commands.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/directory-command.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/final-history-command.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-baseline.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-baseline.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-ci-initial.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-directory-final.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-directory-final.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-final.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-final.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-history-final.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-history-final.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-line-anchor-initial.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-line-anchor-initial.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-line-anchor-second.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-line-anchor-second.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/gitleaks-provenance.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/negative-control-command.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/negative-control.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/negative-control.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/review.md",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/scope-negative-command.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/scope-negative-final.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/scope-negative-final.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-ci-followup/source.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/AUDIT.md",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/artifact-manifest.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/assemble.py",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/cleanup.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/commands.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/contract-metadata.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/diff-inventory.md",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/format.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/go-all.jsonl",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/go-build.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/go-control-race.jsonl",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/go-vet.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/index-verification.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/index-verify.py",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/integration-all-final.jsonl",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/integration-all.jsonl",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/integration-vet-final.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/integration-vet.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/pg-databases-final.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/pg-databases.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/pg-init-final.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/pg-init.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/pg-start-final.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/pg-start.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/pg-stop-final.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/pg-stop.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/publication-source.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/review-operator-source.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/review-operator.jsonl",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/review-operator.md",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/review-regression.md",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/review-worker.md",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/secret-pattern-scan.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/source-manifest.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/test-summary.json",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/verify-initial.py",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/verify.py",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/web-build.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/web-lint.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/web-test.log",
+    "A\tevidence/LBT-60/2026-11-23-pr196-publication/web-typecheck.log",
+    "M\tinternal/connector/installer/installer_test.go",
+    "M\tinternal/connector/provider/openstack/active_readiness_test.go",
+    "M\tinternal/connector/provider/openstack/ktcloud_d1_cidr_test.go",
+    "M\tinternal/connector/provider/openstack/ktcloud_management_route_test.go",
+    "M\tinternal/connector/provider/openstack/readiness_diagnostic_test.go",
+    "M\tinternal/connector/provider/openstack/readiness_test.go",
+    "A\tinternal/drcontrol/awscli.go",
+    "A\tinternal/drcontrol/awscli_test.go",
+    "A\tinternal/drcontrol/contract.go",
+    "A\tinternal/drcontrol/database.go",
+    "A\tinternal/drcontrol/database_integration_test.go",
+    "A\tinternal/drcontrol/verified.go",
+    "A\tinternal/drcontrol/verified_test.go",
+    "M\tinternal/postgres/migrate_integration_test.go",
+    "M\tinternal/postgres/migration_test.go",
+    "A\tinternal/postgres/worker_control.go",
+    "A\tinternal/postgres/worker_control_integration_test.go",
+    "A\tinternal/postgres/worker_control_lifecycle_integration_test.go",
+    "A\tinternal/postgres/worker_control_resume.go",
+    "A\tinternal/postgres/worker_control_resume_test.go",
+    "A\tinternal/postgres/worker_control_test.go",
+    "A\tinternal/server/app/admission_test.go",
+    "M\tinternal/server/app/app.go",
+    "M\tinternal/server/app/control_stack.go",
+    "A\tinternal/server/app/dr_maintenance_integration_test.go",
+    "A\tinternal/server/app/worker_control_test.go",
+    "M\tinternal/server/app/worker_metrics_integration_test.go",
+    "M\tinternal/server/connector/registry.go",
+    "A\tinternal/server/connector/registry_close_notification_test.go",
+    "M\tinternal/server/connector/router.go",
+    "A\tinternal/server/connector/worker_control_test.go",
+    "A\tinternal/server/connectorwss/close_cleanup_test.go",
+    "M\tinternal/server/connectorwss/conn.go",
+    "M\tinternal/server/connectorwss/handler.go",
+    "A\tinternal/server/httpapi/admission_test.go",
+    "A\tinternal/server/httpapi/dr_maintenance_integration_test.go",
+    "A\tinternal/server/labexecution/admission_test.go",
+    "A\tinternal/server/maintenance/controlled_worker_test.go",
+    "M\tinternal/server/maintenance/gate.go",
+    "M\tinternal/server/maintenance/gate_test.go",
+    "A\tinternal/server/provision/controlled_maintenance_test.go",
+    "M\tinternal/server/provision/executor.go",
+    "A\tinternal/server/provision/maintenance_resume_test.go",
+    "M\tinternal/server/provision/reconciliation.go",
+    "A\tinternal/server/provision/worker_control_test.go",
+    "A\tinternal/server/provision/worker_resume_test.go",
+    "A\tinternal/server/workercontrol/control.go",
+    "A\tinternal/server/workercontrol/control_test.go",
+    "A\tinternal/server/workercontrol/durable.go",
+    "A\tinternal/server/workercontrol/durable_test.go",
+    "A\tinternal/server/workercontrol/maintenance_resume.go",
+    "A\tinternal/server/workercontrol/maintenance_resume_test.go",
+    "A\tinternal/server/workercontrol/resume.go",
+    "A\tinternal/server/workercontrol/resume_test.go",
+    "A\tinternal/server/workercontrol/settings.go",
+    "A\tinternal/server/workercontrol/settings_admission_test.go",
+    "A\tinternal/testsupport/workercontrolfake/resume.go",
+    "A\tinternal/testsupport/workercontrolfake/store.go",
+    "M\truntime/contract.yaml",
+    "A\truntime/dr-control.md"
+  ],
+  "source_files_compared": [
+    {
+      "path": "Makefile",
+      "git_blob": "850a9f40d1309b7709072aaa4fa7023972062a4d",
+      "original_git_blob": "850a9f40d1309b7709072aaa4fa7023972062a4d",
+      "same": true
+    },
+    {
+      "path": "cmd/labbit-dr-control/main.go",
+      "git_blob": "4b25488789f1ddee48e08fb5ed126df89afb8472",
+      "original_git_blob": "4b25488789f1ddee48e08fb5ed126df89afb8472",
+      "same": true
+    },
+    {
+      "path": "cmd/labbit-dr-control/main_test.go",
+      "git_blob": "0e80325e904613656d517335a2c264807c61ea32",
+      "original_git_blob": "0e80325e904613656d517335a2c264807c61ea32",
+      "same": true
+    },
+    {
+      "path": "contracts/http/openapi.yaml",
+      "git_blob": "d414d88d446be598b733d6229ce7e90f7f61f531",
+      "original_git_blob": "d414d88d446be598b733d6229ce7e90f7f61f531",
+      "same": true
+    },
+    {
+      "path": "db/migrations/000012_worker_control.sql",
+      "git_blob": "1170ddcf73fd1dcb2be154cbbcdda889f580fe58",
+      "original_git_blob": "1170ddcf73fd1dcb2be154cbbcdda889f580fe58",
+      "same": true
+    },
+    {
+      "path": "db/migrations/000013_worker_control_resume.sql",
+      "git_blob": "641e8c826e9ad9004dd4c9775ea5daa965690cbb",
+      "original_git_blob": "641e8c826e9ad9004dd4c9775ea5daa965690cbb",
+      "same": true
+    },
+    {
+      "path": "db/migrations/000014_worker_control_resume_applied_time.sql",
+      "git_blob": "9fbbc2c6847bb44a8109f9da946c89153de50363",
+      "original_git_blob": "9fbbc2c6847bb44a8109f9da946c89153de50363",
+      "same": true
+    },
+    {
+      "path": "db/migrations/README.md",
+      "git_blob": "11c350f26214a5ec1fd0205c7abe2d64d7a63e1d",
+      "original_git_blob": "11c350f26214a5ec1fd0205c7abe2d64d7a63e1d",
+      "same": true
+    },
+    {
+      "path": "docs/backend/dr-maintenance-integration.md",
+      "git_blob": "6675ebad4469074035712112499389b142b06bab",
+      "original_git_blob": "418688c7a44ed720888ce66ccb6a5fc9ce784ec7",
+      "same": false
+    },
+    {
+      "path": "docs/backend/dr-mutation-admission.md",
+      "git_blob": "5b4a80d42da7723460c7b80c571c92571da9c38e",
+      "original_git_blob": "5b4a80d42da7723460c7b80c571c92571da9c38e",
+      "same": true
+    },
+    {
+      "path": "docs/backend/dr-stage3-deployment.md",
+      "git_blob": "149ecec43c207259d6062d1d8b1088ffeab53f6f",
+      "original_git_blob": "5b0447f89a7f573e6936a2b144c18fac0733f239",
+      "same": false
+    },
+    {
+      "path": "docs/backend/dr-worker-control.md",
+      "git_blob": "f56e4bde61df1a3eada96488c736794e739099a8",
+      "original_git_blob": "f56e4bde61df1a3eada96488c736794e739099a8",
+      "same": true
+    },
+    {
+      "path": "internal/connector/installer/installer_test.go",
+      "git_blob": "2dac1cdeb65328c59ff0726fa6b1f4288bc46f8e",
+      "original_git_blob": "2dac1cdeb65328c59ff0726fa6b1f4288bc46f8e",
+      "same": true
+    },
+    {
+      "path": "internal/connector/provider/openstack/active_readiness_test.go",
+      "git_blob": "3c4c0e92e9da6a4ede4902bd76f4b1a1acdd6aaa",
+      "original_git_blob": "3c4c0e92e9da6a4ede4902bd76f4b1a1acdd6aaa",
+      "same": true
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_cidr_test.go",
+      "git_blob": "21c1ce9aeddb7263c9d1c5449b4171bc50d04a36",
+      "original_git_blob": "21c1ce9aeddb7263c9d1c5449b4171bc50d04a36",
+      "same": true
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_management_route_test.go",
+      "git_blob": "c08db3a558c3473be266ab2653e9ecbb2b856a70",
+      "original_git_blob": "c08db3a558c3473be266ab2653e9ecbb2b856a70",
+      "same": true
+    },
+    {
+      "path": "internal/connector/provider/openstack/readiness_diagnostic_test.go",
+      "git_blob": "b85d6c00b8536c56dfce57ea2c0b5bf9ee99ea70",
+      "original_git_blob": "b85d6c00b8536c56dfce57ea2c0b5bf9ee99ea70",
+      "same": true
+    },
+    {
+      "path": "internal/connector/provider/openstack/readiness_test.go",
+      "git_blob": "c4093c6838f22c2ceebd2d3aea09ad3a5c02b4cf",
+      "original_git_blob": "c4093c6838f22c2ceebd2d3aea09ad3a5c02b4cf",
+      "same": true
+    },
+    {
+      "path": "internal/drcontrol/awscli.go",
+      "git_blob": "4448de6551c0a44d3c5d4d299091662fd5df714b",
+      "original_git_blob": "4448de6551c0a44d3c5d4d299091662fd5df714b",
+      "same": true
+    },
+    {
+      "path": "internal/drcontrol/awscli_test.go",
+      "git_blob": "f76eff583d3250bcc8058dc2a2b37b9766eb93b6",
+      "original_git_blob": "f76eff583d3250bcc8058dc2a2b37b9766eb93b6",
+      "same": true
+    },
+    {
+      "path": "internal/drcontrol/contract.go",
+      "git_blob": "052399797df03f3b2d6331b526de127781716352",
+      "original_git_blob": "052399797df03f3b2d6331b526de127781716352",
+      "same": true
+    },
+    {
+      "path": "internal/drcontrol/database.go",
+      "git_blob": "2a39203f561e319de7c4f4495ae6c59fd5815632",
+      "original_git_blob": "2a39203f561e319de7c4f4495ae6c59fd5815632",
+      "same": true
+    },
+    {
+      "path": "internal/drcontrol/database_integration_test.go",
+      "git_blob": "cafd1a009161ef71f82a3b92e4e8d39270bbfe8f",
+      "original_git_blob": "cafd1a009161ef71f82a3b92e4e8d39270bbfe8f",
+      "same": true
+    },
+    {
+      "path": "internal/drcontrol/verified.go",
+      "git_blob": "49b7535dee82d350709478c4057119f70f6d3fd6",
+      "original_git_blob": "49b7535dee82d350709478c4057119f70f6d3fd6",
+      "same": true
+    },
+    {
+      "path": "internal/drcontrol/verified_test.go",
+      "git_blob": "ac4799081eda0916f9660b0ba06e98e603e38ed1",
+      "original_git_blob": "ac4799081eda0916f9660b0ba06e98e603e38ed1",
+      "same": true
+    },
+    {
+      "path": "internal/postgres/migrate_integration_test.go",
+      "git_blob": "eee57fd62389f5de3fc0432419ce0ed941c44d16",
+      "original_git_blob": "eee57fd62389f5de3fc0432419ce0ed941c44d16",
+      "same": true
+    },
+    {
+      "path": "internal/postgres/migration_test.go",
+      "git_blob": "ccfe45012eb51bc5f81011f0b43e446eee50a0dc",
+      "original_git_blob": "ccfe45012eb51bc5f81011f0b43e446eee50a0dc",
+      "same": true
+    },
+    {
+      "path": "internal/postgres/worker_control.go",
+      "git_blob": "bd8e3ac3292fd213eedceb51b2c74d2ea9fcf10c",
+      "original_git_blob": "bd8e3ac3292fd213eedceb51b2c74d2ea9fcf10c",
+      "same": true
+    },
+    {
+      "path": "internal/postgres/worker_control_integration_test.go",
+      "git_blob": "0af97aacd9433a04313f60e6a5089f3f5812a771",
+      "original_git_blob": "0af97aacd9433a04313f60e6a5089f3f5812a771",
+      "same": true
+    },
+    {
+      "path": "internal/postgres/worker_control_lifecycle_integration_test.go",
+      "git_blob": "292a08df5886c2313594da98c06d7641c1ff14da",
+      "original_git_blob": "292a08df5886c2313594da98c06d7641c1ff14da",
+      "same": true
+    },
+    {
+      "path": "internal/postgres/worker_control_resume.go",
+      "git_blob": "e375da8bfbb9180299036ca1e8c8a035cde1f91c",
+      "original_git_blob": "e375da8bfbb9180299036ca1e8c8a035cde1f91c",
+      "same": true
+    },
+    {
+      "path": "internal/postgres/worker_control_resume_test.go",
+      "git_blob": "a8091f0ac1ca3182ca30fd71f0e3a10decf34378",
+      "original_git_blob": "a8091f0ac1ca3182ca30fd71f0e3a10decf34378",
+      "same": true
+    },
+    {
+      "path": "internal/postgres/worker_control_test.go",
+      "git_blob": "6325ba5f2ab606efe65dadb02c919a147ae24929",
+      "original_git_blob": "6325ba5f2ab606efe65dadb02c919a147ae24929",
+      "same": true
+    },
+    {
+      "path": "internal/server/app/admission_test.go",
+      "git_blob": "398cf8f1f91340c5beb17102dd93ab90670a76f7",
+      "original_git_blob": "398cf8f1f91340c5beb17102dd93ab90670a76f7",
+      "same": true
+    },
+    {
+      "path": "internal/server/app/app.go",
+      "git_blob": "70b5ba9745093363cde7a810769d16e263c8f0b3",
+      "original_git_blob": "70b5ba9745093363cde7a810769d16e263c8f0b3",
+      "same": true
+    },
+    {
+      "path": "internal/server/app/control_stack.go",
+      "git_blob": "f9b035aa96538848e4ae148e95bff1dad861657b",
+      "original_git_blob": "f9b035aa96538848e4ae148e95bff1dad861657b",
+      "same": true
+    },
+    {
+      "path": "internal/server/app/dr_maintenance_integration_test.go",
+      "git_blob": "614529d9f4d750088640074b192de3fd4f6c6625",
+      "original_git_blob": "614529d9f4d750088640074b192de3fd4f6c6625",
+      "same": true
+    },
+    {
+      "path": "internal/server/app/worker_control_test.go",
+      "git_blob": "a8002ddb4124aaf4fdb0b0b544cc3edc2846d14e",
+      "original_git_blob": "a8002ddb4124aaf4fdb0b0b544cc3edc2846d14e",
+      "same": true
+    },
+    {
+      "path": "internal/server/app/worker_metrics_integration_test.go",
+      "git_blob": "c071466cd3aa0f8390559a4f2eda73db02dbbc0e",
+      "original_git_blob": "c071466cd3aa0f8390559a4f2eda73db02dbbc0e",
+      "same": true
+    },
+    {
+      "path": "internal/server/connector/registry.go",
+      "git_blob": "e28643d9a38e0037bbff321784bfa98af6d7dcb2",
+      "original_git_blob": "e28643d9a38e0037bbff321784bfa98af6d7dcb2",
+      "same": true
+    },
+    {
+      "path": "internal/server/connector/registry_close_notification_test.go",
+      "git_blob": "39a4241b294a222fdac279fc52b67bec44b1aade",
+      "original_git_blob": "39a4241b294a222fdac279fc52b67bec44b1aade",
+      "same": true
+    },
+    {
+      "path": "internal/server/connector/router.go",
+      "git_blob": "cc03774519b4abd1b6424ac5166ef45e32bd44fb",
+      "original_git_blob": "cc03774519b4abd1b6424ac5166ef45e32bd44fb",
+      "same": true
+    },
+    {
+      "path": "internal/server/connector/worker_control_test.go",
+      "git_blob": "eeff737daff03a7c9d527ea39e1929f7d3187f82",
+      "original_git_blob": "eeff737daff03a7c9d527ea39e1929f7d3187f82",
+      "same": true
+    },
+    {
+      "path": "internal/server/connectorwss/close_cleanup_test.go",
+      "git_blob": "3d648300330c82c49b2277734f13ef318bc6d85f",
+      "original_git_blob": "3d648300330c82c49b2277734f13ef318bc6d85f",
+      "same": true
+    },
+    {
+      "path": "internal/server/connectorwss/conn.go",
+      "git_blob": "8f4e6e1dfd2fe3dd96cb307d68bf0879265f6ac5",
+      "original_git_blob": "8f4e6e1dfd2fe3dd96cb307d68bf0879265f6ac5",
+      "same": true
+    },
+    {
+      "path": "internal/server/connectorwss/handler.go",
+      "git_blob": "7c683da47a84b3d48656209891777a35d9dffc72",
+      "original_git_blob": "7c683da47a84b3d48656209891777a35d9dffc72",
+      "same": true
+    },
+    {
+      "path": "internal/server/httpapi/admission_test.go",
+      "git_blob": "297847fa280ba7b31b6088f7ac2510ea4ba8a68e",
+      "original_git_blob": "297847fa280ba7b31b6088f7ac2510ea4ba8a68e",
+      "same": true
+    },
+    {
+      "path": "internal/server/httpapi/dr_maintenance_integration_test.go",
+      "git_blob": "8693a88c98be34b403b74607ed2faa175a3517f3",
+      "original_git_blob": "8693a88c98be34b403b74607ed2faa175a3517f3",
+      "same": true
+    },
+    {
+      "path": "internal/server/labexecution/admission_test.go",
+      "git_blob": "a99dc5ea989bf48872841ff83d2e8b849d17524c",
+      "original_git_blob": "a99dc5ea989bf48872841ff83d2e8b849d17524c",
+      "same": true
+    },
+    {
+      "path": "internal/server/maintenance/controlled_worker_test.go",
+      "git_blob": "0dc2079690381cd819c1010f307a76d8341dbb69",
+      "original_git_blob": "0dc2079690381cd819c1010f307a76d8341dbb69",
+      "same": true
+    },
+    {
+      "path": "internal/server/maintenance/gate.go",
+      "git_blob": "6381a7022555198310c3c62417b5b63a1fae65fa",
+      "original_git_blob": "6381a7022555198310c3c62417b5b63a1fae65fa",
+      "same": true
+    },
+    {
+      "path": "internal/server/maintenance/gate_test.go",
+      "git_blob": "f2862f95356ee6a148c806ea2657bc24b0a7fa78",
+      "original_git_blob": "f2862f95356ee6a148c806ea2657bc24b0a7fa78",
+      "same": true
+    },
+    {
+      "path": "internal/server/provision/controlled_maintenance_test.go",
+      "git_blob": "71a3706222a8d9cabf22e0f5b4b17dcfcee57e13",
+      "original_git_blob": "71a3706222a8d9cabf22e0f5b4b17dcfcee57e13",
+      "same": true
+    },
+    {
+      "path": "internal/server/provision/executor.go",
+      "git_blob": "3b49d94758efd771f187630c7d34a4db92e346c9",
+      "original_git_blob": "3b49d94758efd771f187630c7d34a4db92e346c9",
+      "same": true
+    },
+    {
+      "path": "internal/server/provision/maintenance_resume_test.go",
+      "git_blob": "4cd60970e6778ee12d6102086a0f5fcbd6c41c4d",
+      "original_git_blob": "4cd60970e6778ee12d6102086a0f5fcbd6c41c4d",
+      "same": true
+    },
+    {
+      "path": "internal/server/provision/reconciliation.go",
+      "git_blob": "d39f2a8e77a0dab1d5bc6b2f0cca151728f35b17",
+      "original_git_blob": "d39f2a8e77a0dab1d5bc6b2f0cca151728f35b17",
+      "same": true
+    },
+    {
+      "path": "internal/server/provision/worker_control_test.go",
+      "git_blob": "5188ff9b7e6e20373e75fe4ffe04f7bf984afb6b",
+      "original_git_blob": "5188ff9b7e6e20373e75fe4ffe04f7bf984afb6b",
+      "same": true
+    },
+    {
+      "path": "internal/server/provision/worker_resume_test.go",
+      "git_blob": "97462b787cb251bd158451909cdb74d3fcbb9422",
+      "original_git_blob": "97462b787cb251bd158451909cdb74d3fcbb9422",
+      "same": true
+    },
+    {
+      "path": "internal/server/workercontrol/control.go",
+      "git_blob": "2ff04007ed7f023a50dded0e886d892be2e20b96",
+      "original_git_blob": "2ff04007ed7f023a50dded0e886d892be2e20b96",
+      "same": true
+    },
+    {
+      "path": "internal/server/workercontrol/control_test.go",
+      "git_blob": "b88cb0e53e72ac2c4a762dad247dcc28c3b5131e",
+      "original_git_blob": "b88cb0e53e72ac2c4a762dad247dcc28c3b5131e",
+      "same": true
+    },
+    {
+      "path": "internal/server/workercontrol/durable.go",
+      "git_blob": "ffd983e2c18c42fe5ceb0be1772c5032313cf756",
+      "original_git_blob": "ffd983e2c18c42fe5ceb0be1772c5032313cf756",
+      "same": true
+    },
+    {
+      "path": "internal/server/workercontrol/durable_test.go",
+      "git_blob": "b4df4b6138e1fa07594be46881e177e50675f936",
+      "original_git_blob": "b4df4b6138e1fa07594be46881e177e50675f936",
+      "same": true
+    },
+    {
+      "path": "internal/server/workercontrol/maintenance_resume.go",
+      "git_blob": "d3b81641ad94c3aff4e1f9881fe3a27dc825dde5",
+      "original_git_blob": "d3b81641ad94c3aff4e1f9881fe3a27dc825dde5",
+      "same": true
+    },
+    {
+      "path": "internal/server/workercontrol/maintenance_resume_test.go",
+      "git_blob": "31e1a8962bde2038efd3ee09b0d999380b71535a",
+      "original_git_blob": "31e1a8962bde2038efd3ee09b0d999380b71535a",
+      "same": true
+    },
+    {
+      "path": "internal/server/workercontrol/resume.go",
+      "git_blob": "3421d06880bb91cd8ce707097ed314eaa7181ad8",
+      "original_git_blob": "3421d06880bb91cd8ce707097ed314eaa7181ad8",
+      "same": true
+    },
+    {
+      "path": "internal/server/workercontrol/resume_test.go",
+      "git_blob": "644ed061786df476ec90b11e41c335d2377e82ad",
+      "original_git_blob": "644ed061786df476ec90b11e41c335d2377e82ad",
+      "same": true
+    },
+    {
+      "path": "internal/server/workercontrol/settings.go",
+      "git_blob": "1908d077a7f76ce74da9a991131331cb8a55d2db",
+      "original_git_blob": "1908d077a7f76ce74da9a991131331cb8a55d2db",
+      "same": true
+    },
+    {
+      "path": "internal/server/workercontrol/settings_admission_test.go",
+      "git_blob": "a01e067ab82192a47dcd535ffc227c4f501a4035",
+      "original_git_blob": "a01e067ab82192a47dcd535ffc227c4f501a4035",
+      "same": true
+    },
+    {
+      "path": "internal/testsupport/workercontrolfake/resume.go",
+      "git_blob": "0e4db49a492412fa2e9b84249642b9ad843a6edb",
+      "original_git_blob": "0e4db49a492412fa2e9b84249642b9ad843a6edb",
+      "same": true
+    },
+    {
+      "path": "internal/testsupport/workercontrolfake/store.go",
+      "git_blob": "02dc59aa594358edf32cd027dc3bad149afb3767",
+      "original_git_blob": "02dc59aa594358edf32cd027dc3bad149afb3767",
+      "same": true
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "git_blob": "47cf19c7eb1248a0e9cd9e8bc86cee3beed0b5ea",
+      "original_git_blob": "47cf19c7eb1248a0e9cd9e8bc86cee3beed0b5ea",
+      "same": true
+    },
+    {
+      "path": "runtime/dr-control.md",
+      "git_blob": "55d60437cf490c5bd7651b30c80a648186bcfa37",
+      "original_git_blob": "55d60437cf490c5bd7651b30c80a648186bcfa37",
+      "same": true
+    }
+  ],
+  "only_doc_sources_changed": true,
+  "test_results": {
+    "pass": 54,
+    "fail": 0,
+    "skip": 0
+  },
+  "smoke_readonly_calls": 3,
+  "current_tracked_diff": [
+    "docs/backend/dr-maintenance-integration.md",
+    "docs/backend/dr-stage3-deployment.md"
+  ],
+  "untracked_files": [
+    "evidence/LBT-60/2026-11-23-live-readiness/aws-observation.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/cli-preview-results.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/commands.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/disabled-execute.stderr.txt",
+    "evidence/LBT-60/2026-11-23-live-readiness/ecr-candidate-tag.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/independent-review.md",
+    "evidence/LBT-60/2026-11-23-live-readiness/migration-job-summary.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/operator-offline-tests.jsonl",
+    "evidence/LBT-60/2026-11-23-live-readiness/operator-offline-tests.stderr.txt",
+    "evidence/LBT-60/2026-11-23-live-readiness/osaka-observation.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/preview-only-input.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/preview-only-policy.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/preview.stderr.txt",
+    "evidence/LBT-60/2026-11-23-live-readiness/readiness.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/readonly-aws.go.txt",
+    "evidence/LBT-60/2026-11-23-live-readiness/readonly-metadata-smoke-policy.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/readonly-metadata-smoke-receipt.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/readonly-metadata-smoke-result.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/readonly-metadata-smoke.stderr.txt",
+    "evidence/LBT-60/2026-11-23-live-readiness/seoul-control-settings.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/seoul-maintenance-declaration.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/seoul-observation.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/seoul-rds.json",
+    "evidence/LBT-60/2026-11-23-live-readiness/ssot-source.json"
+  ],
+  "limitations": "Only local documentation/evidence delta; reused exact-HEAD prior full PR audits for unchanged source. Product, DB schema, runtime config, CI, dependency files unchanged."
+}

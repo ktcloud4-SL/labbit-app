@@ -1,0 +1,36 @@
+[
+  {
+    "mode": "preview",
+    "started_at_utc": "2026-11-23T01:19:08.8487228Z",
+    "finished_at_utc": "2026-11-23T01:19:09.0065287Z",
+    "exit_code": 0,
+    "result": {
+      "Status": "PREVIEW_ONLY",
+      "Reason": "NO_EXTERNAL_IO",
+      "ExecutionGate": "HOLD",
+      "RecoveryAuthorized": false,
+      "CloudVerified": false,
+      "CommandID": "00000000-0000-4000-8000-000000000001",
+      "RequestSHA256": "769570d2143cb51e52c62c8ef44d897b89a0fddcd82861a24d8092a327ddfb94"
+    },
+    "source_commit": "94fe1f61d7e398761291a967fab9820bfb08bc3d",
+    "scope": "synthetic offline; no AWS/DB/S3 calls"
+  },
+  {
+    "mode": "disabled-execute",
+    "started_at_utc": "2026-11-23T01:19:09.0107562Z",
+    "finished_at_utc": "2026-11-23T01:19:09.0566542Z",
+    "exit_code": 2,
+    "result": {
+      "Status": "NOT_VERIFIED",
+      "Reason": "EXECUTION_DISABLED",
+      "ExecutionGate": "HOLD",
+      "RecoveryAuthorized": false,
+      "CloudVerified": false,
+      "CommandID": "00000000-0000-4000-8000-000000000001",
+      "RequestSHA256": "769570d2143cb51e52c62c8ef44d897b89a0fddcd82861a24d8092a327ddfb94"
+    },
+    "source_commit": "94fe1f61d7e398761291a967fab9820bfb08bc3d",
+    "scope": "synthetic offline; no AWS/DB/S3 calls"
+  }
+]

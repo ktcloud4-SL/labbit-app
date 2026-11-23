@@ -288,7 +288,7 @@ func TestDurableWorkerControlAdapterCreateOnlyPausedAndConsistentReport(t *testi
 			if kind == "invalid" {
 				revision = 0
 			}
-			row := wcRow{values: []any{scope.ID, scope.Region, scope.Cluster, revision, b.Epoch, "PAUSE_NEW", int64(3), int64(0), time.Now().UTC()}}
+			row := wcRow{values: []any{scope.ID, scope.Region, scope.Cluster, revision, b.Epoch, "PAUSE_NEW", int64(3), int64(0), int64(0), time.Now().UTC()}}
 			if kind == "missing" {
 				row = wcRow{err: pgx.ErrNoRows}
 			}

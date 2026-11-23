@@ -1,0 +1,30 @@
+{
+  "self_excluded": true,
+  "files": [
+    {
+      "file": "AUDIT.md",
+      "bytes": 5588,
+      "sha256": "138e9a758d6a0e2b9da6429f6c579a44bf88d55ebcfcc3ff83440ec7b6f92299"
+    },
+    {
+      "file": "gitleaks.json",
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "file": "independent-review.md",
+      "bytes": 7200,
+      "sha256": "e275d5fbe54da49fb82fb731cdc1f663e8fa4ede6ddbfec47473a3425672c1bf"
+    },
+    {
+      "file": "index-verification.json",
+      "bytes": 161,
+      "sha256": "f0f378625aae277e894cdc2c5f91368f49782c573b08451007abf349722bf113"
+    },
+    {
+      "file": "publication-source.json",
+      "bytes": 51118,
+      "sha256": "5cc4b529b6817ba2287274a1f58e4a250a276069ee8c62547f93c40bc09460b1"
+    }
+  ]
+}

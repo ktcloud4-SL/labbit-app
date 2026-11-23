@@ -1,4 +1,4 @@
-version: "0.1.13"
+version: "0.1.14"
 kind: "LabbitRuntimeContract"
 
 scope:
@@ -49,19 +49,40 @@ artifacts:
     executable: "labbit-dr-control"
     lifecycle: "trusted operator one-shot; default preview, no external I/O"
     contract: "runtime/dr-control.md"
-    status: "AWS CLI/PG operator adapter candidate; offline tests only, live collectors and deployment not accepted"
-    commands: [resume, inspect]
+    status: "operator restriction/collector/signing candidate; mock and disposable PostgreSQL only; deployment not accepted"
+    commands: [init, pause, inspect-restriction, resume, inspect]
     authority: >-
       보호된 로컬 Policy의 exact STS Account/ARN/Principal/Scope/Action allowlist를 확인합니다.
       새 Resume는 별도 Ed25519 승인·관측 키, 고정 S3 VersionId·원본 SHA·크기 및 요청 binding/TTL을 검증합니다.
-      신뢰 수집자의 signed LIVE_READBACK을 확인하는 포트이며 실제 Fencing/전체 Pod 관측 수집 자체를 구현하지 않습니다.
+      신뢰 수집자의 signed LIVE_READBACK을 확인합니다. 아래 dr_worker_evidence가 고정 Pod/DB 관측을 수집하며 실제 Fencing 구현을 대신하지 않습니다.
       preview가 기본이며 --execute와 Policy EnableExecution=true가 모두 필요합니다. 예제·테스트는 운영 승인이 아닙니다.
       Policy/키/DSN/실행 파일/AWS profile의 변경 권한은 제어 대상 서비스 사용자와 분리된 trusted operator에게만 줍니다.
     boundaries: >-
       공개 HTTP API·Web UI·서버 startup·배포 pipeline에 연결하지 않습니다. SaaS/Connector HTTP/WSS 계약은 변경하지 않습니다.
-      자동 Pause/maintenance open/GitOps apply/DB promotion/DNS/Slack/전역 DR lock/실제 safety collector는 제공하지 않습니다.
+      자동 Pause/maintenance open/GitOps apply/DB promotion/DNS/Slack/전역 DR lock은 제공하지 않습니다. 명시 승인된 init/Pause만 restriction journal을 통해 PAUSE_NEW로 제한합니다.
       같은 명령 APPLIED 재조회도 현재 신원·권한을 확인하며 receipt를 새 실행 권한으로 사용하지 않습니다.
       INTENT 결과 불명은 자동 Apply/재시도하지 않습니다. 네 가지 NOT_VERIFIED·ReplicaLag FAIL·전체 HOLD는 유지합니다.
+  dr_worker_evidence:
+    executable: "labbit-dr-evidence"
+    lifecycle: "trusted operator one-shot; default preview without key or external access"
+    contract: "runtime/dr-control.md"
+    commands: [approve, collect]
+    authority: >-
+      --execute와 보호된 Policy EnableExecution이 모두 필요합니다. 목적/Phase별 Policy 공개키에 대응하는
+      OS 보호 PKCS8 Ed25519 개인키만 사용합니다. Unix owner/0600, Windows owner/DACL을 실제 검사합니다.
+      기본값은 키를 읽거나 STS/S3/RDS/Kubernetes/PostgreSQL을 호출하지 않습니다.
+    collection: >-
+      Policy의 CollectionPlanSHA256으로 고정한 전체 Pod 목록/제외 목록과 namespace 전체 페이지를 비교합니다.
+      고정 API server, kube-system UID, CA 파일 SHA256, TLS verify와 server-name을 사용합니다.
+      Admin GET /dr-control/status의 실제 프로세스 binding/BootID, exact closed 및 local count를 조회 전후 Pod 식별자와 대조합니다.
+      SQL은 read-only repeatable-read로 전체 대상 DB의 작업/lease/Provider 미해결 및 모든 control INTENT를 관측합니다.
+      DB/Pod PASS만으로 SingleWriter/Fencing/Provider 정산을 PASS로 만들지 않습니다. 별도 signed safety-attestation의
+      고정 VersionId 원본/요청 binding/TTL을 검증하며 없으면 NOT_VERIFIED, 확인한 FAIL은 보존합니다.
+    boundaries: >-
+      수집기/승인자는 S3 upload, maintenance 변경, Worker resume, GitOps apply, Fencing, RDS/DNS mutation을 하지 않습니다.
+      Admin readback은 persistent control을 명시한 process에서만 제공하며 public/peer listener에는 mount하지 않습니다.
+      protected config/executable/credential plugin의 운영자 소유, 변경 동결 및 scope 밖 Pod/Job 경로 검토는 배포 선행조건입니다.
+      키 생성/배포/회전 및 실제 전체 Pod/Provider/Fencing 실측은 이 오프라인 구현의 인수가 아닙니다.
   failed_provision_recovery:
     executable: "labbit-recover-failed-provision"
     lifecycle: "trusted operator one-shot; default dry-run"

@@ -107,14 +107,15 @@ func (t Ticket) Validate() error {
 // Report is an authoritative observation, not approval or all-Pod coverage.
 // Open intents never expire automatically, even when their Pod has disappeared.
 type Report struct {
-	State          State
-	OpenBoundaries int64
-	PendingResumes int64
-	ObservedAt     time.Time
+	State               State
+	OpenBoundaries      int64
+	PendingResumes      int64
+	PendingRestrictions int64
+	ObservedAt          time.Time
 }
 
 func (r Report) Drained() bool {
-	return r.State.Mode == PauseNew && r.OpenBoundaries == 0 && r.PendingResumes == 0 && !r.ObservedAt.IsZero()
+	return r.State.Mode == PauseNew && r.OpenBoundaries == 0 && r.PendingResumes == 0 && r.PendingRestrictions == 0 && !r.ObservedAt.IsZero()
 }
 
 // DurableStore commits Enter before returning. Pause and Enter serialize on the
@@ -137,6 +138,24 @@ type durableControl struct {
 // Persistent reports assembly capability only, never proof of an approved
 // binding or Writer. Every boundary must still call the authoritative Store.
 func (c *Control) Persistent() bool { return c != nil && c.durable != nil }
+
+// ProcessBinding is read-only telemetry of this exact incarnation, not a new
+// binding or an authorization. Never infer BootID from Kubernetes metadata.
+func (c *Control) ProcessBinding() (Binding, bool) {
+	if !c.Persistent() {
+		return Binding{}, false
+	}
+	return c.durable.binding, true
+}
+
+type ProcessReadback struct {
+	Binding          Binding
+	Control          Snapshot
+	AdmissionClosed  bool
+	MaintenanceState string
+	Active           map[string]int
+	ObservedAt       time.Time
+}
 
 func NewDurable(binding Binding, store DurableStore) (*Control, error) {
 	if binding.Validate() != nil || store == nil {

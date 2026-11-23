@@ -56,11 +56,28 @@ func run(args []string, out io.Writer) int {
 	}
 	var p drcontrol.Policy
 	var i drcontrol.Invocation
-	if drcontrol.Strict(pb, &p) != nil || drcontrol.Strict(ib, &i) != nil || p.CheckInvocation(i) != nil {
+	var restricted drcontrol.RestrictInvocation
+	var header struct{ Action string }
+	if json.Unmarshal(ib, &header) != nil {
 		return finish(2)
 	}
-	response.CommandID = i.Request.CommandID.String()
-	response.RequestSHA256 = i.Request.SHA256()
+	isRestriction := header.Action == "init" || header.Action == "pause" || header.Action == "inspect-restriction"
+	if drcontrol.Strict(pb, &p) != nil {
+		return finish(2)
+	}
+	if isRestriction {
+		if drcontrol.Strict(ib, &restricted) != nil || p.CheckRestriction(restricted) != nil {
+			return finish(2)
+		}
+		response.CommandID = restricted.Request.CommandID.String()
+		response.RequestSHA256 = restricted.Request.SHA256()
+	} else if drcontrol.Strict(ib, &i) != nil || p.CheckInvocation(i) != nil {
+		return finish(2)
+	}
+	if !isRestriction {
+		response.CommandID = i.Request.CommandID.String()
+		response.RequestSHA256 = i.Request.SHA256()
+	}
 	if !*execute {
 		response.Status = "PREVIEW_ONLY"
 		response.Reason = "NO_EXTERNAL_IO"
@@ -70,6 +87,11 @@ func run(args []string, out io.Writer) int {
 		response.Reason = "EXECUTION_DISABLED"
 		return finish(2)
 	}
+	protected, e := drcontrol.ReadProtected(*policyFile)
+	if e != nil || string(protected) != string(pb) {
+		response.Reason = "POLICY_NOT_VERIFIED"
+		return finish(2)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	cloud, e := drcontrol.NewAWSCLI(p, drcontrol.CommandRunner{})
@@ -77,7 +99,13 @@ func run(args []string, out io.Writer) int {
 		response.Reason = "POLICY_NOT_VERIFIED"
 		return finish(2)
 	}
-	if drcontrol.Authenticate(ctx, p, i, cloud) != nil {
+	authErr := error(nil)
+	if isRestriction {
+		authErr = drcontrol.AuthenticateRestriction(ctx, p, restricted, cloud)
+	} else {
+		authErr = drcontrol.Authenticate(ctx, p, i, cloud)
+	}
+	if authErr != nil {
 		response.Reason = "IDENTITY_NOT_VERIFIED"
 		return finish(2)
 	}
@@ -85,7 +113,7 @@ func run(args []string, out io.Writer) int {
 		response.Reason = "DATABASE_TARGET_NOT_VERIFIED"
 		return finish(2)
 	}
-	raw, e := read(*dsnFile)
+	raw, e := drcontrol.ReadProtected(*dsnFile)
 	if e != nil {
 		response.Reason = "DATABASE_CONFIG_NOT_VERIFIED"
 		return finish(2)
@@ -104,6 +132,19 @@ func run(args []string, out io.Writer) int {
 	if drcontrol.VerifySQL(ctx, pool, p.Database) != nil {
 		response.Reason = "DATABASE_WRITER_NOT_VERIFIED"
 		return finish(2)
+	}
+	if isRestriction {
+		record, e := drcontrol.ExecuteRestriction(ctx, p, restricted, cloud, cloud, postgres.NewWorkerControlStore(pool), func() time.Time { return time.Now().UTC().Truncate(time.Microsecond) })
+		if e != nil {
+			response.Reason = "RESTRICTION_NOT_VERIFIED_NO_AUTO_RETRY"
+			if record.Status != "" {
+				response.Status = string(record.Status)
+			}
+			return finish(2)
+		}
+		response.Status = string(record.Status)
+		response.Reason = "PAUSE_RECEIPT_ONLY_NOT_DRAIN_OR_FENCING"
+		return finish(0)
 	}
 	record, e := drcontrol.Execute(ctx, p, i, cloud, cloud, postgres.NewWorkerControlStore(pool), func() time.Time { return time.Now().UTC().Truncate(time.Microsecond) })
 	if e != nil {

@@ -28,7 +28,7 @@ func resumeFixture(scope wc.Scope) (wc.ResumeRequest, wc.ResumeProof) {
 func TestWorkerControlResumeAppliedTimeConstraintIsAdditive(t *testing.T) {
 	dsn := postgrestest.NewDatabase(t)
 	conn := postgrestest.Connect(t, dsn)
-	all := embeddedMigrations(t)
+	all := migrationsUpTo(embeddedMigrations(t), 14)
 	postgrestest.Migrate(t, dsn, migrationsUpTo(all, 13))
 	if _, err := conn.Exec(t.Context(), `INSERT INTO worker_control_states(control_id,region,cluster,revision,epoch,mode) VALUES ('constraint','region-fixture','cluster-fixture',1,1,'PAUSE_NEW')`); err != nil {
 		t.Fatal(err)

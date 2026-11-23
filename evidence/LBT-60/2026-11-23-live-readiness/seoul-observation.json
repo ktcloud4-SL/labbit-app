@@ -1,0 +1,332 @@
+{
+  "region": "seoul",
+  "observed_at_utc": "2026-11-23T01:12:44.2087618Z",
+  "deployment_exit": 0,
+  "deployments": [
+    {
+      "name": "backend",
+      "uid": "88a17177-492f-41db-b097-a80a6a18a475",
+      "generation": 1,
+      "desired": 2,
+      "ready": 2,
+      "observed_generation": 1,
+      "containers": [
+        {
+          "name": "common-app",
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+          "env_names": [
+            "LABBIT_ENVIRONMENT",
+            "LABBIT_MAINTENANCE_FILE",
+            "LABBIT_RUNTIME_ROLES",
+            "LABBIT_HTTP_ADDR",
+            "LABBIT_ADMIN_ADDR",
+            "LABBIT_PREVIEW_ALLOWED_PORTS",
+            "LABBIT_PREVIEW_SESSION_TTL",
+            "LABBIT_PREVIEW_ORIGIN_TEMPLATE",
+            "LABBIT_PUBLIC_ORIGIN",
+            "LABBIT_DATABASE_DSN_FILE",
+            "LABBIT_SHUTDOWN_GRACE",
+            "OTEL_SERVICE_NAME",
+            "OTEL_TRACES_EXPORTER",
+            "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL",
+            "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+            "LABBIT_VALKEY_ADDR",
+            "LABBIT_VALKEY_TLS",
+            "LABBIT_VALKEY_USERNAME",
+            "LABBIT_VALKEY_PASSWORD_FILE",
+            "LABBIT_PEER_SECRET_FILE",
+            "LABBIT_POD_ID",
+            "POD_IP",
+            "LABBIT_POD_ADDR"
+          ],
+          "safe_env": [],
+          "mounts": [
+            {
+              "name": "valkey-secret-volume",
+              "mountPath": "/var/secrets/labbit-valkey",
+              "readOnly": true
+            },
+            {
+              "name": "config-volume",
+              "mountPath": "/etc/config",
+              "readOnly": true
+            },
+            {
+              "name": "db-dsn-volume",
+              "mountPath": "/var/secrets/labbit",
+              "readOnly": true
+            }
+          ]
+        }
+      ],
+      "volumes": [
+        {
+          "name": "valkey-secret-volume",
+          "configMap": null,
+          "secret": null,
+          "csi_driver": "secrets-store.csi.k8s.io"
+        },
+        {
+          "name": "config-volume",
+          "configMap": "backend-config",
+          "secret": null,
+          "csi_driver": null
+        },
+        {
+          "name": "db-dsn-volume",
+          "configMap": null,
+          "secret": null,
+          "csi_driver": "secrets-store.csi.k8s.io"
+        }
+      ]
+    },
+    {
+      "name": "web",
+      "uid": "0c9a551b-9206-4174-a0b4-b88315df8790",
+      "generation": 1,
+      "desired": 2,
+      "ready": 2,
+      "observed_generation": 1,
+      "containers": [
+        {
+          "name": "common-app",
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/web:sha-c6dce84",
+          "env_names": [
+            null
+          ],
+          "safe_env": [],
+          "mounts": []
+        }
+      ],
+      "volumes": [
+        {
+          "name": null,
+          "configMap": null,
+          "secret": null,
+          "csi_driver": null
+        }
+      ]
+    }
+  ],
+  "pod_exit": 0,
+  "pods": [
+    {
+      "name": "backend-77c594cb7b-4fxjn",
+      "uid": "f04aae83-4cac-443a-9ef9-efd5064b90e7",
+      "phase": "Running",
+      "owner": [
+        {
+          "kind": "ReplicaSet",
+          "name": "backend-77c594cb7b",
+          "uid": "b6b8f2c8-e04c-4e94-ba41-de478b2e451d"
+        }
+      ],
+      "containers": [
+        {
+          "name": "common-app",
+          "ready": true,
+          "restartCount": 0,
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+          "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419"
+        }
+      ]
+    },
+    {
+      "name": "backend-77c594cb7b-j7knn",
+      "uid": "5431ae96-2706-48ab-ab1f-21596baa5f87",
+      "phase": "Running",
+      "owner": [
+        {
+          "kind": "ReplicaSet",
+          "name": "backend-77c594cb7b",
+          "uid": "b6b8f2c8-e04c-4e94-ba41-de478b2e451d"
+        }
+      ],
+      "containers": [
+        {
+          "name": "common-app",
+          "ready": true,
+          "restartCount": 0,
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+          "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419"
+        }
+      ]
+    },
+    {
+      "name": "labbit-db-migration-zltt8",
+      "uid": "0df06286-0dac-430a-b093-74f6727ffd4c",
+      "phase": "Succeeded",
+      "owner": [
+        {
+          "kind": "Job",
+          "name": "labbit-db-migration",
+          "uid": "25cdcf79-1a0e-41ed-b275-b6e47fc35332"
+        }
+      ],
+      "containers": [
+        {
+          "name": "migrate",
+          "ready": false,
+          "restartCount": 0,
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+          "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419"
+        }
+      ]
+    },
+    {
+      "name": "web-68c5bbf584-9wr7j",
+      "uid": "e990a47a-d558-42b8-b10b-cba441fae3d4",
+      "phase": "Running",
+      "owner": [
+        {
+          "kind": "ReplicaSet",
+          "name": "web-68c5bbf584",
+          "uid": "549019b5-0ce2-4f02-b08a-dff95c59009a"
+        }
+      ],
+      "containers": [
+        {
+          "name": "common-app",
+          "ready": true,
+          "restartCount": 0,
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/web:sha-c6dce84",
+          "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/web@sha256:7d211566697cc02bb86d99d116714ce2553d35dd370f60f0d2f7ae1e23458d53"
+        }
+      ]
+    },
+    {
+      "name": "web-68c5bbf584-k8hsm",
+      "uid": "e55ebe0c-597e-4aa6-bd62-08458244d686",
+      "phase": "Running",
+      "owner": [
+        {
+          "kind": "ReplicaSet",
+          "name": "web-68c5bbf584",
+          "uid": "549019b5-0ce2-4f02-b08a-dff95c59009a"
+        }
+      ],
+      "containers": [
+        {
+          "name": "common-app",
+          "ready": true,
+          "restartCount": 0,
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/web:sha-c6dce84",
+          "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/web@sha256:7d211566697cc02bb86d99d116714ce2553d35dd370f60f0d2f7ae1e23458d53"
+        }
+      ]
+    }
+  ],
+  "argo_exit": 0,
+  "applications": [
+    {
+      "name": "backend",
+      "uid": "1819925b-e530-4ae7-85b8-81fb13451753",
+      "generation": 51,
+      "revision": "main",
+      "path": "charts/common-app",
+      "sync_revision": "ab830d7c9e046b0621477192aca39c6b269cbf30",
+      "sync": "Synced",
+      "health": "Healthy",
+      "automatic_sync": true
+    },
+    {
+      "name": "platform-networking",
+      "uid": "ec9c3cfa-21ff-4822-82f7-628103414b3d",
+      "generation": 27,
+      "revision": "main",
+      "path": "platform/01-networking",
+      "sync_revision": "ab830d7c9e046b0621477192aca39c6b269cbf30",
+      "sync": "Synced",
+      "health": "Healthy",
+      "automatic_sync": true
+    },
+    {
+      "name": "platform-observability",
+      "uid": "7d4acf4b-2f2f-4a67-aebb-f17387d75ded",
+      "generation": 61,
+      "revision": "main",
+      "path": "environments/aws-seoul/observability-gitops",
+      "sync_revision": "ab830d7c9e046b0621477192aca39c6b269cbf30",
+      "sync": "Synced",
+      "health": "Healthy",
+      "automatic_sync": true
+    },
+    {
+      "name": "platform-ops-access",
+      "uid": "18c76221-3952-4b98-9f0b-e05162e88122",
+      "generation": 38,
+      "revision": "main",
+      "path": "platform/04-ops-access/aws",
+      "sync_revision": "ab830d7c9e046b0621477192aca39c6b269cbf30",
+      "sync": "Synced",
+      "health": "Healthy",
+      "automatic_sync": true
+    },
+    {
+      "name": "platform-seoul-alloy",
+      "uid": "ce590bf5-d831-4df4-92a2-17f449893aaa",
+      "generation": 29,
+      "revision": null,
+      "path": null,
+      "sync_revision": null,
+      "sync": "Synced",
+      "health": "Healthy",
+      "automatic_sync": true
+    },
+    {
+      "name": "platform-seoul-kube-prometheus-stack",
+      "uid": "b27a0413-6ab0-4549-89e2-44526bb6957a",
+      "generation": 58,
+      "revision": null,
+      "path": null,
+      "sync_revision": null,
+      "sync": "Synced",
+      "health": "Healthy",
+      "automatic_sync": true
+    },
+    {
+      "name": "platform-seoul-loki",
+      "uid": "de93211d-eeee-49e5-b6fa-0a619d947d47",
+      "generation": 32,
+      "revision": null,
+      "path": null,
+      "sync_revision": null,
+      "sync": "Synced",
+      "health": "Healthy",
+      "automatic_sync": true
+    },
+    {
+      "name": "platform-seoul-tempo",
+      "uid": "42a3ec74-7d35-4e2a-80b2-0c0e362bb11a",
+      "generation": 29,
+      "revision": null,
+      "path": null,
+      "sync_revision": null,
+      "sync": "Synced",
+      "health": "Healthy",
+      "automatic_sync": true
+    },
+    {
+      "name": "root-app-seoul",
+      "uid": "9da17971-0ea4-4149-a10d-d34c11539d62",
+      "generation": 31,
+      "revision": null,
+      "path": null,
+      "sync_revision": null,
+      "sync": "Synced",
+      "health": "Healthy",
+      "automatic_sync": true
+    },
+    {
+      "name": "web",
+      "uid": "9c51043c-70c3-4192-bca0-f82b12655c4b",
+      "generation": 30,
+      "revision": "main",
+      "path": "charts/common-app",
+      "sync_revision": "ab830d7c9e046b0621477192aca39c6b269cbf30",
+      "sync": "Synced",
+      "health": "Healthy",
+      "automatic_sync": true
+    }
+  ]
+}

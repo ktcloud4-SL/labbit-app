@@ -75,8 +75,10 @@ go test -race -tags integration -run '^TestWorkerControl' -count=1 ./internal/po
   PR CI는 이미지를 게시하지 않으므로 후보 build/publish·배포 위치와 명시적 적용 절차를 별도로 준비한다.
 - migration12~14의 실제 DDL 차이·backup/restore 책임·이전/이후 App 호환을 확인한다.
   시험하려고 main에 먼저 merge하지 않는다. migration 전후의 복귀 조건을 나누고, 새 테이블을 기계적으로 DROP하지 않는다.
-- **실제 trusted Pause/Resume 조작 진입점과 승인 Authorizer/Rechecker는 미구현이다.** 내부 메서드·합성 proof를 운영 진입점으로 간주하지 않는다.
-  #196 live 제어·승인 재개 전에 인증된 조작 경로, 단일 control Writer, scope/revision/epoch 초기화와 Pod binding 배포를 준비·검토한다.
+- **Resume 검증 CLI 후보는 구현됐지만 실제 운영 인수는 미완료다.** `cmd/labbit-dr-control`은 signed approval/observation을
+  검증하는 opt-in 경로이며 실제 Pause/init 진입점·신뢰 안전 조건 수집자·키 운영은 제공하지 않는다.
+  내부 메서드·합성 proof를 운영 진입점으로 간주하지 않는다. #196 live 제어·승인 재개 전에
+  인증된 Pause/init 경로, 실제 서명/수집·승인, 단일 control Writer, scope/revision/epoch 초기화와 Pod binding 배포를 준비·검토한다.
 - 전체 serving Pod의 read-only directory mount(subPath 금지), 관측 경로, GitOps 변경·유지·복원 방법을 확정한다.
   자동 Sync/rollout을 잠시 멈추면 대상·기간·원래 spec을 기록하고 다른 담당자의 변경 반영 지연을 먼저 알린다.
 - ACK 수신·미완료·UNKNOWN·lease·Connector/Provider 자원을 정산한다. 강제 삭제나 자동 재시도로 미해결 기록을 지우지 않는다.

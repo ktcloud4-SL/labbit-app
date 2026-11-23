@@ -1,0 +1,1 @@
+DR control remains HOLD; no automatic retry

@@ -447,9 +447,13 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
+	adminRoutes := adminHandler(ready, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}), checks...)
+	if stack != nil {
+		adminRoutes = withDRReadback(adminRoutes, stack.WorkerControl, gate)
+	}
 	adminServer := &http.Server{
 		Addr:              cfg.AdminAddr,
-		Handler:           adminHandler(ready, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}), checks...),
+		Handler:           adminRoutes,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

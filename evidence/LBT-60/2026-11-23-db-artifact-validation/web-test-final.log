@@ -1,0 +1,14 @@
+
+ RUN  v5.0.5 C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-stage3-live-prep-20261123/web
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  35 passed (35)
+      Tests  493 passed (493)
+   Start at  15:27:35
+   Duration  82.25s (environment 58%, tests 27%, setup 12%, import 2%)
+
+Environment  jsdom was created 35 times · 45.06s total, 58% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+

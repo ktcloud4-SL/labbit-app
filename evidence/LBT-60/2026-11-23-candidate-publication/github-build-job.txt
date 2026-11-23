@@ -1,0 +1,1120 @@
+2026-11-23T04:07:45.1802577Z Current runner version: '2.338.2'
+2026-11-23T04:07:45.1823241Z ##[group]Runner Image Provisioner
+2026-11-23T04:07:45.1824217Z Hosted Compute Agent
+2026-11-23T04:07:45.1824726Z Version: 20261111.635
+2026-11-23T04:07:45.1825308Z Commit: b8a594ea514ff44cadb5342986c68b1eac6e22ed
+2026-11-23T04:07:45.1825922Z Build Date: 2026-11-11T01:49:01Z
+2026-11-23T04:07:45.1826846Z Worker ID: {ed491676-ecfd-48fc-807f-ad348bd0194e}
+2026-11-23T04:07:45.1827539Z Region: centralus
+2026-11-23T04:07:45.1828004Z Cloud: Azure
+2026-11-23T04:07:45.1828488Z ##[endgroup]
+2026-11-23T04:07:45.1829638Z ##[group]Operating System
+2026-11-23T04:07:45.1830171Z Ubuntu
+2026-11-23T04:07:45.1830685Z 26.04.1
+2026-11-23T04:07:45.1831117Z LTS
+2026-11-23T04:07:45.1831571Z ##[endgroup]
+2026-11-23T04:07:45.1832038Z ##[group]Runner Image
+2026-11-23T04:07:45.1832564Z Image: ubuntu-26.04
+2026-11-23T04:07:45.1833102Z Version: 20261116.202.1
+2026-11-23T04:07:45.1834245Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261116.202/images/ubuntu/Ubuntu2604-Readme.md
+2026-11-23T04:07:45.1835599Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261116.202
+2026-11-23T04:07:45.1836442Z ##[endgroup]
+2026-11-23T04:07:45.1837396Z ##[group]GITHUB_TOKEN Permissions
+2026-11-23T04:07:45.1839214Z Contents: read
+2026-11-23T04:07:45.1839783Z Metadata: read
+2026-11-23T04:07:45.1840280Z ##[endgroup]
+2026-11-23T04:07:45.1842025Z Secret source: Actions
+2026-11-23T04:07:45.1842784Z Cache mode: write
+2026-11-23T04:07:45.1843764Z Prepare workflow directory
+2026-11-23T04:07:45.2155619Z Prepare all required actions
+2026-11-23T04:07:45.2205818Z Getting action download info
+2026-11-23T04:07:45.4636911Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-23T04:07:45.5425316Z Download action repository 'docker/setup-buildx-action@v3' (SHA:8d2750c68a42422c14e847fe6c8ac0403b4cbd6f)
+2026-11-23T04:07:46.0157212Z Download action repository 'docker/build-push-action@v6' (SHA:10e90e3645eae34f1e60eeb005ba3a3d33f178e8)
+2026-11-23T04:07:46.4256663Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-23T04:07:46.6154439Z Complete job name: candidate
+2026-11-23T04:07:46.6879504Z ##[group]Run actions/checkout@v4
+2026-11-23T04:07:46.6880439Z with:
+2026-11-23T04:07:46.6881014Z   ref: be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+2026-11-23T04:07:46.6881676Z   persist-credentials: false
+2026-11-23T04:07:46.6882246Z   repository: ktcloud4-SL/labbit-app
+2026-11-23T04:07:46.6886238Z   token: ***
+2026-11-23T04:07:46.6886757Z   ssh-strict: true
+2026-11-23T04:07:46.6887268Z   ssh-user: git
+2026-11-23T04:07:46.6887748Z   clean: true
+2026-11-23T04:07:46.6888233Z   sparse-checkout-cone-mode: true
+2026-11-23T04:07:46.6888820Z   fetch-depth: 1
+2026-11-23T04:07:46.6889335Z   fetch-tags: false
+2026-11-23T04:07:46.6889823Z   show-progress: true
+2026-11-23T04:07:46.6890383Z   lfs: false
+2026-11-23T04:07:46.6890846Z   submodules: false
+2026-11-23T04:07:46.6891413Z   set-safe-directory: true
+2026-11-23T04:07:46.6892022Z   allow-unsafe-pr-checkout: false
+2026-11-23T04:07:46.6892768Z env:
+2026-11-23T04:07:46.6893675Z   SOURCE_SHA: be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+2026-11-23T04:07:46.6894506Z   CANDIDATE: labbit-dr196:be4d0ba
+2026-11-23T04:07:46.6895154Z   DOCKER_BUILD_RECORD_UPLOAD: false
+2026-11-23T04:07:46.6895703Z ##[endgroup]
+2026-11-23T04:07:46.8759370Z Syncing repository: ktcloud4-SL/labbit-app
+2026-11-23T04:07:46.8761301Z ##[group]Getting Git version info
+2026-11-23T04:07:46.8762159Z Working directory is '/home/runner/work/labbit-app/labbit-app'
+2026-11-23T04:07:46.8763261Z [command]/usr/bin/git version
+2026-11-23T04:07:46.8764233Z git version 2.56.1
+2026-11-23T04:07:46.8771513Z ##[endgroup]
+2026-11-23T04:07:46.8782973Z Temporarily overriding HOME='/home/runner/work/_temp/a2d56a38-ddae-417d-911e-86f0f5bde6c9' before making global git config changes
+2026-11-23T04:07:46.8784852Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-23T04:07:46.8787123Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/labbit-app/labbit-app
+2026-11-23T04:07:46.8838898Z Deleting the contents of '/home/runner/work/labbit-app/labbit-app'
+2026-11-23T04:07:46.8840883Z ##[group]Initializing the repository
+2026-11-23T04:07:46.8846643Z [command]/usr/bin/git init /home/runner/work/labbit-app/labbit-app
+2026-11-23T04:07:46.8907541Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-23T04:07:46.8909382Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-23T04:07:46.8911023Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-23T04:07:46.8912464Z hint: call:
+2026-11-23T04:07:46.8913797Z hint:
+2026-11-23T04:07:46.8914873Z hint: 	git config --global init.defaultBranch <name>
+2026-11-23T04:07:46.8916013Z hint:
+2026-11-23T04:07:46.8917074Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-23T04:07:46.8918897Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-23T04:07:46.8920216Z hint:
+2026-11-23T04:07:46.8921105Z hint: 	git branch -m <name>
+2026-11-23T04:07:46.8922183Z hint:
+2026-11-23T04:07:46.8923286Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-23T04:07:46.8925096Z Initialized empty Git repository in /home/runner/work/labbit-app/labbit-app/.git/
+2026-11-23T04:07:46.8928680Z [command]/usr/bin/git remote add origin https://github.com/ktcloud4-SL/labbit-app
+2026-11-23T04:07:46.8974371Z ##[endgroup]
+2026-11-23T04:07:46.8975853Z ##[group]Disabling automatic garbage collection
+2026-11-23T04:07:46.8977160Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-23T04:07:46.9086109Z ##[endgroup]
+2026-11-23T04:07:46.9087788Z ##[group]Setting up auth
+2026-11-23T04:07:46.9097203Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-23T04:07:46.9101014Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-23T04:07:46.9404192Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-23T04:07:46.9445794Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-23T04:07:46.9694234Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-23T04:07:46.9726365Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-23T04:07:46.9960906Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-23T04:07:46.9995691Z ##[endgroup]
+2026-11-23T04:07:46.9996828Z ##[group]Fetching the repository
+2026-11-23T04:07:47.0004058Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+2026-11-23T04:07:48.6779311Z From https://github.com/ktcloud4-SL/labbit-app
+2026-11-23T04:07:48.6780870Z  * branch            be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1 -> FETCH_HEAD
+2026-11-23T04:07:48.6783782Z ##[endgroup]
+2026-11-23T04:07:48.6786483Z ##[group]Determining the checkout info
+2026-11-23T04:07:48.6787120Z ##[endgroup]
+2026-11-23T04:07:48.6791851Z [command]/usr/bin/git sparse-checkout disable
+2026-11-23T04:07:48.6838029Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-23T04:07:48.6867882Z ##[group]Checking out the ref
+2026-11-23T04:07:48.6870747Z [command]/usr/bin/git checkout --progress --force be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+2026-11-23T04:07:49.0047983Z Note: switching to 'be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1'.
+2026-11-23T04:07:49.0048333Z 
+2026-11-23T04:07:49.0048534Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-23T04:07:49.0049431Z changes and commit them, and you can discard any commits you make in this
+2026-11-23T04:07:49.0049885Z state without impacting any branches by switching back to a branch.
+2026-11-23T04:07:49.0050166Z 
+2026-11-23T04:07:49.0050384Z If you want to create a new branch to retain commits you create, you may
+2026-11-23T04:07:49.0050779Z do so (now or later) by using -c with the switch command. Example:
+2026-11-23T04:07:49.0050995Z 
+2026-11-23T04:07:49.0051112Z   git switch -c <new-branch-name>
+2026-11-23T04:07:49.0051271Z 
+2026-11-23T04:07:49.0051396Z Or undo this operation with:
+2026-11-23T04:07:49.0051562Z 
+2026-11-23T04:07:49.0051655Z   git switch -
+2026-11-23T04:07:49.0051802Z 
+2026-11-23T04:07:49.0052305Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-23T04:07:49.0052694Z 
+2026-11-23T04:07:49.0053255Z HEAD is now at be4d0ba fix(dr): preserve confirmed database backlog failure independently
+2026-11-23T04:07:49.0087265Z ##[endgroup]
+2026-11-23T04:07:49.0133660Z [command]/usr/bin/git log -1 --format=%H
+2026-11-23T04:07:49.0155933Z be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+2026-11-23T04:07:49.0164492Z ##[group]Removing auth
+2026-11-23T04:07:49.0167566Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-23T04:07:49.0194136Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-23T04:07:49.0440619Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-23T04:07:49.0464012Z http.https://github.com/.extraheader
+2026-11-23T04:07:49.0471037Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-23T04:07:49.0502715Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-23T04:07:49.0745429Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-23T04:07:49.0771641Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-23T04:07:49.1007403Z ##[endgroup]
+2026-11-23T04:07:49.1193308Z ##[group]Run test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+2026-11-23T04:07:49.1194073Z [36;1mtest "$(git rev-parse HEAD)" = "$SOURCE_SHA"[0m
+2026-11-23T04:07:49.1194467Z [36;1mtest -z "$(git status --porcelain)"[0m
+2026-11-23T04:07:49.1194758Z [36;1mmkdir -p /tmp/pr196-artifact[0m
+2026-11-23T04:07:49.1195216Z [36;1mgit ls-files -s Dockerfile .dockerignore go.mod go.sum db/migrations > /tmp/pr196-artifact/source-files.txt[0m
+2026-11-23T04:07:49.1228946Z shell: /usr/bin/bash -e {0}
+2026-11-23T04:07:49.1229206Z env:
+2026-11-23T04:07:49.1229458Z   SOURCE_SHA: be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+2026-11-23T04:07:49.1229801Z   CANDIDATE: labbit-dr196:be4d0ba
+2026-11-23T04:07:49.1230064Z   DOCKER_BUILD_RECORD_UPLOAD: false
+2026-11-23T04:07:49.1230306Z ##[endgroup]
+2026-11-23T04:07:49.1572860Z ##[group]Run docker/setup-buildx-action@v3
+2026-11-23T04:07:49.1573168Z with:
+2026-11-23T04:07:49.1573374Z   driver: docker-container
+2026-11-23T04:07:49.1573845Z   use: true
+2026-11-23T04:07:49.1574051Z   keep-state: false
+2026-11-23T04:07:49.1574267Z   cache-binary: true
+2026-11-23T04:07:49.1574482Z   cleanup: true
+2026-11-23T04:07:49.1574703Z   install: false
+2026-11-23T04:07:49.1574905Z env:
+2026-11-23T04:07:49.1575145Z   SOURCE_SHA: be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+2026-11-23T04:07:49.1575442Z   CANDIDATE: labbit-dr196:be4d0ba
+2026-11-23T04:07:49.1575697Z   DOCKER_BUILD_RECORD_UPLOAD: false
+2026-11-23T04:07:49.1575944Z ##[endgroup]
+2026-11-23T04:07:49.3774547Z (node:2302) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-23T04:07:49.3775792Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-23T04:07:49.3818463Z ##[group]Docker info
+2026-11-23T04:07:49.3837974Z [command]/usr/bin/docker version
+2026-11-23T04:07:49.4733180Z Client: Docker Engine - Community
+2026-11-23T04:07:49.4733958Z  Version:           29.4.2
+2026-11-23T04:07:49.4734267Z  API version:       1.54
+2026-11-23T04:07:49.4734721Z  Go version:        go1.26.2
+2026-11-23T04:07:49.4735044Z  Git commit:        055a478
+2026-11-23T04:07:49.4735494Z  Built:             Fri May  1 10:24:04 2026
+2026-11-23T04:07:49.4735848Z  OS/Arch:           linux/amd64
+2026-11-23T04:07:49.4736172Z  Context:           default
+2026-11-23T04:07:49.4736320Z 
+2026-11-23T04:07:49.4736430Z Server: Docker Engine - Community
+2026-11-23T04:07:49.4736634Z  Engine:
+2026-11-23T04:07:49.4736928Z   Version:          29.4.2
+2026-11-23T04:07:49.4737151Z   API version:      1.54 (minimum version 1.40)
+2026-11-23T04:07:49.4737408Z   Go version:       go1.26.2
+2026-11-23T04:07:49.4737654Z   Git commit:       d329809
+2026-11-23T04:07:49.4737858Z   Built:            Fri May  1 10:24:04 2026
+2026-11-23T04:07:49.4738074Z   OS/Arch:          linux/amd64
+2026-11-23T04:07:49.4738281Z   Experimental:     false
+2026-11-23T04:07:49.4738475Z  containerd:
+2026-11-23T04:07:49.4738638Z   Version:          v2.4.2
+2026-11-23T04:07:49.4738874Z   GitCommit:        b7a25261e029d68978bbf290df0a62fc819b3c51
+2026-11-23T04:07:49.4739234Z  runc:
+2026-11-23T04:07:49.4739432Z   Version:          1.5.3
+2026-11-23T04:07:49.4739638Z   GitCommit:        v1.5.3-0-g46365c62
+2026-11-23T04:07:49.4739854Z  docker-init:
+2026-11-23T04:07:49.4740026Z   Version:          0.19.0
+2026-11-23T04:07:49.4740212Z   GitCommit:        de40ad0
+2026-11-23T04:07:49.4773958Z [command]/usr/bin/docker info
+2026-11-23T04:07:49.6288019Z Client: Docker Engine - Community
+2026-11-23T04:07:49.6288517Z  Version:    29.4.2
+2026-11-23T04:07:49.6289008Z  Context:    default
+2026-11-23T04:07:49.6289315Z  Debug Mode: false
+2026-11-23T04:07:49.6289631Z  Plugins:
+2026-11-23T04:07:49.6289901Z   buildx: Docker Buildx (Docker Inc.)
+2026-11-23T04:07:49.6290233Z     Version:  v0.39.0
+2026-11-23T04:07:49.6290620Z     Path:     /usr/libexec/docker/cli-plugins/docker-buildx
+2026-11-23T04:07:49.6291044Z   compose: Docker Compose (Docker Inc.)
+2026-11-23T04:07:49.6291376Z     Version:  v5.1.3
+2026-11-23T04:07:49.6291711Z     Path:     /usr/libexec/docker/cli-plugins/docker-compose
+2026-11-23T04:07:49.6291991Z 
+2026-11-23T04:07:49.6292092Z Server:
+2026-11-23T04:07:49.6292316Z  Containers: 0
+2026-11-23T04:07:49.6292551Z   Running: 0
+2026-11-23T04:07:49.6292777Z   Paused: 0
+2026-11-23T04:07:49.6292997Z   Stopped: 0
+2026-11-23T04:07:49.6293219Z  Images: 6
+2026-11-23T04:07:49.6293595Z  Server Version: 29.4.2
+2026-11-23T04:07:49.6293884Z  Storage Driver: overlayfs
+2026-11-23T04:07:49.6294213Z   driver-type: io.containerd.snapshotter.v1
+2026-11-23T04:07:49.6294583Z  Logging Driver: json-file
+2026-11-23T04:07:49.6294870Z  Cgroup Driver: systemd
+2026-11-23T04:07:49.6295144Z  Cgroup Version: 2
+2026-11-23T04:07:49.6295384Z  Plugins:
+2026-11-23T04:07:49.6295635Z   Volume: local
+2026-11-23T04:07:49.6296441Z   Network: bridge host ipvlan macvlan null overlay
+2026-11-23T04:07:49.6296935Z   Log: awslogs fluentd gcplogs gelf journald json-file local splunk syslog
+2026-11-23T04:07:49.6297388Z  CDI spec directories:
+2026-11-23T04:07:49.6297639Z   /etc/cdi
+2026-11-23T04:07:49.6297866Z   /var/run/cdi
+2026-11-23T04:07:49.6298098Z  Swarm: inactive
+2026-11-23T04:07:49.6298368Z  Runtimes: runc io.containerd.runc.v2
+2026-11-23T04:07:49.6298704Z  Default Runtime: runc
+2026-11-23T04:07:49.6298960Z  Init Binary: docker-init
+2026-11-23T04:07:49.6299359Z  containerd version: b7a25261e029d68978bbf290df0a62fc819b3c51
+2026-11-23T04:07:49.6299803Z  runc version: v1.5.3-0-g46365c62
+2026-11-23T04:07:49.6300117Z  init version: de40ad0
+2026-11-23T04:07:49.6300386Z  Security Options:
+2026-11-23T04:07:49.6300668Z   apparmor
+2026-11-23T04:07:49.6301128Z   seccomp
+2026-11-23T04:07:49.6301542Z    Profile: builtin
+2026-11-23T04:07:49.6301788Z   cgroupns
+2026-11-23T04:07:49.6302032Z  Kernel Version: 7.0.0-1020-azure
+2026-11-23T04:07:49.6302360Z  Operating System: Ubuntu 26.04.1 LTS
+2026-11-23T04:07:49.6302696Z  OSType: linux
+2026-11-23T04:07:49.6302956Z  Architecture: x86_64
+2026-11-23T04:07:49.6303217Z  CPUs: 4
+2026-11-23T04:07:49.6303427Z  Total Memory: 15.61GiB
+2026-11-23T04:07:49.6303817Z  Name: runnervm0hi8g
+2026-11-23T04:07:49.6304097Z  ID: 636b573e-1748-48fb-a027-4a5f710f78e2
+2026-11-23T04:07:49.6304431Z  Docker Root Dir: /var/lib/docker
+2026-11-23T04:07:49.6304739Z  Debug Mode: false
+2026-11-23T04:07:49.6304991Z  Username: githubactions
+2026-11-23T04:07:49.6305285Z  Experimental: false
+2026-11-23T04:07:49.6305540Z  Insecure Registries:
+2026-11-23T04:07:49.6310857Z   ::1/128
+2026-11-23T04:07:49.6311096Z   127.0.0.0/8
+2026-11-23T04:07:49.6311334Z  Live Restore Enabled: false
+2026-11-23T04:07:49.6311647Z  Firewall Backend: iptables
+2026-11-23T04:07:49.6311850Z 
+2026-11-23T04:07:49.6312422Z ##[endgroup]
+2026-11-23T04:07:49.6949406Z ##[group]Buildx version
+2026-11-23T04:07:49.6967939Z [command]/usr/bin/docker buildx version
+2026-11-23T04:07:49.7604404Z github.com/docker/buildx v0.39.0 360040a78d6113dc84e5d4dcdf0f438e1be7a41f
+2026-11-23T04:07:49.7642376Z ##[endgroup]
+2026-11-23T04:07:49.8000951Z ##[group]Inspecting default docker context
+2026-11-23T04:07:49.8149221Z [
+2026-11-23T04:07:49.8149522Z   {
+2026-11-23T04:07:49.8149727Z     "Name": "default",
+2026-11-23T04:07:49.8149958Z     "Metadata": {},
+2026-11-23T04:07:49.8150190Z     "Endpoints": {
+2026-11-23T04:07:49.8150383Z       "docker": {
+2026-11-23T04:07:49.8150600Z         "Host": "unix:///var/run/docker.sock",
+2026-11-23T04:07:49.8150860Z         "SkipTLSVerify": false
+2026-11-23T04:07:49.8151193Z       }
+2026-11-23T04:07:49.8151346Z     },
+2026-11-23T04:07:49.8151509Z     "TLSMaterial": {},
+2026-11-23T04:07:49.8151694Z     "Storage": {
+2026-11-23T04:07:49.8151890Z       "MetadataPath": "<IN MEMORY>",
+2026-11-23T04:07:49.8152166Z       "TLSPath": "<IN MEMORY>"
+2026-11-23T04:07:49.8152400Z     }
+2026-11-23T04:07:49.8152613Z   }
+2026-11-23T04:07:49.8152786Z ]
+2026-11-23T04:07:49.8153301Z ##[endgroup]
+2026-11-23T04:07:49.8153870Z ##[group]Creating a new builder instance
+2026-11-23T04:07:49.9407556Z [command]/usr/bin/docker buildx create --name builder-63238dbb-9d34-460f-b465-536c4199672d --driver docker-container --buildkitd-flags --allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host --use
+2026-11-23T04:07:50.0155637Z builder-63238dbb-9d34-460f-b465-536c4199672d
+2026-11-23T04:07:50.0197563Z ##[endgroup]
+2026-11-23T04:07:50.0198211Z ##[group]Booting builder
+2026-11-23T04:07:50.0228914Z [command]/usr/bin/docker buildx inspect --bootstrap --builder builder-63238dbb-9d34-460f-b465-536c4199672d
+2026-11-23T04:07:50.0873910Z #1 [internal] booting buildkit
+2026-11-23T04:07:50.2380225Z #1 pulling image moby/buildkit:buildx-stable-1
+2026-11-23T04:07:52.4764279Z #1 pulling image moby/buildkit:buildx-stable-1 2.4s done
+2026-11-23T04:07:53.6294416Z #1 creating container buildx_buildkit_builder-63238dbb-9d34-460f-b465-536c4199672d0
+2026-11-23T04:07:56.0890922Z #1 creating container buildx_buildkit_builder-63238dbb-9d34-460f-b465-536c4199672d0 2.5s done
+2026-11-23T04:07:56.1166776Z #1 DONE 6.0s
+2026-11-23T04:07:56.1462381Z Name:          builder-63238dbb-9d34-460f-b465-536c4199672d
+2026-11-23T04:07:56.1462875Z Driver:        docker-container
+2026-11-23T04:07:56.1463213Z Last Activity: 2026-11-23 04:07:49 +0000 UTC
+2026-11-23T04:07:56.1464004Z 
+2026-11-23T04:07:56.1464103Z Nodes:
+2026-11-23T04:07:56.1464421Z Name:                  builder-63238dbb-9d34-460f-b465-536c4199672d0
+2026-11-23T04:07:56.1464873Z Endpoint:              unix:///var/run/docker.sock
+2026-11-23T04:07:56.1465244Z Status:                running
+2026-11-23T04:07:56.1465920Z BuildKit daemon flags: --allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host
+2026-11-23T04:07:56.1466590Z BuildKit version:      v0.35.1
+2026-11-23T04:07:56.1467449Z Platforms:             linux/amd64, linux/amd64/v2, linux/amd64/v3, linux/amd64/v4, linux/386
+2026-11-23T04:07:56.1467947Z Labels:
+2026-11-23T04:07:56.1468275Z  org.mobyproject.buildkit.worker.executor:         oci
+2026-11-23T04:07:56.1468738Z  org.mobyproject.buildkit.worker.hostname:         9137be3ecc08
+2026-11-23T04:07:56.1469073Z  org.mobyproject.buildkit.worker.network:          host
+2026-11-23T04:07:56.1469415Z  org.mobyproject.buildkit.worker.oci.process-mode: sandbox
+2026-11-23T04:07:56.1469750Z  org.mobyproject.buildkit.worker.selinux.enabled:  false
+2026-11-23T04:07:56.1470085Z  org.mobyproject.buildkit.worker.snapshotter:      overlayfs
+2026-11-23T04:07:56.1470357Z GC Policy rule#0:
+2026-11-23T04:07:56.1470531Z  All:            false
+2026-11-23T04:07:56.1470887Z  Filters:        type==source.local type==exec.cachemount type==source.git.checkout
+2026-11-23T04:07:56.1471223Z  Keep Duration:  48h0m0s
+2026-11-23T04:07:56.1471410Z  Max Used Space: 488.3MiB
+2026-11-23T04:07:56.1471598Z GC Policy rule#1:
+2026-11-23T04:07:56.1471761Z  All:            false
+2026-11-23T04:07:56.1471971Z  Keep Duration:  1440h0m0s
+2026-11-23T04:07:56.1472155Z  Reserved Space: 9.313GiB
+2026-11-23T04:07:56.1472342Z  Max Used Space: 93.13GiB
+2026-11-23T04:07:56.1472532Z  Min Free Space: 27.01GiB
+2026-11-23T04:07:56.1472721Z GC Policy rule#2:
+2026-11-23T04:07:56.1472884Z  All:            false
+2026-11-23T04:07:56.1473056Z  Reserved Space: 9.313GiB
+2026-11-23T04:07:56.1473248Z  Max Used Space: 93.13GiB
+2026-11-23T04:07:56.1473422Z  Min Free Space: 27.01GiB
+2026-11-23T04:07:56.1473866Z GC Policy rule#3:
+2026-11-23T04:07:56.1474032Z  All:            true
+2026-11-23T04:07:56.1474208Z  Reserved Space: 9.313GiB
+2026-11-23T04:07:56.1474389Z  Max Used Space: 93.13GiB
+2026-11-23T04:07:56.1474562Z  Min Free Space: 27.01GiB
+2026-11-23T04:07:56.1521115Z ##[endgroup]
+2026-11-23T04:07:56.2399632Z ##[group]Inspect builder
+2026-11-23T04:07:56.2435649Z {
+2026-11-23T04:07:56.2435912Z   "nodes": [
+2026-11-23T04:07:56.2436155Z     {
+2026-11-23T04:07:56.2436455Z       "name": "builder-63238dbb-9d34-460f-b465-536c4199672d0",
+2026-11-23T04:07:56.2436913Z       "endpoint": "unix:///var/run/docker.sock",
+2026-11-23T04:07:56.2437312Z       "status": "running",
+2026-11-23T04:07:56.2437768Z       "buildkitd-flags": "--allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host",
+2026-11-23T04:07:56.2438285Z       "buildkit": "v0.35.1",
+2026-11-23T04:07:56.2438665Z       "platforms": "linux/amd64,linux/amd64/v2,linux/amd64/v3,linux/amd64/v4,linux/386",
+2026-11-23T04:07:56.2438988Z       "features": {
+2026-11-23T04:07:56.2439350Z         "Automatically load images to the Docker Engine image store": true,
+2026-11-23T04:07:56.2439679Z         "Cache export": true,
+2026-11-23T04:07:56.2439884Z         "Direct push": true,
+2026-11-23T04:07:56.2440094Z         "Docker exporter": true,
+2026-11-23T04:07:56.2440318Z         "Multi-platform build": true,
+2026-11-23T04:07:56.2440621Z         "OCI exporter": true
+2026-11-23T04:07:56.2440877Z       },
+2026-11-23T04:07:56.2441031Z       "labels": {
+2026-11-23T04:07:56.2441256Z         "org.mobyproject.buildkit.worker.executor": "oci",
+2026-11-23T04:07:56.2441825Z         "org.mobyproject.buildkit.worker.hostname": "9137be3ecc08",
+2026-11-23T04:07:56.2442145Z         "org.mobyproject.buildkit.worker.network": "host",
+2026-11-23T04:07:56.2442473Z         "org.mobyproject.buildkit.worker.oci.process-mode": "sandbox",
+2026-11-23T04:07:56.2442819Z         "org.mobyproject.buildkit.worker.selinux.enabled": "false",
+2026-11-23T04:07:56.2443166Z         "org.mobyproject.buildkit.worker.snapshotter": "overlayfs"
+2026-11-23T04:07:56.2443425Z       },
+2026-11-23T04:07:56.2443770Z       "gcPolicy": [
+2026-11-23T04:07:56.2443954Z         {
+2026-11-23T04:07:56.2444111Z           "all": false,
+2026-11-23T04:07:56.2444285Z           "filter": [
+2026-11-23T04:07:56.2444546Z             "type==source.local type==exec.cachemount type==source.git.checkout"
+2026-11-23T04:07:56.2444861Z           ],
+2026-11-23T04:07:56.2445198Z           "keepDuration": "48h0m0s",
+2026-11-23T04:07:56.2445428Z           "maxUsedSpace": "488.3MiB"
+2026-11-23T04:07:56.2445634Z         },
+2026-11-23T04:07:56.2445789Z         {
+2026-11-23T04:07:56.2445946Z           "all": false,
+2026-11-23T04:07:56.2446130Z           "keepDuration": "1440h0m0s",
+2026-11-23T04:07:56.2446339Z           "reservedSpace": "9.313GiB",
+2026-11-23T04:07:56.2446560Z           "maxUsedSpace": "93.13GiB",
+2026-11-23T04:07:56.2446767Z           "minFreeSpace": "27.01GiB"
+2026-11-23T04:07:56.2446972Z         },
+2026-11-23T04:07:56.2447132Z         {
+2026-11-23T04:07:56.2447283Z           "all": false,
+2026-11-23T04:07:56.2447460Z           "reservedSpace": "9.313GiB",
+2026-11-23T04:07:56.2447660Z           "maxUsedSpace": "93.13GiB",
+2026-11-23T04:07:56.2447892Z           "minFreeSpace": "27.01GiB"
+2026-11-23T04:07:56.2448085Z         },
+2026-11-23T04:07:56.2448227Z         {
+2026-11-23T04:07:56.2448374Z           "all": true,
+2026-11-23T04:07:56.2448553Z           "reservedSpace": "9.313GiB",
+2026-11-23T04:07:56.2448783Z           "maxUsedSpace": "93.13GiB",
+2026-11-23T04:07:56.2448985Z           "minFreeSpace": "27.01GiB"
+2026-11-23T04:07:56.2449187Z         }
+2026-11-23T04:07:56.2449331Z       ]
+2026-11-23T04:07:56.2449492Z     }
+2026-11-23T04:07:56.2449650Z   ],
+2026-11-23T04:07:56.2449866Z   "name": "builder-63238dbb-9d34-460f-b465-536c4199672d",
+2026-11-23T04:07:56.2450150Z   "driver": "docker-container",
+2026-11-23T04:07:56.2450382Z   "lastActivity": "2026-11-23T04:07:49.000Z"
+2026-11-23T04:07:56.2450604Z }
+2026-11-23T04:07:56.2450961Z ##[endgroup]
+2026-11-23T04:07:56.2451285Z ##[group]BuildKit version
+2026-11-23T04:07:56.2451537Z builder-63238dbb-9d34-460f-b465-536c4199672d0: v0.35.1
+2026-11-23T04:07:56.2451910Z ##[endgroup]
+2026-11-23T04:07:56.2616662Z ##[group]Run docker/build-push-action@v6
+2026-11-23T04:07:56.2616905Z with:
+2026-11-23T04:07:56.2617070Z   context: .
+2026-11-23T04:07:56.2617230Z   file: ./Dockerfile
+2026-11-23T04:07:56.2617407Z   platforms: linux/amd64
+2026-11-23T04:07:56.2617605Z   push: false
+2026-11-23T04:07:56.2617760Z   load: true
+2026-11-23T04:07:56.2617924Z   tags: labbit-dr196:be4d0ba
+2026-11-23T04:07:56.2618600Z   labels: org.opencontainers.image.revision=be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+org.opencontainers.image.source=https://github.com/ktcloud4-SL/labbit-app
+labbit.trial.scope=PR196-candidate-not-deployed
+
+2026-11-23T04:07:56.2619273Z   no-cache: false
+2026-11-23T04:07:56.2619441Z   pull: false
+2026-11-23T04:07:56.2621529Z   github-token: ***
+2026-11-23T04:07:56.2621708Z env:
+2026-11-23T04:07:56.2621908Z   SOURCE_SHA: be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+2026-11-23T04:07:56.2622168Z   CANDIDATE: labbit-dr196:be4d0ba
+2026-11-23T04:07:56.2622382Z   DOCKER_BUILD_RECORD_UPLOAD: false
+2026-11-23T04:07:56.2622633Z ##[endgroup]
+2026-11-23T04:07:56.4523846Z (node:2785) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-23T04:07:56.4524409Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-23T04:07:56.4539083Z ##[group]GitHub Actions runtime token ACs
+2026-11-23T04:07:56.4545498Z refs/heads/codex/build/LBT-60-pr196-candidate-20261123: read/write
+2026-11-23T04:07:56.4545988Z refs/heads/main: read
+2026-11-23T04:07:56.4546482Z ##[endgroup]
+2026-11-23T04:07:56.4546923Z ##[group]Docker info
+2026-11-23T04:07:56.4575104Z [command]/usr/bin/docker version
+2026-11-23T04:07:56.4780198Z Client: Docker Engine - Community
+2026-11-23T04:07:56.4780686Z  Version:           29.4.2
+2026-11-23T04:07:56.4780980Z  API version:       1.54
+2026-11-23T04:07:56.4781287Z  Go version:        go1.26.2
+2026-11-23T04:07:56.4781582Z  Git commit:        055a478
+2026-11-23T04:07:56.4781878Z  Built:             Fri May  1 10:24:04 2026
+2026-11-23T04:07:56.4782264Z  OS/Arch:           linux/amd64
+2026-11-23T04:07:56.4782520Z  Context:           default
+2026-11-23T04:07:56.4782637Z 
+2026-11-23T04:07:56.4782793Z Server: Docker Engine - Community
+2026-11-23T04:07:56.4783087Z  Engine:
+2026-11-23T04:07:56.4783797Z   Version:          29.4.2
+2026-11-23T04:07:56.4784137Z   API version:      1.54 (minimum version 1.40)
+2026-11-23T04:07:56.4784420Z   Go version:       go1.26.2
+2026-11-23T04:07:56.4784658Z   Git commit:       d329809
+2026-11-23T04:07:56.4784861Z   Built:            Fri May  1 10:24:04 2026
+2026-11-23T04:07:56.4785082Z   OS/Arch:          linux/amd64
+2026-11-23T04:07:56.4785393Z   Experimental:     false
+2026-11-23T04:07:56.4785593Z  containerd:
+2026-11-23T04:07:56.4785755Z   Version:          v2.4.2
+2026-11-23T04:07:56.4786010Z   GitCommit:        b7a25261e029d68978bbf290df0a62fc819b3c51
+2026-11-23T04:07:56.4786326Z  runc:
+2026-11-23T04:07:56.4786483Z   Version:          1.5.3
+2026-11-23T04:07:56.4786676Z   GitCommit:        v1.5.3-0-g46365c62
+2026-11-23T04:07:56.4786964Z  docker-init:
+2026-11-23T04:07:56.4787130Z   Version:          0.19.0
+2026-11-23T04:07:56.4787389Z   GitCommit:        de40ad0
+2026-11-23T04:07:56.4832289Z [command]/usr/bin/docker info
+2026-11-23T04:07:56.5280791Z Client: Docker Engine - Community
+2026-11-23T04:07:56.5281373Z  Version:    29.4.2
+2026-11-23T04:07:56.5281678Z  Context:    default
+2026-11-23T04:07:56.5281978Z  Debug Mode: false
+2026-11-23T04:07:56.5282322Z  Plugins:
+2026-11-23T04:07:56.5282587Z   buildx: Docker Buildx (Docker Inc.)
+2026-11-23T04:07:56.5282929Z     Version:  v0.39.0
+2026-11-23T04:07:56.5283263Z     Path:     /usr/libexec/docker/cli-plugins/docker-buildx
+2026-11-23T04:07:56.5283818Z   compose: Docker Compose (Docker Inc.)
+2026-11-23T04:07:56.5284128Z     Version:  v5.1.3
+2026-11-23T04:07:56.5284360Z     Path:     /usr/libexec/docker/cli-plugins/docker-compose
+2026-11-23T04:07:56.5284574Z 
+2026-11-23T04:07:56.5284647Z Server:
+2026-11-23T04:07:56.5284799Z  Containers: 1
+2026-11-23T04:07:56.5285357Z   Running: 1
+2026-11-23T04:07:56.5285517Z   Paused: 0
+2026-11-23T04:07:56.5285690Z   Stopped: 0
+2026-11-23T04:07:56.5285859Z  Images: 7
+2026-11-23T04:07:56.5286017Z  Server Version: 29.4.2
+2026-11-23T04:07:56.5286281Z  Storage Driver: overlayfs
+2026-11-23T04:07:56.5286508Z   driver-type: io.containerd.snapshotter.v1
+2026-11-23T04:07:56.5286740Z  Logging Driver: json-file
+2026-11-23T04:07:56.5286925Z  Cgroup Driver: systemd
+2026-11-23T04:07:56.5287114Z  Cgroup Version: 2
+2026-11-23T04:07:56.5287280Z  Plugins:
+2026-11-23T04:07:56.5287433Z   Volume: local
+2026-11-23T04:07:56.5287630Z   Network: bridge host ipvlan macvlan null overlay
+2026-11-23T04:07:56.5287955Z   Log: awslogs fluentd gcplogs gelf journald json-file local splunk syslog
+2026-11-23T04:07:56.5288248Z  CDI spec directories:
+2026-11-23T04:07:56.5288416Z   /etc/cdi
+2026-11-23T04:07:56.5288564Z   /var/run/cdi
+2026-11-23T04:07:56.5288722Z  Swarm: inactive
+2026-11-23T04:07:56.5288903Z  Runtimes: io.containerd.runc.v2 runc
+2026-11-23T04:07:56.5289121Z  Default Runtime: runc
+2026-11-23T04:07:56.5289309Z  Init Binary: docker-init
+2026-11-23T04:07:56.5289549Z  containerd version: b7a25261e029d68978bbf290df0a62fc819b3c51
+2026-11-23T04:07:56.5289819Z  runc version: v1.5.3-0-g46365c62
+2026-11-23T04:07:56.5290025Z  init version: de40ad0
+2026-11-23T04:07:56.5290197Z  Security Options:
+2026-11-23T04:07:56.5290360Z   apparmor
+2026-11-23T04:07:56.5290509Z   seccomp
+2026-11-23T04:07:56.5290655Z    Profile: builtin
+2026-11-23T04:07:56.5290816Z   cgroupns
+2026-11-23T04:07:56.5290972Z  Kernel Version: 7.0.0-1020-azure
+2026-11-23T04:07:56.5291176Z  Operating System: Ubuntu 26.04.1 LTS
+2026-11-23T04:07:56.5291380Z  OSType: linux
+2026-11-23T04:07:56.5291548Z  Architecture: x86_64
+2026-11-23T04:07:56.5291719Z  CPUs: 4
+2026-11-23T04:07:56.5291873Z  Total Memory: 15.61GiB
+2026-11-23T04:07:56.5292048Z  Name: runnervm0hi8g
+2026-11-23T04:07:56.5292230Z  ID: 636b573e-1748-48fb-a027-4a5f710f78e2
+2026-11-23T04:07:56.5292452Z  Docker Root Dir: /var/lib/docker
+2026-11-23T04:07:56.5292649Z  Debug Mode: false
+2026-11-23T04:07:56.5292858Z  Username: githubactions
+2026-11-23T04:07:56.5293053Z  Experimental: false
+2026-11-23T04:07:56.5293230Z  Insecure Registries:
+2026-11-23T04:07:56.5293693Z   ::1/128
+2026-11-23T04:07:56.5294038Z   127.0.0.0/8
+2026-11-23T04:07:56.5294209Z  Live Restore Enabled: false
+2026-11-23T04:07:56.5294420Z  Firewall Backend: iptables
+2026-11-23T04:07:56.5294541Z 
+2026-11-23T04:07:56.5305180Z ##[endgroup]
+2026-11-23T04:07:56.5305708Z ##[group]Proxy configuration
+2026-11-23T04:07:56.5308046Z No proxy configuration found
+2026-11-23T04:07:56.5308479Z ##[endgroup]
+2026-11-23T04:07:56.5917324Z ##[group]Buildx version
+2026-11-23T04:07:56.5937668Z [command]/usr/bin/docker buildx version
+2026-11-23T04:07:56.6476078Z github.com/docker/buildx v0.39.0 360040a78d6113dc84e5d4dcdf0f438e1be7a41f
+2026-11-23T04:07:56.6501310Z ##[endgroup]
+2026-11-23T04:07:56.6501649Z ##[group]Builder info
+2026-11-23T04:07:56.7381522Z {
+2026-11-23T04:07:56.7381827Z   "nodes": [
+2026-11-23T04:07:56.7382153Z     {
+2026-11-23T04:07:56.7382480Z       "name": "builder-63238dbb-9d34-460f-b465-536c4199672d0",
+2026-11-23T04:07:56.7382950Z       "endpoint": "unix:///var/run/docker.sock",
+2026-11-23T04:07:56.7383215Z       "status": "running",
+2026-11-23T04:07:56.7384252Z       "buildkitd-flags": "--allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host",
+2026-11-23T04:07:56.7384868Z       "buildkit": "v0.35.1",
+2026-11-23T04:07:56.7385189Z       "platforms": "linux/amd64,linux/amd64/v2,linux/amd64/v3,linux/amd64/v4,linux/386",
+2026-11-23T04:07:56.7385512Z       "features": {
+2026-11-23T04:07:56.7385779Z         "Automatically load images to the Docker Engine image store": true,
+2026-11-23T04:07:56.7386091Z         "Cache export": true,
+2026-11-23T04:07:56.7386290Z         "Direct push": true,
+2026-11-23T04:07:56.7386482Z         "Docker exporter": true,
+2026-11-23T04:07:56.7386698Z         "Multi-platform build": true,
+2026-11-23T04:07:56.7386906Z         "OCI exporter": true
+2026-11-23T04:07:56.7387338Z       },
+2026-11-23T04:07:56.7387491Z       "labels": {
+2026-11-23T04:07:56.7387726Z         "org.mobyproject.buildkit.worker.executor": "oci",
+2026-11-23T04:07:56.7388048Z         "org.mobyproject.buildkit.worker.hostname": "9137be3ecc08",
+2026-11-23T04:07:56.7388361Z         "org.mobyproject.buildkit.worker.network": "host",
+2026-11-23T04:07:56.7388679Z         "org.mobyproject.buildkit.worker.oci.process-mode": "sandbox",
+2026-11-23T04:07:56.7389027Z         "org.mobyproject.buildkit.worker.selinux.enabled": "false",
+2026-11-23T04:07:56.7389361Z         "org.mobyproject.buildkit.worker.snapshotter": "overlayfs"
+2026-11-23T04:07:56.7389624Z       },
+2026-11-23T04:07:56.7389798Z       "gcPolicy": [
+2026-11-23T04:07:56.7389954Z         {
+2026-11-23T04:07:56.7390104Z           "all": false,
+2026-11-23T04:07:56.7390269Z           "filter": [
+2026-11-23T04:07:56.7390524Z             "type==source.local type==exec.cachemount type==source.git.checkout"
+2026-11-23T04:07:56.7390820Z           ],
+2026-11-23T04:07:56.7391012Z           "keepDuration": "48h0m0s",
+2026-11-23T04:07:56.7391219Z           "maxUsedSpace": "488.3MiB"
+2026-11-23T04:07:56.7391415Z         },
+2026-11-23T04:07:56.7391567Z         {
+2026-11-23T04:07:56.7391718Z           "all": false,
+2026-11-23T04:07:56.7391895Z           "keepDuration": "1440h0m0s",
+2026-11-23T04:07:56.7392112Z           "reservedSpace": "9.313GiB",
+2026-11-23T04:07:56.7392313Z           "maxUsedSpace": "93.13GiB",
+2026-11-23T04:07:56.7392516Z           "minFreeSpace": "27.01GiB"
+2026-11-23T04:07:56.7392697Z         },
+2026-11-23T04:07:56.7392834Z         {
+2026-11-23T04:07:56.7392975Z           "all": false,
+2026-11-23T04:07:56.7393150Z           "reservedSpace": "9.313GiB",
+2026-11-23T04:07:56.7393365Z           "maxUsedSpace": "93.13GiB",
+2026-11-23T04:07:56.7393759Z           "minFreeSpace": "27.01GiB"
+2026-11-23T04:07:56.7394013Z         },
+2026-11-23T04:07:56.7394184Z         {
+2026-11-23T04:07:56.7394329Z           "all": true,
+2026-11-23T04:07:56.7394512Z           "reservedSpace": "9.313GiB",
+2026-11-23T04:07:56.7394712Z           "maxUsedSpace": "93.13GiB",
+2026-11-23T04:07:56.7394902Z           "minFreeSpace": "27.01GiB"
+2026-11-23T04:07:56.7395086Z         }
+2026-11-23T04:07:56.7395367Z       ]
+2026-11-23T04:07:56.7395511Z     }
+2026-11-23T04:07:56.7395649Z   ],
+2026-11-23T04:07:56.7395849Z   "name": "builder-63238dbb-9d34-460f-b465-536c4199672d",
+2026-11-23T04:07:56.7396099Z   "driver": "docker-container",
+2026-11-23T04:07:56.7396348Z   "lastActivity": "2026-11-23T04:07:49.000Z"
+2026-11-23T04:07:56.7396553Z }
+2026-11-23T04:07:56.7396992Z ##[endgroup]
+2026-11-23T04:07:56.8937839Z [command]/usr/bin/docker buildx build --file ./Dockerfile --iidfile /home/runner/work/_temp/docker-actions-toolkit-c73Dza/build-iidfile-9cf6da5e49.txt --label org.opencontainers.image.revision=be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1 --label org.opencontainers.image.source=https://github.com/ktcloud4-SL/labbit-app --label labbit.trial.scope=PR196-candidate-not-deployed --platform linux/amd64 --tag labbit-dr196:be4d0ba --load --metadata-file /home/runner/work/_temp/docker-actions-toolkit-c73Dza/build-metadata-bb4a8360ce.json .
+2026-11-23T04:07:57.1308388Z #0 building with "builder-63238dbb-9d34-460f-b465-536c4199672d" instance using docker-container driver
+2026-11-23T04:07:57.1309130Z 
+2026-11-23T04:07:57.1309804Z #1 [internal] load build definition from Dockerfile
+2026-11-23T04:07:57.1310234Z #1 transferring dockerfile: 1.06kB done
+2026-11-23T04:07:57.1310572Z #1 DONE 0.0s
+2026-11-23T04:07:57.1310722Z 
+2026-11-23T04:07:57.1310923Z #2 [auth] library/golang:pull token for registry-1.docker.io
+2026-11-23T04:07:57.2806248Z #2 DONE 0.0s
+2026-11-23T04:07:57.2806471Z 
+2026-11-23T04:07:57.2806632Z #3 [auth] library/alpine:pull token for registry-1.docker.io
+2026-11-23T04:07:57.2806916Z #3 DONE 0.0s
+2026-11-23T04:07:57.2807015Z 
+2026-11-23T04:07:57.2807153Z #4 [internal] load metadata for docker.io/library/golang:alpine
+2026-11-23T04:07:57.6205279Z #4 DONE 0.6s
+2026-11-23T04:07:57.6205853Z 
+2026-11-23T04:07:57.6206007Z #5 [internal] load metadata for docker.io/library/alpine:3.21
+2026-11-23T04:07:57.7418444Z #5 DONE 0.6s
+2026-11-23T04:07:57.7418900Z 
+2026-11-23T04:07:57.7423008Z #6 [internal] load .dockerignore
+2026-11-23T04:07:57.7428457Z #6 transferring context: 307B done
+2026-11-23T04:07:57.7430254Z #6 DONE 0.0s
+2026-11-23T04:07:57.7431408Z 
+2026-11-23T04:07:57.7432327Z #7 [builder 1/6] FROM docker.io/library/golang:alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280
+2026-11-23T04:07:57.7433903Z #7 resolve docker.io/library/golang:alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 done
+2026-11-23T04:07:57.7457726Z #7 sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 32B / 32B 0.1s done
+2026-11-23T04:07:57.8510594Z #7 sha256:c050182f513fb753ca709ec66cab639c3c37a5356e5d597ca81bcddcf2aaee91 126B / 126B 0.1s done
+2026-11-23T04:07:57.8514587Z #7 sha256:83d129a974dd319fef9f5f496bf3a04194c14ba0fbf95635c2d5577185dd0b2f 3.15MB / 71.22MB 0.2s
+2026-11-23T04:07:57.9707553Z #7 ...
+2026-11-23T04:07:57.9707964Z 
+2026-11-23T04:07:57.9708262Z #8 [internal] load build context
+2026-11-23T04:07:57.9709037Z #8 transferring context: 36.23MB 0.3s done
+2026-11-23T04:07:57.9710267Z #8 DONE 0.3s
+2026-11-23T04:07:57.9710514Z 
+2026-11-23T04:07:57.9711208Z #9 [runner 1/7] FROM docker.io/library/alpine:3.21@sha256:bc21487101ae47172509130ee1092cc273a831968d64b617776d1f69c81e42ab
+2026-11-23T04:07:57.9712170Z #9 resolve docker.io/library/alpine:3.21@sha256:bc21487101ae47172509130ee1092cc273a831968d64b617776d1f69c81e42ab done
+2026-11-23T04:07:57.9713079Z #9 sha256:871d48e9bf6b789a439a4a19c1e152009924d818e60f7c51e498573223cd7cda 3.63MB / 3.63MB 0.2s done
+2026-11-23T04:07:57.9714145Z #9 extracting sha256:871d48e9bf6b789a439a4a19c1e152009924d818e60f7c51e498573223cd7cda 0.2s done
+2026-11-23T04:07:57.9714702Z #9 DONE 0.3s
+2026-11-23T04:07:57.9714799Z 
+2026-11-23T04:07:57.9715330Z #7 [builder 1/6] FROM docker.io/library/golang:alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280
+2026-11-23T04:07:57.9716331Z #7 sha256:1d88fd0fb393f123f061aada1719163fe157015d4f15ab0a77954f6b499de6de 244.47kB / 244.47kB 0.1s done
+2026-11-23T04:07:57.9717214Z #7 sha256:881fc932939efef04ca120ad44bbd2c0917851eb247aa4995428afb1e80ede17 3.85MB / 3.85MB 0.1s done
+2026-11-23T04:07:57.9718293Z #7 extracting sha256:881fc932939efef04ca120ad44bbd2c0917851eb247aa4995428afb1e80ede17
+2026-11-23T04:07:58.1359717Z #7 sha256:83d129a974dd319fef9f5f496bf3a04194c14ba0fbf95635c2d5577185dd0b2f 71.22MB / 71.22MB 0.5s
+2026-11-23T04:07:58.1360351Z #7 extracting sha256:881fc932939efef04ca120ad44bbd2c0917851eb247aa4995428afb1e80ede17 0.1s done
+2026-11-23T04:07:58.1360867Z #7 extracting sha256:1d88fd0fb393f123f061aada1719163fe157015d4f15ab0a77954f6b499de6de
+2026-11-23T04:07:58.3946898Z #7 extracting sha256:1d88fd0fb393f123f061aada1719163fe157015d4f15ab0a77954f6b499de6de 0.4s done
+2026-11-23T04:07:58.5038482Z #7 sha256:83d129a974dd319fef9f5f496bf3a04194c14ba0fbf95635c2d5577185dd0b2f 71.22MB / 71.22MB 0.7s done
+2026-11-23T04:07:58.5039451Z #7 extracting sha256:83d129a974dd319fef9f5f496bf3a04194c14ba0fbf95635c2d5577185dd0b2f
+2026-11-23T04:07:59.6102514Z #7 ...
+2026-11-23T04:07:59.6104116Z 
+2026-11-23T04:07:59.6105804Z #10 [runner 2/7] RUN apk --no-cache add ca-certificates tzdata
+2026-11-23T04:07:59.6106952Z #10 0.062 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86_64/APKINDEX.tar.gz
+2026-11-23T04:07:59.6110179Z #10 0.200 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/community/x86_64/APKINDEX.tar.gz
+2026-11-23T04:07:59.6111087Z #10 0.445 (1/2) Installing ca-certificates (20261020-r0)
+2026-11-23T04:07:59.6111792Z #10 0.472 (2/2) Installing tzdata (2026f-r0)
+2026-11-23T04:07:59.6112273Z #10 0.533 Executing busybox-1.37.0-r14.trigger
+2026-11-23T04:07:59.6112682Z #10 0.539 Executing ca-certificates-20261020-r0.trigger
+2026-11-23T04:07:59.6113067Z #10 0.564 OK: 8 MiB in 17 packages
+2026-11-23T04:07:59.6113361Z #10 DONE 1.6s
+2026-11-23T04:07:59.7613838Z 
+2026-11-23T04:07:59.7614927Z #11 [runner 3/7] WORKDIR /app
+2026-11-23T04:08:00.4085027Z #11 DONE 0.8s
+2026-11-23T04:08:00.4087173Z 
+2026-11-23T04:08:00.4087943Z #7 [builder 1/6] FROM docker.io/library/golang:alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280
+2026-11-23T04:08:01.0063193Z #7 extracting sha256:83d129a974dd319fef9f5f496bf3a04194c14ba0fbf95635c2d5577185dd0b2f 2.6s done
+2026-11-23T04:08:01.0064296Z #7 DONE 3.4s
+2026-11-23T04:08:01.1631340Z 
+2026-11-23T04:08:01.1632239Z #7 [builder 1/6] FROM docker.io/library/golang:alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280
+2026-11-23T04:08:01.1633195Z #7 extracting sha256:c050182f513fb753ca709ec66cab639c3c37a5356e5d597ca81bcddcf2aaee91 done
+2026-11-23T04:08:01.1633914Z #7 extracting sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 done
+2026-11-23T04:08:01.1634266Z #7 DONE 3.4s
+2026-11-23T04:08:01.1634372Z 
+2026-11-23T04:08:01.1634457Z #12 [builder 2/6] WORKDIR /app
+2026-11-23T04:08:01.3634520Z #12 DONE 0.4s
+2026-11-23T04:08:01.5221996Z 
+2026-11-23T04:08:01.5222448Z #13 [builder 3/6] COPY go.mod go.sum ./
+2026-11-23T04:08:01.5222837Z #13 DONE 0.0s
+2026-11-23T04:08:01.5222989Z 
+2026-11-23T04:08:01.5223088Z #14 [builder 4/6] RUN go mod download
+2026-11-23T04:08:05.3253302Z #14 DONE 4.0s
+2026-11-23T04:08:05.4762044Z 
+2026-11-23T04:08:05.4762413Z #15 [builder 5/6] COPY . .
+2026-11-23T04:08:05.7388307Z #15 DONE 0.4s
+2026-11-23T04:08:05.8902314Z 
+2026-11-23T04:08:05.8903847Z #16 [builder 6/6] RUN go build -ldflags="-s -w" -o /out/labbit-server ./cmd/labbit-server &&     go build -ldflags="-s -w" -o /out/labbit-migrate ./cmd/labbit-migrate
+2026-11-23T04:08:35.4774638Z #16 DONE 29.7s
+2026-11-23T04:08:35.6615675Z 
+2026-11-23T04:08:35.6616210Z #17 [runner 4/7] COPY --from=builder /out/labbit-server /app/labbit-server
+2026-11-23T04:08:35.6937402Z #17 DONE 0.2s
+2026-11-23T04:08:35.8313437Z 
+2026-11-23T04:08:35.8314921Z #18 [runner 5/7] COPY --from=builder /out/labbit-migrate /app/labbit-migrate
+2026-11-23T04:08:35.8315695Z #18 DONE 0.1s
+2026-11-23T04:08:35.8315851Z 
+2026-11-23T04:08:35.8316025Z #19 [runner 6/7] COPY --from=builder /app/db /app/db
+2026-11-23T04:08:35.8316646Z #19 DONE 0.0s
+2026-11-23T04:08:35.8316952Z 
+2026-11-23T04:08:35.8317204Z #20 [runner 7/7] RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+2026-11-23T04:08:35.8318419Z #20 DONE 0.1s
+2026-11-23T04:08:35.9832618Z 
+2026-11-23T04:08:35.9833349Z #21 exporting to oci image format
+2026-11-23T04:08:35.9834108Z #21 exporting layers
+2026-11-23T04:08:36.7991675Z #21 exporting layers 1.0s done
+2026-11-23T04:08:36.9540311Z #21 exporting manifest sha256:ffab608728a82b5f8190a8960943572d912788dbe6b4f1fda8bf070022c85e10 done
+2026-11-23T04:08:36.9541691Z #21 exporting config sha256:439c33a68b6590357acf3bfc0e9fcba77b02f2f55f8657836a2a4f0d9cbd7213 done
+2026-11-23T04:08:36.9542996Z #21 sending tarball
+2026-11-23T04:08:37.3745282Z #21 sending tarball 0.6s done
+2026-11-23T04:08:37.3745840Z #21 DONE 1.5s
+2026-11-23T04:08:37.3746107Z 
+2026-11-23T04:08:37.3746271Z #22 importing to docker
+2026-11-23T04:08:37.3746562Z #22 DONE 0.0s
+2026-11-23T04:08:37.3746715Z 
+2026-11-23T04:08:37.3746867Z #23 resolving provenance for metadata file
+2026-11-23T04:08:37.3747207Z #23 DONE 0.0s
+2026-11-23T04:08:37.3841081Z ##[group]ImageID
+2026-11-23T04:08:37.3841523Z sha256:ffab608728a82b5f8190a8960943572d912788dbe6b4f1fda8bf070022c85e10
+2026-11-23T04:08:37.3842112Z ##[endgroup]
+2026-11-23T04:08:37.3842536Z ##[group]Digest
+2026-11-23T04:08:37.3842915Z sha256:ffab608728a82b5f8190a8960943572d912788dbe6b4f1fda8bf070022c85e10
+2026-11-23T04:08:37.3843909Z ##[endgroup]
+2026-11-23T04:08:37.3844323Z ##[group]Metadata
+2026-11-23T04:08:37.3844799Z {
+2026-11-23T04:08:37.3845075Z   "buildx.build.provenance": {
+2026-11-23T04:08:37.3845448Z     "builder": {
+2026-11-23T04:08:37.3845686Z       "id": ""
+2026-11-23T04:08:37.3845905Z     },
+2026-11-23T04:08:37.3846271Z     "buildType": "https://mobyproject.org/buildkit@v1",
+2026-11-23T04:08:37.3846676Z     "materials": [
+2026-11-23T04:08:37.3846909Z       {
+2026-11-23T04:08:37.3847477Z         "uri": "pkg:docker/alpine@3.21?platform=linux%2Famd64",
+2026-11-23T04:08:37.3847892Z         "digest": {
+2026-11-23T04:08:37.3848194Z           "sha256": "bc21487101ae47172509130ee1092cc273a831968d64b617776d1f69c81e42ab"
+2026-11-23T04:08:37.3848527Z         }
+2026-11-23T04:08:37.3848722Z       },
+2026-11-23T04:08:37.3848911Z       {
+2026-11-23T04:08:37.3849183Z         "uri": "pkg:docker/golang@alpine?platform=linux%2Famd64",
+2026-11-23T04:08:37.3849565Z         "digest": {
+2026-11-23T04:08:37.3850036Z           "sha256": "70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280"
+2026-11-23T04:08:37.3850570Z         }
+2026-11-23T04:08:37.3850773Z       }
+2026-11-23T04:08:37.3850945Z     ],
+2026-11-23T04:08:37.3851096Z     "invocation": {
+2026-11-23T04:08:37.3851272Z       "configSource": {
+2026-11-23T04:08:37.3851481Z         "entryPoint": "Dockerfile"
+2026-11-23T04:08:37.3851677Z       },
+2026-11-23T04:08:37.3851842Z       "parameters": {
+2026-11-23T04:08:37.3852036Z         "frontend": "dockerfile.v0",
+2026-11-23T04:08:37.3852239Z         "args": {
+2026-11-23T04:08:37.3852486Z           "label:labbit.trial.scope": "PR196-candidate-not-deployed",
+2026-11-23T04:08:37.3852892Z           "label:org.opencontainers.image.revision": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+2026-11-23T04:08:37.3853850Z           "label:org.opencontainers.image.source": "https://github.com/ktcloud4-SL/labbit-app"
+2026-11-23T04:08:37.3854295Z         },
+2026-11-23T04:08:37.3854448Z         "locals": [
+2026-11-23T04:08:37.3854603Z           {
+2026-11-23T04:08:37.3854845Z             "name": "context"
+2026-11-23T04:08:37.3855033Z           },
+2026-11-23T04:08:37.3855200Z           {
+2026-11-23T04:08:37.3855354Z             "name": "dockerfile"
+2026-11-23T04:08:37.3855536Z           }
+2026-11-23T04:08:37.3855678Z         ],
+2026-11-23T04:08:37.3855828Z         "root": {
+2026-11-23T04:08:37.3855993Z           "configSource": {
+2026-11-23T04:08:37.3856180Z             "path": "Dockerfile"
+2026-11-23T04:08:37.3856371Z           },
+2026-11-23T04:08:37.3856520Z           "request": {
+2026-11-23T04:08:37.3856689Z             "args": {
+2026-11-23T04:08:37.3856933Z               "label:labbit.trial.scope": "PR196-candidate-not-deployed",
+2026-11-23T04:08:37.3857532Z               "label:org.opencontainers.image.revision": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+2026-11-23T04:08:37.3858027Z               "label:org.opencontainers.image.source": "https://github.com/ktcloud4-SL/labbit-app",
+2026-11-23T04:08:37.3858382Z               "vcs:localdir:context": ".",
+2026-11-23T04:08:37.3858626Z               "vcs:localdir:dockerfile": ".",
+2026-11-23T04:08:37.3858900Z               "vcs:revision": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+2026-11-23T04:08:37.3859244Z               "vcs:source": "https://github.com/ktcloud4-SL/labbit-app"
+2026-11-23T04:08:37.3859501Z             }
+2026-11-23T04:08:37.3859653Z           }
+2026-11-23T04:08:37.3859797Z         },
+2026-11-23T04:08:37.3859966Z         "compatibilityVersion": 30
+2026-11-23T04:08:37.3860166Z       },
+2026-11-23T04:08:37.3860314Z       "environment": {
+2026-11-23T04:08:37.3860498Z         "dockerfileVersion": "1.29.0",
+2026-11-23T04:08:37.3860742Z         "github_actor": "paekseobin-crypto",
+2026-11-23T04:08:37.3860981Z         "github_actor_id": "269155266",
+2026-11-23T04:08:37.3861211Z         "github_event_name": "push",
+2026-11-23T04:08:37.3861446Z         "github_event_payload": {
+2026-11-23T04:08:37.3861684Z           "after": "27e1a2cba6a414025155c02a2c522e635cfe228c",
+2026-11-23T04:08:37.3861931Z           "base_ref": null,
+2026-11-23T04:08:37.3862159Z           "before": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+2026-11-23T04:08:37.3862402Z           "commits": [
+2026-11-23T04:08:37.3862615Z             {
+2026-11-23T04:08:37.3862773Z               "author": {
+2026-11-23T04:08:37.3862992Z                 "email": "paekseobin@gmail.com",
+2026-11-23T04:08:37.3863227Z                 "name": "paekseobin-crypto",
+2026-11-23T04:08:37.3864294Z                 "username": "paekseobin-crypto"
+2026-11-23T04:08:37.3864534Z               },
+2026-11-23T04:08:37.3864716Z               "committer": {
+2026-11-23T04:08:37.3864936Z                 "email": "paekseobin@gmail.com",
+2026-11-23T04:08:37.3865186Z                 "name": "paekseobin-crypto",
+2026-11-23T04:08:37.3865443Z                 "username": "paekseobin-crypto"
+2026-11-23T04:08:37.3865684Z               },
+2026-11-23T04:08:37.3865851Z               "distinct": true,
+2026-11-23T04:08:37.3866090Z               "id": "27e1a2cba6a414025155c02a2c522e635cfe228c",
+2026-11-23T04:08:37.3866455Z               "message": "build(dr): [LBT-60] fixed PR196 candidate artifact without deployment",
+2026-11-23T04:08:37.3866841Z               "timestamp": "2026-11-23T13:07:39+09:00",
+2026-11-23T04:08:37.3867134Z               "tree_id": "1ea427a30bf74a88a0a8b72e83a003c9a9ebc474",
+2026-11-23T04:08:37.3867598Z               "url": "https://github.com/ktcloud4-SL/labbit-app/commit/27e1a2cba6a414025155c02a2c522e635cfe228c"
+2026-11-23T04:08:37.3867976Z             }
+2026-11-23T04:08:37.3868149Z           ],
+2026-11-23T04:08:37.3868455Z           "compare": "https://github.com/ktcloud4-SL/labbit-app/compare/753eecbff737...27e1a2cba6a4",
+2026-11-23T04:08:37.3868799Z           "created": false,
+2026-11-23T04:08:37.3868984Z           "deleted": false,
+2026-11-23T04:08:37.3869161Z           "forced": false,
+2026-11-23T04:08:37.3869344Z           "head_commit": {
+2026-11-23T04:08:37.3869516Z             "author": {
+2026-11-23T04:08:37.3869708Z               "email": "paekseobin@gmail.com",
+2026-11-23T04:08:37.3869963Z               "name": "paekseobin-crypto",
+2026-11-23T04:08:37.3870194Z               "username": "paekseobin-crypto"
+2026-11-23T04:08:37.3870408Z             },
+2026-11-23T04:08:37.3870565Z             "committer": {
+2026-11-23T04:08:37.3870764Z               "email": "paekseobin@gmail.com",
+2026-11-23T04:08:37.3870988Z               "name": "paekseobin-crypto",
+2026-11-23T04:08:37.3871209Z               "username": "paekseobin-crypto"
+2026-11-23T04:08:37.3871410Z             },
+2026-11-23T04:08:37.3871568Z             "distinct": true,
+2026-11-23T04:08:37.3871806Z             "id": "27e1a2cba6a414025155c02a2c522e635cfe228c",
+2026-11-23T04:08:37.3872227Z             "message": "build(dr): [LBT-60] fixed PR196 candidate artifact without deployment",
+2026-11-23T04:08:37.3872766Z             "timestamp": "2026-11-23T13:07:39+09:00",
+2026-11-23T04:08:37.3873098Z             "tree_id": "1ea427a30bf74a88a0a8b72e83a003c9a9ebc474",
+2026-11-23T04:08:37.3873747Z             "url": "https://github.com/ktcloud4-SL/labbit-app/commit/27e1a2cba6a414025155c02a2c522e635cfe228c"
+2026-11-23T04:08:37.3874380Z           },
+2026-11-23T04:08:37.3874643Z           "organization": {
+2026-11-23T04:08:37.3874985Z             "avatar_url": "https://avatars.githubusercontent.com/u/318577824?v=4",
+2026-11-23T04:08:37.3875327Z             "description": null,
+2026-11-23T04:08:37.3875621Z             "events_url": "https://api.github.com/orgs/ktcloud4-SL/events",
+2026-11-23T04:08:37.3875995Z             "hooks_url": "https://api.github.com/orgs/ktcloud4-SL/hooks",
+2026-11-23T04:08:37.3876283Z             "id": 318577824,
+2026-11-23T04:08:37.3876547Z             "issues_url": "https://api.github.com/orgs/ktcloud4-SL/issues",
+2026-11-23T04:08:37.3876855Z             "login": "ktcloud4-SL",
+2026-11-23T04:08:37.3877269Z             "members_url": "https://api.github.com/orgs/ktcloud4-SL/members{/member}",
+2026-11-23T04:08:37.3877715Z             "node_id": "O_kgDOEv0coA",
+2026-11-23T04:08:37.3878325Z             "public_members_url": "https://api.github.com/orgs/ktcloud4-SL/public_members{/member}",
+2026-11-23T04:08:37.3878802Z             "repos_url": "https://api.github.com/orgs/ktcloud4-SL/repos",
+2026-11-23T04:08:37.3879141Z             "url": "https://api.github.com/orgs/ktcloud4-SL"
+2026-11-23T04:08:37.3879399Z           },
+2026-11-23T04:08:37.3879571Z           "pusher": {
+2026-11-23T04:08:37.3879763Z             "email": "paekseobin@gmail.com",
+2026-11-23T04:08:37.3880161Z             "name": "paekseobin-crypto"
+2026-11-23T04:08:37.3880389Z           },
+2026-11-23T04:08:37.3880632Z           "ref": "refs/heads/codex/build/LBT-60-pr196-candidate-20261123",
+2026-11-23T04:08:37.3880938Z           "repository": {
+2026-11-23T04:08:37.3881150Z             "allow_forking": true,
+2026-11-23T04:08:37.3881529Z             "archive_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/{archive_format}{/ref}",
+2026-11-23T04:08:37.3881903Z             "archived": false,
+2026-11-23T04:08:37.3882255Z             "assignees_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/assignees{/user}",
+2026-11-23T04:08:37.3882743Z             "blobs_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/git/blobs{/sha}",
+2026-11-23T04:08:37.3883215Z             "branches_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/branches{/branch}",
+2026-11-23T04:08:37.3883902Z             "clone_url": "https://github.com/ktcloud4-SL/labbit-app.git",
+2026-11-23T04:08:37.3884438Z             "collaborators_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/collaborators{/collaborator}",
+2026-11-23T04:08:37.3884977Z             "comments_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/comments{/number}",
+2026-11-23T04:08:37.3885460Z             "commits_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/commits{/sha}",
+2026-11-23T04:08:37.3885938Z             "compare_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/compare/{base}...{head}",
+2026-11-23T04:08:37.3886431Z             "contents_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/contents/{+path}",
+2026-11-23T04:08:37.3886913Z             "contributors_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/contributors",
+2026-11-23T04:08:37.3887284Z             "created_at": 1789616363,
+2026-11-23T04:08:37.3887508Z             "custom_properties": {},
+2026-11-23T04:08:37.3887732Z             "default_branch": "main",
+2026-11-23T04:08:37.3888090Z             "deployments_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/deployments",
+2026-11-23T04:08:37.3888985Z             "description": "Labbit — cloud lab orchestration platform with Go, React and OpenStack",
+2026-11-23T04:08:37.3889368Z             "disabled": false,
+2026-11-23T04:08:37.3889866Z             "downloads_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/downloads",
+2026-11-23T04:08:37.3890322Z             "events_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/events",
+2026-11-23T04:08:37.3890648Z             "fork": false,
+2026-11-23T04:08:37.3890846Z             "forks": 1,
+2026-11-23T04:08:37.3891039Z             "forks_count": 1,
+2026-11-23T04:08:37.3891336Z             "forks_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/forks",
+2026-11-23T04:08:37.3891684Z             "full_name": "ktcloud4-SL/labbit-app",
+2026-11-23T04:08:37.3892070Z             "git_commits_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/git/commits{/sha}",
+2026-11-23T04:08:37.3892548Z             "git_refs_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/git/refs{/sha}",
+2026-11-23T04:08:37.3893011Z             "git_tags_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/git/tags{/sha}",
+2026-11-23T04:08:37.3893401Z             "git_url": "git://github.com/ktcloud4-SL/labbit-app.git",
+2026-11-23T04:08:37.3894176Z             "has_discussions": false,
+2026-11-23T04:08:37.3894406Z             "has_downloads": true,
+2026-11-23T04:08:37.3894630Z             "has_issues": false,
+2026-11-23T04:08:37.3894844Z             "has_pages": false,
+2026-11-23T04:08:37.3895045Z             "has_projects": false,
+2026-11-23T04:08:37.3895264Z             "has_pull_requests": true,
+2026-11-23T04:08:37.3895485Z             "has_wiki": false,
+2026-11-23T04:08:37.3895691Z             "homepage": "",
+2026-11-23T04:08:37.3895993Z             "hooks_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/hooks",
+2026-11-23T04:08:37.3896614Z             "html_url": "https://github.com/ktcloud4-SL/labbit-app",
+2026-11-23T04:08:37.3896903Z             "id": 1373890308,
+2026-11-23T04:08:37.3897136Z             "is_template": false,
+2026-11-23T04:08:37.3897512Z             "issue_comment_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/issues/comments{/number}",
+2026-11-23T04:08:37.3898032Z             "issue_events_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/issues/events{/number}",
+2026-11-23T04:08:37.3898497Z             "issues_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/issues{/number}",
+2026-11-23T04:08:37.3898936Z             "keys_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/keys{/key_id}",
+2026-11-23T04:08:37.3899368Z             "labels_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/labels{/name}",
+2026-11-23T04:08:37.3899684Z             "language": "Go",
+2026-11-23T04:08:37.3899971Z             "languages_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/languages",
+2026-11-23T04:08:37.3900309Z             "license": {
+2026-11-23T04:08:37.3900496Z               "key": "apache-2.0",
+2026-11-23T04:08:37.3900726Z               "name": "Apache License 2.0",
+2026-11-23T04:08:37.3901034Z               "node_id": "MDc6TGljZW5zZTI=",
+2026-11-23T04:08:37.3901406Z               "spdx_id": "Apache-2.0",
+2026-11-23T04:08:37.3901820Z               "url": "https://api.github.com/licenses/apache-2.0"
+2026-11-23T04:08:37.3902093Z             },
+2026-11-23T04:08:37.3902298Z             "master_branch": "main",
+2026-11-23T04:08:37.3902670Z             "merges_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/merges",
+2026-11-23T04:08:37.3903196Z             "milestones_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/milestones{/number}",
+2026-11-23T04:08:37.3903752Z             "mirror_url": null,
+2026-11-23T04:08:37.3904021Z             "name": "labbit-app",
+2026-11-23T04:08:37.3904236Z             "node_id": "R_kgDOUePnBA",
+2026-11-23T04:08:37.3904669Z             "notifications_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/notifications{?since,all,participating}",
+2026-11-23T04:08:37.3905091Z             "open_issues": 5,
+2026-11-23T04:08:37.3905288Z             "open_issues_count": 5,
+2026-11-23T04:08:37.3905501Z             "organization": "ktcloud4-SL",
+2026-11-23T04:08:37.3905846Z             "owner": {
+2026-11-23T04:08:37.3906112Z               "avatar_url": "https://avatars.githubusercontent.com/u/318577824?v=4",
+2026-11-23T04:08:37.3906412Z               "email": null,
+2026-11-23T04:08:37.3906692Z               "events_url": "https://api.github.com/users/ktcloud4-SL/events{/privacy}",
+2026-11-23T04:08:37.3907078Z               "followers_url": "https://api.github.com/users/ktcloud4-SL/followers",
+2026-11-23T04:08:37.3907473Z               "following_url": "https://api.github.com/users/ktcloud4-SL/following{/other_user}",
+2026-11-23T04:08:37.3907872Z               "gists_url": "https://api.github.com/users/ktcloud4-SL/gists{/gist_id}",
+2026-11-23T04:08:37.3908166Z               "gravatar_id": "",
+2026-11-23T04:08:37.3908391Z               "html_url": "https://github.com/ktcloud4-SL",
+2026-11-23T04:08:37.3908629Z               "id": 318577824,
+2026-11-23T04:08:37.3908819Z               "login": "ktcloud4-SL",
+2026-11-23T04:08:37.3909025Z               "name": "ktcloud4-SL",
+2026-11-23T04:08:37.3909232Z               "node_id": "O_kgDOEv0coA",
+2026-11-23T04:08:37.3909529Z               "organizations_url": "https://api.github.com/users/ktcloud4-SL/orgs",
+2026-11-23T04:08:37.3909931Z               "received_events_url": "https://api.github.com/users/ktcloud4-SL/received_events",
+2026-11-23T04:08:37.3910313Z               "repos_url": "https://api.github.com/users/ktcloud4-SL/repos",
+2026-11-23T04:08:37.3910591Z               "site_admin": false,
+2026-11-23T04:08:37.3910894Z               "starred_url": "https://api.github.com/users/ktcloud4-SL/starred{/owner}{/repo}",
+2026-11-23T04:08:37.3911314Z               "subscriptions_url": "https://api.github.com/users/ktcloud4-SL/subscriptions",
+2026-11-23T04:08:37.3911737Z               "type": "Organization",
+2026-11-23T04:08:37.3911982Z               "url": "https://api.github.com/users/ktcloud4-SL",
+2026-11-23T04:08:37.3912260Z               "user_view_type": "public"
+2026-11-23T04:08:37.3912463Z             },
+2026-11-23T04:08:37.3912633Z             "private": false,
+2026-11-23T04:08:37.3912837Z             "pull_request_creation_policy": "all",
+2026-11-23T04:08:37.3913167Z             "pulls_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/pulls{/number}",
+2026-11-23T04:08:37.3913616Z             "pushed_at": 1795406860,
+2026-11-23T04:08:37.3914042Z             "releases_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/releases{/id}",
+2026-11-23T04:08:37.3914371Z             "size": 32441,
+2026-11-23T04:08:37.3914599Z             "ssh_url": "git@github.com:ktcloud4-SL/labbit-app.git",
+2026-11-23T04:08:37.3914850Z             "stargazers": 0,
+2026-11-23T04:08:37.3915045Z             "stargazers_count": 0,
+2026-11-23T04:08:37.3915356Z             "stargazers_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/stargazers",
+2026-11-23T04:08:37.3915795Z             "statuses_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/statuses/{sha}",
+2026-11-23T04:08:37.3916233Z             "subscribers_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/subscribers",
+2026-11-23T04:08:37.3916675Z             "subscription_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/subscription",
+2026-11-23T04:08:37.3917049Z             "svn_url": "https://github.com/ktcloud4-SL/labbit-app",
+2026-11-23T04:08:37.3917373Z             "tags_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/tags",
+2026-11-23T04:08:37.3917747Z             "teams_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/teams",
+2026-11-23T04:08:37.3918041Z             "topics": [
+2026-11-23T04:08:37.3918215Z               "cloud-lab",
+2026-11-23T04:08:37.3918389Z               "golang",
+2026-11-23T04:08:37.3918556Z               "openstack",
+2026-11-23T04:08:37.3918733Z               "react"
+2026-11-23T04:08:37.3918894Z             ],
+2026-11-23T04:08:37.3919155Z             "trees_url": "https://api.github.com/repos/ktcloud4-SL/labbit-app/git/trees{/sha}",
+2026-11-23T04:08:37.3919619Z             "updated_at": "2026-11-11T08:24:26Z",
+2026-11-23T04:08:37.3919965Z             "url": "https://api.github.com/repos/ktcloud4-SL/labbit-app",
+2026-11-23T04:08:37.3920469Z             "visibility": "public",
+2026-11-23T04:08:37.3920782Z             "watchers": 0,
+2026-11-23T04:08:37.3921050Z             "watchers_count": 0,
+2026-11-23T04:08:37.3921363Z             "web_commit_signoff_required": false
+2026-11-23T04:08:37.3921707Z           },
+2026-11-23T04:08:37.3921931Z           "sender": {
+2026-11-23T04:08:37.3922342Z             "avatar_url": "https://avatars.githubusercontent.com/u/269155266?v=4",
+2026-11-23T04:08:37.3923012Z             "events_url": "https://api.github.com/users/paekseobin-crypto/events{/privacy}",
+2026-11-23T04:08:37.3923872Z             "followers_url": "https://api.github.com/users/paekseobin-crypto/followers",
+2026-11-23T04:08:37.3924611Z             "following_url": "https://api.github.com/users/paekseobin-crypto/following{/other_user}",
+2026-11-23T04:08:37.3925348Z             "gists_url": "https://api.github.com/users/paekseobin-crypto/gists{/gist_id}",
+2026-11-23T04:08:37.3925857Z             "gravatar_id": "",
+2026-11-23T04:08:37.3926221Z             "html_url": "https://github.com/paekseobin-crypto",
+2026-11-23T04:08:37.3926618Z             "id": 269155266,
+2026-11-23T04:08:37.3926918Z             "login": "paekseobin-crypto",
+2026-11-23T04:08:37.3927257Z             "node_id": "U_kgDOEAr7wg",
+2026-11-23T04:08:37.3927738Z             "organizations_url": "https://api.github.com/users/paekseobin-crypto/orgs",
+2026-11-23T04:08:37.3928452Z             "received_events_url": "https://api.github.com/users/paekseobin-crypto/received_events",
+2026-11-23T04:08:37.3929293Z             "repos_url": "https://api.github.com/users/paekseobin-crypto/repos",
+2026-11-23T04:08:37.3929769Z             "site_admin": false,
+2026-11-23T04:08:37.3930269Z             "starred_url": "https://api.github.com/users/paekseobin-crypto/starred{/owner}{/repo}",
+2026-11-23T04:08:37.3931025Z             "subscriptions_url": "https://api.github.com/users/paekseobin-crypto/subscriptions",
+2026-11-23T04:08:37.3931576Z             "type": "User",
+2026-11-23T04:08:37.3931945Z             "url": "https://api.github.com/users/paekseobin-crypto",
+2026-11-23T04:08:37.3932374Z             "user_view_type": "public"
+2026-11-23T04:08:37.3932678Z           }
+2026-11-23T04:08:37.3932895Z         },
+2026-11-23T04:08:37.3933128Z         "github_job": "candidate",
+2026-11-23T04:08:37.3933751Z         "github_ref": "refs/heads/codex/build/LBT-60-pr196-candidate-20261123",
+2026-11-23T04:08:37.3934352Z         "github_ref_name": "codex/build/LBT-60-pr196-candidate-20261123",
+2026-11-23T04:08:37.3934795Z         "github_ref_protected": "false",
+2026-11-23T04:08:37.3935132Z         "github_ref_type": "branch",
+2026-11-23T04:08:37.3935528Z         "github_repository": "ktcloud4-SL/labbit-app",
+2026-11-23T04:08:37.3935947Z         "github_repository_id": "1373890308",
+2026-11-23T04:08:37.3936339Z         "github_repository_owner": "ktcloud4-SL",
+2026-11-23T04:08:37.3936751Z         "github_repository_owner_id": "318577824",
+2026-11-23T04:08:37.3937194Z         "github_run_attempt": "1",
+2026-11-23T04:08:37.3937502Z         "github_run_id": "45109945049",
+2026-11-23T04:08:37.3937826Z         "github_run_number": "1",
+2026-11-23T04:08:37.3938119Z         "github_runner_arch": "X64",
+2026-11-23T04:08:37.3938460Z         "github_runner_environment": "github-hosted",
+2026-11-23T04:08:37.3938825Z         "github_runner_image_os": "ubuntu26",
+2026-11-23T04:08:37.3939194Z         "github_runner_image_version": "20261116.202.1",
+2026-11-23T04:08:37.3939586Z         "github_runner_name": "GitHub Actions 1000007939",
+2026-11-23T04:08:37.3939943Z         "github_runner_os": "Linux",
+2026-11-23T04:08:37.3940383Z         "github_runner_tracking_id": "github_21a2cc88-edd7-4627-bdb3-f26587f95098",
+2026-11-23T04:08:37.3940889Z         "github_server_url": "https://github.com",
+2026-11-23T04:08:37.3941291Z         "github_triggering_actor": "paekseobin-crypto",
+2026-11-23T04:08:37.3941868Z         "github_workflow": "PR196 isolated candidate artifact",
+2026-11-23T04:08:37.3942767Z         "github_workflow_ref": "ktcloud4-SL/labbit-app/.github/workflows/pr196-isolated-candidate.yml@refs/heads/codex/build/LBT-60-pr196-candidate-20261123",
+2026-11-23T04:08:37.3943822Z         "github_workflow_sha": "27e1a2cba6a414025155c02a2c522e635cfe228c",
+2026-11-23T04:08:37.3944273Z         "platform": "linux/amd64"
+2026-11-23T04:08:37.3944557Z       }
+2026-11-23T04:08:37.3944753Z     }
+2026-11-23T04:08:37.3944964Z   },
+2026-11-23T04:08:37.3945690Z   "buildx.build.ref": "builder-63238dbb-9d34-460f-b465-536c4199672d/builder-63238dbb-9d34-460f-b465-536c4199672d0/0ou0j2gg6jkuzl6brk3adg1w5",
+2026-11-23T04:08:37.3946542Z   "containerimage.descriptor": {
+2026-11-23T04:08:37.3946966Z     "mediaType": "application/vnd.oci.image.manifest.v1+json",
+2026-11-23T04:08:37.3947585Z     "digest": "sha256:ffab608728a82b5f8190a8960943572d912788dbe6b4f1fda8bf070022c85e10",
+2026-11-23T04:08:37.3948121Z     "size": 1622,
+2026-11-23T04:08:37.3948390Z     "annotations": {
+2026-11-23T04:08:37.3948750Z       "org.opencontainers.image.created": "2026-11-23T04:08:36Z"
+2026-11-23T04:08:37.3949160Z     },
+2026-11-23T04:08:37.3949385Z     "platform": {
+2026-11-23T04:08:37.3949644Z       "architecture": "amd64",
+2026-11-23T04:08:37.3949933Z       "os": "linux"
+2026-11-23T04:08:37.3950164Z     }
+2026-11-23T04:08:37.3950375Z   },
+2026-11-23T04:08:37.3950894Z   "containerimage.digest": "sha256:ffab608728a82b5f8190a8960943572d912788dbe6b4f1fda8bf070022c85e10",
+2026-11-23T04:08:37.3951580Z   "image.name": "docker.io/library/labbit-dr196:be4d0ba"
+2026-11-23T04:08:37.3951965Z }
+2026-11-23T04:08:37.3952433Z ##[endgroup]
+2026-11-23T04:08:37.3952873Z ##[group]Reference
+2026-11-23T04:08:37.3953729Z builder-63238dbb-9d34-460f-b465-536c4199672d/builder-63238dbb-9d34-460f-b465-536c4199672d0/0ou0j2gg6jkuzl6brk3adg1w5
+2026-11-23T04:08:37.3954584Z ##[endgroup]
+2026-11-23T04:08:37.3954995Z ##[group]Check build summary support
+2026-11-23T04:08:37.3955553Z Build summary supported!
+2026-11-23T04:08:37.3955980Z ##[endgroup]
+2026-11-23T04:08:37.3988530Z ##[group]Run set -euo pipefail
+2026-11-23T04:08:37.3988799Z [36;1mset -euo pipefail[0m
+2026-11-23T04:08:37.3989099Z [36;1mdocker image inspect "$CANDIDATE" > /tmp/pr196-artifact/image-inspect.json[0m
+2026-11-23T04:08:37.3989494Z [36;1mdocker save "$CANDIDATE" -o /tmp/pr196-artifact/candidate.tar[0m
+2026-11-23T04:08:37.3989921Z [36;1msha256sum /tmp/pr196-artifact/candidate.tar > /tmp/pr196-artifact/candidate.tar.sha256[0m
+2026-11-23T04:08:37.3990290Z [36;1mpython3 - <<'PY'[0m
+2026-11-23T04:08:37.3990493Z [36;1mimport json, os[0m
+2026-11-23T04:08:37.3990688Z [36;1mp='/tmp/pr196-artifact'[0m
+2026-11-23T04:08:37.3990929Z [36;1mx=json.load(open(p+'/image-inspect.json'))[0][0m
+2026-11-23T04:08:37.3991230Z [36;1massert x['Os']=='linux' and x['Architecture']=='amd64'[0m
+2026-11-23T04:08:37.3991517Z [36;1massert x['Config']['User']=='appuser'[0m
+2026-11-23T04:08:37.3991809Z [36;1massert x['Config']['Entrypoint']==['/app/labbit-server'][0m
+2026-11-23T04:08:37.3992248Z [36;1massert x['Config']['Labels']['org.opencontainers.image.revision']==os.environ['SOURCE_SHA'][0m
+2026-11-23T04:08:37.3993139Z [36;1mjson.dump(dict(source_sha=os.environ['SOURCE_SHA'],workflow_sha=os.environ['BUILD_WORKFLOW_SHA'],run_id=os.environ['BUILD_RUN_ID'],image_id=x['Id'],deployed=False,aws_credentials_used=False,gitops_changed=False),open(p+'/build-summary.json','w'),indent=2)[0m
+2026-11-23T04:08:37.3994282Z [36;1mPY[0m
+2026-11-23T04:08:37.4023617Z shell: /usr/bin/bash -e {0}
+2026-11-23T04:08:37.4023907Z env:
+2026-11-23T04:08:37.4024164Z   SOURCE_SHA: be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+2026-11-23T04:08:37.4024434Z   CANDIDATE: labbit-dr196:be4d0ba
+2026-11-23T04:08:37.4024651Z   DOCKER_BUILD_RECORD_UPLOAD: false
+2026-11-23T04:08:37.4024916Z   BUILD_WORKFLOW_SHA: 27e1a2cba6a414025155c02a2c522e635cfe228c
+2026-11-23T04:08:37.4025170Z   BUILD_RUN_ID: 45109945049
+2026-11-23T04:08:37.4025522Z ##[endgroup]
+2026-11-23T04:08:37.8100769Z ##[group]Run actions/upload-artifact@v4
+2026-11-23T04:08:37.8101022Z with:
+2026-11-23T04:08:37.8101214Z   name: pr196-be4d0ba-candidate
+2026-11-23T04:08:37.8101425Z   path: /tmp/pr196-artifact/
+2026-11-23T04:08:37.8101627Z   if-no-files-found: error
+2026-11-23T04:08:37.8101818Z   retention-days: 1
+2026-11-23T04:08:37.8101995Z   compression-level: 6
+2026-11-23T04:08:37.8102175Z   overwrite: false
+2026-11-23T04:08:37.8102359Z   include-hidden-files: false
+2026-11-23T04:08:37.8102550Z env:
+2026-11-23T04:08:37.8102744Z   SOURCE_SHA: be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+2026-11-23T04:08:37.8102999Z   CANDIDATE: labbit-dr196:be4d0ba
+2026-11-23T04:08:37.8103211Z   DOCKER_BUILD_RECORD_UPLOAD: false
+2026-11-23T04:08:37.8103416Z ##[endgroup]
+2026-11-23T04:08:37.9389739Z (node:6467) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-23T04:08:37.9390745Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-23T04:08:37.9442062Z With the provided path, there will be 5 files uploaded
+2026-11-23T04:08:37.9444255Z Artifact name is valid!
+2026-11-23T04:08:37.9444823Z Root directory input is valid!
+2026-11-23T04:08:38.2285812Z Beginning upload of artifact content to blob storage
+2026-11-23T04:08:38.4692477Z (node:6467) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-23T04:08:38.9634134Z Uploaded bytes 8388608
+2026-11-23T04:08:39.2159769Z Uploaded bytes 16777216
+2026-11-23T04:08:39.3062116Z Uploaded bytes 18775046
+2026-11-23T04:08:39.3446919Z Finished uploading artifact content to blob storage!
+2026-11-23T04:08:39.3447757Z SHA256 digest of uploaded artifact zip is 331dd169b8e1a559d1a4559d23a976785700fae5cb60658305d6d9ea08510024
+2026-11-23T04:08:39.3449379Z Finalizing artifact upload
+2026-11-23T04:08:39.6994362Z Artifact pr196-be4d0ba-candidate.zip successfully finalized. Artifact ID 14788354068
+2026-11-23T04:08:39.6995394Z Artifact pr196-be4d0ba-candidate has been successfully uploaded! Final size is 18775046 bytes. Artifact ID is 14788354068
+2026-11-23T04:08:39.7001209Z Artifact download URL: https://github.com/ktcloud4-SL/labbit-app/actions/runs/45109945049/artifacts/14788354068
+2026-11-23T04:08:39.7232542Z Post job cleanup.
+2026-11-23T04:08:39.9061372Z ##[group]Generating build summary
+2026-11-23T04:08:39.9064618Z exporting build record to /home/runner/work/_temp/docker-actions-toolkit-zm9O80/export
+2026-11-23T04:08:39.9074985Z (node:6480) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-23T04:08:39.9075547Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-23T04:08:40.0857259Z [command]/usr/bin/docker buildx history export --builder builder-63238dbb-9d34-460f-b465-536c4199672d --output /home/runner/work/_temp/docker-actions-toolkit-zm9O80/export/ktcloud4-SL~labbit-app~0OU0J2.dockerbuild 0ou0j2gg6jkuzl6brk3adg1w5 --finalize
+2026-11-23T04:08:40.2134250Z Build record written to /home/runner/work/_temp/docker-actions-toolkit-zm9O80/export/ktcloud4-SL~labbit-app~0OU0J2.dockerbuild (40.47 KB)
+2026-11-23T04:08:40.2158899Z Writing summary
+2026-11-23T04:08:40.2169482Z ##[endgroup]
+2026-11-23T04:08:40.2170248Z ##[group]Removing temp folder /home/runner/work/_temp/docker-actions-toolkit-c73Dza
+2026-11-23T04:08:40.2173704Z ##[endgroup]
+2026-11-23T04:08:40.2174143Z ##[group]Post cache
+2026-11-23T04:08:40.2175457Z State not set
+2026-11-23T04:08:40.2175989Z ##[endgroup]
+2026-11-23T04:08:40.2335490Z Post job cleanup.
+2026-11-23T04:08:40.4272818Z ##[group]Removing builder
+2026-11-23T04:08:40.4277998Z (node:6632) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-23T04:08:40.4278896Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-23T04:08:40.5407345Z [command]/usr/bin/docker buildx rm builder-63238dbb-9d34-460f-b465-536c4199672d
+2026-11-23T04:08:45.2389027Z builder-63238dbb-9d34-460f-b465-536c4199672d removed
+2026-11-23T04:08:45.2434127Z ##[endgroup]
+2026-11-23T04:08:45.2434677Z ##[group]Cleaning up certificates
+2026-11-23T04:08:45.2436200Z ##[endgroup]
+2026-11-23T04:08:45.2436807Z ##[group]Post cache
+2026-11-23T04:08:45.2438513Z State not set
+2026-11-23T04:08:45.2438964Z ##[endgroup]
+2026-11-23T04:08:45.2651361Z Post job cleanup.
+2026-11-23T04:08:45.3390327Z [command]/usr/bin/git version
+2026-11-23T04:08:45.3430674Z git version 2.56.1
+2026-11-23T04:08:45.3460449Z Temporarily overriding HOME='/home/runner/work/_temp/dd5cbbaf-c67f-4a1f-a60b-6cc97f09d3fe' before making global git config changes
+2026-11-23T04:08:45.3461538Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-23T04:08:45.3464044Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/labbit-app/labbit-app
+2026-11-23T04:08:45.3502055Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-23T04:08:45.3534314Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-23T04:08:45.3796545Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-23T04:08:45.3828692Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-23T04:08:45.4112127Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-23T04:08:45.4140995Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-23T04:08:45.4506571Z Cleaning up orphan processes
+2026-11-23T04:08:45.4826589Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4, docker/build-push-action@v6, docker/setup-buildx-action@v3. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+

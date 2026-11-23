@@ -1,0 +1,29 @@
+{
+  "CAFile": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-live-prep-20261123\\.local\\pr196-collector-path-20261123\\cluster-ca.pem",
+  "CASHA256": "eef46d0055a8cb1d4396a107219c969b08bbb93ee5679c155dd3a5f81f1558de",
+  "KubectlExecutable": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt60-ssm-preflight-tools\\kubectl.exe",
+  "Kubeconfig": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt60-live-readiness-20261123\\seoul.kubeconfig",
+  "Context": "lbt60-seoul-20261123",
+  "APIServer": "https://7EF29A2C0B0AE221F6BD9A8CAA189512.gr7.ap-northeast-2.eks.amazonaws.com",
+  "KubeSystemUID": "6c0ed2a2-92c8-48ad-a8d3-0d192e7f70d8",
+  "Namespace": "labbit",
+  "Pods": [
+    {
+      "Name": "backend-77c594cb7b-lgwqb",
+      "UID": "006ab630-4261-4e26-b924-a5a53d1d0cd5",
+      "Container": "common-app",
+      "ImageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419"
+    },
+    {
+      "Name": "backend-77c594cb7b-tvpw5",
+      "UID": "909fc78b-6ed3-48cf-988a-33f06aca3296",
+      "Container": "common-app",
+      "ImageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419"
+    }
+  ],
+  "ExcludedPods": {
+    "labbit-db-migration-zltt8": "0df06286-0dac-430a-b093-74f6727ffd4c",
+    "web-68c5bbf584-9wr7j": "e990a47a-d558-42b8-b10b-cba441fae3d4",
+    "web-68c5bbf584-k8hsm": "e55ebe0c-597e-4aa6-bd62-08458244d686"
+  }
+}

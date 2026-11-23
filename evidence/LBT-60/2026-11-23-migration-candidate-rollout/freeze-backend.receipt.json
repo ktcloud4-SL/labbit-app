@@ -1,0 +1,41 @@
+{
+  "at": "2026-11-23T05:10:26.129313+00:00",
+  "action": "freeze-backend",
+  "result": {
+    "uid": "1819925b-e530-4ae7-85b8-81fb13451753",
+    "spec": {
+      "destination": {
+        "namespace": "labbit",
+        "server": "https://kubernetes.default.svc"
+      },
+      "project": "default",
+      "source": {
+        "helm": {
+          "valueFiles": [
+            "../../environments/aws-seoul/apps/backend-values.yaml"
+          ]
+        },
+        "path": "charts/common-app",
+        "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+        "targetRevision": "main"
+      },
+      "syncPolicy": {
+        "retry": {
+          "backoff": {
+            "duration": "10s",
+            "factor": 2,
+            "maxDuration": "3m"
+          },
+          "limit": 5
+        },
+        "syncOptions": [
+          "CreateNamespace=true",
+          "SkipDryRunOnMissingResource=true"
+        ]
+      }
+    }
+  },
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false
+}

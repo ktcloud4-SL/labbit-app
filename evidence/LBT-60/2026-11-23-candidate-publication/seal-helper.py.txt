@@ -1,0 +1,24 @@
+from pathlib import Path
+from datetime import datetime,timezone
+import hashlib,json,subprocess
+R=Path(r'C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-stage3-live-prep-20261123');E=R/'evidence/LBT-60/2026-11-23-candidate-publication'
+def item(p):
+ b=p.read_bytes();return dict(path=p.relative_to(R).as_posix(),size=len(b),sha256=hashlib.sha256(b).hexdigest())
+helpers=[R/'.local/pr196-schema-tunnel-20261123/main.go',R/'.local/pr196-schema-tunnel-20261123/main_test.go',R/'.local/pr196-schema-tunnel-20261123/schema-readonly.exe',R/'.local/pr196-protected-prep-20261123/main.go',R/'.local/pr196-candidate-publish-20261123/candidate-publish.exe',R/'.local/pr196-candidate-publish-20261123/security-build.yml',R/'go.mod',R/'go.sum']
+(E/'preparation-helper-source-manifest.json').write_text(json.dumps(dict(product_head='be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1',base='753eecbff737409a4c9cc8c542f3c6baa6acf0da',files=[item(p) for p in helpers],private_key_contents_not_read=True,executable_sources_snapshotted_as_text=True),indent=2)+'\n')
+old=R/'evidence/LBT-60/2026-11-23-pr196-trial-preparation/artifact-manifest.json';rows=json.loads(old.read_text())['files'];changed=[]
+for row in rows:
+ p=R/row['path']
+ if hashlib.sha256(p.read_bytes()).hexdigest()!=row['sha256']:changed.append(row['path'])
+if changed!=['docs/backend/dr-pr196-trial-preparation.md']:raise RuntimeError('UNEXPECTED_PRIOR_PACKET_CHANGE:'+repr(changed))
+(E/'historical-packet-check.json').write_text(json.dumps(dict(original_manifest_sha256=hashlib.sha256(old.read_bytes()).hexdigest(),unchanged_entries=len(rows)-len(changed),superseded_document_hashes=changed,reason='Dated candidate-publication followup appended; historical packet and execution bytes are immutable.'),indent=2)+'\n')
+(E/'seal-helper.py.txt').write_bytes(Path(__file__).read_bytes())
+names=set()
+for cmd in [['git','diff','--name-only','-z'],['git','ls-files','--others','--exclude-standard','-z']]:
+ b=subprocess.run(cmd,cwd=R,capture_output=True,check=True).stdout;names.update(x.decode('utf8') for x in b.split(b'\0') if x)
+manifest=E/'artifact-manifest.json';names.discard(manifest.relative_to(R).as_posix())
+files=[item(R/n) for n in sorted(names) if (R/n).is_file()]
+manifest.write_text(json.dumps(dict(schema='labbit.dr196.candidate-publication.artifacts.v1',product_head='be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1',base='753eecbff737409a4c9cc8c542f3c6baa6acf0da',generated_at=datetime.now(timezone.utc).isoformat(),self_excluded=True,files=files,changes_uncommitted=True,merge_or_pr196_push=False),indent=2)+'\n')
+for row in files:
+ if item(R/row['path'])!=row:raise RuntimeError('POST_SEAL_DRIFT')
+print(json.dumps(dict(files=len(files),manifest_sha256=hashlib.sha256(manifest.read_bytes()).hexdigest(),historical_packet_entries_unchanged=len(rows)-len(changed),only_expected_document_superseded=changed)))

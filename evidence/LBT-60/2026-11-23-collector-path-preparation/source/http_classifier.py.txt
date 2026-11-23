@@ -1,0 +1,37 @@
+"""Fixed diagnostic GETs only; record status class, never raw stderr/auth values."""
+import datetime as dt
+import importlib.util
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+ROOT=Path(__file__).resolve().parents[1]
+sp=importlib.util.spec_from_file_location('policy',ROOT/'.local/pr196_collector_network_window2.py')
+m=importlib.util.module_from_spec(sp);sp.loader.exec_module(m);r=m.r
+if len(sys.argv)!=2 or sys.argv[1] not in ('both-open','sg-only','restored'):
+    raise SystemExit('FIXED_PHASE_REQUIRED')
+r.identity()
+plan=r.load(ROOT/'.local/pr196-collector-path-20261123','route-collection-plan.json')
+env={k:v for k,v in os.environ.items() if not k.upper().startswith('AWS_')}
+env.update(AWS_PROFILE='labbit-admin3',AWS_PAGER='',AWS_MAX_ATTEMPTS='1',AWS_CLI_AUTO_PROMPT='off',AWS_IGNORE_CONFIGURED_ENDPOINT_URLS='true')
+rows=[]
+for target in plan['Pods']:
+    before=r.kube('get','pod',target['Name'],'-n','labbit','-o','json')
+    if before['metadata']['uid']!=target['UID']:raise RuntimeError('POD_CHANGED')
+    endpoints=('livez','dr-control/status') if sys.argv[1]=='both-open' else ('livez',)
+    for endpoint in endpoints:
+        path='/api/v1/namespaces/labbit/pods/'+target['Name']+':9090/proxy/'+endpoint
+        start=time.monotonic()
+        try:
+            result=subprocess.run([r.KUBE,'--kubeconfig',r.KCONFIG,'--context',plan['Context'],'--server',plan['APIServer'],'--insecure-skip-tls-verify=false','--tls-server-name',plan['APIServer'][8:],'--certificate-authority',plan['CAFile'],'--request-timeout=2s','get','--raw',path],env=env,capture_output=True,timeout=3)
+            status='HTTP_SUCCESS' if result.returncode==0 else 'HTTP_404_NOT_FOUND' if b'(NotFound)' in result.stderr or b'404' in result.stderr else 'READ_FAILED_OR_TIMEOUT'
+            good_body= result.returncode==0 and endpoint=='livez' and result.stdout==b'ok\n'
+        except subprocess.TimeoutExpired:
+            status='PROCESS_TIMEOUT';good_body=False
+        after=r.kube('get','pod',target['Name'],'-n','labbit','-o','json')
+        if after['metadata']['uid']!=before['metadata']['uid'] or after['status']['containerStatuses']!=before['status']['containerStatuses']:raise RuntimeError('POD_CHANGED_DURING_PROBE')
+        rows.append({'pod':target['Name'],'uid':target['UID'],'path':endpoint,'result':status,'expected_health_body':good_body,'elapsed_ms':int((time.monotonic()-start)*1000)})
+r.save(m.m.OUT,'http-'+sys.argv[1]+'.json',{'at':r.now(),'phase':sys.argv[1],'method':'fixed TLS-pinned apiserver pods/proxy GET request-timeout2s','rows':rows,'raw_stderr_saved':False,'execution_gate':'HOLD','cloud_verified':False})
+print(json.dumps(rows))

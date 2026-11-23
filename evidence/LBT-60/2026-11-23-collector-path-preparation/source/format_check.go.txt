@@ -1,0 +1,40 @@
+// Cloud-free canonical-LF gofmt check for a CRLF Windows checkout.
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"go/format"
+	"os"
+	"os/exec"
+	"strings"
+)
+
+func main() {
+	listing, err := exec.Command("git", "ls-files", "*.go").Output()
+	if err != nil {
+		os.Exit(2)
+	}
+	bad := []string{}
+	onlyCRLF := []string{}
+	files := strings.Fields(string(listing))
+	for _, path := range files {
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			os.Exit(2)
+		}
+		formatted, err := format.Source(raw)
+		if err != nil {
+			os.Exit(2)
+		}
+		if !bytes.Equal(bytes.ReplaceAll(raw, []byte("\r\n"), []byte("\n")), formatted) {
+			bad = append(bad, path)
+		} else if !bytes.Equal(raw, formatted) {
+			onlyCRLF = append(onlyCRLF, path)
+		}
+	}
+	json.NewEncoder(os.Stdout).Encode(map[string]any{"tracked_go_files": len(files), "noncanonical_files": bad, "crlf_only_files": onlyCRLF, "cloud_access": false, "source_changed": false})
+	if len(bad) > 0 {
+		os.Exit(1)
+	}
+}

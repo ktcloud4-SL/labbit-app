@@ -1,0 +1,143 @@
+# PR196 실환경 부분 시험 준비 — 변경 전 검토안과 후속 실행
+
+**수집 경로 후속:** [승인 기반 부분 시험 준비](dr-pr196-approved-control-trial.md)에서 임시9090 경로와
+원복 결과, 서울 제어/오사카 원본용 선택적 `ArtifactRegion` 보완·실제 고정 버전 읽기를 확인한다.
+아래 최초 스냅샷의 Region 제약은 보완 전 상태다. 실제 DB 제어 경로·승인 원본 쓰기·안전 조건이 남아 있어
+init/Pause/Resume는 미실행이며 준비 완료로 표시하지 않는다.
+
+**2026-11-23 후속:** 사용자 작업창 승인으로 migration12–15를 실제 적용하고, 고정 후보 image의 N=2 기본
+MAINTENANCE/local 기동·DB 호환성과 기존 image 복귀를 확인했다.
+[별도 실행·감사 기록](../../evidence/LBT-60/2026-11-23-migration-candidate-rollout/README.md)을 따른다.
+DB schema15는 유지하고 서울 Deployment·Argo 정책은 원복했으며 시험 Job·임시 SPC는 삭제했다.
+아래 준비 스냅샷의 '미실행/미적용'은 당시 시점이며 현재 적용 상태는 후속 기록을 우선한다.
+APPROVED_CONTROL·init/Pause/Resume·Provider·Fencing 기능 시험은 이번에도 실행하지 않았다. DR HOLD 유지.
+
+2026-11-23 · LBT-60/LBT-205 · source `be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1` · main `753eecb`.
+PR196 Draft·미병합. [독립 QA #11267](https://samsunglions.atlassian.net/browse/LBT-60?focusedCommentId=11267)는
+Collector P2의 코드·테스트 해소이며 운영 배포·기능 시험 승인과 다르다.
+
+이번 범위는 STS/EKS/RDS/ECR 및 Kubernetes metadata·권한의 읽기 전용 확인, 실행 입력의 미확정 값과
+변경 영향·복귀 절차 준비다. 실제 IAM/RBAC/키/Policy/DB/ConfigMap/Pod/Argo/이미지 게시 설정을 바꾸지 않았다.
+현재 준비안은 실행 가능한 Policy/승인/서명/CollectionPlan이 아니다. `EnableExecution=false`를 유지한다.
+
+## 현재 확인 결과
+
+[관측 JSON](../../evidence/LBT-60/2026-11-23-pr196-trial-preparation/readonly-observations.json)의 각 항목 UTC를 기준으로 한다.
+스냅샷을 미래 실행 승인으로 재사용하지 않는다.
+
+| 항목 | 이번 실제 확인 | 남은 확인 |
+| --- | --- | --- |
+| 실행 신원 | `299311846289 / arn:aws:iam::299311846289:user/admin3` | 목적별 Actor/Principal/action·운영 Policy 변경 통제 |
+| 서울 Backend | `sha-753eecb`, 2/2 Ready, 기존 digest `bab1869e…42419`, 역할 api/realtime/worker/preview | #196 후보 image digest·Pod별 실제 process binding·BootID |
+| 접수/제어 | ConfigMap `backend-config` mode=open, read-only directory mount, durable env 미설정 | 실제 mount/readback·전체 작업/UNKNOWN/Provider 정산; open은 이용자 없음의 증거가 아님 |
+| DB | RDS available/PostgreSQL16.15, backup7일·암호화·복원 가능 시각·snapshot metadata | DB SQL 신원/schema/checksum·시험 직전 백업·복원 절차 인수 |
+| migration | 기존 Job 성공, 로그 applied_count=11/latest_known_version=11 | 현재 DB를 직접 SELECT한 결과 아님. 12–15 적용은 미실행 |
+| 후보 image | 실제 서울 ECR `backend`에서 `sha-be4d0ba`와 전체 SHA 태그가 ImageNotFound | 다른 tag/registry 전체 부재를 의미하지 않음. 별도 candidate 게시·provenance 필요 |
+| Argo | backend·root-app-seoul 자동 Sync/self-heal, GitOps `ab830d7` Synced/Healthy | 변경 동결·고정 revision·선택 적용·원래 정책 복구 |
+| 조회 권한 | 현재 admin3가 pods get·pods/proxy get·namespaces get 가능 | 전용 최소권한 Principal, 실제 collector의 TLS/SQL/S3/서명 경로 미검증 |
+
+ECR 최초 탐색은 잘못 추정한 `labbit-backend` 이름으로 NotFound였다. 그 결과를 후보 부재 근거로 사용하지 않는다.
+실제 Pod image의 repository `backend`를 확인한 뒤 정확한 두 tag로 다시 조회했다. 초기 projection은 `.initial.json`에 보존한다.
+
+## 진행 순서와 변경 경계
+
+| 순서 | 준비 결과·다음 작업 | 설정/서비스 영향과 진행 조건 |
+| --- | --- | --- |
+| P01 신원·대상 고정 | 실제 account/cluster UID/RDS 불변 ID와 source를 준비 Plan에 고정 | 읽기 전용 완료. 실제 실행 직전 재조회 |
+| P02 키·Policy·권한 | 아래 목적별 구성과 미확정 입력 목록 작성 | 키 생성·ACL/권한/Secret 등록 전 위치·관리자·변경안을 공유. 아직 미적용 |
+| P03 이미지 | PR CI push:false 확인. main merge 없이 별도 후보 image를 게시·digest 고정할 방안 | registry 쓰기 발생. 현재 workflow는 PR/branch dispatch로 후보 게시를 보장하지 않음. main push/tag로 우회 금지 |
+| P04 DB·복귀 | 읽기 전용 SQL 파일·12–15 원본 체크섬·단계별 실패/복귀 기준 준비 | 실제 DB credential/접근 경로는 미확정. SQL 조회도 공유 DB에서 아직 미실행 |
+| P05 적용 전 공유 | 작업창·기존 사용자/작업 inventory·백업·고정 image·resource diff 확정 | 아래 변경 묶음을 사용자에게 먼저 알리고 확정 범위만 실행 |
+| P06 제한 적용 | 승인된 migration→init PAUSE_NEW→closed 및 전체 Pod 확인→후보 고정 binding 배포 | DDL/잠금·재기동·접수/Worker 제한 발생. 하나라도 불충분하면 다음 단계 금지 |
+| P07 부분 시험 | M194/M196를 독립 RUN으로 실행하고 실제 원본 저장 | 시험 조직/VM만 사용. 경쟁 정지점 미지원·실제 안전 근거 부족 항목은 NOT_VERIFIED |
+| P08 복귀·QA | 실제 미해결 작업/상태를 확인한 후 승인된 설정 복귀·잔여 확인 | 자동 open/기계적 old image rollback 금지. merge는 하지 않음 |
+
+현재 P01과 P02–P04의 설계 자료를 준비한 상태다. 실제 키 배치·image 게시·DB 접근·배포가 완료됐다는 뜻이 아니다.
+
+## 목적별 권한·키·원본
+
+| 주체 | 필요한 범위 | 허용하지 않는 확대 |
+| --- | --- | --- |
+| 운영 승인자 | exact STS Actor/Principal, 승인 목적별 Phase와 TTL, Ed25519 PKCS8 승인 key | observation key 재사용·boolean 승인·임의 JSON 서명 |
+| 관측 수집자 | namespace 모든 Pod 페이지, kube-system UID, 지정 Pod admin 9090 proxy, exact RDS Describe, 고정 S3 version 읽기, 승인 DB read-only SELECT, observation 전용 key | Pod exec/배포/Secret 값 조회·Provider mutation·임의 Safety PASS |
+| 제어 실행자 | exact 승인·version/hash 원본, 기존 Store 계약의 state/journal INSERT/UPDATE 및 필요한 SELECT | migration DDL·journal DELETE·UNKNOWN 자동 재Apply |
+| migration 담당 | 후보 runner·확정 대상 DB와 적용 권한·백업/복구 창 | startup 자동 DDL, 임의 SQL 복붙·down/DROP·기존 migration 수정 |
+
+현재 admin3의 넓은 접근 권한을 전용 최소권한 인수로 대신하지 않는다. IAM/RBAC 추가는 아직 필요 여부를 확정하지 않았고 적용도 없다.
+승인·관측 key는 서로 다른 공개키 바이트와 목적/Phase를 갖고, 개인키·DSN·Policy는 Windows owner/DACL 검증을 통과하는
+별도 보호 경로에 둔다. 이번 작업에서 실제 개인키/DSN을 생성·복사·조회하지 않았다. 키 원문을 Git/Evidence/채팅에 넣지 않는다.
+후보 CLI는 Windows 작업자 경로에 별도 빌드한다. 서버 Dockerfile에 operator CLI가 없다는 이유로 app image에 key/CLI를 넣지 않는다.
+
+ArtifactBucket/Prefix/region·writer·reader·보존 담당은 별도 고정한다. 기존 DR bucket은 오사카다.
+현재 `AWSCLI.Read`의 S3 endpoint는 `Policy.Region`을 사용하므로, 서울 제어 Policy가 기존 오사카 bucket을 그대로 쓸 수 있다고
+가정하지 않는다. 정확한 bucket/고정 version/권한/endpoint 동작을 읽기 시험하기 전 NOT_VERIFIED다. 이 준비에서 새 bucket/IAM을 만들지 않았다.
+도구 `labbit-dr-evidence`는 업로드하지 않으므로 별도 승인된 보관 경로로 signed 원본을 저장하고 VersionId/SHA256/size를 받아야 한다.
+
+## DB 적용·복귀
+
+`schema-readonly.sql`은 `BEGIN READ ONLY`와 짧은 statement/lock timeout을 사용하며 신원·적용 이력·테이블 존재만 조회하고 ROLLBACK한다.
+DSN·host/user/name·TLS 검증이 먼저이며 CLI 인자/로그에 credential을 넣지 않는다. 아직 실제 DB에서 실행하지 않았다.
+DB의 checksum은 후보 **배포 artifact의 정확 bytes**와 비교한다. Windows checkout CRLF 해시와 Git LF 해시를 혼용하지 않는다.
+준비 manifest는 Git blob expected checksum과 working-copy checksum을 구분하며 실제 image 내부 검증은 별도다.
+
+- 12: state/change/boundary 테이블·열린 boundary index 생성.
+- 13: Resume INTENT/APPLIED journal·pending unique index 생성.
+- 14: Resume APPLIED timestamp NOT NULL 제약 추가. 이전 무효 row가 있으면 실패하며 값을 꾸며 채우지 않는다.
+- 15: restriction INTENT/APPLIED journal·pending unique index 생성. init 전에 INTENT를 남기므로 state FK는 없다.
+
+runner는 파일별 transaction+적용 기록을 함께 commit하므로 12/13 성공 후14 실패가 가능하다. 앞선 commit을 전체 rollback됐다고
+보고하지 않는다. 이미 적용된 checksum/상태를 재조회하고 담당자가 forward-fix/재개 여부를 판단한다. 전체 공유 DB 복원은
+시험과 무관한 데이터까지 되돌릴 수 있으므로 자동 복원하지 않는다. CheckSchema는 additive 최신 migration 기록을 허용하지만
+이전 image가 durable 제어를 잃는 문제는 별개다. old image로 단순 rollback하여 Worker가 다시 ACTIVE로 열리는 것을 금지한다.
+실제 migration 전 새 backup ARN/시각·복원 대상·담당을 고정하고, 상태/승인 이력이 복원 전으로 사라질 경우 외부 원본과 Provider를
+대조하기 전 이전 명령을 재전송하지 않는다. schema guard·journal·UNKNOWN을 정리하려고 삭제하지 않는다.
+
+## 적용 전에 반드시 공유할 변경 묶음
+
+1. 후보 image 게시 위치/tag/digest·내용 검증(게시만으로 현재 Pod는 교체되지 않음).
+2. 보호 key/Policy/DSN 경로·목적/TTL·실제 IAM/RBAC 차이, 승인 원본 prefix/보존.
+3. 공유 DB read-only 접근 방법과 migration12–15·직전 backup·파일별 중단·복구안.
+4. root-app/backend 자동 Sync 동결 범위·시간·원래 spec, 선택 Sync의 PreSync migration 실행 여부.
+5. maintenance closed의 신규 Provision/Reset/Cleanup 제한, durable init/Pause·APPROVED_CONTROL·Pod 교체/binding.
+
+현재와 같은 `open`+local Worker 상태에서 postgres/APPROVED_CONTROL을 바로 켜지 않는다. init PAUSE_NEW row와 전체 serving Pod
+정산·권한·관측이 선행돼야 한다. closed만으로 APPROVED_CONTROL Worker가 멈추지 않는다. 기존 #194 MAINTENANCE 회귀와
+#196 APPROVED_CONTROL 시험을 서로 다른 설정/RUN으로 구분한다. 전체 backlog에 영향을 주는 제어이므로 전용 Operation ID만
+선별해 실행하는 기능처럼 취급하지 않는다.
+
+작업창의 사용자 부재·전용 조직/Class/VM·실제 Provider 사용 상한·drain timeout은 아직 미확정이다. 가용 시간·비용을 임의로
+승인값으로 채우지 않는다. M194-01~06/M196-01~04 기대 결과는 기존 통합 검증 문서를 재사용하되 실제로 실행한 행만 판정한다.
+claim 후 dispatch 전의 경쟁 정지점이나 응답유실을 운영에 강제로 주입하는 시험은 별도 영향 검토가 필요하다.
+
+ACTIVE 재개는 fresh signed SingleWriter/Fencing/전체 inventory·PodCoverage·WorkReconciled가 필요하다. SQL0/오사카 replica/현재
+서울 primary라는 사실만으로 누락 proof를 PASS로 만들지 않는다. 실제 안전 조건을 입증하지 못하면 Resume는 HOLD다.
+범위가 안전하게 격리되지 않으면 전용 시험 환경안을 별도로 비교하며 공유 서울 서비스로 강행하지 않는다.
+
+현재 `live_test_ready=false`, ReplicaLag 기존 FAIL·필수4 NOT_VERIFIED·DR HOLD 유지.
+새 read-only 관측은 이전 FAIL을 해소하지 않으며 RDS 승격/DNS/오사카 활성화/Slack/전체 DR 실행을 수행하지 않았다.
+
+## 후속: 후보 게시·실제 SQL 사전 조회 (2026-11-23)
+
+위 표는 최초 읽기 전용 준비 스냅샷이다. 이후 사용자 승인에 따른 후보 게시·키 준비·관리 EC2 도구 준비는
+[별도 실행 기록](../../evidence/LBT-60/2026-11-23-candidate-publication/AUDIT.md)과 구분한다.
+
+- 앱 source `be4d0ba`를 고정한 격리 빌드 후 별도 불변 ECR `backend-dr196-trial`에 게시했다. 기존 `backend` 저장소의
+  serving tag와 15개 이미지 수명주기에는 쓰지 않았다. main·PR196 merge/push나 GitOps 배포는 하지 않았다.
+  격리 빌드 브랜치에는 빌드 workflow를 게시했다. 게시 자체는 Pod 실행이나 실환경 기능 시험 완료가 아니다.
+- 첫 후보의 실제 ECR 검사에서 zlib1.3.2-r1/CVE-2026-4738 Critical1건이 나왔다. 첫 digest는 배포 인수하지 않는다.
+  앱·migration 소스는 고정하고 별도 runtime Dockerfile의 패키지 명령만 수정한 후보 재빌드·재검사 기록을 확인한다.
+  해당 패키지 변경은 격리 workflow override이며, 현재 PR196 Dockerfile에 반영됐다고 해석하지 않는다.
+  교체 후보는 zlib1.4-r0, ECR Basic 검사 COMPLETE/검출0건으로 확인했다. 사용 후보는
+  `299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial@sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469`다.
+  교체 빌드 원본은 [45113446633](https://github.com/ktcloud4-SL/labbit-app/actions/runs/45113446633)이며 실제 배포는 미실행이다.
+- 로컬 보호 디렉터리에 서로 다른 승인/관측 Ed25519 키를 생성하고 후보의 보호 파일 읽기·공개키 왕복 검증을 통과했다.
+  개인키는 저장소/Evidence에 넣지 않았다. 실행 Policy 활성화·승인 발급·클라우드 등록은 미실행이다.
+- 관리 EC2 역할의 DSN Secret 권한 부족은 별도 기록했다. 역할을 확대하지 않고 기존 admin3와 SSM 터널로 실제 SQL을
+  읽었다. DB 신원·TLS1.3·transaction_read_only=on·ROLLBACK을 확인했고, 적용1–11의 체크섬11/11이 후보 Git과 일치했다.
+  12–15는 미적용이며 Worker 제어 테이블5개가 없다. 이 관측은 단일 Writer나 기존 작업 정산 근거가 아니다.
+- 첫 자동 세션 종료 확인은 실패해 원본 결과를 NOT_VERIFIED로 보존했다. 후속 exact-session 종료 후 History=Terminated,
+  Active=[]와 로컬 포트 폐쇄를 별도 확인했다. SQL 성공을 최초 종료 확인 성공으로 바꾸지 않는다.
+
+다음 적용 묶음은 공유 DB12–15 추가·고정 후보 Pod 교체 및 별도 closed/Pause 시험이다. DB 잠금·Pod 교체·신규 작업
+제한·Worker claim/dispatch 영향이 있으므로, 실제 적용 전에 사용자에게 변경 diff·작업창·기존 사용자/작업 inventory·백업과
+복귀 조건을 공유한다. 앱 배포·migration·닫기·Pause/Resume·Provider 작업은 아직 수행하지 않았다. 전체 DR HOLD 유지.

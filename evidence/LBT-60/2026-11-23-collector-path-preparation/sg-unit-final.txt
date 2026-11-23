@@ -1,0 +1,11 @@
+test_cleanup_only_saved_ids (__main__.SGSafety.test_cleanup_only_saved_ids) ... ok
+test_cleanup_wrong_rule_set_never_revokes (__main__.SGSafety.test_cleanup_wrong_rule_set_never_revokes) ... ok
+test_exact_source32_admin_only_permissions (__main__.SGSafety.test_exact_source32_admin_only_permissions) ... ok
+test_revoke_false_preserved_and_never_claimed_success (__main__.SGSafety.test_revoke_false_preserved_and_never_claimed_success) ... ok
+test_wrong_owner_port_egress_source_description_and_id_rejected (__main__.SGSafety.test_wrong_owner_port_egress_source_description_and_id_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.003s
+
+OK
+ONLY_OWN_TWO_SECURITY_GROUP_RULE_IDS_REVOKED

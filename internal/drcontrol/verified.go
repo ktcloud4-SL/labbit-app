@@ -131,6 +131,18 @@ func Execute(ctx context.Context, p Policy, i Invocation, identity IdentityReade
 	if e != nil {
 		return wc.ResumeRecord{}, ErrInput
 	}
+	// Preserve authenticated historical replay even when old artifacts expire or
+	// disappear. Resume performs another Inspect/CAS after preparation for races.
+	prior, found, e := r.Inspect(ctx, i.Request)
+	if e != nil || found {
+		return prior, e
+	}
+	prepared, e := PrepareArtifacts(ctx, p, artifacts, i.Approval, i.Evidence)
+	if e != nil {
+		return wc.ResumeRecord{}, e
+	}
+	defer prepared.Clear()
+	v.reader = prepared
 	return r.Resume(ctx, i.Request)
 }
 

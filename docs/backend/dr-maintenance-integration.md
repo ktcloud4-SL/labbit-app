@@ -1,6 +1,17 @@
 # PR194 기존 동작 + PR196 추가 제어 통합 검증
 
-2026-11-20 · LBT-205 / LBT-59 / LBT-60 · 기존 Draft PR196에서 관리한다.
+후속 [공통 수집 경로·승인 시험 계획](dr-pr196-approved-control-trial.md)은 네트워크 진단과 S3 리전 보완이다.
+아래 M194/M196 행의 실제 Pause/Resume·기수락 drain·committed 재요청 인수로 합산하지 않는다.
+
+2026-11-20 작성 / 2026-11-23 준비 기준 보완 · LBT-205 / LBT-59 / LBT-60 · 기존 Draft PR196에서 관리한다.
+
+최신 실환경 준비와 미적용 변경안은 [PR196 시험 준비안](dr-pr196-trial-preparation.md)을 따른다.
+새 후보 `be4d0ba`에는 init/Pause·실제 조회 어댑터·서명 producer가 있다. 아래 미인수는 운영 키·권한·실제
+연계/검증의 미완료를 뜻하며 코드 자체가 없다는 뜻이 아니다. 실제 기능 시험은 아직 실행하지 않았다.
+
+후속 [기본 배포 호환성 시험](../../evidence/LBT-60/2026-11-23-migration-candidate-rollout/README.md)에서
+schema12–15 적용과 후보 N=2 기동/기존 image 복귀를 확인했다. MAINTENANCE/local 설정을 유지한 건강점검이며
+아래 M194/M196의 backlog·committed replay·durable Pause/Resume·Provider 인수로 합산하지 않는다.
 
 이 문서의 open 전제는 기존 MAINTENANCE 정책 시험 범위다. 11/21 별도 후보의
 APPROVED_CONTROL은 HTTP closed를 유지한 승인 Worker 처리 경로를 추가한다.
@@ -73,10 +84,11 @@ go test -race -tags integration -run '^TestWorkerControl' -count=1 ./internal/po
   기존 이용자·데모·다른 시험이 진행 중이면 변경을 시작하지 않는다.
 - App 후보 commit·불변 image digest, GitOps revision, 전체 Pod UID/boot/role, HPA/rollout과 ConfigMap source를 고정한다.
   PR CI는 이미지를 게시하지 않으므로 후보 build/publish·배포 위치와 명시적 적용 절차를 별도로 준비한다.
-- migration12~14의 실제 DDL 차이·backup/restore 책임·이전/이후 App 호환을 확인한다.
+- migration12~15의 실제 DDL 차이·backup/restore 책임·이전/이후 App 호환을 확인한다.
   시험하려고 main에 먼저 merge하지 않는다. migration 전후의 복귀 조건을 나누고, 새 테이블을 기계적으로 DROP하지 않는다.
-- **Resume 검증 CLI 후보는 구현됐지만 실제 운영 인수는 미완료다.** `cmd/labbit-dr-control`은 signed approval/observation을
-  검증하는 opt-in 경로이며 실제 Pause/init 진입점·신뢰 안전 조건 수집자·키 운영은 제공하지 않는다.
+- **운영 제어 CLI 후보는 구현됐지만 실제 운영 인수는 미완료다.** `cmd/labbit-dr-control`은 init/Pause·Resume,
+  `cmd/labbit-dr-evidence`는 승인 서명·읽기 전용 수집·관측 서명을 제공한다. 보호된 운영 키·Policy·신뢰된 외부
+  Fencing/SingleWriter/Provider 근거·실제 권한과 DB/Pod 연결 인수는 남아 있다.
   내부 메서드·합성 proof를 운영 진입점으로 간주하지 않는다. #196 live 제어·승인 재개 전에
   인증된 Pause/init 경로, 실제 서명/수집·승인, 단일 control Writer, scope/revision/epoch 초기화와 Pod binding 배포를 준비·검토한다.
 - 전체 serving Pod의 read-only directory mount(subPath 금지), 관측 경로, GitOps 변경·유지·복원 방법을 확정한다.

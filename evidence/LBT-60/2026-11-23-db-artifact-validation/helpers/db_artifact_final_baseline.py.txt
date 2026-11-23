@@ -1,0 +1,15 @@
+from pathlib import Path
+import importlib.util,json
+ROOT=Path(__file__).resolve().parents[1]
+sp=importlib.util.spec_from_file_location('window',ROOT/'.local/pr196_collector_network_window2.py');w=importlib.util.module_from_spec(sp);sp.loader.exec_module(w)
+m,r=w.m,w.r
+_,policies=m.baseline()
+if any(x['metadata']['name'] in ('pr196-collector-proxy-20261123-01','pr196-collector-proxy-20261123-02') for x in policies):raise RuntimeError('TEMP_POLICY_PRESENT')
+sg=w.group();old=r.load(m.LOCAL,'sg-before.json')
+if sg['IpPermissions']!=old['IpPermissions'] or sg['IpPermissionsEgress']!=old['IpPermissionsEgress']:raise RuntimeError('SG_CHANGED')
+d=r.deployment()
+if d['status'].get('readyReplicas')!=2 or d['status'].get('updatedReplicas')!=2:raise RuntimeError('BACKEND_NOT_READY')
+apps={n:{'uid':(a:=r.app(n))['metadata']['uid'],'sync':a['status']['sync']['status'],'health':a['status']['health']['status']} for n in r.APP_UIDS}
+out={'at':r.now(),'metadata_only':True,'original_deployment_argo_specs_unchanged':True,'original_network_policy_unchanged':True,'temporary_policies_absent':True,'original_sg_full_ruleset_unchanged':True,'ready':2,'image':d['spec']['template']['spec']['containers'][0]['image'],'apps':apps,'seoul_mutations_this_task':0,'execution_gate':'HOLD','recovery_authorized':False,'cloud_verified':False}
+r.save(ROOT/'evidence/LBT-60/2026-11-23-db-artifact-validation','final-seoul-baseline.json',out)
+print(json.dumps(out))

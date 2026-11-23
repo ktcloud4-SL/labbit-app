@@ -77,5 +77,18 @@ func ExecuteRestriction(ctx context.Context, p Policy, i RestrictInvocation, ide
 		}
 		return v, e
 	}
+	prior, found, e := s.Inspect(ctx, i.Request)
+	if e != nil || found {
+		return prior, e
+	}
+	prepared, e := PrepareArtifacts(ctx, p, artifacts, i.Approval)
+	if e != nil {
+		return wc.RestrictRecord{}, e
+	}
+	defer prepared.Clear()
+	s, e = wc.NewRestrictor(store, restrictionVerifier{p, i, prepared, now}, now)
+	if e != nil {
+		return wc.RestrictRecord{}, ErrInput
+	}
 	return s.Restrict(ctx, i.Request)
 }

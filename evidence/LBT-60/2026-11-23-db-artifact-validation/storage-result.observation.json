@@ -1,0 +1,45 @@
+{
+  "kind": "observation",
+  "source": "observation.expired-simulation.json",
+  "preview": {
+    "status": "PREVIEW_ONLY",
+    "execution_gate": "HOLD"
+  },
+  "result": {
+    "plan_sha256": "c73b914fcbeea5a87ad9b60c7039eb1733a074a61884ac8f32497967c91fe572",
+    "status": "READBACK_VERIFIED",
+    "at": "2026-11-23T06:17:37.093893+00:00",
+    "execution_gate": "HOLD",
+    "reference": {
+      "Bucket": "labbit-osaka-dr-evidence-299311846289-trial01",
+      "Key": "dr-precheck/storage-trial/s2b-20261113-01/control-originals/pr196-20261123-0615/observation.expired-simulation.json",
+      "VersionID": "un6FyIgIRV2gVOSGhFGx9iuS_OjDa2lV",
+      "SHA256": "8dc1613b862c847df168588dfec378e4566b1264616e89aa5ad359308ce3cd28",
+      "Size": 1074
+    },
+    "encryption": "AES256",
+    "retain_until": "2026-12-24T06:17:35.032904Z",
+    "owner": "Seobin / LBT-60, manual review, no automatic delete",
+    "verified_at": "2026-11-23T06:17:38.935875+00:00"
+  },
+  "repeat_readback": {
+    "at": "2026-11-23T06:17:37.093893+00:00",
+    "encryption": "AES256",
+    "execution_gate": "HOLD",
+    "owner": "Seobin / LBT-60, manual review, no automatic delete",
+    "plan_sha256": "c73b914fcbeea5a87ad9b60c7039eb1733a074a61884ac8f32497967c91fe572",
+    "reference": {
+      "Bucket": "labbit-osaka-dr-evidence-299311846289-trial01",
+      "Key": "dr-precheck/storage-trial/s2b-20261113-01/control-originals/pr196-20261123-0615/observation.expired-simulation.json",
+      "SHA256": "8dc1613b862c847df168588dfec378e4566b1264616e89aa5ad359308ce3cd28",
+      "Size": 1074,
+      "VersionID": "un6FyIgIRV2gVOSGhFGx9iuS_OjDa2lV"
+    },
+    "retain_until": "2026-12-24T06:17:35.032904Z",
+    "status": "READBACK_VERIFIED",
+    "verified_at": "2026-11-23T06:17:40.749296+00:00"
+  },
+  "repeat_put_executed": false,
+  "scope": "EXPIRED_SIMULATION_PUBLIC_BYTES_ONLY",
+  "retention": "manual review; no automatic delete; not Object Lock"
+}

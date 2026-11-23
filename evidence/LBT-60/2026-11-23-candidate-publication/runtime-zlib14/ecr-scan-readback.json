@@ -1,0 +1,11 @@
+{
+    "imageId": {
+        "imageDigest": "sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469"
+    },
+    "status": {
+        "status": "COMPLETE",
+        "description": "The scan was completed successfully."
+    },
+    "completed": "2026-11-23T13:45:19+09:00",
+    "severities": {}
+}

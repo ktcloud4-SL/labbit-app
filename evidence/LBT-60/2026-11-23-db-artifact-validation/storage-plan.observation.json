@@ -1,0 +1,18 @@
+{
+  "version": "dr-control-artifact-store/v1",
+  "account": "299311846289",
+  "actor": "arn:aws:iam::299311846289:user/admin3",
+  "profile": "labbit-admin3",
+  "aws": "C:\\Users\\user\\AppData\\Local\\Programs\\Amazon\\AWSCLIV2\\aws.exe",
+  "region": "ap-northeast-3",
+  "bucket": "labbit-osaka-dr-evidence-299311846289-trial01",
+  "prefix": "dr-precheck/storage-trial/s2b-20261113-01/control-originals/pr196-20261123-0615",
+  "key": "dr-precheck/storage-trial/s2b-20261113-01/control-originals/pr196-20261123-0615/observation.expired-simulation.json",
+  "sha256": "8dc1613b862c847df168588dfec378e4566b1264616e89aa5ad359308ce3cd28",
+  "size": 1074,
+  "not_before": "2026-11-23T06:17:25.032904Z",
+  "valid_until": "2026-11-23T06:32:35.032904Z",
+  "retain_until": "2026-12-24T06:17:35.032904Z",
+  "owner": "Seobin / LBT-60, manual review, no automatic delete",
+  "enable_upload": true
+}

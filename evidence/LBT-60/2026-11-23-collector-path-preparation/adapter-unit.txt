@@ -1,0 +1,18 @@
+=== RUN   TestKubernetesReadAdapterFixedClusterPaginationAndReadback
+--- PASS: TestKubernetesReadAdapterFixedClusterPaginationAndReadback (0.01s)
+=== RUN   TestKubernetesReaderRejectsWrongClusterLoopAndFailure
+=== RUN   TestKubernetesReaderRejectsWrongClusterLoopAndFailure/cluster
+=== RUN   TestKubernetesReaderRejectsWrongClusterLoopAndFailure/loop
+=== RUN   TestKubernetesReaderRejectsWrongClusterLoopAndFailure/version
+=== RUN   TestKubernetesReaderRejectsWrongClusterLoopAndFailure/error
+=== RUN   TestKubernetesReaderRejectsWrongClusterLoopAndFailure/oversize
+=== RUN   TestKubernetesReaderRejectsWrongClusterLoopAndFailure/cancelled
+--- PASS: TestKubernetesReaderRejectsWrongClusterLoopAndFailure (0.01s)
+    --- PASS: TestKubernetesReaderRejectsWrongClusterLoopAndFailure/cluster (0.00s)
+    --- PASS: TestKubernetesReaderRejectsWrongClusterLoopAndFailure/loop (0.00s)
+    --- PASS: TestKubernetesReaderRejectsWrongClusterLoopAndFailure/version (0.00s)
+    --- PASS: TestKubernetesReaderRejectsWrongClusterLoopAndFailure/error (0.00s)
+    --- PASS: TestKubernetesReaderRejectsWrongClusterLoopAndFailure/oversize (0.00s)
+    --- PASS: TestKubernetesReaderRejectsWrongClusterLoopAndFailure/cancelled (0.00s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/drcontrol	2.063s

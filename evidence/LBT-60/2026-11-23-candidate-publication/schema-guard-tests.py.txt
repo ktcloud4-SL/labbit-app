@@ -1,0 +1,41 @@
+from pathlib import Path
+import contextlib,io,json,os,subprocess,sys,types,unittest
+from unittest.mock import patch
+E=Path(r'C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-stage3-live-prep-20261123/evidence/LBT-60/2026-11-23-candidate-publication')
+source=(E/'schema-readonly-remote.py.txt').read_text(encoding='utf8')
+class GuardTests(unittest.TestCase):
+ def test_optimized_identity_target_readonly_and_tls_rejected(self):
+  for optimize in (0,2):
+   for wrong in ('identity','target','readonly','tls'):
+    with self.subTest(optimize=optimize,wrong=wrong):
+     calls=[];sql=[];connections=[]
+     ident=dict(Account='299311846289',Arn='arn:aws:sts::299311846289:assumed-role/labbit-seoul-db-management/i-0945680e04ad938cf')
+     if wrong=='identity':ident['Account']='000000000000'
+     def run(args,**kwargs):
+      service=args[1];calls.append(service)
+      value=ident if service=='sts' else dict(SecretString='fixture-only',VersionId='fixture-version')
+      return types.SimpleNamespace(returncode=0,stdout=json.dumps(value).encode(),stderr=b'')
+     d=dict(host='labbit-seoul-rds.c1664mmc0jot.ap-northeast-2.rds.amazonaws.com',port='5432',dbname='labbit_db',user='labbit_user',password='fixture-only')
+     if wrong=='target':d['host']='wrong.invalid'
+     class Conn:
+      def __enter__(self):return self
+      def __exit__(self,*args):pass
+      def execute(self,q):
+       sql.append(q)
+       if 'current_database' in q:value=dict(database='labbit_db',username='labbit_user',transaction_read_only='off' if wrong=='readonly' else 'on')
+       elif 'pg_stat_ssl' in q:value=dict(ssl=wrong!='tls')
+       else:value={}
+       return types.SimpleNamespace(fetchone=lambda:value,fetchall=lambda:[])
+     def connect(**kwargs):connections.append(kwargs);return Conn()
+     pg=types.ModuleType('psycopg');pg.connect=connect;ci=types.ModuleType('psycopg.conninfo');ci.conninfo_to_dict=lambda x:dict(d);rows=types.ModuleType('psycopg.rows');rows.dict_row=object()
+     out=io.StringIO()
+     with patch.dict(os.environ,{'PGHOSTADDR':'127.0.0.1','PGSERVICE':'fixture-service'}),patch.dict(sys.modules,{'psycopg':pg,'psycopg.conninfo':ci,'psycopg.rows':rows}),patch.object(subprocess,'run',run),contextlib.redirect_stdout(out):
+      with self.assertRaises(SystemExit) as ex:exec(compile(source,'schema-readonly-remote.py.txt','exec',optimize=optimize),{})
+      self.assertNotIn('PGHOSTADDR',os.environ);self.assertNotIn('PGSERVICE',os.environ)
+     self.assertEqual(ex.exception.code,2);result=json.loads(out.getvalue());self.assertEqual(result['status'],'NOT_VERIFIED')
+     if wrong=='identity':self.assertEqual(calls,['sts']);self.assertEqual(connections,[])
+     elif wrong=='target':self.assertEqual(calls,['sts','secretsmanager']);self.assertEqual(connections,[])
+     else:
+      self.assertEqual(len(connections),1);self.assertEqual(connections[0]['sslmode'],'verify-full');self.assertIn('default_transaction_read_only=on',connections[0]['options']);self.assertEqual(sql[-1],'ROLLBACK');self.assertFalse(any('labbit_schema_migrations' in q for q in sql))
+     self.assertNotIn('fixture-only',out.getvalue())
+if __name__=='__main__':unittest.main(verbosity=2)

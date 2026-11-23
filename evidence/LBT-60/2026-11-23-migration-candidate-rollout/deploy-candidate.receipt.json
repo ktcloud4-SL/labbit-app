@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-23T05:11:38.814846+00:00",
+  "action": "deploy-candidate",
+  "result": {
+    "uid": "88a17177-492f-41db-b097-a80a6a18a475",
+    "generation": 2,
+    "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial@sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469"
+  },
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false
+}

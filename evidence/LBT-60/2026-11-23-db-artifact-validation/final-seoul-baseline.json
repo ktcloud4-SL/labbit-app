@@ -1,0 +1,26 @@
+{
+  "at": "2026-11-23T06:26:35.834753+00:00",
+  "metadata_only": true,
+  "original_deployment_argo_specs_unchanged": true,
+  "original_network_policy_unchanged": true,
+  "temporary_policies_absent": true,
+  "original_sg_full_ruleset_unchanged": true,
+  "ready": 2,
+  "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+  "apps": {
+    "root-app-seoul": {
+      "uid": "9da17971-0ea4-4149-a10d-d34c11539d62",
+      "sync": "Synced",
+      "health": "Healthy"
+    },
+    "backend": {
+      "uid": "1819925b-e530-4ae7-85b8-81fb13451753",
+      "sync": "Synced",
+      "health": "Healthy"
+    }
+  },
+  "seoul_mutations_this_task": 0,
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false
+}

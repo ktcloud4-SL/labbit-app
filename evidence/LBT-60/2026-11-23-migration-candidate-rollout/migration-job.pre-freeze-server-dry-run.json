@@ -1,0 +1,120 @@
+{
+    "apiVersion": "batch/v1",
+    "kind": "Job",
+    "metadata": {
+        "creationTimestamp": "2026-11-23T05:07:13Z",
+        "generation": 1,
+        "labels": {
+            "labbit.io/trial": "pr196-20261123"
+        },
+        "name": "pr196-migrate-v15-20261123-01",
+        "namespace": "labbit",
+        "uid": "5c0f20f6-434b-485c-b90c-10465c2db059"
+    },
+    "spec": {
+        "activeDeadlineSeconds": 180,
+        "backoffLimit": 0,
+        "completionMode": "NonIndexed",
+        "completions": 1,
+        "manualSelector": false,
+        "parallelism": 1,
+        "podReplacementPolicy": "TerminatingOrFailed",
+        "selector": {
+            "matchLabels": {
+                "batch.kubernetes.io/controller-uid": "5c0f20f6-434b-485c-b90c-10465c2db059"
+            }
+        },
+        "suspend": false,
+        "template": {
+            "metadata": {
+                "annotations": {
+                    "sidecar.istio.io/inject": "false"
+                },
+                "labels": {
+                    "app.kubernetes.io/name": "pr196-migration",
+                    "batch.kubernetes.io/controller-uid": "5c0f20f6-434b-485c-b90c-10465c2db059",
+                    "batch.kubernetes.io/job-name": "pr196-migrate-v15-20261123-01",
+                    "controller-uid": "5c0f20f6-434b-485c-b90c-10465c2db059",
+                    "job-name": "pr196-migrate-v15-20261123-01",
+                    "labbit.io/trial": "pr196-20261123"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "command": [
+                            "/app/labbit-migrate",
+                            "up"
+                        ],
+                        "env": [
+                            {
+                                "name": "LABBIT_ENVIRONMENT",
+                                "value": "production"
+                            },
+                            {
+                                "name": "LABBIT_DATABASE_DSN_FILE",
+                                "value": "/var/secrets/labbit/db-dsn"
+                            },
+                            {
+                                "name": "PGOPTIONS",
+                                "value": "-c lock_timeout=3000 -c statement_timeout=30000 -c idle_in_transaction_session_timeout=30000"
+                            }
+                        ],
+                        "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial@sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "migrate",
+                        "resources": {},
+                        "securityContext": {
+                            "allowPrivilegeEscalation": false,
+                            "capabilities": {
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "runAsGroup": 101,
+                            "runAsUser": 100
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/var/secrets/labbit",
+                                "name": "db-dsn-volume",
+                                "readOnly": true
+                            }
+                        ]
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "nodeSelector": {
+                    "labbit.io/node-role": "service"
+                },
+                "restartPolicy": "Never",
+                "schedulerName": "default-scheduler",
+                "securityContext": {
+                    "runAsNonRoot": true,
+                    "seccompProfile": {
+                        "type": "RuntimeDefault"
+                    }
+                },
+                "serviceAccount": "backend",
+                "serviceAccountName": "backend",
+                "terminationGracePeriodSeconds": 30,
+                "volumes": [
+                    {
+                        "csi": {
+                            "driver": "secrets-store.csi.k8s.io",
+                            "readOnly": true,
+                            "volumeAttributes": {
+                                "secretProviderClass": "pr196-migration-dsn-20261123-01"
+                            }
+                        },
+                        "name": "db-dsn-volume"
+                    }
+                ]
+            }
+        },
+        "ttlSecondsAfterFinished": 86400
+    },
+    "status": {}
+}

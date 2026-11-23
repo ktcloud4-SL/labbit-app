@@ -1,0 +1,48 @@
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+old=(ROOT/'.local/pr196-artifact-read-probe/main.go').read_text(encoding='utf-8')
+head=old[:old.index('func main()')]
+head=head.replace('"os"','"os"\n"path/filepath"')
+p=old[old.index('p := drcontrol.Policy{'):old.index('\n\t\trunner :=')].replace('Region: region,','Region: "ap-northeast-2",').replace('ArtifactBucket: ref.Bucket','ArtifactBucket: "labbit-osaka-dr-evidence-299311846289-trial01"')
+body=r'''
+func main(){
+ dir:="evidence/LBT-60/2026-11-23-db-artifact-validation"
+ var sample struct{Request wc.ResumeRequest `json:"request"`; ApprovalKey string `json:"approval_public_key"`; ObservationKey string `json:"observation_public_key"`}
+ b,e:=os.ReadFile(filepath.Join(dir,"simulation-sample-provenance.json"));if e!=nil||json.Unmarshal(b,&sample)!=nil{os.Exit(2)}
+ refs:=map[string]drcontrol.Reference{}
+ for _,kind:=range []string{"approval","observation"}{
+   var result struct{Result struct{Reference drcontrol.Reference `json:"reference"`} `json:"result"`}
+   b,e:=os.ReadFile(filepath.Join(dir,"storage-result."+kind+".json"));if e!=nil||json.Unmarshal(b,&result)!=nil{os.Exit(2)}
+   refs[kind]=result.Result.Reference
+ }
+ POLICY
+ p.Target=sample.Request.Scope
+ p.ArtifactPrefix="dr-precheck/storage-trial/s2b-20261113-01/control-originals/pr196-20261123-0615"
+ p.ArtifactRegion="ap-northeast-3"
+ p.ApprovalKeys=[]drcontrol.Key{{ID:"simulation-approver",Principal:"simulation-only",PublicKey:sample.ApprovalKey,Phases:[]string{"prepare"}}}
+ p.ObservationKeys=[]drcontrol.Key{{ID:"simulation-observer",Principal:"simulation-observer",PublicKey:sample.ObservationKey,Phases:[]string{"prepare"}}}
+ p.EnableExecution=false
+ runner:=&recorder{}
+ cloud,e:=drcontrol.NewAWSCLI(p,runner);if e!=nil{os.Exit(2)}
+ ctx,cancel:=context.WithTimeout(context.Background(),15*time.Second);defer cancel()
+ identity,e:=cloud.Identity(ctx);if e!=nil||identity.Account!="299311846289"||identity.ARN!="arn:aws:iam::299311846289:user/admin3"{os.Exit(2)}
+ at:=time.Now()
+ prepared,e:=drcontrol.PrepareArtifacts(ctx,p,cloud,refs["approval"],refs["observation"])
+ elapsed:=time.Since(at).Milliseconds()
+ if e!=nil{json.NewEncoder(os.Stdout).Encode(map[string]any{"status":"PREPARATION_NOT_VERIFIED","elapsed_ms":elapsed,"calls":runner.rows,"execution_gate":"HOLD"});os.Exit(2)}
+ defer prepared.Clear()
+ i:=drcontrol.Invocation{Version:drcontrol.Version,Action:"resume",Request:sample.Request,Approval:refs["approval"],Evidence:refs["observation"]}
+ now:=func()time.Time{return time.Now().UTC().Truncate(time.Microsecond)}
+ v,e:=drcontrol.NewVerifier(p,i,prepared,now);if e!=nil{os.Exit(2)}
+ callsBefore:=len(runner.rows)
+ apctx,stop:=context.WithTimeout(ctx,2*time.Second);at=time.Now()
+ _,ae:=v.AuthorizeResume(apctx,i.Request);apMS:=time.Since(at).Microseconds();ac:=apctx.Err();stop()
+ obctx,stop:=context.WithTimeout(ctx,2*time.Second);at=time.Now()
+ _,oe:=v.RecheckResume(obctx,i.Request);obMS:=time.Since(at).Microseconds();oc:=obctx.Err();stop()
+ pass:=ae!=nil&&oe!=nil&&ac==nil&&oc==nil&&len(runner.rows)==callsBefore
+ json.NewEncoder(os.Stdout).Encode(map[string]any{"at":now(),"scope":"ACTUAL_S3_EXPIRED_SIMULATION_NEGATIVE_CALLBACK_ONLY","prepared_success":true,"preparation_ms":elapsed,"preparation_budget_ms":8000,"approval_callback_us":apMS,"observation_callback_us":obMS,"callback_budget_ms":2000,"expired_approval_rejected":ae!=nil,"simulation_observation_rejected":oe!=nil,"callback_deadlines_exceeded":ac!=nil||oc!=nil,"callback_network_calls":len(runner.rows)-callsBefore,"calls":runner.rows,"enable_execution":false,"db_store_constructed":false,"control_executed":false,"status_pass_scoped":pass,"execution_gate":"HOLD","recovery_authorized":false,"cloud_verified":false})
+ if !pass{os.Exit(2)}
+}
+'''.replace('POLICY',p)
+d=ROOT/'.local/pr196-deadline-probe';d.mkdir(exist_ok=True)
+(d/'main.go').write_text(head+body,encoding='utf-8',newline='\n')

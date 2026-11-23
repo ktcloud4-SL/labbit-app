@@ -1,0 +1,13 @@
+{
+  "artifact_id": 14790980489,
+  "run_id": 45113446633,
+  "zip_sha256": "b90948d5529584a5e64379502b627623ee8afad2f527aec0ae0017e70d613534",
+  "zip_size": 18831549,
+  "github_digest_match": true,
+  "candidate_tar_sha256": "3fe527fa2b8bec8f7bc79c0b25b6fb2408c0c2a533703a215586c66ba8939879",
+  "runtime_dockerfile_sha256": "565356e64b883722e83b2d63502e81ccfe4e1014012b630ac0cf90b760fa30a8",
+  "runtime_package": "zlib=1.4-r0",
+  "source_unchanged": true,
+  "application_executed": false,
+  "presigned_url_not_preserved": true
+}

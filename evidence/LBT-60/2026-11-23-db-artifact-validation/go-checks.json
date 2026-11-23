@@ -1,0 +1,70 @@
+[
+  {
+    "name": "race",
+    "args": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "test",
+      "-count=1",
+      "-race",
+      "-json",
+      "./internal/drcontrol",
+      "./internal/server/workercontrol",
+      "./cmd/labbit-dr-control",
+      "./cmd/labbit-dr-evidence"
+    ],
+    "at": "2026-11-23T06:19:48.072382+00:00",
+    "exit": 0,
+    "log": "race.log.gz",
+    "scope": "local-no-AWS"
+  },
+  {
+    "name": "go-all",
+    "args": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "test",
+      "-count=1",
+      "-json",
+      "./..."
+    ],
+    "at": "2026-11-23T06:20:01.965953+00:00",
+    "exit": 0,
+    "log": "go-all.log.gz",
+    "scope": "local-no-AWS"
+  },
+  {
+    "name": "vet",
+    "args": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "vet",
+      "./..."
+    ],
+    "at": "2026-11-23T06:20:29.762265+00:00",
+    "exit": 0,
+    "log": "vet.log",
+    "scope": "local-no-AWS"
+  },
+  {
+    "name": "build",
+    "args": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "build",
+      "./..."
+    ],
+    "at": "2026-11-23T06:20:32.977902+00:00",
+    "exit": 0,
+    "log": "build.log",
+    "scope": "local-no-AWS"
+  },
+  {
+    "name": "format",
+    "args": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "run",
+      "./.local/check_collector_format.go"
+    ],
+    "at": "2026-11-23T06:20:38.145453+00:00",
+    "exit": 0,
+    "log": "format.log",
+    "scope": "local-no-AWS"
+  }
+]

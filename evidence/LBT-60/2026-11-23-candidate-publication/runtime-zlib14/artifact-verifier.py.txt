@@ -1,0 +1,23 @@
+from pathlib import Path
+import hashlib,json,subprocess,zipfile
+R=Path(r'C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-stage3-live-prep-20261123')
+D=R/'.local/pr196-candidate-zlib14-20261123';E=R/'evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14'
+E.mkdir(exist_ok=True);A=D/'artifact';A.mkdir(exist_ok=True)
+z=D/'candidate.zip';expected='b90948d5529584a5e64379502b627623ee8afad2f527aec0ae0017e70d613534'
+if hashlib.sha256(z.read_bytes()).hexdigest()!=expected:raise RuntimeError('ARTIFACT_DIGEST_MISMATCH')
+allowed={'build-summary.json','candidate.tar','candidate.tar.sha256','image-inspect.json','source-files.txt','runtime.Dockerfile','runtime-dockerfile.sha256','runtime-package-check.txt'}
+with zipfile.ZipFile(z) as f:
+ if set(f.namelist())!=allowed or sum(x.file_size for x in f.infolist())>150_000_000:raise RuntimeError('ARCHIVE_SCOPE_MISMATCH')
+ for name in f.namelist():(A/name).write_bytes(f.read(name))
+tarhash=hashlib.sha256((A/'candidate.tar').read_bytes()).hexdigest()
+if tarhash!=(A/'candidate.tar.sha256').read_text().split()[0]:raise RuntimeError('TAR_HASH_MISMATCH')
+summary=json.loads((A/'build-summary.json').read_text())
+if summary['source_sha']!='be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1' or summary['workflow_sha']!='01863ba088770113c401af1be3ed63d006ac745f' or summary['run_id']!='45113446633':raise RuntimeError('BUILD_BINDING_MISMATCH')
+old=subprocess.run(['git','show','be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1:Dockerfile'],cwd=R,capture_output=True,check=True).stdout
+before=b'RUN apk --no-cache add ca-certificates tzdata';after=b"RUN apk --no-cache add --upgrade ca-certificates tzdata 'zlib>=1.4-r0'"
+if old.count(before)!=1 or (A/'runtime.Dockerfile').read_bytes()!=old.replace(before,after):raise RuntimeError('RUNTIME_PATCH_MISMATCH')
+runtimehash=hashlib.sha256((A/'runtime.Dockerfile').read_bytes()).hexdigest()
+if runtimehash!=(A/'runtime-dockerfile.sha256').read_text().strip() or (A/'runtime-package-check.txt').read_text().strip()!='1.4-r0':raise RuntimeError('RUNTIME_RECEIPT_MISMATCH')
+for n in allowed-{'candidate.tar'}:(E/n).write_bytes((A/n).read_bytes())
+(E/'download-integrity.json').write_text(json.dumps(dict(artifact_id=14790980489,run_id=45113446633,zip_sha256=expected,zip_size=z.stat().st_size,github_digest_match=True,candidate_tar_sha256=tarhash,runtime_dockerfile_sha256=runtimehash,runtime_package='zlib=1.4-r0',source_unchanged=True,application_executed=False,presigned_url_not_preserved=True),indent=2)+'\n')
+print('Artifact/SHA/source/exact one-line runtime patch/package1.4-r0 verified; not published/deployed.')

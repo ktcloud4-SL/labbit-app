@@ -1,0 +1,18 @@
+import json,shutil,subprocess,datetime,gzip
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+OUT=ROOT/'evidence/LBT-60/2026-11-23-db-artifact-validation'
+scan=ROOT/'.local'/('db-artifact-scan-'+datetime.datetime.now().strftime('%H%M%S'))
+scan.mkdir()
+files=json.loads((OUT/'source-manifest.json').read_text(encoding='utf-8'))['files']
+for row in files:
+ p=scan/row['path'];p.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/row['path'],p)
+for p in OUT.rglob('*'):
+ if p.is_file() and p.name not in ('secret-scan.log','secret-scan.json','artifact-manifest.json'):
+  target=scan/'new-evidence'/p.relative_to(OUT);target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,target)
+  if p.suffix=='.gz':target.with_suffix('').write_bytes(gzip.decompress(p.read_bytes()))
+tool=r'C:\Users\user\.codex\tmp\pr196-gitleaks-8.28-20261123\gitleaks.exe'
+with (OUT/'secret-scan.log').open('wb') as f:
+ result=subprocess.run([tool,'dir',str(scan),'--no-banner','--redact','--report-format','json','--report-path',str(OUT/'secret-scan.json')],stdout=f,stderr=subprocess.STDOUT,timeout=120)
+print(json.dumps({'exit':result.returncode,'source_files':len(files),'scope':'changed public source/docs and new packet only; no credential folders'}))
+raise SystemExit(result.returncode)

@@ -1,0 +1,8 @@
+=== RUN   TestTargetAndRoutingFailClosed
+--- PASS: TestTargetAndRoutingFailClosed (0.00s)
+=== RUN   TestHostileEnvironmentRemoved
+--- PASS: TestHostileEnvironmentRemoved (0.00s)
+=== RUN   TestMigrationOptionsPrecedenceRejectsDSNOverride
+--- PASS: TestMigrationOptionsPrecedenceRejectsDSNOverride (0.00s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/.local/pr196-rollout-readonly-20261123	1.736s

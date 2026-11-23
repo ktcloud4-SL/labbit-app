@@ -1,0 +1,21 @@
+import importlib.util
+import json
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+sp=importlib.util.spec_from_file_location('policy',ROOT/'.local/pr196_collector_policy.py')
+m=importlib.util.module_from_spec(sp);sp.loader.exec_module(m);r=m.r
+r.identity()
+baseline=r.load(m.LOCAL,'baseline.json')
+pods=r.kube('get','pods','-n','labbit','-l','app.kubernetes.io/instance=backend','-o','json')['items']
+ips=sorted({p['status']['podIP'] for p in pods if not p['metadata'].get('deletionTimestamp')})
+enis=r.aws('ec2','describe-network-interfaces','--filters','Name=addresses.private-ip-address,Values='+','.join(ips))['NetworkInterfaces']
+groups=sorted({g['GroupId'] for e in enis+baseline['source_enis'] for g in e['Groups']})
+sgs=r.aws('ec2','describe-security-groups','--group-ids',*groups)['SecurityGroups']
+nodes=r.kube('get','nodes','-o','json')['items']
+daemon=r.kube('get','daemonset','aws-node','-n','kube-system','-o','json')
+containers=[{'name':c['name'],'image':c['image'],'args':c.get('args'),'env':[v for v in c.get('env',[]) if v['name'] in ('ENABLE_NETWORK_POLICY','NETWORK_POLICY_ENFORCING_MODE','ENABLE_POD_ENI','POD_SECURITY_GROUP_ENFORCING_MODE')]} for c in daemon['spec']['template']['spec']['containers']]
+data={'at':r.now(),'pod_ips':ips,'enis':[{k:e.get(k) for k in ('NetworkInterfaceId','Description','PrivateIpAddress','PrivateIpAddresses','Groups','SubnetId','VpcId','Attachment')} for e in enis],
+      'security_groups':sgs,'nodes':[{'name':n['metadata']['name'],'provider_id':n['spec']['providerID']} for n in nodes],
+      'aws_node':containers,'execution_gate':'HOLD','mutations':[]}
+r.save(m.OUT,'network-security-readonly.json',data)
+print(json.dumps({'groups':[{'id':g['GroupId'],'name':g['GroupName'],'inbound':g['IpPermissions'],'outbound':g['IpPermissionsEgress']} for g in sgs],'aws_node':containers}))

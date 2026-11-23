@@ -1,0 +1,520 @@
+{
+  "at": "2026-11-23T05:13:59.484883+00:00",
+  "deployment": {
+    "uid": "88a17177-492f-41db-b097-a80a6a18a475",
+    "generation": 3,
+    "status": {
+      "availableReplicas": 2,
+      "conditions": [
+        {
+          "lastTransitionTime": "2026-11-23T00:23:43Z",
+          "lastUpdateTime": "2026-11-23T00:23:43Z",
+          "message": "Deployment has minimum availability.",
+          "reason": "MinimumReplicasAvailable",
+          "status": "True",
+          "type": "Available"
+        },
+        {
+          "lastTransitionTime": "2026-11-23T00:23:33Z",
+          "lastUpdateTime": "2026-11-23T05:13:27Z",
+          "message": "ReplicaSet \"backend-77c594cb7b\" has successfully progressed.",
+          "reason": "NewReplicaSetAvailable",
+          "status": "True",
+          "type": "Progressing"
+        }
+      ],
+      "observedGeneration": 3,
+      "readyReplicas": 2,
+      "replicas": 2,
+      "terminatingReplicas": 0,
+      "updatedReplicas": 2
+    },
+    "spec_sha256": "4daa23809fab2b3d87b0a38a828232dd888eca519118df21bf005b28a15732e0",
+    "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+    "env": [
+      {
+        "name": "LABBIT_ENVIRONMENT",
+        "value": "production"
+      },
+      {
+        "name": "LABBIT_MAINTENANCE_FILE",
+        "value": "/etc/config/mode"
+      },
+      {
+        "name": "LABBIT_RUNTIME_ROLES",
+        "value": "api,realtime,worker,preview"
+      },
+      {
+        "name": "LABBIT_HTTP_ADDR",
+        "value": ":8080"
+      },
+      {
+        "name": "LABBIT_ADMIN_ADDR",
+        "value": ":9090"
+      },
+      {
+        "name": "LABBIT_PREVIEW_ALLOWED_PORTS",
+        "value": "3000"
+      },
+      {
+        "name": "LABBIT_PREVIEW_SESSION_TTL",
+        "value": "5m"
+      },
+      {
+        "name": "LABBIT_PREVIEW_ORIGIN_TEMPLATE",
+        "value": "https://{sessionId}.preview.jinnythecloud.cloud"
+      },
+      {
+        "name": "LABBIT_PUBLIC_ORIGIN",
+        "value": "https://labbit.jinnythecloud.cloud"
+      },
+      {
+        "name": "LABBIT_DATABASE_DSN_FILE",
+        "value": "/var/secrets/labbit/db-dsn"
+      },
+      {
+        "name": "LABBIT_SHUTDOWN_GRACE",
+        "value": "10s"
+      },
+      {
+        "name": "OTEL_SERVICE_NAME",
+        "value": "labbit-server"
+      },
+      {
+        "name": "OTEL_TRACES_EXPORTER",
+        "value": "otlp"
+      },
+      {
+        "name": "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL",
+        "value": "http/protobuf"
+      },
+      {
+        "name": "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+        "value": "http://alloy.observability.svc.cluster.local:4318/v1/traces"
+      },
+      {
+        "name": "LABBIT_VALKEY_ADDR",
+        "value": "labbit-seoul-valkey-lmjkha.serverless.apn2.cache.amazonaws.com:6379"
+      },
+      {
+        "name": "LABBIT_VALKEY_TLS",
+        "value": "true"
+      },
+      {
+        "name": "LABBIT_VALKEY_USERNAME",
+        "value": "labbit-valkey-user"
+      },
+      {
+        "name": "LABBIT_VALKEY_PASSWORD_FILE",
+        "value": "/var/secrets/labbit-valkey/valkey-password"
+      },
+      {
+        "name": "LABBIT_PEER_SECRET_FILE",
+        "value": "/var/secrets/labbit-valkey/peer-secret"
+      },
+      {
+        "name": "LABBIT_POD_ID",
+        "valueFrom": {
+          "fieldRef": {
+            "apiVersion": "v1",
+            "fieldPath": "metadata.name"
+          }
+        }
+      },
+      {
+        "name": "POD_IP",
+        "valueFrom": {
+          "fieldRef": {
+            "apiVersion": "v1",
+            "fieldPath": "status.podIP"
+          }
+        }
+      },
+      {
+        "name": "LABBIT_POD_ADDR",
+        "value": "$(POD_IP):8081"
+      }
+    ],
+    "replicas": 2
+  },
+  "pods": [
+    {
+      "name": "backend-77c594cb7b-lgwqb",
+      "uid": "006ab630-4261-4e26-b924-a5a53d1d0cd5",
+      "owner": [
+        {
+          "apiVersion": "apps/v1",
+          "blockOwnerDeletion": true,
+          "controller": true,
+          "kind": "ReplicaSet",
+          "name": "backend-77c594cb7b",
+          "uid": "b6b8f2c8-e04c-4e94-ba41-de478b2e451d"
+        }
+      ],
+      "deleting": null,
+      "phase": "Running",
+      "conditions": [
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-11-23T05:13:17Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodReadyToStartContainers"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-11-23T05:13:20Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Initialized"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-11-23T05:13:27Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Ready"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-11-23T05:13:27Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "ContainersReady"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-11-23T05:13:16Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodScheduled"
+        }
+      ],
+      "containers": [
+        {
+          "allocatedResources": {
+            "cpu": "100m",
+            "memory": "128Mi"
+          },
+          "containerID": "containerd://f81717312b0a107b7c8f183a9e93f450e5e45a906433d0d7c158b4d1f48c166c",
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+          "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419",
+          "lastState": {},
+          "name": "common-app",
+          "ready": true,
+          "resources": {
+            "limits": {
+              "memory": "256Mi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "128Mi"
+            }
+          },
+          "restartCount": 0,
+          "started": true,
+          "state": {
+            "running": {
+              "startedAt": "2026-11-23T05:13:21Z"
+            }
+          },
+          "user": {
+            "linux": {
+              "gid": 101,
+              "supplementalGroups": [
+                101
+              ],
+              "uid": 100
+            }
+          },
+          "volumeMounts": [
+            {
+              "mountPath": "/var/secrets/labbit-valkey",
+              "name": "valkey-secret-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/etc/config",
+              "name": "config-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/var/secrets/labbit",
+              "name": "db-dsn-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/var/run/secrets/pods.eks.amazonaws.com/serviceaccount",
+              "name": "eks-pod-identity-token",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            }
+          ]
+        }
+      ],
+      "requested_images": [
+        "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb"
+      ],
+      "admin_health": {
+        "result": "NOT_RUN",
+        "reason": "Baseline pods/proxy timeouts retained; localhost health collected separately, not collector-path acceptance"
+      }
+    },
+    {
+      "name": "backend-77c594cb7b-tvpw5",
+      "uid": "909fc78b-6ed3-48cf-988a-33f06aca3296",
+      "owner": [
+        {
+          "apiVersion": "apps/v1",
+          "blockOwnerDeletion": true,
+          "controller": true,
+          "kind": "ReplicaSet",
+          "name": "backend-77c594cb7b",
+          "uid": "b6b8f2c8-e04c-4e94-ba41-de478b2e451d"
+        }
+      ],
+      "deleting": null,
+      "phase": "Running",
+      "conditions": [
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-11-23T05:13:08Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodReadyToStartContainers"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-11-23T05:13:09Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Initialized"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-11-23T05:13:15Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Ready"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-11-23T05:13:15Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "ContainersReady"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-11-23T05:13:07Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodScheduled"
+        }
+      ],
+      "containers": [
+        {
+          "allocatedResources": {
+            "cpu": "100m",
+            "memory": "128Mi"
+          },
+          "containerID": "containerd://bf5badd3f47a9d7d0785cabbd3d173999197c466868127d6b0264d0e8949c413",
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+          "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419",
+          "lastState": {},
+          "name": "common-app",
+          "ready": true,
+          "resources": {
+            "limits": {
+              "memory": "256Mi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "128Mi"
+            }
+          },
+          "restartCount": 0,
+          "started": true,
+          "state": {
+            "running": {
+              "startedAt": "2026-11-23T05:13:10Z"
+            }
+          },
+          "user": {
+            "linux": {
+              "gid": 101,
+              "supplementalGroups": [
+                101
+              ],
+              "uid": 100
+            }
+          },
+          "volumeMounts": [
+            {
+              "mountPath": "/var/secrets/labbit-valkey",
+              "name": "valkey-secret-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/etc/config",
+              "name": "config-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/var/secrets/labbit",
+              "name": "db-dsn-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/var/run/secrets/pods.eks.amazonaws.com/serviceaccount",
+              "name": "eks-pod-identity-token",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            }
+          ]
+        }
+      ],
+      "requested_images": [
+        "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb"
+      ],
+      "admin_health": {
+        "result": "NOT_RUN",
+        "reason": "Baseline pods/proxy timeouts retained; localhost health collected separately, not collector-path acceptance"
+      }
+    }
+  ],
+  "maintenance": {
+    "mode": "open"
+  },
+  "applications": {
+    "root-app-seoul": {
+      "uid": "9da17971-0ea4-4149-a10d-d34c11539d62",
+      "spec": {
+        "destination": {
+          "namespace": "argocd",
+          "server": "https://kubernetes.default.svc"
+        },
+        "project": "default",
+        "sources": [
+          {
+            "directory": {
+              "jsonnet": {},
+              "recurse": true
+            },
+            "path": "apps/aws-seoul",
+            "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+            "targetRevision": "main"
+          }
+        ],
+        "syncPolicy": {
+          "automated": {
+            "prune": true,
+            "selfHeal": true
+          },
+          "syncOptions": [
+            "CreateNamespace=true"
+          ]
+        }
+      },
+      "health": {
+        "status": "Healthy"
+      },
+      "sync": {
+        "comparedTo": {
+          "destination": {
+            "namespace": "argocd",
+            "server": "https://kubernetes.default.svc"
+          },
+          "source": {
+            "repoURL": ""
+          },
+          "sources": [
+            {
+              "directory": {
+                "jsonnet": {},
+                "recurse": true
+              },
+              "path": "apps/aws-seoul",
+              "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+              "targetRevision": "main"
+            }
+          ]
+        },
+        "revisions": [
+          "ab830d7c9e046b0621477192aca39c6b269cbf30"
+        ],
+        "status": "Synced"
+      }
+    },
+    "backend": {
+      "uid": "1819925b-e530-4ae7-85b8-81fb13451753",
+      "spec": {
+        "destination": {
+          "namespace": "labbit",
+          "server": "https://kubernetes.default.svc"
+        },
+        "project": "default",
+        "source": {
+          "helm": {
+            "valueFiles": [
+              "../../environments/aws-seoul/apps/backend-values.yaml"
+            ]
+          },
+          "path": "charts/common-app",
+          "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+          "targetRevision": "main"
+        },
+        "syncPolicy": {
+          "automated": {
+            "prune": true,
+            "selfHeal": true
+          },
+          "retry": {
+            "backoff": {
+              "duration": "10s",
+              "factor": 2,
+              "maxDuration": "3m"
+            },
+            "limit": 5
+          },
+          "syncOptions": [
+            "CreateNamespace=true",
+            "SkipDryRunOnMissingResource=true"
+          ]
+        }
+      },
+      "health": {
+        "status": "Healthy"
+      },
+      "sync": {
+        "comparedTo": {
+          "destination": {
+            "namespace": "labbit",
+            "server": "https://kubernetes.default.svc"
+          },
+          "source": {
+            "helm": {
+              "valueFiles": [
+                "../../environments/aws-seoul/apps/backend-values.yaml"
+              ]
+            },
+            "path": "charts/common-app",
+            "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+            "targetRevision": "main"
+          }
+        },
+        "revision": "ab830d7c9e046b0621477192aca39c6b269cbf30",
+        "status": "Synced"
+      }
+    }
+  },
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false
+}

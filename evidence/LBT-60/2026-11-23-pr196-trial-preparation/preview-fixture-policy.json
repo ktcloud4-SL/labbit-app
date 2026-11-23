@@ -1,0 +1,56 @@
+{
+  "Version": "labbit-dr-control/v1",
+  "AccountID": "123456789012",
+  "Region": "ap-northeast-3",
+  "AWSExecutable": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\lbt60-live-readiness-20261123\\must-not-execute.exe",
+  "AWSProfile": "fixture",
+  "Target": {
+    "ID": "fixture",
+    "Cluster": "fixture",
+    "Region": "ap-northeast-3"
+  },
+  "Actors": [
+    {
+      "Principal": "fixture",
+      "ARN": "arn:aws:iam::123456789012:user/fixture",
+      "Actions": [
+        "resume",
+        "collect"
+      ]
+    }
+  ],
+  "ApprovalKeys": [
+    {
+      "ID": "approval",
+      "PublicKey": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
+      "Principal": "fixture",
+      "Phases": [
+        "activate"
+      ]
+    }
+  ],
+  "ObservationKeys": [
+    {
+      "ID": "observation",
+      "PublicKey": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=",
+      "Principal": "fixture",
+      "Phases": [
+        "activate"
+      ]
+    }
+  ],
+  "ArtifactBucket": "fixture",
+  "ArtifactPrefix": "control",
+  "ApprovalMaxSeconds": 60,
+  "EvidenceMaxSeconds": 30,
+  "Database": {
+    "Port": 5432,
+    "Name": "fixture",
+    "User": "fixture",
+    "Region": "ap-northeast-3",
+    "ARN": "arn:aws:rds:ap-northeast-3:123456789012:db:fixture",
+    "Host": "nonexistent.invalid",
+    "ResourceID": "db-fixture"
+  },
+  "EnableExecution": false
+}

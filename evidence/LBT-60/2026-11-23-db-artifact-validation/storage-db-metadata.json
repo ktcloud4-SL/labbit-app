@@ -1,0 +1,138 @@
+{
+  "observed_at": "2026-11-23T06:11:52.099061+00:00",
+  "actor": "arn:aws:iam::299311846289:user/admin3",
+  "rds": {
+    "DBInstanceArn": "arn:aws:rds:ap-northeast-2:299311846289:db:labbit-seoul-rds",
+    "DbiResourceId": "db-KWJO4NMALL7V77AC3LWW2EGH2Y",
+    "DBInstanceStatus": "available",
+    "Endpoint": {
+      "Address": "labbit-seoul-rds.c1664mmc0jot.ap-northeast-2.rds.amazonaws.com",
+      "Port": 5432,
+      "HostedZoneId": "ZLA2NUCOLGUUR"
+    },
+    "Engine": "postgres"
+  },
+  "management_ec2": {
+    "id": "i-0945680e04ad938cf",
+    "vpc": "vpc-0f874c702b0364ff1",
+    "state": "running",
+    "ssm_ping": "Online"
+  },
+  "bucket": "labbit-osaka-dr-evidence-299311846289-trial01",
+  "versioning": {
+    "Status": "Enabled"
+  },
+  "encryption": {
+    "ServerSideEncryptionConfiguration": {
+      "Rules": [
+        {
+          "ApplyServerSideEncryptionByDefault": {
+            "SSEAlgorithm": "AES256"
+          },
+          "BucketKeyEnabled": false,
+          "BlockedEncryptionTypes": {
+            "EncryptionType": [
+              "SSE-C"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "public_access": {
+    "PublicAccessBlockConfiguration": {
+      "BlockPublicAcls": true,
+      "IgnorePublicAcls": true,
+      "BlockPublicPolicy": true,
+      "RestrictPublicBuckets": true
+    }
+  },
+  "policy": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "DenyInsecureTransport",
+        "Effect": "Deny",
+        "Principal": "*",
+        "Action": "s3:*",
+        "Resource": [
+          "arn:aws:s3:::labbit-osaka-dr-evidence-299311846289-trial01",
+          "arn:aws:s3:::labbit-osaka-dr-evidence-299311846289-trial01/*"
+        ],
+        "Condition": {
+          "Bool": {
+            "aws:SecureTransport": "false"
+          }
+        }
+      },
+      {
+        "Sid": "DenyMissingCreateCondition",
+        "Effect": "Deny",
+        "Principal": "*",
+        "Action": "s3:PutObject",
+        "Resource": "arn:aws:s3:::labbit-osaka-dr-evidence-299311846289-trial01/dr-precheck/storage-trial/s2b-20261113-01/*",
+        "Condition": {
+          "Null": {
+            "s3:if-none-match": "true"
+          },
+          "Bool": {
+            "s3:ObjectCreationOperation": "true"
+          }
+        }
+      },
+      {
+        "Sid": "DenyNonCreateOnlyCondition",
+        "Effect": "Deny",
+        "Principal": "*",
+        "Action": "s3:PutObject",
+        "Resource": "arn:aws:s3:::labbit-osaka-dr-evidence-299311846289-trial01/dr-precheck/storage-trial/s2b-20261113-01/*",
+        "Condition": {
+          "Null": {
+            "s3:if-none-match": "false"
+          },
+          "Bool": {
+            "s3:ObjectCreationOperation": "true"
+          },
+          "StringNotEquals": {
+            "s3:if-none-match": "*"
+          }
+        }
+      },
+      {
+        "Sid": "DenyArchiveMissingCreateCondition",
+        "Effect": "Deny",
+        "Principal": "*",
+        "Action": "s3:PutObject",
+        "Resource": "arn:aws:s3:::labbit-osaka-dr-evidence-299311846289-trial01/cloudwatch-archive/slack-2a-20261112-f37f853a/cw-20261113-01/*",
+        "Condition": {
+          "Null": {
+            "s3:if-none-match": "true"
+          },
+          "Bool": {
+            "s3:ObjectCreationOperation": "true"
+          }
+        }
+      },
+      {
+        "Sid": "DenyArchiveWrongCreateCondition",
+        "Effect": "Deny",
+        "Principal": "*",
+        "Action": "s3:PutObject",
+        "Resource": "arn:aws:s3:::labbit-osaka-dr-evidence-299311846289-trial01/cloudwatch-archive/slack-2a-20261112-f37f853a/cw-20261113-01/*",
+        "Condition": {
+          "Null": {
+            "s3:if-none-match": "false"
+          },
+          "Bool": {
+            "s3:ObjectCreationOperation": "true"
+          },
+          "StringNotEquals": {
+            "s3:if-none-match": "*"
+          }
+        }
+      }
+    ]
+  },
+  "mutations": 0,
+  "execution_gate": "HOLD"
+}

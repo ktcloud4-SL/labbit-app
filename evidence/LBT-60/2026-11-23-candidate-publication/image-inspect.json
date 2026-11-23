@@ -1,0 +1,60 @@
+[
+    {
+        "Id": "sha256:ffab608728a82b5f8190a8960943572d912788dbe6b4f1fda8bf070022c85e10",
+        "RepoTags": [
+            "labbit-dr196:be4d0ba"
+        ],
+        "RepoDigests": [
+            "labbit-dr196@sha256:ffab608728a82b5f8190a8960943572d912788dbe6b4f1fda8bf070022c85e10"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-11-23T04:08:35.830198194Z",
+        "Config": {
+            "User": "appuser",
+            "ExposedPorts": {
+                "8080/tcp": {},
+                "9090/tcp": {}
+            },
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            ],
+            "Entrypoint": [
+                "/app/labbit-server"
+            ],
+            "WorkingDir": "/app",
+            "Labels": {
+                "labbit.trial.scope": "PR196-candidate-not-deployed",
+                "org.opencontainers.image.revision": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+                "org.opencontainers.image.source": "https://github.com/ktcloud4-SL/labbit-app"
+            }
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 18829708,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:42cc7504d9d5f918d6ca52d96706e7b602c8ffca5b80b1cad44e004e1c69fb70",
+                "sha256:fcefffa97454fc50f68a5251d8f6e8a8bb34368229430d64c0a648c03ad64c4b",
+                "sha256:dbd276358ea2ade96f0d7d6e66ca93e619b50ff4d76f01bc57841afb70659e94",
+                "sha256:5e1ef2695d441d54e15836ce002e223785b33e6e731636c1b6ef51c6b3d6e46b",
+                "sha256:455ab3591c914ec90d9c5f255f8d09eb7b36248adf4657cc22ba0baf1876ddd6",
+                "sha256:5b66adedb09e057a6ce34c05712f61da2b232d61dd085808830b9c46030088ae",
+                "sha256:f7f82041c51d88bccfa7abdddd61fabd45270e3b45f1dffa543200e13080bc04"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-11-23T04:08:37.020638356Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:ffab608728a82b5f8190a8960943572d912788dbe6b4f1fda8bf070022c85e10",
+            "size": 1622,
+            "annotations": {
+                "io.containerd.image.name": "docker.io/library/labbit-dr196:be4d0ba",
+                "org.opencontainers.image.created": "2026-11-23T04:08:36Z",
+                "org.opencontainers.image.ref.name": "be4d0ba"
+            }
+        }
+    }
+]

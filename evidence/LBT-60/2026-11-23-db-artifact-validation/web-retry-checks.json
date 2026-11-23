@@ -1,0 +1,15 @@
+[
+  {
+    "name": "web-test-final",
+    "args": [
+      "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--maxWorkers=1"
+    ],
+    "at": "2026-11-23T06:27:35.169707+00:00",
+    "exit": 0,
+    "log": "web-test-final.log",
+    "scope": "local-no-AWS"
+  }
+]

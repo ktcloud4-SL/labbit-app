@@ -1,0 +1,139 @@
+{
+  "head": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "main": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "working_delta": true,
+  "files": [
+    {
+      "path": "internal/drcontrol/contract.go",
+      "bytes": 9832,
+      "sha256": "9e05f79fa2786dfdec33308b94e3877f936f8065742795f653db6be64b501335",
+      "canonical_lf_sha256": "9e05f79fa2786dfdec33308b94e3877f936f8065742795f653db6be64b501335"
+    },
+    {
+      "path": "internal/drcontrol/awscli.go",
+      "bytes": 5510,
+      "sha256": "61e952c556e9651ac15f21cefc41f7594922d9359571d8b06b51e88b25f4f3fd",
+      "canonical_lf_sha256": "61e952c556e9651ac15f21cefc41f7594922d9359571d8b06b51e88b25f4f3fd"
+    },
+    {
+      "path": "internal/drcontrol/awscli_test.go",
+      "bytes": 9792,
+      "sha256": "08ed91c4ad2894288282e4ee59015c3dea1c9bebed6bccd660531741ddea4d59",
+      "canonical_lf_sha256": "08ed91c4ad2894288282e4ee59015c3dea1c9bebed6bccd660531741ddea4d59"
+    },
+    {
+      "path": "runtime/dr-control.md",
+      "bytes": 13544,
+      "sha256": "54e7a01cdcbe7f515dffb337237d67a98e9667c36b01c377e899d34e3fec71ce",
+      "canonical_lf_sha256": "1873558da0f8a49605a0d9cbf8d89341e750f79add8e1f535fe6d10b7c53f5dd"
+    },
+    {
+      "path": "docs/backend/dr-maintenance-integration.md",
+      "bytes": 13788,
+      "sha256": "1e6413b3e6b306f1421cda3dcbf3435e3adf9344da4afe0f85180d77656bfd93",
+      "canonical_lf_sha256": "cfef4fce294e51c1c2e4c9fa9cd33412c3d15ae0958c4e312d879f65b7d02a84"
+    },
+    {
+      "path": "docs/backend/dr-stage3-deployment.md",
+      "bytes": 9686,
+      "sha256": "9ea8ca417a59cf2b5dddde571de8c897b50be1ac0784921fbd4c221f9f5c8bdb",
+      "canonical_lf_sha256": "587c2a68f3d6bd99554d95122b1c95e870317daf3dc1f3766b86e5165df43b83"
+    },
+    {
+      "path": "docs/backend/dr-pr196-trial-preparation.md",
+      "bytes": 15317,
+      "sha256": "04c06354ed08cb75af690892d9ee53792c3528e166bda3a4995dadfe1a34565d",
+      "canonical_lf_sha256": "04c06354ed08cb75af690892d9ee53792c3528e166bda3a4995dadfe1a34565d"
+    },
+    {
+      "path": "docs/backend/dr-pr196-approved-control-trial.md",
+      "bytes": 7834,
+      "sha256": "7cd52197b26ca5c5dd47bd6afa2f151501ecf6f02667e74435cc580f43e5bf55",
+      "canonical_lf_sha256": "7cd52197b26ca5c5dd47bd6afa2f151501ecf6f02667e74435cc580f43e5bf55"
+    },
+    {
+      "path": ".local/pr196_collector_path.py",
+      "bytes": 3833,
+      "sha256": "4c936ec2c54f4db3fa317451bf8afb8422a81b6aa92458eb31d4a9033d6d997b",
+      "canonical_lf_sha256": "4c936ec2c54f4db3fa317451bf8afb8422a81b6aa92458eb31d4a9033d6d997b"
+    },
+    {
+      "path": ".local/pr196_collector_policy.py",
+      "bytes": 7678,
+      "sha256": "4f8dddd7509ccbef2fcd45636031806528e4d8aea48f859f36b568c48e575ad7",
+      "canonical_lf_sha256": "4f8dddd7509ccbef2fcd45636031806528e4d8aea48f859f36b568c48e575ad7"
+    },
+    {
+      "path": ".local/test_pr196_collector_policy.py",
+      "bytes": 3692,
+      "sha256": "439427650d2345dead07da65274bd7e01c9cc7a663b0907e48bc4bfbda5d440a",
+      "canonical_lf_sha256": "439427650d2345dead07da65274bd7e01c9cc7a663b0907e48bc4bfbda5d440a"
+    },
+    {
+      "path": ".local/pr196_collector_network_window2.py",
+      "bytes": 5484,
+      "sha256": "1d6f027dc6db48839fb8538ab8de82aae795d753dd97ce5969c3de045344b0fa",
+      "canonical_lf_sha256": "1d6f027dc6db48839fb8538ab8de82aae795d753dd97ce5969c3de045344b0fa"
+    },
+    {
+      "path": ".local/test_pr196_collector_sg.py",
+      "bytes": 3776,
+      "sha256": "f9167649229134a6ff0b830e11cf324ef4c22d3494322997b322c083df0ac1a7",
+      "canonical_lf_sha256": "f9167649229134a6ff0b830e11cf324ef4c22d3494322997b322c083df0ac1a7"
+    },
+    {
+      "path": ".local/prepare_collector_probe.py",
+      "bytes": 2179,
+      "sha256": "beead81cc6c0f6911c4436b18c62858fe68fc3b82aa361bd97c0fde79b13aafc",
+      "canonical_lf_sha256": "beead81cc6c0f6911c4436b18c62858fe68fc3b82aa361bd97c0fde79b13aafc"
+    },
+    {
+      "path": ".local/pr196-collector-route-probe/main.go",
+      "bytes": 1733,
+      "sha256": "adcfa9f12adccdf60c8df0421ea6c1e6a623c2441adac8af26b1734f5b4ffdc9",
+      "canonical_lf_sha256": "adcfa9f12adccdf60c8df0421ea6c1e6a623c2441adac8af26b1734f5b4ffdc9"
+    },
+    {
+      "path": ".local/pr196_network_readonly.py",
+      "bytes": 1855,
+      "sha256": "1af3b785b26601fc5c712b00c21bdceb0c4ece98dc89adc6505e817b5a411332",
+      "canonical_lf_sha256": "1af3b785b26601fc5c712b00c21bdceb0c4ece98dc89adc6505e817b5a411332"
+    },
+    {
+      "path": ".local/pr196_classify_http.py",
+      "bytes": 2694,
+      "sha256": "5ee69bf8cc7b6c21f5ade3d4c215f6b3c62c4bcabf9f009fa7aed1ad01e8b607",
+      "canonical_lf_sha256": "5ee69bf8cc7b6c21f5ade3d4c215f6b3c62c4bcabf9f009fa7aed1ad01e8b607"
+    },
+    {
+      "path": ".local/pr196-artifact-read-probe/main.go",
+      "bytes": 3729,
+      "sha256": "2d16c7cd47b016d816f07c29ad99e1cc84844d03f20de8653582cc7da17f4a65",
+      "canonical_lf_sha256": "2d16c7cd47b016d816f07c29ad99e1cc84844d03f20de8653582cc7da17f4a65"
+    },
+    {
+      "path": ".local/pr196_rollout.py",
+      "bytes": 27315,
+      "sha256": "6302f1072416d6ba2e3010d9ede97307e48c593556aacc2a28decf74a325cc43",
+      "canonical_lf_sha256": "6302f1072416d6ba2e3010d9ede97307e48c593556aacc2a28decf74a325cc43"
+    },
+    {
+      "path": ".local/package_collector_path.py",
+      "bytes": 11952,
+      "sha256": "ed4bb6a48808dfc8996115a91a8ea718281e580799e8b7fda19bfbb9a012beb5",
+      "canonical_lf_sha256": "ed4bb6a48808dfc8996115a91a8ea718281e580799e8b7fda19bfbb9a012beb5"
+    },
+    {
+      "path": ".local/check_collector_format.go",
+      "bytes": 954,
+      "sha256": "3c49058c2870a8dff2b7fbfaf7da2b92becc77f6b83f63921014e20d2b66006d",
+      "canonical_lf_sha256": "3c49058c2870a8dff2b7fbfaf7da2b92becc77f6b83f63921014e20d2b66006d"
+    },
+    {
+      "path": ".local/collector_final_readonly.py",
+      "bytes": 1636,
+      "sha256": "645d5910af895a8dab95c61324253378567e72516b5bf9997e3dbafe357575a1",
+      "canonical_lf_sha256": "645d5910af895a8dab95c61324253378567e72516b5bf9997e3dbafe357575a1"
+    }
+  ]
+}

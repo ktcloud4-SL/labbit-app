@@ -1,0 +1,72 @@
+{
+  "source_head": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "real_authorization": false,
+  "network_or_key_or_database_io": false,
+  "checks": [
+    {
+      "binary": "labbit-dr-control",
+      "binary_sha256": "7340fd426876a660569fc94b896aac700d2281c1727397c558ab23505744ef1b",
+      "enable_execution": false,
+      "execute_flag": false,
+      "exit": 0,
+      "result": {
+        "Status": "PREVIEW_ONLY",
+        "Reason": "NO_EXTERNAL_IO",
+        "ExecutionGate": "HOLD",
+        "RecoveryAuthorized": false,
+        "CloudVerified": false,
+        "CommandID": "00000000-0000-4000-8000-000000000001",
+        "RequestSHA256": "769570d2143cb51e52c62c8ef44d897b89a0fddcd82861a24d8092a327ddfb94"
+      }
+    },
+    {
+      "binary": "labbit-dr-control",
+      "binary_sha256": "7340fd426876a660569fc94b896aac700d2281c1727397c558ab23505744ef1b",
+      "enable_execution": false,
+      "execute_flag": true,
+      "exit": 2,
+      "result": {
+        "Status": "NOT_VERIFIED",
+        "Reason": "EXECUTION_DISABLED",
+        "ExecutionGate": "HOLD",
+        "RecoveryAuthorized": false,
+        "CloudVerified": false,
+        "CommandID": "00000000-0000-4000-8000-000000000001",
+        "RequestSHA256": "769570d2143cb51e52c62c8ef44d897b89a0fddcd82861a24d8092a327ddfb94"
+      }
+    },
+    {
+      "binary": "labbit-dr-evidence",
+      "binary_sha256": "82c5cbe6fd642e6f883a8d510f9221b9bd03dc4f9723f2500078ce04ebf86a09",
+      "enable_execution": false,
+      "execute_flag": false,
+      "exit": 0,
+      "result": {
+        "Status": "PREVIEW_ONLY",
+        "Reason": "NO_EXTERNAL_IO_NO_KEY_READ",
+        "ExecutionGate": "HOLD",
+        "RecoveryAuthorized": false,
+        "CloudVerified": false
+      }
+    },
+    {
+      "binary": "labbit-dr-evidence",
+      "binary_sha256": "82c5cbe6fd642e6f883a8d510f9221b9bd03dc4f9723f2500078ce04ebf86a09",
+      "enable_execution": false,
+      "execute_flag": true,
+      "exit": 2,
+      "result": {
+        "Status": "NOT_VERIFIED",
+        "Reason": "EXECUTION_DISABLED",
+        "ExecutionGate": "HOLD",
+        "RecoveryAuthorized": false,
+        "CloudVerified": false
+      }
+    }
+  ],
+  "initial_attempt": {
+    "control": "legacy inspect input preview accepted",
+    "companion": "legacy inspect action rejected as INPUT_NOT_VERIFIED before IO; approve mode requires resume/init/pause",
+    "product_changed": false
+  }
+}

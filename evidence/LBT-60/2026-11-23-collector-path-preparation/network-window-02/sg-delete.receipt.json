@@ -1,0 +1,28 @@
+{
+  "at": "2026-11-23T05:40:16.900396+00:00",
+  "result": {
+    "Return": true,
+    "RevokedSecurityGroupRules": [
+      {
+        "SecurityGroupRuleId": "sgr-01ae0e2ff12d351ac",
+        "GroupId": "sg-0f2892420ca41dd8b",
+        "IsEgress": false,
+        "IpProtocol": "tcp",
+        "FromPort": 9090,
+        "ToPort": 9090,
+        "CidrIpv4": "10.0.21.58/32",
+        "Description": "PR196 temporary collector route 20261123 window02"
+      },
+      {
+        "SecurityGroupRuleId": "sgr-0dfc532f1f3042c25",
+        "GroupId": "sg-0f2892420ca41dd8b",
+        "IsEgress": false,
+        "IpProtocol": "tcp",
+        "FromPort": 9090,
+        "ToPort": 9090,
+        "CidrIpv4": "10.0.46.149/32",
+        "Description": "PR196 temporary collector route 20261123 window02"
+      }
+    ]
+  }
+}

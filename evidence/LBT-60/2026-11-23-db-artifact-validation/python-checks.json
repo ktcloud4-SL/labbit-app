@@ -1,0 +1,35 @@
+[
+  {
+    "name": "store-python",
+    "args": [
+      "C:\\Program Files (x86)\\Google\\Cloud SDK\\google-cloud-sdk\\platform\\bundledpython\\python.exe",
+      "-I",
+      "-X",
+      "utf8",
+      "-S",
+      "scripts/dr_control_artifact_store_test.py",
+      "-v"
+    ],
+    "at": "2026-11-23T06:23:13.943894+00:00",
+    "exit": 0,
+    "log": "store-python.log",
+    "scope": "local-no-AWS"
+  },
+  {
+    "name": "store-python-optimized",
+    "args": [
+      "C:\\Program Files (x86)\\Google\\Cloud SDK\\google-cloud-sdk\\platform\\bundledpython\\python.exe",
+      "-I",
+      "-X",
+      "utf8",
+      "-O",
+      "-S",
+      "scripts/dr_control_artifact_store_test.py",
+      "-v"
+    ],
+    "at": "2026-11-23T06:23:14.516169+00:00",
+    "exit": 0,
+    "log": "store-python-optimized.log",
+    "scope": "local-no-AWS"
+  }
+]

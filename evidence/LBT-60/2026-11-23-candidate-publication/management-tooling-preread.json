@@ -1,0 +1,18 @@
+{
+  "command_id": "8dc84b31-e773-4a0b-be95-2ca5de07f165",
+  "target": "i-0945680e04ad938cf",
+  "observed_at_utc": "2026-11-23T04:17:58.823489+00:00",
+  "status": "Success",
+  "execution_start": "2026-11-23T04:17:57.642Z",
+  "execution_end": "2026-11-23T04:17:57.642Z",
+  "read_only_script": "python3 - <<'PY'\nimport json,os,shutil\npaths=['/etc/pki/rds/global-bundle.pem','/opt/aws/rds/global-bundle.pem','/etc/ssl/certs/global-bundle.pem','/home/ec2-user/global-bundle.pem','/tmp/global-bundle.pem']\nprint(json.dumps(dict(psql=shutil.which('psql'),aws=shutil.which('aws'),python=shutil.which('python3'),rds_ca_candidates=[p for p in paths if os.path.isfile(p)],secret_or_database_access=False,changes=False)))\nPY",
+  "metadata": {
+    "psql": null,
+    "aws": "/usr/bin/aws",
+    "python": "/usr/bin/python3",
+    "rds_ca_candidates": [],
+    "secret_or_database_access": false,
+    "changes": false
+  },
+  "limit": "Executed tooling/CA metadata on dedicated DB-management EC2 only. No package install, secret access, SQL or service/config change."
+}

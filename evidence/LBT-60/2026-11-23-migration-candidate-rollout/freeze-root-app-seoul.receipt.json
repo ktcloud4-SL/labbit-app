@@ -1,0 +1,33 @@
+{
+  "at": "2026-11-23T05:10:24.525691+00:00",
+  "action": "freeze-root-app-seoul",
+  "result": {
+    "uid": "9da17971-0ea4-4149-a10d-d34c11539d62",
+    "spec": {
+      "destination": {
+        "namespace": "argocd",
+        "server": "https://kubernetes.default.svc"
+      },
+      "project": "default",
+      "sources": [
+        {
+          "directory": {
+            "jsonnet": {},
+            "recurse": true
+          },
+          "path": "apps/aws-seoul",
+          "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+          "targetRevision": "main"
+        }
+      ],
+      "syncPolicy": {
+        "syncOptions": [
+          "CreateNamespace=true"
+        ]
+      }
+    }
+  },
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false
+}

@@ -1,0 +1,36 @@
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+s=(ROOT/'.local/pr196-rollout-readonly-20261123/main.go').read_text(encoding='utf-8')
+s=s.replace('"crypto/tls"','"net/url"\n"github.com/jackc/pgx/v5/pgxpool"\n"github.com/ktcloud4-SL/labbit-app/internal/drcontrol"\nwc "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol"')
+other=(ROOT/'.local/pr196-artifact-read-probe/main.go').read_text(encoding='utf-8')
+p=other[other.index('p := drcontrol.Policy{'):other.index('\n\t\trunner :=')].replace('ArtifactBucket: ref.Bucket','ArtifactBucket: "labbit-osaka-dr-evidence-299311846289-trial01"')
+p=p.replace('Region: region,','Region: "ap-northeast-2",').replace('p :=','p :=',1)+'\n p.DatabaseTunnelPort=35432\n p.ArtifactRegion="ap-northeast-3"\n return p\n'
+s=s.replace('func config(dsn string, roots *x509.CertPool) (*pgx.ConnConfig, error) {', 'func probePolicy() drcontrol.Policy {\n'+p+'}\nfunc config(dsn string, roots *x509.CertPool) (*pgxpool.Config, error) {')
+start=s.index('\t// ParseConfig marks');end=s.index('\nfunc boundedRollback',start)
+s=s[:start]+''' u := &url.URL{Scheme:"postgres",Host:net.JoinHostPort(host,"5432"),Path:"/labbit_db",User:url.UserPassword(raw.User,raw.Password)}
+ q:=url.Values{}; q.Set("sslmode","verify-full");u.RawQuery=q.Encode()
+ cfg,e:=drcontrol.DatabaseConfig(probePolicy(),u.String())
+ raw.Password=""
+ if e!=nil{return nil,errors.New("PRODUCT_CONFIG_DENIED")}
+ cfg.ConnConfig.TLSConfig.RootCAs=roots
+ return cfg,nil
+}
+'''+s[end:]
+old='conn, e := pgx.ConnectConfig(ctx, cfg)\n\tcfg.Password = ""'
+new=''' pool,e:=pgxpool.NewWithConfig(ctx,cfg)
+ if e!=nil{return nil,errors.New("POOL_NOT_VERIFIED")}
+ defer pool.Close()
+ verifiedAt:=time.Now()
+ if drcontrol.VerifySQL(ctx,pool,probePolicy().Database)!=nil{return nil,errors.New("PRODUCT_VERIFY_SQL_DENIED")}
+ verifyMS:=time.Since(verifiedAt).Milliseconds()
+ acquired,e:=pool.Acquire(ctx)
+ if e!=nil{return nil,errors.New("POOL_ACQUIRE_DENIED")}
+ defer acquired.Release()
+ conn:=acquired.Conn()
+ cfg.ConnConfig.Password=""'''
+assert old in s;s=s.replace(old,new)
+s=s.replace('\tdefer boundedClose(conn)','')
+s=s.replace('result["migration_startup_timeouts_verified"] = true','result["migration_startup_timeouts_verified"] = false\nresult["product_database_config"] = true\nresult["product_verify_sql"] = true\nresult["product_verify_sql_elapsed_ms"] = verifyMS\nresult["product_database_tunnel_port"] = 35432\nresult["tls_exact_rds_servername_verified"] = cfg.ConnConfig.TLSConfig.ServerName==host && !cfg.ConnConfig.TLSConfig.InsecureSkipVerify\nresult["db_control_mutations"] = 0')
+s=s.replace('result["migration_pgoptions"] = migrationOptions','result["product_runtime_options"] = []string{"application_name=labbit-dr-control","search_path=pg_catalog,public"}')
+d=ROOT/'.local/pr196-product-db-probe';d.mkdir(exist_ok=True)
+(d/'main.go').write_text(s,encoding='utf-8',newline='\n')

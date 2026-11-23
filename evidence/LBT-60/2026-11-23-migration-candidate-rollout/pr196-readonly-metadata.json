@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-23T05:21:17.798Z",
+  "url": "https://github.com/ktcloud4-SL/labbit-app/pull/196",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "merged_at": null,
+  "base_sha": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "head_sha": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "branch": "codex/feat/LBT-60-dr-admission-block-20261119",
+  "note": "Metadata read-only; no PR update or merge by this task."
+}

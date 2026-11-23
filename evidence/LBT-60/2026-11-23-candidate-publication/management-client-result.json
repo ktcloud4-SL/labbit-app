@@ -1,0 +1,16 @@
+{
+  "command_id": "0c29e31d-de26-4c37-9de5-dbf87a643245",
+  "target": "i-0945680e04ad938cf",
+  "status": "Success",
+  "execution_start": "2026-11-23T04:21:21.858Z",
+  "execution_end": "2026-11-23T04:21:27.858Z",
+  "result": {
+    "status": "CLIENT_PREPARED",
+    "task_root": "/var/tmp/labbit-pr196-readonly-20261123",
+    "psycopg_version": "3.2.12",
+    "python_version": "3.9.25",
+    "ca_sha256": "90a6f1a7978a1b1b096dca6c57511ca48d3b8cf052f8e704baf358f34ea2f21b",
+    "global_packages_changed": false,
+    "secret_or_sql_access": false
+  }
+}

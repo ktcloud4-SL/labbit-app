@@ -1,0 +1,27 @@
+{
+  "at": "2026-11-23T05:10:25.322981+00:00",
+  "action": "freeze-backend",
+  "detail": {
+    "uid": "1819925b-e530-4ae7-85b8-81fb13451753",
+    "original_policy": {
+      "automated": {
+        "prune": true,
+        "selfHeal": true
+      },
+      "retry": {
+        "backoff": {
+          "duration": "10s",
+          "factor": 2,
+          "maxDuration": "3m"
+        },
+        "limit": 5
+      },
+      "syncOptions": [
+        "CreateNamespace=true",
+        "SkipDryRunOnMissingResource=true"
+      ]
+    }
+  },
+  "outcome": "INTENT",
+  "execution_gate": "HOLD"
+}

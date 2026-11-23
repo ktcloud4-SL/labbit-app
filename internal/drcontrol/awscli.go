@@ -94,8 +94,12 @@ func (a *AWSCLI) Read(ctx context.Context, r Reference) ([]byte, error) {
 	if a.policy.CheckReference(r) != nil {
 		return nil, ErrEvidence
 	}
+	region := a.policy.ArtifactRegion
+	if region == "" {
+		region = a.policy.Region
+	}
 	args := []string{"--bucket", r.Bucket, "--key", r.Key, "--version-id", r.VersionID, "--expected-bucket-owner", a.policy.AccountID}
-	b, e := a.call(ctx, "s3api", a.policy.Region, append([]string{"head-object"}, args...)...)
+	b, e := a.call(ctx, "s3api", region, append([]string{"head-object"}, args...)...)
 	if e != nil {
 		return nil, ErrEvidence
 	}
@@ -118,7 +122,7 @@ func (a *AWSCLI) Read(ctx context.Context, r Reference) ([]byte, error) {
 	}
 	get := append([]string{"get-object"}, args...)
 	get = append(get, "--if-match", meta.ETag, "--range", "bytes=0-"+strconv.FormatInt(r.Size-1, 10), name)
-	b, e = a.call(ctx, "s3api", a.policy.Region, get...)
+	b, e = a.call(ctx, "s3api", region, get...)
 	if e != nil {
 		return nil, ErrEvidence
 	}

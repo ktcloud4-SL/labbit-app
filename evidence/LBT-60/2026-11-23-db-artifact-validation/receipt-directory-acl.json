@@ -1,0 +1,25 @@
+{
+  "Owner": "LAPTOP-5ICSOOU4\\user",
+  "InheritanceDisabled": true,
+  "Rules": [
+    {
+      "Principal": "NT AUTHORITY\\SYSTEM",
+      "Type": "Allow",
+      "Rights": "FullControl",
+      "Inherited": false
+    },
+    {
+      "Principal": "BUILTIN\\Administrators",
+      "Type": "Allow",
+      "Rights": "FullControl",
+      "Inherited": false
+    },
+    {
+      "Principal": "LAPTOP-5ICSOOU4\\user",
+      "Type": "Allow",
+      "Rights": "FullControl",
+      "Inherited": false
+    }
+  ],
+  "Scope": "Local operator public-artifact receipt directory only; no cloud permission change"
+}

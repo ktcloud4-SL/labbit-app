@@ -1,5 +1,6 @@
 GO ?= go
 NPM ?= npm
+PYTHON ?= python3
 COMPOSE ?= docker compose
 
 # compose.yaml의 로컬 폐기용 dummy credential과 같은 값이다. 실제 Secret이 아니다.
@@ -19,7 +20,12 @@ setup: web-install
 	$(GO) mod download
 
 # 저장소 전체의 기본 검증 진입점이다.
-test: go-fmt-check go-vet go-test go-build web-typecheck web-lint web-test web-build
+test: go-fmt-check go-vet go-test go-build dr-control-store-test web-typecheck web-lint web-test web-build
+
+.PHONY: dr-control-store-test
+dr-control-store-test:
+	$(PYTHON) -I -X utf8 -S scripts/dr_control_artifact_store_test.py -v
+	$(PYTHON) -I -X utf8 -O -S scripts/dr_control_artifact_store_test.py -v
 
 go-fmt-check:
 	@files="$$(gofmt -l $$(find . -type f -name '*.go' -not -path './vendor/*'))"; \

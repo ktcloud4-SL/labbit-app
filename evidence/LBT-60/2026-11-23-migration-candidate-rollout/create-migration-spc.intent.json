@@ -1,0 +1,10 @@
+{
+  "at": "2026-11-23T05:10:34.283488+00:00",
+  "action": "create-migration-spc",
+  "detail": {
+    "name": "pr196-migration-dsn-20261123-01",
+    "version": "terraform-20261123001758077700000017"
+  },
+  "outcome": "INTENT",
+  "execution_gate": "HOLD"
+}

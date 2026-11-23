@@ -55,6 +55,8 @@ type Policy struct {
 	Actors                                                []Actor
 	ApprovalKeys, ObservationKeys                         []Key
 	ArtifactBucket, ArtifactPrefix                        string
+	ArtifactRegion                                        string `json:",omitempty"`
+	DatabaseTunnelPort                                    uint16 `json:",omitempty"`
 	ApprovalMaxSeconds, EvidenceMaxSeconds                int64
 	Database                                              Database
 	EnableExecution                                       bool
@@ -206,6 +208,12 @@ func Strict(b []byte, dst any) error {
 }
 
 func (p Policy) Validate() error {
+	if p.DatabaseTunnelPort != 0 && p.DatabaseTunnelPort < 1024 {
+		return ErrInput
+	}
+	if p.ArtifactRegion != "" && p.ArtifactRegion != "ap-northeast-2" && p.ArtifactRegion != "ap-northeast-3" {
+		return ErrInput
+	}
 	if p.CollectionPlanSHA256 != "" && !sha256Pattern.MatchString(p.CollectionPlanSHA256) {
 		return ErrInput
 	}

@@ -7,6 +7,7 @@ on:
     paths:
       - "**/*.go"
       - "internal/connector/provider/openstack/ktcloud_management_route*.py"
+      - "scripts/dr_control_artifact_store*.py"
       - "go.mod"
       - "go.sum"
       - "Makefile"
@@ -61,6 +62,9 @@ jobs:
 
       - name: Go build
         run: make go-build
+
+      - name: DR public artifact storage offline fixtures
+        run: make dr-control-store-test
 
       - name: KT management route Linux fixtures
         run: |

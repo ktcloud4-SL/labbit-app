@@ -1,0 +1,70 @@
+name: PR196 isolated candidate artifact
+on:
+  push:
+    branches:
+      - codex/build/LBT-60-pr196-candidate-20261123
+    paths:
+      - .github/workflows/pr196-isolated-candidate.yml
+permissions:
+  contents: read
+concurrency:
+  group: pr196-isolated-candidate-20261123
+  cancel-in-progress: false
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SOURCE_SHA: be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+      CANDIDATE: labbit-dr196:be4d0ba
+      DOCKER_BUILD_RECORD_UPLOAD: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+          persist-credentials: false
+      - name: Assert exact source
+        run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          mkdir -p /tmp/pr196-artifact
+          git ls-files -s Dockerfile .dockerignore go.mod go.sum db/migrations > /tmp/pr196-artifact/source-files.txt
+      - uses: docker/setup-buildx-action@v3
+      - name: Build exact Dockerfile without publication
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: labbit-dr196:be4d0ba
+          labels: |
+            org.opencontainers.image.revision=be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1
+            org.opencontainers.image.source=https://github.com/ktcloud4-SL/labbit-app
+            labbit.trial.scope=PR196-candidate-not-deployed
+      - name: Inspect and export candidate only
+        env:
+          BUILD_WORKFLOW_SHA: ${{ github.sha }}
+          BUILD_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          docker image inspect "$CANDIDATE" > /tmp/pr196-artifact/image-inspect.json
+          docker save "$CANDIDATE" -o /tmp/pr196-artifact/candidate.tar
+          sha256sum /tmp/pr196-artifact/candidate.tar > /tmp/pr196-artifact/candidate.tar.sha256
+          python3 - <<'PY'
+          import json, os
+          p='/tmp/pr196-artifact'
+          x=json.load(open(p+'/image-inspect.json'))[0]
+          assert x['Os']=='linux' and x['Architecture']=='amd64'
+          assert x['Config']['User']=='appuser'
+          assert x['Config']['Entrypoint']==['/app/labbit-server']
+          assert x['Config']['Labels']['org.opencontainers.image.revision']==os.environ['SOURCE_SHA']
+          json.dump(dict(source_sha=os.environ['SOURCE_SHA'],workflow_sha=os.environ['BUILD_WORKFLOW_SHA'],run_id=os.environ['BUILD_RUN_ID'],image_id=x['Id'],deployed=False,aws_credentials_used=False,gitops_changed=False),open(p+'/build-summary.json','w'),indent=2)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr196-be4d0ba-candidate
+          path: /tmp/pr196-artifact/
+          if-no-files-found: error
+          retention-days: 1

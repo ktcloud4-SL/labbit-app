@@ -1,0 +1,11 @@
+{
+  "at": "2026-11-23T05:35:24.691036+00:00",
+  "original_networkpolicy_unchanged": true,
+  "temporary_policy_absent": true,
+  "deployment_spec_unchanged": true,
+  "argo_specs_unchanged": true,
+  "backend_ready": 2,
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false
+}

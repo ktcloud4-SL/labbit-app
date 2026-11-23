@@ -1,0 +1,26 @@
+{
+  "official_download_url": "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/windows/SessionManagerPlugin.zip",
+  "version": "1.2.896.0",
+  "authenticode_status": "Valid",
+  "signer": "Amazon Web Services, Inc.",
+  "install_scripts_executed": false,
+  "service_registered": false,
+  "global_path_changed": false,
+  "files": [
+    {
+      "path": "plugin.zip",
+      "sha256": "b09adc18721b6e7a9888c98cb1a3aa55b681b8f12391fc1a983410cb1163f670",
+      "size": 4194161
+    },
+    {
+      "path": "portable/bin/session-manager-plugin.exe",
+      "sha256": "03e9f869cdcb41c02060a4e8f8a07faabaae05f9940ec221d4a010b481a9ae30",
+      "size": 10896608
+    },
+    {
+      "path": "portable/global-bundle.pem",
+      "sha256": "90a6f1a7978a1b1b096dca6c57511ca48d3b8cf052f8e704baf358f34ea2f21b",
+      "size": 174560
+    }
+  ]
+}

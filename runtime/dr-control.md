@@ -1,6 +1,6 @@
 # DR Worker 제어 운영 경계 v1 — opt-in 후보
 
-Owning Runtime 0.1.14 / LBT-59·60·205. `cmd/labbit-dr-control`은 별도 실행 파일이다.
+Owning Runtime 0.1.15 / LBT-59·60·205. `cmd/labbit-dr-control`은 별도 실행 파일이다.
 기본 preview에서는 JSON을 검사할 뿐 AWS·DB·S3·서비스에 접속하지 않는다. `--execute`와
 보호된 Policy의 `EnableExecution=true`가 모두 있어야 실제 adapter 경로에 진입한다.
 현재 실제 배포·승인 시스템·실환경 재점검 인수는 **미완료**다.
@@ -23,7 +23,17 @@ Policy에는 다음을 모두 명시한다. 기본 승인 TTL이나 운영자 al
   두 목적은 서로 다른 공개키 바이트를 요구한다. private key는 코드·예제·Git에 보관하지 않는다.
 - `ArtifactBucket/ArtifactPrefix`, `ApprovalMaxSeconds/EvidenceMaxSeconds`의 명시적 정책.
   1..86400초는 입력 상한일 뿐 운영 권고가 아니다. 실제 정책·시계 신뢰·변경 동결은 별도 확정한다.
+- 선택적 `ArtifactRegion`은 고정 버전 S3 Head/Get의 보관 리전이다. 허용 값은
+  `ap-northeast-2` 또는 `ap-northeast-3`이며 생략하면 기존 `Region`을 사용한다.
+  서울 제어·오사카 Evidence처럼 리전이 다르면 보호된 Policy에 명시한다. STS/Target의
+  제어 리전과 `Database.Region`은 바꾸지 않으며, 자동 리전 검색·실패 후 다른 리전 재시도는 없다.
+  Bucket/Prefix·owner·VersionID·크기·SHA 검증 및 권한 범위도 그대로 유지된다.
 - `Database`: 정확한 RDS ARN·DbiResourceId·리전·Host/Port/Name/User. 동일 account의 다른 DB도 거절한다.
+- 선택적 `DatabaseTunnelPort`: 0/생략은 기존 직접 연결, 1024..65535는 정확한
+  `127.0.0.1:<port>` TCP 운송만 사용한다. DSN의 Host/Port/DB/User와 TLS ServerName·CA 검증은
+  실제 RDS 대상을 그대로 요구한다. localhost DSN·TLS 생략·다른 host/network fallback은 없다.
+  터널은 도구가 만들지 않는다. 운영자가 exact SSM target/document/remote RDS host·5432와
+  로컬 포트 독점·세션 수명주기를 확인해야 한다. 로컬 포트 연결만으로 RDS 신원을 인정하지 않는다.
 
 모든 호출은 STS 신원을 검사한다. 기존 APPLIED/INTENT의 조회와 inspect도 인증 전에 journal에 접근하지 않는다.
 inspect는 역사적 receipt 조회이며 입력은 원래 ResumeRequest 그대로다. 새 상태 활성화·재배포를 수행하지 않는다.
@@ -53,8 +63,18 @@ WorkReconciled PASS도 필요하다. 이 입력은 **서명자가 실제 수집�
 
 AWS adapter는 STS GetCallerIdentity, 고정 버전 S3 Head/Get, RDS Describe만 수행한다.
 공식 endpoint를 고정하고 shell을 사용하지 않는다. SDK default retry 대신 AWS CLI max attempts1,
-호출 context2초·CLI connect/read1초를 적용한다. 기존 Resumer의 전체 callback2초보다 늦으면 HOLD다.
-Head·Get 2회가 포함되므로 실환경 지연/인증 갱신 동작은 별도 측정해야 한다.
+호출 context2초·CLI connect/read1초를 적용한다. 기존 Resumer의 callback2초는 유지한다.
+새 init/Pause/Resume는 인증→역사적 journal 조회 후에만 승인/관측의 정확한 고정 버전 바이트를
+최대 8초 안에 준비한다. Resume는 2개, 제한 명령은 승인1개다. 전체 CLI15초·현재 TTL을 연장하지 않는다.
+준비 중 만료·원본 불일치·조회 실패면 신규 INTENT를 만들지 않는다. 준비 뒤 내부 Inspect/CAS로
+경쟁 명령을 다시 확인하며 과거 APPLIED/INTENT·inspect는 원본을 다시 내려받지 않는다.
+2초 콜백에서는 요청별 바이트 사본의 signature/purpose·request·대상·**현재** TTL을 다시 판정한다.
+서명/TTL/신원/GO 결과를 캐시하지 않으며 호출 종료 시 바이트를 비운다. 누락 시 네트워크 fallback도 없다.
+다운로드 뒤 IAM 회수나 객체 삭제 여부는 이 invocation의 콜백에서 재조회하지 않는다는 한계가 있다.
+긴급 폐기는 보호된 Policy의 key/Actor 제거·실행 opt-in 중지와 별도 운영 통제로 처리한다.
+이미 시작한 invocation은 Policy도 snapshot이므로 파일 변경만으로 즉시 회수되지 않는다.
+즉시 중단은 운영 프로세스·DB 접근 등 별도 통제를 사용하고, INTENT 유무를 먼저 조사한다.
+이 바이트 snapshot 의미를 수용할 수 없는 시험은 실행하지 않는다. AWS 지연/인증 갱신은 별도 관측한다.
 artifact 원본은 exclusive 임시파일에 수집하고 원본 hash 확인 후 정확한 파일만 정리한다.
 
 RDS exact ARN/ResourceId/endpoint/available/postgres를 확인한 뒤, DSN은 TLS hostname/CA 검증과
@@ -142,6 +162,28 @@ SingleWriter/Fencing/Provider 정산에는 별도의 trusted collector가 발행
 
 기존 ReplicaLag FAIL·네 가지 NOT_VERIFIED·execution_gate=HOLD·recovery_authorized=false·
 cloud_verified=false는 모든 CLI 결과에서 유지한다. 이 도구의 APPLIED와 전체 DR GO는 별개다.
+
+## 승인 원본 보관용 별도 운영 도구
+
+`scripts/dr_control_artifact_store.py --plan <JSON> --source <absolute-public-signed.json>
+--receipt <absolute-receipt.json>`는 별도 도구이며 기본 preview다. `--execute`와 Plan의
+`enable_upload=true`, exact STS user/account, 최대1시간 UTC 작업창이 모두 필요하다.
+`labbit-dr-control`/`labbit-dr-evidence` 자체는 계속 S3를 쓰지 않는다.
+Plan은 고정 bucket/prefix/key/region/owner·원본 크기/SHA·보존 검토 UTC를 명시한다.
+공개 Signed envelope의 shape만 검사한다. 승인 권한·서명·purpose·TTL의 수락은 제어 consumer 책임이다.
+개인키·DSN·Secret은 입력하지 않는다. 공개 원본을 재직렬화하지 않고 정확한 바이트를 저장한다.
+
+운영자가 신뢰할 수 있는 로컬 영속 디렉터리·소유자 ACL을 먼저 준비한다. Plan/source/receipt의 부모와
+실행 파일은 같은 신뢰 경계다. receipt lock은 exclusive이며 crash 후 남으면 수동 조사한다.
+fsync한 INTENT→PUT 직전 작업창 재검사→`If-None-Match:*`·AES256·전송 checksum으로 1회 생성→
+VersionId 기록→지정 버전 재조회와 정확한 바이트 비교 순서다. PUT 응답 불명/metadata 오류는 UNKNOWN/HOLD다.
+기존 INTENT/UNKNOWN은 PUT하지 않는다. STORED/READBACK_VERIFIED는 **기록된 버전만 재조회**할 수 있다.
+receipt/lock 삭제·새 Key로 변경하는 것은 불명 PUT을 재시도할 근거가 아니다.
+원본/receipt 손상·로컬 저장장치의 완전한 전원 손실 durability는 별도 운영 위험이며 자동 재시도하지 않는다.
+
+보존 기간은 작업창 종료보다 최소30일 이후로 명시하지만 lifecycle/Object Lock을 설정하거나 삭제하지 않는다.
+수동 보존 담당·비용·기한·독립 Reader 인수는 별도다. 버전관리·조건부 생성은 관리자 삭제 방지가 아니다.
+11/23 실측은 만료·SIMULATION 샘플2건의 저장/읽기 범위이며 실제 운영 승인·전체 DR 인수가 아니다.
 
 공식 AWS 명령 근거: [S3 고정 버전 조회](https://docs.aws.amazon.com/cli/latest/reference/s3api/get-object.html),
 [RDS 식별 조회](https://docs.aws.amazon.com/cli/latest/reference/rds/describe-db-instances.html).

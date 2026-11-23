@@ -1,0 +1,25 @@
+{
+  "observed_at_utc": "2026-11-23T04:11:18.358983+00:00",
+  "created": true,
+  "actor": "arn:aws:iam::299311846289:user/admin3",
+  "repository": {
+    "repositoryArn": "arn:aws:ecr:ap-northeast-2:299311846289:repository/backend-dr196-trial",
+    "registryId": "299311846289",
+    "repositoryName": "backend-dr196-trial",
+    "repositoryUri": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial",
+    "createdAt": "2026-11-23T13:11:18.355000+09:00",
+    "imageTagMutability": "IMMUTABLE",
+    "imageScanningConfiguration": {
+      "scanOnPush": true
+    },
+    "encryptionConfiguration": {
+      "encryptionType": "AES256"
+    }
+  },
+  "existing_backend_repository_changed": false,
+  "iam_changed": false,
+  "deployed": false,
+  "owner": "seobin",
+  "retention": "Keep for PR196 partial trial/QA; review within 7 days; no automatic expiry/deletion configured",
+  "cleanup": "Separate explicit approval after trial/QA and no remaining users; not performed"
+}

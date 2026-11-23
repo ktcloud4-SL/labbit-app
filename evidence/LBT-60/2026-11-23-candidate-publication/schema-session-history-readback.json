@@ -1,0 +1,11 @@
+[
+    {
+        "SessionId": "admin3-8j89n6ezjjl5vuz3cc698atlde",
+        "Status": "Terminated",
+        "StartDate": "2026-11-23T13:34:12.680000+09:00",
+        "EndDate": "2026-11-23T13:34:44.175000+09:00",
+        "Owner": "arn:aws:iam::299311846289:user/admin3",
+        "Target": "i-0945680e04ad938cf",
+        "DocumentName": "AWS-StartPortForwardingSessionToRemoteHost"
+    }
+]

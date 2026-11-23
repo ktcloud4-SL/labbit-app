@@ -1,5 +1,10 @@
 # Labbit Runtime Contract
 
+**v0.1.15 후보:** DR 운영 도구에 선택적 ArtifactRegion·TLS 신원을 유지하는 loopback DB 운송,
+8초 원본 바이트 준비와 기존 2초 콜백 재검증, 별도 공개 원본 조건부 보관 도구를 명시합니다.
+키/정책·바이트 snapshot의 한계와 수동 보존을 구분합니다. 현재 서울 이미지는 기존 main의 기본 모드이며,
+앞서 게시한 be4d0ba 후보도 v0.1.14 소스입니다. 이 로컬 v0.1.15 보완은 배포·병합하지 않았습니다.
+
 **v0.1.14 후보:** 명시 승인된 DR init/Pause journal, 목적별 보호 키 서명과 읽기 전용 Pod/DB collector를 추가합니다. 비공개 Admin `GET /dr-control/status`는 persistent control opt-in일 때만 제공됩니다. 세부 계약은 [DR 운영 경계](./dr-control.md)를 따릅니다. 실제 배포/키 운영/Writer Fencing 검증은 미완료입니다.
 
 **v0.1.8 변경:** trusted infrastructure operator 전용 `labbit-recover-failed-provision`과

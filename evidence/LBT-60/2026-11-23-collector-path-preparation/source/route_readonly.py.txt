@@ -1,0 +1,54 @@
+"""Read-only route diagnosis; no changes, credential reads, or shell commands."""
+import datetime as dt
+import importlib.util
+import json
+from pathlib import Path
+import subprocess
+
+ROOT = Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location('rollout', ROOT / '.local/pr196_rollout.py')
+r = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(r)
+OUT = ROOT / 'evidence/LBT-60/2026-11-23-collector-path-preparation'
+
+def main():
+    actor = r.identity()
+    stamp = dt.datetime.now(dt.timezone.utc).strftime('%H%M%S')
+    cluster = r.aws('eks', 'describe-cluster', '--name', 'labbit-seoul-cluster')['cluster']
+    assert cluster['arn'] == 'arn:aws:eks:ap-northeast-2:299311846289:cluster/labbit-seoul-cluster'
+    d = r.deployment()
+    rs = r.kube('get', 'replicasets', '-n', 'labbit', '-o', 'json')['items']
+    owned = {v['metadata']['uid'] for v in rs if any(o['uid'] == d['metadata']['uid'] for o in v['metadata'].get('ownerReferences', []))}
+    allpods = r.kube('get', 'pods', '-n', 'labbit', '-o', 'json')['items']
+    pods = [v for v in allpods if any(o['uid'] in owned for o in v['metadata'].get('ownerReferences', [])) and not v['metadata'].get('deletionTimestamp')]
+    assert len(pods) == 2
+    netpols = r.kube('get', 'networkpolicies', '-n', 'labbit', '-o', 'json')
+    group = cluster['resourcesVpcConfig']['clusterSecurityGroupId']
+    enis = r.aws('ec2', 'describe-network-interfaces', '--filters', 'Name=group-id,Values=' + group)['NetworkInterfaces']
+    routes = []
+    for pod in pods:
+        observations = {}
+        for name, args in [
+            ('proxy_livez', ('get', '--raw', '/api/v1/namespaces/labbit/pods/' + pod['metadata']['name'] + ':9090/proxy/livez')),
+            ('proxy_status', ('get', '--raw', '/api/v1/namespaces/labbit/pods/' + pod['metadata']['name'] + ':9090/proxy/dr-control/status')),
+        ]:
+            try:
+                body = r.kube(*args, text=True, timeout=5)
+                observations[name] = {'result': 'HTTP_SUCCESS', 'body': body}
+            except (RuntimeError, subprocess.TimeoutExpired):
+                observations[name] = {'result': 'NOT_VERIFIED', 'reason': 'READ_FAILED_OR_TIMEOUT'}
+        routes.append({'name': pod['metadata']['name'], 'uid': pod['metadata']['uid'], 'labels': pod['metadata']['labels'],
+                       'ip': pod['status'].get('podIP'), 'host_ip': pod['status'].get('hostIP'),
+                       'containers': pod['status'].get('containerStatuses'), 'probes': observations})
+    v = {'at': r.now(), 'actor': actor, 'deployment_uid': d['metadata']['uid'], 'deployment_spec_sha256': __import__('hashlib').sha256(json.dumps(d['spec'], sort_keys=True).encode()).hexdigest(),
+         'image': d['spec']['template']['spec']['containers'][0]['image'], 'pods': routes,
+         'cluster': {k: cluster[k] for k in ('arn', 'endpoint', 'resourcesVpcConfig')},
+         'enis': [{k: v.get(k) for k in ('NetworkInterfaceId', 'Description', 'InterfaceType', 'Status', 'RequesterManaged', 'PrivateIpAddress', 'PrivateIpAddresses', 'Groups', 'SubnetId', 'VpcId', 'Attachment')} for v in enis],
+         'networkpolicies': netpols, 'all_pod_roster': [{'name': v['metadata']['name'], 'uid': v['metadata']['uid'], 'phase': v['status']['phase'], 'deleting': bool(v['metadata'].get('deletionTimestamp'))} for v in allpods],
+         'execution_gate': 'HOLD', 'cloud_verified': False, 'recovery_authorized': False, 'mutations': []}
+    r.save(OUT, 'readonly-route-' + stamp + '.json', v)
+    print(json.dumps({'pods': [{'name': p['name'], 'probes': p['probes']} for p in routes], 'policies': [p['metadata']['name'] for p in netpols['items']],
+                      'enis': [{'description': e['Description'], 'private_ip': e.get('PrivateIpAddress')} for e in enis]}))
+
+if __name__ == '__main__':
+    main()

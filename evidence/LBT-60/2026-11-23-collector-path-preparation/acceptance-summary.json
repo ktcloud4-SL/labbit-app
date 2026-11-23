@@ -1,0 +1,21 @@
+{
+  "scope": "COLLECTOR_ROUTE_DIAGNOSIS_AND_OPTIONAL_ARTIFACT_REGION_ONLY",
+  "status": "PASS_SCOPED",
+  "temporary_network_resources_remaining": 0,
+  "original_network_config_restored": true,
+  "backend_ready": 2,
+  "s3_fixed_version_read_matches": true,
+  "s3_request_context_seconds": 8,
+  "postfix_head_get_elapsed_ms": 2430,
+  "resume_callback_2second_budget_verified": false,
+  "full_collector_verified": false,
+  "live_pause_resume_ready": false,
+  "init_pause_resume_executed": false,
+  "database_cli_route_verified": false,
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false,
+  "pushed": false,
+  "merged": false,
+  "slack_sent": false
+}

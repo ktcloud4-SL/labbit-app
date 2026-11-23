@@ -1,0 +1,6 @@
+{
+  "host": "labbit-seoul-rds.c1664mmc0jot.ap-northeast-2.rds.amazonaws.com",
+  "tcp_5432": "NOT_VERIFIED_DNS_OR_ROUTE_OR_FIREWALL",
+  "elapsed_ms": 2037,
+  "tls_or_sql_verified": false
+}

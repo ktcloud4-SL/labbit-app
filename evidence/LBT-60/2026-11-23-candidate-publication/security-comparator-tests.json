@@ -1,0 +1,36 @@
+{
+  "scope": "Exact workflow shell check, fake apk comparator only; no Docker/AWS",
+  "cases": [
+    {
+      "output": "=",
+      "comparator_exit": 0,
+      "accepted": true,
+      "expected": true
+    },
+    {
+      "output": ">",
+      "comparator_exit": 0,
+      "accepted": true,
+      "expected": true
+    },
+    {
+      "output": "<",
+      "comparator_exit": 0,
+      "accepted": false,
+      "expected": false
+    },
+    {
+      "output": "",
+      "comparator_exit": 0,
+      "accepted": false,
+      "expected": false
+    },
+    {
+      "output": "=",
+      "comparator_exit": 2,
+      "accepted": false,
+      "expected": false
+    }
+  ],
+  "passed": 5
+}

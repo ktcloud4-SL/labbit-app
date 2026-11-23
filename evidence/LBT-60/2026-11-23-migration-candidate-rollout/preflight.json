@@ -1,0 +1,59 @@
+{
+  "at": "2026-11-23T05:03:21.204288+00:00",
+  "actor": {
+    "UserId": "AIDAULMDAKOI7AY6MJNYD",
+    "Account": "299311846289",
+    "Arn": "arn:aws:iam::299311846289:user/admin3"
+  },
+  "deployment_uid": "88a17177-492f-41db-b097-a80a6a18a475",
+  "baseline_image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+  "candidate_image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial@sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469",
+  "ready_replicas": 2,
+  "maintenance": {
+    "mode": "open"
+  },
+  "rds": {
+    "DBInstanceArn": "arn:aws:rds:ap-northeast-2:299311846289:db:labbit-seoul-rds",
+    "DBInstanceStatus": "available",
+    "DbiResourceId": "db-KWJO4NMALL7V77AC3LWW2EGH2Y",
+    "LatestRestorableTime": "2026-11-23T04:57:42+00:00",
+    "BackupRetentionPeriod": 7
+  },
+  "image": {
+    "imageDetails": [
+      {
+        "registryId": "299311846289",
+        "repositoryName": "backend-dr196-trial",
+        "imageDigest": "sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469",
+        "imageTags": [
+          "trial-pr196-be4d0ba-run45113446633-zlib14"
+        ],
+        "imageSizeInBytes": 18884795,
+        "imagePushedAt": "2026-11-23T13:45:12.214000+09:00",
+        "imageManifestMediaType": "application/vnd.docker.distribution.manifest.v2+json",
+        "artifactMediaType": "application/vnd.docker.container.image.v1+json",
+        "lastRecordedPullTime": "2026-11-23T13:45:12.467000+09:00",
+        "imageStatus": "ACTIVE"
+      }
+    ]
+  },
+  "scan": {
+    "imageScanFindings": {
+      "findings": [],
+      "imageScanCompletedAt": "2026-11-23T13:45:19+09:00",
+      "vulnerabilitySourceUpdatedAt": "2026-11-23T13:45:19+09:00",
+      "findingSeverityCounts": {}
+    },
+    "registryId": "299311846289",
+    "repositoryName": "backend-dr196-trial",
+    "imageId": {
+      "imageDigest": "sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469"
+    },
+    "imageScanStatus": {
+      "status": "COMPLETE",
+      "description": "The scan was completed successfully."
+    }
+  },
+  "source": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "execution_gate": "HOLD"
+}

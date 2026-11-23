@@ -1,4 +1,4 @@
-version: "0.1.14"
+version: "0.1.15"
 kind: "LabbitRuntimeContract"
 
 scope:
@@ -49,8 +49,17 @@ artifacts:
     executable: "labbit-dr-control"
     lifecycle: "trusted operator one-shot; default preview, no external I/O"
     contract: "runtime/dr-control.md"
-    status: "operator restriction/collector/signing candidate; mock and disposable PostgreSQL only; deployment not accepted"
+    status: "operator candidate; scoped read-only RDS/S3 path observed; actual durable control deployment not accepted"
     commands: [init, pause, inspect-restriction, resume, inspect]
+    optional_policy:
+      ArtifactRegion: "ap-northeast-2 or ap-northeast-3; absent means control Region; fixed S3 endpoint only"
+      DatabaseTunnelPort: "0/absent direct; 1024..65535 exact 127.0.0.1 TCP transport; original RDS DSN target and TLS identity unchanged"
+    artifact_preparation: >-
+      Authenticate and read historical receipt first. Only a new command fetches exact immutable approval/observation bytes,
+      bounded to 8s per invocation. Callback2s and CLI15s are unchanged; signature/purpose/request/current TTL are rechecked.
+      Inner Inspect/CAS remains after preparation. Historical APPLIED/INTENT never redownloads artifacts.
+      Bytes and already-loaded Policy are snapshots; later IAM revocation/object deletion/Policy edits are not re-queried.
+      No cross-invocation cache or timeout extension. Urgent revocation requires separate operational control.
     authority: >-
       보호된 로컬 Policy의 exact STS Account/ARN/Principal/Scope/Action allowlist를 확인합니다.
       새 Resume는 별도 Ed25519 승인·관측 키, 고정 S3 VersionId·원본 SHA·크기 및 요청 binding/TTL을 검증합니다.
@@ -83,6 +92,19 @@ artifacts:
       Admin readback은 persistent control을 명시한 process에서만 제공하며 public/peer listener에는 mount하지 않습니다.
       protected config/executable/credential plugin의 운영자 소유, 변경 동결 및 scope 밖 Pod/Job 경로 검토는 배포 선행조건입니다.
       키 생성/배포/회전 및 실제 전체 Pod/Provider/Fencing 실측은 이 오프라인 구현의 인수가 아닙니다.
+  dr_control_artifact_store:
+    script: "scripts/dr_control_artifact_store.py"
+    lifecycle: "operator one-shot; preview default; never executes control"
+    contract: "runtime/dr-control.md"
+    authority: >-
+      Exact IAM user/account, explicit Plan opt-in and UTC window; trusted operator owns Plan/source/receipt directories.
+      OS ACL is an operational prerequisite, not automatically verified by this script. Public signed documents only;
+      shape/archive success does not authenticate a signature or authorize a control request.
+    boundaries: >-
+      Durable local INTENT and exclusive lock precede one conditional If-None-Match PUT with AES256/checksum.
+      Window is rechecked immediately before PUT. UNKNOWN/INTENT never auto-retries; STORED can only read recorded VersionId.
+      Exact-version Head full size/encryption and Get raw-byte equality are required. Retention is manual, not Object Lock.
+      No IAM/bucket policy changes, private key upload, DB control, automatic deletion, Slack, or DR GO.
   failed_provision_recovery:
     executable: "labbit-recover-failed-provision"
     lifecycle: "trusted operator one-shot; default dry-run"

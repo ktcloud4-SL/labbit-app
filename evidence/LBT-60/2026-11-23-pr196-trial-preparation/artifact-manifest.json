@@ -1,0 +1,142 @@
+{
+  "schema": "labbit.preparation.artifacts.v1",
+  "source_head": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "self_excluded": true,
+  "files": [
+    {
+      "path": "docs/backend/dr-stage3-deployment.md",
+      "size": 8864,
+      "sha256": "65369809c30ea36fdf3b7d09e95099d18b6780625662e9564b01b94a50a68080"
+    },
+    {
+      "path": "docs/backend/dr-maintenance-integration.md",
+      "size": 13159,
+      "sha256": "e3f8c25b6a9832f8d69a929f0e122192e89986f7cef58b6ffbc2dbb43a1f4682"
+    },
+    {
+      "path": "docs/backend/dr-pr196-trial-preparation.md",
+      "size": 11106,
+      "sha256": "d3e1ddc9a91c3e6cf94ce31df595967455687df20c109ddf210e59fad27e0cde"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/.gitattributes",
+      "size": 47,
+      "sha256": "24cd690f12e5b0b248d61bb9a38cb37a7fe356a43463c89ae47fb841712787c9"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/AUDIT.md",
+      "size": 9410,
+      "sha256": "b2538b2a5c9cd2bdbdb75a42b7a17aca55d7e0a390a75c9b248176bcf07c3e53"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/finalize-readonly.py.txt",
+      "size": 4349,
+      "sha256": "9fad7b29f3348a45536615cfe0eeb842b4ca50084a2ae4cca5f41f60947f92e1"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/independent-review.md",
+      "size": 10900,
+      "sha256": "9fd1e13010080b0a42079cc7917d80b4580038cf13ee74130836628c02082280"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/local-checks.json",
+      "size": 1978,
+      "sha256": "dc940d1a54872b2ac346b14949e903b2e80c16943a828fc69211faaee990eaeb"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/migration-source-manifest.json",
+      "size": 7426,
+      "sha256": "c95fb9d1a198bb2b388481eb03a7bcf9eb5966307000157945d912d1d5dffe79"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/post-readonly-baseline.json",
+      "size": 3445,
+      "sha256": "9d73bc2c0264aac9468eb7a2abf0637de3cbb05180bdee0e24d1e1bb15bc173c"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/preparation-plan.draft.json",
+      "size": 11506,
+      "sha256": "46b3eb56174cb95378db0979b8d4541729419870d5f8c4120627e8a76e191cd8"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/prepare-packet.py.txt",
+      "size": 7200,
+      "sha256": "aa99769e0c9d61dde24fa7ba8b037bda5c013f6a7fe94c565edbabe8dfbf43e6"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/preview-fixture-input.json",
+      "size": 1186,
+      "sha256": "79b4ae0f5e0c42e58ab3e92c205d716c20775f3d637e79e5e68ec91b9a4103c6"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/preview-fixture-policy.json",
+      "size": 1334,
+      "sha256": "f1aaedc6998630b4676589d973487a1432db940990225e91340416a6358a1432"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/preview-results.json",
+      "size": 2388,
+      "sha256": "0dcd89b2ce9c15e3843197bb67b72ebdb04a1e72983ef3b5e6c4eb418c81b422"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/README.md",
+      "size": 3480,
+      "sha256": "5f989af23142ea7829bbebf7cf9d85614a34d274d7e86d842c9ddd17d31b498d"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/readonly-collector.py.txt",
+      "size": 9102,
+      "sha256": "64168806e3b691fc9405b55c3ab29e27e65a865664e64a41fdd9e39b65750fa3"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/readonly-command-inventory.initial.json",
+      "size": 6983,
+      "sha256": "47fe1b014fa5195196cfb6b43d570316079c1656154f95e493fd514c4803f37b"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/readonly-command-inventory.json",
+      "size": 6969,
+      "sha256": "47746870b41561601d8bacd2ac7676000595f2db2a50235f437c8bd13f68da7e"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/readonly-observations.initial.json",
+      "size": 19374,
+      "sha256": "7fa5993629f79f331873adb54bac0c9035d3e57014b2d0817c6c4ff287a7ce32"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/readonly-observations.json",
+      "size": 19546,
+      "sha256": "b1567f94925d011ff4d7c9a3ade7ef696f9567a341941f0c46a9f536aa771ff5"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/schema-readonly.sql",
+      "size": 786,
+      "sha256": "6c1c3095c1614b928ee69e13495507e3b4655967cb1f385be5d0dd5c0f729e2f"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/source-manifest.json",
+      "size": 2691,
+      "sha256": "15b8c759571ff0c8dd6089445d0ec2d72741c455db83f1580f7e52204dfd9761"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/ssot-reviewed.json",
+      "size": 4005,
+      "sha256": "46deb0e58a3f5337be4cfd8712e8e875879268193fd703b8e3c392377b19e7c8"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/static-validation.json",
+      "size": 483,
+      "sha256": "cc0eb372cd843083b2a77da756b69a32480d2c97377bc1675c3c634caaab78f2"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/supplemental-readonly-summary.json",
+      "size": 839,
+      "sha256": "a7b8b629196b84a0b6eb9e2797786b0a87cc2ef6d6c6b1e20e767148867a2219"
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/validation.json",
+      "size": 1006,
+      "sha256": "d771fc3e73950f0e040d346683c255abd47f6423773b45970de3545b3a73a088"
+    }
+  ]
+}

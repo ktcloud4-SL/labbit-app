@@ -1,0 +1,69 @@
+from pathlib import Path
+from datetime import datetime,timezone
+from concurrent.futures import ThreadPoolExecutor
+import hashlib,json,os,shutil,subprocess
+R=Path(r'C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-stage3-live-prep-20261123')
+E=R/'evidence/LBT-60/2026-11-23-candidate-publication'
+AWS=r'C:/Users/user/AppData/Local/Programs/Amazon/AWSCLIV2/aws.exe'
+K=r'C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt60-ssm-preflight-tools/kubectl.exe'
+KC=r'C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt60-live-readiness-20261123/seoul.kubeconfig'
+env={k:v for k,v in os.environ.items() if not k.upper().startswith('AWS_ENDPOINT_URL')}
+env.update(AWS_PAGER='',AWS_CLI_AUTO_PROMPT='off',AWS_IGNORE_CONFIGURED_ENDPOINT_URLS='true',AWS_MAX_ATTEMPTS='1')
+def aws(svc,op,*args):
+ region='us-east-1' if svc=='iam' else 'ap-northeast-2'
+ endpoint='https://iam.amazonaws.com' if svc=='iam' else 'https://'+svc+'.'+region+'.amazonaws.com'
+ return [AWS,svc,op,*args,'--profile','labbit-admin3','--region',region,'--endpoint-url',endpoint,'--output','json','--no-cli-pager']
+def kube(*args):return [K,'--kubeconfig',KC,'--request-timeout=10s',*args]
+ops={
+ 'management_role_policy_metadata':aws('iam','list-attached-role-policies','--role-name','labbit-seoul-db-management'),
+ 'management_role_inline_metadata':aws('iam','list-role-policies','--role-name','labbit-seoul-db-management'),
+ 'management_secret_policy_simulation':aws('iam','simulate-principal-policy','--policy-source-arn','arn:aws:iam::299311846289:role/labbit-seoul-db-management','--action-names','secretsmanager:GetSecretValue','--resource-arns','arn:aws:secretsmanager:ap-northeast-2:299311846289:secret:labbit/seoul/rds-dsn-o4Rgr7','--query','EvaluationResults[].{action:EvalActionName,decision:EvalDecision,missingContext:MissingContextValues}'),
+ 'candidate_scan':aws('ecr','describe-image-scan-findings','--repository-name','backend-dr196-trial','--image-id','imageDigest=sha256:9dc273e94c1b22427059b2b246e3757b5a6f44d31a0abaa2ef858f62ccec6fac','--query','{status:imageScanStatus,completed:imageScanFindings.imageScanCompletedAt,severities:imageScanFindings.findingSeverityCounts}'),
+ 'backend_deployment':kube('get','deployment','backend','-n','labbit','-o','json'),
+ 'backend_pods':kube('get','pods','-n','labbit','-o','json'),
+ 'backend_replicasets':kube('get','replicasets','-n','labbit','-o','json'),
+ 'maintenance':kube('get','configmap','backend-config','-n','labbit','-o','json'),
+ 'session_history':aws('ssm','describe-sessions','--state','History','--filters','key=Target,value=i-0945680e04ad938cf','--query',"Sessions[?SessionId=='admin3-8j89n6ezjjl5vuz3cc698atlde'].{SessionId:SessionId,Status:Status,Owner:Owner,Target:Target,StartDate:StartDate,EndDate:EndDate}"),
+ 'session_active':aws('ssm','describe-sessions','--state','Active','--filters','key=Target,value=i-0945680e04ad938cf','--query',"Sessions[?SessionId=='admin3-8j89n6ezjjl5vuz3cc698atlde'].{SessionId:SessionId,Status:Status}"),
+}
+def call(item):
+ name,args=item;p=subprocess.run(args,env=env,capture_output=True,timeout=30)
+ record=dict(observed_at_utc=datetime.now(timezone.utc).isoformat(),exit_code=p.returncode)
+ if p.returncode:record.update(status='NOT_VERIFIED',raw_error_not_saved=True)
+ else:
+  v=json.loads(p.stdout)
+  if name=='backend_deployment':v=dict(uid=v['metadata']['uid'],generation=v['metadata']['generation'],status={k:v.get('status',{}).get(k) for k in ['replicas','readyReplicas','updatedReplicas','availableReplicas']},images=[x['image'] for x in v['spec']['template']['spec']['containers']])
+  if name=='backend_pods':v=[dict(name=x['metadata']['name'],uid=x['metadata']['uid'],owners=x['metadata'].get('ownerReferences',[]),phase=x.get('status',{}).get('phase'),containers=[{k:c.get(k) for k in ['name','image','imageID','ready','restartCount']} for c in x.get('status',{}).get('containerStatuses',[])]) for x in v['items'] if x['metadata']['name'].startswith('backend-')]
+  if name=='backend_replicasets':v=[dict(name=x['metadata']['name'],uid=x['metadata']['uid'],owners=x['metadata'].get('ownerReferences',[])) for x in v['items'] if any(o.get('uid')=='88a17177-492f-41db-b097-a80a6a18a475' for o in x['metadata'].get('ownerReferences',[]))]
+  if name=='maintenance':v=dict(uid=v['metadata']['uid'],resourceVersion=v['metadata']['resourceVersion'],mode=v.get('data',{}).get('mode'))
+  record.update(status='OBSERVED_READONLY',value=v)
+ return name,record
+with ThreadPoolExecutor(max_workers=4) as pool:result=dict(pool.map(call,ops.items()))
+rsuids={x['uid'] for x in result['backend_replicasets'].get('value',[])}
+pods=result['backend_pods'].get('value',[])
+if len(pods)!=2 or any(not any(o['uid'] in rsuids for o in p['owners']) for p in pods):raise RuntimeError('POD_OWNERSHIP_NOT_VERIFIED')
+(E/'final-readonly-observations.json').write_text(json.dumps(dict(results=result,commands=ops,scope='Metadata and exact own session readback; no Secret values or mutation'),ensure_ascii=False,indent=2)+'\n',encoding='utf8')
+# Compare actual migration ledger to exact Git bytes, never local CRLF working files.
+sql=json.loads((E/'schema-tunnel-result.json').read_text(encoding='utf-8-sig'))
+comparison=[]
+for row in sql.get('migrations',[]):
+ source=subprocess.run(['git','show','be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1:db/migrations/'+row['name']],cwd=R,capture_output=True,check=True).stdout
+ comparison.append(dict(version=row['version'],name=row['name'],git_sha256=hashlib.sha256(source).hexdigest(),database_checksum=row['checksum'],match=hashlib.sha256(source).hexdigest()==row['checksum']))
+if len(comparison)!=11 or not all(x['match'] for x in comparison):raise RuntimeError('MIGRATION_HISTORY_MISMATCH')
+(E/'schema-ledger-comparison.json').write_text(json.dumps(dict(tested_source='be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1',sql_observed_at=sql['identity']['observed_at'],rows=comparison,applied_versions=list(range(1,12)),pending_versions=[12,13,14,15],ddl_or_dml_executed=False,initial_helper_status=sql['status'],sql_observed_separately_from_session_cleanup=True),indent=2)+'\n',encoding='utf8')
+copies={
+ 'schema-tunnel-main.go.txt':R/'.local/pr196-schema-tunnel-20261123/main.go',
+ 'schema-tunnel-main_test.go.txt':R/'.local/pr196-schema-tunnel-20261123/main_test.go',
+ 'protected-key-main.go.txt':R/'.local/pr196-protected-prep-20261123/main.go',
+ 'protected-key-directory.ps1.txt':Path(r'C:/Users/user/.codex/tmp/pr196-key-directory-20261123.ps1'),
+ 'schema-guard-tests.py.txt':Path(r'C:/Users/user/.codex/tmp/pr196-sql-guard-tests-20261123.py'),
+ 'independent-review.md':Path(r'C:/Users/user/.codex/tmp/pr196-candidate-publication-review-20261123.md'),
+ 'finalize-helper.py.txt':Path(__file__),
+}
+for name,src in copies.items():shutil.copyfile(src,E/name)
+plugin=Path(r'C:/Users/user/.codex/tmp/pr196-ssm-plugin-20261123')
+pluginmeta=dict(official_download_url='https://s3.amazonaws.com/session-manager-downloads/plugin/latest/windows/SessionManagerPlugin.zip',version='1.2.896.0',authenticode_status='Valid',signer='Amazon Web Services, Inc.',install_scripts_executed=False,service_registered=False,global_path_changed=False,files=[])
+for name in ['plugin.zip','portable/bin/session-manager-plugin.exe','portable/global-bundle.pem']:
+ p=plugin/name;pluginmeta['files'].append(dict(path=name,sha256=hashlib.sha256(p.read_bytes()).hexdigest(),size=p.stat().st_size))
+(E/'portable-ssm-tool-provenance.json').write_text(json.dumps(pluginmeta,indent=2)+'\n',encoding='utf8')
+print(json.dumps(dict(metadata={k:v['status'] for k,v in result.items()},migration_checksums_match=len(comparison),session_history=result['session_history'].get('value'),active_own_session=result['session_active'].get('value')),ensure_ascii=False))

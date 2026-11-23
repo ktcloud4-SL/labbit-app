@@ -1,0 +1,56 @@
+{
+  "schema": "labbit.dr196.db-artifact-publication.v1",
+  "self_excluded": true,
+  "files": [
+    {
+      "path": "AUDIT.md",
+      "bytes": 9094,
+      "sha256": "c3c83c9960524ec9e9b3777983dc58855be5bc647307537ab20e19f266e7808f"
+    },
+    {
+      "path": "gitleaks-regression.json",
+      "bytes": 2905,
+      "sha256": "878cc639e92d89d15d02f762a5a69bc3f95a9a14205dbf79ee45b2dafa0a9c30"
+    },
+    {
+      "path": "independent-review.md",
+      "bytes": 9086,
+      "sha256": "0762188a87492d36d0a7714049d947d211c358c584d75c790d052122a4a1d26d"
+    },
+    {
+      "path": "index-verification.json",
+      "bytes": 134184,
+      "sha256": "e8946690fb0ea351ad16f8d0049bb5c66c515deeac1bb9a35f957de66f050eb3"
+    },
+    {
+      "path": "publication-source.json",
+      "bytes": 1892,
+      "sha256": "e7c7ca0503aadbdfe7ba65f080ae04230aed81f087f4f4c2718a200aeca7a005"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1799,
+      "sha256": "7be700f2a1dcdcb7e6d881ed1d27f76768f817f4b6b321934aa6ffe61536dc7c"
+    },
+    {
+      "path": "secret-scan.json",
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "path": "secret-scan.log",
+      "bytes": 81,
+      "sha256": "be4e09ba590872dd07e7941244c20301be5c3cb62b3dde2e8717a0d630310877"
+    },
+    {
+      "path": "ssot-refresh.json",
+      "bytes": 27360,
+      "sha256": "9d6ac773188fe7493add1f5b5253afe5a8fd108785a7a7b164e86cd28ca41190"
+    },
+    {
+      "path": "whitespace-check.json",
+      "bytes": 355,
+      "sha256": "2ba4054bd59f0f2966200e683e108bf011fcbc907966590ca3e7949995dcf37e"
+    }
+  ]
+}

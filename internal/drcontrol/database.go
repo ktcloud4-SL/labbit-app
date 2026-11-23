@@ -3,6 +3,8 @@ package drcontrol
 import (
 	"context"
 	"crypto/tls"
+	"net"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,6 +31,22 @@ func DatabaseConfig(p Policy, dsn string) (*pgxpool.Config, error) {
 	v.TLSConfig.MinVersion = tls.VersionTLS12
 	v.ConnectTimeout = 2 * time.Second
 	v.RuntimeParams = map[string]string{"application_name": "labbit-dr-control", "search_path": "pg_catalog,public"}
+	if p.DatabaseTunnelPort != 0 {
+		// Only the transport changes. Host/Port, TLS ServerName and roots above
+		// still identify the exact RDS endpoint, never a localhost database.
+		v.LookupFunc = func(ctx context.Context, host string) ([]string, error) {
+			if ctx.Err() != nil || host != d.Host {
+				return nil, ErrDenied
+			}
+			return []string{d.Host}, nil
+		}
+		v.DialFunc = func(ctx context.Context, network, address string) (net.Conn, error) {
+			if ctx.Err() != nil || network != "tcp" || address != net.JoinHostPort(d.Host, strconv.Itoa(int(d.Port))) {
+				return nil, ErrDenied
+			}
+			return (&net.Dialer{Timeout: 2 * time.Second}).DialContext(ctx, "tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(int(p.DatabaseTunnelPort))))
+		}
+	}
 	c.MaxConns = 1
 	c.MinConns = 0
 	return c, nil

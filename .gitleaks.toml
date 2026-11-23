@@ -22,3 +22,24 @@ id = "generic-api-key"
   regexes = [
     '''^key: d76a695f66ad9cd28f5c22a8508f36e91f521f7a'$'''
   ]
+
+  [[rules.allowlists]]
+  description = "Exact public module checksum in the fixed PR196 candidate source snapshot"
+  condition = "AND"
+  paths = ['''(^|/)evidence/LBT-60/2026-11-23-candidate-publication/go\.sum\.txt$''']
+  regexTarget = "match"
+  regexes = ['''^docker-credential-helpers v0\.9\.3 h1:gAm/VtF9wgqJMoxzT3Gj5p4AqIjCBS4wrsOh9yRqcz8=$''']
+
+  [[rules.allowlists]]
+  description = "Exact immutable migration SHA256 in four fixed PR196 candidate verification originals"
+  condition = "AND"
+  paths = ['''(^|/)evidence/LBT-60/2026-11-23-candidate-publication/(runtime-zlib14/)?image-(local-verification|publication-readback)\.json$''']
+  regexTarget = "match"
+  regexes = ['''^000010_connector_enrollment_tokens\.sql": "8be5cd16dc8c7df022b537c430177056b6c1af5de876f4b83fb77c514a8244d6"$''']
+
+  [[rules.allowlists]]
+  description = "Exact tool-list phrase in the fixed independent PR196 candidate review"
+  condition = "AND"
+  paths = ['''(^|/)evidence/LBT-60/2026-11-23-candidate-publication/independent-review\.md$''']
+  regexTarget = "match"
+  regexes = ['''^token, kubectl[/]SSM[/]DB $''']

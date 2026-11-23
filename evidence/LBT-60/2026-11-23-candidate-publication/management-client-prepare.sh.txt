@@ -1,0 +1,23 @@
+python3 - <<'PY'
+import json,os,subprocess,sys,hashlib,urllib.request
+from pathlib import Path
+root=Path('/var/tmp/labbit-pr196-readonly-20261123')
+os.umask(0o077)
+try:
+ if root.exists():
+  assert root.is_dir() and not root.is_symlink() and root.stat().st_uid==0
+ else:root.mkdir(mode=0o700)
+ py=root/'venv/bin/python'
+ if not py.exists():subprocess.run([sys.executable,'-m','venv',str(root/'venv')],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=30)
+ env=dict(os.environ,PIP_CONFIG_FILE='/dev/null',PIP_DISABLE_PIP_VERSION_CHECK='1')
+ subprocess.run([str(py),'-m','pip','--isolated','install','--index-url','https://pypi.org/simple','psycopg==3.2.12','psycopg_binary==3.2.12'],check=True,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=100)
+ ca=root/'global-bundle.pem'
+ with urllib.request.urlopen('https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem',timeout=20) as r:raw=r.read(2*1024*1024)
+ assert raw.startswith(b'-----BEGIN CERTIFICATE-----') and len(raw)<2*1024*1024
+ ca.write_bytes(raw);os.chmod(ca,0o600)
+ p=subprocess.run([str(py),'-c','import psycopg,sys; print(psycopg.__version__);print(sys.version.split()[0])'],check=True,capture_output=True,text=True,timeout=10)
+ print(json.dumps(dict(status='CLIENT_PREPARED',task_root=str(root),psycopg_version=p.stdout.splitlines()[0],python_version=p.stdout.splitlines()[1],ca_sha256=hashlib.sha256(raw).hexdigest(),global_packages_changed=False,secret_or_sql_access=False)))
+except Exception:
+ print(json.dumps(dict(status='CLIENT_NOT_VERIFIED',global_packages_changed=False,secret_or_sql_access=False)))
+ sys.exit(2)
+PY

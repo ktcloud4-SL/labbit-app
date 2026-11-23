@@ -1,0 +1,20 @@
+[
+  {
+    "name": "pg-integration",
+    "args": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "test",
+      "-count=1",
+      "-race",
+      "-tags=integration",
+      "-json",
+      "./internal/drcontrol",
+      "./internal/postgres",
+      "./internal/postgres/postgrestest"
+    ],
+    "at": "2026-11-23T06:19:48.100854+00:00",
+    "exit": 1,
+    "log": "pg-integration.log.gz",
+    "scope": "disposable-loopback-PG16"
+  }
+]

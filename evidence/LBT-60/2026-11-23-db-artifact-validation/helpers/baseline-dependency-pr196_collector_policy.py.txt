@@ -1,0 +1,135 @@
+"""One-window additive policy experiment. Explicit steps; no general apply API."""
+import hashlib
+import importlib.util
+import ipaddress
+import json
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location('route', ROOT / '.local/pr196_collector_path.py')
+route = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(route)
+r = route.r
+OUT = route.OUT
+LOCAL = ROOT / '.local/pr196-collector-path-20261123'
+NAME = 'pr196-collector-proxy-20261123-01'
+LABEL = 'pr196-collector-20261123-01'
+
+def digest(v):
+    return hashlib.sha256(json.dumps(v, sort_keys=True).encode()).hexdigest()
+
+def control_plane_ips(cluster, enis):
+    c = cluster['resourcesVpcConfig']
+    selected = []
+    for e in enis:
+        if e.get('Description') != 'Amazon EKS labbit-seoul-cluster':
+            continue
+        if (e.get('RequesterManaged') is not True or e.get('InterfaceType') != 'interface'
+            or e.get('Status') != 'in-use' or e.get('VpcId') != c['vpcId']
+            or e.get('SubnetId') not in c['subnetIds']
+            or c['clusterSecurityGroupId'] not in {g['GroupId'] for g in e['Groups']}
+            or e.get('Attachment', {}).get('Status') != 'attached'
+            or e.get('Attachment', {}).get('InstanceId')
+            or e.get('Attachment', {}).get('InstanceOwnerId') == '299311846289'):
+            raise RuntimeError('CONTROL_PLANE_ENI_NOT_VERIFIED')
+        addr = ipaddress.ip_address(e['PrivateIpAddress'])
+        if addr.version != 4 or not addr.is_private:
+            raise RuntimeError('PRIVATE_IPV4_REQUIRED')
+        selected.append(str(addr))
+    if len(selected) != 2 or len(set(selected)) != 2:
+        raise RuntimeError('EXPECTED_TWO_DISTINCT_CONTROL_PLANE_ENIS')
+    return sorted(selected)
+
+def build_policy(ips):
+    if len(ips) != 2 or len(set(ips)) != 2 or any(ipaddress.ip_address(v).version != 4 or not ipaddress.ip_address(v).is_private for v in ips):
+        raise RuntimeError('TWO_PRIVATE_SOURCE_IPS_REQUIRED')
+    return {'apiVersion': 'networking.k8s.io/v1', 'kind': 'NetworkPolicy',
+            'metadata': {'name': NAME, 'namespace': 'labbit', 'labels': {'labbit.io/trial': LABEL}},
+            'spec': {'podSelector': {'matchLabels': {'app.kubernetes.io/instance': 'backend', 'app.kubernetes.io/name': 'common-app'}},
+                     'policyTypes': ['Ingress'], 'ingress': [{'from': [{'ipBlock': {'cidr': v + '/32'}} for v in ips],
+                                                            'ports': [{'protocol': 'TCP', 'port': 9090}]}]}}
+
+def baseline():
+    p = r.load(LOCAL, 'baseline.json')
+    r.identity()
+    if digest(r.deployment()['spec']) != p['deployment_spec_sha256']:
+        raise RuntimeError('DEPLOYMENT_CHANGED')
+    actual = r.kube('get', 'networkpolicies', '-n', 'labbit', '-o', 'json')['items']
+    originals = [v for v in actual if v['metadata']['name'] != NAME]
+    if [(v['metadata']['uid'], v['spec']) for v in originals] != [(v['metadata']['uid'], v['spec']) for v in p['networkpolicies']['items']]:
+        raise RuntimeError('ORIGINAL_NETWORKPOLICY_CHANGED')
+    for n, old in p['applications'].items():
+        if r.app(n)['spec'] != old['spec']:
+            raise RuntimeError('ARGO_SPEC_CHANGED')
+    return p, actual
+
+def prepare():
+    r.identity()
+    cluster = r.aws('eks', 'describe-cluster', '--name', 'labbit-seoul-cluster')['cluster']
+    enis = r.aws('ec2', 'describe-network-interfaces', '--filters', 'Name=group-id,Values=' + cluster['resourcesVpcConfig']['clusterSecurityGroupId'])['NetworkInterfaces']
+    ips = control_plane_ips(cluster, enis)
+    d = r.deployment()
+    np = r.kube('get', 'networkpolicies', '-n', 'labbit', '-o', 'json')
+    if any(v['metadata']['name'] == NAME for v in np['items']):
+        raise RuntimeError('POLICY_NAME_ALREADY_EXISTS')
+    p = {'at': r.now(), 'deployment_spec_sha256': digest(d['spec']), 'applications': {n: r.app(n) for n in r.APP_UIDS},
+         'networkpolicies': np, 'source_ips': ips, 'cluster': cluster, 'source_enis': enis}
+    r.save(LOCAL, 'baseline.json', p)
+    r.save(OUT, 'policy-baseline.json', p)
+    r.save(LOCAL, 'policy.json', build_policy(ips))
+    r.save(OUT, 'temporary-policy.plan.json', build_policy(ips))
+    result = r.kube('create', '--dry-run=server', '-f', str(LOCAL / 'policy.json'), '-o', 'json')
+    r.save(OUT, 'temporary-policy.dry-run.json', result)
+    print('PREPARED_EXACT_TWO_CONTROL_PLANE_IPS_DRY_RUN_ONLY')
+
+def create():
+    p, existing = baseline()
+    if any(v['metadata']['name'] == NAME for v in existing):
+        raise RuntimeError('POLICY_EXISTS_NO_RETRY')
+    cluster = r.aws('eks', 'describe-cluster', '--name', 'labbit-seoul-cluster')['cluster']
+    enis = r.aws('ec2', 'describe-network-interfaces', '--filters', 'Name=group-id,Values=' + cluster['resourcesVpcConfig']['clusterSecurityGroupId'])['NetworkInterfaces']
+    if control_plane_ips(cluster, enis) != p['source_ips']:
+        raise RuntimeError('CONTROL_PLANE_SOURCE_CHANGED')
+    desired = r.load(LOCAL, 'policy.json')
+    if desired != build_policy(p['source_ips']):
+        raise RuntimeError('POLICY_PLAN_CHANGED')
+    r.save(OUT, 'policy-create.intent.json', {'at': r.now(), 'plan_sha256': digest(desired)})
+    result = r.kube('create', '-f', str(LOCAL / 'policy.json'), '-o', 'json')
+    if result['spec'] != desired['spec'] or result['metadata']['labels'].get('labbit.io/trial') != LABEL:
+        raise RuntimeError('CREATED_POLICY_MISMATCH_HOLD')
+    r.save(OUT, 'policy-create.receipt.json', {'at': r.now(), 'result': result})
+    print('TEMPORARY_9090_POLICY_CREATED')
+
+def cleanup():
+    # Cleanup may proceed if unrelated app specs drift, but never delete another policy.
+    r.identity()
+    old = r.load(OUT, 'policy-create.receipt.json')['result']
+    x = r.kube('get', 'networkpolicy', NAME, '-n', 'labbit', '-o', 'json')
+    if x['metadata']['uid'] != old['metadata']['uid'] or x['metadata']['labels'].get('labbit.io/trial') != LABEL or x['spec'] != old['spec']:
+        raise RuntimeError('CLEANUP_OWNERSHIP_OR_SPEC_CHANGED_HOLD')
+    opts = {'apiVersion': 'v1', 'kind': 'DeleteOptions', 'preconditions': {'uid': x['metadata']['uid'], 'resourceVersion': x['metadata']['resourceVersion']}}
+    r.save(LOCAL, 'delete-options.json', opts)
+    r.save(OUT, 'policy-delete.intent.json', {'at': r.now(), 'delete_options': opts})
+    result = r.kube('delete', '--raw', '/apis/networking.k8s.io/v1/namespaces/labbit/networkpolicies/' + NAME, '-f', str(LOCAL / 'delete-options.json'))
+    r.save(OUT, 'policy-delete.receipt.json', {'at': r.now(), 'result': result})
+    print('TEMPORARY_POLICY_DELETE_REQUESTED_UID_RV_PRECONDITIONS')
+
+def final():
+    _, existing = baseline()
+    if any(v['metadata']['name'] == NAME for v in existing):
+        raise RuntimeError('TEMPORARY_POLICY_STILL_PRESENT')
+    d = r.deployment()
+    if d['status'].get('readyReplicas') != 2 or d['status'].get('updatedReplicas') != 2:
+        raise RuntimeError('BACKEND_NOT_READY')
+    r.save(OUT, 'policy-final-readback.json', {'at': r.now(), 'original_networkpolicy_unchanged': True, 'temporary_policy_absent': True,
+           'deployment_spec_unchanged': True, 'argo_specs_unchanged': True, 'backend_ready': 2,
+           'execution_gate': 'HOLD', 'recovery_authorized': False, 'cloud_verified': False})
+    print('ORIGINAL_NETWORKPOLICY_DEPLOYMENT_ARGO_PRESERVED_TEMPORARY_POLICY_ABSENT')
+
+if __name__ == '__main__':
+    actions = {'prepare': prepare, 'create': create, 'cleanup': cleanup, 'final': final}
+    if len(sys.argv) != 2 or sys.argv[1] not in actions:
+        raise SystemExit('EXPLICIT_ACTION_REQUIRED')
+    actions[sys.argv[1]]()

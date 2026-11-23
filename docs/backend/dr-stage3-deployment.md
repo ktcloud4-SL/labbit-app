@@ -1,6 +1,17 @@
-# Stage 3 배포 준비 — 실행하지 않은 체크리스트
+# Stage 3 배포 준비 — 체크리스트와 실행 이력 구분
 
-2026-11-23 갱신 / App 기준 PR196 `94fe1f6`, main `753eecb`. PR196은 Draft·미병합이다.
+수집 경로 후속은 [승인 기반 시험 준비](dr-pr196-approved-control-trial.md)를 따른다. 한시적9090 경로의
+건강점검과 원복, 명시적 S3 ArtifactRegion 보완·고정 버전 읽기까지 확인했다. 현재는 원래 네트워크 설정이며
+실제 DB 실행 경로·승인 원본 쓰기·Safety 근거가 남아 있어 init/Pause/Resume 준비 완료나 실행 인수가 아니다.
+
+2026-11-23 후속으로 migration12–15 및 N=2 기본 모드 후보 기동/원복을 실제 확인했다.
+[실행 기록](../../evidence/LBT-60/2026-11-23-migration-candidate-rollout/README.md)과 아래 초기 준비 시점을 구분한다.
+공유 DB는 schema15, 서울은 기존 image·Argo 정책으로 복귀했다. 실제 승인 제어·Provider·Writer Fencing 시험은 남아 있다.
+
+2026-11-23 최신 준비 기준 / App PR196 `be4d0ba`, main `753eecb`. PR196은 Draft·미병합이다.
+이번 읽기 전용 갱신과 변경 제안은 [실환경 시험 준비안](dr-pr196-trial-preparation.md)을 따른다.
+아래 `94fe1f6` readiness 및 초기 관측의 미구현 설명은 당시 이력이다. 최신 후보에는 init/Pause·수집·서명이
+있으며, 현재 추가 적용 범위는 migration12–15다. 실제 운영 키·권한·공유 DB·배포 인수는 별도다.
 11/21 오프라인 준비와 11/23 AWS·Kubernetes 읽기 전용 조회를 구분한다. 이번 확인에서
 서울 서비스·실제 DB·AWS 설정·Slack을 변경하지 않았다.
 
@@ -8,7 +19,7 @@
 | --- | --- | --- |
 | 1 | #196 리뷰/CI 및 새 operator·Runtime 계약 리뷰 | 미해결 결함·기존 사용자 작업 diff 충돌이면 중단 |
 | 2 | 승인된 작업창·대상·관리자·백업 담당 확정 | 데모/다른 시험 중 변경 금지. 데이터/로그·기존 작업 보존 |
-| 3 | DB 백업·복원 시험 근거, 현재 migration 목록과 schema 확인 | 000012~000014 **기존 적용 파일 변경 없이** migration runner로 적용할 계획만 검토 |
+| 3 | DB 백업·복원 시험 근거, 현재 migration 목록과 schema 확인 | 000012~000015 **기존 적용 파일 변경 없이** migration runner로 적용할 계획만 검토 |
 | 4 | migration 전/후 row·제약·권한·적용 기록 확보 | startup에서 DDL/자동 seed 금지. 임의 down migration/불명 journal 삭제 금지 |
 | 5 | 고정 image digest·Git revision·원본 해시 기록 | 후보 image가 실제 build되고 196 schema/config를 포함했는지 검증 |
 | 6 | 제어 DB 위치·단일 authoritative Writer·권한 검증 | 리전별 비동기 복제 DB를 각자 독립 control Writer로 사용 금지 |
@@ -55,7 +66,7 @@ epoch·Writer·불명 결과를 재대조하기 전 재개하지 않는다. 예�
 
 1. 별도 시험 RUN·대상·작업창·실행자/QA를 고정하고, 현재 이용자·작업/UNKNOWN inventory를 확인한다.
 2. 실제 Pause/init 조작 경로, 보호된 Policy·목적별 서명키, 승인/관측 원본 경로와 전체 Pod 수집·동결 절차를 준비한다.
-   Resume CLI 후보는 구현되어 있지만 실제 안전 조건 수집·키 운영·Pause를 제공하지 않는다.
+   최신 후보는 init/Pause·읽기 전용 수집·서명을 제공하지만 실제 키 운영·권한·공유 DB 연결 인수는 남아 있다.
 3. schema/checksum·백업/복귀 근거와 후보 digest를 확인해 migration/설정/이미지 변경안을 먼저 공유한다.
    공유 DB DDL, PreSync Job, serving Pod 교체, maintenance closed·Worker Pause는 서비스 영향이 있으므로 이 조회에서 실행하지 않았다.
 4. 선행 조건이 확보된 행부터 #194/#196 부분 시험을 실행한다. 미준비 행은 NOT_VERIFIED로 남긴다.

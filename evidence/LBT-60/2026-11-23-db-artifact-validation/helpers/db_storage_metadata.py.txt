@@ -1,0 +1,28 @@
+import sys,json,datetime,subprocess,os
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+OUT=ROOT/'evidence/LBT-60/2026-11-23-db-artifact-validation'
+OUT.mkdir(parents=True,exist_ok=True)
+AWS=r'C:\Users\user\AppData\Local\Programs\Amazon\AWSCLIV2\aws.exe'
+BUCKET='labbit-osaka-dr-evidence-299311846289-trial01'
+env={k:v for k,v in os.environ.items() if not k.upper().startswith(('AWS_','PG'))}
+env.update(AWS_MAX_ATTEMPTS='1',AWS_IGNORE_CONFIGURED_ENDPOINT_URLS='true',AWS_PAGER='',AWS_CLI_AUTO_PROMPT='off')
+def aws(service,action,region,*args):
+ endpoint='s3' if service=='s3api' else service
+ x=subprocess.run([AWS,service,action,*args,'--profile','labbit-admin3','--region',region,'--endpoint-url',f'https://{endpoint}.{region}.amazonaws.com','--output','json','--no-cli-pager','--cli-connect-timeout','5','--cli-read-timeout','10'],env=env,capture_output=True,timeout=25)
+ if x.returncode: raise RuntimeError('AWS_READ_NOT_VERIFIED')
+ return json.loads(x.stdout)
+def main():
+ ident=aws('sts','get-caller-identity','ap-northeast-2')
+ if ident['Account']!='299311846289' or ident['Arn']!='arn:aws:iam::299311846289:user/admin3':raise RuntimeError('IDENTITY_MISMATCH')
+ rds=aws('rds','describe-db-instances','ap-northeast-2','--db-instance-identifier','labbit-seoul-rds')['DBInstances'][0]
+ ec2=aws('ec2','describe-instances','ap-northeast-2','--instance-ids','i-0945680e04ad938cf')['Reservations'][0]['Instances'][0]
+ ssm=aws('ssm','describe-instance-information','ap-northeast-2','--filters','Key=InstanceIds,Values=i-0945680e04ad938cf')['InstanceInformationList']
+ if rds['DbiResourceId']!='db-KWJO4NMALL7V77AC3LWW2EGH2Y' or rds['DBInstanceStatus']!='available' or ec2['State']['Name']!='running' or len(ssm)!=1 or ssm[0]['PingStatus']!='Online':raise RuntimeError('TARGET_NOT_READY')
+ policy=json.loads(aws('s3api','get-bucket-policy','ap-northeast-3','--bucket',BUCKET,'--expected-bucket-owner','299311846289')['Policy'])
+ result={'observed_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'actor':ident['Arn'],'rds':{k:rds[k] for k in ['DBInstanceArn','DbiResourceId','DBInstanceStatus','Endpoint','Engine']},'management_ec2':{'id':ec2['InstanceId'],'vpc':ec2['VpcId'],'state':ec2['State']['Name'],'ssm_ping':ssm[0]['PingStatus']},'bucket':BUCKET,'versioning':aws('s3api','get-bucket-versioning','ap-northeast-3','--bucket',BUCKET,'--expected-bucket-owner','299311846289'),'encryption':aws('s3api','get-bucket-encryption','ap-northeast-3','--bucket',BUCKET,'--expected-bucket-owner','299311846289'),'public_access':aws('s3api','get-public-access-block','ap-northeast-3','--bucket',BUCKET,'--expected-bucket-owner','299311846289'),'policy':policy,'mutations':0,'execution_gate':'HOLD'}
+ (OUT/'storage-db-metadata.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
+ print(json.dumps(result))
+if __name__=='__main__':
+ try:main()
+ except Exception:print('METADATA_NOT_VERIFIED');sys.exit(2)

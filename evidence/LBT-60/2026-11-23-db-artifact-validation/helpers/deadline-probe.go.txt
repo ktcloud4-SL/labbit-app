@@ -1,0 +1,75 @@
+// Read-only probe of one previously handed-off synthetic object, using product AWSCLI.Read.
+// No signing, upload, SQL, approval execution or original QA replacement.
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"github.com/ktcloud4-SL/labbit-app/internal/drcontrol"
+	wc "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol"
+	"os"
+"path/filepath"
+	"time"
+)
+
+type event struct {
+	API, Region, Result string
+	ElapsedMS           int64
+}
+type recorder struct{ rows []event }
+
+func (r *recorder) Run(c context.Context, e string, args []string) ([]byte, error) {
+	at := time.Now()
+	b, err := (drcontrol.CommandRunner{}).Run(c, e, args)
+	region := ""
+	for i := range args {
+		if args[i] == "--region" && i+1 < len(args) {
+			region = args[i+1]
+		}
+	}
+	state := "RESPONSE_RECEIVED"
+	if err != nil {
+		state = "NOT_VERIFIED"
+	}
+	r.rows = append(r.rows, event{API: args[0] + "/" + args[1], Region: region, Result: state, ElapsedMS: time.Since(at).Milliseconds()})
+	return b, err
+}
+
+func main(){
+ dir:="evidence/LBT-60/2026-11-23-db-artifact-validation"
+ var sample struct{Request wc.ResumeRequest `json:"request"`; ApprovalKey string `json:"approval_public_key"`; ObservationKey string `json:"observation_public_key"`}
+ b,e:=os.ReadFile(filepath.Join(dir,"simulation-sample-provenance.json"));if e!=nil||json.Unmarshal(b,&sample)!=nil{os.Exit(2)}
+ refs:=map[string]drcontrol.Reference{}
+ for _,kind:=range []string{"approval","observation"}{
+   var result struct{Result struct{Reference drcontrol.Reference `json:"reference"`} `json:"result"`}
+   b,e:=os.ReadFile(filepath.Join(dir,"storage-result."+kind+".json"));if e!=nil||json.Unmarshal(b,&result)!=nil{os.Exit(2)}
+   refs[kind]=result.Result.Reference
+ }
+ p := drcontrol.Policy{Version: drcontrol.Version, AccountID: "299311846289", Region: "ap-northeast-2", AWSExecutable: `C:\Users\user\AppData\Local\Programs\Amazon\AWSCLIV2\aws.exe`, AWSProfile: "labbit-admin3", Target: wc.Scope{ID: "pr196-readonly-endpoint-diagnostic", Region: "ap-northeast-2", Cluster: "labbit-seoul-cluster"}, Actors: []drcontrol.Actor{{ARN: "arn:aws:iam::299311846289:user/admin3", Principal: "seobin", Actions: []string{"collect"}}}, ApprovalKeys: []drcontrol.Key{{ID: "pr196-20261123-approval", Principal: "seobin", PublicKey: "/AzLZr9wYURM7B9BHMiN+dOZUJ2bFKqWT5q+x20PW+0=", Phases: []string{"prepare"}}}, ObservationKeys: []drcontrol.Key{{ID: "pr196-20261123-observation", Principal: "seobin", PublicKey: "sUajH33lMdTCMJu4CHeOjL/jmBRdgmIKuNXt5fqBoFM=", Phases: []string{"prepare"}}}, ArtifactBucket: "labbit-osaka-dr-evidence-299311846289-trial01", ArtifactPrefix: "dr-precheck/storage-trial/s2b-20261113-01", ApprovalMaxSeconds: 60, EvidenceMaxSeconds: 30, Database: drcontrol.Database{Region: "ap-northeast-2", ARN: "arn:aws:rds:ap-northeast-2:299311846289:db:labbit-seoul-rds", ResourceID: "db-KWJO4NMALL7V77AC3LWW2EGH2Y", Host: "labbit-seoul-rds.c1664mmc0jot.ap-northeast-2.rds.amazonaws.com", Port: 5432, Name: "labbit_db", User: "labbit_user"}, EnableExecution: false}
+ p.Target=sample.Request.Scope
+ p.ArtifactPrefix="dr-precheck/storage-trial/s2b-20261113-01/control-originals/pr196-20261123-0615"
+ p.ArtifactRegion="ap-northeast-3"
+ p.ApprovalKeys=[]drcontrol.Key{{ID:"simulation-approver",Principal:"simulation-only",PublicKey:sample.ApprovalKey,Phases:[]string{"prepare"}}}
+ p.ObservationKeys=[]drcontrol.Key{{ID:"simulation-observer",Principal:"simulation-observer",PublicKey:sample.ObservationKey,Phases:[]string{"prepare"}}}
+ p.EnableExecution=false
+ runner:=&recorder{}
+ cloud,e:=drcontrol.NewAWSCLI(p,runner);if e!=nil{os.Exit(2)}
+ ctx,cancel:=context.WithTimeout(context.Background(),15*time.Second);defer cancel()
+ identity,e:=cloud.Identity(ctx);if e!=nil||identity.Account!="299311846289"||identity.ARN!="arn:aws:iam::299311846289:user/admin3"{os.Exit(2)}
+ at:=time.Now()
+ prepared,e:=drcontrol.PrepareArtifacts(ctx,p,cloud,refs["approval"],refs["observation"])
+ elapsed:=time.Since(at).Milliseconds()
+ if e!=nil{json.NewEncoder(os.Stdout).Encode(map[string]any{"status":"PREPARATION_NOT_VERIFIED","elapsed_ms":elapsed,"calls":runner.rows,"execution_gate":"HOLD"});os.Exit(2)}
+ defer prepared.Clear()
+ i:=drcontrol.Invocation{Version:drcontrol.Version,Action:"resume",Request:sample.Request,Approval:refs["approval"],Evidence:refs["observation"]}
+ now:=func()time.Time{return time.Now().UTC().Truncate(time.Microsecond)}
+ v,e:=drcontrol.NewVerifier(p,i,prepared,now);if e!=nil{os.Exit(2)}
+ callsBefore:=len(runner.rows)
+ apctx,stop:=context.WithTimeout(ctx,2*time.Second);at=time.Now()
+ _,ae:=v.AuthorizeResume(apctx,i.Request);apMS:=time.Since(at).Microseconds();ac:=apctx.Err();stop()
+ obctx,stop:=context.WithTimeout(ctx,2*time.Second);at=time.Now()
+ _,oe:=v.RecheckResume(obctx,i.Request);obMS:=time.Since(at).Microseconds();oc:=obctx.Err();stop()
+ pass:=ae!=nil&&oe!=nil&&ac==nil&&oc==nil&&len(runner.rows)==callsBefore
+ json.NewEncoder(os.Stdout).Encode(map[string]any{"at":now(),"scope":"ACTUAL_S3_EXPIRED_SIMULATION_NEGATIVE_CALLBACK_ONLY","prepared_success":true,"preparation_ms":elapsed,"preparation_budget_ms":8000,"approval_callback_us":apMS,"observation_callback_us":obMS,"callback_budget_ms":2000,"expired_approval_rejected":ae!=nil,"simulation_observation_rejected":oe!=nil,"callback_deadlines_exceeded":ac!=nil||oc!=nil,"callback_network_calls":len(runner.rows)-callsBefore,"calls":runner.rows,"enable_execution":false,"db_store_constructed":false,"control_executed":false,"status_pass_scoped":pass,"execution_gate":"HOLD","recovery_authorized":false,"cloud_verified":false})
+ if !pass{os.Exit(2)}
+}

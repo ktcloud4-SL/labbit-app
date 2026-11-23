@@ -1,0 +1,62 @@
+"""Offline verification/seal. No cloud/system/application configuration calls."""
+from pathlib import Path
+import datetime as dt
+import hashlib
+import json
+import re
+import shutil
+import subprocess
+
+ROOT=Path(__file__).resolve().parents[1]
+OUT=ROOT/'evidence/LBT-60/2026-11-23-collector-path-preparation'
+def sha(b): return hashlib.sha256(b).hexdigest()
+def load(p): return json.loads(p.read_text(encoding='utf-8-sig'))
+def save(n,v): (OUT/n).write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+
+shutil.copyfile(Path(__file__),OUT/'source/finalize_packet.py.txt')
+report=Path(r'C:\Users\user\.codex\tmp\pr196-collector-path-review-20261123.md')
+shutil.copyfile(report,OUT/'independent-review.md')
+for row in load(OUT/'source-manifest.json')['files']:
+    if sha((ROOT/row['path']).read_bytes())!=row['sha256']:
+        raise SystemExit('SOURCE_HASH_MISMATCH_'+row['path'])
+for p in OUT.rglob('*.json'): load(p)
+for p in [OUT/'README.md',OUT/'AUDIT.md',ROOT/'docs/backend/dr-pr196-approved-control-trial.md']:
+    for link in re.findall(r'\]\(([^)]+)\)',p.read_text(encoding='utf-8-sig')):
+        if '://' in link or link.startswith('#'): continue
+        dest=(p.parent/link.split('#',1)[0]).resolve()
+        if not dest.is_relative_to(ROOT.resolve()) or not dest.exists():
+            raise SystemExit('BROKEN_LOCAL_LINK_'+str(p)+'_'+link)
+plan=load(OUT/'trial-plan.json')
+if plan['EnableExecution'] or plan['live_pause_resume_ready'] or plan['execution_gate']!='HOLD':
+    raise SystemExit('UNSAFE_PLAN')
+final=load(OUT/'latest-readonly-baseline.json')
+if final['mutations'] or not final['temporary_networkpolicies_absent'] or not final['original_security_group_full_ruleset_unchanged'] or final['backend_ready']!=2:
+    raise SystemExit('FINAL_BASELINE_NOT_VERIFIED')
+
+scan=['C:/Users/user/.codex/tmp/pr196-gitleaks-8.28-20261123/gitleaks.exe','dir',str(OUT),'--no-banner','--redact','--report-format','json','--report-path',str(ROOT/'.local/collector-path-final-gitleaks.json')]
+p=subprocess.run(scan,cwd=ROOT,capture_output=True)
+(OUT/'secret-scan.txt').write_bytes(p.stdout+p.stderr)
+findings=load(ROOT/'.local/collector-path-final-gitleaks.json')
+if p.returncode or findings: raise SystemExit('SECRET_SCAN_REQUIRES_REVIEW')
+save('secret-scan-summary.json',{'tool':'gitleaks8.28','exit':p.returncode,'findings':len(findings),'redacted':True,'scope':'all current collector packet (including exact product source and four docs snapshots)','earlier_three_packets':'unchanged execution bytes verified by prior-artifact-integrity.json; prior audit/scan reused','private_keys_dsn_and_auth_cache_excluded':True,'not_proof_of_absolute_secret_absence':True})
+
+check=subprocess.run(['git','diff','--check'],cwd=ROOT,capture_output=True)
+(OUT/'diff-check.txt').write_bytes(check.stdout+check.stderr)
+if check.returncode: raise SystemExit('WHITESPACE_FAILURE')
+save('verification.json',{'scope':'offline packet verification and actual readback evidence consistency','source_hashes_match':True,'json_parse_pass':True,'local_links_exist':True,'source_files':len(load(OUT/'source-manifest.json')['files']),'final_metadata_readback_utc':final['at'],'ready':False,'execution_gate':'HOLD','recovery_authorized':False,'cloud_verified':False,'pushed':False,'merged':False})
+files=[]
+for file in sorted(OUT.rglob('*')):
+    if file.is_file() and file.name!='artifact-manifest.json':
+        raw=file.read_bytes()
+        files.append({'path':file.relative_to(OUT).as_posix(),'size':len(raw),'sha256':sha(raw)})
+save('artifact-manifest.json',{'schema':'labbit.dr196.collector-path.artifacts.v1','created_utc':dt.datetime.now(dt.timezone.utc).isoformat(),'root':'packet-directory','self_excluded':True,'files':files})
+listed=set()
+for row in load(OUT/'artifact-manifest.json')['files']:
+    file=(OUT/row['path']).resolve()
+    if not file.is_relative_to(OUT.resolve()) or row['path'] in listed: raise SystemExit('INVALID_MANIFEST_PATH')
+    listed.add(row['path'])
+    raw=file.read_bytes()
+    if sha(raw)!=row['sha256'] or len(raw)!=row['size']: raise SystemExit('ARTIFACT_MISMATCH')
+actual={p.relative_to(OUT).as_posix() for p in OUT.rglob('*') if p.is_file() and p.name!='artifact-manifest.json'}
+if listed!=actual: raise SystemExit('MANIFEST_COVERAGE_MISMATCH')
+print(json.dumps({'artifacts_verified':len(files),'manifest_sha256':sha((OUT/'artifact-manifest.json').read_bytes()),'source_files_verified':len(load(OUT/'source-manifest.json')['files']),'secret_scan_findings':len(findings),'live_pause_resume_ready':False,'network_baseline_restored':True,'no_push_or_merge':True}))

@@ -1,0 +1,14 @@
+{
+  "command_id": "499e86e5-8c05-4117-88fb-e00ad2d9ce5f",
+  "target": "i-0945680e04ad938cf",
+  "source_sha256": "d8a557560ed459a0ee4a6612a8b8677ba3ccd5729383694400047b7f6fa46348",
+  "ssm_status": "Failed",
+  "execution_start": "2026-11-23T04:25:20.737Z",
+  "execution_end": "2026-11-23T04:25:21.737Z",
+  "result": {
+    "status": "NOT_VERIFIED",
+    "stage": "SECRET_READ",
+    "secret_value_or_error_not_logged": true,
+    "execution_gate": "HOLD"
+  }
+}

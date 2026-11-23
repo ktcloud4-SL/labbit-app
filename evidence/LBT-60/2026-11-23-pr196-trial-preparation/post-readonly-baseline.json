@@ -1,0 +1,101 @@
+{
+  "checks": {
+    "pod_uid_image_restart_unchanged": true,
+    "deployment_uid_images_readiness_unchanged": true,
+    "configmap_uid_resourceversion_mode_unchanged": true
+  },
+  "observations": {
+    "deployments": {
+      "observed_at": "2026-11-23 03:56:50.607561+00:00",
+      "value": [
+        {
+          "name": "backend",
+          "uid": "88a17177-492f-41db-b097-a80a6a18a475",
+          "generation": 1,
+          "ready": 2,
+          "images": [
+            "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb"
+          ]
+        },
+        {
+          "name": "web",
+          "uid": "0c9a551b-9206-4174-a0b4-b88315df8790",
+          "generation": 1,
+          "ready": 2,
+          "images": [
+            "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/web:sha-c6dce84"
+          ]
+        }
+      ]
+    },
+    "pods": {
+      "observed_at": "2026-11-23 03:56:51.427279+00:00",
+      "value": [
+        {
+          "name": "backend-77c594cb7b-4fxjn",
+          "uid": "f04aae83-4cac-443a-9ef9-efd5064b90e7",
+          "containers": [
+            {
+              "name": "common-app",
+              "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419",
+              "restartCount": 0
+            }
+          ]
+        },
+        {
+          "name": "backend-77c594cb7b-j7knn",
+          "uid": "5431ae96-2706-48ab-ab1f-21596baa5f87",
+          "containers": [
+            {
+              "name": "common-app",
+              "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419",
+              "restartCount": 0
+            }
+          ]
+        },
+        {
+          "name": "labbit-db-migration-zltt8",
+          "uid": "0df06286-0dac-430a-b093-74f6727ffd4c",
+          "containers": [
+            {
+              "name": "migrate",
+              "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419",
+              "restartCount": 0
+            }
+          ]
+        },
+        {
+          "name": "web-68c5bbf584-9wr7j",
+          "uid": "e990a47a-d558-42b8-b10b-cba441fae3d4",
+          "containers": [
+            {
+              "name": "common-app",
+              "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/web@sha256:7d211566697cc02bb86d99d116714ce2553d35dd370f60f0d2f7ae1e23458d53",
+              "restartCount": 0
+            }
+          ]
+        },
+        {
+          "name": "web-68c5bbf584-k8hsm",
+          "uid": "e55ebe0c-597e-4aa6-bd62-08458244d686",
+          "containers": [
+            {
+              "name": "common-app",
+              "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/web@sha256:7d211566697cc02bb86d99d116714ce2553d35dd370f60f0d2f7ae1e23458d53",
+              "restartCount": 0
+            }
+          ]
+        }
+      ]
+    },
+    "maintenance": {
+      "observed_at": "2026-11-23 03:56:52.163647+00:00",
+      "value": {
+        "uid": "c152c064-3c25-4b2b-a7d7-f3a351108868",
+        "resourceVersion": "12249",
+        "mode": "open"
+      }
+    }
+  },
+  "limit": "Selected before/after fields only. This is not all-service functional health or a global change freeze. Deployment generation was observed only at final snapshot, not independently compared."
+}

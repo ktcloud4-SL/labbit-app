@@ -1,0 +1,94 @@
+{
+  "at": "2026-11-23T06:47:44.620157+00:00",
+  "source": "public checksum/tool phrase only, never credentials",
+  "config_sha256": "426ddc4b827ee99a269582d7171ed61d159511ad56b3eec515b97f5482971fc1",
+  "cases": [
+    {
+      "label": "baseline-original-six",
+      "exit": 1,
+      "findings": 6,
+      "report_sha256": "b3382cc9ffcf2c9286e68eaea1c32a321499f226f492ff43d6ac3ad2f87e17ad"
+    },
+    {
+      "label": "final-original-six",
+      "exit": 0,
+      "findings": 0,
+      "report_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "label": "negative-0-literal",
+      "exit": 1,
+      "findings": 1,
+      "report_sha256": "aa42fc0afcbaa0f3f385826f565439b0e5249647b82bab4f14430190c753dad2"
+    },
+    {
+      "label": "negative-0-path",
+      "exit": 1,
+      "findings": 1,
+      "report_sha256": "8c55760afe8f0efd02900bb5da709c6dee6487104aa718f24ea8a5e9b0925c4b"
+    },
+    {
+      "label": "negative-1-literal",
+      "exit": 1,
+      "findings": 1,
+      "report_sha256": "9e4a1cadf18af611821b02d44624959fa5a148c7e303e86b6cc9a020e23168bd"
+    },
+    {
+      "label": "negative-1-path",
+      "exit": 1,
+      "findings": 1,
+      "report_sha256": "462db58f7251ae03981405d576e60cd812ba09c19532247efef336e35d8f1349"
+    },
+    {
+      "label": "negative-2-literal",
+      "exit": 1,
+      "findings": 1,
+      "report_sha256": "a1959e04616752d21a6278bc404b21822ce56e98d42ed43210477ce6d9e64b31"
+    },
+    {
+      "label": "negative-2-path",
+      "exit": 1,
+      "findings": 1,
+      "report_sha256": "da814f0e75a281bccfb094b628da114583de873e8dff5ede9b14a7f940b576e0"
+    },
+    {
+      "label": "negative-3-literal",
+      "exit": 1,
+      "findings": 1,
+      "report_sha256": "dd6cf26510d84d73a34dbae68fa4b88517c3c4f19a3f0f68d1c6d0f2dece86c8"
+    },
+    {
+      "label": "negative-3-path",
+      "exit": 1,
+      "findings": 1,
+      "report_sha256": "330f0fbadca82d646047c0fc6ed2c232a24c8d7058a7195266d95f2bd9f1ebd2"
+    },
+    {
+      "label": "negative-4-literal",
+      "exit": 1,
+      "findings": 1,
+      "report_sha256": "56c775bd5bbeaa6bcd7186acf83f9339d7aabd91a4a2915c27eff9ee572ca891"
+    },
+    {
+      "label": "negative-4-path",
+      "exit": 1,
+      "findings": 1,
+      "report_sha256": "22ea07c14270816b91465d9a2ac8b4a31663a44fa7cf6d75ea4ffaa4be918006"
+    },
+    {
+      "label": "negative-5-literal",
+      "exit": 1,
+      "findings": 1,
+      "report_sha256": "187e52800e156238b29740f320e252d64efe113e567be250e39a1c5b4af1416c"
+    },
+    {
+      "label": "negative-5-path",
+      "exit": 1,
+      "findings": 1,
+      "report_sha256": "048b902e57e310b7f88013913a3c8dfa5e3b80026fced1c1e65d088fd1843910"
+    }
+  ],
+  "pass": 14,
+  "aws_calls": 0,
+  "scope": "fixed six findings; six literal and six path mutations still detected"
+}

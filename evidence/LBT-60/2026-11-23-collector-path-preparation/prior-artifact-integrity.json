@@ -1,0 +1,61 @@
+[
+  {
+    "manifest": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/artifact-manifest.json",
+    "sha256": "627f30ca5727d5cb0b2d390730f8fdce7a7d9818bf19bbee4b047961e3bcad8f",
+    "files_checked": 27,
+    "superseded_documents": [
+      {
+        "path": "docs/backend/dr-stage3-deployment.md",
+        "then_sha256": "65369809c30ea36fdf3b7d09e95099d18b6780625662e9564b01b94a50a68080",
+        "current_sha256": "9ea8ca417a59cf2b5dddde571de8c897b50be1ac0784921fbd4c221f9f5c8bdb",
+        "intentional_followup": true
+      },
+      {
+        "path": "docs/backend/dr-maintenance-integration.md",
+        "then_sha256": "e3f8c25b6a9832f8d69a929f0e122192e89986f7cef58b6ffbc2dbb43a1f4682",
+        "current_sha256": "1e6413b3e6b306f1421cda3dcbf3435e3adf9344da4afe0f85180d77656bfd93",
+        "intentional_followup": true
+      },
+      {
+        "path": "docs/backend/dr-pr196-trial-preparation.md",
+        "then_sha256": "d3e1ddc9a91c3e6cf94ce31df595967455687df20c109ddf210e59fad27e0cde",
+        "current_sha256": "04c06354ed08cb75af690892d9ee53792c3528e166bda3a4995dadfe1a34565d",
+        "intentional_followup": true
+      }
+    ],
+    "raw_execution_evidence_unchanged": true
+  },
+  {
+    "manifest": "evidence/LBT-60/2026-11-23-candidate-publication/artifact-manifest.json",
+    "sha256": "e8db0b187c906995d1786fe0047ed379157f2ac307c3914f33ec7455d0fda2a5",
+    "files_checked": 96,
+    "superseded_documents": [
+      {
+        "path": "docs/backend/dr-maintenance-integration.md",
+        "then_sha256": "e3f8c25b6a9832f8d69a929f0e122192e89986f7cef58b6ffbc2dbb43a1f4682",
+        "current_sha256": "1e6413b3e6b306f1421cda3dcbf3435e3adf9344da4afe0f85180d77656bfd93",
+        "intentional_followup": true
+      },
+      {
+        "path": "docs/backend/dr-pr196-trial-preparation.md",
+        "then_sha256": "9d3225373b7e7b2c888375b1aaa24dc63173c061e7c914a85a050761cd6a3a48",
+        "current_sha256": "04c06354ed08cb75af690892d9ee53792c3528e166bda3a4995dadfe1a34565d",
+        "intentional_followup": true
+      },
+      {
+        "path": "docs/backend/dr-stage3-deployment.md",
+        "then_sha256": "65369809c30ea36fdf3b7d09e95099d18b6780625662e9564b01b94a50a68080",
+        "current_sha256": "9ea8ca417a59cf2b5dddde571de8c897b50be1ac0784921fbd4c221f9f5c8bdb",
+        "intentional_followup": true
+      }
+    ],
+    "raw_execution_evidence_unchanged": true
+  },
+  {
+    "manifest": "evidence/LBT-60/2026-11-23-migration-candidate-rollout/artifact-manifest.json",
+    "sha256": "6708bacfd3736d33c293cfcd858d50af107e0064cd608f6f5a2a767c86862ddc",
+    "files_checked": 74,
+    "superseded_documents": [],
+    "raw_execution_evidence_unchanged": true
+  }
+]

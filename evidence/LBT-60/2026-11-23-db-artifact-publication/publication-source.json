@@ -1,0 +1,49 @@
+{
+  "created_utc": "2026-11-23T06:52:39.795488+00:00",
+  "parent": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "base": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "branch": "codex/feat/LBT-60-dr-admission-block-20261119",
+  "source_files": 21,
+  "new_original_artifacts": 80,
+  "original_manifest_sha256": "347a8929e39bd0785ece9bd804537396e895d1436a2353e156a9f2d60e777d48",
+  "prior_packets": [
+    {
+      "packet": "2026-11-23-pr196-trial-preparation",
+      "verified_artifacts": 24,
+      "historical_source_refs": [
+        "docs/backend/dr-stage3-deployment.md",
+        "docs/backend/dr-maintenance-integration.md",
+        "docs/backend/dr-pr196-trial-preparation.md"
+      ],
+      "manifest_sha256": "627f30ca5727d5cb0b2d390730f8fdce7a7d9818bf19bbee4b047961e3bcad8f"
+    },
+    {
+      "packet": "2026-11-23-candidate-publication",
+      "verified_artifacts": 93,
+      "historical_source_refs": [
+        "docs/backend/dr-maintenance-integration.md",
+        "docs/backend/dr-pr196-trial-preparation.md",
+        "docs/backend/dr-stage3-deployment.md"
+      ],
+      "manifest_sha256": "e8db0b187c906995d1786fe0047ed379157f2ac307c3914f33ec7455d0fda2a5"
+    },
+    {
+      "packet": "2026-11-23-migration-candidate-rollout",
+      "verified_artifacts": 74,
+      "historical_source_refs": [],
+      "manifest_sha256": "6708bacfd3736d33c293cfcd858d50af107e0064cd608f6f5a2a767c86862ddc"
+    },
+    {
+      "packet": "2026-11-23-collector-path-preparation",
+      "verified_artifacts": 101,
+      "historical_source_refs": [],
+      "manifest_sha256": "7f6ec10559a3a1d9a3785a0a549d842aa926f17d0d8abca669029940f87ff32f"
+    }
+  ],
+  "new_cloud_operations": 0,
+  "merge": false,
+  "colleague_message_sent": false,
+  "publication_authorized": true,
+  "original_uncommitted_records_preserved": true,
+  "new_ci_not_yet_observed": true
+}

@@ -1,0 +1,74 @@
+{
+  "at": "2026-11-23T06:26:32.648808+00:00",
+  "results": [
+    {
+      "kind": "approval",
+      "receipt": {
+        "at": "2026-11-23T06:17:42.545955+00:00",
+        "encryption": "AES256",
+        "execution_gate": "HOLD",
+        "owner": "Seobin / LBT-60, manual review, no automatic delete",
+        "plan_sha256": "057e9ec325247d2a628ab751aad528cbdf54f418b30af2aa62b80ce4eae63f45",
+        "reference": {
+          "Bucket": "labbit-osaka-dr-evidence-299311846289-trial01",
+          "Key": "dr-precheck/storage-trial/s2b-20261113-01/control-originals/pr196-20261123-0615/approval.expired-simulation.json",
+          "SHA256": "ba2c302a474e11951712f8068df920f034e7f097368003eb88799ff531c3d07d",
+          "Size": 471,
+          "VersionID": "c7xN1iT9tOKRJEAq.9RPCxhoHps4Uimp"
+        },
+        "retain_until": "2026-12-24T06:17:35.032904Z",
+        "status": "READBACK_VERIFIED",
+        "verified_at": "2026-11-23T06:26:29.881295+00:00"
+      }
+    },
+    {
+      "kind": "observation",
+      "receipt": {
+        "at": "2026-11-23T06:17:37.093893+00:00",
+        "encryption": "AES256",
+        "execution_gate": "HOLD",
+        "owner": "Seobin / LBT-60, manual review, no automatic delete",
+        "plan_sha256": "c73b914fcbeea5a87ad9b60c7039eb1733a074a61884ac8f32497967c91fe572",
+        "reference": {
+          "Bucket": "labbit-osaka-dr-evidence-299311846289-trial01",
+          "Key": "dr-precheck/storage-trial/s2b-20261113-01/control-originals/pr196-20261123-0615/observation.expired-simulation.json",
+          "SHA256": "8dc1613b862c847df168588dfec378e4566b1264616e89aa5ad359308ce3cd28",
+          "Size": 1074,
+          "VersionID": "un6FyIgIRV2gVOSGhFGx9iuS_OjDa2lV"
+        },
+        "retain_until": "2026-12-24T06:17:35.032904Z",
+        "status": "READBACK_VERIFIED",
+        "verified_at": "2026-11-23T06:26:32.634494+00:00"
+      }
+    }
+  ],
+  "allowed_actual_calls": [
+    {
+      "service": "sts",
+      "action": "get-caller-identity"
+    },
+    {
+      "service": "s3api",
+      "action": "head-object"
+    },
+    {
+      "service": "s3api",
+      "action": "get-object"
+    },
+    {
+      "service": "sts",
+      "action": "get-caller-identity"
+    },
+    {
+      "service": "s3api",
+      "action": "head-object"
+    },
+    {
+      "service": "s3api",
+      "action": "get-object"
+    }
+  ],
+  "put_calls": 0,
+  "execution_gate": "HOLD",
+  "independent_qa": false
+}

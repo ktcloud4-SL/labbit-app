@@ -1,0 +1,184 @@
+{
+  "at": "2026-11-23T05:14:08.230275+00:00",
+  "method": "kubectl exec busybox wget to localhost:9090; no secret access",
+  "pods": [
+    {
+      "name": "backend-77c594cb7b-lgwqb",
+      "uid": "006ab630-4261-4e26-b924-a5a53d1d0cd5",
+      "containers": [
+        {
+          "allocatedResources": {
+            "cpu": "100m",
+            "memory": "128Mi"
+          },
+          "containerID": "containerd://f81717312b0a107b7c8f183a9e93f450e5e45a906433d0d7c158b4d1f48c166c",
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+          "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419",
+          "lastState": {},
+          "name": "common-app",
+          "ready": true,
+          "resources": {
+            "limits": {
+              "memory": "256Mi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "128Mi"
+            }
+          },
+          "restartCount": 0,
+          "started": true,
+          "state": {
+            "running": {
+              "startedAt": "2026-11-23T05:13:21Z"
+            }
+          },
+          "user": {
+            "linux": {
+              "gid": 101,
+              "supplementalGroups": [
+                101
+              ],
+              "uid": 100
+            }
+          },
+          "volumeMounts": [
+            {
+              "mountPath": "/var/secrets/labbit-valkey",
+              "name": "valkey-secret-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/etc/config",
+              "name": "config-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/var/secrets/labbit",
+              "name": "db-dsn-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/var/run/secrets/pods.eks.amazonaws.com/serviceaccount",
+              "name": "eks-pod-identity-token",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            }
+          ]
+        }
+      ],
+      "probes": {
+        "livez": {
+          "body": "ok\n",
+          "result": "HTTP_SUCCESS"
+        },
+        "readyz": {
+          "body": "ok\n",
+          "result": "HTTP_SUCCESS"
+        },
+        "metrics": {
+          "maintenance_lines": [
+            "labbit_maintenance_active{kind=\"http\"} 0",
+            "labbit_maintenance_active{kind=\"worker\"} 0",
+            "labbit_maintenance_closed 0"
+          ],
+          "source_sha256": "5b8f69f87cf4b874d79c89dffe55609d7a4bd6a396d013d542adb1ce6f018926"
+        }
+      }
+    },
+    {
+      "name": "backend-77c594cb7b-tvpw5",
+      "uid": "909fc78b-6ed3-48cf-988a-33f06aca3296",
+      "containers": [
+        {
+          "allocatedResources": {
+            "cpu": "100m",
+            "memory": "128Mi"
+          },
+          "containerID": "containerd://bf5badd3f47a9d7d0785cabbd3d173999197c466868127d6b0264d0e8949c413",
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+          "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419",
+          "lastState": {},
+          "name": "common-app",
+          "ready": true,
+          "resources": {
+            "limits": {
+              "memory": "256Mi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "128Mi"
+            }
+          },
+          "restartCount": 0,
+          "started": true,
+          "state": {
+            "running": {
+              "startedAt": "2026-11-23T05:13:10Z"
+            }
+          },
+          "user": {
+            "linux": {
+              "gid": 101,
+              "supplementalGroups": [
+                101
+              ],
+              "uid": 100
+            }
+          },
+          "volumeMounts": [
+            {
+              "mountPath": "/var/secrets/labbit-valkey",
+              "name": "valkey-secret-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/etc/config",
+              "name": "config-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/var/secrets/labbit",
+              "name": "db-dsn-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/var/run/secrets/pods.eks.amazonaws.com/serviceaccount",
+              "name": "eks-pod-identity-token",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            }
+          ]
+        }
+      ],
+      "probes": {
+        "livez": {
+          "body": "ok\n",
+          "result": "HTTP_SUCCESS"
+        },
+        "readyz": {
+          "body": "ok\n",
+          "result": "HTTP_SUCCESS"
+        },
+        "metrics": {
+          "maintenance_lines": [
+            "labbit_maintenance_active{kind=\"http\"} 0",
+            "labbit_maintenance_active{kind=\"worker\"} 0",
+            "labbit_maintenance_closed 0"
+          ],
+          "source_sha256": "5b8f69f87cf4b874d79c89dffe55609d7a4bd6a396d013d542adb1ce6f018926"
+        }
+      }
+    }
+  ],
+  "collector_pods_proxy_verified": false,
+  "execution_gate": "HOLD",
+  "cloud_verified": false,
+  "recovery_authorized": false
+}

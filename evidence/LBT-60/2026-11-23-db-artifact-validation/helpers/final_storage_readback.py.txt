@@ -1,0 +1,17 @@
+import importlib.util,json,datetime
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+OUT=ROOT/'evidence/LBT-60/2026-11-23-db-artifact-validation'
+J=Path(r'C:\Users\user\.codex\tmp\pr196-control-artifact-journal-20261123')
+sp=importlib.util.spec_from_file_location('store',ROOT/'scripts/dr_control_artifact_store.py');m=importlib.util.module_from_spec(sp);sp.loader.exec_module(m)
+rows=[];calls=[]
+def readonly(p,s,a,args):
+ if (s,a) not in (('sts','get-caller-identity'),('s3api','head-object'),('s3api','get-object')):raise RuntimeError('MUTATION_FORBIDDEN')
+ calls.append({'service':s,'action':a})
+ return m.command(p,s,a,args)
+for kind in ('approval','observation'):
+ p=json.loads((OUT/f'storage-plan.{kind}.json').read_bytes())
+ r=m.store(p,(OUT/f'{kind}.expired-simulation.json').resolve(),J/f'{kind}.receipt.json',True,readonly)
+ rows.append({'kind':kind,'receipt':r})
+(OUT/'final-storage-readback.json').write_text(json.dumps({'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'results':rows,'allowed_actual_calls':calls,'put_calls':0,'execution_gate':'HOLD','independent_qa':False},indent=2)+'\n',encoding='utf-8')
+print('FIXED_VERSION_HEAD_GET_MATCH_2_OF_2_NO_PUT')

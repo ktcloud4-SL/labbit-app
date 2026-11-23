@@ -1,0 +1,36 @@
+import base64
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sp = importlib.util.spec_from_file_location('policy', ROOT / '.local/pr196_collector_policy.py')
+m = importlib.util.module_from_spec(sp); sp.loader.exec_module(m)
+r = m.r
+baseline = r.load(m.LOCAL, 'baseline.json')
+cfg = r.kube('config', 'view', '--raw', '-o', 'json')
+context = next(c for c in cfg['contexts'] if c['name'] == cfg['current-context'])
+cluster = next(c for c in cfg['clusters'] if c['name'] == context['context']['cluster'])['cluster']
+assert cluster['server'] == baseline['cluster']['endpoint']
+ca = base64.b64decode(cluster['certificate-authority-data'], validate=True)
+capath = m.LOCAL / 'cluster-ca.pem'
+with capath.open('xb') as f: f.write(ca)
+pods = r.kube('get', 'pods', '-n', 'labbit', '-o', 'json')['items']
+rs = r.kube('get', 'replicasets', '-n', 'labbit', '-o', 'json')['items']
+owned = {v['metadata']['uid'] for v in rs if any(o['uid'] == r.UID for o in v['metadata'].get('ownerReferences', []))}
+targets = []; excludes = {}
+for p in pods:
+    if any(o['uid'] in owned for o in p['metadata'].get('ownerReferences', [])) and not p['metadata'].get('deletionTimestamp'):
+        status = next(v for v in p['status']['containerStatuses'] if v['name'] == 'common-app')
+        assert status['ready'] and status['restartCount'] == 0
+        targets.append({'Name': p['metadata']['name'], 'UID': p['metadata']['uid'], 'Container': 'common-app', 'ImageID': status['imageID']})
+    else:
+        excludes[p['metadata']['name']] = p['metadata']['uid']
+assert len(targets) == 2
+plan = {'CAFile': str(capath), 'CASHA256': hashlib.sha256(ca).hexdigest(), 'KubectlExecutable': r.KUBE, 'Kubeconfig': r.KCONFIG,
+        'Context': cfg['current-context'], 'APIServer': cluster['server'], 'KubeSystemUID': '6c0ed2a2-92c8-48ad-a8d3-0d192e7f70d8',
+        'Namespace': 'labbit', 'Pods': sorted(targets, key=lambda p: p['Name']), 'ExcludedPods': excludes}
+r.save(m.LOCAL, 'route-collection-plan.json', plan)
+r.save(m.OUT, 'route-collection-plan.json', plan)
+print('READONLY_DIAGNOSTIC_PLAN_FIXED_TO_CURRENT_TWO_PODS_NO_SIGNING_OR_APPROVAL')

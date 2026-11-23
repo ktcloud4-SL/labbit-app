@@ -1,0 +1,27 @@
+"""Final metadata-only readback; no configuration or control mutation."""
+from pathlib import Path
+import importlib.util
+import json
+
+root=Path(__file__).resolve().parents[1]
+sp=importlib.util.spec_from_file_location('window',root/'.local/pr196_collector_network_window2.py')
+w=importlib.util.module_from_spec(sp)
+sp.loader.exec_module(w)
+m,r=w.m,w.r
+_,policies=m.baseline()
+if any(p['metadata']['name'] in ('pr196-collector-proxy-20261123-01','pr196-collector-proxy-20261123-02') for p in policies):
+    raise SystemExit('TEMPORARY_POLICY_PRESENT')
+sg=w.group()
+before=r.load(m.LOCAL,'sg-before.json')
+if sg['IpPermissions']!=before['IpPermissions'] or sg['IpPermissionsEgress']!=before['IpPermissionsEgress']:
+    raise SystemExit('NETWORK_BASELINE_CHANGED')
+d=r.deployment()
+if d['status'].get('readyReplicas')!=2 or d['status'].get('updatedReplicas')!=2:
+    raise SystemExit('BACKEND_NOT_READY')
+apps={}
+for name in r.APP_UIDS:
+    app=r.app(name)
+    apps[name]={'uid':app['metadata']['uid'],'sync':app['status']['sync']['status'],'health':app['status']['health']['status']}
+result={'at':r.now(),'metadata_only':True,'original_deployment_and_argo_specs_unchanged':True,'original_networkpolicy_unchanged':True,'temporary_networkpolicies_absent':True,'original_security_group_full_ruleset_unchanged':True,'backend_ready':2,'image':d['spec']['template']['spec']['containers'][0]['image'],'applications':apps,'execution_gate':'HOLD','recovery_authorized':False,'cloud_verified':False,'mutations':[]}
+r.save(root/'evidence/LBT-60/2026-11-23-collector-path-preparation','latest-readonly-baseline.json',result)
+print(json.dumps(result))

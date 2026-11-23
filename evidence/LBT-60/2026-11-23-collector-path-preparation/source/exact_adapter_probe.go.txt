@@ -1,0 +1,55 @@
+// Read-only diagnostic using the exact product KubeCLI adapter. It signs nothing.
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/ktcloud4-SL/labbit-app/internal/drcontrol"
+)
+
+func main() {
+	if len(os.Args) != 2 {
+		os.Exit(2)
+	}
+	raw, err := os.ReadFile(os.Args[1])
+	var plan drcontrol.CollectionPlan
+	if err != nil || drcontrol.Strict(raw, &plan) != nil || plan.Validate() != nil {
+		os.Exit(2)
+	}
+	k, err := drcontrol.NewKubeCLI(plan, drcontrol.CommandRunner{})
+	if err != nil {
+		os.Exit(2)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	start := time.Now().UTC()
+	first, e1 := k.Snapshot(ctx)
+	type probe struct {
+		Name, Result, Reason string
+		ElapsedMS            int64
+	}
+	rows := []probe{}
+	for _, p := range plan.Pods {
+		at := time.Now()
+		_, hash, e := k.Process(ctx, p.Name)
+		v := probe{Name: p.Name, Result: "NOT_VERIFIED", Reason: "PROCESS_READBACK_UNAVAILABLE", ElapsedMS: time.Since(at).Milliseconds()}
+		if e == nil && hash != "" {
+			v.Result = "READBACK_RECEIVED_NOT_FULL_COLLECTION"
+			v.Reason = "NO_SIGNING_OR_DB_OR_SAFETY_CHECK"
+		}
+		rows = append(rows, v)
+	}
+	second, e2 := k.Snapshot(ctx)
+	result := map[string]any{"started_at": start, "finished_at": time.Now().UTC(), "plan_sha256": plan.SHA256(), "first_snapshot_ok": e1 == nil, "second_snapshot_ok": e2 == nil, "first": first, "second": second, "process_probes": rows, "execution_gate": "HOLD", "recovery_authorized": false, "cloud_verified": false, "signed": false, "mutations": []string{}}
+	if err := json.NewEncoder(os.Stdout).Encode(result); err != nil {
+		fmt.Fprintln(os.Stderr, "OUTPUT_FAILED")
+		os.Exit(2)
+	}
+	if e1 != nil || e2 != nil {
+		os.Exit(2)
+	}
+}

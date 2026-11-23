@@ -1,0 +1,24 @@
+{
+  "record_type": "summary_from_tool_transcript_no_raw_response_preserved",
+  "operations": [
+    {
+      "service": "s3",
+      "operation": "list-buckets",
+      "purpose": "Existing DR/evidence bucket metadata names only",
+      "selected_names": [
+        "labbit-osaka-dr-evidence-299311846289-trial01",
+        "labbit-osaka-dr-slack-299311846289-trial01"
+      ]
+    },
+    {
+      "service": "s3",
+      "operation": "get-bucket-location",
+      "bucket": "labbit-osaka-dr-evidence-299311846289-trial01",
+      "location": "ap-northeast-3"
+    }
+  ],
+  "profile": "labbit-admin3",
+  "exact_argv_and_observation_timestamp_not_preserved": true,
+  "s3_payload_read_or_upload": false,
+  "limit": "Supplemental context only; not a new version readback or IAM acceptance. Main command inventory excludes these manual metadata calls."
+}

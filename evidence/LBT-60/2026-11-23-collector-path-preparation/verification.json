@@ -1,0 +1,14 @@
+{
+  "scope": "offline packet verification and actual readback evidence consistency",
+  "source_hashes_match": true,
+  "json_parse_pass": true,
+  "local_links_exist": true,
+  "source_files": 22,
+  "final_metadata_readback_utc": "2026-11-23T06:01:16.982652+00:00",
+  "ready": false,
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false,
+  "pushed": false,
+  "merged": false
+}

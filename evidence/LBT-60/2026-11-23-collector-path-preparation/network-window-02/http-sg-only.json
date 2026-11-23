@@ -1,0 +1,26 @@
+{
+  "at": "2026-11-23T05:40:13.146451+00:00",
+  "phase": "sg-only",
+  "method": "fixed TLS-pinned apiserver pods/proxy GET request-timeout2s",
+  "rows": [
+    {
+      "pod": "backend-77c594cb7b-lgwqb",
+      "uid": "006ab630-4261-4e26-b924-a5a53d1d0cd5",
+      "path": "livez",
+      "result": "HTTP_SUCCESS",
+      "expected_health_body": true,
+      "elapsed_ms": 1628
+    },
+    {
+      "pod": "backend-77c594cb7b-tvpw5",
+      "uid": "909fc78b-6ed3-48cf-988a-33f06aca3296",
+      "path": "livez",
+      "result": "HTTP_SUCCESS",
+      "expected_health_body": true,
+      "elapsed_ms": 1670
+    }
+  ],
+  "raw_stderr_saved": false,
+  "execution_gate": "HOLD",
+  "cloud_verified": false
+}

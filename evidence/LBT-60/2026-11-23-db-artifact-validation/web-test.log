@@ -1,0 +1,32 @@
+
+ RUN  v5.0.5 C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-stage3-live-prep-20261123/web
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ❯ scripts/validate-installer-build-env.test.mjs (30 tests | 1 failed) 1253ms
+   ❯ LBT-183 public Installer URL build-time safety (30)
+     × Vite also rejects invalid final process config without echoing it 416ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  scripts/validate-installer-build-env.test.mjs > LBT-183 public Installer URL build-time safety > Vite also rejects invalid final process config without echoing it
+Error: EPERM, Permission denied: 'C:\Users\user\AppData\Local\Temp\labbit-installer-env-YlPe9y'
+ ❯ scripts/validate-installer-build-env.test.mjs:90:7
+     88|       expect(output).not.toContain('synthetic-vite-fixture')
+     89|     } finally {
+     90|       rmSync(temp, { recursive: true, force: true })
+       |       ^
+     91|     }
+     92|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 34 passed (35)
+      Tests  1 failed | 492 passed (493)
+   Start at  15:20:00
+   Duration  89.61s (environment 59%, tests 27%, setup 11%, import 2%)
+
+Environment  jsdom was created 35 times · 49.55s total, 59% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+

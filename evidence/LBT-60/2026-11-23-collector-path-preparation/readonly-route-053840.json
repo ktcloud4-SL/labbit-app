@@ -1,0 +1,500 @@
+{
+  "at": "2026-11-23T05:38:49.025050+00:00",
+  "actor": {
+    "UserId": "AIDAULMDAKOI7AY6MJNYD",
+    "Account": "299311846289",
+    "Arn": "arn:aws:iam::299311846289:user/admin3"
+  },
+  "deployment_uid": "88a17177-492f-41db-b097-a80a6a18a475",
+  "deployment_spec_sha256": "4daa23809fab2b3d87b0a38a828232dd888eca519118df21bf005b28a15732e0",
+  "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+  "pods": [
+    {
+      "name": "backend-77c594cb7b-lgwqb",
+      "uid": "006ab630-4261-4e26-b924-a5a53d1d0cd5",
+      "labels": {
+        "app.kubernetes.io/instance": "backend",
+        "app.kubernetes.io/name": "common-app",
+        "eks.amazonaws.com/pod-identity": "enabled",
+        "pod-template-hash": "77c594cb7b",
+        "security.istio.io/tlsMode": "istio",
+        "service.istio.io/canonical-name": "common-app",
+        "service.istio.io/canonical-revision": "latest",
+        "topology.kubernetes.io/region": "ap-northeast-2",
+        "topology.kubernetes.io/zone": "ap-northeast-2c"
+      },
+      "ip": "10.0.37.202",
+      "host_ip": "10.0.45.35",
+      "containers": [
+        {
+          "allocatedResources": {
+            "cpu": "100m",
+            "memory": "128Mi"
+          },
+          "containerID": "containerd://f81717312b0a107b7c8f183a9e93f450e5e45a906433d0d7c158b4d1f48c166c",
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+          "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419",
+          "lastState": {},
+          "name": "common-app",
+          "ready": true,
+          "resources": {
+            "limits": {
+              "memory": "256Mi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "128Mi"
+            }
+          },
+          "restartCount": 0,
+          "started": true,
+          "state": {
+            "running": {
+              "startedAt": "2026-11-23T05:13:21Z"
+            }
+          },
+          "user": {
+            "linux": {
+              "gid": 101,
+              "supplementalGroups": [
+                101
+              ],
+              "uid": 100
+            }
+          },
+          "volumeMounts": [
+            {
+              "mountPath": "/var/secrets/labbit-valkey",
+              "name": "valkey-secret-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/etc/config",
+              "name": "config-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/var/secrets/labbit",
+              "name": "db-dsn-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/var/run/secrets/pods.eks.amazonaws.com/serviceaccount",
+              "name": "eks-pod-identity-token",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            }
+          ]
+        }
+      ],
+      "probes": {
+        "proxy_livez": {
+          "result": "HTTP_SUCCESS",
+          "body": "ok\n"
+        },
+        "proxy_status": {
+          "result": "NOT_VERIFIED",
+          "reason": "READ_FAILED_OR_TIMEOUT"
+        }
+      }
+    },
+    {
+      "name": "backend-77c594cb7b-tvpw5",
+      "uid": "909fc78b-6ed3-48cf-988a-33f06aca3296",
+      "labels": {
+        "app.kubernetes.io/instance": "backend",
+        "app.kubernetes.io/name": "common-app",
+        "eks.amazonaws.com/pod-identity": "enabled",
+        "pod-template-hash": "77c594cb7b",
+        "security.istio.io/tlsMode": "istio",
+        "service.istio.io/canonical-name": "common-app",
+        "service.istio.io/canonical-revision": "latest",
+        "topology.kubernetes.io/region": "ap-northeast-2",
+        "topology.kubernetes.io/zone": "ap-northeast-2a"
+      },
+      "ip": "10.0.30.189",
+      "host_ip": "10.0.30.184",
+      "containers": [
+        {
+          "allocatedResources": {
+            "cpu": "100m",
+            "memory": "128Mi"
+          },
+          "containerID": "containerd://bf5badd3f47a9d7d0785cabbd3d173999197c466868127d6b0264d0e8949c413",
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+          "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419",
+          "lastState": {},
+          "name": "common-app",
+          "ready": true,
+          "resources": {
+            "limits": {
+              "memory": "256Mi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "128Mi"
+            }
+          },
+          "restartCount": 0,
+          "started": true,
+          "state": {
+            "running": {
+              "startedAt": "2026-11-23T05:13:10Z"
+            }
+          },
+          "user": {
+            "linux": {
+              "gid": 101,
+              "supplementalGroups": [
+                101
+              ],
+              "uid": 100
+            }
+          },
+          "volumeMounts": [
+            {
+              "mountPath": "/var/secrets/labbit-valkey",
+              "name": "valkey-secret-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/etc/config",
+              "name": "config-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/var/secrets/labbit",
+              "name": "db-dsn-volume",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            },
+            {
+              "mountPath": "/var/run/secrets/pods.eks.amazonaws.com/serviceaccount",
+              "name": "eks-pod-identity-token",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            }
+          ]
+        }
+      ],
+      "probes": {
+        "proxy_livez": {
+          "result": "HTTP_SUCCESS",
+          "body": "ok\n"
+        },
+        "proxy_status": {
+          "result": "NOT_VERIFIED",
+          "reason": "READ_FAILED_OR_TIMEOUT"
+        }
+      }
+    }
+  ],
+  "cluster": {
+    "arn": "arn:aws:eks:ap-northeast-2:299311846289:cluster/labbit-seoul-cluster",
+    "endpoint": "https://7EF29A2C0B0AE221F6BD9A8CAA189512.gr7.ap-northeast-2.eks.amazonaws.com",
+    "resourcesVpcConfig": {
+      "subnetIds": [
+        "subnet-0191996a7e5730b33",
+        "subnet-042a0d269986cace7"
+      ],
+      "securityGroupIds": [
+        "sg-064944824d49757ed"
+      ],
+      "clusterSecurityGroupId": "sg-03ab32c3419c38bc7",
+      "vpcId": "vpc-0f874c702b0364ff1",
+      "endpointPublicAccess": true,
+      "endpointPrivateAccess": true,
+      "publicAccessCidrs": [
+        "125.247.187.247/32",
+        "182.211.45.52/32",
+        "121.138.184.76/32",
+        "59.17.19.52/32",
+        "175.195.113.145/32",
+        "222.235.231.219/32",
+        "1.1.1.1/32",
+        "121.185.85.150/32"
+      ],
+      "controlPlaneEgressMode": "AWS_MANAGED"
+    }
+  },
+  "enis": [
+    {
+      "NetworkInterfaceId": "eni-0a3fadba008a8e313",
+      "Description": "Amazon EKS labbit-seoul-cluster",
+      "InterfaceType": "interface",
+      "Status": "in-use",
+      "RequesterManaged": true,
+      "PrivateIpAddress": "10.0.21.58",
+      "PrivateIpAddresses": [
+        {
+          "Primary": true,
+          "PrivateDnsName": "ip-10-0-21-58.ap-northeast-2.compute.internal",
+          "PrivateIpAddress": "10.0.21.58"
+        }
+      ],
+      "Groups": [
+        {
+          "GroupId": "sg-03ab32c3419c38bc7",
+          "GroupName": "eks-cluster-sg-labbit-seoul-cluster-487376436"
+        },
+        {
+          "GroupId": "sg-064944824d49757ed",
+          "GroupName": "labbit-seoul-cluster-cluster-20261122234441625600000004"
+        }
+      ],
+      "SubnetId": "subnet-0191996a7e5730b33",
+      "VpcId": "vpc-0f874c702b0364ff1",
+      "Attachment": {
+        "AttachTime": "2026-11-23T01:54:45+00:00",
+        "AttachmentId": "eni-attach-09a39b8f6f63dfba5",
+        "DeleteOnTermination": true,
+        "DeviceIndex": 1,
+        "NetworkCardIndex": 0,
+        "InstanceOwnerId": "816069133605",
+        "Status": "attached"
+      }
+    },
+    {
+      "NetworkInterfaceId": "eni-0e9725c1ad80dbdaa",
+      "Description": "Amazon EKS labbit-seoul-cluster",
+      "InterfaceType": "interface",
+      "Status": "in-use",
+      "RequesterManaged": true,
+      "PrivateIpAddress": "10.0.46.149",
+      "PrivateIpAddresses": [
+        {
+          "Primary": true,
+          "PrivateDnsName": "ip-10-0-46-149.ap-northeast-2.compute.internal",
+          "PrivateIpAddress": "10.0.46.149"
+        }
+      ],
+      "Groups": [
+        {
+          "GroupId": "sg-03ab32c3419c38bc7",
+          "GroupName": "eks-cluster-sg-labbit-seoul-cluster-487376436"
+        },
+        {
+          "GroupId": "sg-064944824d49757ed",
+          "GroupName": "labbit-seoul-cluster-cluster-20261122234441625600000004"
+        }
+      ],
+      "SubnetId": "subnet-042a0d269986cace7",
+      "VpcId": "vpc-0f874c702b0364ff1",
+      "Attachment": {
+        "AttachTime": "2026-11-23T01:54:48+00:00",
+        "AttachmentId": "eni-attach-0bf685e5f94400246",
+        "DeleteOnTermination": true,
+        "DeviceIndex": 1,
+        "NetworkCardIndex": 0,
+        "InstanceOwnerId": "816069133605",
+        "Status": "attached"
+      }
+    }
+  ],
+  "networkpolicies": {
+    "apiVersion": "v1",
+    "items": [
+      {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "NetworkPolicy",
+        "metadata": {
+          "annotations": {
+            "argocd.argoproj.io/sync-wave": "-1",
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.k8s.io/v1\",\"kind\":\"NetworkPolicy\",\"metadata\":{\"annotations\":{\"argocd.argoproj.io/sync-wave\":\"-1\"},\"labels\":{\"argocd.argoproj.io/instance\":\"backend\"},\"name\":\"backend-peer-ingress\",\"namespace\":\"labbit\"},\"spec\":{\"ingress\":[{\"from\":[{\"namespaceSelector\":{\"matchLabels\":{\"kubernetes.io/metadata.name\":\"istio-system\"}},\"podSelector\":{\"matchLabels\":{\"istio\":\"ingressgateway\"}}},{\"podSelector\":{\"matchLabels\":{\"app.kubernetes.io/instance\":\"backend\",\"app.kubernetes.io/name\":\"common-app\"}}}],\"ports\":[{\"port\":8080,\"protocol\":\"TCP\"}]},{\"from\":[{\"podSelector\":{\"matchLabels\":{\"app.kubernetes.io/instance\":\"backend\",\"app.kubernetes.io/name\":\"common-app\"}}}],\"ports\":[{\"port\":8081,\"protocol\":\"TCP\"}]},{\"from\":[{\"namespaceSelector\":{\"matchLabels\":{\"kubernetes.io/metadata.name\":\"observability\"}},\"podSelector\":{\"matchLabels\":{\"app.kubernetes.io/name\":\"prometheus\"}}}],\"ports\":[{\"port\":9090,\"protocol\":\"TCP\"}]}],\"podSelector\":{\"matchLabels\":{\"app.kubernetes.io/instance\":\"backend\",\"app.kubernetes.io/name\":\"common-app\"}},\"policyTypes\":[\"Ingress\"]}}\n"
+          },
+          "creationTimestamp": "2026-11-23T00:23:30Z",
+          "finalizers": [
+            "networking.k8s.aws/resources"
+          ],
+          "generation": 1,
+          "labels": {
+            "argocd.argoproj.io/instance": "backend"
+          },
+          "name": "backend-peer-ingress",
+          "namespace": "labbit",
+          "resourceVersion": "12219",
+          "uid": "548284a9-5050-4803-8cc8-b8401a1c638e"
+        },
+        "spec": {
+          "ingress": [
+            {
+              "from": [
+                {
+                  "namespaceSelector": {
+                    "matchLabels": {
+                      "kubernetes.io/metadata.name": "istio-system"
+                    }
+                  },
+                  "podSelector": {
+                    "matchLabels": {
+                      "istio": "ingressgateway"
+                    }
+                  }
+                },
+                {
+                  "podSelector": {
+                    "matchLabels": {
+                      "app.kubernetes.io/instance": "backend",
+                      "app.kubernetes.io/name": "common-app"
+                    }
+                  }
+                }
+              ],
+              "ports": [
+                {
+                  "port": 8080,
+                  "protocol": "TCP"
+                }
+              ]
+            },
+            {
+              "from": [
+                {
+                  "podSelector": {
+                    "matchLabels": {
+                      "app.kubernetes.io/instance": "backend",
+                      "app.kubernetes.io/name": "common-app"
+                    }
+                  }
+                }
+              ],
+              "ports": [
+                {
+                  "port": 8081,
+                  "protocol": "TCP"
+                }
+              ]
+            },
+            {
+              "from": [
+                {
+                  "namespaceSelector": {
+                    "matchLabels": {
+                      "kubernetes.io/metadata.name": "observability"
+                    }
+                  },
+                  "podSelector": {
+                    "matchLabels": {
+                      "app.kubernetes.io/name": "prometheus"
+                    }
+                  }
+                }
+              ],
+              "ports": [
+                {
+                  "port": 9090,
+                  "protocol": "TCP"
+                }
+              ]
+            }
+          ],
+          "podSelector": {
+            "matchLabels": {
+              "app.kubernetes.io/instance": "backend",
+              "app.kubernetes.io/name": "common-app"
+            }
+          },
+          "policyTypes": [
+            "Ingress"
+          ]
+        }
+      },
+      {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "NetworkPolicy",
+        "metadata": {
+          "creationTimestamp": "2026-11-23T05:38:38Z",
+          "finalizers": [
+            "networking.k8s.aws/resources"
+          ],
+          "generation": 1,
+          "labels": {
+            "labbit.io/trial": "pr196-collector-20261123-02"
+          },
+          "name": "pr196-collector-proxy-20261123-02",
+          "namespace": "labbit",
+          "resourceVersion": "125111",
+          "uid": "7674bb44-8d29-4849-adea-314beadecf8f"
+        },
+        "spec": {
+          "ingress": [
+            {
+              "from": [
+                {
+                  "ipBlock": {
+                    "cidr": "10.0.21.58/32"
+                  }
+                },
+                {
+                  "ipBlock": {
+                    "cidr": "10.0.46.149/32"
+                  }
+                }
+              ],
+              "ports": [
+                {
+                  "port": 9090,
+                  "protocol": "TCP"
+                }
+              ]
+            }
+          ],
+          "podSelector": {
+            "matchLabels": {
+              "app.kubernetes.io/instance": "backend",
+              "app.kubernetes.io/name": "common-app"
+            }
+          },
+          "policyTypes": [
+            "Ingress"
+          ]
+        }
+      }
+    ],
+    "kind": "List",
+    "metadata": {
+      "resourceVersion": ""
+    }
+  },
+  "all_pod_roster": [
+    {
+      "name": "backend-77c594cb7b-lgwqb",
+      "uid": "006ab630-4261-4e26-b924-a5a53d1d0cd5",
+      "phase": "Running",
+      "deleting": false
+    },
+    {
+      "name": "backend-77c594cb7b-tvpw5",
+      "uid": "909fc78b-6ed3-48cf-988a-33f06aca3296",
+      "phase": "Running",
+      "deleting": false
+    },
+    {
+      "name": "labbit-db-migration-zltt8",
+      "uid": "0df06286-0dac-430a-b093-74f6727ffd4c",
+      "phase": "Succeeded",
+      "deleting": false
+    },
+    {
+      "name": "web-68c5bbf584-9wr7j",
+      "uid": "e990a47a-d558-42b8-b10b-cba441fae3d4",
+      "phase": "Running",
+      "deleting": false
+    },
+    {
+      "name": "web-68c5bbf584-k8hsm",
+      "uid": "e55ebe0c-597e-4aa6-bd62-08458244d686",
+      "phase": "Running",
+      "deleting": false
+    }
+  ],
+  "execution_gate": "HOLD",
+  "cloud_verified": false,
+  "recovery_authorized": false,
+  "mutations": []
+}

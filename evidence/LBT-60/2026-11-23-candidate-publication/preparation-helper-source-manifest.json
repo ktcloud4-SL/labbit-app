@@ -1,0 +1,48 @@
+{
+  "product_head": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "base": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "files": [
+    {
+      "path": ".local/pr196-schema-tunnel-20261123/main.go",
+      "size": 10732,
+      "sha256": "ed8dcaa4a74fbba98d6e305f6a5ed6571d6d0168f8f559693a3d75ffaff6e68e"
+    },
+    {
+      "path": ".local/pr196-schema-tunnel-20261123/main_test.go",
+      "size": 1719,
+      "sha256": "b136ed0ded1e1166ddf5cd831fb2632559c26733b26d18fd6f37442d2378539a"
+    },
+    {
+      "path": ".local/pr196-schema-tunnel-20261123/schema-readonly.exe",
+      "size": 14792192,
+      "sha256": "a3bbee466a42427a27b1b547bf864739f262d1a67e95a034cb44d1c64cf52f7a"
+    },
+    {
+      "path": ".local/pr196-protected-prep-20261123/main.go",
+      "size": 3263,
+      "sha256": "86c3a28dfcacc9096fa27c521679350fb17f4bcdeb35d440aae7d13c705cf3e2"
+    },
+    {
+      "path": ".local/pr196-candidate-publish-20261123/candidate-publish.exe",
+      "size": 12323328,
+      "sha256": "e355c055f22debea560b236b002e883181b8d4bc6613194f99d3e1b95538827f"
+    },
+    {
+      "path": ".local/pr196-candidate-publish-20261123/security-build.yml",
+      "size": 4410,
+      "sha256": "18cb35c838b0c1ba8aa8a47e99524659a4152f358dfbb7f2632dc3e38da805d8"
+    },
+    {
+      "path": "go.mod",
+      "size": 2238,
+      "sha256": "be968fd5d12c32525ca85e79cef4462401111127c4b3542ef67fa1d4b83ad00d"
+    },
+    {
+      "path": "go.sum",
+      "size": 11020,
+      "sha256": "33322053d630dd70f3a6cb96e9ff9cb76eae81342da3de6e8dc87a4c458fad80"
+    }
+  ],
+  "private_key_contents_not_read": true,
+  "executable_sources_snapshotted_as_text": true
+}

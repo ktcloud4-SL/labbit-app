@@ -1,0 +1,406 @@
+package main
+
+import (
+	"bufio"
+	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+)
+
+const host = "labbit-seoul-rds.c1664mmc0jot.ap-northeast-2.rds.amazonaws.com"
+const awsPath = `C:\Users\user\AppData\Local\Programs\Amazon\AWSCLIV2\aws.exe`
+const pluginDir = `C:\Users\user\.codex\tmp\pr196-ssm-plugin-20261123\portable\bin`
+const target = "i-0945680e04ad938cf"
+const port = "35432"
+const secretVersion = "terraform-20261123001758077700000017"
+const migrationOptions = "-c lock_timeout=3000 -c statement_timeout=30000 -c idle_in_transaction_session_timeout=30000"
+
+func migrationOptionsVerified(dsn string) bool {
+	previous, existed := os.LookupEnv("PGOPTIONS")
+	os.Setenv("PGOPTIONS", migrationOptions)
+	defer func() {
+		if existed {
+			os.Setenv("PGOPTIONS", previous)
+		} else {
+			os.Unsetenv("PGOPTIONS")
+		}
+	}()
+	c, e := pgx.ParseConfig(dsn)
+	if e != nil || c.RuntimeParams["options"] != migrationOptions {
+		return false
+	}
+	for _, key := range []string{"statement_timeout", "lock_timeout", "idle_in_transaction_session_timeout"} {
+		if _, exists := c.RuntimeParams[key]; exists {
+			return false
+		}
+	}
+	return true
+}
+
+func cleanEnv() []string {
+	var result []string
+	for _, v := range os.Environ() {
+		key, _, _ := strings.Cut(v, "=")
+		key = strings.ToUpper(key)
+		if strings.HasPrefix(key, "PG") || strings.HasPrefix(key, "AWS_") || key == "PATH" {
+			continue
+		}
+		result = append(result, v)
+	}
+	return append(result, "AWS_PROFILE=labbit-admin3", "AWS_PAGER=", "AWS_CLI_AUTO_PROMPT=off", "AWS_MAX_ATTEMPTS=1", "AWS_IGNORE_CONFIGURED_ENDPOINT_URLS=true", "PATH="+pluginDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+}
+func aws(ctx context.Context, service, action string, args ...string) ([]byte, error) {
+	args = append([]string{service, action}, args...)
+	args = append(args, "--profile", "labbit-admin3", "--region", "ap-northeast-2", "--endpoint-url", "https://"+service+".ap-northeast-2.amazonaws.com", "--output", "json", "--no-cli-pager", "--cli-connect-timeout", "5", "--cli-read-timeout", "10")
+	c := exec.CommandContext(ctx, awsPath, args...)
+	c.Env = cleanEnv()
+	b, e := c.Output()
+	if e != nil {
+		return nil, errors.New("AWS_NOT_VERIFIED")
+	}
+	return b, nil
+}
+func config(dsn string, roots *x509.CertPool) (*pgx.ConnConfig, error) {
+	raw, e := pgx.ParseConfig(dsn)
+	if e != nil {
+		return nil, errors.New("DSN_INVALID")
+	}
+	if raw.Host != host || raw.Port != 5432 || raw.Database != "labbit_db" || raw.User != "labbit_user" || raw.Password == "" {
+		return nil, errors.New("TARGET_MISMATCH")
+	}
+	// ParseConfig marks the config initialized; discard all inherited/DSN routing and session options.
+	cfg, e := pgx.ParseConfig("host=localhost dbname=labbit_db user=labbit_user sslmode=disable")
+	if e != nil {
+		return nil, e
+	}
+	cfg.Host = host
+	cfg.Port = 5432
+	cfg.Database = "labbit_db"
+	cfg.User = "labbit_user"
+	cfg.Password = raw.Password
+	cfg.Fallbacks = nil
+	cfg.LookupFunc = func(context.Context, string) ([]string, error) { return []string{"127.0.0.1"}, nil }
+	cfg.DialFunc = func(ctx context.Context, network, address string) (net.Conn, error) {
+		return (&net.Dialer{Timeout: 5 * time.Second}).DialContext(ctx, "tcp", "127.0.0.1:"+port)
+	}
+	cfg.TLSConfig = &tls.Config{RootCAs: roots, ServerName: host, MinVersion: tls.VersionTLS12}
+	cfg.ConnectTimeout = 5 * time.Second
+	cfg.RuntimeParams = map[string]string{"default_transaction_read_only": "on", "statement_timeout": "2000", "lock_timeout": "1000", "idle_in_transaction_session_timeout": "5000", "application_name": "labbit-pr196-schema-readonly"}
+	return cfg, nil
+}
+func boundedRollback(tx pgx.Tx) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_ = tx.Rollback(ctx)
+}
+func boundedClose(c *pgx.Conn) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_ = c.Close(ctx)
+}
+func query(ctx context.Context, c *pgx.Conn) (map[string]any, error) {
+	tx, e := c.BeginTx(ctx, pgx.TxOptions{AccessMode: pgx.ReadOnly})
+	if e != nil {
+		return nil, e
+	}
+	defer boundedRollback(tx)
+	var database, user, readonly string
+	var recovery, ssl bool
+	var observed time.Time
+	var tlsVersion string
+	e = tx.QueryRow(ctx, "SELECT clock_timestamp(),current_database(),session_user,pg_is_in_recovery(),current_setting('transaction_read_only')").Scan(&observed, &database, &user, &recovery, &readonly)
+	if e != nil {
+		return nil, e
+	}
+	if database != "labbit_db" || user != "labbit_user" || readonly != "on" {
+		return nil, errors.New("SQL_IDENTITY_OR_READONLY_MISMATCH")
+	}
+	e = tx.QueryRow(ctx, "SELECT ssl,version FROM pg_stat_ssl WHERE pid=pg_backend_pid()").Scan(&ssl, &tlsVersion)
+	if e != nil || !ssl {
+		return nil, errors.New("TLS_NOT_VERIFIED")
+	}
+	rows, e := tx.Query(ctx, "SELECT version,name,checksum,applied_at FROM public.labbit_schema_migrations ORDER BY version LIMIT 100")
+	if e != nil {
+		return nil, e
+	}
+	history, e := pgx.CollectRows(rows, pgx.RowToMap)
+	if e != nil {
+		return nil, e
+	}
+	rows, e = tx.Query(ctx, "SELECT to_regclass('public.worker_control_states')::text AS states,to_regclass('public.worker_control_changes')::text AS changes,to_regclass('public.worker_control_boundaries')::text AS boundaries,to_regclass('public.worker_control_resumes')::text AS resumes,to_regclass('public.worker_control_restrictions')::text AS restrictions")
+	if e != nil {
+		return nil, e
+	}
+	tables, e := pgx.CollectRows(rows, pgx.RowToMap)
+	if e != nil {
+		return nil, e
+	}
+	rows, e = tx.Query(ctx, `SELECT
+ (SELECT count(*) FROM operations WHERE status IN ('PENDING','RUNNING','RECONCILING')) AS unfinished_operations,
+ (SELECT count(*) FROM operation_items WHERE status IN ('PENDING','RUNNING','RECONCILING') OR lease_owner IS NOT NULL OR lease_expires_at IS NOT NULL) AS unfinished_items,
+ (SELECT count(*) FROM provider_resources WHERE lifecycle_status IN ('DELETING','MISSING') OR cleanup_error_code IS NOT NULL) AS unresolved_provider_records,
+ (SELECT count(*) FROM terminal_sessions WHERE status <> 'ENDED') AS active_terminal_sessions,
+ (SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND xact_start IS NOT NULL) AS other_open_transactions`)
+	if e != nil {
+		return nil, e
+	}
+	inventory, e := pgx.CollectRows(rows, pgx.RowToMap)
+	if e != nil {
+		return nil, e
+	}
+	controls := []map[string]any{}
+	var controlTablesExist bool
+	if e = tx.QueryRow(ctx, "SELECT to_regclass('public.worker_control_states') IS NOT NULL").Scan(&controlTablesExist); e != nil {
+		return nil, e
+	}
+	if controlTablesExist {
+		rows, e = tx.Query(ctx, `SELECT 'states' AS table_name,count(*) AS rows FROM worker_control_states
+ UNION ALL SELECT 'changes',count(*) FROM worker_control_changes
+ UNION ALL SELECT 'boundaries',count(*) FROM worker_control_boundaries
+ UNION ALL SELECT 'resumes',count(*) FROM worker_control_resumes
+ UNION ALL SELECT 'restrictions',count(*) FROM worker_control_restrictions`)
+		if e != nil {
+			return nil, e
+		}
+		controls, e = pgx.CollectRows(rows, pgx.RowToMap)
+		if e != nil {
+			return nil, e
+		}
+	}
+	rows, e = tx.Query(ctx, `SELECT conname,convalidated FROM pg_constraint WHERE conrelid=to_regclass('public.worker_control_resumes') ORDER BY conname`)
+	if e != nil {
+		return nil, e
+	}
+	constraints, e := pgx.CollectRows(rows, pgx.RowToMap)
+	if e != nil {
+		return nil, e
+	}
+	if e = tx.Rollback(ctx); e != nil {
+		return nil, e
+	}
+	return map[string]any{"status": "OBSERVED_READONLY", "identity": map[string]any{"database": database, "username": user, "in_recovery": recovery, "transaction_read_only": readonly, "observed_at": observed}, "tls": map[string]any{"ssl": ssl, "version": tlsVersion}, "migrations": history, "tables": tables, "work_inventory": inventory, "control_table_counts": controls, "resume_constraints": constraints, "transaction_end": "ROLLBACK", "migration_or_dml_executed": false, "single_writer_proven": false, "execution_gate": "HOLD"}, nil
+}
+func run() (result map[string]any, runErr error) {
+	// No inherited PG config is allowed even during ParseConfig.
+	for _, v := range os.Environ() {
+		k, _, _ := strings.Cut(v, "=")
+		if strings.HasPrefix(strings.ToUpper(k), "PG") {
+			os.Unsetenv(k)
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 75*time.Second)
+	defer cancel()
+	b, e := aws(ctx, "sts", "get-caller-identity")
+	if e != nil {
+		return nil, e
+	}
+	var id map[string]string
+	if json.Unmarshal(b, &id) != nil || id["Account"] != "299311846289" || id["Arn"] != "arn:aws:iam::299311846289:user/admin3" {
+		return nil, errors.New("IDENTITY_MISMATCH")
+	}
+	ca, e := os.ReadFile(filepath.Join(pluginDir, "..", "global-bundle.pem"))
+	if e != nil {
+		return nil, errors.New("CA_UNAVAILABLE")
+	}
+	roots := x509.NewCertPool()
+	if !roots.AppendCertsFromPEM(ca) {
+		return nil, errors.New("CA_INVALID")
+	}
+	b, e = aws(ctx, "secretsmanager", "get-secret-value", "--secret-id", "arn:aws:secretsmanager:ap-northeast-2:299311846289:secret:labbit/seoul/rds-dsn-o4Rgr7", "--version-id", secretVersion)
+	if e != nil {
+		return nil, errors.New("SECRET_NOT_VERIFIED")
+	}
+	var secret struct {
+		SecretString string
+		VersionId    string
+	}
+	if json.Unmarshal(b, &secret) != nil {
+		return nil, errors.New("SECRET_INVALID")
+	}
+	if secret.VersionId != secretVersion || !migrationOptionsVerified(secret.SecretString) {
+		return nil, errors.New("SECRET_VERSION_OR_MIGRATION_OPTIONS_NOT_VERIFIED")
+	}
+	rawCfg, parseErr := pgx.ParseConfig(secret.SecretString)
+	rawDSNHasOptions := parseErr != nil || rawCfg.RuntimeParams["options"] != ""
+	cfg, e := config(secret.SecretString, roots)
+	if e != nil {
+		return nil, e
+	}
+	secret.SecretString = ""
+	for i := range b {
+		b[i] = 0
+	}
+	// StartSession returns session credentials in RAM. Never print/save the session response.
+	probe, e := net.Listen("tcp", "127.0.0.1:"+port)
+	if e != nil {
+		return nil, errors.New("LOCAL_PORT_NOT_AVAILABLE")
+	}
+	probe.Close()
+	parameters := fmt.Sprintf(`{"host":[%q],"portNumber":["5432"],"localPortNumber":[%q]}`, host, port)
+	cmd := exec.CommandContext(ctx, awsPath, "ssm", "start-session", "--profile", "labbit-admin3", "--region", "ap-northeast-2", "--endpoint-url", "https://ssm.ap-northeast-2.amazonaws.com", "--target", target, "--document-name", "AWS-StartPortForwardingSessionToRemoteHost", "--parameters", parameters)
+	cmd.Env = cleanEnv()
+	stdout, e := cmd.StdoutPipe()
+	if e != nil {
+		return nil, e
+	}
+	if e = cmd.Start(); e != nil {
+		return nil, e
+	}
+	lines := make(chan string, 32)
+	go func() {
+		defer close(lines)
+		s := bufio.NewScanner(stdout)
+		for s.Scan() {
+			select {
+			case lines <- s.Text():
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	sessionID := ""
+	cleanup := func() bool {
+		if result == nil {
+			result = map[string]any{}
+		}
+		result["ssm_session_id"] = sessionID
+		result["ssm_termination_acknowledged"] = false
+		result["local_port_closed"] = false
+		result["process_wait_completed"] = false
+		terminated := false
+		if sessionID != "" {
+			cc, stop := context.WithTimeout(context.Background(), 25*time.Second)
+			defer stop()
+			b, err := aws(cc, "ssm", "terminate-session", "--session-id", sessionID)
+			var ack map[string]any
+			_ = json.Unmarshal(b, &ack)
+			result["terminate_api_succeeded"] = err == nil
+			// A zero-exit response alone is not lifecycle proof. Verify exact-session history.
+			hb, he := aws(cc, "ssm", "describe-sessions", "--state", "History", "--filters", "key=SessionId,value="+sessionID)
+			var history struct {
+				Sessions []struct {
+					SessionId string
+					Status    string
+				}
+			}
+			if he == nil && json.Unmarshal(hb, &history) == nil {
+				for _, v := range history.Sessions {
+					if v.SessionId == sessionID && v.Status == "Terminated" {
+						terminated = true
+					}
+				}
+			}
+			ab, ae := aws(cc, "ssm", "describe-sessions", "--state", "Active", "--filters", "key=SessionId,value="+sessionID)
+			var active struct{ Sessions []struct{ SessionId string } }
+			activeClear := ae == nil && json.Unmarshal(ab, &active) == nil && len(active.Sessions) == 0
+			result["session_history_terminated"] = terminated
+			result["session_active_absent"] = activeClear
+			terminated = terminated && activeClear
+			result["ssm_termination_acknowledged"] = terminated
+		}
+		// Kill the exact child tree before waiting for the CLI; parent-only Kill does not cover the plugin on Windows.
+		kc, stop := context.WithTimeout(context.Background(), 5*time.Second)
+		defer stop()
+		_ = exec.CommandContext(kc, `C:\Windows\System32\taskkill.exe`, "/PID", strconv.Itoa(cmd.Process.Pid), "/T", "/F").Run()
+		_ = cmd.Process.Kill()
+		done := make(chan error, 1)
+		go func() { done <- cmd.Wait() }()
+		select {
+		case <-done:
+			result["process_wait_completed"] = true
+		case <-time.After(5 * time.Second):
+			return false
+		}
+		localClosed := false
+		for i := 0; i < 10; i++ {
+			c, e := net.DialTimeout("tcp", "127.0.0.1:"+port, 100*time.Millisecond)
+			if e != nil {
+				localClosed = true
+				break
+			}
+			c.Close()
+			time.Sleep(100 * time.Millisecond)
+		}
+		if result == nil {
+			result = map[string]any{}
+		}
+		result["ssm_session_id"] = sessionID
+		result["ssm_termination_acknowledged"] = terminated
+		result["local_port_closed"] = localClosed
+		return terminated && localClosed
+	}
+	defer func() {
+		if !cleanup() {
+			runErr = errors.New("SESSION_CLEANUP_NOT_VERIFIED")
+		}
+	}()
+	re := regexp.MustCompile(`SessionId:\s*(admin3-[A-Za-z0-9]+)`)
+	ready := false
+	for !ready {
+		select {
+		case line, ok := <-lines:
+			if !ok {
+				return nil, errors.New("TUNNEL_NOT_VERIFIED")
+			}
+			if m := re.FindStringSubmatch(line); m != nil {
+				sessionID = m[1]
+			}
+			if strings.Contains(line, "Port "+port+" opened") {
+				ready = true
+			}
+		case <-ctx.Done():
+			return nil, errors.New("TUNNEL_TIMEOUT")
+		}
+	}
+	if sessionID == "" {
+		return nil, errors.New("SESSION_ID_NOT_VERIFIED")
+	}
+	conn, e := pgx.ConnectConfig(ctx, cfg)
+	cfg.Password = ""
+	if e != nil {
+		return nil, errors.New("DB_CONNECTION_NOT_VERIFIED")
+	}
+	defer boundedClose(conn)
+	result, e = query(ctx, conn)
+	if e != nil {
+		return nil, errors.New("SQL_NOT_VERIFIED")
+	}
+	result["actor"] = id["Arn"]
+	result["source_dsn_options_present"] = rawDSNHasOptions
+	result["source_dsn_tls_enabled"] = rawCfg.TLSConfig != nil
+	result["source_dsn_tls_hostname_verified"] = rawCfg.TLSConfig != nil && !rawCfg.TLSConfig.InsecureSkipVerify && rawCfg.TLSConfig.ServerName == host
+	result["migration_startup_timeouts_verified"] = true
+	result["migration_pgoptions"] = migrationOptions
+
+	result["secret_reference_version"] = secret.VersionId
+	result["ssm_session_id"] = sessionID
+	return result, nil
+}
+func main() {
+	result, e := run()
+	if e != nil {
+		if result == nil {
+			result = map[string]any{}
+		}
+		result["status"] = "NOT_VERIFIED"
+		result["reason"] = "READONLY_PREPARATION_FAILED"
+		result["execution_gate"] = "HOLD"
+		result["raw_error_or_credentials_not_logged"] = true
+		json.NewEncoder(os.Stdout).Encode(result)
+		os.Exit(2)
+	}
+	json.NewEncoder(os.Stdout).Encode(result)
+}

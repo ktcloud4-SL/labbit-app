@@ -1,0 +1,16 @@
+=== RUN   TestPlanPending
+=== RUN   TestPlanPending/fresh_database_applies_all
+=== RUN   TestPlanPending/continues_after_last_applied
+=== RUN   TestPlanPending/all_applied
+=== RUN   TestPlanPending/newer_unknown_version_is_tolerated
+=== RUN   TestPlanPending/changed_applied_migration
+=== RUN   TestPlanPending/pending_migration_behind_a_higher_applied_version
+--- PASS: TestPlanPending (0.00s)
+    --- PASS: TestPlanPending/fresh_database_applies_all (0.00s)
+    --- PASS: TestPlanPending/continues_after_last_applied (0.00s)
+    --- PASS: TestPlanPending/all_applied (0.00s)
+    --- PASS: TestPlanPending/newer_unknown_version_is_tolerated (0.00s)
+    --- PASS: TestPlanPending/changed_applied_migration (0.00s)
+    --- PASS: TestPlanPending/pending_migration_behind_a_higher_applied_version (0.00s)
+PASS
+ok  	github.com/ktcloud4-SL/labbit-app/internal/postgres	0.284s

@@ -1,0 +1,10 @@
+{
+  "Ports": [
+    55437,
+    55438
+  ],
+  "RemainingListeners": [],
+  "Stopped": true,
+  "DataDirectoryRetainedForLocalReview": true,
+  "CloudAccess": false
+}

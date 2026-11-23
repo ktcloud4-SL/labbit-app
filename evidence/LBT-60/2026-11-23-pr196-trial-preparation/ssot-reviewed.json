@@ -1,0 +1,48 @@
+{
+  "read_at": "2026-11-23",
+  "jira60": {
+    "key": "LBT-60",
+    "updated": "2026-11-23T12:43:03.347+0900",
+    "comment11267": {
+      "id": "11267",
+      "body": "### 2026-11-23 · App PR #196 Collector P2 해소 증분 QA — HEAD be4d0ba (비배포)\n\n기존 [LBT-60 #11266](https://samsunglions.atlassian.net/browse/LBT-60?focusedCommentId=11266) 및 [PR P2 리뷰 #6015992658](https://github.com/ktcloud4-SL/labbit-app/pull/196#pullrequestreview-6015992658)의 **관측 분류 P2-COLLECTOR-01**에 대한 정확한 새 HEAD `be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1` 증분 확인입니다. 기존 기록은 시점별 Finding 이력으로 보존하며 삭제·수정하지 않았습니다.\n\n* **코드 분류 해소 CODE/TEST_REVIEW_RESOLVED_SCOPED:** 유효하고 신원·scope·revision/epoch·time·nonnegative count가 일치하는 DB snapshot에서 미정산 6종 중 하나라도 양수이면 외부 SafetyAttestation 부재/오류와 독립적으로 `WorkReconciled=FAIL`. 카운트 0만으로 PASS 금지; 유효한 외부 Provider 정산 근거가 없으면 NV. 신뢰되지 않는 SQL 관측의 양수는 독립 FAIL로 승격하지 않고, 이미 확인된 외부 FAIL은 SQL 오류에도, 확정된 DB FAIL은 수집 만료에도 보존.\n* **Consumer/Mode:** 서명된 `WorkReconciled=FAIL` + 공통5조건 PASS의 ACTIVE 신규 INTENT·Apply 0 테스트 추가. ACTIVE는 WorkReconciled PASS 필수, RECONCILE_ONLY는 기존 공통5조건/서명·승인/별도 정산 semantics를 유지하며 자동 허용이 아님.\n* **Evidence/CI 출처 구별:** 신규 6×6/불확실성12/만료/FAIL 소비자 회귀 소스 및 작성자 원본 race **282 PASS/0FAIL/0SKIP**를 읽기 전용 대조. **해당 race를 희철이 직접 재실행하지 않음.** 정확 HEAD GitHub Actions Go/Web/Contracts/Security/Backend Build **5/5 SUCCESS** 및 CI PostgreSQL integration/Mock Router 단계를 직접 확인. PR AWS OIDC/ECR/GitOps 배포 단계 SKIP이며 운영 EKS/공유 DB 실증 아님.\n* **공식 PR 후속 검토:** [희철 COMMENT 리뷰 #6016314569](https://github.com/ktcloud4-SL/labbit-app/pull/196#pullrequestreview-6016314569) 등록·readback 확인. 이번 증분에서 신규 확정 P0/P1/P2 발견 없음. **Approve/Merge/운영 실행 승인 아님**.\n\n**남은 운영 Gate:** 운영 operator 키/Policy/IAM/RBAC, 공유 DB migration12\\~15 backup/적용/복귀, 전체 Pod/UNKNOWN/Provider 인벤토리, 실물 old Writer Fencing·SingleWriter, Failover/Failback·RTO/RPO 원본 Evidence 및 PM 승인 작업창은 NOT_VERIFIED. **PR #196 Draft/Open 미병합;** `ReplicaLag=FAIL`, `REQUIRED_SETTINGS/RUNTIME_PROVENANCE/SERVICE_FUNCTIONS/SINGLE_WRITER=NOT_VERIFIED`, `execution_gate=HOLD`, `recovery_authorized=false`, `cloud_verified=false` 유지. LBT-60 '해야 할 일' 상태 변경 없음. AWS/EKS/RDS/Provider/GitOps 변경·DR 실행 없음.",
+      "created": "2026-11-23T12:43:03.347+0900",
+      "updated": "2026-11-23T12:43:03.347+0900",
+      "author": {
+        "accountId": "712020:bf1a686b-f4f9-47fe-a32d-d7b983c49819",
+        "displayName": "박희철"
+      }
+    }
+  },
+  "confluence": {
+    "id": "63275012",
+    "version": {
+      "number": 14,
+      "message": "11/19 PM B안 승인·Stage2 한정 QA 신규 증분 반영(11/18 이력 보존)",
+      "minorEdit": false,
+      "authorId": "712020:bf1a686b-f4f9-47fe-a32d-d7b983c49819",
+      "createdAt": "2026-11-19T01:30:09.153Z",
+      "ncsStepVersion": "300"
+    },
+    "title": "2026-11-11 · Osaka DR G5/G6 잔여 Gate·Owner 인수표 (실행 승인 전)",
+    "limit": "historical11/19claims superseded by latest Jira11267/current source"
+  },
+  "otherIssues": [
+    {
+      "key": "LBT-205",
+      "updated": "2026-11-23T09:04:20.269+0900",
+      "latest_comment_ids": [
+        "11257",
+        "11264"
+      ]
+    },
+    {
+      "key": "LBT-59",
+      "updated": "2026-11-20T19:42:43.529+0900",
+      "latest_comment_ids": [
+        "11261",
+        "11263"
+      ]
+    }
+  ]
+}

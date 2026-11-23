@@ -1,0 +1,34 @@
+from pathlib import Path
+from datetime import datetime,timezone
+import ast,hashlib,json,subprocess,shutil
+R=Path(r'C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-stage3-live-prep-20261123')
+E=R/'evidence/LBT-60/2026-11-23-pr196-trial-preparation'
+def dump(p,v):p.write_text(json.dumps(v,ensure_ascii=False,indent=2,default=str)+'\n',encoding='utf8',newline='\n')
+def info(p):
+ b=p.read_bytes();return dict(path=p.relative_to(R).as_posix(),size=len(b),sha256=hashlib.sha256(b).hexdigest())
+baseline=json.loads((E/'readonly-observations.json').read_text(encoding='utf8'))['results']
+commands=json.loads((E/'readonly-command-inventory.json').read_text(encoding='utf8'))['commands']
+post={}
+for name in ['deployments','pods','maintenance']:
+ z=subprocess.run(commands[name],capture_output=True,timeout=25)
+ assert z.returncode==0,name
+ raw=json.loads(z.stdout)
+ if name=='maintenance':value=dict(uid=raw['metadata']['uid'],resourceVersion=raw['metadata']['resourceVersion'],mode=raw.get('data',{}).get('mode'))
+ elif name=='deployments':value=[dict(name=x['metadata']['name'],uid=x['metadata']['uid'],generation=x['metadata']['generation'],ready=x.get('status',{}).get('readyReplicas'),images=[c['image'] for c in x['spec']['template']['spec']['containers']]) for x in raw['items']]
+ else:value=[dict(name=x['metadata']['name'],uid=x['metadata']['uid'],containers=[dict(name=c['name'],imageID=c.get('imageID'),restartCount=c.get('restartCount')) for c in x.get('status',{}).get('containerStatuses',[])]) for x in raw['items']]
+ post[name]=dict(observed_at=datetime.now(timezone.utc),value=value)
+def normalize_pods(rows):return sorted((x['name'],x['uid'],tuple((c['name'],c['imageID'],c['restartCount']) for c in x['containers'])) for x in rows)
+def normalize_deploy(rows,old=False):return sorted((x['name'],x['uid'],x['status']['readyReplicas'] if old else x['ready'],tuple(c['image'] for c in x['containers']) if old else tuple(x['images'])) for x in rows)
+olddeploy=baseline['deployments']['value']
+# Initial projection did not retain generation. Exclude that field from both sides;
+# never substitute the final observation into the initial evidence.
+checks=dict(pod_uid_image_restart_unchanged=normalize_pods(baseline['pods']['value'])==normalize_pods(post['pods']['value']),deployment_uid_images_readiness_unchanged=normalize_deploy(olddeploy,True)==normalize_deploy(post['deployments']['value']),configmap_uid_resourceversion_mode_unchanged=all(baseline['maintenance']['value'][k]==post['maintenance']['value'][k] for k in ['uid','resourceVersion','mode']))
+assert all(checks.values()),checks
+dump(E/'post-readonly-baseline.json',dict(checks=checks,observations=post,limit='Selected before/after fields only. This is not all-service functional health or a global change freeze. Deployment generation was observed only at final snapshot, not independently compared.'))
+current=[R/'docs/backend'/n for n in ['dr-stage3-deployment.md','dr-maintenance-integration.md','dr-pr196-trial-preparation.md']]
+dependencies=[R/n for n in ['runtime/contract.yaml','runtime/dr-control.md','internal/drcontrol/awscli.go','internal/drcontrol/contract.go','internal/drcontrol/collector.go','internal/drcontrol/collector_adapters.go','internal/drcontrol/database.go','internal/postgres/schema.go','internal/postgres/migrate.go','Dockerfile','.github/workflows/delivery-backend.yml']]
+dump(E/'source-manifest.json',dict(head='be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1',base='753eecbff737409a4c9cc8c542f3c6baa6acf0da',product_source_changed=False,uncommitted=True,changed_docs=[info(p) for p in current],relevant_unchanged_dependencies=[info(p) for p in dependencies],scope='Current preparation delta and affected consumer contracts; prior PR196 full-source audit remains separately identified, not rerun here.'))
+ast.parse((E/'readonly-collector.py.txt').read_text(encoding='utf8'))
+for p in E.glob('*.json'):json.loads(p.read_text(encoding='utf8'))
+dump(E/'static-validation.json',dict(json_parse='PASS',collector_python_ast='PASS',read_only_sql_not_run=True,preview_disabled_checks=4,baseline_checks=checks,new_unit_or_integration_tests='not added: documents/preparation only; exact source binaries built and exercised preview/disabled',actual_settings_changed=False))
+print('Before/after selected baseline stable; source/JSON/AST/4 preview checks recorded.')

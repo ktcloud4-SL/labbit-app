@@ -1,0 +1,420 @@
+"""One-window, explicitly stepped PR196 migration/legacy compatibility trial.
+No credential values are requested, logged or supplied by this coordinator.
+Full originals stay local; public evidence contains Kubernetes specs (no Secrets).
+Every mutation is one-shot with write-ahead receipt. No automatic rollback/retry.
+"""
+import copy
+import datetime as dt
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+LOCAL = ROOT / '.local/pr196-rollout-20261123'
+EVIDENCE = ROOT / 'evidence/LBT-60/2026-11-23-migration-candidate-rollout'
+AWS = r'C:\Users\user\AppData\Local\Programs\Amazon\AWSCLIV2\aws.exe'
+KUBE = r'C:\Users\user\Documents\ChatGPT\3차 2\tmp\lbt60-ssm-preflight-tools\kubectl.exe'
+KCONFIG = r'C:\Users\user\Documents\ChatGPT\3차 2\tmp\lbt60-live-readiness-20261123\seoul.kubeconfig'
+CANDIDATE = '299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial@sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469'
+OLD = '299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb'
+OLD_DIGEST = 'sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419'
+UID = '88a17177-492f-41db-b097-a80a6a18a475'
+JOB = 'pr196-migrate-v15-20261123-01'
+SPC = 'pr196-migration-dsn-20261123-01'
+SECRET_VERSION = 'terraform-20261123001758077700000017'
+SNAPSHOT = 'labbit-seoul-pr196-before-v15-20261123-01'
+APP_UIDS = {'root-app-seoul': '9da17971-0ea4-4149-a10d-d34c11539d62', 'backend': '1819925b-e530-4ae7-85b8-81fb13451753'}
+
+
+def now():
+    return dt.datetime.now(dt.timezone.utc).isoformat()
+
+
+def save(folder, name, data):
+    folder.mkdir(parents=True, exist_ok=True)
+    with (folder / name).open('x', encoding='utf-8', newline='\n') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write('\n')
+
+
+def load(folder, name):
+    return json.loads((folder / name).read_text(encoding='utf-8-sig'))
+
+
+def command(args, timeout=30, text=False):
+    env = {k: v for k, v in os.environ.items() if not k.upper().startswith(('AWS_', 'PG'))}
+    env.update(AWS_PROFILE='labbit-admin3', AWS_PAGER='', AWS_CLI_AUTO_PROMPT='off', AWS_MAX_ATTEMPTS='1', AWS_IGNORE_CONFIGURED_ENDPOINT_URLS='true')
+    p = subprocess.run(args, env=env, capture_output=True, timeout=timeout)
+    if p.returncode:
+        # Do not copy arbitrary cloud/DB raw errors into evidence or conversation.
+        raise RuntimeError('COMMAND_FAILED_EXIT_' + str(p.returncode))
+    return p.stdout.decode('utf-8-sig') if text else json.loads(p.stdout)
+
+
+def aws(service, action, *args):
+    return command([AWS, service, action, *args, '--profile', 'labbit-admin3', '--region', 'ap-northeast-2', '--no-cli-pager', '--output', 'json', '--cli-connect-timeout', '5', '--cli-read-timeout', '15'])
+
+
+def kube(*args, text=False, timeout=30):
+    return command([KUBE, '--kubeconfig', KCONFIG, '--request-timeout=15s', *args], timeout, text)
+
+
+def identity():
+    x = aws('sts', 'get-caller-identity')
+    if x['Account'] != '299311846289' or x['Arn'] != 'arn:aws:iam::299311846289:user/admin3':
+        raise RuntimeError('ACTOR_MISMATCH')
+    ns = kube('get', 'namespace', 'kube-system', '-o', 'json')
+    if ns['metadata']['uid'] != '6c0ed2a2-92c8-48ad-a8d3-0d192e7f70d8':
+        raise RuntimeError('CLUSTER_UID_MISMATCH')
+    return x
+
+
+def app(name):
+    x = kube('get', 'application', name, '-n', 'argocd', '-o', 'json')
+    if x['metadata']['uid'] != APP_UIDS[name] or x.get('operation') or x.get('status', {}).get('operationState', {}).get('phase') in ('Running', 'Terminating'):
+        raise RuntimeError('APP_CHANGED_OR_OPERATION_IN_PROGRESS')
+    return x
+
+
+def deployment():
+    x = kube('get', 'deployment', 'backend', '-n', 'labbit', '-o', 'json')
+    if x['metadata']['uid'] != UID or x['spec']['replicas'] != 2:
+        raise RuntimeError('DEPLOYMENT_IDENTITY_OR_REPLICAS_CHANGED')
+    if [c['name'] for c in x['spec']['template']['spec']['containers']] != ['common-app']:
+        raise RuntimeError('CONTAINER_LAYOUT_CHANGED')
+    return x
+
+
+def check_db(stage, expected_version):
+    x = load(EVIDENCE, 'db-' + stage + '.json')
+    if x['status'] != 'OBSERVED_READONLY' or not x.get('local_port_closed') or not x.get('session_history_terminated') or not x.get('session_active_absent'):
+        raise RuntimeError('DB_OR_SESSION_NOT_VERIFIED')
+    age = (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(x['identity']['observed_at'])).total_seconds()
+    if age < 0 or age > 300:
+        raise RuntimeError('DB_OBSERVATION_STALE')
+    if x.get('secret_reference_version') != SECRET_VERSION or not x.get('migration_startup_timeouts_verified'):
+        raise RuntimeError('SECRET_VERSION_OR_TIMEOUTS_NOT_VERIFIED')
+    rows = x['migrations']
+    if [r['version'] for r in rows] != list(range(1, expected_version + 1)):
+        raise RuntimeError('LEDGER_VERSION_MISMATCH')
+    for row in rows:
+        b = subprocess.check_output(['git', 'show', 'be4d0ba:db/migrations/' + row['name']], cwd=ROOT)
+        if hashlib.sha256(b).hexdigest() != row['checksum']:
+            raise RuntimeError('LEDGER_CHECKSUM_MISMATCH')
+    inv = x['work_inventory'][0]
+    if any(inv[k] != 0 for k in ('unfinished_operations', 'unfinished_items', 'unresolved_provider_records', 'active_terminal_sessions', 'other_open_transactions')):
+        raise RuntimeError('WORK_NOT_IDLE')
+    if expected_version == 15:
+        if len(x['control_table_counts']) != 5 or any(t['rows'] for t in x['control_table_counts']):
+            raise RuntimeError('CONTROL_JOURNAL_USED_NO_AUTOMATIC_LEGACY_ROLLBACK')
+        if not any(c['conname'] == 'worker_control_resume_applied_time' and c['convalidated'] for c in x['resume_constraints']):
+            raise RuntimeError('MIGRATION14_CONSTRAINT_NOT_VERIFIED')
+    return x
+
+
+def intent(name, detail):
+    save(EVIDENCE, name + '.intent.json', {'at': now(), 'action': name, 'detail': detail, 'outcome': 'INTENT', 'execution_gate': 'HOLD'})
+
+
+def receipt(name, data):
+    save(EVIDENCE, name + '.receipt.json', {'at': now(), 'action': name, 'result': data, 'execution_gate': 'HOLD', 'recovery_authorized': False, 'cloud_verified': False})
+
+
+def init():
+    actor = identity()
+    d = deployment()
+    if d['spec']['template']['spec']['containers'][0]['image'] != OLD or d['status'].get('readyReplicas') != 2:
+        raise RuntimeError('BASELINE_NOT_READY')
+    cm = kube('get', 'configmap', 'backend-config', '-n', 'labbit', '-o', 'json')
+    if cm['data'] != {'mode': 'open'}:
+        raise RuntimeError('MAINTENANCE_BASELINE_CHANGED')
+    a = {name: app(name) for name in APP_UIDS}
+    for v in a.values():
+        if not v['spec']['syncPolicy'].get('automated') or v['status']['sync']['status'] != 'Synced':
+            raise RuntimeError('ARGO_BASELINE_CHANGED')
+    check_db('before', 11)
+    image = aws('ecr', 'describe-images', '--repository-name', 'backend-dr196-trial', '--image-ids', 'imageDigest=' + CANDIDATE.split('@')[1])
+    scan = aws('ecr', 'describe-image-scan-findings', '--repository-name', 'backend-dr196-trial', '--image-id', 'imageDigest=' + CANDIDATE.split('@')[1])
+    if scan['imageScanStatus']['status'] != 'COMPLETE' or any(scan['imageScanFindings'].get('findingSeverityCounts', {}).values()):
+        raise RuntimeError('CANDIDATE_SCAN_NOT_ACCEPTED')
+    rds = aws('rds', 'describe-db-instances', '--db-instance-identifier', 'labbit-seoul-rds')['DBInstances'][0]
+    if rds['DBInstanceStatus'] != 'available' or rds['DbiResourceId'] != 'db-KWJO4NMALL7V77AC3LWW2EGH2Y' or rds.get('PendingModifiedValues'):
+        raise RuntimeError('RDS_BASELINE_CHANGED')
+    oldjob = kube('get', 'job', 'labbit-db-migration', '-n', 'labbit', '-o', 'json')
+    template = copy.deepcopy(oldjob['spec']['template'])
+    template['metadata'] = {'labels': {'labbit.io/trial': 'pr196-20261123', 'app.kubernetes.io/name': 'pr196-migration'}, 'annotations': {'sidecar.istio.io/inject': 'false'}}
+    ps = template['spec']
+    for k in ('serviceAccount',):
+        ps.pop(k, None)
+    ps['restartPolicy'] = 'Never'
+    c = ps['containers'][0]
+    c['image'] = CANDIDATE
+    c['imagePullPolicy'] = 'IfNotPresent'
+    c['env'].append({'name': 'PGOPTIONS', 'value': '-c lock_timeout=3000 -c statement_timeout=30000 -c idle_in_transaction_session_timeout=30000'})
+    job = {'apiVersion': 'batch/v1', 'kind': 'Job', 'metadata': {'name': JOB, 'namespace': 'labbit', 'labels': {'labbit.io/trial': 'pr196-20261123'}}, 'spec': {'backoffLimit': 0, 'activeDeadlineSeconds': 180, 'ttlSecondsAfterFinished': 86400, 'template': template}}
+    save(LOCAL, 'baseline-deployment.json', d)
+    save(LOCAL, 'baseline-applications.json', a)
+    save(LOCAL, 'baseline-configmap.json', cm)
+    save(EVIDENCE, 'baseline-applications.json', {n: {'uid': v['metadata']['uid'], 'resourceVersion': v['metadata']['resourceVersion'], 'spec': v['spec'], 'sync': v['status']['sync'], 'health': v['status']['health']} for n,v in a.items()})
+    save(EVIDENCE, 'migration-job.json', job)
+    save(EVIDENCE, 'preflight.json', {'at': now(), 'actor': actor, 'deployment_uid': UID, 'baseline_image': OLD, 'candidate_image': CANDIDATE, 'ready_replicas': d['status']['readyReplicas'], 'maintenance': cm['data'], 'rds': {k:rds.get(k) for k in ('DBInstanceArn','DBInstanceStatus','DbiResourceId','LatestRestorableTime','BackupRetentionPeriod')}, 'image': image, 'scan': scan, 'source': 'be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1', 'execution_gate': 'HOLD'})
+    print('PREFLIGHT_PINNED')
+
+
+def frozen():
+    original = load(LOCAL, 'baseline-applications.json')
+    for n in APP_UIDS:
+        x = app(n)
+        wanted = copy.deepcopy(original[n]['spec'])
+        wanted['syncPolicy'].pop('automated')
+        if x['spec'] != wanted:
+            raise RuntimeError('ARGO_NOT_EXACTLY_FROZEN')
+
+
+def gitops_unchanged():
+    result=command(['git','ls-remote','https://github.com/ktcloud4-SL/labbit-gitops.git','refs/heads/main'],text=True)
+    if result.strip().split()[0]!='ab830d7c9e046b0621477192aca39c6b269cbf30':
+        raise RuntimeError('GITOPS_MAIN_ADVANCED_REVIEW_REQUIRED')
+
+
+def patch(resource, namespace, operations):
+    path = LOCAL / ('patch-' + str(dt.datetime.now().timestamp()).replace('.', '-') + '.json')
+    path.write_text(json.dumps(operations), encoding='utf-8')
+    return kube('patch', resource, '-n', namespace, '--type=json', '--patch-file', str(path), '-o', 'json')
+
+
+def freeze():
+    gitops_unchanged()
+    original = load(LOCAL, 'baseline-applications.json')
+    for n in ('root-app-seoul', 'backend'):
+        x = app(n)
+        if x['spec'] != original[n]['spec']:
+            raise RuntimeError('ARGO_CONCURRENT_SPEC_CHANGE')
+        intent('freeze-' + n, {'uid': x['metadata']['uid'], 'original_policy': x['spec']['syncPolicy']})
+        result = patch('application/' + n, 'argocd', [{'op':'test','path':'/metadata/uid','value':APP_UIDS[n]}, {'op':'test','path':'/metadata/resourceVersion','value':x['metadata']['resourceVersion']}, {'op':'test','path':'/spec','value':x['spec']}, {'op':'remove','path':'/spec/syncPolicy/automated'}])
+        receipt('freeze-' + n, {'uid': result['metadata']['uid'], 'spec': result['spec']})
+    frozen()
+    print('AUTOSYNC_FROZEN')
+
+
+def snapshot():
+    identity()
+    intent('snapshot', {'id': SNAPSHOT, 'retention_review_days': 7, 'automatic_delete': False})
+    r = aws('rds','create-db-snapshot','--db-instance-identifier','labbit-seoul-rds','--db-snapshot-identifier',SNAPSHOT,'--tags','Key=Purpose,Value=DRCandidate','Key=Jira,Value=LBT-60','Key=Owner,Value=seobin')
+    receipt('snapshot',r)
+    print('SNAPSHOT_REQUESTED')
+
+
+def snapshot_state():
+    x = aws('rds','describe-db-snapshots','--db-snapshot-identifier',SNAPSHOT)['DBSnapshots'][0]
+    print(json.dumps({k:x.get(k) for k in ('DBSnapshotIdentifier','DBSnapshotArn','DBInstanceIdentifier','Status','SnapshotCreateTime','Encrypted','PercentProgress')}))
+    if x['Status']=='available' and not (EVIDENCE/'snapshot-available.json').exists():
+        save(EVIDENCE,'snapshot-available.json',x)
+
+
+def migrate(dry=False):
+    identity()
+    frozen()
+    check_db('pre-migration',11)
+    rds=aws('rds','describe-db-instances','--db-instance-identifier','labbit-seoul-rds')['DBInstances'][0]
+    if rds['DbiResourceId']!='db-KWJO4NMALL7V77AC3LWW2EGH2Y' or rds['DBInstanceStatus']!='available' or rds['Endpoint']['Address']!='labbit-seoul-rds.c1664mmc0jot.ap-northeast-2.rds.amazonaws.com':
+        raise RuntimeError('RDS_TARGET_CHANGED')
+    s = aws('rds','describe-db-snapshots','--db-snapshot-identifier',SNAPSHOT)['DBSnapshots'][0]
+    if s['Status']!='available' or s['DBInstanceIdentifier']!='labbit-seoul-rds':
+        raise RuntimeError('BACKUP_NOT_AVAILABLE')
+    args = ['create','-f',str(EVIDENCE/'migration-job.pinned.json'),'-o','json']
+    if dry:
+        args.append('--dry-run=server')
+        r=kube(*args)
+        save(EVIDENCE,'migration-job.server-dry-run.json',r)
+    else:
+        intent('migration-job-create', {'job':JOB,'image':CANDIDATE,'backup':s['DBSnapshotArn']})
+        r=kube(*args)
+        receipt('migration-job-create', {'uid':r['metadata']['uid'],'spec':r['spec']})
+    print('MIGRATION_JOB_DRY_RUN' if dry else 'MIGRATION_JOB_CREATED')
+
+
+def prepare_pinned():
+    job=load(EVIDENCE,'migration-job.json')
+    job['spec']['template']['spec']['volumes'][0]['csi']['volumeAttributes']['secretProviderClass']=SPC
+    spc={'apiVersion':'secrets-store.csi.x-k8s.io/v1','kind':'SecretProviderClass','metadata':{'name':SPC,'namespace':'labbit','labels':{'labbit.io/trial':'pr196-20261123'}},'spec':{'provider':'aws','parameters':{'region':'ap-northeast-2','usePodIdentity':'true','objects':json.dumps([{'objectName':'arn:aws:secretsmanager:ap-northeast-2:299311846289:secret:labbit/seoul/rds-dsn-o4Rgr7','objectType':'secretsmanager','objectAlias':'db-dsn','objectVersion':SECRET_VERSION,'filePermission':'0444'}])}}}
+    save(EVIDENCE,'migration-job.pinned.json',job)
+    save(EVIDENCE,'migration-secret-provider-class.json',spc)
+    receipt('prepare-pinned-secret',{'secret_version':SECRET_VERSION,'existing_secret_or_spc_modified':False,'reference':'https://github.com/aws/secrets-store-csi-driver-provider-aws/blob/main/README.md'})
+    print('PINNED_PLAN_PREPARED')
+
+
+def create_spc(dry=False):
+    identity()
+    args=['create','-f',str(EVIDENCE/'migration-secret-provider-class.json'),'-o','json']
+    if dry:
+        args.append('--dry-run=server')
+        r=kube(*args)
+        save(EVIDENCE,'migration-secret-provider-class.server-dry-run.json',r)
+    else:
+        frozen()
+        intent('create-migration-spc',{'name':SPC,'version':SECRET_VERSION})
+        r=kube(*args)
+        receipt('create-migration-spc',{'uid':r['metadata']['uid'],'spec':r['spec']})
+    print('PINNED_SPC_DRY_RUN' if dry else 'PINNED_SPC_CREATED')
+
+
+def switch(rollback=False):
+    identity()
+    frozen()
+    check_db('pre-rollback' if rollback else 'after-migration',15)
+    oldimage=aws('ecr','describe-images','--repository-name','backend','--image-ids','imageTag=sha-753eecb')['imageDetails']
+    if len(oldimage)!=1 or oldimage[0]['imageDigest']!=OLD_DIGEST:
+        raise RuntimeError('BASELINE_IMAGE_TAG_CHANGED')
+    d=deployment()
+    before = CANDIDATE if rollback else OLD
+    after = OLD if rollback else CANDIDATE
+    expected=copy.deepcopy(load(LOCAL,'baseline-deployment.json')['spec'])
+    expected['template']['spec']['containers'][0]['image']=before
+    if d['spec']!=expected:
+        raise RuntimeError('DEPLOYMENT_CONCURRENT_SPEC_CHANGE')
+    cm=kube('get','configmap','backend-config','-n','labbit','-o','json')
+    if cm['data']!={'mode':'open'} or cm['metadata']['uid']!=load(LOCAL,'baseline-configmap.json')['metadata']['uid']:
+        raise RuntimeError('MAINTENANCE_CHANGED')
+    action='rollback-image' if rollback else 'deploy-candidate'
+    intent(action,{'uid':UID,'before':before,'after':after,'control_tables_empty':True,'durable_mode_enabled':False})
+    r=patch('deployment/backend','labbit',[{'op':'test','path':'/metadata/uid','value':UID},{'op':'test','path':'/metadata/resourceVersion','value':d['metadata']['resourceVersion']},{'op':'test','path':'/spec','value':d['spec']},{'op':'replace','path':'/spec/template/spec/containers/0/image','value':after}])
+    receipt(action,{'uid':r['metadata']['uid'],'generation':r['metadata']['generation'],'image':after})
+    print(action.upper())
+
+
+def restore():
+    identity()
+    gitops_unchanged()
+    d=deployment()
+    if d['spec']!=load(LOCAL,'baseline-deployment.json')['spec'] or d['status'].get('readyReplicas')!=2 or d['status'].get('updatedReplicas')!=2 or d['status'].get('observedGeneration')!=d['metadata']['generation']:
+        raise RuntimeError('BASELINE_NOT_FULLY_RESTORED')
+    original=load(LOCAL,'baseline-applications.json')
+    for n in ('backend','root-app-seoul'):
+        x=app(n)
+        expected=copy.deepcopy(original[n]['spec']);expected['syncPolicy'].pop('automated')
+        if x['spec']!=expected:
+            raise RuntimeError('ARGO_CONCURRENT_CHANGE_NO_BLIND_RESTORE')
+        intent('restore-'+n,{'uid':APP_UIDS[n],'policy':original[n]['spec']['syncPolicy']})
+        r=patch('application/'+n,'argocd',[{'op':'test','path':'/metadata/uid','value':APP_UIDS[n]},{'op':'test','path':'/metadata/resourceVersion','value':x['metadata']['resourceVersion']},{'op':'test','path':'/spec','value':x['spec']},{'op':'add','path':'/spec/syncPolicy/automated','value':original[n]['spec']['syncPolicy']['automated']}])
+        receipt('restore-'+n,{'uid':r['metadata']['uid'],'spec':r['spec']})
+    print('ORIGINAL_AUTOSYNC_RESTORED')
+
+
+def observe(label):
+    d=deployment()
+    rs=kube('get','replicasets','-n','labbit','-o','json')['items']
+    owned={r['metadata']['uid'] for r in rs if any(o['uid']==UID for o in r['metadata'].get('ownerReferences',[]))}
+    pods=kube('get','pods','-n','labbit','-o','json')['items']
+    result=[]
+    for p in pods:
+        if not any(o['uid'] in owned for o in p['metadata'].get('ownerReferences',[])):
+            continue
+        info={'name':p['metadata']['name'],'uid':p['metadata']['uid'],'owner':p['metadata'].get('ownerReferences'), 'deleting':p['metadata'].get('deletionTimestamp'),'phase':p['status']['phase'],'conditions':p['status'].get('conditions'),'containers':p['status'].get('containerStatuses'),'requested_images':[c['image'] for c in p['spec']['containers']]}
+        if label != 'runtime-before':
+            info['admin_health']={'result':'NOT_RUN','reason':'Baseline pods/proxy timeouts retained; localhost health collected separately, not collector-path acceptance'}
+            result.append(info)
+            continue
+        if not info['deleting'] and info['phase']=='Running':
+            info['admin_health']={}
+            for endpoint in ('livez','readyz'):
+                path='/api/v1/namespaces/labbit/pods/'+p['metadata']['name']+':9090/proxy/'+endpoint
+                try:
+                    body=kube('get','--raw',path,text=True,timeout=6)
+                    info['admin_health'][endpoint]={'result':'HTTP_SUCCESS','body':body[:128]}
+                except (RuntimeError,subprocess.TimeoutExpired):
+                    info['admin_health'][endpoint]={'result':'NOT_VERIFIED'}
+            try:
+                metrics=kube('get','--raw','/api/v1/namespaces/labbit/pods/'+p['metadata']['name']+':9090/proxy/metrics',text=True,timeout=6)
+                info['maintenance_metrics']=[line for line in metrics.splitlines() if line.startswith(('labbit_maintenance_','labbit_worker_control_'))]
+                info['full_metrics_sha256']=hashlib.sha256(metrics.encode()).hexdigest()
+            except (RuntimeError,subprocess.TimeoutExpired):
+                info['metrics_result']='NOT_VERIFIED'
+        result.append(info)
+    apps={n:app(n) for n in APP_UIDS}
+    cm=kube('get','configmap','backend-config','-n','labbit','-o','json')
+    data={'at':now(),'deployment':{'uid':UID,'generation':d['metadata']['generation'],'status':d['status'],'spec_sha256':hashlib.sha256(json.dumps(d['spec'],sort_keys=True).encode()).hexdigest(),'image':d['spec']['template']['spec']['containers'][0]['image'],'env':d['spec']['template']['spec']['containers'][0].get('env'),'replicas':d['spec']['replicas']},'pods':result,'maintenance':cm['data'],'applications':{n:{'uid':v['metadata']['uid'],'spec':v['spec'],'health':v.get('status',{}).get('health'),'sync':v.get('status',{}).get('sync')} for n,v in apps.items()},'execution_gate':'HOLD','recovery_authorized':False,'cloud_verified':False}
+    save(EVIDENCE,label+'.json',data)
+    print(json.dumps({'label':label,'image':data['deployment']['image'],'status':d['status'],'pods':[{'name':p['name'],'phase':p['phase'],'deleting':p['deleting'],'health':p.get('admin_health')} for p in result]},ensure_ascii=False))
+
+
+def local_health(label):
+    runtime=load(EVIDENCE,'runtime-'+label+'.json')
+    result=[]
+    for p in runtime['pods']:
+        if p['deleting'] or p['phase']!='Running':
+            continue
+        before=kube('get','pod',p['name'],'-n','labbit','-o','json')
+        if before['metadata']['uid']!=p['uid'] or before['status']['containerStatuses']!=p['containers']:
+            raise RuntimeError('POD_CHANGED_BEFORE_LOCAL_PROBE')
+        probes={}
+        for path in ('livez','readyz','metrics'):
+            body=kube('exec','-n','labbit',p['name'],'-c','common-app','--','/bin/busybox','wget','-q','-T','3','-O','-','http://127.0.0.1:9090/'+path,text=True,timeout=10)
+            probes[path]= {'body':body,'result':'HTTP_SUCCESS'} if path!='metrics' else {'maintenance_lines':[l for l in body.splitlines() if l.startswith(('labbit_maintenance_','labbit_worker_control_'))],'source_sha256':hashlib.sha256(body.encode()).hexdigest()}
+        after=kube('get','pod',p['name'],'-n','labbit','-o','json')
+        if before['metadata']['uid']!=after['metadata']['uid'] or before['status']['containerStatuses']!=after['status']['containerStatuses']:
+            raise RuntimeError('POD_CHANGED_DURING_LOCAL_PROBE')
+        result.append({'name':p['name'],'uid':p['uid'],'containers':p['containers'],'probes':probes})
+    if len(result)!=2:
+        raise RuntimeError('TWO_POD_LOCAL_PROBE_COVERAGE_MISSING')
+    save(EVIDENCE,'local-health-'+label+'.json',{'at':now(),'method':'kubectl exec busybox wget to localhost:9090; no secret access','pods':result,'collector_pods_proxy_verified':False,'execution_gate':'HOLD','cloud_verified':False,'recovery_authorized':False})
+    print(json.dumps({'label':label,'pods':[{'name':p['name'],'livez':p['probes']['livez']['body'],'readyz':p['probes']['readyz']['body'],'maintenance':p['probes']['metrics']['maintenance_lines']} for p in result]}))
+
+
+def cleanup_owned():
+    identity()
+    original=load(LOCAL,'baseline-applications.json')
+    if deployment()['spec']!=load(LOCAL,'baseline-deployment.json')['spec']:
+        raise RuntimeError('BASELINE_NOT_RESTORED')
+    for n in APP_UIDS:
+        if app(n)['spec']!=original[n]['spec']:
+            raise RuntimeError('ORIGINAL_ARGO_SPEC_NOT_RESTORED')
+    for kind,name,resource,path,creation in (
+        ('Job',JOB,'job','/apis/batch/v1/namespaces/labbit/jobs/'+JOB,'migration-job-create'),
+        ('SecretProviderClass',SPC,'secretproviderclass','/apis/secrets-store.csi.x-k8s.io/v1/namespaces/labbit/secretproviderclasses/'+SPC,'create-migration-spc')):
+        x=kube('get',resource,name,'-n','labbit','-o','json')
+        uid=load(EVIDENCE,creation+'.receipt.json')['result']['uid']
+        if x['metadata']['uid']!=uid or x['metadata'].get('labels',{}).get('labbit.io/trial')!='pr196-20261123':
+            raise RuntimeError('CLEANUP_OWNERSHIP_NOT_VERIFIED')
+        if kind=='Job' and x.get('status',{}).get('succeeded')!=1:
+            raise RuntimeError('MIGRATION_JOB_NOT_COMPLETED')
+        options={'apiVersion':'v1','kind':'DeleteOptions','preconditions':{'uid':uid,'resourceVersion':x['metadata']['resourceVersion']},'propagationPolicy':'Foreground'}
+        f=LOCAL/('delete-options-'+resource+'.json');f.write_text(json.dumps(options),encoding='utf-8')
+        intent('cleanup-'+resource,{'name':name,'uid':uid,'delete_options':options})
+        r=kube('delete','--raw',path,'-f',str(f))
+        receipt('cleanup-'+resource,r)
+    print('TRIAL_JOB_AND_SPC_DELETE_REQUESTED_WITH_UID_PRECONDITIONS')
+
+
+def final_checks():
+    actor=identity()
+    d=deployment()
+    original=load(LOCAL,'baseline-applications.json')
+    if d['spec']!=load(LOCAL,'baseline-deployment.json')['spec'] or d['status'].get('readyReplicas')!=2 or d['status'].get('updatedReplicas')!=2:
+        raise RuntimeError('FINAL_DEPLOYMENT_DRIFT')
+    apps={n:app(n) for n in APP_UIDS}
+    if any(v['spec']!=original[n]['spec'] for n,v in apps.items()):
+        raise RuntimeError('FINAL_ARGO_SPEC_DRIFT')
+    jobs=kube('get','jobs','-n','labbit','--field-selector','metadata.name='+JOB,'-o','json')['items']
+    spcs=kube('get','secretproviderclasses','-n','labbit','--field-selector','metadata.name='+SPC,'-o','json')['items']
+    pods=kube('get','pods','-n','labbit','-l','job-name='+JOB,'-o','json')['items']
+    original_job=kube('get','job','labbit-db-migration','-n','labbit','-o','json')
+    if jobs or spcs or pods or original_job['metadata']['uid']!='25cdcf79-1a0e-41ed-b275-b6e47fc35332':
+        raise RuntimeError('FINAL_CLEANUP_OR_ORIGINAL_JOB_NOT_VERIFIED')
+    db=check_db('final',15)
+    snap=aws('rds','describe-db-snapshots','--db-snapshot-identifier',SNAPSHOT)['DBSnapshots'][0]
+    save(EVIDENCE,'final-readback.json',{'at':now(),'actor':actor,'deployment_spec_matches_original':True,'deployment_status':d['status'],'image':OLD,'original_app_specs_restored':True,'applications':{n:{'uid':v['metadata']['uid'],'spec':v['spec'],'health':v['status']['health'],'sync':v['status']['sync']} for n,v in apps.items()},'trial_jobs_remaining':len(jobs),'trial_spcs_remaining':len(spcs),'trial_migration_pods_remaining':len(pods),'original_migration_job_uid':original_job['metadata']['uid'],'original_migration_job_preserved':True,'manual_snapshot':{k:snap.get(k) for k in ('DBSnapshotArn','Status','Encrypted','SnapshotCreateTime')},'manual_snapshot_review_utc':'2026-11-30T05:03:55Z','manual_snapshot_automatic_expiration':False,'database_migrations':[r['version'] for r in db['migrations']],'control_rows':db['control_table_counts'],'execution_gate':'HOLD','recovery_authorized':False,'cloud_verified':False,'merged':False})
+    print('FINAL_BASELINE_RESTORED_SCHEMA15_RETAINED_TRIAL_RESOURCES_ABSENT')
+
+
+if __name__=='__main__':
+    actions={'init':init,'snapshot':snapshot,'snapshot-state':snapshot_state,'freeze':freeze,'prepare-pinned':prepare_pinned,'spc-dry-run':lambda:create_spc(True),'create-spc':create_spc,'migration-dry-run':lambda:migrate(True),'migrate':migrate,'deploy':switch,'rollback':lambda:switch(True),'restore':restore,'observe-before':lambda:observe('runtime-before'),'observe-candidate':lambda:observe('runtime-candidate'),'observe-restored':lambda:observe('runtime-restored')}
+    actions.update({'health-'+label:lambda label=label:local_health(label) for label in ('before','candidate','restored')})
+    actions['cleanup']=cleanup_owned
+    actions['final-checks']=final_checks
+    if len(sys.argv)!=2 or sys.argv[1] not in actions:
+        raise SystemExit('EXPLICIT_ACTION_REQUIRED')
+    actions[sys.argv[1]]()

@@ -1,0 +1,42 @@
+{
+  "source_product": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "scope": "local helper separate from product; tested exact bytes; not committed to PR196",
+  "files": [
+    {
+      "path": "main.go",
+      "sha256": "581b69d104daab4d4765a8de5084f45778addab7731041185b2a9616794c10ca",
+      "size": 9842
+    },
+    {
+      "path": "main_test.go",
+      "sha256": "adc57853a3db8a9802707b60167bfc55aa9467dae295b56b897ec18777a6687c",
+      "size": 2684
+    },
+    {
+      "path": "go.mod",
+      "sha256": "cd0f9125ad50ef494de0c03b2fd79330afd580daff0f792a4514a1254aaacf82",
+      "size": 566
+    },
+    {
+      "path": "go.sum",
+      "sha256": "12be998f5bf07a4a78df5b2ce9f0c6653a44b8cbf82277dbf170ccc478212278",
+      "size": 2619
+    },
+    {
+      "path": "candidate-build.yml",
+      "sha256": "4a5e9da36c182d3d29fb27e733675c9e2c67c9e133b0a019e24efb6557172969",
+      "size": 2898
+    },
+    {
+      "path": "candidate-publish.exe",
+      "sha256": "e355c055f22debea560b236b002e883181b8d4bc6613194f99d3e1b95538827f",
+      "size": 12323328
+    }
+  ],
+  "tests_passed": [
+    "TestAWSRemoteEndpointOverrideRemoved",
+    "TestMutableOrExcludedRepositoryRejected",
+    "TestRejectWrongConfigBeforeRegistryAccess",
+    "TestRejectIncompleteAndDuplicateMigrationManifest"
+  ]
+}

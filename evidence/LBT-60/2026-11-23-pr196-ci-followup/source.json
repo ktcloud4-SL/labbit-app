@@ -1,0 +1,11 @@
+{
+  "base": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "code_commit": "2dd4e591b19438d2a844e738fdb75a256b21481e",
+  "modified_file": ".gitleaks.toml",
+  "raw_sha256": "4ba6e4465d0672b0e6a1762d474901f7bee34048e9f6967dfff189350904d2bf",
+  "canonical_lf_sha256": "d17ca549414f4b0e255c47b1717db49d5b69ddfa2bbfc3848d56686332cbed6e",
+  "expected_git_blob": "0cb8d3594546fa69e01c3e910a29e48479c9907e",
+  "product_source_unchanged": true,
+  "existing_source_count": 72,
+  "gitleaksignore_unchanged_from_code_commit": true
+}

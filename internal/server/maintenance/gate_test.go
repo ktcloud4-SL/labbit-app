@@ -1,10 +1,13 @@
 package maintenance
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestBarrierAndRestart(t *testing.T) {
@@ -63,6 +66,48 @@ func TestBarrierAndRestart(t *testing.T) {
 	}
 }
 
+func TestReconciliationTelemetryDoesNotOpenAdmissionAndBlocksLocalResume(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "mode")
+	if err := os.WriteFile(path, []byte("closed"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	g := New(path)
+	done := g.ObserveReconciliation()
+	if _, ok := g.Enter("http"); ok {
+		t.Fatal("telemetry opened API")
+	}
+	if g.LocalResumeReady() {
+		t.Fatal("active query counted as drained")
+	}
+	r := prometheus.NewRegistry()
+	r.MustRegister(g)
+	families, err := r.Gather()
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, f := range families {
+		if f.GetName() != "labbit_maintenance_active" {
+			continue
+		}
+		for _, m := range f.Metric {
+			for _, label := range m.Label {
+				if label.GetName() == "kind" && label.GetValue() == "reconciliation" && m.GetGauge().GetValue() == 1 {
+					found = true
+				}
+			}
+		}
+	}
+	if !found {
+		t.Fatal("query lifetime missing from metrics")
+	}
+	done()
+	done()
+	if !g.LocalResumeReady() {
+		t.Fatal("idempotent release failed")
+	}
+}
+
 func TestConcurrentBarrier(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "mode")
 	if err := os.WriteFile(path, []byte("open"), 0600); err != nil {
@@ -85,8 +130,19 @@ func TestConcurrentBarrier(t *testing.T) {
 	if err := os.WriteFile(tmp, []byte("closed"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Rename(tmp, path); err != nil {
-		t.Fatal(err)
+	// Windows denies replacement while another process-local reader has an
+	// open handle. Retry ONLY this fixture's external writer; application gates
+	// never retry or mutate the file. Linux keeps its atomic rename semantics.
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		err := os.Rename(tmp, path)
+		if err == nil {
+			break
+		}
+		if runtime.GOOS != "windows" || !os.IsPermission(err) || time.Now().After(deadline) {
+			t.Fatal(err)
+		}
+		runtime.Gosched()
 	}
 	if closed, _ := g.Snapshot(); !closed {
 		t.Fatal("not closed")

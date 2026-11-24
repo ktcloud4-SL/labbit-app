@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -194,23 +195,36 @@ func TestInstallerScript_ShellSyntaxAndBehavioralSuite(t *testing.T) {
 		}
 	}
 
-	// 1. Syntax check
-	syntaxCmd := exec.Command(bashPath, "-n", filepath.Join(tmpDir, "install.sh"))
-	if output, err := syntaxCmd.CombinedOutput(); err != nil {
-		if strings.Contains(string(output), "WSL") {
-			t.Skipf("skipping syntax check: WSL bash stub returned %s", string(output))
+	syntaxVerified := false
+	if !t.Run("syntax", func(t *testing.T) {
+		for _, name := range []string{"install.sh", "install_test.sh"} {
+			syntaxCmd := exec.Command(bashPath, "-n", filepath.Join(tmpDir, name))
+			if output, err := syntaxCmd.CombinedOutput(); err != nil {
+				if strings.Contains(string(output), "WSL") {
+					t.Skipf("skipping syntax check: WSL bash stub returned %s", string(output))
+				}
+				t.Fatalf("bash -n %s failed: %v\nOutput: %s", name, err, string(output))
+			}
 		}
-		t.Fatalf("bash -n syntax validation failed: %v\nOutput: %s", err, string(output))
+		syntaxVerified = true
+	}) || !syntaxVerified {
+		return
 	}
-
-	// 2. Full behavioral & regression shell test suite execution
-	suiteCmd := exec.Command(bashPath, filepath.Join(tmpDir, "install_test.sh"))
-	output, err := suiteCmd.CombinedOutput()
-	t.Logf("install_test.sh output:\n%s", string(output))
-	if err != nil {
-		if strings.Contains(string(output), "WSL") {
-			t.Skipf("skipping behavioral suite: WSL bash stub returned %s", string(output))
+	t.Run("behavior", func(t *testing.T) {
+		// Git Bash validates syntax but lacks the Linux executable/ownership
+		// semantics exercised by helper reuse and systemd files. Linux CI runs
+		// this suite; do not fake those checks on Windows.
+		if runtime.GOOS == "windows" {
+			t.Skip("Linux permission/systemd behavioral fixtures require Linux CI")
 		}
-		t.Fatalf("install_test.sh behavioral suite failed: %v\nOutput:\n%s", err, string(output))
-	}
+		suiteCmd := exec.Command(bashPath, filepath.Join(tmpDir, "install_test.sh"))
+		output, err := suiteCmd.CombinedOutput()
+		t.Logf("install_test.sh output:\n%s", string(output))
+		if err != nil {
+			if strings.Contains(string(output), "WSL") {
+				t.Skipf("skipping behavioral suite: WSL bash stub returned %s", string(output))
+			}
+			t.Fatalf("install_test.sh behavioral suite failed: %v\nOutput:\n%s", err, string(output))
+		}
+	})
 }

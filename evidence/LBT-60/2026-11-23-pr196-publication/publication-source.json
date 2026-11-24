@@ -1,0 +1,583 @@
+{
+  "base": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "prior_pr_head": "c11b70a8e9fb81691e0fadb6b4114ee9a5f47fac",
+  "files": [
+    {
+      "path": "Makefile",
+      "raw_size": 4072,
+      "raw_sha256": "5f1f0c59a990aa970627e72dba282c41dbad5b5e157a91b48f11b13bbc2cb2f7",
+      "canonical_lf_size": 3970,
+      "canonical_lf_sha256": "8e28ea95fe42af500e1d9596bc5b702ac28df0fa8ca39783fd5c770f7e98bf22",
+      "expected_git_blob": "850a9f40d1309b7709072aaa4fa7023972062a4d"
+    },
+    {
+      "path": "cmd/labbit-dr-control/main.go",
+      "raw_size": 3687,
+      "raw_sha256": "8f2f96c02db8a8a0ca123b00aa56f7ce81e2b56f60de0def68ebb4b53afacf8b",
+      "canonical_lf_size": 3687,
+      "canonical_lf_sha256": "8f2f96c02db8a8a0ca123b00aa56f7ce81e2b56f60de0def68ebb4b53afacf8b",
+      "expected_git_blob": "4b25488789f1ddee48e08fb5ed126df89afb8472"
+    },
+    {
+      "path": "cmd/labbit-dr-control/main_test.go",
+      "raw_size": 2928,
+      "raw_sha256": "37852466e9471f11fc7d5071ebf326ec15003f88f8920d34d572eba5c5ca7f4b",
+      "canonical_lf_size": 2928,
+      "canonical_lf_sha256": "37852466e9471f11fc7d5071ebf326ec15003f88f8920d34d572eba5c5ca7f4b",
+      "expected_git_blob": "0e80325e904613656d517335a2c264807c61ea32"
+    },
+    {
+      "path": "contracts/http/openapi.yaml",
+      "raw_size": 138694,
+      "raw_sha256": "f06d98f3d4dd79b030106b539cf3c7479191a455efd0883b8700196640ad9336",
+      "canonical_lf_size": 135870,
+      "canonical_lf_sha256": "6e54c56a8b10751edcfa168ef01c72d35e898fa352a84c476631ff44381def19",
+      "expected_git_blob": "d414d88d446be598b733d6229ce7e90f7f61f531"
+    },
+    {
+      "path": "db/migrations/000012_worker_control.sql",
+      "raw_size": 3008,
+      "raw_sha256": "624f44a65d93b9e9a8d314b0562cb3ba30b16a858ccc26d3e6df99204d08f805",
+      "canonical_lf_size": 2947,
+      "canonical_lf_sha256": "f87fff6b5dce4ae111ccf8f4e2d950700faf46d9190625e2929ae0ebc4e838bc",
+      "expected_git_blob": "1170ddcf73fd1dcb2be154cbbcdda889f580fe58"
+    },
+    {
+      "path": "db/migrations/000013_worker_control_resume.sql",
+      "raw_size": 902,
+      "raw_sha256": "b1232de8cd38f9d0c48f6d420bd31c480c7946f516177615b009641c08a28990",
+      "canonical_lf_size": 880,
+      "canonical_lf_sha256": "df5cd776a5166be952211d36d8f063322bdf86994ab1c5a559f37a24c60faf4f",
+      "expected_git_blob": "641e8c826e9ad9004dd4c9775ea5daa965690cbb"
+    },
+    {
+      "path": "db/migrations/000014_worker_control_resume_applied_time.sql",
+      "raw_size": 466,
+      "raw_sha256": "b661f3ac0b8dc967edaec1b3d0a863a707e966e6f3ceb5dca655049075069c8d",
+      "canonical_lf_size": 455,
+      "canonical_lf_sha256": "9ed3ad245e836e19569b7267b5ec6cdcb17531054423c83a75a41c3ec8d160ea",
+      "expected_git_blob": "9fbbc2c6847bb44a8109f9da946c89153de50363"
+    },
+    {
+      "path": "db/migrations/README.md",
+      "raw_size": 23602,
+      "raw_sha256": "f09fd31193f1091830cd2ee955bd1a2eead6f5179d9c8f075d4143a3c44cb61e",
+      "canonical_lf_size": 23324,
+      "canonical_lf_sha256": "c5600fd50bd615cf120e74804eb5fe04650705370080c0d3694236e418d7cf9f",
+      "expected_git_blob": "11c350f26214a5ec1fd0205c7abe2d64d7a63e1d"
+    },
+    {
+      "path": "docs/backend/dr-maintenance-integration.md",
+      "raw_size": 12402,
+      "raw_sha256": "02e2aeed5b003c3f99113c340254b5b37337df7d2673f5d722ee291f2e98513b",
+      "canonical_lf_size": 12282,
+      "canonical_lf_sha256": "9b15ea6233bea051d84152cab5c49dcb183ba996773866a800db4d6be175aaad",
+      "expected_git_blob": "418688c7a44ed720888ce66ccb6a5fc9ce784ec7"
+    },
+    {
+      "path": "docs/backend/dr-mutation-admission.md",
+      "raw_size": 5375,
+      "raw_sha256": "58f163c740e47c6dd745ffe8b1d2db978083b34ee1e1a2eda64f115ba002c461",
+      "canonical_lf_size": 5313,
+      "canonical_lf_sha256": "cc86a65e132b873857ef91d25d61107a1fad5228b45b4368c6694a4d44cca77f",
+      "expected_git_blob": "5b4a80d42da7723460c7b80c571c92571da9c38e"
+    },
+    {
+      "path": "docs/backend/dr-stage3-deployment.md",
+      "raw_size": 3084,
+      "raw_sha256": "8c9baab04d21de9a41e02512dd5fbe6215ba10ee89f57ef516a43df816e47a81",
+      "canonical_lf_size": 3084,
+      "canonical_lf_sha256": "8c9baab04d21de9a41e02512dd5fbe6215ba10ee89f57ef516a43df816e47a81",
+      "expected_git_blob": "5b0447f89a7f573e6936a2b144c18fac0733f239"
+    },
+    {
+      "path": "docs/backend/dr-worker-control.md",
+      "raw_size": 16006,
+      "raw_sha256": "b41bd8b77f235c424943098a28c3988107dea17244a7e634829a65f5c8cdd6c6",
+      "canonical_lf_size": 15839,
+      "canonical_lf_sha256": "46e80a71d4716f27053c44404448af8a79ce99fc3d50165b6e75dc031854a36f",
+      "expected_git_blob": "f56e4bde61df1a3eada96488c736794e739099a8"
+    },
+    {
+      "path": "internal/connector/installer/installer_test.go",
+      "raw_size": 10194,
+      "raw_sha256": "fdba7b9b327009bd11db8ddd3ef23d9f7ddb83f5dc89d5ea73cd8cd6b225024f",
+      "canonical_lf_size": 10194,
+      "canonical_lf_sha256": "fdba7b9b327009bd11db8ddd3ef23d9f7ddb83f5dc89d5ea73cd8cd6b225024f",
+      "expected_git_blob": "2dac1cdeb65328c59ff0726fa6b1f4288bc46f8e"
+    },
+    {
+      "path": "internal/connector/provider/openstack/active_readiness_test.go",
+      "raw_size": 10129,
+      "raw_sha256": "8424591ed3e8c2587fb7e0bac02b5c7917911d14327a621dbdcb88ae26c0cc29",
+      "canonical_lf_size": 10129,
+      "canonical_lf_sha256": "8424591ed3e8c2587fb7e0bac02b5c7917911d14327a621dbdcb88ae26c0cc29",
+      "expected_git_blob": "3c4c0e92e9da6a4ede4902bd76f4b1a1acdd6aaa"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_cidr_test.go",
+      "raw_size": 26701,
+      "raw_sha256": "a547e9016ff650d579a389edf0a9cf7a0963cc5b5d5753930dd42f47ebe6197a",
+      "canonical_lf_size": 26701,
+      "canonical_lf_sha256": "a547e9016ff650d579a389edf0a9cf7a0963cc5b5d5753930dd42f47ebe6197a",
+      "expected_git_blob": "21c1ce9aeddb7263c9d1c5449b4171bc50d04a36"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_management_route_test.go",
+      "raw_size": 6005,
+      "raw_sha256": "6d76b14d3dad457cadae262584f787347ba400c757d85669f7691619d554a105",
+      "canonical_lf_size": 6005,
+      "canonical_lf_sha256": "6d76b14d3dad457cadae262584f787347ba400c757d85669f7691619d554a105",
+      "expected_git_blob": "c08db3a558c3473be266ab2653e9ecbb2b856a70"
+    },
+    {
+      "path": "internal/connector/provider/openstack/readiness_diagnostic_test.go",
+      "raw_size": 6548,
+      "raw_sha256": "379ccbcdf5d216aaf2e14d965bf7174558b156d6ecb860c63e5d187a89c60956",
+      "canonical_lf_size": 6548,
+      "canonical_lf_sha256": "379ccbcdf5d216aaf2e14d965bf7174558b156d6ecb860c63e5d187a89c60956",
+      "expected_git_blob": "b85d6c00b8536c56dfce57ea2c0b5bf9ee99ea70"
+    },
+    {
+      "path": "internal/connector/provider/openstack/readiness_test.go",
+      "raw_size": 6190,
+      "raw_sha256": "e48195079ec18c34abfa3c373c945e923b19c9bfe5a791cb3f502103c6833a9a",
+      "canonical_lf_size": 6190,
+      "canonical_lf_sha256": "e48195079ec18c34abfa3c373c945e923b19c9bfe5a791cb3f502103c6833a9a",
+      "expected_git_blob": "c4093c6838f22c2ceebd2d3aea09ad3a5c02b4cf"
+    },
+    {
+      "path": "internal/drcontrol/awscli.go",
+      "raw_size": 5444,
+      "raw_sha256": "6af62fa59b9c12af8fdc43bb237c4a9b5b552cd103ec4b7a3b3e8c91f0ce1985",
+      "canonical_lf_size": 5444,
+      "canonical_lf_sha256": "6af62fa59b9c12af8fdc43bb237c4a9b5b552cd103ec4b7a3b3e8c91f0ce1985",
+      "expected_git_blob": "4448de6551c0a44d3c5d4d299091662fd5df714b"
+    },
+    {
+      "path": "internal/drcontrol/awscli_test.go",
+      "raw_size": 4503,
+      "raw_sha256": "661c644c6e689fce6b04d7bafff5e0777e67bd1c5bdd56f80b15bd0ab3cba5d2",
+      "canonical_lf_size": 4503,
+      "canonical_lf_sha256": "661c644c6e689fce6b04d7bafff5e0777e67bd1c5bdd56f80b15bd0ab3cba5d2",
+      "expected_git_blob": "f76eff583d3250bcc8058dc2a2b37b9766eb93b6"
+    },
+    {
+      "path": "internal/drcontrol/contract.go",
+      "raw_size": 9329,
+      "raw_sha256": "cca698152b52ed2d788945b0b4407279c586c1812409e35dc5addbecdcca9b1c",
+      "canonical_lf_size": 9329,
+      "canonical_lf_sha256": "cca698152b52ed2d788945b0b4407279c586c1812409e35dc5addbecdcca9b1c",
+      "expected_git_blob": "052399797df03f3b2d6331b526de127781716352"
+    },
+    {
+      "path": "internal/drcontrol/database.go",
+      "raw_size": 1480,
+      "raw_sha256": "bed00bf1ad0f8be7e8129eb41292be176311c21eb143c4ec817aa2ba37f7b317",
+      "canonical_lf_size": 1480,
+      "canonical_lf_sha256": "bed00bf1ad0f8be7e8129eb41292be176311c21eb143c4ec817aa2ba37f7b317",
+      "expected_git_blob": "2a39203f561e319de7c4f4495ae6c59fd5815632"
+    },
+    {
+      "path": "internal/drcontrol/database_integration_test.go",
+      "raw_size": 2990,
+      "raw_sha256": "8aa161654f8709985f11b3cd62bcc90242fd0a74e059e6162fdc02c8ecb2fe59",
+      "canonical_lf_size": 2990,
+      "canonical_lf_sha256": "8aa161654f8709985f11b3cd62bcc90242fd0a74e059e6162fdc02c8ecb2fe59",
+      "expected_git_blob": "cafd1a009161ef71f82a3b92e4e8d39270bbfe8f"
+    },
+    {
+      "path": "internal/drcontrol/verified.go",
+      "raw_size": 5906,
+      "raw_sha256": "fdfeb220350f237100a79748d29d6d77d71e7929a890290a5987c10b13607ef7",
+      "canonical_lf_size": 5906,
+      "canonical_lf_sha256": "fdfeb220350f237100a79748d29d6d77d71e7929a890290a5987c10b13607ef7",
+      "expected_git_blob": "49b7535dee82d350709478c4057119f70f6d3fd6"
+    },
+    {
+      "path": "internal/drcontrol/verified_test.go",
+      "raw_size": 12333,
+      "raw_sha256": "d1d9560c7b02c51fbd6a4a4b12ef25b5a26b30dcec51885dd66963df7192a8a6",
+      "canonical_lf_size": 12333,
+      "canonical_lf_sha256": "d1d9560c7b02c51fbd6a4a4b12ef25b5a26b30dcec51885dd66963df7192a8a6",
+      "expected_git_blob": "ac4799081eda0916f9660b0ba06e98e603e38ed1"
+    },
+    {
+      "path": "internal/postgres/migrate_integration_test.go",
+      "raw_size": 22322,
+      "raw_sha256": "ae7f1f7e908d9908a197bac9ee0fcce8b957352466072a980d60822fc3edefaa",
+      "canonical_lf_size": 21749,
+      "canonical_lf_sha256": "ebbb4aee8ed807077c805eb7d68277c10a63a5315c98fce6b9a6678f91ada039",
+      "expected_git_blob": "eee57fd62389f5de3fc0432419ce0ed941c44d16"
+    },
+    {
+      "path": "internal/postgres/migration_test.go",
+      "raw_size": 5667,
+      "raw_sha256": "cff8dc2101c3b41432cc36dd322c2966feb8806a33a8e507a2703e1692255cee",
+      "canonical_lf_size": 5470,
+      "canonical_lf_sha256": "a4c2c830265613a6e848db58ce91428c1bdb80ee51af9f80ce645e0e2cb8c8cf",
+      "expected_git_blob": "ccfe45012eb51bc5f81011f0b43e446eee50a0dc"
+    },
+    {
+      "path": "internal/postgres/worker_control.go",
+      "raw_size": 10463,
+      "raw_sha256": "551d6cc6b0cf214d6883c740f9959dc45ad6dff8925a7300801dc105ce8300c6",
+      "canonical_lf_size": 10215,
+      "canonical_lf_sha256": "0461c119740e477fb331a85e6bf7ead7cddfd22f8e8a9c0ad73bc7df112e873b",
+      "expected_git_blob": "bd8e3ac3292fd213eedceb51b2c74d2ea9fcf10c"
+    },
+    {
+      "path": "internal/postgres/worker_control_integration_test.go",
+      "raw_size": 5292,
+      "raw_sha256": "430149a331d9aadff802de23a5b01eafc9266294cc49426a266d67102dec5c57",
+      "canonical_lf_size": 5163,
+      "canonical_lf_sha256": "2c4d58fa8ee74e55c3f7d613d84498eedc308d9dbf6a14b4ee3029d7576caefa",
+      "expected_git_blob": "0af97aacd9433a04313f60e6a5089f3f5812a771"
+    },
+    {
+      "path": "internal/postgres/worker_control_lifecycle_integration_test.go",
+      "raw_size": 9924,
+      "raw_sha256": "f67127b4e2eeeb5dbd7d743a436baed87a05d5221ee18dc4e1180d36dfc339ab",
+      "canonical_lf_size": 9683,
+      "canonical_lf_sha256": "5e910a6c60a114dd415c85b563859f7153df22d1633d702812703ac63aa60690",
+      "expected_git_blob": "292a08df5886c2313594da98c06d7641c1ff14da"
+    },
+    {
+      "path": "internal/postgres/worker_control_resume.go",
+      "raw_size": 6739,
+      "raw_sha256": "a5ae8f34bc24e415fbd5c7f86aac355151ab285b087b8dcb7252e1d57e967ff3",
+      "canonical_lf_size": 6549,
+      "canonical_lf_sha256": "398d6071d0d8f31dc1559f7fc8f9a12bb1de3497d659b0d57005a2a9f13d1c74",
+      "expected_git_blob": "e375da8bfbb9180299036ca1e8c8a035cde1f91c"
+    },
+    {
+      "path": "internal/postgres/worker_control_resume_test.go",
+      "raw_size": 7983,
+      "raw_sha256": "fe78eab09366418b2317cfd9cb68223f1d96220ad8c6f3d65f848826770a531f",
+      "canonical_lf_size": 7766,
+      "canonical_lf_sha256": "28641f1f112a4a8a57df94687085ac4b74681f9b385d77d7b9ba7d0df769581a",
+      "expected_git_blob": "a8091f0ac1ca3182ca30fd71f0e3a10decf34378"
+    },
+    {
+      "path": "internal/postgres/worker_control_test.go",
+      "raw_size": 9399,
+      "raw_sha256": "1c3f3f9e814e083a75de608c419b1cde56e93944670380fc75bfe3cee7cf81c0",
+      "canonical_lf_size": 9090,
+      "canonical_lf_sha256": "c6c9433679ba25583c5e95c11393df686efaf4c78d53235a55b9a39e263bc637",
+      "expected_git_blob": "6325ba5f2ab606efe65dadb02c919a147ae24929"
+    },
+    {
+      "path": "internal/server/app/admission_test.go",
+      "raw_size": 4995,
+      "raw_sha256": "bc1aebb392c133a1db0f570fc2d349df08a9e410c7bb5164e704c0f985744117",
+      "canonical_lf_size": 4995,
+      "canonical_lf_sha256": "bc1aebb392c133a1db0f570fc2d349df08a9e410c7bb5164e704c0f985744117",
+      "expected_git_blob": "398cf8f1f91340c5beb17102dd93ab90670a76f7"
+    },
+    {
+      "path": "internal/server/app/app.go",
+      "raw_size": 29457,
+      "raw_sha256": "ac7863be124d932bdc1ec5b72809dae132f175fa940d3a7d9214902e1fedb21c",
+      "canonical_lf_size": 28715,
+      "canonical_lf_sha256": "27b5159615b60000fed53bc9f3dbad4f04ad901605c68e6d974b82c1896a0873",
+      "expected_git_blob": "70b5ba9745093363cde7a810769d16e263c8f0b3"
+    },
+    {
+      "path": "internal/server/app/control_stack.go",
+      "raw_size": 21764,
+      "raw_sha256": "9452083f84beadd362b7173bb35b819f3327f9bb276b880f72309e13b8fa63af",
+      "canonical_lf_size": 21764,
+      "canonical_lf_sha256": "9452083f84beadd362b7173bb35b819f3327f9bb276b880f72309e13b8fa63af",
+      "expected_git_blob": "f9b035aa96538848e4ae148e95bff1dad861657b"
+    },
+    {
+      "path": "internal/server/app/dr_maintenance_integration_test.go",
+      "raw_size": 21160,
+      "raw_sha256": "3858d27d0a06c02e5c6881a1b41f6a516c3d7de97ee548a41ff2a35d7a06ca3c",
+      "canonical_lf_size": 21160,
+      "canonical_lf_sha256": "3858d27d0a06c02e5c6881a1b41f6a516c3d7de97ee548a41ff2a35d7a06ca3c",
+      "expected_git_blob": "614529d9f4d750088640074b192de3fd4f6c6625"
+    },
+    {
+      "path": "internal/server/app/worker_control_test.go",
+      "raw_size": 6837,
+      "raw_sha256": "4dfaecc4934e54ff98e1072b9d6a8a674acd63ca73014c12b0a43de36e11912e",
+      "canonical_lf_size": 6682,
+      "canonical_lf_sha256": "30add9eac5858c82614a5af587a0ece1b9cae045d0f5cc5e80e911fa6c4524c9",
+      "expected_git_blob": "a8002ddb4124aaf4fdb0b0b544cc3edc2846d14e"
+    },
+    {
+      "path": "internal/server/app/worker_metrics_integration_test.go",
+      "raw_size": 22446,
+      "raw_sha256": "0166ed0f88cd9b3317390776cd1c61b8a31203f617d7b2626dce14a8c097c39f",
+      "canonical_lf_size": 21870,
+      "canonical_lf_sha256": "1736b97db8239606f6236cee59d97a2ba20147d89d8d7a606148b707e6e196cc",
+      "expected_git_blob": "c071466cd3aa0f8390559a4f2eda73db02dbbc0e"
+    },
+    {
+      "path": "internal/server/connector/registry.go",
+      "raw_size": 19215,
+      "raw_sha256": "2bcf14c3511caf0c248219371a9b4f005e989fd2dfd0431b9deabda97cd9ded6",
+      "canonical_lf_size": 18811,
+      "canonical_lf_sha256": "980453ba302e9088f75496c557b275a83a09b8202b16eb7c547842113eb33bc7",
+      "expected_git_blob": "e28643d9a38e0037bbff321784bfa98af6d7dcb2"
+    },
+    {
+      "path": "internal/server/connector/registry_close_notification_test.go",
+      "raw_size": 1222,
+      "raw_sha256": "827b31409faf0849eacdd62682cbeff66383b375dae03709764bf2bbb9b8b05b",
+      "canonical_lf_size": 1174,
+      "canonical_lf_sha256": "56ad7612a585944a208914125418b3ed091de0d2e2dd78af546f4c261ef11a4b",
+      "expected_git_blob": "39a4241b294a222fdac279fc52b67bec44b1aade"
+    },
+    {
+      "path": "internal/server/connector/router.go",
+      "raw_size": 23313,
+      "raw_sha256": "aba0b01c1b263e6fb686cb81b690cb7923a670ae6a7ed5773aaba6a635f027d1",
+      "canonical_lf_size": 22753,
+      "canonical_lf_sha256": "0bebe97366e59d9e2ee9d06e77d1019f5e54cb21d6efa1b4d858086ac36600cb",
+      "expected_git_blob": "cc03774519b4abd1b6424ac5166ef45e32bd44fb"
+    },
+    {
+      "path": "internal/server/connector/worker_control_test.go",
+      "raw_size": 3681,
+      "raw_sha256": "761f83390fdc5dee783ec30cc9cef3729ff16d29dbd284ab6bd6f81adeb70a77",
+      "canonical_lf_size": 3573,
+      "canonical_lf_sha256": "85330d956b7b5cafe47ac5a4e601e93577826e3719f3355c0bdf8695095a2bf1",
+      "expected_git_blob": "eeff737daff03a7c9d527ea39e1929f7d3187f82"
+    },
+    {
+      "path": "internal/server/connectorwss/close_cleanup_test.go",
+      "raw_size": 3504,
+      "raw_sha256": "b116c44c2bb042712bd1f42fc30a9131ab5f1d37ba2082c70e5da820cee389a7",
+      "canonical_lf_size": 3402,
+      "canonical_lf_sha256": "b29218f288e8b573db16ea3076d3407c2db41244613b79c8d2ea6b0012e3c191",
+      "expected_git_blob": "3d648300330c82c49b2277734f13ef318bc6d85f"
+    },
+    {
+      "path": "internal/server/connectorwss/conn.go",
+      "raw_size": 7247,
+      "raw_sha256": "fe59536eed6f9e9afe440082b4d9fc36275ed49f9e67676d4d51ccd8197b77bc",
+      "canonical_lf_size": 7071,
+      "canonical_lf_sha256": "455f148c23ae682576f448aff1260066653c228e04324081866159dae6db8095",
+      "expected_git_blob": "8f4e6e1dfd2fe3dd96cb307d68bf0879265f6ac5"
+    },
+    {
+      "path": "internal/server/connectorwss/handler.go",
+      "raw_size": 34116,
+      "raw_sha256": "22889a5a0ba3089e801208f79edccc6b6a2a6d0045c7da61cd9a83b1843d1ef4",
+      "canonical_lf_size": 33343,
+      "canonical_lf_sha256": "9f54fbf6a845956335add07b65ed4efa2b2aeb8eeeb00399cc72620756fd49bd",
+      "expected_git_blob": "7c683da47a84b3d48656209891777a35d9dffc72"
+    },
+    {
+      "path": "internal/server/httpapi/admission_test.go",
+      "raw_size": 1646,
+      "raw_sha256": "fe9a27f1214f7140fc5297cab46ff3a5befba6724be30701201432d70ad134c6",
+      "canonical_lf_size": 1610,
+      "canonical_lf_sha256": "df41ffa1c13dae998ed771868c5a45e2818a2cfda0debf705637aae1021b7129",
+      "expected_git_blob": "297847fa280ba7b31b6088f7ac2510ea4ba8a68e"
+    },
+    {
+      "path": "internal/server/httpapi/dr_maintenance_integration_test.go",
+      "raw_size": 4006,
+      "raw_sha256": "ca7a5be0134ae1fa4081e7661d62849f9521384ba4954be6f2c22766a7ae9683",
+      "canonical_lf_size": 3900,
+      "canonical_lf_sha256": "550e4a1df8741ca07f5205b3122e7bd97452b6863c0b6f920abea58cd43eacd1",
+      "expected_git_blob": "8693a88c98be34b403b74607ed2faa175a3517f3"
+    },
+    {
+      "path": "internal/server/labexecution/admission_test.go",
+      "raw_size": 9326,
+      "raw_sha256": "adb17148a38372483e85762d8a78390b7324c612717aec4a98d587147076c1af",
+      "canonical_lf_size": 9072,
+      "canonical_lf_sha256": "71122df92d3b7016d7f6497282ca03cc3ca808f8f0ca9dce62c4791d6390b8f0",
+      "expected_git_blob": "a99dc5ea989bf48872841ff83d2e8b849d17524c"
+    },
+    {
+      "path": "internal/server/maintenance/controlled_worker_test.go",
+      "raw_size": 1501,
+      "raw_sha256": "f76c82137460f7a277822a185e081059a671aa918c6b905638f4bd750f492f05",
+      "canonical_lf_size": 1501,
+      "canonical_lf_sha256": "f76c82137460f7a277822a185e081059a671aa918c6b905638f4bd750f492f05",
+      "expected_git_blob": "0dc2079690381cd819c1010f307a76d8341dbb69"
+    },
+    {
+      "path": "internal/server/maintenance/gate.go",
+      "raw_size": 4553,
+      "raw_sha256": "256d5a2d98680020cee95ac466c4deda12cb1c99dae3d0b8d4fe2b4994ff7057",
+      "canonical_lf_size": 4553,
+      "canonical_lf_sha256": "256d5a2d98680020cee95ac466c4deda12cb1c99dae3d0b8d4fe2b4994ff7057",
+      "expected_git_blob": "6381a7022555198310c3c62417b5b63a1fae65fa"
+    },
+    {
+      "path": "internal/server/maintenance/gate_test.go",
+      "raw_size": 4804,
+      "raw_sha256": "59b2cf7d273729fd6d1b0742f787add407e9c3669a12114b3091e3fb81b6a435",
+      "canonical_lf_size": 4602,
+      "canonical_lf_sha256": "14bb9cbf507bb773d82ecf1b338d86feaa97fb3262e22e36b57ccc8fdb99bc35",
+      "expected_git_blob": "f2862f95356ee6a148c806ea2657bc24b0a7fa78"
+    },
+    {
+      "path": "internal/server/provision/controlled_maintenance_test.go",
+      "raw_size": 2309,
+      "raw_sha256": "28079383021d53bbe21947825966a8f47103199e83b30cc0f6940b1d19c6d981",
+      "canonical_lf_size": 2309,
+      "canonical_lf_sha256": "28079383021d53bbe21947825966a8f47103199e83b30cc0f6940b1d19c6d981",
+      "expected_git_blob": "71a3706222a8d9cabf22e0f5b4b17dcfcee57e13"
+    },
+    {
+      "path": "internal/server/provision/executor.go",
+      "raw_size": 18099,
+      "raw_sha256": "f57211655887daaf17666e221fb3e6d85f92b93f24170d74bc9d1d599002010e",
+      "canonical_lf_size": 17595,
+      "canonical_lf_sha256": "7933287bb3c34cfca8984f6a4e499960a175aa1562ddf2be5fe4921e33be53fe",
+      "expected_git_blob": "3b49d94758efd771f187630c7d34a4db92e346c9"
+    },
+    {
+      "path": "internal/server/provision/maintenance_resume_test.go",
+      "raw_size": 10055,
+      "raw_sha256": "46046c67d9a07b64b40aff724284c83a284e3c2bcdd4c44eeba0c4f9287e01f5",
+      "canonical_lf_size": 9820,
+      "canonical_lf_sha256": "1d4a16f87343fc6b20baa978add9770c4b99e36031ecb5f43ad449bd6cf5f3cf",
+      "expected_git_blob": "4cd60970e6778ee12d6102086a0f5fcbd6c41c4d"
+    },
+    {
+      "path": "internal/server/provision/reconciliation.go",
+      "raw_size": 5879,
+      "raw_sha256": "ca9ce18a125f8b29b11abbc03c15f7fca83c8b8118e9390f1fcfeb6bf67a01ec",
+      "canonical_lf_size": 5725,
+      "canonical_lf_sha256": "c2e9bbdf7a6a16a672dcaf223f8ae135271a242620ea094d5e7f6d142ad83a98",
+      "expected_git_blob": "d39f2a8e77a0dab1d5bc6b2f0cca151728f35b17"
+    },
+    {
+      "path": "internal/server/provision/worker_control_test.go",
+      "raw_size": 26176,
+      "raw_sha256": "2ce406092f33ef712c0ef60936b3b4aadad45f56b9c0cf4950441fef4cee7c59",
+      "canonical_lf_size": 25539,
+      "canonical_lf_sha256": "29b16b15dbf31771cb02d6b3702cc2f5540afcf815bf0cdd0855675ddca235de",
+      "expected_git_blob": "5188ff9b7e6e20373e75fe4ffe04f7bf984afb6b"
+    },
+    {
+      "path": "internal/server/provision/worker_resume_test.go",
+      "raw_size": 4425,
+      "raw_sha256": "f75eb1c0207ed7980cfee389dd1013337a9eb2ae3480d2893fef5747e20bc7bb",
+      "canonical_lf_size": 4327,
+      "canonical_lf_sha256": "c4dc67737679ed1c4f7d98679a0c409e7b592b7436a07c4780192cd974dd0676",
+      "expected_git_blob": "97462b787cb251bd158451909cdb74d3fcbb9422"
+    },
+    {
+      "path": "internal/server/workercontrol/control.go",
+      "raw_size": 6312,
+      "raw_sha256": "4c56c7fdf47ee6b91331eae68548d806a979f12d30d5b92e10598a07ca4b7503",
+      "canonical_lf_size": 6078,
+      "canonical_lf_sha256": "64ce09e4c5f4a256e265e7897c14c0878c82df76000c45a04c5fa9299224d9a0",
+      "expected_git_blob": "2ff04007ed7f023a50dded0e886d892be2e20b96"
+    },
+    {
+      "path": "internal/server/workercontrol/control_test.go",
+      "raw_size": 4619,
+      "raw_sha256": "9008a4f6228ea4d3ab1c566d04c46cc9b30d0cb96021d1efd4567655e7c78998",
+      "canonical_lf_size": 4456,
+      "canonical_lf_sha256": "e450e9f00a36e6d19b71d1fda5fc7e66eb8ee91571cc2a6138e85cdb4d8f74fa",
+      "expected_git_blob": "b88cb0e53e72ac2c4a762dad247dcc28c3b5131e"
+    },
+    {
+      "path": "internal/server/workercontrol/durable.go",
+      "raw_size": 5651,
+      "raw_sha256": "b77ba517121e4ed7d435797ba1bd89cf71eb5892370bbc3ea240fc82e09449b0",
+      "canonical_lf_size": 5480,
+      "canonical_lf_sha256": "08ab206a05682c1b496e62ab973d5808ac7d53cdeabce3712d8be5a5c3fa84e5",
+      "expected_git_blob": "ffd983e2c18c42fe5ceb0be1772c5032313cf756"
+    },
+    {
+      "path": "internal/server/workercontrol/durable_test.go",
+      "raw_size": 11197,
+      "raw_sha256": "8debf416da0405abc7a704b24d88d332dd4b8a226b694cb49313dcfc5a955d93",
+      "canonical_lf_size": 10850,
+      "canonical_lf_sha256": "200b81aedc754c49247c6b117d141f10a47e02f8a219268322df7080c124a142",
+      "expected_git_blob": "b4df4b6138e1fa07594be46881e177e50675f936"
+    },
+    {
+      "path": "internal/server/workercontrol/maintenance_resume.go",
+      "raw_size": 2138,
+      "raw_sha256": "e8a2617ef9e7373fc9cebfcbfc9427305f77c8a496c5cf4e9604d659c2595a7c",
+      "canonical_lf_size": 2074,
+      "canonical_lf_sha256": "bc4850ca01c5315b652a329c500b8a2c8bc7e12f321ec73c0bf097dceccd1605",
+      "expected_git_blob": "d3b81641ad94c3aff4e1f9881fe3a27dc825dde5"
+    },
+    {
+      "path": "internal/server/workercontrol/maintenance_resume_test.go",
+      "raw_size": 6174,
+      "raw_sha256": "4ecca6f5e37b4df1dd5f7913626e270780c4322f2146ec70a20a4220a6e1a6dd",
+      "canonical_lf_size": 5989,
+      "canonical_lf_sha256": "b66036d4660ed70b9f4b88ad75016af08ed02ba213abc74b4a4a350afd6824a4",
+      "expected_git_blob": "31e1a8962bde2038efd3ee09b0d999380b71535a"
+    },
+    {
+      "path": "internal/server/workercontrol/resume.go",
+      "raw_size": 9020,
+      "raw_sha256": "25629a70720dd1980662092e48997fedcbcac1735f22f5b1ead03e6d5e24f3df",
+      "canonical_lf_size": 8784,
+      "canonical_lf_sha256": "4a1f30dbd6f996546d5a06cee08b4c178d395f68e088920bef68e82b959202b2",
+      "expected_git_blob": "3421d06880bb91cd8ce707097ed314eaa7181ad8"
+    },
+    {
+      "path": "internal/server/workercontrol/resume_test.go",
+      "raw_size": 16750,
+      "raw_sha256": "c07a1a018adb61da795ba7a4ba014a622a5333ffe778d188323f2d7aa878f6c3",
+      "canonical_lf_size": 16277,
+      "canonical_lf_sha256": "6ecb53f56845b9cf65ffb06bae5377302fb4dbd51aa3e939c5d7ab8f63cabd4c",
+      "expected_git_blob": "644ed061786df476ec90b11e41c335d2377e82ad"
+    },
+    {
+      "path": "internal/server/workercontrol/settings.go",
+      "raw_size": 1584,
+      "raw_sha256": "681be46d51f6a87a808375d96a4401f0e3605e1a182dd69925c33c9d06155aa3",
+      "canonical_lf_size": 1584,
+      "canonical_lf_sha256": "681be46d51f6a87a808375d96a4401f0e3605e1a182dd69925c33c9d06155aa3",
+      "expected_git_blob": "1908d077a7f76ce74da9a991131331cb8a55d2db"
+    },
+    {
+      "path": "internal/server/workercontrol/settings_admission_test.go",
+      "raw_size": 1005,
+      "raw_sha256": "2266593f5a8252c4dcd78030749d0f9b3fc3d37b3978c24c6bba0610f938b444",
+      "canonical_lf_size": 1005,
+      "canonical_lf_sha256": "2266593f5a8252c4dcd78030749d0f9b3fc3d37b3978c24c6bba0610f938b444",
+      "expected_git_blob": "a01e067ab82192a47dcd535ffc227c4f501a4035"
+    },
+    {
+      "path": "internal/testsupport/workercontrolfake/resume.go",
+      "raw_size": 3177,
+      "raw_sha256": "f64353ed17632c4688456d60a2a5c7f575fa7818d6c7232a3e17931c997ce81b",
+      "canonical_lf_size": 3067,
+      "canonical_lf_sha256": "34101ad2de77fd713fc8f58db9ba79fe238d52f98d0673b68e79f944a77c4753",
+      "expected_git_blob": "0e4db49a492412fa2e9b84249642b9ad843a6edb"
+    },
+    {
+      "path": "internal/testsupport/workercontrolfake/store.go",
+      "raw_size": 4040,
+      "raw_sha256": "c32b402a759739293e8646eb99e9c3c1f6932f93b97dbe4dab852923622a08a1",
+      "canonical_lf_size": 3895,
+      "canonical_lf_sha256": "2ddb82f7a79ebd06ff324f28bbf4055bb329fab0350d056cf7d57ad5a0da56c0",
+      "expected_git_blob": "02dc59aa594358edf32cd027dc3bad149afb3767"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "raw_size": 72467,
+      "raw_sha256": "fbc2b70dc2d5fbe262c9f4cb9bd02210bbb4a951ccb975619028879fb2aed42a",
+      "canonical_lf_size": 71507,
+      "canonical_lf_sha256": "29fb4cc97ab04302f38ae2296a703c3845db8f0ae70f9218edb0f50caf3d6daa",
+      "expected_git_blob": "47cf19c7eb1248a0e9cd9e8bc86cee3beed0b5ea"
+    },
+    {
+      "path": "runtime/dr-control.md",
+      "raw_size": 6515,
+      "raw_sha256": "cdc51ecfc385551ed053619eb6b2c5383a5ef6a4442affc445b03f0dfa89af0c",
+      "canonical_lf_size": 6515,
+      "canonical_lf_sha256": "cdc51ecfc385551ed053619eb6b2c5383a5ef6a4442affc445b03f0dfa89af0c",
+      "expected_git_blob": "55d60437cf490c5bd7651b30c80a648186bcfa37"
+    }
+  ],
+  "raw_vs_git": "Windows raw CRLF may differ from Git normalized LF; compare canonical LF SHA and Git blob, not raw bytes from a different checkout"
+}

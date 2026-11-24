@@ -1,0 +1,53 @@
+{
+  "at": "2026-11-23T05:03:50.128919+00:00",
+  "action": "snapshot",
+  "result": {
+    "DBSnapshot": {
+      "DBSnapshotIdentifier": "labbit-seoul-pr196-before-v15-20261123-01",
+      "DBInstanceIdentifier": "labbit-seoul-rds",
+      "Engine": "postgres",
+      "AllocatedStorage": 20,
+      "Status": "creating",
+      "Port": 5432,
+      "AvailabilityZone": "ap-northeast-2c",
+      "VpcId": "vpc-0f874c702b0364ff1",
+      "InstanceCreateTime": "2026-11-23T00:04:44.389000+00:00",
+      "MasterUsername": "labbit_user",
+      "EngineVersion": "16.15",
+      "LicenseModel": "postgresql-license",
+      "SnapshotType": "manual",
+      "Iops": 3000,
+      "StorageThroughput": 125,
+      "OptionGroupName": "default:postgres-16",
+      "PercentProgress": 0,
+      "StorageType": "gp3",
+      "Encrypted": true,
+      "BackupRetentionPeriod": 7,
+      "PreferredBackupWindow": "17:02-17:32",
+      "KmsKeyId": "arn:aws:kms:ap-northeast-2:299311846289:key/acc6570f-dacd-4462-995a-4a1f8f284eac",
+      "DBSnapshotArn": "arn:aws:rds:ap-northeast-2:299311846289:snapshot:labbit-seoul-pr196-before-v15-20261123-01",
+      "IAMDatabaseAuthenticationEnabled": false,
+      "ProcessorFeatures": [],
+      "DbiResourceId": "db-KWJO4NMALL7V77AC3LWW2EGH2Y",
+      "TagList": [
+        {
+          "Key": "Jira",
+          "Value": "LBT-60"
+        },
+        {
+          "Key": "Owner",
+          "Value": "seobin"
+        },
+        {
+          "Key": "Purpose",
+          "Value": "DRCandidate"
+        }
+      ],
+      "SnapshotTarget": "region",
+      "DedicatedLogVolume": false
+    }
+  },
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false
+}

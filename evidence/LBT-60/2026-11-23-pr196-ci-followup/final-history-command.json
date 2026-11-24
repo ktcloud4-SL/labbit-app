@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "C:\\Users\\user\\.codex\\tmp\\pr196-gitleaks-8.28-20261123\\gitleaks.exe",
+    "detect",
+    "--log-opts=origin/main..HEAD",
+    "--verbose",
+    "--redact",
+    "--report-format=json",
+    "--report-path=C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-dr-stage3-offline-20261121\\evidence\\LBT-60\\2026-11-23-pr196-ci-followup\\gitleaks-history-final.json"
+  ],
+  "cwd": "C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-dr-stage3-offline-20261121",
+  "started_at_utc": "2026-11-23T00:42:10.325591+00:00",
+  "ended_at_utc": "2026-11-23T00:42:11.243253+00:00",
+  "exit_code": 0,
+  "code_commit": "2dd4e591b19438d2a844e738fdb75a256b21481e",
+  "config_sha256": "4ba6e4465d0672b0e6a1762d474901f7bee34048e9f6967dfff189350904d2bf"
+}

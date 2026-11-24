@@ -1,0 +1,42 @@
+{
+  "schema": "labbit.dr196.preparation-not-runtime-policy.v1",
+  "EnableExecution": false,
+  "live_pause_resume_ready": false,
+  "account": "299311846289",
+  "actor": "arn:aws:iam::299311846289:user/admin3",
+  "control_region": "ap-northeast-2",
+  "artifact_region": "ap-northeast-3",
+  "source": {
+    "head": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+    "local_delta": "source-manifest.json",
+    "candidate_server_source": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+    "candidate_digest": "sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469",
+    "candidate_server_rebuilt_for_operator_delta": false
+  },
+  "cluster": {
+    "name": "labbit-seoul-cluster",
+    "kube_system_uid": "6c0ed2a2-92c8-48ad-a8d3-0d192e7f70d8",
+    "deployment_uid": "88a17177-492f-41db-b097-a80a6a18a475",
+    "refresh_pod_boot_binding_before_execution": true
+  },
+  "database": {
+    "resource_id": "db-KWJO4NMALL7V77AC3LWW2EGH2Y",
+    "observed_schema": 15,
+    "previous_snapshot": "labbit-seoul-pr196-before-v15-20261123-01",
+    "cli_route": "NOT_VERIFIED",
+    "required_tls": "verify-full, exact host/port/name/user"
+  },
+  "unresolved": {
+    "actual_work_window_utc": null,
+    "signed_approval_reference": null,
+    "new_approval_writer_prefix": null,
+    "new_collection_plan_after_rollout": null,
+    "provider_inventory_and_external_safety": null
+  },
+  "sequence_reference": "docs/backend/dr-pr196-approved-control-trial.md#실제-시험-입력을-확정하는-순서",
+  "mutation_before_prerequisites": "FORBIDDEN_HOLD",
+  "automatic_legacy_rollback_after_durable_use": false,
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false
+}

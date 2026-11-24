@@ -1,0 +1,28 @@
+import subprocess,os,json,datetime,sys,gzip
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+OUT=ROOT/'evidence/LBT-60/2026-11-23-db-artifact-validation'
+GO=r'C:\Users\user\AppData\Local\Programs\Go-1.27.1\go\bin\go.exe'
+PY=r'C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\platform\bundledpython\python.exe'
+NODE=r'C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\dependencies\node\bin\node.exe'
+group=sys.argv[1]
+jobs={
+ 'go': [('race',[GO,'test','-count=1','-race','-json','./internal/drcontrol','./internal/server/workercontrol','./cmd/labbit-dr-control','./cmd/labbit-dr-evidence']),('go-all',[GO,'test','-count=1','-json','./...']),('vet',[GO,'vet','./...']),('build',[GO,'build','./...']),('format',[GO,'run','./.local/check_collector_format.go'])],
+ 'pg':[('pg-integration',[GO,'test','-count=1','-race','-tags=integration','-json','./internal/drcontrol','./internal/postgres','./internal/postgres/postgrestest'])],
+ 'pg-final':[('pg-integration-final',[GO,'test','-count=1','-race','-tags=integration','-json','./internal/drcontrol','./internal/postgres','./internal/postgres/postgrestest'])],
+ 'web':[('web-typecheck',[NODE,'node_modules/typescript/bin/tsc','--noEmit']),('web-lint',[NODE,'node_modules/eslint/bin/eslint.js','.','--max-warnings=0']),('web-test',[NODE,'node_modules/vitest/vitest.mjs','run','--maxWorkers=1']),('web-build',[NODE,'node_modules/vite/bin/vite.js','build'])],
+ 'web-retry':[('web-test-final',[NODE,'node_modules/vitest/vitest.mjs','run','--maxWorkers=1'])],
+ 'python':[('store-python',[PY,'-I','-X','utf8','-S','scripts/dr_control_artifact_store_test.py','-v']),('store-python-optimized',[PY,'-I','-X','utf8','-O','-S','scripts/dr_control_artifact_store_test.py','-v'])]
+}
+results=[]
+env={k:v for k,v in os.environ.items() if not k.upper().startswith(('AWS_','PG','LABBIT_TEST_DATABASE'))}
+if group=='pg':env['LABBIT_TEST_DATABASE_DSN']='postgres://postgres@127.0.0.1:55437/postgres?sslmode=disable'
+if group=='pg-final':env['LABBIT_TEST_DATABASE_DSN']='postgres://pr196_fixture@127.0.0.1:55438/postgres?sslmode=disable'
+for name,args in jobs[group]:
+ at=datetime.datetime.now(datetime.timezone.utc).isoformat()
+ with (OUT/(name+'.log')).open('wb') as f:
+  p=subprocess.run(args,cwd=ROOT/'web' if group.startswith('web') else ROOT,stdout=f,stderr=subprocess.STDOUT,env=env,timeout=1200)
+ result={'name':name,'args':args,'at':at,'exit':p.returncode,'log':name+'.log','scope':'disposable-loopback-PG16' if group.startswith('pg') else 'local-no-AWS'}
+ results.append(result);print(json.dumps(result),flush=True)
+ (OUT/(group+'-checks.json')).write_text(json.dumps(results,indent=2)+'\n',encoding='utf-8')
+sys.exit(1 if any(r['exit'] for r in results) else 0)

@@ -1,0 +1,26 @@
+{
+  "source_sha": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "workflow_sha": "27e1a2cba6a414025155c02a2c522e635cfe228c",
+  "run_id": "45109945049",
+  "buildkit_exported_manifest_digests": [
+    "sha256:ffab608728a82b5f8190a8960943572d912788dbe6b4f1fda8bf070022c85e10"
+  ],
+  "buildkit_exported_config_digests": [
+    "sha256:439c33a68b6590357acf3bfc0e9fcba77b02f2f55f8657836a2a4f0d9cbd7213"
+  ],
+  "docker_archive_config_digest": "sha256:439c33a68b6590357acf3bfc0e9fcba77b02f2f55f8657836a2a4f0d9cbd7213",
+  "uncompressed_layer_diffids": [
+    "sha256:42cc7504d9d5f918d6ca52d96706e7b602c8ffca5b80b1cad44e004e1c69fb70",
+    "sha256:fcefffa97454fc50f68a5251d8f6e8a8bb34368229430d64c0a648c03ad64c4b",
+    "sha256:dbd276358ea2ade96f0d7d6e66ca93e619b50ff4d76f01bc57841afb70659e94",
+    "sha256:5e1ef2695d441d54e15836ce002e223785b33e6e731636c1b6ef51c6b3d6e46b",
+    "sha256:455ab3591c914ec90d9c5f255f8d09eb7b36248adf4657cc22ba0baf1876ddd6",
+    "sha256:5b66adedb09e057a6ce34c05712f61da2b232d61dd085808830b9c46030088ae",
+    "sha256:f7f82041c51d88bccfa7abdddd61fabd45270e3b45f1dffa543200e13080bc04"
+  ],
+  "archive_config_and_layer_bytes_match_runner": true,
+  "published_registry_digest": "sha256:9dc273e94c1b22427059b2b246e3757b5a6f44d31a0abaa2ef858f62ccec6fac",
+  "pinned_reference": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial@sha256:9dc273e94c1b22427059b2b246e3757b5a6f44d31a0abaa2ef858f62ccec6fac",
+  "conversion": "BuildKit exported OCI/Docker-store manifest is not assumed byte-identical to Docker-archive\u2192go-containerregistry schema2 manifest. Exact config and seven uncompressed layer diffIDs match the runner; final registry manifest digest matches local verified image. Deploy using final pinned_reference only.",
+  "application_executed": false
+}

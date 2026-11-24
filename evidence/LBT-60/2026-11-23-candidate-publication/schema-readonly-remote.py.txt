@@ -1,0 +1,45 @@
+import json,os,subprocess,sys
+from datetime import datetime,timezone
+import psycopg
+from psycopg.conninfo import conninfo_to_dict
+from psycopg.rows import dict_row
+
+stage='IDENTITY'
+try:
+ # libpq must not pick up a service file/hostaddr from the remote process environment.
+ for key in list(os.environ):
+  if key.upper().startswith('PG'):os.environ.pop(key,None)
+ env={k:v for k,v in os.environ.items() if not k.upper().startswith('AWS_ENDPOINT_URL') and k.upper() not in ['AWS_PAGER','AWS_CLI_AUTO_PROMPT','AWS_MAX_ATTEMPTS','AWS_IGNORE_CONFIGURED_ENDPOINT_URLS']}
+ env.update(AWS_PAGER='',AWS_CLI_AUTO_PROMPT='off',AWS_MAX_ATTEMPTS='1',AWS_IGNORE_CONFIGURED_ENDPOINT_URLS='true')
+ def aws(service,op,*args):
+  p=subprocess.run(['/usr/bin/aws',service,op,*args,'--region','ap-northeast-2','--endpoint-url','https://'+service+'.ap-northeast-2.amazonaws.com','--output','json','--no-cli-pager','--cli-connect-timeout','3','--cli-read-timeout','5'],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=12)
+  if p.returncode:raise RuntimeError('AWS_NOT_VERIFIED')
+  return json.loads(p.stdout)
+ ident=aws('sts','get-caller-identity')
+ if ident.get('Account')!='299311846289' or ident.get('Arn')!='arn:aws:sts::299311846289:assumed-role/labbit-seoul-db-management/i-0945680e04ad938cf':raise RuntimeError('IDENTITY_MISMATCH')
+ stage='SECRET_READ'
+ secret=aws('secretsmanager','get-secret-value','--secret-id','labbit/seoul/rds-dsn')
+ d=conninfo_to_dict(secret['SecretString'])
+ stage='TARGET'
+ if d.get('host')!='labbit-seoul-rds.c1664mmc0jot.ap-northeast-2.rds.amazonaws.com' or d.get('port','5432')!='5432' or d.get('dbname')!='labbit_db' or d.get('user')!='labbit_user' or not d.get('password'):raise RuntimeError('TARGET_MISMATCH')
+ # Reconstruct only the expected target and credential. DSN options/service/hostaddr cannot redirect this connection.
+ cfg={k:d[k] for k in ['host','dbname','user','password']}
+ cfg.update(port=5432,sslmode='verify-full',sslrootcert='/var/tmp/labbit-pr196-readonly-20261123/global-bundle.pem',connect_timeout=5,application_name='labbit-pr196-schema-readonly',options='-c default_transaction_read_only=on -c statement_timeout=2000 -c lock_timeout=1000 -c idle_in_transaction_session_timeout=5000')
+ stage='TLS_CONNECT'
+ with psycopg.connect(**cfg,autocommit=True,row_factory=dict_row) as conn:
+  stage='READ_ONLY_SQL'
+  conn.execute('BEGIN READ ONLY')
+  try:
+   identity=conn.execute('SELECT clock_timestamp() AS observed_at, current_database() AS database, session_user AS username, pg_is_in_recovery() AS in_recovery, current_setting(\'transaction_read_only\') AS transaction_read_only').fetchone()
+   if identity['database']!='labbit_db' or identity['username']!='labbit_user' or identity['transaction_read_only']!='on':raise RuntimeError('SQL_IDENTITY_OR_READONLY_MISMATCH')
+   ssl=conn.execute('SELECT ssl,version,cipher FROM pg_stat_ssl WHERE pid=pg_backend_pid()').fetchone()
+   if not ssl or not ssl['ssl']:raise RuntimeError('TLS_NOT_VERIFIED')
+   migrations=conn.execute('SELECT version,name,checksum,applied_at FROM public.labbit_schema_migrations ORDER BY version LIMIT 100').fetchall()
+   tables=conn.execute("SELECT to_regclass('public.worker_control_states') AS states,to_regclass('public.worker_control_changes') AS changes,to_regclass('public.worker_control_boundaries') AS boundaries,to_regclass('public.worker_control_resumes') AS resumes,to_regclass('public.worker_control_restrictions') AS restrictions").fetchone()
+  finally:conn.execute('ROLLBACK')
+ secret.pop('SecretString',None);d.pop('password',None);cfg.pop('password',None)
+ print(json.dumps(dict(status='OBSERVED_READONLY',actor=ident['Arn'],secret_reference_version=secret.get('VersionId'),identity=identity,tls=ssl,migrations=migrations,tables=tables,transaction_end='ROLLBACK',migration_or_dml_executed=False,single_writer_proven=False,execution_gate='HOLD',observed_at_utc=datetime.now(timezone.utc).isoformat()),default=str))
+except Exception:
+ # Never include raw DSN, credential, libpq error or secret payload in SSM stdout/stderr.
+ print(json.dumps(dict(status='NOT_VERIFIED',stage=stage,secret_value_or_error_not_logged=True,execution_gate='HOLD')))
+ sys.exit(2)

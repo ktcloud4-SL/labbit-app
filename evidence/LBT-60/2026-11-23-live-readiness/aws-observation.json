@@ -1,0 +1,166 @@
+{
+  "observed_at_utc": "2026-11-23T01:14:06.2017193Z",
+  "identity_exit": 0,
+  "identity": {
+    "UserId": "AIDAULMDAKOI7AY6MJNYD",
+    "Account": "299311846289",
+    "Arn": "arn:aws:iam::299311846289:user/admin3"
+  },
+  "osaka_rds_exit": 0,
+  "osaka_rds": {
+    "Identifier": "labbit-osaka-replica",
+    "ARN": "arn:aws:rds:ap-northeast-3:299311846289:db:labbit-osaka-replica",
+    "ResourceId": "db-HPUSZR7K247OAEDBY7SJEUQAL4",
+    "Status": "available",
+    "Replication": [
+      {
+        "StatusType": "read replication",
+        "Normal": true,
+        "Status": "replicating"
+      }
+    ],
+    "Pending": {},
+    "Source": "arn:aws:rds:ap-northeast-2:299311846289:db:labbit-seoul-rds",
+    "Engine": "postgres",
+    "Version": "16.15",
+    "BackupDays": 7
+  },
+  "events_exit": 0,
+  "osaka_events": [
+    {
+      "Date": "2026-11-23T10:00:26.124+09:00",
+      "Message": "DB instance restarted",
+      "Source": "labbit-osaka-replica"
+    },
+    {
+      "Date": "2026-11-23T10:03:54.89+09:00",
+      "Message": "Restored from snapshot ",
+      "Source": "labbit-osaka-replica"
+    },
+    {
+      "Date": "2026-11-23T10:07:35.699+09:00",
+      "Message": "Enabled automated backups",
+      "Source": "labbit-osaka-replica"
+    },
+    {
+      "Date": "2026-11-23T10:07:44.463+09:00",
+      "Message": "DB instance shutdown",
+      "Source": "labbit-osaka-replica"
+    },
+    {
+      "Date": "2026-11-23T10:08:01.792+09:00",
+      "Message": "DB instance restarted",
+      "Source": "labbit-osaka-replica"
+    },
+    {
+      "Date": "2026-11-23T10:08:34.735+09:00",
+      "Message": "Backing up DB instance",
+      "Source": "labbit-osaka-replica"
+    },
+    {
+      "Date": "2026-11-23T10:08:52.69+09:00",
+      "Message": "Replication has stopped.",
+      "Source": "labbit-osaka-replica"
+    },
+    {
+      "Date": "2026-11-23T10:10:22.686+09:00",
+      "Message": "Replication for the Read Replica resumed",
+      "Source": "labbit-osaka-replica"
+    },
+    {
+      "Date": "2026-11-23T10:11:06.589+09:00",
+      "Message": "Finished DB Instance backup",
+      "Source": "labbit-osaka-replica"
+    }
+  ],
+  "metrics_exit": 0,
+  "replica_lag": {
+    "Label": "ReplicaLag",
+    "Datapoints": [
+      {
+        "Timestamp": "2026-11-23T10:00:00+09:00",
+        "Average": -1.0,
+        "Maximum": -1.0,
+        "Unit": "Seconds"
+      },
+      {
+        "Timestamp": "2026-11-23T10:01:00+09:00",
+        "Average": 554.0,
+        "Maximum": 554.0,
+        "Unit": "Seconds"
+      },
+      {
+        "Timestamp": "2026-11-23T10:02:00+09:00",
+        "Average": 614.0,
+        "Maximum": 614.0,
+        "Unit": "Seconds"
+      },
+      {
+        "Timestamp": "2026-11-23T10:03:00+09:00",
+        "Average": 674.0,
+        "Maximum": 674.0,
+        "Unit": "Seconds"
+      },
+      {
+        "Timestamp": "2026-11-23T10:04:00+09:00",
+        "Average": 246.0,
+        "Maximum": 246.0,
+        "Unit": "Seconds"
+      },
+      {
+        "Timestamp": "2026-11-23T10:05:00+09:00",
+        "Average": 6.0,
+        "Maximum": 6.0,
+        "Unit": "Seconds"
+      },
+      {
+        "Timestamp": "2026-11-23T10:06:00+09:00",
+        "Average": 66.0,
+        "Maximum": 66.0,
+        "Unit": "Seconds"
+      },
+      {
+        "Timestamp": "2026-11-23T10:07:00+09:00",
+        "Average": 126.0,
+        "Maximum": 126.0,
+        "Unit": "Seconds"
+      },
+      {
+        "Timestamp": "2026-11-23T10:08:00+09:00",
+        "Average": 156.0,
+        "Maximum": 156.0,
+        "Unit": "Seconds"
+      },
+      {
+        "Timestamp": "2026-11-23T10:09:00+09:00",
+        "Average": -1.0,
+        "Maximum": -1.0,
+        "Unit": "Seconds"
+      },
+      {
+        "Timestamp": "2026-11-23T10:10:00+09:00",
+        "Average": 6.0,
+        "Maximum": 6.0,
+        "Unit": "Seconds"
+      },
+      {
+        "Timestamp": "2026-11-23T10:11:00+09:00",
+        "Average": 66.0,
+        "Maximum": 66.0,
+        "Unit": "Seconds"
+      },
+      {
+        "Timestamp": "2026-11-23T10:12:00+09:00",
+        "Average": 126.0,
+        "Maximum": 126.0,
+        "Unit": "Seconds"
+      },
+      {
+        "Timestamp": "2026-11-23T10:13:00+09:00",
+        "Average": 186.0,
+        "Maximum": 186.0,
+        "Unit": "Seconds"
+      }
+    ]
+  }
+}

@@ -1,0 +1,71 @@
+import datetime as dt
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import subprocess
+
+root=Path(__file__).resolve().parents[1]
+dest=root/'evidence/LBT-60/2026-11-23-migration-candidate-rollout'
+(dest/'source').mkdir(exist_ok=True)
+(dest/'tests').mkdir(exist_ok=True)
+for source,name in [
+    (root/'.local/pr196_rollout.py','coordinator.py.txt'),
+    (root/'.local/test_pr196_rollout.py','coordinator_test.py.txt'),
+    (root/'.local/pr196-rollout-readonly-20261123/main.go','readonly.go.txt'),
+    (root/'.local/pr196-rollout-readonly-20261123/main_test.go','readonly_test.go.txt'),
+    (Path(__file__),'package_evidence.py.txt')]:
+    shutil.copyfile(source,dest/'source'/name)
+
+
+def load(path):return json.loads(path.read_text(encoding='utf-8-sig'))
+def save(name,data):
+    (dest/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+
+
+mounted=[v for v in load(root/'.local/pr196-rollout-20261123/spc-pod-statuses.json')['items'] if v['status']['secretProviderClassName']=='pr196-migration-dsn-20261123-01']
+assert len(mounted)==1
+save('migration-secret-mount.json',mounted[0])
+
+old=load(root/'evidence/LBT-60/2026-11-23-candidate-publication/artifact-manifest.json')
+changes=[]
+for row in old['files']:
+    p=root/row['path'];digest=hashlib.sha256(p.read_bytes()).hexdigest()
+    changes.append({'path':row['path'],'prior_sha256':row['sha256'],'current_sha256':digest,'unchanged':digest==row['sha256'],'intentional_document_followup':row['path'].startswith('docs/backend/') and digest!=row['sha256']})
+assert all(r['unchanged'] or r['intentional_document_followup'] for r in changes)
+save('prior-artifact-integrity.json',{'prior_manifest_sha256':hashlib.sha256((root/'evidence/LBT-60/2026-11-23-candidate-publication/artifact-manifest.json').read_bytes()).hexdigest(),'entries':changes,'earlier_execution_evidence_not_rewritten':True})
+
+ledger=load(dest/'db-final.json')['migrations']
+rows=[]
+for row in ledger:
+    b=subprocess.check_output(['git','show','be4d0ba:db/migrations/'+row['name']],cwd=root)
+    digest=hashlib.sha256(b).hexdigest()
+    assert digest==row['checksum']
+    rows.append({'version':row['version'],'name':row['name'],'git_lf_sha256':digest,'actual_db_checksum':row['checksum'],'match':True})
+assert len(rows)==15
+save('schema-checksum-comparison.json',{'source':'be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1','matches':15,'entries':rows,'candidate_image_migrations_verified_in_prior_provenance':True})
+
+final=load(dest/'final-readback.json')
+assert final['deployment_spec_matches_original'] and final['original_app_specs_restored']
+assert final['trial_jobs_remaining']==final['trial_spcs_remaining']==final['trial_migration_pods_remaining']==0
+expected='sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469'
+for label,digest in [('candidate',expected),('restored','sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419')]:
+    health=load(dest/('local-health-'+label+'.json'))
+    assert len(health['pods'])==2
+    for p in health['pods']:
+        assert p['probes']['livez']['body']==p['probes']['readyz']['body']=='ok\n'
+        c=[c for c in p['containers'] if c['name']=='common-app']
+        assert len(c)==1 and c[0]['imageID'].endswith('@'+digest) and c[0]['ready'] and c[0]['restartCount']==0
+save('acceptance-summary.json',{'scope':'SCHEMA15_AND_LEGACY_N2_IMAGE_COMPATIBILITY_AND_RESTORE','status':'PASS_SCOPED','source':'be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1','migration_checksum_matches':15,'candidate_pods_healthy':2,'restored_pods_healthy':2,'migration_constraint_validated':True,'control_tables_empty':5,'trial_resources_absent':True,'snapshot_restore_tested':False,'durable_pause_resume_tested':False,'collector_pods_proxy_verified':False,'migration_tls_hostname_verified':False,'execution_gate':'HOLD','recovery_authorized':False,'cloud_verified':False})
+
+status=subprocess.check_output(['git','status','--porcelain=v1','-uall'],cwd=root).decode('utf-8-sig')
+(dest/'whole-local-status.txt').write_text(status,encoding='utf-8')
+diff=subprocess.check_output(['git','diff','--','docs/backend'],cwd=root)
+(dest/'local-docs.diff').write_bytes(diff)
+
+files=[]
+for p in sorted(dest.rglob('*')):
+    if p.is_file() and p.name!='artifact-manifest.json':
+        b=p.read_bytes();files.append({'path':p.relative_to(dest).as_posix(),'size':len(b),'sha256':hashlib.sha256(b).hexdigest()})
+save('artifact-manifest.json',{'schema':'labbit.dr196.migration-candidate-rollout.artifacts.v1','source':'be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1','generated_at':dt.datetime.now(dt.timezone.utc).isoformat(),'self_excluded':True,'files':files})
+print(json.dumps({'files':len(files),'actual_db_checksums':len(rows),'previous_artifacts_unchanged':sum(r['unchanged'] for r in changes),'superseded_documents':sum(r['intentional_document_followup'] for r in changes)}))

@@ -1,0 +1,124 @@
+"""Offline packet assembly only. Does not execute copied live coordinators."""
+from pathlib import Path
+import collections
+import datetime as dt
+import gzip
+import hashlib
+import json
+import re
+import shutil
+import subprocess
+
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT/'evidence/LBT-60/2026-11-23-collector-path-preparation'
+HEAD = 'be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1'
+BASE = '753eecbff737409a4c9cc8c542f3c6baa6acf0da'
+
+def sha(b): return hashlib.sha256(b).hexdigest()
+def read(p): return json.loads(p.read_text(encoding='utf-8-sig'))
+def save(name,v):
+    (OUT/name).write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+def git(*args): return subprocess.check_output(['git',*args],cwd=ROOT)
+
+if git('rev-parse','HEAD').decode().strip()!=HEAD or git('rev-parse','origin/main').decode().strip()!=BASE:
+    raise SystemExit('SOURCE_CHANGED_REAUDIT_REQUIRED')
+
+sources = [
+    ('.local/pr196_collector_path.py','route_readonly.py.txt'),
+    ('.local/pr196_collector_policy.py','policy_window.py.txt'),
+    ('.local/test_pr196_collector_policy.py','policy_test.py.txt'),
+    ('.local/pr196_collector_network_window2.py','network_window2.py.txt'),
+    ('.local/test_pr196_collector_sg.py','sg_test.py.txt'),
+    ('.local/prepare_collector_probe.py','prepare_probe.py.txt'),
+    ('.local/pr196-collector-route-probe/main.go','exact_adapter_probe.go.txt'),
+    ('.local/pr196_network_readonly.py','security_readonly.py.txt'),
+    ('.local/pr196_classify_http.py','http_classifier.py.txt'),
+    ('.local/pr196-artifact-read-probe/main.go','artifact_read_probe_after.go.txt'),
+    ('.local/pr196_rollout.py','rollout_dependency.py.txt'),
+    ('.local/package_collector_path.py','package_packet.py.txt'),
+    ('.local/check_collector_format.go','format_check.go.txt'),
+    ('.local/collector_final_readonly.py','final_readonly.py.txt'),
+]
+for source,name in sources:
+    shutil.copyfile(ROOT/source,OUT/'source'/name)
+shutil.copyfile(Path(r'C:\Users\user\.codex\tmp\pr196-collector-path-review-20261123.md'),OUT/'independent-review.md')
+product = ['internal/drcontrol/contract.go','internal/drcontrol/awscli.go','internal/drcontrol/awscli_test.go','runtime/dr-control.md']
+docs = ['docs/backend/dr-maintenance-integration.md','docs/backend/dr-stage3-deployment.md','docs/backend/dr-pr196-trial-preparation.md','docs/backend/dr-pr196-approved-control-trial.md']
+for name in product+docs:
+    shutil.copyfile(ROOT/name,OUT/'source'/(name.replace('/','__')+'.txt'))
+save('source-manifest.json',{'head':HEAD,'main':BASE,'working_delta':True,'files':[
+    {'path':p,'bytes':len((ROOT/p).read_bytes()),'sha256':sha((ROOT/p).read_bytes()),'canonical_lf_sha256':sha((ROOT/p).read_bytes().replace(b'\r\n',b'\n'))}
+    for p in product+docs+[x[0] for x in sources]]})
+save('binary-manifest.json',{'operator_source':HEAD+' + source-manifest.json product delta','server_candidate_unchanged':True,'files':[
+    {'path':p,'bytes':(ROOT/p).stat().st_size,'sha256':sha((ROOT/p).read_bytes())}
+    for p in ['.local/labbit-dr-control-prepared.exe','.local/labbit-dr-evidence-prepared.exe','.local/pr196-artifact-read-probe-postfix.exe','.local/pr196-collector-route-probe.exe']]})
+
+summary={}
+for name in ['adapter-unit','operator-preparation-race','operator-postfix-race','go-all']:
+    file=OUT/(name+'.jsonl')
+    if not file.exists():
+        file=OUT/(name+'.txt')
+    events=[]
+    for line in file.read_text(encoding='utf-8-sig').splitlines():
+        try: events.append(json.loads(line))
+        except ValueError: pass
+    counts=collections.Counter(v['Action'] for v in events if v.get('Test') and v.get('Action') in ('pass','fail','skip'))
+    if name=='adapter-unit':
+        counts['pass']=len(re.findall(r'^\s*--- PASS:',file.read_text(encoding='utf-8-sig'),re.M))
+    summary[name]={'test_events':dict(counts),'package_results':[{k:v[k] for k in ['Package','Action'] if k in v} for v in events if not v.get('Test') and v.get('Action') in ('pass','fail','skip')],
+                   'skips':[{'package':v.get('Package'),'test':v['Test']} for v in events if v.get('Test') and v.get('Action')=='skip'],
+                   'cached_packages':[v.get('Package') for v in events if not v.get('Test') and '(cached)' in v.get('Output','')]}
+    if counts['fail'] or any(v['Action']=='fail' for v in summary[name]['package_results']): raise SystemExit('TEST_FAILURE')
+    if name!='adapter-unit':
+        with gzip.GzipFile(filename=str(OUT/(name+'.jsonl.gz')),mode='wb',mtime=0) as z: z.write(file.read_bytes())
+        # Keep the collected original text as well; gzip is a convenience copy.
+summary['web']={'method':'direct node invocation of package.json scripts; npm not on PATH','typecheck_exit':0,'lint_exit':0,'build_exit':0,'test_exit':0,'test_files_pass':35,'tests_pass':493,'workers':1,'warning':'jsdom HTMLCanvasElement getContext unavailable; raw output retained'}
+summary['python']={'policy_final':5,'policy_optimized':5,'sg_final':5,'sg_optimized':5,'kind':'Mock, no AWS calls','initial_sg_tests':4,'initial_log_preserved':True}
+summary['format']={'initial_raw_gofmt_list_exit':1,'reason':'Windows CRLF checkout; initial list retained','canonical_lf_check_exit':0,'noncanonical_files':read(OUT/'go-format-canonical-lf.json')['noncanonical_files'],'checker_source':'source/format_check.go.txt'}
+summary['commands']=['go test -race -json ./internal/drcontrol ./internal/server/workercontrol ./cmd/labbit-dr-control ./cmd/labbit-dr-evidence','go test -json ./...','go vet ./...','go build ./...','go build -trimpath -buildvcs=false -o .local/labbit-dr-control-prepared.exe ./cmd/labbit-dr-control','go build -trimpath -buildvcs=false -o .local/labbit-dr-evidence-prepared.exe ./cmd/labbit-dr-evidence','node node_modules/typescript/bin/tsc --noEmit','node node_modules/eslint/bin/eslint.js . --max-warnings=0','node node_modules/vite/bin/vite.js build','node node_modules/vitest/vitest.mjs run --maxWorkers=1','Python -I -X utf8 -S .local/test_pr196_collector_policy.py','Python -I -O -X utf8 -S .local/test_pr196_collector_policy.py','Python -I -X utf8 -S .local/test_pr196_collector_sg.py','Python -I -O -X utf8 -S .local/test_pr196_collector_sg.py']
+summary['not_rerun']=['PostgreSQL integration: no SQL/store/schema behavior changed; previous exact-head disposable PG evidence is reference only','Linux-only syscall fixtures: no changed platform-specific behavior; previous exact-head source review reused','GitHub CI: local unpushed source has no new remote CI','actual signed init/Pause/Resume and full Collector','Provider/Fencing/SingleWriter and failover/failback']
+save('test-summary.json',summary)
+
+for title,rel in [('policy','policy-final-readback.json'),('network2','network-window-02/policy-final-readback.json')]:
+    v=read(OUT/rel)
+    if not all(v[k] for k in ['original_networkpolicy_unchanged','temporary_policy_absent','deployment_spec_unchanged','argo_specs_unchanged']) or v['backend_ready']!=2:
+        raise SystemExit('RESTORE_NOT_CONFIRMED_'+title)
+if not read(OUT/'network-window-02/sg-final-readback.json')['original_inbound_and_outbound_restored']:
+    raise SystemExit('SG_NOT_RESTORED')
+post=read(OUT/'artifact-region-postfix-readonly.json')
+if len(post['results'])!=1 or not post['results'][0]['read_matches_pinned_reference'] or post['results'][0]['selected_policy_region']!='ap-northeast-2' or post['results'][0]['artifact_region']!='ap-northeast-3':
+    raise SystemExit('CROSS_REGION_READ_NOT_VERIFIED')
+save('acceptance-summary.json',{'scope':'COLLECTOR_ROUTE_DIAGNOSIS_AND_OPTIONAL_ARTIFACT_REGION_ONLY','status':'PASS_SCOPED','temporary_network_resources_remaining':0,'original_network_config_restored':True,'backend_ready':2,'s3_fixed_version_read_matches':True,'s3_request_context_seconds':8,'postfix_head_get_elapsed_ms':post['results'][0]['elapsed_ms'],'resume_callback_2second_budget_verified':False,'full_collector_verified':False,'live_pause_resume_ready':False,'init_pause_resume_executed':False,'database_cli_route_verified':False,'execution_gate':'HOLD','recovery_authorized':False,'cloud_verified':False,'pushed':False,'merged':False,'slack_sent':False})
+save('trial-plan.json',{'schema':'labbit.dr196.preparation-not-runtime-policy.v1','EnableExecution':False,'live_pause_resume_ready':False,'account':'299311846289','actor':'arn:aws:iam::299311846289:user/admin3','control_region':'ap-northeast-2','artifact_region':'ap-northeast-3','source':{'head':HEAD,'local_delta':'source-manifest.json','candidate_server_source':HEAD,'candidate_digest':'sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469','candidate_server_rebuilt_for_operator_delta':False},'cluster':{'name':'labbit-seoul-cluster','kube_system_uid':'6c0ed2a2-92c8-48ad-a8d3-0d192e7f70d8','deployment_uid':'88a17177-492f-41db-b097-a80a6a18a475','refresh_pod_boot_binding_before_execution':True},'database':{'resource_id':'db-KWJO4NMALL7V77AC3LWW2EGH2Y','observed_schema':15,'previous_snapshot':'labbit-seoul-pr196-before-v15-20261123-01','cli_route':'NOT_VERIFIED','required_tls':'verify-full, exact host/port/name/user'},'unresolved':{'actual_work_window_utc':None,'signed_approval_reference':None,'new_approval_writer_prefix':None,'new_collection_plan_after_rollout':None,'provider_inventory_and_external_safety':None},'sequence_reference':'docs/backend/dr-pr196-approved-control-trial.md#실제-시험-입력을-확정하는-순서','mutation_before_prerequisites':'FORBIDDEN_HOLD','automatic_legacy_rollback_after_durable_use':False,'execution_gate':'HOLD','recovery_authorized':False,'cloud_verified':False})
+
+prior=[]
+for folder in ['2026-11-23-pr196-trial-preparation','2026-11-23-candidate-publication','2026-11-23-migration-candidate-rollout']:
+    manifest=ROOT/'evidence/LBT-60'/folder/'artifact-manifest.json'
+    obj=read(manifest)
+    scope = {
+        'labbit.preparation.artifacts.v1': ROOT,
+        'labbit.dr196.candidate-publication.artifacts.v1': ROOT,
+        'labbit.dr196.migration-candidate-rollout.artifacts.v1': manifest.parent,
+    }.get(obj.get('schema'))
+    if scope is None: raise SystemExit('UNKNOWN_PRIOR_MANIFEST_SCOPE')
+    mismatches=[]
+    for entry in obj['files']:
+        p=(scope/entry['path']).resolve()
+        if not p.is_relative_to(scope.resolve()): raise SystemExit('PRIOR_PATH_ESCAPE')
+        if not p.is_file(): raise SystemExit('PRIOR_FILE_MISSING_'+entry['path'])
+        digest=sha(p.read_bytes())
+        if digest!=entry['sha256']:
+            if not p.relative_to(ROOT).as_posix().startswith('docs/backend/'):
+                raise SystemExit('PRIOR_NON_DOC_CHANGED_'+str(p))
+            mismatches.append({'path':p.relative_to(ROOT).as_posix(),'then_sha256':entry['sha256'],'current_sha256':digest,'intentional_followup':True})
+    prior.append({'manifest':manifest.relative_to(ROOT).as_posix(),'sha256':sha(manifest.read_bytes()),'files_checked':len(obj['files']),'superseded_documents':mismatches,'raw_execution_evidence_unchanged':True})
+save('prior-artifact-integrity.json',prior)
+
+(OUT/'whole-local-status.txt').write_bytes(git('status','--porcelain=v1','-uall'))
+(OUT/'local-tracked.diff').write_bytes(git('diff','--'))
+save('pr-range-inventory.json',{'head':HEAD,'main':BASE,'review_basis':'prior exact-head official and independent audit reused for unchanged historical PR files; current product delta independently reviewed','files':[
+    {'path':p,'head_blob':git('rev-parse',HEAD+':'+p).decode().strip(),'current_file_sha256':sha((ROOT/p).read_bytes()) if (ROOT/p).is_file() else None}
+    for p in git('diff','--name-only','--diff-filter=ACMRT',BASE+'...'+HEAD).decode().splitlines()]})
+
+# Manifest is finalized only after prose/audit/reviewer and scan outcomes are written.
+print(json.dumps({'tests':{k:v.get('test_events') for k,v in summary.items() if isinstance(v,dict) and 'test_events' in v},'source_files':len(read(OUT/'source-manifest.json')['files']),'prior_packets':len(prior),'live_pause_resume_ready':False}))

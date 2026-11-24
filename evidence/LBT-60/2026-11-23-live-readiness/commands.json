@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "source_head": "94fe1f61d7e398761291a967fab9820bfb08bc3d",
+  "runtime_changes": false,
+  "notes": [
+    "Read-only command inventory, not a chronological raw shell transcript.",
+    "Full response/raw Pod spec/secret values not saved; observation files contain selected projections.",
+    "Fresh task-specific kubeconfigs were generated locally with update-kubeconfig --dry-run. Existing global kubeconfig remained unchanged.",
+    "An old existing Seoul kubeconfig first failed DNS after cluster recreation; fresh task-specific configs succeeded. Original failure is only in tool transcript."
+  ],
+  "remote_commands": [
+    {
+      "tool": "AWS CLI",
+      "profile": "labbit-admin3",
+      "operations": [
+        "sts get-caller-identity",
+        "eks describe-cluster (Seoul, Osaka)",
+        "eks list-access-entries (Osaka)",
+        "rds describe-db-instances (Seoul, Osaka)",
+        "rds describe-events (Osaka, last hour)",
+        "cloudwatch get-metric-statistics (AWS/RDS ReplicaLag, one-minute period)",
+        "ecr describe-images (Seoul backend exact sha-94fe1f6 tag)"
+      ]
+    },
+    {
+      "tool": "kubectl",
+      "kubeconfig": "task-local seoul.kubeconfig/osaka.kubeconfig",
+      "operations": [
+        "get deployment,pod -n labbit -o json/wide",
+        "get applications.argoproj.io -n argocd -o json",
+        "get configmap backend-config -n labbit -o json (persisted mode and metadata only)",
+        "get job -n labbit -o json (persisted selected metadata)",
+        "logs -n labbit job/labbit-db-migration --tail=100 (persisted parsed applied_count/latest_known_version only)",
+        "get nodes -o wide (Osaka)",
+        "get namespace -o name (Osaka)",
+        "get deployment -n argocd -o wide (Osaka)"
+      ]
+    }
+  ],
+  "local_commands": [
+    "go test -json -count=1 ./cmd/labbit-dr-control ./internal/drcontrol",
+    "go build -o .local/labbit-dr-control.exe ./cmd/labbit-dr-control",
+    ".local/labbit-dr-control.exe --policy <preview-only-policy.json> --input <preview-only-input.json>",
+    ".local/labbit-dr-control.exe --policy <preview-only-policy.json> --input <preview-only-input.json> --execute",
+    "go build -o .local/readonly-aws.exe ./.local/readonly-aws",
+    "git diff --check; JSON parse and SHA256 manifest verification"
+  ],
+  "reproduction": {
+    "offline": "Build from exact source HEAD. Use recorded synthetic fixture with executable path intentionally nonexistent and EnableExecution=false. No real AWS or DB needed.",
+    "readonly_smoke": "Copy readonly-aws.go.txt to repository .local/readonly-aws/main.go; use an operator-reviewed matching current RDS/account/profile and absolute trusted AWS CLI in readonly-metadata-smoke-policy.json. All keys/DB Name/User in this smoke policy are synthetic placeholders and must not be treated as runtime authorization. This helper permits only STS GetCallerIdentity and RDS Describe; it does not invoke the operator CLI or SQL/S3/Resume.",
+    "later_live": "Not authorized or ready from this packet. Refresh identities, all evidence, source/image/schema and independently approved operational inputs first."
+  }
+}

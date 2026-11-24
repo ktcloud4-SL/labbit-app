@@ -1,0 +1,145 @@
+{
+  "tested_source": "3d00482d5538b248dbd8a70ceb6e1991c3d403a1",
+  "evidence_kind": "typed_public_projection",
+  "scope": {
+    "stage": 3,
+    "execution_gate": "HOLD",
+    "recovery_authorized": false,
+    "cloud_verified": false,
+    "previous_replica_lag_policy": "FAIL",
+    "operational_not_verified": [
+      "REQUIRED_SETTINGS",
+      "RUNTIME_PROVENANCE",
+      "SERVICE_FUNCTIONS",
+      "SINGLE_WRITER"
+    ]
+  },
+  "aws_trial": {
+    "verdict": "PASS_SCOPED",
+    "isolated_backend_pods": 2,
+    "approval_receipts": [
+      {
+        "action": "initialize_paused",
+        "status": "APPLIED",
+        "exit_code": 0,
+        "observed_utc": "2026-11-24T02:32:45.154362+00:00"
+      },
+      {
+        "action": "resume_without_reconciliation",
+        "status": "NOT_VERIFIED",
+        "exit_code": 2,
+        "observed_utc": "2026-11-24T02:33:10.201837+00:00"
+      },
+      {
+        "action": "resume",
+        "status": "APPLIED",
+        "exit_code": 0,
+        "observed_utc": "2026-11-24T02:33:25.934693+00:00"
+      },
+      {
+        "action": "pause",
+        "status": "APPLIED",
+        "exit_code": 0,
+        "observed_utc": "2026-11-24T02:33:51.460128+00:00"
+      }
+    ],
+    "applied_journal_rows": 3,
+    "missing_reconciliation_intent_absent": true,
+    "fixed_version_artifacts_verified": 6,
+    "artifact_encryption": "AES256",
+    "claim_calls_observed_while_active": [
+      48,
+      40
+    ],
+    "claim_calls_at_pause": [
+      80,
+      76
+    ],
+    "claim_calls_stable_after_pause_seconds": 12,
+    "pending_operations_items_boundaries_and_control_intents": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "final_worker_state": {
+      "mode": "PAUSE_NEW",
+      "revision": 3,
+      "epoch": 2
+    },
+    "old_session_write_rejected": true,
+    "source_app_login_disabled": true,
+    "source_reconnect_failures_before_after_promotion": [
+      2,
+      2
+    ],
+    "final_replica_replay_and_marker_verified": true,
+    "pre_promotion_standby_write_sqlstate": "25006",
+    "replica_promotion_observed_utc": "2026-11-24T02:28:50.820565+00:00",
+    "destination_client_ack_utc": "2026-11-24T02:30:58.429435+00:00",
+    "destination_markers_read_back": 2,
+    "trial_rds_security_groups_namespace_and_credentials_removed": true
+  },
+  "provider_trial": {
+    "verdict": "PASS_SCOPED",
+    "action": "CLEANUP",
+    "owned_vms": 1,
+    "root_volume_gib": 50,
+    "ack_persisted_utc": "2026-11-24T02:54:54.4295657Z",
+    "peer_pause_utc": "2026-11-24T02:54:54.4446582Z",
+    "drain_result_utc": "2026-11-24T02:56:35.736995Z",
+    "duration_seconds": 102.63,
+    "worker_active_at_pause": 1,
+    "worker_active_after_result": 0,
+    "item_final_status": "SUCCEEDED",
+    "deleted_references": 2,
+    "committed_replays_same_operation_http_200": 4,
+    "new_requests_http_503": 2,
+    "native_cleanup_calls": 1,
+    "extra_provider_calls": 0,
+    "nova_soft_delete_and_terminate_success": true,
+    "vm_and_volume_readback_http_404": true,
+    "trial_tier_absent_from_complete_list": true,
+    "baseline_catalog_inventory_equal": true,
+    "raw_recovery_path_used": false,
+    "local_db_stopped": true,
+    "local_trial_credential_file_removed": true,
+    "local_trial_data_directory_retained": true
+  },
+  "seoul_fencing": {
+    "verdict": "PASS_SCOPED_SEOUL_FENCE_RESTORED",
+    "new_app_connection_denied": true,
+    "exact_test_session_terminated": true,
+    "app_sessions_after_fence": 0,
+    "source_replica_lsn_match": true,
+    "application_commit_marker": "NOT_VERIFIED",
+    "restored_backend_ready": 2,
+    "restored_app_path_tls": true,
+    "promotion": false,
+    "dns_changes": 0
+  },
+  "seoul_collector": {
+    "AdmissionBlocked": "PASS",
+    "WorkInventory": "PASS",
+    "PodCoverage": "PASS",
+    "SingleWriter": "NOT_VERIFIED",
+    "Fencing": "NOT_VERIFIED",
+    "WorkReconciled": "NOT_VERIFIED",
+    "read_only": true
+  },
+  "osaka_linux_integration": {
+    "test_totals_by_app_http_postgres": [
+      5,
+      1,
+      1
+    ],
+    "provider": "MOCK",
+    "cleanup_verified": true
+  },
+  "shared_readback": {
+    "backend_ready": 2,
+    "web_ready": 2,
+    "rds_lineage_matches": true
+  }
+}

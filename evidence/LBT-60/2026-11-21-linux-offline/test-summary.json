@@ -1,0 +1,105 @@
+{
+  "date_kst": "2026-11-21",
+  "results": {
+    "go-openstack.jsonl": {
+      "exit_code": 0,
+      "test_events": {
+        "pass": 645,
+        "fail": 0,
+        "skip": 15
+      },
+      "skips": [
+        "TestOpenStackM2ControlWSSIntegration",
+        "TestOpenStackFileTransportIntegration",
+        "TestOpenStackM1Integration",
+        "TestOpenStackM2ProvisionIntegration",
+        "TestOpenStackM3LifecycleIntegration",
+        "TestOpenStackInternetPolicyIntegration",
+        "TestKTCloudCIDRPoolUnsupportedWindowsPermissionsFailClosed",
+        "TestKTCloudD1ReadOnlyIntegration",
+        "TestKTCloudD1DisposableNetworkIntegration",
+        "TestOpenStackPreviewForwardingIntegration",
+        "TestOpenStackPTYCC02Integration",
+        "TestOpenStackTerminalC2Integration",
+        "TestOpenStackVMAccessIntegration",
+        "TestOpenStackWorkspaceFileIntegration",
+        "TestOpenStackPreviewTransportIntegration"
+      ],
+      "failures": []
+    },
+    "go-installer-initial.jsonl": {
+      "exit_code": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 2,
+        "skip": 0
+      },
+      "skips": [],
+      "failures": [
+        "TestInstallerScript_ShellSyntaxAndBehavioralSuite/behavior",
+        "TestInstallerScript_ShellSyntaxAndBehavioralSuite",
+        "<package>"
+      ]
+    },
+    "go-installer-final.jsonl": {
+      "exit_code": 0,
+      "test_events": {
+        "pass": 5,
+        "fail": 0,
+        "skip": 0
+      },
+      "skips": [],
+      "failures": []
+    },
+    "go-workspacefile.jsonl": {
+      "exit_code": 0,
+      "test_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      },
+      "skips": [],
+      "failures": []
+    },
+    "go-credential.jsonl": {
+      "exit_code": 0,
+      "test_events": {
+        "pass": 5,
+        "fail": 0,
+        "skip": 0
+      },
+      "skips": [],
+      "failures": []
+    },
+    "python-normal.log": {
+      "exit_code": 0,
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skip": 0
+    },
+    "python-optimized.log": {
+      "exit_code": 0,
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skip": 0
+    }
+  },
+  "actual_aws_calls": false,
+  "shared_database_access": false,
+  "push_merge_deploy": false,
+  "external_messages": false,
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false,
+  "replica_lag": "FAIL",
+  "not_verified": [
+    "REQUIRED_SETTINGS",
+    "RUNTIME_PROVENANCE",
+    "SERVICE_FUNCTIONS",
+    "SINGLE_WRITER"
+  ],
+  "scope": "Actual Linux kernel execution in local isolated QEMU; Go fixtures and Linux filesystem behavior, not real cloud/production Ubuntu/systemd/race/DR E2E.",
+  "counting": "Go Test terminal events include parent/subtest events; do not aggregate repeated installer attempts as unique tests."
+}

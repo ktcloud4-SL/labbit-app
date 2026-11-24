@@ -1,0 +1,18 @@
+{
+  "scope": "SCHEMA15_AND_LEGACY_N2_IMAGE_COMPATIBILITY_AND_RESTORE",
+  "status": "PASS_SCOPED",
+  "source": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "migration_checksum_matches": 15,
+  "candidate_pods_healthy": 2,
+  "restored_pods_healthy": 2,
+  "migration_constraint_validated": true,
+  "control_tables_empty": 5,
+  "trial_resources_absent": true,
+  "snapshot_restore_tested": false,
+  "durable_pause_resume_tested": false,
+  "collector_pods_proxy_verified": false,
+  "migration_tls_hostname_verified": false,
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false
+}

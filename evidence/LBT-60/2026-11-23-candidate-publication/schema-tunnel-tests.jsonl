@@ -1,0 +1,12 @@
+{"Time":"2026-11-23T13:41:03.6129172+09:00","Action":"start","Package":"github.com/ktcloud4-SL/labbit-app/.local/pr196-schema-tunnel-20261123"}
+{"Time":"2026-11-23T13:41:05.233126+09:00","Action":"run","Package":"github.com/ktcloud4-SL/labbit-app/.local/pr196-schema-tunnel-20261123","Test":"TestTargetAndRoutingFailClosed"}
+{"Time":"2026-11-23T13:41:05.233126+09:00","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/.local/pr196-schema-tunnel-20261123","Test":"TestTargetAndRoutingFailClosed","Output":"=== RUN   TestTargetAndRoutingFailClosed\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:41:05.2336626+09:00","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/.local/pr196-schema-tunnel-20261123","Test":"TestTargetAndRoutingFailClosed","Output":"--- PASS: TestTargetAndRoutingFailClosed (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:41:05.2336626+09:00","Action":"pass","Package":"github.com/ktcloud4-SL/labbit-app/.local/pr196-schema-tunnel-20261123","Test":"TestTargetAndRoutingFailClosed","Elapsed":0}
+{"Time":"2026-11-23T13:41:05.2336626+09:00","Action":"run","Package":"github.com/ktcloud4-SL/labbit-app/.local/pr196-schema-tunnel-20261123","Test":"TestHostileEnvironmentRemoved"}
+{"Time":"2026-11-23T13:41:05.2336626+09:00","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/.local/pr196-schema-tunnel-20261123","Test":"TestHostileEnvironmentRemoved","Output":"=== RUN   TestHostileEnvironmentRemoved\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:41:05.2336626+09:00","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/.local/pr196-schema-tunnel-20261123","Test":"TestHostileEnvironmentRemoved","Output":"--- PASS: TestHostileEnvironmentRemoved (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:41:05.2336626+09:00","Action":"pass","Package":"github.com/ktcloud4-SL/labbit-app/.local/pr196-schema-tunnel-20261123","Test":"TestHostileEnvironmentRemoved","Elapsed":0}
+{"Time":"2026-11-23T13:41:05.2336626+09:00","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/.local/pr196-schema-tunnel-20261123","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:41:05.2356196+09:00","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/.local/pr196-schema-tunnel-20261123","Output":"ok  \tgithub.com/ktcloud4-SL/labbit-app/.local/pr196-schema-tunnel-20261123\t1.622s\n"}
+{"Time":"2026-11-23T13:41:05.2356196+09:00","Action":"pass","Package":"github.com/ktcloud4-SL/labbit-app/.local/pr196-schema-tunnel-20261123","Elapsed":1.623}

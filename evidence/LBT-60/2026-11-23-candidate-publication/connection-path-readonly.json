@@ -1,0 +1,162 @@
+{
+  "observed_at_utc": "2026-11-23T04:16:23.628127+00:00",
+  "deployment_uid": "88a17177-492f-41db-b097-a80a6a18a475",
+  "volumes": [
+    {
+      "name": "valkey-secret-volume",
+      "csi": {
+        "driver": "secrets-store.csi.k8s.io",
+        "readOnly": true,
+        "volumeAttributes": {
+          "secretProviderClass": "labbit-valkey-secret-provider"
+        }
+      },
+      "secret_name": null,
+      "configmap_name": null
+    },
+    {
+      "name": "config-volume",
+      "csi": null,
+      "secret_name": null,
+      "configmap_name": "backend-config"
+    },
+    {
+      "name": "db-dsn-volume",
+      "csi": {
+        "driver": "secrets-store.csi.k8s.io",
+        "readOnly": true,
+        "volumeAttributes": {
+          "secretProviderClass": "labbit-db-secret-provider"
+        }
+      },
+      "secret_name": null,
+      "configmap_name": null
+    }
+  ],
+  "secret_provider_metadata": [
+    {
+      "name": "labbit-db-secret-provider",
+      "provider": "aws",
+      "parameters": {
+        "objects": "- objectName: \"labbit/seoul/rds-dsn\"\n  objectType: \"secretsmanager\"\n  objectAlias: \"db-dsn\"\n",
+        "usePodIdentity": "true"
+      },
+      "mapped_secret_names": []
+    },
+    {
+      "name": "labbit-valkey-secret-provider",
+      "provider": "aws",
+      "parameters": {
+        "objects": "- objectName: \"labbit/seoul/valkey-password\"\n  objectType: \"secretsmanager\"\n  objectAlias: \"valkey-password\"\n- objectName: \"labbit/seoul/valkey-peer-secret\"\n  objectType: \"secretsmanager\"\n  objectAlias: \"peer-secret\"\n",
+        "usePodIdentity": "true"
+      },
+      "mapped_secret_names": []
+    }
+  ],
+  "database": {
+    "DBInstanceIdentifier": "labbit-seoul-rds",
+    "DbiResourceId": "db-KWJO4NMALL7V77AC3LWW2EGH2Y",
+    "DBName": "labbit_db",
+    "MasterUsername": "labbit_user",
+    "PubliclyAccessible": false,
+    "IAMDatabaseAuthenticationEnabled": false,
+    "DBSubnetGroup": {
+      "DBSubnetGroupName": "labbit-seoul-vpc",
+      "DBSubnetGroupDescription": "Database subnet group for labbit-seoul-vpc",
+      "VpcId": "vpc-0f874c702b0364ff1",
+      "SubnetGroupStatus": "Complete",
+      "Subnets": [
+        {
+          "SubnetIdentifier": "subnet-0d1275c3cfad7c944",
+          "SubnetAvailabilityZone": {
+            "Name": "ap-northeast-2c"
+          },
+          "SubnetOutpost": {},
+          "SubnetStatus": "Active"
+        },
+        {
+          "SubnetIdentifier": "subnet-059b61c8372090e96",
+          "SubnetAvailabilityZone": {
+            "Name": "ap-northeast-2a"
+          },
+          "SubnetOutpost": {},
+          "SubnetStatus": "Active"
+        }
+      ]
+    },
+    "VpcSecurityGroups": [
+      {
+        "VpcSecurityGroupId": "sg-04c027b783a695347",
+        "Status": "active"
+      }
+    ]
+  },
+  "managed_instances": [
+    {
+      "InstanceId": "i-0ce81285136bda848",
+      "PingStatus": "Online",
+      "PlatformType": "Linux",
+      "ComputerName": "ip-10-0-45-35.ap-northeast-2.compute.internal",
+      "IPAddress": "10.0.45.35"
+    },
+    {
+      "InstanceId": "i-05124173d379af642",
+      "PingStatus": "Online",
+      "PlatformType": "Linux",
+      "ComputerName": "ip-10-0-34-213.ap-northeast-2.compute.internal",
+      "IPAddress": "10.0.34.213"
+    },
+    {
+      "InstanceId": "i-0665fa0078936b0fc",
+      "PingStatus": "Online",
+      "PlatformType": "Linux",
+      "ComputerName": "ip-10-0-26-18.ap-northeast-2.compute.internal",
+      "IPAddress": "10.0.26.18"
+    },
+    {
+      "InstanceId": "i-0945680e04ad938cf",
+      "PingStatus": "Online",
+      "PlatformType": "Linux",
+      "ComputerName": "ip-10-0-24-8.ap-northeast-2.compute.internal",
+      "IPAddress": "10.0.24.8"
+    },
+    {
+      "InstanceId": "i-0d1d47e76a1cea65f",
+      "PingStatus": "Online",
+      "PlatformType": "Linux",
+      "ComputerName": "ip-10-0-30-184.ap-northeast-2.compute.internal",
+      "IPAddress": "10.0.30.184"
+    },
+    {
+      "InstanceId": "i-0d5816f622d90eb18",
+      "PingStatus": "Online",
+      "PlatformType": "Linux",
+      "ComputerName": "ip-10-0-47-120.ap-northeast-2.compute.internal",
+      "IPAddress": "10.0.47.120"
+    },
+    {
+      "InstanceId": "i-0e63ef049569ae3a0",
+      "PingStatus": "Online",
+      "PlatformType": "Linux",
+      "ComputerName": "ip-10-0-37-160.ap-northeast-2.compute.internal",
+      "IPAddress": "10.0.37.160"
+    }
+  ],
+  "candidate_images": [
+    {
+      "registryId": "299311846289",
+      "repositoryName": "backend-dr196-trial",
+      "imageDigest": "sha256:9dc273e94c1b22427059b2b246e3757b5a6f44d31a0abaa2ef858f62ccec6fac",
+      "imageTags": [
+        "trial-pr196-be4d0ba-run45109945049"
+      ],
+      "imageSizeInBytes": 18828086,
+      "imagePushedAt": "2026-11-23T13:12:47.275000+09:00",
+      "imageManifestMediaType": "application/vnd.docker.distribution.manifest.v2+json",
+      "artifactMediaType": "application/vnd.docker.container.image.v1+json",
+      "lastRecordedPullTime": "2026-11-23T13:12:47.512000+09:00",
+      "imageStatus": "ACTIVE"
+    }
+  ],
+  "limit": "metadata names/mappings only; no Secret values, DSN, SQL, SSM command/session, Pod exec, config changes or application trial"
+}

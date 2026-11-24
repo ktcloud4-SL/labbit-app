@@ -1,0 +1,20 @@
+{"Time":"2026-11-23T13:14:32.1606845+09:00","Action":"start","Package":"labbit.local/pr196-candidate-publish"}
+{"Time":"2026-11-23T13:14:33.6132127+09:00","Action":"run","Package":"labbit.local/pr196-candidate-publish","Test":"TestAWSRemoteEndpointOverrideRemoved"}
+{"Time":"2026-11-23T13:14:33.6132127+09:00","Action":"output","Package":"labbit.local/pr196-candidate-publish","Test":"TestAWSRemoteEndpointOverrideRemoved","Output":"=== RUN   TestAWSRemoteEndpointOverrideRemoved\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:14:33.6132127+09:00","Action":"output","Package":"labbit.local/pr196-candidate-publish","Test":"TestAWSRemoteEndpointOverrideRemoved","Output":"--- PASS: TestAWSRemoteEndpointOverrideRemoved (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:14:33.6132127+09:00","Action":"pass","Package":"labbit.local/pr196-candidate-publish","Test":"TestAWSRemoteEndpointOverrideRemoved","Elapsed":0}
+{"Time":"2026-11-23T13:14:33.6132127+09:00","Action":"run","Package":"labbit.local/pr196-candidate-publish","Test":"TestMutableOrExcludedRepositoryRejected"}
+{"Time":"2026-11-23T13:14:33.6132127+09:00","Action":"output","Package":"labbit.local/pr196-candidate-publish","Test":"TestMutableOrExcludedRepositoryRejected","Output":"=== RUN   TestMutableOrExcludedRepositoryRejected\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:14:33.6132127+09:00","Action":"output","Package":"labbit.local/pr196-candidate-publish","Test":"TestMutableOrExcludedRepositoryRejected","Output":"--- PASS: TestMutableOrExcludedRepositoryRejected (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:14:33.6137778+09:00","Action":"pass","Package":"labbit.local/pr196-candidate-publish","Test":"TestMutableOrExcludedRepositoryRejected","Elapsed":0}
+{"Time":"2026-11-23T13:14:33.6137778+09:00","Action":"run","Package":"labbit.local/pr196-candidate-publish","Test":"TestRejectWrongConfigBeforeRegistryAccess"}
+{"Time":"2026-11-23T13:14:33.6137778+09:00","Action":"output","Package":"labbit.local/pr196-candidate-publish","Test":"TestRejectWrongConfigBeforeRegistryAccess","Output":"=== RUN   TestRejectWrongConfigBeforeRegistryAccess\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:14:33.6137778+09:00","Action":"output","Package":"labbit.local/pr196-candidate-publish","Test":"TestRejectWrongConfigBeforeRegistryAccess","Output":"--- PASS: TestRejectWrongConfigBeforeRegistryAccess (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:14:33.6137778+09:00","Action":"pass","Package":"labbit.local/pr196-candidate-publish","Test":"TestRejectWrongConfigBeforeRegistryAccess","Elapsed":0}
+{"Time":"2026-11-23T13:14:33.6137778+09:00","Action":"run","Package":"labbit.local/pr196-candidate-publish","Test":"TestRejectIncompleteAndDuplicateMigrationManifest"}
+{"Time":"2026-11-23T13:14:33.6137778+09:00","Action":"output","Package":"labbit.local/pr196-candidate-publish","Test":"TestRejectIncompleteAndDuplicateMigrationManifest","Output":"=== RUN   TestRejectIncompleteAndDuplicateMigrationManifest\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:14:33.6137778+09:00","Action":"output","Package":"labbit.local/pr196-candidate-publish","Test":"TestRejectIncompleteAndDuplicateMigrationManifest","Output":"--- PASS: TestRejectIncompleteAndDuplicateMigrationManifest (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:14:33.6137778+09:00","Action":"pass","Package":"labbit.local/pr196-candidate-publish","Test":"TestRejectIncompleteAndDuplicateMigrationManifest","Elapsed":0}
+{"Time":"2026-11-23T13:14:33.6137778+09:00","Action":"output","Package":"labbit.local/pr196-candidate-publish","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-23T13:14:33.6148314+09:00","Action":"output","Package":"labbit.local/pr196-candidate-publish","Output":"ok  \tlabbit.local/pr196-candidate-publish\t1.454s\n"}
+{"Time":"2026-11-23T13:14:33.6148314+09:00","Action":"pass","Package":"labbit.local/pr196-candidate-publish","Elapsed":1.454}

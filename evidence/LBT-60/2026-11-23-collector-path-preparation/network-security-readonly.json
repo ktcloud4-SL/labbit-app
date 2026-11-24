@@ -1,0 +1,487 @@
+{
+  "at": "2026-11-23T05:35:31.373277+00:00",
+  "pod_ips": [
+    "10.0.30.189",
+    "10.0.37.202"
+  ],
+  "enis": [
+    {
+      "NetworkInterfaceId": "eni-0afbfda74ba26dd35",
+      "Description": "aws-K8S-i-0ce81285136bda848",
+      "PrivateIpAddress": "10.0.37.97",
+      "PrivateIpAddresses": [
+        {
+          "Primary": true,
+          "PrivateDnsName": "ip-10-0-37-97.ap-northeast-2.compute.internal",
+          "PrivateIpAddress": "10.0.37.97"
+        },
+        {
+          "Primary": false,
+          "PrivateDnsName": "ip-10-0-32-152.ap-northeast-2.compute.internal",
+          "PrivateIpAddress": "10.0.32.152"
+        },
+        {
+          "Primary": false,
+          "PrivateDnsName": "ip-10-0-37-202.ap-northeast-2.compute.internal",
+          "PrivateIpAddress": "10.0.37.202"
+        },
+        {
+          "Primary": false,
+          "PrivateDnsName": "ip-10-0-38-126.ap-northeast-2.compute.internal",
+          "PrivateIpAddress": "10.0.38.126"
+        }
+      ],
+      "Groups": [
+        {
+          "GroupId": "sg-0f2892420ca41dd8b",
+          "GroupName": "labbit-seoul-cluster-node-20261122234441625600000003"
+        }
+      ],
+      "SubnetId": "subnet-042a0d269986cace7",
+      "VpcId": "vpc-0f874c702b0364ff1",
+      "Attachment": {
+        "AttachTime": "2026-11-23T00:20:53+00:00",
+        "AttachmentId": "eni-attach-00c70ed2a1fb7ab4d",
+        "DeleteOnTermination": true,
+        "DeviceIndex": 2,
+        "NetworkCardIndex": 0,
+        "InstanceId": "i-0ce81285136bda848",
+        "InstanceOwnerId": "299311846289",
+        "Status": "attached"
+      }
+    },
+    {
+      "NetworkInterfaceId": "eni-023e97065893577ee",
+      "Description": "",
+      "PrivateIpAddress": "10.0.30.184",
+      "PrivateIpAddresses": [
+        {
+          "Primary": true,
+          "PrivateDnsName": "ip-10-0-30-184.ap-northeast-2.compute.internal",
+          "PrivateIpAddress": "10.0.30.184"
+        },
+        {
+          "Primary": false,
+          "PrivateDnsName": "ip-10-0-28-88.ap-northeast-2.compute.internal",
+          "PrivateIpAddress": "10.0.28.88"
+        },
+        {
+          "Primary": false,
+          "PrivateDnsName": "ip-10-0-19-153.ap-northeast-2.compute.internal",
+          "PrivateIpAddress": "10.0.19.153"
+        },
+        {
+          "Primary": false,
+          "PrivateDnsName": "ip-10-0-30-189.ap-northeast-2.compute.internal",
+          "PrivateIpAddress": "10.0.30.189"
+        }
+      ],
+      "Groups": [
+        {
+          "GroupId": "sg-0f2892420ca41dd8b",
+          "GroupName": "labbit-seoul-cluster-node-20261122234441625600000003"
+        }
+      ],
+      "SubnetId": "subnet-0191996a7e5730b33",
+      "VpcId": "vpc-0f874c702b0364ff1",
+      "Attachment": {
+        "AttachTime": "2026-11-22T23:57:41+00:00",
+        "AttachmentId": "eni-attach-084237b4372a2e8af",
+        "DeleteOnTermination": true,
+        "DeviceIndex": 0,
+        "NetworkCardIndex": 0,
+        "InstanceId": "i-0d1d47e76a1cea65f",
+        "InstanceOwnerId": "299311846289",
+        "Status": "attached"
+      }
+    }
+  ],
+  "security_groups": [
+    {
+      "GroupId": "sg-0f2892420ca41dd8b",
+      "IpPermissionsEgress": [
+        {
+          "IpProtocol": "-1",
+          "UserIdGroupPairs": [],
+          "IpRanges": [
+            {
+              "Description": "Allow all egress",
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        }
+      ],
+      "Tags": [
+        {
+          "Key": "Name",
+          "Value": "labbit-seoul-cluster-node"
+        },
+        {
+          "Key": "kubernetes.io/cluster/labbit-seoul-cluster",
+          "Value": "owned"
+        },
+        {
+          "Key": "ManagedBy",
+          "Value": "Terraform"
+        },
+        {
+          "Key": "Environment",
+          "Value": "seoul"
+        },
+        {
+          "Key": "Project",
+          "Value": "labbit"
+        }
+      ],
+      "VpcId": "vpc-0f874c702b0364ff1",
+      "SecurityGroupArn": "arn:aws:ec2:ap-northeast-2:299311846289:security-group/sg-0f2892420ca41dd8b",
+      "OwnerId": "299311846289",
+      "GroupName": "labbit-seoul-cluster-node-20261122234441625600000003",
+      "Description": "EKS node shared security group",
+      "IpPermissions": [
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 15017,
+          "ToPort": 15017,
+          "UserIdGroupPairs": [
+            {
+              "Description": "Cluster API to Istiod webhook",
+              "UserId": "299311846289",
+              "GroupId": "sg-064944824d49757ed"
+            },
+            {
+              "Description": "Cluster Primary API to Istiod webhook",
+              "UserId": "299311846289",
+              "GroupId": "sg-03ab32c3419c38bc7"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        },
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 6443,
+          "ToPort": 6443,
+          "UserIdGroupPairs": [
+            {
+              "Description": "Cluster API to node 6443/tcp webhook",
+              "UserId": "299311846289",
+              "GroupId": "sg-064944824d49757ed"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        },
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 80,
+          "ToPort": 31897,
+          "UserIdGroupPairs": [
+            {
+              "Description": "elbv2.k8s.aws/targetGroupBinding=shared",
+              "UserId": "299311846289",
+              "GroupId": "sg-06361090135d32107"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        },
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 9443,
+          "ToPort": 9443,
+          "UserIdGroupPairs": [
+            {
+              "Description": "Cluster API to node 9443/tcp webhook",
+              "UserId": "299311846289",
+              "GroupId": "sg-064944824d49757ed"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        },
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 1025,
+          "ToPort": 65535,
+          "UserIdGroupPairs": [
+            {
+              "Description": "Node to node ingress on ephemeral ports",
+              "UserId": "299311846289",
+              "GroupId": "sg-0f2892420ca41dd8b"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        },
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 8443,
+          "ToPort": 8443,
+          "UserIdGroupPairs": [
+            {
+              "Description": "Cluster API to node 8443/tcp webhook",
+              "UserId": "299311846289",
+              "GroupId": "sg-064944824d49757ed"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        },
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 10250,
+          "ToPort": 10250,
+          "UserIdGroupPairs": [
+            {
+              "Description": "Cluster API to node kubelets",
+              "UserId": "299311846289",
+              "GroupId": "sg-064944824d49757ed"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        },
+        {
+          "IpProtocol": "udp",
+          "FromPort": 53,
+          "ToPort": 53,
+          "UserIdGroupPairs": [
+            {
+              "Description": "Node to node CoreDNS UDP",
+              "UserId": "299311846289",
+              "GroupId": "sg-0f2892420ca41dd8b"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        },
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 53,
+          "ToPort": 53,
+          "UserIdGroupPairs": [
+            {
+              "Description": "Node to node CoreDNS",
+              "UserId": "299311846289",
+              "GroupId": "sg-0f2892420ca41dd8b"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        },
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 4443,
+          "ToPort": 4443,
+          "UserIdGroupPairs": [
+            {
+              "Description": "Cluster API to node 4443/tcp webhook",
+              "UserId": "299311846289",
+              "GroupId": "sg-064944824d49757ed"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        },
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 443,
+          "ToPort": 443,
+          "UserIdGroupPairs": [
+            {
+              "Description": "Cluster API to node groups",
+              "UserId": "299311846289",
+              "GroupId": "sg-064944824d49757ed"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        }
+      ]
+    },
+    {
+      "GroupId": "sg-064944824d49757ed",
+      "IpPermissionsEgress": [],
+      "Tags": [
+        {
+          "Key": "Environment",
+          "Value": "seoul"
+        },
+        {
+          "Key": "Project",
+          "Value": "labbit"
+        },
+        {
+          "Key": "ManagedBy",
+          "Value": "Terraform"
+        },
+        {
+          "Key": "Name",
+          "Value": "labbit-seoul-cluster-cluster"
+        }
+      ],
+      "VpcId": "vpc-0f874c702b0364ff1",
+      "SecurityGroupArn": "arn:aws:ec2:ap-northeast-2:299311846289:security-group/sg-064944824d49757ed",
+      "OwnerId": "299311846289",
+      "GroupName": "labbit-seoul-cluster-cluster-20261122234441625600000004",
+      "Description": "EKS cluster security group",
+      "IpPermissions": [
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 443,
+          "ToPort": 443,
+          "UserIdGroupPairs": [
+            {
+              "Description": "Node groups to cluster API",
+              "UserId": "299311846289",
+              "GroupId": "sg-0f2892420ca41dd8b"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        }
+      ]
+    },
+    {
+      "GroupId": "sg-03ab32c3419c38bc7",
+      "IpPermissionsEgress": [
+        {
+          "IpProtocol": "-1",
+          "UserIdGroupPairs": [
+            {
+              "Description": "Allows EFA traffic, which is not matched by CIDR rules.",
+              "UserId": "299311846289",
+              "GroupId": "sg-03ab32c3419c38bc7"
+            }
+          ],
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        }
+      ],
+      "Tags": [
+        {
+          "Key": "ManagedBy",
+          "Value": "Terraform"
+        },
+        {
+          "Key": "aws:eks:cluster-name",
+          "Value": "labbit-seoul-cluster"
+        },
+        {
+          "Key": "Environment",
+          "Value": "seoul"
+        },
+        {
+          "Key": "kubernetes.io/cluster/labbit-seoul-cluster",
+          "Value": "owned"
+        },
+        {
+          "Key": "Name",
+          "Value": "eks-cluster-sg-labbit-seoul-cluster-487376436"
+        }
+      ],
+      "VpcId": "vpc-0f874c702b0364ff1",
+      "SecurityGroupArn": "arn:aws:ec2:ap-northeast-2:299311846289:security-group/sg-03ab32c3419c38bc7",
+      "OwnerId": "299311846289",
+      "GroupName": "eks-cluster-sg-labbit-seoul-cluster-487376436",
+      "Description": "EKS created security group applied to ENI that is attached to EKS Control Plane master nodes, as well as any managed workloads.",
+      "IpPermissions": [
+        {
+          "IpProtocol": "-1",
+          "UserIdGroupPairs": [
+            {
+              "Description": "Allows EFA traffic, which is not matched by CIDR rules.",
+              "UserId": "299311846289",
+              "GroupId": "sg-03ab32c3419c38bc7"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "ip-10-0-26-18.ap-northeast-2.compute.internal",
+      "provider_id": "aws:///ap-northeast-2a/i-0665fa0078936b0fc"
+    },
+    {
+      "name": "ip-10-0-30-184.ap-northeast-2.compute.internal",
+      "provider_id": "aws:///ap-northeast-2a/i-0d1d47e76a1cea65f"
+    },
+    {
+      "name": "ip-10-0-34-213.ap-northeast-2.compute.internal",
+      "provider_id": "aws:///ap-northeast-2c/i-05124173d379af642"
+    },
+    {
+      "name": "ip-10-0-37-160.ap-northeast-2.compute.internal",
+      "provider_id": "aws:///ap-northeast-2c/i-0e63ef049569ae3a0"
+    },
+    {
+      "name": "ip-10-0-45-35.ap-northeast-2.compute.internal",
+      "provider_id": "aws:///ap-northeast-2c/i-0ce81285136bda848"
+    },
+    {
+      "name": "ip-10-0-47-120.ap-northeast-2.compute.internal",
+      "provider_id": "aws:///ap-northeast-2c/i-0d5816f622d90eb18"
+    }
+  ],
+  "aws_node": [
+    {
+      "name": "aws-node",
+      "image": "602401143452.dkr.ecr.ap-northeast-2.amazonaws.com/amazon-k8s-cni:v1.23.3-eksbuild.2",
+      "args": null,
+      "env": [
+        {
+          "name": "ENABLE_POD_ENI",
+          "value": "false"
+        },
+        {
+          "name": "NETWORK_POLICY_ENFORCING_MODE",
+          "value": "standard"
+        }
+      ]
+    },
+    {
+      "name": "aws-eks-nodeagent",
+      "image": "602401143452.dkr.ecr.ap-northeast-2.amazonaws.com/amazon/aws-network-policy-agent:v1.5.0-eksbuild.2",
+      "args": [
+        "--enable-ipv6=false",
+        "--enable-network-policy=true",
+        "--enable-cloudwatch-logs=false",
+        "--enable-policy-event-logs=false",
+        "--log-file=/var/log/aws-routed-eni/network-policy-agent.log",
+        "--metrics-bind-addr=:8162",
+        "--health-probe-bind-addr=:8163",
+        "--conntrack-cache-cleanup-period=300",
+        "--conntrack-cache-table-size=524288",
+        "--log-level=debug"
+      ],
+      "env": []
+    }
+  ],
+  "execution_gate": "HOLD",
+  "mutations": []
+}

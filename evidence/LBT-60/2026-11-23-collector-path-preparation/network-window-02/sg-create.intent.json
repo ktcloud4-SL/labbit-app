@@ -1,0 +1,21 @@
+{
+  "at": "2026-11-23T05:38:14.459385+00:00",
+  "group": "sg-0f2892420ca41dd8b",
+  "permissions": [
+    {
+      "IpProtocol": "tcp",
+      "FromPort": 9090,
+      "ToPort": 9090,
+      "IpRanges": [
+        {
+          "CidrIp": "10.0.21.58/32",
+          "Description": "PR196 temporary collector route 20261123 window02"
+        },
+        {
+          "CidrIp": "10.0.46.149/32",
+          "Description": "PR196 temporary collector route 20261123 window02"
+        }
+      ]
+    }
+  ]
+}

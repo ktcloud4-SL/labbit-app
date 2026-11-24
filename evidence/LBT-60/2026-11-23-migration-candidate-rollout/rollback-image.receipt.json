@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-23T05:13:06.451646+00:00",
+  "action": "rollback-image",
+  "result": {
+    "uid": "88a17177-492f-41db-b097-a80a6a18a475",
+    "generation": 3,
+    "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb"
+  },
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false
+}

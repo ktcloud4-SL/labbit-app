@@ -1,0 +1,17 @@
+import sys,json,re
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+deps=ROOT.parent/'cidr-contract-validators'
+if not (deps/'yaml').is_dir():raise RuntimeError('VALIDATOR_DEPS_MISSING')
+sys.path.insert(0,str(deps))
+import yaml
+runtime=yaml.safe_load((ROOT/'runtime/contract.yaml').read_text(encoding='utf-8'))
+if runtime['version']!='0.1.15' or runtime['kind']!='LabbitRuntimeContract':raise RuntimeError('RUNTIME_VERSION_MISMATCH')
+if '0.1.15' not in (ROOT/'runtime/README.md').read_text(encoding='utf-8') or '0.1.15' not in (ROOT/'runtime/dr-control.md').read_text(encoding='utf-8'):raise RuntimeError('GUIDE_VERSION_MISMATCH')
+workflow=yaml.safe_load((ROOT/'.github/workflows/go.yml').read_text(encoding='utf-8'))
+if not any(s.get('run')=='make dr-control-store-test' for s in workflow['jobs']['test']['steps']):raise RuntimeError('CI_FIXTURE_NOT_CONNECTED')
+numbers=[p.name.split('_',1)[0] for p in (ROOT/'db/migrations').glob('[0-9]*_*.sql')]
+if len(numbers)!=len(set(numbers)):raise RuntimeError('DUPLICATE_MIGRATION_NUMBER')
+result={'runtime_version':runtime['version'],'yaml_version':yaml.__version__,'migration_count':len(numbers),'go_workflow_parsed':True,'store_fixture_ci_connected':True,'source_contracts_changed':['runtime/contract.yaml','runtime/README.md','runtime/dr-control.md'],'http_wss_schema_changed':False,'cloud_access':False}
+(ROOT/'evidence/LBT-60/2026-11-23-db-artifact-validation/contract-validation.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
+print(json.dumps(result))

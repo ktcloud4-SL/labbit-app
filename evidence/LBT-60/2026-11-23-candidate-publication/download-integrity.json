@@ -1,0 +1,11 @@
+{
+  "artifact_id": 14788354068,
+  "run_id": 45109945049,
+  "zip_size": 18775046,
+  "zip_sha256": "331dd169b8e1a559d1a4559d23a976785700fae5cb60658305d6d9ea08510024",
+  "github_artifact_digest_match": true,
+  "candidate_tar_size": 18842624,
+  "candidate_tar_sha256": "a2bd08cf2ba33b36e27ba26442ebc2d5d8e9651544dabdb55294dbcdf3b68ff3",
+  "archive_sha_match": true,
+  "presigned_url_not_preserved": true
+}

@@ -1,0 +1,294 @@
+diff --git a/docs/backend/dr-maintenance-integration.md b/docs/backend/dr-maintenance-integration.md
+index 6675eba..1950499 100644
+--- a/docs/backend/dr-maintenance-integration.md
++++ b/docs/backend/dr-maintenance-integration.md
+@@ -1,6 +1,17 @@
+ # PR194 기존 동작 + PR196 추가 제어 통합 검증
+ 
+-2026-11-20 · LBT-205 / LBT-59 / LBT-60 · 기존 Draft PR196에서 관리한다.
++후속 [공통 수집 경로·승인 시험 계획](dr-pr196-approved-control-trial.md)은 네트워크 진단과 S3 리전 보완이다.
++아래 M194/M196 행의 실제 Pause/Resume·기수락 drain·committed 재요청 인수로 합산하지 않는다.
++
++2026-11-20 작성 / 2026-11-23 준비 기준 보완 · LBT-205 / LBT-59 / LBT-60 · 기존 Draft PR196에서 관리한다.
++
++최신 실환경 준비와 미적용 변경안은 [PR196 시험 준비안](dr-pr196-trial-preparation.md)을 따른다.
++새 후보 `be4d0ba`에는 init/Pause·실제 조회 어댑터·서명 producer가 있다. 아래 미인수는 운영 키·권한·실제
++연계/검증의 미완료를 뜻하며 코드 자체가 없다는 뜻이 아니다. 실제 기능 시험은 아직 실행하지 않았다.
++
++후속 [기본 배포 호환성 시험](../../evidence/LBT-60/2026-11-23-migration-candidate-rollout/README.md)에서
++schema12–15 적용과 후보 N=2 기동/기존 image 복귀를 확인했다. MAINTENANCE/local 설정을 유지한 건강점검이며
++아래 M194/M196의 backlog·committed replay·durable Pause/Resume·Provider 인수로 합산하지 않는다.
+ 
+ 이 문서의 open 전제는 기존 MAINTENANCE 정책 시험 범위다. 11/21 별도 후보의
+ APPROVED_CONTROL은 HTTP closed를 유지한 승인 Worker 처리 경로를 추가한다.
+@@ -73,10 +84,11 @@ go test -race -tags integration -run '^TestWorkerControl' -count=1 ./internal/po
+   기존 이용자·데모·다른 시험이 진행 중이면 변경을 시작하지 않는다.
+ - App 후보 commit·불변 image digest, GitOps revision, 전체 Pod UID/boot/role, HPA/rollout과 ConfigMap source를 고정한다.
+   PR CI는 이미지를 게시하지 않으므로 후보 build/publish·배포 위치와 명시적 적용 절차를 별도로 준비한다.
+-- migration12~14의 실제 DDL 차이·backup/restore 책임·이전/이후 App 호환을 확인한다.
++- migration12~15의 실제 DDL 차이·backup/restore 책임·이전/이후 App 호환을 확인한다.
+   시험하려고 main에 먼저 merge하지 않는다. migration 전후의 복귀 조건을 나누고, 새 테이블을 기계적으로 DROP하지 않는다.
+-- **Resume 검증 CLI 후보는 구현됐지만 실제 운영 인수는 미완료다.** `cmd/labbit-dr-control`은 signed approval/observation을
+-  검증하는 opt-in 경로이며 실제 Pause/init 진입점·신뢰 안전 조건 수집자·키 운영은 제공하지 않는다.
++- **운영 제어 CLI 후보는 구현됐지만 실제 운영 인수는 미완료다.** `cmd/labbit-dr-control`은 init/Pause·Resume,
++  `cmd/labbit-dr-evidence`는 승인 서명·읽기 전용 수집·관측 서명을 제공한다. 보호된 운영 키·Policy·신뢰된 외부
++  Fencing/SingleWriter/Provider 근거·실제 권한과 DB/Pod 연결 인수는 남아 있다.
+   내부 메서드·합성 proof를 운영 진입점으로 간주하지 않는다. #196 live 제어·승인 재개 전에
+   인증된 Pause/init 경로, 실제 서명/수집·승인, 단일 control Writer, scope/revision/epoch 초기화와 Pod binding 배포를 준비·검토한다.
+ - 전체 serving Pod의 read-only directory mount(subPath 금지), 관측 경로, GitOps 변경·유지·복원 방법을 확정한다.
+diff --git a/docs/backend/dr-stage3-deployment.md b/docs/backend/dr-stage3-deployment.md
+index 53e31f3..09141f9 100644
+--- a/docs/backend/dr-stage3-deployment.md
++++ b/docs/backend/dr-stage3-deployment.md
+@@ -1,6 +1,17 @@
+-# Stage 3 배포 준비 — 실행하지 않은 체크리스트
++# Stage 3 배포 준비 — 체크리스트와 실행 이력 구분
+ 
+-2026-11-23 갱신 / App 기준 PR196 `94fe1f6`, main `753eecb`. PR196은 Draft·미병합이다.
++수집 경로 후속은 [승인 기반 시험 준비](dr-pr196-approved-control-trial.md)를 따른다. 한시적9090 경로의
++건강점검과 원복, 명시적 S3 ArtifactRegion 보완·고정 버전 읽기까지 확인했다. 현재는 원래 네트워크 설정이며
++실제 DB 실행 경로·승인 원본 쓰기·Safety 근거가 남아 있어 init/Pause/Resume 준비 완료나 실행 인수가 아니다.
++
++2026-11-23 후속으로 migration12–15 및 N=2 기본 모드 후보 기동/원복을 실제 확인했다.
++[실행 기록](../../evidence/LBT-60/2026-11-23-migration-candidate-rollout/README.md)과 아래 초기 준비 시점을 구분한다.
++공유 DB는 schema15, 서울은 기존 image·Argo 정책으로 복귀했다. 실제 승인 제어·Provider·Writer Fencing 시험은 남아 있다.
++
++2026-11-23 최신 준비 기준 / App PR196 `be4d0ba`, main `753eecb`. PR196은 Draft·미병합이다.
++이번 읽기 전용 갱신과 변경 제안은 [실환경 시험 준비안](dr-pr196-trial-preparation.md)을 따른다.
++아래 `94fe1f6` readiness 및 초기 관측의 미구현 설명은 당시 이력이다. 최신 후보에는 init/Pause·수집·서명이
++있으며, 현재 추가 적용 범위는 migration12–15다. 실제 운영 키·권한·공유 DB·배포 인수는 별도다.
+ 11/21 오프라인 준비와 11/23 AWS·Kubernetes 읽기 전용 조회를 구분한다. 이번 확인에서
+ 서울 서비스·실제 DB·AWS 설정·Slack을 변경하지 않았다.
+ 
+@@ -8,7 +19,7 @@
+ | --- | --- | --- |
+ | 1 | #196 리뷰/CI 및 새 operator·Runtime 계약 리뷰 | 미해결 결함·기존 사용자 작업 diff 충돌이면 중단 |
+ | 2 | 승인된 작업창·대상·관리자·백업 담당 확정 | 데모/다른 시험 중 변경 금지. 데이터/로그·기존 작업 보존 |
+-| 3 | DB 백업·복원 시험 근거, 현재 migration 목록과 schema 확인 | 000012~000014 **기존 적용 파일 변경 없이** migration runner로 적용할 계획만 검토 |
++| 3 | DB 백업·복원 시험 근거, 현재 migration 목록과 schema 확인 | 000012~000015 **기존 적용 파일 변경 없이** migration runner로 적용할 계획만 검토 |
+ | 4 | migration 전/후 row·제약·권한·적용 기록 확보 | startup에서 DDL/자동 seed 금지. 임의 down migration/불명 journal 삭제 금지 |
+ | 5 | 고정 image digest·Git revision·원본 해시 기록 | 후보 image가 실제 build되고 196 schema/config를 포함했는지 검증 |
+ | 6 | 제어 DB 위치·단일 authoritative Writer·권한 검증 | 리전별 비동기 복제 DB를 각자 독립 control Writer로 사용 금지 |
+@@ -55,7 +66,7 @@ epoch·Writer·불명 결과를 재대조하기 전 재개하지 않는다. 예
+ 
+ 1. 별도 시험 RUN·대상·작업창·실행자/QA를 고정하고, 현재 이용자·작업/UNKNOWN inventory를 확인한다.
+ 2. 실제 Pause/init 조작 경로, 보호된 Policy·목적별 서명키, 승인/관측 원본 경로와 전체 Pod 수집·동결 절차를 준비한다.
+-   Resume CLI 후보는 구현되어 있지만 실제 안전 조건 수집·키 운영·Pause를 제공하지 않는다.
++   최신 후보는 init/Pause·읽기 전용 수집·서명을 제공하지만 실제 키 운영·권한·공유 DB 연결 인수는 남아 있다.
+ 3. schema/checksum·백업/복귀 근거와 후보 digest를 확인해 migration/설정/이미지 변경안을 먼저 공유한다.
+    공유 DB DDL, PreSync Job, serving Pod 교체, maintenance closed·Worker Pause는 서비스 영향이 있으므로 이 조회에서 실행하지 않았다.
+ 4. 선행 조건이 확보된 행부터 #194/#196 부분 시험을 실행한다. 미준비 행은 NOT_VERIFIED로 남긴다.
+diff --git a/internal/drcontrol/awscli.go b/internal/drcontrol/awscli.go
+index 4448de6..7388162 100644
+--- a/internal/drcontrol/awscli.go
++++ b/internal/drcontrol/awscli.go
+@@ -94,8 +94,12 @@ func (a *AWSCLI) Read(ctx context.Context, r Reference) ([]byte, error) {
+ 	if a.policy.CheckReference(r) != nil {
+ 		return nil, ErrEvidence
+ 	}
++	region := a.policy.ArtifactRegion
++	if region == "" {
++		region = a.policy.Region
++	}
+ 	args := []string{"--bucket", r.Bucket, "--key", r.Key, "--version-id", r.VersionID, "--expected-bucket-owner", a.policy.AccountID}
+-	b, e := a.call(ctx, "s3api", a.policy.Region, append([]string{"head-object"}, args...)...)
++	b, e := a.call(ctx, "s3api", region, append([]string{"head-object"}, args...)...)
+ 	if e != nil {
+ 		return nil, ErrEvidence
+ 	}
+@@ -118,7 +122,7 @@ func (a *AWSCLI) Read(ctx context.Context, r Reference) ([]byte, error) {
+ 	}
+ 	get := append([]string{"get-object"}, args...)
+ 	get = append(get, "--if-match", meta.ETag, "--range", "bytes=0-"+strconv.FormatInt(r.Size-1, 10), name)
+-	b, e = a.call(ctx, "s3api", a.policy.Region, get...)
++	b, e = a.call(ctx, "s3api", region, get...)
+ 	if e != nil {
+ 		return nil, ErrEvidence
+ 	}
+diff --git a/internal/drcontrol/awscli_test.go b/internal/drcontrol/awscli_test.go
+index f76eff5..e564b5f 100644
+--- a/internal/drcontrol/awscli_test.go
++++ b/internal/drcontrol/awscli_test.go
+@@ -55,6 +55,144 @@ func TestFixedVersionReaderAndCleanup(t *testing.T) {
+ 		t.Fatal("temporary artifact remains")
+ 	}
+ }
++
++func TestArtifactRegionIsIndependentAndDefaultsToControlRegion(t *testing.T) {
++	for _, tc := range []struct{ name, control, artifact, want string }{
++		{"legacy Seoul", "ap-northeast-2", "", "ap-northeast-2"},
++		{"legacy Osaka", "ap-northeast-3", "", "ap-northeast-3"},
++		{"Seoul with Osaka archive", "ap-northeast-2", "ap-northeast-3", "ap-northeast-3"},
++		{"Osaka with Seoul archive", "ap-northeast-3", "ap-northeast-2", "ap-northeast-2"},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			f := setup(t)
++			f.p.Region, f.p.Target.Region, f.p.ArtifactRegion = tc.control, tc.control, tc.artifact
++			raw, ref := f.art.values["ob-version"], f.i.Evidence
++			var calls []string
++			var temp string
++			a, err := NewAWSCLI(f.p, runnerFunc(func(_ context.Context, _ string, args []string) ([]byte, error) {
++				calls = append(calls, args[0]+"/"+args[1])
++				region := tc.want
++				if args[0] == "sts" {
++					region = tc.control
++				} else if args[0] == "rds" {
++					region = f.p.Database.Region
++				}
++				joined := strings.Join(args, " ")
++				service := args[0]
++				if service == "s3api" {
++					service = "s3"
++					if !strings.Contains(joined, "--version-id "+ref.VersionID) || !strings.Contains(joined, "--expected-bucket-owner "+f.p.AccountID) {
++						t.Fatal("immutable reference or owner lost")
++					}
++				}
++				if !strings.Contains(joined, "--region "+region+" ") || !strings.Contains(joined, "--endpoint-url https://"+service+"."+region+".amazonaws.com ") {
++					t.Fatal("wrong service region or endpoint", calls)
++				}
++				switch args[0] + "/" + args[1] {
++				case "sts/get-caller-identity":
++					return jsonBytes(map[string]any{"Account": f.p.AccountID, "Arn": f.p.Actors[0].ARN}), nil
++				case "rds/describe-db-instances":
++					d := f.p.Database
++					return jsonBytes(map[string]any{"DBInstances": []any{map[string]any{"DBInstanceArn": d.ARN, "DbiResourceId": d.ResourceID, "DBInstanceStatus": "available", "Engine": "postgres", "Endpoint": map[string]any{"Address": d.Host, "Port": d.Port}}}}), nil
++				case "s3api/head-object":
++					return jsonBytes(map[string]any{"VersionId": ref.VersionID, "ContentLength": len(raw), "ETag": "fixture"}), nil
++				case "s3api/get-object":
++					for j, s := range args {
++						if s == "--range" {
++							temp = args[j+2]
++						}
++					}
++					if temp == "" || os.WriteFile(temp, raw, 0600) != nil {
++						t.Fatal("download fixture failed")
++					}
++					return jsonBytes(map[string]any{"VersionId": ref.VersionID, "ContentLength": len(raw)}), nil
++				default:
++					t.Fatal("unexpected external operation")
++					return nil, ErrUnavailable
++				}
++			}))
++			if err != nil {
++				t.Fatal(err)
++			}
++			if _, err = a.Identity(context.Background()); err != nil {
++				t.Fatal(err)
++			}
++			if err = a.VerifyDatabase(context.Background()); err != nil {
++				t.Fatal(err)
++			}
++			got, err := a.Read(context.Background(), ref)
++			if err != nil || Hash(got) != ref.SHA256 || strings.Join(calls, ",") != "sts/get-caller-identity,rds/describe-db-instances,s3api/head-object,s3api/get-object" {
++				t.Fatal("unexpected readback or calls", err, calls)
++			}
++			if _, err = os.Stat(temp); !os.IsNotExist(err) {
++				t.Fatal("temporary artifact remains")
++			}
++		})
++	}
++}
++
++func TestInvalidArtifactRegionRejectedBeforeExternalAccess(t *testing.T) {
++	for _, region := range []string{"us-east-1", "https://s3.ap-northeast-3.amazonaws.com", "ap-northeast-3 ", "AP-NORTHEAST-3", "--endpoint-url"} {
++		t.Run(region, func(t *testing.T) {
++			f := setup(t)
++			f.p.ArtifactRegion = region
++			calls := 0
++			a, err := NewAWSCLI(f.p, runnerFunc(func(context.Context, string, []string) ([]byte, error) { calls++; return nil, ErrUnavailable }))
++			if f.p.Validate() == nil || err == nil || a != nil || calls != 0 {
++				t.Fatal("unsupported artifact endpoint accepted")
++			}
++		})
++	}
++}
++
++func TestCrossRegionArtifactRejectsCorruptionAndCancellation(t *testing.T) {
++	for _, kind := range []string{"version", "hash", "cancel"} {
++		t.Run(kind, func(t *testing.T) {
++			f := setup(t)
++			f.p.Region, f.p.Target.Region, f.p.ArtifactRegion = "ap-northeast-2", "ap-northeast-2", "ap-northeast-3"
++			ctx, cancel := context.WithCancel(context.Background())
++			defer cancel()
++			var temp string
++			calls := 0
++			a, err := NewAWSCLI(f.p, runnerFunc(func(_ context.Context, _ string, args []string) ([]byte, error) {
++				calls++
++				ref := f.i.Evidence
++				if args[1] == "head-object" {
++					return jsonBytes(map[string]any{"VersionId": ref.VersionID, "ContentLength": ref.Size, "ETag": "fixture"}), nil
++				}
++				for j, s := range args {
++					if s == "--range" {
++						temp = args[j+2]
++					}
++				}
++				raw := append([]byte(nil), f.art.values["ob-version"]...)
++				if kind == "hash" {
++					raw[0] ^= 1
++				}
++				if temp == "" || os.WriteFile(temp, raw, 0600) != nil {
++					t.Fatal("fixture write failed")
++				}
++				version := ref.VersionID
++				if kind == "version" {
++					version = "other"
++				}
++				if kind == "cancel" {
++					cancel()
++				}
++				return jsonBytes(map[string]any{"VersionId": version, "ContentLength": ref.Size}), nil
++			}))
++			if err != nil {
++				t.Fatal(err)
++			}
++			if _, err = a.Read(ctx, f.i.Evidence); err == nil || calls != 2 {
++				t.Fatal("corrupt or cancelled evidence accepted")
++			}
++			if _, err = os.Stat(temp); !os.IsNotExist(err) {
++				t.Fatal("temporary artifact remains")
++			}
++		})
++	}
++}
+ func TestHeadMismatchStopsBeforeDownload(t *testing.T) {
+ 	for _, kind := range []string{"version", "size", "delete"} {
+ 		t.Run(kind, func(t *testing.T) {
+diff --git a/internal/drcontrol/contract.go b/internal/drcontrol/contract.go
+index 4e99044..2b07d11 100644
+--- a/internal/drcontrol/contract.go
++++ b/internal/drcontrol/contract.go
+@@ -55,6 +55,7 @@ type Policy struct {
+ 	Actors                                                []Actor
+ 	ApprovalKeys, ObservationKeys                         []Key
+ 	ArtifactBucket, ArtifactPrefix                        string
++	ArtifactRegion                                        string `json:",omitempty"`
+ 	ApprovalMaxSeconds, EvidenceMaxSeconds                int64
+ 	Database                                              Database
+ 	EnableExecution                                       bool
+@@ -206,6 +207,9 @@ func Strict(b []byte, dst any) error {
+ }
+ 
+ func (p Policy) Validate() error {
++	if p.ArtifactRegion != "" && p.ArtifactRegion != "ap-northeast-2" && p.ArtifactRegion != "ap-northeast-3" {
++		return ErrInput
++	}
+ 	if p.CollectionPlanSHA256 != "" && !sha256Pattern.MatchString(p.CollectionPlanSHA256) {
+ 		return ErrInput
+ 	}
+diff --git a/runtime/dr-control.md b/runtime/dr-control.md
+index c7a69fb..bc01db3 100644
+--- a/runtime/dr-control.md
++++ b/runtime/dr-control.md
+@@ -23,6 +23,11 @@ Policy에는 다음을 모두 명시한다. 기본 승인 TTL이나 운영자 al
+   두 목적은 서로 다른 공개키 바이트를 요구한다. private key는 코드·예제·Git에 보관하지 않는다.
+ - `ArtifactBucket/ArtifactPrefix`, `ApprovalMaxSeconds/EvidenceMaxSeconds`의 명시적 정책.
+   1..86400초는 입력 상한일 뿐 운영 권고가 아니다. 실제 정책·시계 신뢰·변경 동결은 별도 확정한다.
++- 선택적 `ArtifactRegion`은 고정 버전 S3 Head/Get의 보관 리전이다. 허용 값은
++  `ap-northeast-2` 또는 `ap-northeast-3`이며 생략하면 기존 `Region`을 사용한다.
++  서울 제어·오사카 Evidence처럼 리전이 다르면 보호된 Policy에 명시한다. STS/Target의
++  제어 리전과 `Database.Region`은 바꾸지 않으며, 자동 리전 검색·실패 후 다른 리전 재시도는 없다.
++  Bucket/Prefix·owner·VersionID·크기·SHA 검증 및 권한 범위도 그대로 유지된다.
+ - `Database`: 정확한 RDS ARN·DbiResourceId·리전·Host/Port/Name/User. 동일 account의 다른 DB도 거절한다.
+ 
+ 모든 호출은 STS 신원을 검사한다. 기존 APPLIED/INTENT의 조회와 inspect도 인증 전에 journal에 접근하지 않는다.

@@ -13,3 +13,33 @@ id = "generic-api-key"
   regexes = [
     '''(?i)^(?:[^"\n]*/)?(?:build\-linux\-credential\-tests\-result\.json|build\-linux\-credential\-tests\.log|vm_access_integration_test\.go|credential\-tests\-build\.log\.gz|vm_access_lifecycle_test\.go|after\-vmaccess\-overlay\.json|auth_integration_test\.go|auth\-class\-http\-smoke\.md|labbitApi\.class\.test\.ts|connector_auth_test\.go|access_unknown_test\.go|vmaccess\-overlay\.json|vm_access_test\.go\.txt|fix_api_and_helper\.py|LabbitApiProvider\.tsx|before\-vmaccess\.log|secret\-screen\.json|credential_test\.go|after\-vmaccess\.log|vm_access_test\.go|labbitApi\.test\.ts|connector_auth\.go|vm_access\.go\.txt|secret\-scan\.json|password_test\.go|mockLabbitApi\.ts|credential\-tests|auth\-session\.md|apiMode\.test\.ts|reauth_test\.go|access_test\.go|token_test\.go|credential\.go|vm_access\.go|openapi\.yaml|labbitApi\.ts|auth_test\.go|password\.go|api_test\.go|apiMode\.ts|access\.go|token\.go|auth\.go|api\.go)"\s*:\s*"[a-f0-9]{64}"$'''
   ]
+
+  [[rules.allowlists]]
+  description = "Public Alpine kernel X.509 identifier in the two fixed DR Linux boot logs; not a secret"
+  condition = "AND"
+  paths = ['''(^|/)evidence/LBT-60/2026-11-21-linux-offline/qemu-attempt0[12]\.log$''']
+  regexTarget = "match"
+  regexes = [
+    '''^key: d76a695f66ad9cd28f5c22a8508f36e91f521f7a'$'''
+  ]
+
+  [[rules.allowlists]]
+  description = "Exact public module checksum in the fixed PR196 candidate source snapshot"
+  condition = "AND"
+  paths = ['''(^|/)evidence/LBT-60/2026-11-23-candidate-publication/go\.sum\.txt$''']
+  regexTarget = "match"
+  regexes = ['''^docker-credential-helpers v0\.9\.3 h1:gAm/VtF9wgqJMoxzT3Gj5p4AqIjCBS4wrsOh9yRqcz8=$''']
+
+  [[rules.allowlists]]
+  description = "Exact immutable migration SHA256 in four fixed PR196 candidate verification originals"
+  condition = "AND"
+  paths = ['''(^|/)evidence/LBT-60/2026-11-23-candidate-publication/(runtime-zlib14/)?image-(local-verification|publication-readback)\.json$''']
+  regexTarget = "match"
+  regexes = ['''^000010_connector_enrollment_tokens\.sql": "8be5cd16dc8c7df022b537c430177056b6c1af5de876f4b83fb77c514a8244d6"$''']
+
+  [[rules.allowlists]]
+  description = "Exact tool-list phrase in the fixed independent PR196 candidate review"
+  condition = "AND"
+  paths = ['''(^|/)evidence/LBT-60/2026-11-23-candidate-publication/independent-review\.md$''']
+  regexTarget = "match"
+  regexes = ['''^token, kubectl[/]SSM[/]DB $''']

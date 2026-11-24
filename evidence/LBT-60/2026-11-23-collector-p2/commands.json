@@ -1,0 +1,93 @@
+{
+  "environment": {
+    "os": "Windows",
+    "go": "go1.27.1 windows/amd64",
+    "python": "3.14.6",
+    "aws": false,
+    "shared_db": false,
+    "slack": false,
+    "push": false
+  },
+  "commands": [
+    {
+      "command": "go test -count=1 -json ./internal/drcontrol -run '^TestCollectorKnownDBBacklogDoesNotRequireExternalSafetyToFail$'",
+      "log": "collector-p2-before.jsonl.gz",
+      "exit": 1,
+      "expected_red": true,
+      "tests": {
+        "pass": 12,
+        "fail": 25
+      },
+      "note": "f5413c9 product + regression; initial fixture compilation error in separate log"
+    },
+    {
+      "command": "go test -count=1 -race -json ./internal/drcontrol -run '^TestCollector'",
+      "log": "collector-p2-focused.jsonl.gz",
+      "exit": 0
+    },
+    {
+      "command": "go test -count=1 -json ./...",
+      "log": "collector-p2-go-all.jsonl.gz",
+      "exit": 0,
+      "note": "same product source; before signed consumer test-only row and final Provider FAIL assertion"
+    },
+    {
+      "command": "go test -count=1 -race -json ./internal/drcontrol ./internal/server/workercontrol ./cmd/labbit-dr-control ./cmd/labbit-dr-evidence",
+      "log": "collector-p2-affected-final.jsonl.gz",
+      "exit": 0,
+      "note": "final source and test assertions"
+    },
+    {
+      "command": "go vet ./...",
+      "log": "collector-p2-vet.txt.gz",
+      "exit": 0
+    },
+    {
+      "command": "go build ./...",
+      "log": "collector-p2-build.txt.gz",
+      "exit": 0
+    },
+    {
+      "command": "gofmt -l cmd internal tools",
+      "log": "collector-p2-format.txt.gz",
+      "exit": 0,
+      "check_exit": 1,
+      "note": "native gofmt exit0 but non-empty raw checkout CRLF listing; not a canonical format failure"
+    },
+    {
+      "command": "gofmt stdin compared to LF-normalized tracked/local files",
+      "report": "format-validation.json",
+      "exit": 0,
+      "note": "658 files; no rewriting"
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "cwd": "web",
+      "log": "collector-p2-web-typecheck.txt.gz",
+      "exit": 0
+    },
+    {
+      "command": "node node_modules/eslint/bin/eslint.js . --max-warnings=0",
+      "cwd": "web",
+      "log": "collector-p2-web-lint.txt.gz",
+      "exit": 0
+    },
+    {
+      "command": "node node_modules/vite/bin/vite.js build",
+      "cwd": "web",
+      "log": "collector-p2-web-build.txt.gz",
+      "exit": 0
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run --maxWorkers=1",
+      "cwd": "web",
+      "log": "collector-p2-web-test.txt.gz",
+      "exit": 0
+    },
+    {
+      "command": "gitleaks dir task-specific changed-source export --redact",
+      "log": "collector-p2-source-gitleaks.txt.gz",
+      "exit": 0
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "at": "2026-11-23T05:10:46.756626+00:00",
+  "action": "migration-job-create",
+  "detail": {
+    "job": "pr196-migrate-v15-20261123-01",
+    "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial@sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469",
+    "backup": "arn:aws:rds:ap-northeast-2:299311846289:snapshot:labbit-seoul-pr196-before-v15-20261123-01"
+  },
+  "outcome": "INTENT",
+  "execution_gate": "HOLD"
+}

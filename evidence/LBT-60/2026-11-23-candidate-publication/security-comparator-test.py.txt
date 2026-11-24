@@ -1,0 +1,15 @@
+from pathlib import Path
+import json,subprocess
+R=Path(r'C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-stage3-live-prep-20261123')
+y=(R/'.local/pr196-candidate-publish-20261123/security-build.yml').read_text()
+block=y[y.index('            comparison='):y.index('            test -x /app/labbit-server')]
+rows=[]
+for value,code,expected in [('=',0,True),('>',0,True),('<',0,False),('',0,False),('=',2,False)]:
+ # Only comparator is synthetic; execute the exact workflow check under Bash.
+ script='set -eu\nversion=zlib-1.4-r0\napk() { printf "%s" '+repr(value)+'; return '+str(code)+'; }\n'+block
+ p=subprocess.run([r'C:/Program Files/Git/bin/bash.exe','--noprofile','--norc','-c',script],capture_output=True,timeout=10)
+ if (p.returncode==0)!=expected:raise RuntimeError('COMPARATOR_REGRESSION')
+ rows.append(dict(output=value,comparator_exit=code,accepted=p.returncode==0,expected=expected))
+out=dict(scope='Exact workflow shell check, fake apk comparator only; no Docker/AWS',cases=rows,passed=len(rows))
+(R/'evidence/LBT-60/2026-11-23-candidate-publication/security-comparator-tests.json').write_text(json.dumps(out,indent=2)+'\n')
+print(json.dumps(out))

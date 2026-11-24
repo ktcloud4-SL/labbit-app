@@ -1,0 +1,56 @@
+// Read-only probe of one previously handed-off synthetic object, using product AWSCLI.Read.
+// No signing, upload, SQL, approval execution or original QA replacement.
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"github.com/ktcloud4-SL/labbit-app/internal/drcontrol"
+	wc "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol"
+	"os"
+	"time"
+)
+
+type event struct {
+	API, Region, Result string
+	ElapsedMS           int64
+}
+type recorder struct{ rows []event }
+
+func (r *recorder) Run(c context.Context, e string, args []string) ([]byte, error) {
+	at := time.Now()
+	b, err := (drcontrol.CommandRunner{}).Run(c, e, args)
+	region := ""
+	for i := range args {
+		if args[i] == "--region" && i+1 < len(args) {
+			region = args[i+1]
+		}
+	}
+	state := "RESPONSE_RECEIVED"
+	if err != nil {
+		state = "NOT_VERIFIED"
+	}
+	r.rows = append(r.rows, event{API: args[0] + "/" + args[1], Region: region, Result: state, ElapsedMS: time.Since(at).Milliseconds()})
+	return b, err
+}
+func main() {
+	ref := drcontrol.Reference{Bucket: "labbit-osaka-dr-evidence-299311846289-trial01", Key: "dr-precheck/storage-trial/s2b-20261113-01/synthetic-20261113-01/storage-fixture.json", VersionID: "4x.NNaLbAyvV.pSbL93_1frJywTF4xtI", SHA256: "f6653ed09ac89fbfd2fb72c566e9343524699f40ce38fa5c6b32f376dc4c0d2c", Size: 299}
+	outcomes := []map[string]any{}
+	for _, region := range []string{"ap-northeast-2", "ap-northeast-3"} {
+		// Policy wrapping here only selects the product reader endpoint; it is never an enabled control policy.
+		p := drcontrol.Policy{Version: drcontrol.Version, AccountID: "299311846289", Region: region, AWSExecutable: `C:\Users\user\AppData\Local\Programs\Amazon\AWSCLIV2\aws.exe`, AWSProfile: "labbit-admin3", Target: wc.Scope{ID: "pr196-readonly-endpoint-diagnostic", Region: region, Cluster: "labbit-seoul-cluster"}, Actors: []drcontrol.Actor{{ARN: "arn:aws:iam::299311846289:user/admin3", Principal: "seobin", Actions: []string{"collect"}}}, ApprovalKeys: []drcontrol.Key{{ID: "pr196-20261123-approval", Principal: "seobin", PublicKey: "/AzLZr9wYURM7B9BHMiN+dOZUJ2bFKqWT5q+x20PW+0=", Phases: []string{"prepare"}}}, ObservationKeys: []drcontrol.Key{{ID: "pr196-20261123-observation", Principal: "seobin", PublicKey: "sUajH33lMdTCMJu4CHeOjL/jmBRdgmIKuNXt5fqBoFM=", Phases: []string{"prepare"}}}, ArtifactBucket: ref.Bucket, ArtifactPrefix: "dr-precheck/storage-trial/s2b-20261113-01", ApprovalMaxSeconds: 60, EvidenceMaxSeconds: 30, Database: drcontrol.Database{Region: "ap-northeast-2", ARN: "arn:aws:rds:ap-northeast-2:299311846289:db:labbit-seoul-rds", ResourceID: "db-KWJO4NMALL7V77AC3LWW2EGH2Y", Host: "labbit-seoul-rds.c1664mmc0jot.ap-northeast-2.rds.amazonaws.com", Port: 5432, Name: "labbit_db", User: "labbit_user"}, EnableExecution: false}
+		runner := &recorder{}
+		reader, err := drcontrol.NewAWSCLI(p, runner)
+		if err != nil {
+			os.Exit(2)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		at := time.Now()
+		b, err := reader.Read(ctx, ref)
+		cancel()
+		verified := err == nil && len(b) == 299 && drcontrol.Hash(b) == ref.SHA256
+		clear(b)
+		outcomes = append(outcomes, map[string]any{"selected_policy_region": region, "read_matches_pinned_reference": verified, "elapsed_ms": time.Since(at).Milliseconds(), "calls": runner.rows, "enable_execution": false})
+	}
+	json.NewEncoder(os.Stdout).Encode(map[string]any{"at": time.Now().UTC(), "scope": "READONLY_PRODUCT_READER_ENDPOINT_PROBE_PREEXISTING_SYNTHETIC_OBJECT_ONLY", "reference": ref, "results": outcomes, "control_policy_activated": false, "approval_signed": false, "uploaded": false, "execution_gate": "HOLD", "recovery_authorized": false, "cloud_verified": false})
+}

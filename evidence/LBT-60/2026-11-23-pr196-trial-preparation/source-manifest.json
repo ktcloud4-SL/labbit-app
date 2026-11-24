@@ -1,0 +1,81 @@
+{
+  "head": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "base": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "product_source_changed": false,
+  "uncommitted": true,
+  "changed_docs": [
+    {
+      "path": "docs/backend/dr-stage3-deployment.md",
+      "size": 8864,
+      "sha256": "65369809c30ea36fdf3b7d09e95099d18b6780625662e9564b01b94a50a68080"
+    },
+    {
+      "path": "docs/backend/dr-maintenance-integration.md",
+      "size": 13159,
+      "sha256": "e3f8c25b6a9832f8d69a929f0e122192e89986f7cef58b6ffbc2dbb43a1f4682"
+    },
+    {
+      "path": "docs/backend/dr-pr196-trial-preparation.md",
+      "size": 11106,
+      "sha256": "d3e1ddc9a91c3e6cf94ce31df595967455687df20c109ddf210e59fad27e0cde"
+    }
+  ],
+  "relevant_unchanged_dependencies": [
+    {
+      "path": "runtime/contract.yaml",
+      "size": 74615,
+      "sha256": "2da5a50486c5cee6847fc119b097378d33481da896d17e043b46800f8a0b912b"
+    },
+    {
+      "path": "runtime/dr-control.md",
+      "size": 13010,
+      "sha256": "8e4d5cf0f80c78e0c827198cdce8b5973dd1e1bd0a19c8ee70714ccfa5024045"
+    },
+    {
+      "path": "internal/drcontrol/awscli.go",
+      "size": 5614,
+      "sha256": "a409d1a817e389d0a0ed2ce2761f775c0a0dcc504f84cd02459520e79e08923e"
+    },
+    {
+      "path": "internal/drcontrol/contract.go",
+      "size": 9620,
+      "sha256": "118bab970a396e2683d81660354580b7de5f67983e31257b99a177d1be63a41d"
+    },
+    {
+      "path": "internal/drcontrol/collector.go",
+      "size": 11375,
+      "sha256": "2431048c1cf7ca6a2990067eecfd1ed1eb32d95b1170ee96f4178e8eedd4e3e5"
+    },
+    {
+      "path": "internal/drcontrol/collector_adapters.go",
+      "size": 6610,
+      "sha256": "0d8bfb4302170c601765fe940552453ddb585a0fab37f5e7d14419322882c067"
+    },
+    {
+      "path": "internal/drcontrol/database.go",
+      "size": 1531,
+      "sha256": "6a82e2b68608854f14c3a15d259dc3555a2ce3730e7d2961068548f51396eb5a"
+    },
+    {
+      "path": "internal/postgres/schema.go",
+      "size": 1964,
+      "sha256": "aee339beeedfaac3f23b026cf8d7e034b49a20fd15e5da0fd410b319e5a9f2fc"
+    },
+    {
+      "path": "internal/postgres/migrate.go",
+      "size": 9711,
+      "sha256": "4a65cfbce1b2eeecdb64461a67ebb83c92039b3aaea4fbfe2df9db4af5c4f81c"
+    },
+    {
+      "path": "Dockerfile",
+      "size": 1065,
+      "sha256": "39dd3b81e1a9e81eba82291bc1ded67f58f83febbcde3c9d706bf14b14c330b8"
+    },
+    {
+      "path": ".github/workflows/delivery-backend.yml",
+      "size": 7608,
+      "sha256": "77823058bd3def3725568f9c10eea565f842beb2647c833eaed91d962c22dedb"
+    }
+  ],
+  "scope": "Current preparation delta and affected consumer contracts; prior PR196 full-source audit remains separately identified, not rerun here."
+}

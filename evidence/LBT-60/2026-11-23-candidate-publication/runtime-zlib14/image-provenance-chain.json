@@ -1,0 +1,27 @@
+{
+  "source_sha": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "workflow_sha": "01863ba088770113c401af1be3ed63d006ac745f",
+  "run_id": "45113446633",
+  "runtime_dockerfile_sha256": "565356e64b883722e83b2d63502e81ccfe4e1014012b630ac0cf90b760fa30a8",
+  "runtime_patch_label": "zlib-minimum-1.4-r0",
+  "package_receipt": "zlib1.4-r0",
+  "config_sha256": "sha256:95df936db51b9936392e600bfe7dd6cb7bf054b26b1fa58560c52d5025398813",
+  "buildkit_manifest": "sha256:e7a5938693c52d1913923e3107912dff0a7238792c27fb8644d33d47bf595db3",
+  "uncompressed_layer_diffids": [
+    "sha256:42cc7504d9d5f918d6ca52d96706e7b602c8ffca5b80b1cad44e004e1c69fb70",
+    "sha256:7af19d1c540400069f2cce9f6629829d31d355b3d47f5884493b70b9cd251784",
+    "sha256:12e9604d7f79750bfe74c9e74df05638629a0a9eb0338d1957a5c2012981d606",
+    "sha256:44b83fed8f1d2159de559cf17daecda07eb567ae4f9f5c52402599d0e4042c1b",
+    "sha256:9fb5a99cc6b71e09edb40e191be73c643a7e35ab3702f369cdaff36f49579c01",
+    "sha256:8abf2c629b37f01b1d056cc6db01261aee452060e5794322c0b0a6c3d8a19753",
+    "sha256:c1ced74591820e66b6510c192b2c62665a977ca5050f1700c75c702e45f4ceab"
+  ],
+  "exact_binary_and_15_migration_bytes_unchanged": true,
+  "published_registry_digest": "sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469",
+  "pinned_reference": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial@sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469",
+  "conversion": "BuildKit OCI manifest is not the Docker archive converted schema2 manifest; identical config and layer bytes are compared before fixing final registry digest.",
+  "ecr_basic_scan_complete": true,
+  "ecr_basic_reported_findings": 0,
+  "application_executed": false,
+  "execution_gate": "HOLD"
+}

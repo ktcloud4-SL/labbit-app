@@ -1,5 +1,9 @@
 # Labbit Test Code Convention
 
+DR 공개 승인 원본 보관 도구의 조건부 생성·UNKNOWN 보존·고정 버전 재조회·작업창 경계는
+`make dr-control-store-test`로 검증한다. stdlib Fake AWS만 사용하며 실제 S3·DB·제어 실행은 없다.
+일반/최적화 모드를 모두 실행하며 `make test`와 Go CI에도 포함한다.
+
 FAILED Provision 복구 검증은 `go test ./internal/operationrecovery`(고정 SSH·증거 검증),
 Linux Provider의 `TestFailedRecoveryEvidenceRequiresBoundCompleteOwnedTopology`(HTTP fixture·보호된 원장),
 `go test -tags integration ./internal/postgres -run '^TestFailedProvisionRecovery'`(폐기 가능한 실제 PostgreSQL)을 구분합니다.

@@ -1,0 +1,394 @@
+{
+  "schema": "labbit.dr196.trial-preparation-draft.v1",
+  "not_runtime_input": true,
+  "enable_execution": false,
+  "source": {
+    "head": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+    "base": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+    "draft": true,
+    "merged": false
+  },
+  "target": {
+    "account_id": "299311846289",
+    "operator_arn_observed": "arn:aws:iam::299311846289:user/admin3",
+    "region": "ap-northeast-2",
+    "cluster": {
+      "name": "labbit-seoul-cluster",
+      "arn": "arn:aws:eks:ap-northeast-2:299311846289:cluster/labbit-seoul-cluster",
+      "status": "ACTIVE",
+      "endpoint": "https://7EF29A2C0B0AE221F6BD9A8CAA189512.gr7.ap-northeast-2.eks.amazonaws.com",
+      "version": "1.36",
+      "createdAt": "2026-11-23T08:45:10.136000+09:00",
+      "auth": "API_AND_CONFIG_MAP",
+      "public": true,
+      "private": true
+    },
+    "cluster_uid": "6c0ed2a2-92c8-48ad-a8d3-0d192e7f70d8",
+    "namespace": "labbit",
+    "workload": "backend",
+    "database": {
+      "id": "labbit-seoul-rds",
+      "arn": "arn:aws:rds:ap-northeast-2:299311846289:db:labbit-seoul-rds",
+      "resourceId": "db-KWJO4NMALL7V77AC3LWW2EGH2Y",
+      "status": "available",
+      "engine": "postgres",
+      "version": "16.15",
+      "host": "labbit-seoul-rds.c1664mmc0jot.ap-northeast-2.rds.amazonaws.com",
+      "port": 5432,
+      "backupDays": 7,
+      "latestRestore": "2026-11-23T03:42:45+00:00",
+      "encrypted": true,
+      "iamAuth": false,
+      "pending": {}
+    }
+  },
+  "baseline": {
+    "backend": {
+      "name": "backend",
+      "uid": "88a17177-492f-41db-b097-a80a6a18a475",
+      "generation": 1,
+      "status": {
+        "replicas": 2,
+        "readyReplicas": 2,
+        "availableReplicas": 2,
+        "updatedReplicas": 2,
+        "observedGeneration": 1
+      },
+      "serviceAccount": "backend",
+      "containers": [
+        {
+          "name": "common-app",
+          "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+          "env": [
+            {
+              "name": "LABBIT_MAINTENANCE_FILE",
+              "value": "/etc/config/mode"
+            },
+            {
+              "name": "LABBIT_RUNTIME_ROLES",
+              "value": "api,realtime,worker,preview"
+            }
+          ],
+          "envFrom_present": false,
+          "mounts": [
+            {
+              "name": "valkey-secret-volume",
+              "mountPath": "/var/secrets/labbit-valkey",
+              "readOnly": true
+            },
+            {
+              "name": "config-volume",
+              "mountPath": "/etc/config",
+              "readOnly": true
+            },
+            {
+              "name": "db-dsn-volume",
+              "mountPath": "/var/secrets/labbit",
+              "readOnly": true
+            }
+          ]
+        }
+      ]
+    },
+    "backend_pods": [
+      {
+        "name": "backend-77c594cb7b-4fxjn",
+        "uid": "f04aae83-4cac-443a-9ef9-efd5064b90e7",
+        "resourceVersion": "12622",
+        "owners": [
+          {
+            "apiVersion": "apps/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "ReplicaSet",
+            "name": "backend-77c594cb7b",
+            "uid": "b6b8f2c8-e04c-4e94-ba41-de478b2e451d"
+          }
+        ],
+        "phase": "Running",
+        "conditions": [
+          {
+            "type": "PodReadyToStartContainers",
+            "status": "True"
+          },
+          {
+            "type": "Initialized",
+            "status": "True"
+          },
+          {
+            "type": "Ready",
+            "status": "True"
+          },
+          {
+            "type": "ContainersReady",
+            "status": "True"
+          },
+          {
+            "type": "PodScheduled",
+            "status": "True"
+          }
+        ],
+        "containers": [
+          {
+            "name": "common-app",
+            "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+            "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419",
+            "ready": true,
+            "restartCount": 0
+          }
+        ]
+      },
+      {
+        "name": "backend-77c594cb7b-j7knn",
+        "uid": "5431ae96-2706-48ab-ab1f-21596baa5f87",
+        "resourceVersion": "12585",
+        "owners": [
+          {
+            "apiVersion": "apps/v1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "ReplicaSet",
+            "name": "backend-77c594cb7b",
+            "uid": "b6b8f2c8-e04c-4e94-ba41-de478b2e451d"
+          }
+        ],
+        "phase": "Running",
+        "conditions": [
+          {
+            "type": "PodReadyToStartContainers",
+            "status": "True"
+          },
+          {
+            "type": "Initialized",
+            "status": "True"
+          },
+          {
+            "type": "Ready",
+            "status": "True"
+          },
+          {
+            "type": "ContainersReady",
+            "status": "True"
+          },
+          {
+            "type": "PodScheduled",
+            "status": "True"
+          }
+        ],
+        "containers": [
+          {
+            "name": "common-app",
+            "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+            "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419",
+            "ready": true,
+            "restartCount": 0
+          }
+        ]
+      }
+    ],
+    "maintenance": {
+      "name": "backend-config",
+      "uid": "c152c064-3c25-4b2b-a7d7-f3a351108868",
+      "resourceVersion": "12249",
+      "mode": "open",
+      "data_keys": [
+        "mode"
+      ]
+    },
+    "applications": [
+      {
+        "name": "backend",
+        "uid": "1819925b-e530-4ae7-85b8-81fb13451753",
+        "source": {
+          "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+          "path": "charts/common-app",
+          "targetRevision": "main"
+        },
+        "syncPolicy": {
+          "automated": {
+            "prune": true,
+            "selfHeal": true
+          },
+          "retry": {
+            "backoff": {
+              "duration": "10s",
+              "factor": 2,
+              "maxDuration": "3m"
+            },
+            "limit": 5
+          },
+          "syncOptions": [
+            "CreateNamespace=true",
+            "SkipDryRunOnMissingResource=true"
+          ]
+        },
+        "sync": {
+          "comparedTo": {
+            "destination": {
+              "namespace": "labbit",
+              "server": "https://kubernetes.default.svc"
+            },
+            "source": {
+              "helm": {
+                "valueFiles": [
+                  "../../environments/aws-seoul/apps/backend-values.yaml"
+                ]
+              },
+              "path": "charts/common-app",
+              "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+              "targetRevision": "main"
+            }
+          },
+          "revision": "ab830d7c9e046b0621477192aca39c6b269cbf30",
+          "status": "Synced"
+        },
+        "health": {
+          "status": "Healthy"
+        }
+      },
+      {
+        "name": "root-app-seoul",
+        "uid": "9da17971-0ea4-4149-a10d-d34c11539d62",
+        "source": {
+          "repoURL": null,
+          "path": null,
+          "targetRevision": null
+        },
+        "syncPolicy": {
+          "automated": {
+            "prune": true,
+            "selfHeal": true
+          },
+          "syncOptions": [
+            "CreateNamespace=true"
+          ]
+        },
+        "sync": {
+          "comparedTo": {
+            "destination": {
+              "namespace": "argocd",
+              "server": "https://kubernetes.default.svc"
+            },
+            "source": {
+              "repoURL": ""
+            },
+            "sources": [
+              {
+                "directory": {
+                  "jsonnet": {},
+                  "recurse": true
+                },
+                "path": "apps/aws-seoul",
+                "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+                "targetRevision": "main"
+              }
+            ]
+          },
+          "revisions": [
+            "ab830d7c9e046b0621477192aca39c6b269cbf30"
+          ],
+          "status": "Synced"
+        },
+        "health": {
+          "status": "Healthy"
+        }
+      }
+    ],
+    "migration_job": [
+      {
+        "name": "labbit-db-migration",
+        "uid": "25cdcf79-1a0e-41ed-b275-b6e47fc35332",
+        "created": "2026-11-23T00:23:23Z",
+        "status": {
+          "succeeded": 1,
+          "failed": null,
+          "startTime": "2026-11-23T00:23:23Z",
+          "completionTime": "2026-11-23T00:23:29Z"
+        },
+        "containers": [
+          {
+            "name": "migrate",
+            "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb"
+          }
+        ]
+      }
+    ],
+    "migration_log": {
+      "parsed_fields": [
+        {
+          "applied_count": 11,
+          "latest_known_version": 11
+        }
+      ],
+      "meaning": "selected historical Job log fields; not current SQL/schema/checksum verification"
+    }
+  },
+  "proposed_controls": {
+    "scope_id": "labbit-dr196-seoul",
+    "scope_status": "PROPOSED_NOT_INITIALIZED",
+    "authoritative_database": "exact Seoul RDS Writer above, subject to SQL identity verification",
+    "approval_ttl_seconds_proposal": 120,
+    "observation_ttl_seconds_proposal": 60,
+    "operational_ttls_accepted": false,
+    "approval_and_observation_keys": "different Ed25519 PKCS8 protected files; not generated",
+    "operator_principal_proposal": "seobin-dr196",
+    "operator_actions_proposal": [
+      "init",
+      "pause",
+      "inspect-restriction",
+      "resume",
+      "inspect",
+      "collect"
+    ]
+  },
+  "unresolved": {
+    "utc_work_window": null,
+    "independent_qa_window": null,
+    "backup_arn_before_migration": null,
+    "restore_test_evidence": null,
+    "candidate_image_digest": null,
+    "database_name_verified": null,
+    "database_user_verified": null,
+    "protected_dsn_path": null,
+    "approval_public_key": null,
+    "observation_public_key": null,
+    "artifact_bucket_prefix_region": null,
+    "fixed_s3_versions": null,
+    "current_control_row": null,
+    "provider_test_resources": null,
+    "total_provider_cost_cap": null,
+    "trusted_fencing_singlewriter_attestation": null,
+    "actual_all_writer_inventory": null
+  },
+  "actual_checks": [
+    "STS identity",
+    "EKS/Pod/deployment metadata",
+    "ConfigMap declaration",
+    "historical migration Job log",
+    "RDS backup/snapshot metadata",
+    "two exact candidate tags in actual ECR backend repository",
+    "current admin3 RBAC self reviews"
+  ],
+  "actual_not_executed": [
+    "key/policy provisioning",
+    "secret value access",
+    "shared DB SQL",
+    "migration/backup restore",
+    "image publication/rollout",
+    "maintenance/Pause/Resume",
+    "provider mutation",
+    "S3 payload upload/readback",
+    "DR/DNS/fencing/Slack"
+  ],
+  "gates": {
+    "execution_gate": "HOLD",
+    "recovery_authorized": false,
+    "cloud_verified": false,
+    "live_test_ready": false,
+    "replica_lag_policy": "EXISTING_FAIL_PRESERVED",
+    "required_settings": "NOT_VERIFIED",
+    "runtime_provenance": "NOT_VERIFIED",
+    "service_functions": "NOT_VERIFIED",
+    "single_writer": "NOT_VERIFIED"
+  }
+}

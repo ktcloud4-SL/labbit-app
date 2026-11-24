@@ -1,0 +1,14 @@
+{
+  "runtime_version": "0.1.15",
+  "yaml_version": "6.0.3",
+  "migration_count": 15,
+  "go_workflow_parsed": true,
+  "store_fixture_ci_connected": true,
+  "source_contracts_changed": [
+    "runtime/contract.yaml",
+    "runtime/README.md",
+    "runtime/dr-control.md"
+  ],
+  "http_wss_schema_changed": false,
+  "cloud_access": false
+}

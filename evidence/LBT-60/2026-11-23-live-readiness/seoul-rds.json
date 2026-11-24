@@ -1,0 +1,17 @@
+{
+  "observed_at_utc": "2026-11-23T01:17:03.1716943Z",
+  "exit_code": 0,
+  "database": {
+    "ARN": "arn:aws:rds:ap-northeast-2:299311846289:db:labbit-seoul-rds",
+    "ResourceId": "db-KWJO4NMALL7V77AC3LWW2EGH2Y",
+    "Status": "available",
+    "Endpoint": {
+      "Address": "labbit-seoul-rds.c1664mmc0jot.ap-northeast-2.rds.amazonaws.com",
+      "Port": 5432,
+      "HostedZoneId": "ZLA2NUCOLGUUR"
+    },
+    "LatestRestorableTime": "2026-11-23T10:15:03+09:00",
+    "BackupRetentionPeriod": 7,
+    "DeletionProtection": true
+  }
+}

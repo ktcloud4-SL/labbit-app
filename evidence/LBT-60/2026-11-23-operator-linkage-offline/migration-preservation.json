@@ -1,0 +1,5 @@
+{
+  "existing_sql_unchanged": true,
+  "additive_migration": "000015_worker_control_restrictions.sql",
+  "shared_database_applied": false
+}

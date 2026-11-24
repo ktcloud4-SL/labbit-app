@@ -1,0 +1,14 @@
+$ErrorActionPreference = 'Stop'
+$trialKeyRoot = Join-Path $env:LOCALAPPDATA 'LabbitDrControl\pr196-20261123'
+if (Test-Path -LiteralPath $trialKeyRoot) { throw 'Existing directory: inspect and reuse explicitly; no overwrite.' }
+New-Item -ItemType Directory -Path $trialKeyRoot -Force | Out-Null
+$trialOwner = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+$trialAcl = New-Object System.Security.AccessControl.DirectorySecurity
+$trialAcl.SetOwner($trialOwner)
+$trialAcl.SetAccessRuleProtection($true, $false)
+$trialRule = New-Object System.Security.AccessControl.FileSystemAccessRule($trialOwner, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
+$trialAcl.AddAccessRule($trialRule)
+Set-Acl -LiteralPath $trialKeyRoot -AclObject $trialAcl
+$verifiedAcl = Get-Acl -LiteralPath $trialKeyRoot
+if (-not $verifiedAcl.AreAccessRulesProtected -or $verifiedAcl.Access.Count -ne 1 -or $verifiedAcl.Access[0].IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value -ne $trialOwner.Value) { throw 'Directory ACL not accepted' }
+Write-Output 'Current-user-only key directory prepared; no cloud/service change.'

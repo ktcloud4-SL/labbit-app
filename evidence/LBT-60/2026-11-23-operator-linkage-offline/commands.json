@@ -1,0 +1,59 @@
+[
+  {
+    "command": "go test -count=1 -json ./...",
+    "log": "linkage-go-all-v5.jsonl.gz",
+    "exit": 0,
+    "scope": "Windows mock/unit; product source same; subsequent test-only producer assertion covered by focused and Linux runs"
+  },
+  {
+    "command": "go test -count=1 -race -json ./internal/drcontrol ./internal/server/app ./internal/server/maintenance ./internal/server/workercontrol ./cmd/labbit-dr-control ./cmd/labbit-dr-evidence",
+    "log": "linkage-focused-producer.jsonl.gz",
+    "exit": 0
+  },
+  {
+    "command": "go test -count=1 -race -tags=integration -json ./internal/drcontrol ./internal/postgres ./internal/postgres/postgrestest ./internal/server/app ./internal/server/auth ./internal/server/httpapi",
+    "log": "linkage-pg-final.jsonl.gz",
+    "exit": 0,
+    "environment": "LABBIT_TEST_DATABASE_DSN=dedicated loopback PG16 fixture; no shared DB"
+  },
+  {
+    "command": "go test -count=1 -race -tags=integration -json ./internal/drcontrol ./internal/server/app -run TestRestriction|TestSignedOperatorWithDisposablePostgres|TestAdminDRReadback",
+    "log": "linkage-pg-v5.jsonl.gz",
+    "exit": 0
+  },
+  {
+    "command": "go vet ./...; go build ./... (separate invocations)",
+    "logs": [
+      "linkage-vet-v5.txt.gz",
+      "linkage-build-v5.txt.gz"
+    ],
+    "exit": 0
+  },
+  {
+    "command": "GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go test -c ./internal/drcontrol; offline noNIC QEMU harness",
+    "logs": [
+      "linkage-linux-compile.txt.gz",
+      "linkage-linux-serial.log.gz"
+    ],
+    "exit": 0,
+    "race": false
+  },
+  {
+    "command": "npm ci; npm run typecheck; npm run lint; npm run build (separate invocations)",
+    "exit": 0
+  },
+  {
+    "command": "npm run test -- --maxWorkers=1",
+    "log": "linkage-web-test-serial.txt.gz",
+    "exit": 0,
+    "earlier_failures": "parallel attempts EPERM retained separately"
+  },
+  {
+    "command": "runtime YAML/migration metadata parse; gofmt comparison; git diff --check",
+    "exit": 0
+  },
+  {
+    "command": "gitleaks dir changed-source-export; gitleaks stdin raw logs (redact)",
+    "exit": 0
+  }
+]

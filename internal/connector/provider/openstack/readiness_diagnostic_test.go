@@ -16,6 +16,7 @@ import (
 )
 
 func TestReadinessFailuresKeepClassificationResourcesAndSafeDiagnostics(t *testing.T) {
+	requireProtectedCIDRFixture(t)
 	for _, tc := range []struct {
 		name, stage, status string
 		elapsed, budget     time.Duration

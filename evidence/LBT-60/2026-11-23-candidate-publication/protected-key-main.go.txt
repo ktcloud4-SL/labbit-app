@@ -1,0 +1,119 @@
+package main
+
+import (
+	"bytes"
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/json"
+	"encoding/pem"
+	"errors"
+	"flag"
+	"fmt"
+	"github.com/ktcloud4-SL/labbit-app/internal/drcontrol"
+	"os"
+	"path/filepath"
+	"time"
+)
+
+func main() {
+	if e := run(); e != nil {
+		fmt.Fprintln(os.Stderr, "KEY_PREPARATION_NOT_ACCEPTED")
+		os.Exit(2)
+	}
+}
+func run() error {
+	root := flag.String("root", "", "precreated current-user-only directory")
+	out := flag.String("public-out", "", "public metadata only")
+	flag.Parse()
+	if !filepath.IsAbs(*root) || *out == "" {
+		return errors.New("input")
+	}
+	st, e := os.Lstat(*root)
+	if e != nil || !st.IsDir() || st.Mode()&os.ModeSymlink != 0 {
+		return errors.New("root")
+	}
+	// Verify inherited DACL with the exact candidate runtime before generating any private key.
+	probe := filepath.Join(*root, "acl-probe")
+	f, e := os.OpenFile(probe, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if e != nil {
+		return e
+	}
+	_, e = f.Write([]byte("ACL probe, not a key"))
+	f.Close()
+	if e != nil {
+		return e
+	}
+	if _, e = drcontrol.ReadProtected(probe); e != nil {
+		return e
+	}
+	keys := []map[string]any{}
+	pubs := [][]byte{}
+	for _, purpose := range []string{"approval", "observation"} {
+		p := filepath.Join(*root, purpose+".pkcs8.pem")
+		if _, e = os.Lstat(p); !os.IsNotExist(e) {
+			return errors.New("no overwrite")
+		}
+		pub, priv, e := ed25519.GenerateKey(rand.Reader)
+		if e != nil {
+			return e
+		}
+		der, e := x509.MarshalPKCS8PrivateKey(priv)
+		if e != nil {
+			return e
+		}
+		raw := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})
+		f, e = os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+		if e != nil {
+			return e
+		}
+		if _, e = f.Write(raw); e != nil {
+			f.Close()
+			return e
+		}
+		if e = f.Sync(); e != nil {
+			f.Close()
+			return e
+		}
+		if e = f.Close(); e != nil {
+			return e
+		}
+		checked, e := drcontrol.ReadProtected(p)
+		if e != nil {
+			return e
+		}
+		block, rest := pem.Decode(checked)
+		if block == nil || len(rest) != 0 {
+			return errors.New("pem")
+		}
+		parsed, e := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if e != nil {
+			return e
+		}
+		pk, ok := parsed.(ed25519.PrivateKey)
+		if !ok || !bytes.Equal(pub, pk.Public().(ed25519.PublicKey)) {
+			return errors.New("keypair")
+		}
+		clear(checked)
+		clear(raw)
+		clear(der)
+		clear(priv)
+		clear(pk)
+		clear(block.Bytes)
+		pubs = append(pubs, pub)
+		keys = append(keys, map[string]any{"purpose": purpose, "key_id": "pr196-20261123-" + purpose, "public_key_base64": base64.StdEncoding.EncodeToString(pub), "private_key_path": p, "runtime_ReadProtected": "PASS", "pkcs8_parse_and_public_match": true})
+	}
+	if bytes.Equal(pubs[0], pubs[1]) {
+		return errors.New("purpose collision")
+	}
+	b, e := json.MarshalIndent(map[string]any{"generated_at_utc": time.Now().UTC().Format(time.RFC3339Nano), "keys": keys, "private_values_in_evidence": false, "aws_or_service_io": false, "policy_enable_execution": false, "operational_signing_acceptance": false, "execution_gate": "HOLD"}, "", "  ")
+	if e != nil {
+		return e
+	}
+	if e = os.WriteFile(*out, append(b, '\n'), 0600); e != nil {
+		return e
+	}
+	fmt.Println("Two distinct Ed25519 PKCS8 keys prepared; runtime owner/DACL checks PASS; no signing or execution.")
+	return nil
+}

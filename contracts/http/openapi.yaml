@@ -1,7 +1,7 @@
 openapi: 3.1.2
 info:
   title: Labbit HTTP API
-  version: 0.1.6
+  version: 0.1.7
   description: |
     Labbit Browser ↔ SaaS HTTP 계약의 기계 판독 가능한 SSOT입니다.
 
@@ -605,6 +605,13 @@ paths:
         선택한 학생에게만 학생용 LabInstance를 생성하며,
         해당 LabExecution을 시작한 강사용 LabInstance 1개는 별도로 생성합니다.
 
+        신규 작업 접수가 차단된 동안에는 Class/Organization의 현재 접근 권한과 요청 형식을 확인한 뒤 새 작업을 503(code `maintenance`)으로
+        거절하고 Operation이나 작업 대상을 생성하지 않습니다. 현재 권한으로 확인된 같은 의미의 committed Idempotency-Key
+        재요청은 차단 중에도 기존 Operation을 200으로 반환하며, 다른 의미의 key 재사용은 409입니다.
+        접수 차단은 이미 접수된 작업의 취소나 Worker 중지를 의미하지 않습니다.
+        차단 판정은 새 등록 transaction의 LabSpec 존재·소유권·mapping 및 대상 학생의 현재 Membership 검사보다 우선합니다.
+        따라서 아래 LabSpec 관련 403/404/422와 active execution 충돌은 신규 접수가 열린 경우에 적용됩니다.
+
         Provider 작업은 오래 걸릴 수 있으므로 HTTP 요청에서 완료까지 기다리지 않습니다.
         서버는 제품 상태와 Operation을 먼저 영속한 뒤 202 Accepted를 반환하고,
         이후 작업 상태는 Operation 리소스로 조회합니다.
@@ -697,6 +704,11 @@ paths:
         잔여 리소스를 추적하여 Cleanup을 다시 시도할 수 있어야 합니다.
 
         요청 사용자는 LabExecution이 속한 Class의 현재 INSTRUCTOR Membership이 있어야 하며 organizationRole=ADMIN은 이를 대신하지 않습니다.
+        신규 작업 접수가 차단된 동안 새 요청은 503(code `maintenance`)이며 새 Operation/Item을 생성하지 않습니다.
+        현재 권한으로 확인된 같은 의미의 committed Idempotency-Key 재요청은 기존 Operation을 200으로 반환하고
+        다른 의미의 key 재사용은 기존 409입니다. 기존 작업을 취소하거나 재실행하지 않습니다.
+        차단 판정은 Class/Organization의 현재 INSTRUCTOR 권한·형식·committed replay 확인 후 적용하며,
+        새 등록 transaction의 종료 여부(409) 검사보다 우선합니다.
         Cleanup 대상은 현재 ClassMembership이 아니라 이 LabExecution에 저장된 LabInstance 전부(강사용 1개와 접수 때 고정한 학생별 LabInstance)입니다.
         접수(202)는 CLEANUP Operation과 LabInstance별 작업 단위를 하나의 transaction으로 등록할 뿐이며 Provider 리소스 삭제,
         Terminal/Live 종료, LabExecution 종료는 비동기 실행에서 일어납니다. 접수만으로 LabExecution의 상태나 활성 여부는 바뀌지 않으므로
@@ -773,6 +785,11 @@ paths:
         Reset 요청을 실패시킵니다.
 
         요청 사용자는 LabInstance가 속한 Class의 현재 INSTRUCTOR Membership이 있어야 하며 organizationRole=ADMIN은 이를 대신하지 않습니다.
+        신규 작업 접수가 차단된 동안 새 요청은 503(code `maintenance`)이며 새 Operation/Item을 생성하지 않습니다.
+        현재 권한으로 확인된 같은 의미의 committed Idempotency-Key 재요청은 기존 Operation을 200으로 반환하고
+        다른 의미의 key 재사용은 기존 409입니다. 기존 작업을 취소하거나 재실행하지 않습니다.
+        차단 판정은 Class/Organization의 현재 INSTRUCTOR 권한·형식·committed replay 확인 후 적용하며,
+        새 등록 transaction의 종료 여부(409) 및 Reset 대상 역할(422) 검사보다 우선합니다.
         대상은 그 LabExecution의 학생 LabInstance입니다. 학생 본인의 Reset은 403, 강사용 LabInstance의 Reset은 422(code `invalid_reset_target`)입니다.
         접수(202)는 RESET Operation과 현재 generation + 1의 작업 단위를 등록할 뿐이며 Preflight, 기존 리소스 삭제, 재생성은 비동기 실행에서 일어납니다.
         따라서 202는 재현 가능성을 확인했다는 뜻이 아니고, 재현 불가는 Operation 결과로 확인합니다. 접수만으로 LabInstance의 `generation`과
@@ -1787,7 +1804,10 @@ components:
 
     ServiceUnavailable:
       description: |
-        Connector 또는 Provider 같은 필수 의존성이 일시적으로 사용 불가능합니다.
+        Connector 또는 Provider 같은 필수 의존성이 일시적으로 사용 불가능하거나 신규 작업 접수가 차단되어 있습니다.
+
+        Provision/Reset/Cleanup 신규 접수 차단은 code `maintenance`입니다. 새 Operation/Item은 생성되지 않으며
+        성공 응답이나 자동 재시도 지시를 반환하지 않습니다. 기존 Operation의 현재 상태는 조회로 확인합니다.
 
         Runtime maintenance가 활성화되면 인증과 권한 및 committed idempotency replay 확인 뒤 새 Provision/Reset/Cleanup은
         저장 전에 503(code `maintenance`)을 반환합니다. 기존 replay, 읽기 및 session 동작은 유지합니다.

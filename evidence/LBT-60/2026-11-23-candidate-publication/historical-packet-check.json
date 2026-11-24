@@ -1,0 +1,8 @@
+{
+  "original_manifest_sha256": "627f30ca5727d5cb0b2d390730f8fdce7a7d9818bf19bbee4b047961e3bcad8f",
+  "unchanged_entries": 26,
+  "superseded_document_hashes": [
+    "docs/backend/dr-pr196-trial-preparation.md"
+  ],
+  "reason": "Dated candidate-publication followup appended; historical packet and execution bytes are immutable."
+}

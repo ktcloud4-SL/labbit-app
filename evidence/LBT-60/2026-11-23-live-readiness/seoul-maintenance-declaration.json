@@ -1,0 +1,10 @@
+{
+  "observed_at_utc": "2026-11-23T01:17:27.0862781Z",
+  "exit_code": 0,
+  "namespace": "labbit",
+  "name": "backend-config",
+  "uid": "c152c064-3c25-4b2b-a7d7-f3a351108868",
+  "resource_version": "12249",
+  "mode": "open",
+  "scope": "ConfigMap declaration only; mounted mode file in each Pod not read"
+}

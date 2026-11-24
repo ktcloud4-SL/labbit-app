@@ -1,0 +1,322 @@
+[
+  {
+    "path": "cmd/labbit-dr-control/main.go",
+    "sha256": "a52c25ae82d64303c26bdb1fea97a2d98bf00ca2f78114880665e11d8513ff6b",
+    "bytes": 5100
+  },
+  {
+    "path": "cmd/labbit-dr-evidence/main_test.go",
+    "sha256": "ac7120e08bb47221ffbfef9fbe794c896e18e69cbf8945137f2198ad67a59e36",
+    "bytes": 4675
+  },
+  {
+    "path": "cmd/labbit-dr-evidence/main.go",
+    "sha256": "49092861cc47ba4c5b5e18fc50f2386f47104a7c0802d5369d05e076b32af1cc",
+    "bytes": 6821
+  },
+  {
+    "path": "db/migrations/000015_worker_control_restrictions.sql",
+    "sha256": "ede35b2dc7af8c382edcec7384215cdd65bfc4a6395d4be25ca88b97600fcbf5",
+    "bytes": 851
+  },
+  {
+    "path": "db/migrations/README.md",
+    "sha256": "c59cc59b75df2c38f7c5340d1cdb31674e339e63703f48ec242aaa79b7780c87",
+    "bytes": 24174
+  },
+  {
+    "path": "docs/backend/dr-maintenance-integration.md",
+    "sha256": "e9891714782efd303ce90906cd5b40a0fa28cc0d3456e6ee96e389cdbacd126e",
+    "bytes": 12618
+  },
+  {
+    "path": "docs/backend/dr-stage3-deployment.md",
+    "sha256": "535b11becf7f9f4f3f210b621a31ca5e3b02153796a709e0fdd2ff1b56438f4e",
+    "bytes": 8436
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/artifact-manifest.json",
+    "sha256": "6c96aa3e806e4888307815edef53791f3b934a5a2948adcc83bbaaa6671335c4",
+    "bytes": 4490
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/audit.json",
+    "sha256": "90fcd34f109e68a0e3c6e70fe9dfeaa797b9348d17a399b376822f1f844fc00e",
+    "bytes": 9667
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/aws-observation.json",
+    "sha256": "be6510c1816181b0c70acc961f72df4e0cedbcafc0e7ff7bc3e9b51fbb7e3821",
+    "bytes": 4391
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/cli-preview-results.json",
+    "sha256": "5f45cfd1d6941b8e0c693756c073f592d2a6f2ed18a8f1c6e1b1deffd617159a",
+    "bytes": 1276
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/commands.json",
+    "sha256": "b880befc5c6a41862e95c52e8ca6e1a5e019d4fb74419dbd840564d9d2136ea9",
+    "bytes": 3149
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/disabled-execute.stderr.txt",
+    "sha256": "91bc1ea15a4caf5ece627aef46be7fc702061c15dfaf69f9e14476c92180c9bb",
+    "bytes": 45
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/ecr-candidate-tag.json",
+    "sha256": "f7c7c61b6e08f4417132a8ab80eac5635ffd1fafd7e3401f19c4ecc5c699771d",
+    "bytes": 386
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/independent-review.md",
+    "sha256": "70406c1bd99f948412452c8d167d9e664d3cecdb7b723bac961e3a899f62c24e",
+    "bytes": 17393
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/migration-job-summary.json",
+    "sha256": "41e8b701d402cd0d8a5d8bb888c0bc7f486cd14633fb8e388fd9e3152fa2e1ee",
+    "bytes": 314
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/operator-offline-tests.jsonl",
+    "sha256": "181159781f2bbb260e3de3c3586050ab406e1ceec4b1eec994c3d8cb504d7203",
+    "bytes": 51349
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/operator-offline-tests.stderr.txt",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/osaka-observation.json",
+    "sha256": "224d604c4eb3bc6019166e2441fc74f58be2eb57abb348f99cab7ca4289da9e2",
+    "bytes": 178
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/preview-only-input.json",
+    "sha256": "435e8ce096574e7d51cb897d6711be2581994011faabed85b68ef251802ea3b9",
+    "bytes": 788
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/preview-only-policy.json",
+    "sha256": "a0d2c1f60cc26132ca56d0bf136cb4d30b8403e72a717671fa8392d52dadad6d",
+    "bytes": 1369
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/preview.stderr.txt",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/readiness.json",
+    "sha256": "ad3483ec8d31ee04e934ba74644c98b93e21609efefc379116c29e631b96791c",
+    "bytes": 8320
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/readonly-aws.go.txt",
+    "sha256": "3fcd18335a9ccf0050eaeda45f0df920f9fe6a207f1a509c7d8775c04ee5038c",
+    "bytes": 2240
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/readonly-metadata-smoke-policy.json",
+    "sha256": "94e75b50a833717bf1ff61453bd05e12a520a97acbf6990fce93ae23c6afe536",
+    "bytes": 1412
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/readonly-metadata-smoke-receipt.json",
+    "sha256": "e5a41e2bffa2fe404f250a85fba6f1d57ab415ca0aadc7ae8b49773072c154c0",
+    "bytes": 464
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/readonly-metadata-smoke-result.json",
+    "sha256": "16c6da839c87f51c391ad6435ff87ad18e82413ef78152b0641ec7cecb1c9d81",
+    "bytes": 427
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/readonly-metadata-smoke.stderr.txt",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/seoul-control-settings.json",
+    "sha256": "0edc5b16fbfbe45d5368a92690a3652dd7b87db143ff29b8da4e8d65af9da910",
+    "bytes": 1364
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/seoul-maintenance-declaration.json",
+    "sha256": "6ce926446456846b40949af66b7c582badeaa4e5d7dda80bdab8ce5eb4b6c7d9",
+    "bytes": 314
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/seoul-observation.json",
+    "sha256": "1f2f85777ceb5f7e1a3d0ec7bcb10982547608a0bed1a52698206810e7cbb435",
+    "bytes": 9925
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/seoul-rds.json",
+    "sha256": "9c45ffa99a39ddcb52651b5c132ab9daee4658352014cb23779fd0d42a7b84bd",
+    "bytes": 548
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/ssot-source.json",
+    "sha256": "55521d699d4c05164a481dbdaa55221334c423920963ee0733ac855143c92892",
+    "bytes": 15256
+  },
+  {
+    "path": "evidence/LBT-60/2026-11-23-live-readiness/verification.json",
+    "sha256": "66016d454889cd26cf26bf4639104d14a237872f6cda68c9c698f533340c1a76",
+    "bytes": 35170
+  },
+  {
+    "path": "internal/drcontrol/collector_adapters_test.go",
+    "sha256": "e0deff651644748fb53632c8ff91ca0a66d3ddb74df90eecf1115231be78de38",
+    "bytes": 6152
+  },
+  {
+    "path": "internal/drcontrol/collector_adapters.go",
+    "sha256": "0d8bfb4302170c601765fe940552453ddb585a0fab37f5e7d14419322882c067",
+    "bytes": 6610
+  },
+  {
+    "path": "internal/drcontrol/collector.go",
+    "sha256": "a906cdcf3affbd0be926e79acc86299fe24c62c912cb7d6d3cc316af21d11adb",
+    "bytes": 11264
+  },
+  {
+    "path": "internal/drcontrol/contract.go",
+    "sha256": "118bab970a396e2683d81660354580b7de5f67983e31257b99a177d1be63a41d",
+    "bytes": 9620
+  },
+  {
+    "path": "internal/drcontrol/linkage_test.go",
+    "sha256": "ca364252e9156aa5fc4176feabd28e2614bc3c91b24802fc3943d20013093cfc",
+    "bytes": 14931
+  },
+  {
+    "path": "internal/drcontrol/protected_unix_test.go",
+    "sha256": "36a11d4937a1ec1ca71a331972316cc8f18501c4cb6d91437be25c7f54738d03",
+    "bytes": 742
+  },
+  {
+    "path": "internal/drcontrol/protected_unix.go",
+    "sha256": "99402ad384e2394da43846514a147d1856f8a6c45848758076f09f5ee3545893",
+    "bytes": 320
+  },
+  {
+    "path": "internal/drcontrol/protected_windows_test.go",
+    "sha256": "a297ecbdd57f2bf0246c102b9b566f73d3ecd0fe45efbfef4b1449212db8ab7e",
+    "bytes": 1226
+  },
+  {
+    "path": "internal/drcontrol/protected_windows.go",
+    "sha256": "8751492d6f3912fd287bc686f62cac928058741845c357ab6c7acacfb3e5af2d",
+    "bytes": 1172
+  },
+  {
+    "path": "internal/drcontrol/protected.go",
+    "sha256": "b659f7d90e48cf4b4353de3c83403848ece28317ff5e181decde6dd0e4331d09",
+    "bytes": 819
+  },
+  {
+    "path": "internal/drcontrol/restrict.go",
+    "sha256": "3c6f7bc93ae4009bdf4b14a0fd8b4d581210dd4ca2bee2f791ddc99724d0afbc",
+    "bytes": 2828
+  },
+  {
+    "path": "internal/drcontrol/restriction_integration_test.go",
+    "sha256": "06d8154fc28ba314ad24f00cb996e9694c0b8d345ff04f4ecd6e5211d1819c5c",
+    "bytes": 7339
+  },
+  {
+    "path": "internal/drcontrol/sign.go",
+    "sha256": "d0b71f8ad3e1374aea60d6e712aeb23d15b3b2243a8acf3328daec2551dbd085",
+    "bytes": 5942
+  },
+  {
+    "path": "internal/postgres/migrate_integration_test.go",
+    "sha256": "45c6763d57e5116aa9177c65de80a31b53878ab104de58fd5911f8b9f8b709d3",
+    "bytes": 21804
+  },
+  {
+    "path": "internal/postgres/migration_test.go",
+    "sha256": "ca936b72f597c325b7696d28a7d0472d76d66734f3cb5a930979d036b5e022e8",
+    "bytes": 5514
+  },
+  {
+    "path": "internal/postgres/worker_control_lifecycle_integration_test.go",
+    "sha256": "655c46f986f172dd9dcb7e94676166edf74c02cba48630be5f5ce5f4d11f361f",
+    "bytes": 9703
+  },
+  {
+    "path": "internal/postgres/worker_control_restrict.go",
+    "sha256": "350521c76a0e2f0decdc71ae30d9dccc7d05a4dc7193edd3d35533ee9c025972",
+    "bytes": 5736
+  },
+  {
+    "path": "internal/postgres/worker_control_resume.go",
+    "sha256": "de3edfa3132cbdf64e98ebe5a953d35346d2acb9722a8b5b812cc521b5492155",
+    "bytes": 6740
+  },
+  {
+    "path": "internal/postgres/worker_control_test.go",
+    "sha256": "f98e05577eb48a16c1a389b21645275a40381469e9b55f7b31877a6c38d5cc34",
+    "bytes": 9100
+  },
+  {
+    "path": "internal/postgres/worker_control.go",
+    "sha256": "870863544ed26464035ccf2d243d727ec682ad194c0dfa1c949b6effafacdf35",
+    "bytes": 10630
+  },
+  {
+    "path": "internal/server/app/app.go",
+    "sha256": "a0d45463e20ae6d1e9d3a2bb2d53f39f965b5904b1e7ad73021c35212da816e5",
+    "bytes": 28836
+  },
+  {
+    "path": "internal/server/app/control_stack.go",
+    "sha256": "25710a7321b608a8c2d37b24ecb0f6787ca7fbaa1d68b79e8e5903db7db77225",
+    "bytes": 21835
+  },
+  {
+    "path": "internal/server/app/dr_readback_test.go",
+    "sha256": "e40097f85f583f9ce6ce2a17ebb5fca330f27f0f8bc85f590324408ca0491d6f",
+    "bytes": 2335
+  },
+  {
+    "path": "internal/server/app/dr_readback.go",
+    "sha256": "4dcb1132525f2bab5388f4b890f992644ab13fd75bc33df985ce9a506c8947e2",
+    "bytes": 1217
+  },
+  {
+    "path": "internal/server/maintenance/gate.go",
+    "sha256": "7b0d3ac9519bb1f0bf9e4694016cb9411286257995253af711e5125f0ea9ed3b",
+    "bytes": 5276
+  },
+  {
+    "path": "internal/server/workercontrol/durable.go",
+    "sha256": "17c92b8c830778d12c93664e0b203575c453a8c4e7fdf89f33b089153bbc652c",
+    "bytes": 6046
+  },
+  {
+    "path": "internal/server/workercontrol/restrict.go",
+    "sha256": "0d87f0d8c7181f0f6697089eeaf222d2b1c7933874f094e9756438c7d3329981",
+    "bytes": 5454
+  },
+  {
+    "path": "runtime/contract.yaml",
+    "sha256": "2da5a50486c5cee6847fc119b097378d33481da896d17e043b46800f8a0b912b",
+    "bytes": 74615
+  },
+  {
+    "path": "runtime/dr-control.md",
+    "sha256": "f4cdd7c2c9e5bb0b9b12492fc23450c2c33b07ee7939b459ee6939e8bbaf4ea7",
+    "bytes": 12612
+  },
+  {
+    "path": "runtime/README.md",
+    "sha256": "c864b338adfdfc99b37bf6ef3a423311c6b88ab5fc6983b97f1aa61554241bbe",
+    "bytes": 35537
+  }
+]

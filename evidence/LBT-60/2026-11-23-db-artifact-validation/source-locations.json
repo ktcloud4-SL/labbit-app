@@ -1,0 +1,77 @@
+[
+  {
+    "path": "internal/drcontrol/database.go",
+    "anchor": "func DatabaseConfig",
+    "line": 15
+  },
+  {
+    "path": "internal/drcontrol/database.go",
+    "anchor": "func VerifySQL",
+    "line": 54
+  },
+  {
+    "path": "internal/drcontrol/prepared.go",
+    "anchor": "func PrepareArtifacts",
+    "line": 14
+  },
+  {
+    "path": "internal/drcontrol/prepared.go",
+    "anchor": "func (p *PreparedArtifacts) Read",
+    "line": 54
+  },
+  {
+    "path": "internal/drcontrol/prepared.go",
+    "anchor": "func (p *PreparedArtifacts) Clear",
+    "line": 66
+  },
+  {
+    "path": "internal/drcontrol/verified.go",
+    "anchor": "func Execute",
+    "line": 104
+  },
+  {
+    "path": "internal/drcontrol/verified.go",
+    "anchor": "func (v *Verifier) AuthorizeResume",
+    "line": 74
+  },
+  {
+    "path": "internal/drcontrol/verified.go",
+    "anchor": "func (v *Verifier) RecheckResume",
+    "line": 87
+  },
+  {
+    "path": "internal/drcontrol/restrict.go",
+    "anchor": "func ExecuteRestriction",
+    "line": 62
+  },
+  {
+    "path": "scripts/dr_control_artifact_store.py",
+    "anchor": "def store",
+    "line": 122
+  },
+  {
+    "path": "scripts/dr_control_artifact_store.py",
+    "anchor": "WINDOW_EXPIRED_BEFORE_PUT",
+    "line": 163
+  },
+  {
+    "path": "scripts/dr_control_artifact_store.py",
+    "anchor": "FULL_OBJECT_METADATA_NOT_VERIFIED",
+    "line": 183
+  },
+  {
+    "path": "runtime/contract.yaml",
+    "anchor": "version:",
+    "line": 1
+  },
+  {
+    "path": "runtime/contract.yaml",
+    "anchor": "dr_worker_control:",
+    "line": 48
+  },
+  {
+    "path": "runtime/contract.yaml",
+    "anchor": "dr_control_artifact_store:",
+    "line": 95
+  }
+]

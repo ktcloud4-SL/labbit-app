@@ -1,0 +1,50 @@
+{
+  "observed_at_utc": "2026-11-23T01:13:28.4009109Z",
+  "container": "common-app",
+  "safe_env": [
+    {
+      "name": "LABBIT_MAINTENANCE_FILE",
+      "value": "/etc/config/mode",
+      "valueFrom": null
+    },
+    {
+      "name": "LABBIT_RUNTIME_ROLES",
+      "value": "api,realtime,worker,preview",
+      "valueFrom": null
+    }
+  ],
+  "missing_env": [
+    "LABBIT_WORKER_ADMISSION_POLICY",
+    "LABBIT_WORKER_CONTROL_BACKEND",
+    "LABBIT_WORKER_CONTROL_ID",
+    "LABBIT_WORKER_CONTROL_REGION",
+    "LABBIT_WORKER_CONTROL_CLUSTER",
+    "LABBIT_WORKER_CONTROL_REVISION",
+    "LABBIT_WORKER_CONTROL_EPOCH"
+  ],
+  "configmap_exit": 0,
+  "configmap": {
+    "name": "backend-config",
+    "uid": "c152c064-3c25-4b2b-a7d7-f3a351108868",
+    "resource_version": "12249",
+    "maintenance_mode": null,
+    "data_keys": [
+      "mode"
+    ]
+  },
+  "jobs_exit": 0,
+  "jobs": [
+    {
+      "name": "labbit-db-migration",
+      "uid": "25cdcf79-1a0e-41ed-b275-b6e47fc35332",
+      "start": "2026-11-23T00:23:23Z",
+      "completed": "2026-11-23T00:23:29Z",
+      "succeeded": 1,
+      "failed": null,
+      "images": [
+        "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb"
+      ]
+    }
+  ],
+  "migration_proof": "Completed Job metadata only; SQL schema, versions and backup/restore not queried"
+}

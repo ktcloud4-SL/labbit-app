@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"runtime"
 	"testing"
 	"time"
 
@@ -54,6 +55,19 @@ func TestWorkspacePTYProof(t *testing.T) {
 
 func readinessSSHServer(t *testing.T, scenario string) (string, ssh.Signer) {
 	t.Helper()
+	shell := "/bin/sh"
+	if scenario == "shell roundtrip" && runtime.GOOS == "windows" {
+		// Only the in-process SSH peer uses this shell. The Connector still
+		// sends its normal POSIX proof over SSH, without a production fallback.
+		var err error
+		shell, err = exec.LookPath("sh")
+		if err != nil {
+			shell = `C:\Program Files\Git\usr\bin\sh.exe`
+			if _, err := os.Stat(shell); err != nil {
+				t.Skip("POSIX shell not installed for the local Windows SSH fixture")
+			}
+		}
+	}
 	signer, err := ssh.NewSignerFromKey(testPrivateKey("readiness-host"))
 	if err != nil {
 		t.Fatal(err)
@@ -113,11 +127,14 @@ func readinessSSHServer(t *testing.T, scenario string) (string, ssh.Signer) {
 					_, _ = io.Copy(channel, channel)
 					return
 				}
-				command := exec.Command("/bin/sh")
+				command := exec.Command(shell)
 				command.Stdin = channel
 				command.Stdout = channel
 				command.Stderr = channel
-				_ = command.Start()
+				if err := command.Start(); err != nil {
+					t.Errorf("local SSH fixture shell could not start: %v", err)
+					return
+				}
 				go func() {
 					_ = server.Wait()
 					if command.Process != nil {

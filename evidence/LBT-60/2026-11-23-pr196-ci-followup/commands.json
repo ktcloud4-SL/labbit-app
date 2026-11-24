@@ -1,0 +1,30 @@
+[
+  {
+    "argv": [
+      "C:\\Users\\user\\.codex\\tmp\\pr196-gitleaks-8.28-20261123\\gitleaks.exe",
+      "detect",
+      "--log-opts=origin/main..HEAD",
+      "--verbose",
+      "--redact",
+      "--report-format=json",
+      "--report-path=C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-dr-stage3-offline-20261121\\evidence\\LBT-60\\2026-11-23-pr196-ci-followup\\gitleaks-baseline.json"
+    ],
+    "exit_code": 1,
+    "started_at_utc": "2026-11-23T00:34:49.913793+00:00",
+    "ended_at_utc": "2026-11-23T00:34:51.001338+00:00"
+  },
+  {
+    "argv": [
+      "C:\\Users\\user\\.codex\\tmp\\pr196-gitleaks-8.28-20261123\\gitleaks.exe",
+      "detect",
+      "--log-opts=origin/main..HEAD",
+      "--verbose",
+      "--redact",
+      "--report-format=json",
+      "--report-path=C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-dr-stage3-offline-20261121\\evidence\\LBT-60\\2026-11-23-pr196-ci-followup\\gitleaks-final.json"
+    ],
+    "exit_code": 0,
+    "started_at_utc": "2026-11-23T00:34:51.002337+00:00",
+    "ended_at_utc": "2026-11-23T00:34:52.095721+00:00"
+  }
+]

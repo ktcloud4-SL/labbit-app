@@ -1,0 +1,678 @@
+{
+  "prior_manifest_sha256": "e8db0b187c906995d1786fe0047ed379157f2ac307c3914f33ec7455d0fda2a5",
+  "entries": [
+    {
+      "path": "docs/backend/dr-maintenance-integration.md",
+      "prior_sha256": "e3f8c25b6a9832f8d69a929f0e122192e89986f7cef58b6ffbc2dbb43a1f4682",
+      "current_sha256": "d92665162946ef5a785c9e8fee523b38d8b1f79f83524d5e912451efbbdbed8f",
+      "unchanged": false,
+      "intentional_document_followup": true
+    },
+    {
+      "path": "docs/backend/dr-pr196-trial-preparation.md",
+      "prior_sha256": "9d3225373b7e7b2c888375b1aaa24dc63173c061e7c914a85a050761cd6a3a48",
+      "current_sha256": "966e3e513ba51af5e997e5b38d4370586162a98e64bf8386a6ef4c69720c1c06",
+      "unchanged": false,
+      "intentional_document_followup": true
+    },
+    {
+      "path": "docs/backend/dr-stage3-deployment.md",
+      "prior_sha256": "65369809c30ea36fdf3b7d09e95099d18b6780625662e9564b01b94a50a68080",
+      "current_sha256": "86de17c549dac2fd6bd621bb852c3f033b094ff3461ce601b4612d4fc80fdf66",
+      "unchanged": false,
+      "intentional_document_followup": true
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/.gitattributes",
+      "prior_sha256": "24cd690f12e5b0b248d61bb9a38cb37a7fe356a43463c89ae47fb841712787c9",
+      "current_sha256": "24cd690f12e5b0b248d61bb9a38cb37a7fe356a43463c89ae47fb841712787c9",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/AUDIT.md",
+      "prior_sha256": "1b5ee770e5dfe4cb7f67f283744e7ef7e0cf5d1f2fd845e20522452f69b58529",
+      "current_sha256": "1b5ee770e5dfe4cb7f67f283744e7ef7e0cf5d1f2fd845e20522452f69b58529",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/README.md",
+      "prior_sha256": "f3aa82f395965667cb43ec7fbf82d9a51fea2a16c461c491a3b0d0664ae9318d",
+      "current_sha256": "f3aa82f395965667cb43ec7fbf82d9a51fea2a16c461c491a3b0d0664ae9318d",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/build-summary.json",
+      "prior_sha256": "ff59f911ec3cc597815c81a34c94f106ac9018321978b7c7f06736399c53dfba",
+      "current_sha256": "ff59f911ec3cc597815c81a34c94f106ac9018321978b7c7f06736399c53dfba",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/candidate-build.yml.txt",
+      "prior_sha256": "4a5e9da36c182d3d29fb27e733675c9e2c67c9e133b0a019e24efb6557172969",
+      "current_sha256": "4a5e9da36c182d3d29fb27e733675c9e2c67c9e133b0a019e24efb6557172969",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/candidate-critical-scan.json",
+      "prior_sha256": "fb94fe8aff344cc0ce3d021eccbbc110e578191a210d958257e38182537fb424",
+      "current_sha256": "fb94fe8aff344cc0ce3d021eccbbc110e578191a210d958257e38182537fb424",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/candidate-repository.json",
+      "prior_sha256": "3aa3ca4eeaffa6439b4e54677dc55a2c3bbeba3d5d551f90bc8792129674b655",
+      "current_sha256": "3aa3ca4eeaffa6439b4e54677dc55a2c3bbeba3d5d551f90bc8792129674b655",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/candidate.tar.sha256",
+      "prior_sha256": "730411d462f7c14b4d0c7286720bd72e2d44a7655a070be6058780eaddd07e0b",
+      "current_sha256": "730411d462f7c14b4d0c7286720bd72e2d44a7655a070be6058780eaddd07e0b",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/connection-path-readonly.json",
+      "prior_sha256": "5aba1a9cb8c0fbe416f170d16f576621c96108d00dcab9811a63f5398c61d9e0",
+      "current_sha256": "5aba1a9cb8c0fbe416f170d16f576621c96108d00dcab9811a63f5398c61d9e0",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/download-integrity.json",
+      "prior_sha256": "7a83b42f39373a8c0f6f5fd9c6dc982beffc975d1b7d46ad7ed0fa243524ddce",
+      "current_sha256": "7a83b42f39373a8c0f6f5fd9c6dc982beffc975d1b7d46ad7ed0fa243524ddce",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/final-readonly-observations.initial-selector.json",
+      "prior_sha256": "4fa80d04a15862cf37d1ce6ecd9c796ec59f2cc844836e82d005c460b3efb3ed",
+      "current_sha256": "4fa80d04a15862cf37d1ce6ecd9c796ec59f2cc844836e82d005c460b3efb3ed",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/final-readonly-observations.json",
+      "prior_sha256": "acaaf7636f877a7ea8f12f2a44f287474344f15cf457bf36acad1bb760d0aeed",
+      "current_sha256": "acaaf7636f877a7ea8f12f2a44f287474344f15cf457bf36acad1bb760d0aeed",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/finalize-helper.py.txt",
+      "prior_sha256": "a6af9b615717c27182961f2e04532f88b212b8114ce5ff528789958b5b4782d0",
+      "current_sha256": "a6af9b615717c27182961f2e04532f88b212b8114ce5ff528789958b5b4782d0",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/github-build-job.txt",
+      "prior_sha256": "f2462710e4b7e901c9a781223201da4fd7e029203457ca79e537186b8ce25689",
+      "current_sha256": "f2462710e4b7e901c9a781223201da4fd7e029203457ca79e537186b8ce25689",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/gitleaks-reviewed.toml",
+      "prior_sha256": "30135034f955d47db37d4cf0c4cc76727a2a4b4981da60f8d70ab931842f4b9a",
+      "current_sha256": "30135034f955d47db37d4cf0c4cc76727a2a4b4981da60f8d70ab931842f4b9a",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/go.mod.txt",
+      "prior_sha256": "cd0f9125ad50ef494de0c03b2fd79330afd580daff0f792a4514a1254aaacf82",
+      "current_sha256": "cd0f9125ad50ef494de0c03b2fd79330afd580daff0f792a4514a1254aaacf82",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/go.sum.txt",
+      "prior_sha256": "12be998f5bf07a4a78df5b2ce9f0c6653a44b8cbf82277dbf170ccc478212278",
+      "current_sha256": "12be998f5bf07a4a78df5b2ce9f0c6653a44b8cbf82277dbf170ccc478212278",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/historical-packet-check.json",
+      "prior_sha256": "013adec4f570043b016b7fcc8b6b82fb39aeb71db2aa734170d69b8c55b4e9a2",
+      "current_sha256": "013adec4f570043b016b7fcc8b6b82fb39aeb71db2aa734170d69b8c55b4e9a2",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/image-inspect.json",
+      "prior_sha256": "5e14bd58d185a4a75387107f7c956fede0d9baed7595749cfd058e51abcfbfd1",
+      "current_sha256": "5e14bd58d185a4a75387107f7c956fede0d9baed7595749cfd058e51abcfbfd1",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/image-local-verification.json",
+      "prior_sha256": "150b8e094a24fe9a49069535f63fefe54f5b4d181135866bd8794bef15038d9a",
+      "current_sha256": "150b8e094a24fe9a49069535f63fefe54f5b4d181135866bd8794bef15038d9a",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/image-provenance-chain.json",
+      "prior_sha256": "ac01cc00e9639adce5fae546f2b06e36e2d0dde82f037210f25893047032913c",
+      "current_sha256": "ac01cc00e9639adce5fae546f2b06e36e2d0dde82f037210f25893047032913c",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/image-publication-readback.json",
+      "prior_sha256": "d90ab19b24e6beb149eeda5eb65eab2e733a196a66ae41c36e085f51bcf056c0",
+      "current_sha256": "d90ab19b24e6beb149eeda5eb65eab2e733a196a66ae41c36e085f51bcf056c0",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/independent-review.md",
+      "prior_sha256": "5b6a12be38bde279efc364e454038f45d56a1e140053ca5216b4472ceee50fab",
+      "current_sha256": "5b6a12be38bde279efc364e454038f45d56a1e140053ca5216b4472ceee50fab",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/initial-scan-redacted.json",
+      "prior_sha256": "c1cd4b792cce4bcb3aef15ffa808388ab9871bca546f32b39ba7793f868c4aec",
+      "current_sha256": "c1cd4b792cce4bcb3aef15ffa808388ab9871bca546f32b39ba7793f868c4aec",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/main.go.txt",
+      "prior_sha256": "581b69d104daab4d4765a8de5084f45778addab7731041185b2a9616794c10ca",
+      "current_sha256": "581b69d104daab4d4765a8de5084f45778addab7731041185b2a9616794c10ca",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/main_test.go.txt",
+      "prior_sha256": "adc57853a3db8a9802707b60167bfc55aa9467dae295b56b897ec18777a6687c",
+      "current_sha256": "adc57853a3db8a9802707b60167bfc55aa9467dae295b56b897ec18777a6687c",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/management-client-command.json",
+      "prior_sha256": "4cbfa7cc1f7674fec76e1b3ee3707c39dd9e5d7109c4cbc3e12c9434f360337b",
+      "current_sha256": "4cbfa7cc1f7674fec76e1b3ee3707c39dd9e5d7109c4cbc3e12c9434f360337b",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/management-client-prepare.sh.txt",
+      "prior_sha256": "5edf40642c5a1cb1c0647884862883be60671bead5b9d5c5dc50d4f800bd5814",
+      "current_sha256": "5edf40642c5a1cb1c0647884862883be60671bead5b9d5c5dc50d4f800bd5814",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/management-client-result.json",
+      "prior_sha256": "fec730dd2a8c97372dfd818ecb32d0744f4dccaddc3f59aac9fc3dbcd9b3a259",
+      "current_sha256": "fec730dd2a8c97372dfd818ecb32d0744f4dccaddc3f59aac9fc3dbcd9b3a259",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/management-tooling-preread.json",
+      "prior_sha256": "daf48e9f71770f21481eb5e7f617ec4ba597821131eac69bfc43b9bb712406a1",
+      "current_sha256": "daf48e9f71770f21481eb5e7f617ec4ba597821131eac69bfc43b9bb712406a1",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/portable-ssm-tool-provenance.json",
+      "prior_sha256": "85d037091f98d14bbb0a53288959d6f51b1453e7e5c987c53ea13d950e63cf41",
+      "current_sha256": "85d037091f98d14bbb0a53288959d6f51b1453e7e5c987c53ea13d950e63cf41",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/preparation-helper-source-manifest.json",
+      "prior_sha256": "e0eed4809fc8227d0612b6a02319897f3ffe99a991f26ac3352bc9b5a462d803",
+      "current_sha256": "e0eed4809fc8227d0612b6a02319897f3ffe99a991f26ac3352bc9b5a462d803",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/protected-key-directory.ps1.txt",
+      "prior_sha256": "17f4f815852e1fb436a1291da6d80a46ef9928d4a732c4ccc0beb8c4abc377e5",
+      "current_sha256": "17f4f815852e1fb436a1291da6d80a46ef9928d4a732c4ccc0beb8c4abc377e5",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/protected-key-main.go.txt",
+      "prior_sha256": "86c3a28dfcacc9096fa27c521679350fb17f4bcdeb35d440aae7d13c705cf3e2",
+      "current_sha256": "86c3a28dfcacc9096fa27c521679350fb17f4bcdeb35d440aae7d13c705cf3e2",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/protected-key-preparation.json",
+      "prior_sha256": "66cf008b34f706538b83e1a7f5353efb3d0aebd5e1d7b3ec1a58769e03463187",
+      "current_sha256": "66cf008b34f706538b83e1a7f5353efb3d0aebd5e1d7b3ec1a58769e03463187",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/publisher-source-manifest.json",
+      "prior_sha256": "4db1b6fbfea5469458261b7c44d0c8cfe892a7c474ac83ece2f7b8bb92b1524b",
+      "current_sha256": "4db1b6fbfea5469458261b7c44d0c8cfe892a7c474ac83ece2f7b8bb92b1524b",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/publisher-tests.jsonl",
+      "prior_sha256": "054a5a74e66fbb5574db11e37234616e10ad89634d039ec8503a223d22fdbcee",
+      "current_sha256": "054a5a74e66fbb5574db11e37234616e10ad89634d039ec8503a223d22fdbcee",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/artifact-verifier.py.txt",
+      "prior_sha256": "cc29724e0ef102be6ea7580a75aa3ee942d49c980b811fecbdbf78bedd84155f",
+      "current_sha256": "cc29724e0ef102be6ea7580a75aa3ee942d49c980b811fecbdbf78bedd84155f",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/build-summary.json",
+      "prior_sha256": "a2ce626ab3f7b8c4c27e9d0ae5f5374884746996e441444e7a292bb9c61fac72",
+      "current_sha256": "a2ce626ab3f7b8c4c27e9d0ae5f5374884746996e441444e7a292bb9c61fac72",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/candidate.tar.sha256",
+      "prior_sha256": "a1525222278f97b0c0419a306a1f253b7f0476e263d0499bfb6755d1e8a7ab6f",
+      "current_sha256": "a1525222278f97b0c0419a306a1f253b7f0476e263d0499bfb6755d1e8a7ab6f",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/download-integrity.json",
+      "prior_sha256": "8da8d468a53741650b67bd3984589ca4c67e97b982d9238468499a862e1af1a6",
+      "current_sha256": "8da8d468a53741650b67bd3984589ca4c67e97b982d9238468499a862e1af1a6",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/ecr-scan-readback.json",
+      "prior_sha256": "8ac0d9c38d86a73942b20b4a27a7bbc03c23d145d7fcb6a09e3b62c18b207958",
+      "current_sha256": "8ac0d9c38d86a73942b20b4a27a7bbc03c23d145d7fcb6a09e3b62c18b207958",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/github-build-job.txt",
+      "prior_sha256": "9c7c1648762d22469c3e9b11601f0625a6420c912310ec19a038e9d161601719",
+      "current_sha256": "9c7c1648762d22469c3e9b11601f0625a6420c912310ec19a038e9d161601719",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/image-inspect.json",
+      "prior_sha256": "7d5e71c84bc534cf5fccb261463041ca26d469fe93180f1ae62a78332345069d",
+      "current_sha256": "7d5e71c84bc534cf5fccb261463041ca26d469fe93180f1ae62a78332345069d",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/image-local-verification.json",
+      "prior_sha256": "1a44280017821d0e8b72750980b9b54a43cf0dbf7dd69d38e3a50f6a4aa620fd",
+      "current_sha256": "1a44280017821d0e8b72750980b9b54a43cf0dbf7dd69d38e3a50f6a4aa620fd",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/image-provenance-chain.json",
+      "prior_sha256": "b6eb26862c75e3520faf2d4237153607c89a1e4b4890a44d69705d3c3130f427",
+      "current_sha256": "b6eb26862c75e3520faf2d4237153607c89a1e4b4890a44d69705d3c3130f427",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/image-publication-readback.json",
+      "prior_sha256": "d861f3f266e6e7256e59f84c05b1968c2a37f614830a9dfffcb1f169bdf2e526",
+      "current_sha256": "d861f3f266e6e7256e59f84c05b1968c2a37f614830a9dfffcb1f169bdf2e526",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/provenance-verifier.py.txt",
+      "prior_sha256": "7c3c4777ccc02cf641fed04943714296831c8781bc72bd77b783ab919ab5ab49",
+      "current_sha256": "7c3c4777ccc02cf641fed04943714296831c8781bc72bd77b783ab919ab5ab49",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/runtime-dockerfile.sha256",
+      "prior_sha256": "ffe7ad01eefd1f1123c66bdb883e5248556f3785f1f32b84eb492452eb12541b",
+      "current_sha256": "ffe7ad01eefd1f1123c66bdb883e5248556f3785f1f32b84eb492452eb12541b",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/runtime-package-check.txt",
+      "prior_sha256": "8b4cfd06771f0132d0ec54a582e43ab3ea9a3082b44429417debe7b08276ca69",
+      "current_sha256": "8b4cfd06771f0132d0ec54a582e43ab3ea9a3082b44429417debe7b08276ca69",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/runtime.Dockerfile",
+      "prior_sha256": "565356e64b883722e83b2d63502e81ccfe4e1014012b630ac0cf90b760fa30a8",
+      "current_sha256": "565356e64b883722e83b2d63502e81ccfe4e1014012b630ac0cf90b760fa30a8",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14/source-files.txt",
+      "prior_sha256": "aa52213a60d5f9962342ea43bffa85b91677442b7fc9b8b93379d83b6b160bc3",
+      "current_sha256": "aa52213a60d5f9962342ea43bffa85b91677442b7fc9b8b93379d83b6b160bc3",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/schema-guard-tests.py.txt",
+      "prior_sha256": "275a5c9c75142e9cccb2621afe31ec0205503347ac946609947a55d5092fdaa1",
+      "current_sha256": "275a5c9c75142e9cccb2621afe31ec0205503347ac946609947a55d5092fdaa1",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/schema-ledger-comparison.json",
+      "prior_sha256": "a83453666832d44fa9e3bada09b52ac9006fab2d45754017e995af0870e0ebac",
+      "current_sha256": "a83453666832d44fa9e3bada09b52ac9006fab2d45754017e995af0870e0ebac",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/schema-readonly-command.json",
+      "prior_sha256": "2d983a1be85019ceececdbd36d53dd5bc01bcd1d4d957ce00e6b2f79b074e742",
+      "current_sha256": "2d983a1be85019ceececdbd36d53dd5bc01bcd1d4d957ce00e6b2f79b074e742",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/schema-readonly-remote.py.txt",
+      "prior_sha256": "d8a557560ed459a0ee4a6612a8b8677ba3ccd5729383694400047b7f6fa46348",
+      "current_sha256": "d8a557560ed459a0ee4a6612a8b8677ba3ccd5729383694400047b7f6fa46348",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/schema-readonly-result.json",
+      "prior_sha256": "86f0bbcdebdccf1ac1711a7253875b0312714f021805eec10db146400acb9a45",
+      "current_sha256": "86f0bbcdebdccf1ac1711a7253875b0312714f021805eec10db146400acb9a45",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/schema-session-history-readback.json",
+      "prior_sha256": "676b429c37d284ae1ab3fd094f5e4fb04eb3239599f73e48c2a307f4837a408e",
+      "current_sha256": "676b429c37d284ae1ab3fd094f5e4fb04eb3239599f73e48c2a307f4837a408e",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/schema-tunnel-main.go.txt",
+      "prior_sha256": "ed8dcaa4a74fbba98d6e305f6a5ed6571d6d0168f8f559693a3d75ffaff6e68e",
+      "current_sha256": "ed8dcaa4a74fbba98d6e305f6a5ed6571d6d0168f8f559693a3d75ffaff6e68e",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/schema-tunnel-main_test.go.txt",
+      "prior_sha256": "b136ed0ded1e1166ddf5cd831fb2632559c26733b26d18fd6f37442d2378539a",
+      "current_sha256": "b136ed0ded1e1166ddf5cd831fb2632559c26733b26d18fd6f37442d2378539a",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/schema-tunnel-result.json",
+      "prior_sha256": "1b2e6d688a32e7dd6e204fc79fdc7eb0bc2c813b2b8bd2a7f4cb090684adc4a8",
+      "current_sha256": "1b2e6d688a32e7dd6e204fc79fdc7eb0bc2c813b2b8bd2a7f4cb090684adc4a8",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/schema-tunnel-tests.jsonl",
+      "prior_sha256": "7d03d8d651ad8f53878fc35aceb3d3355b5d516703b8af72042b920275b5fab8",
+      "current_sha256": "7d03d8d651ad8f53878fc35aceb3d3355b5d516703b8af72042b920275b5fab8",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/seal-helper.py.txt",
+      "prior_sha256": "2c875d1ab95e4fcb308cf78661120308b4dc9d9b24968a64725d89eb23618ed7",
+      "current_sha256": "2c875d1ab95e4fcb308cf78661120308b4dc9d9b24968a64725d89eb23618ed7",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/security-build.yml.txt",
+      "prior_sha256": "18cb35c838b0c1ba8aa8a47e99524659a4152f358dfbb7f2632dc3e38da805d8",
+      "current_sha256": "18cb35c838b0c1ba8aa8a47e99524659a4152f358dfbb7f2632dc3e38da805d8",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/security-comparator-test.py.txt",
+      "prior_sha256": "33520251444b052b3d9f6d664440ceda6c47b34a9a267ddfb9755ed4b64a5fb5",
+      "current_sha256": "33520251444b052b3d9f6d664440ceda6c47b34a9a267ddfb9755ed4b64a5fb5",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/security-comparator-tests.json",
+      "prior_sha256": "67727605d66bee3a65f5ebae436118e93b13784bcd5841f4c2841edf7d3a2868",
+      "current_sha256": "67727605d66bee3a65f5ebae436118e93b13784bcd5841f4c2841edf7d3a2868",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/security-first-build-failed.log.txt",
+      "prior_sha256": "704c2bb103cec2c4bdc932ed7043d5342fd3b92941f90cac460b655341d3b782",
+      "current_sha256": "704c2bb103cec2c4bdc932ed7043d5342fd3b92941f90cac460b655341d3b782",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-candidate-publication/source-files.txt",
+      "prior_sha256": "aa52213a60d5f9962342ea43bffa85b91677442b7fc9b8b93379d83b6b160bc3",
+      "current_sha256": "aa52213a60d5f9962342ea43bffa85b91677442b7fc9b8b93379d83b6b160bc3",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/.gitattributes",
+      "prior_sha256": "24cd690f12e5b0b248d61bb9a38cb37a7fe356a43463c89ae47fb841712787c9",
+      "current_sha256": "24cd690f12e5b0b248d61bb9a38cb37a7fe356a43463c89ae47fb841712787c9",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/AUDIT.md",
+      "prior_sha256": "b2538b2a5c9cd2bdbdb75a42b7a17aca55d7e0a390a75c9b248176bcf07c3e53",
+      "current_sha256": "b2538b2a5c9cd2bdbdb75a42b7a17aca55d7e0a390a75c9b248176bcf07c3e53",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/README.md",
+      "prior_sha256": "5f989af23142ea7829bbebf7cf9d85614a34d274d7e86d842c9ddd17d31b498d",
+      "current_sha256": "5f989af23142ea7829bbebf7cf9d85614a34d274d7e86d842c9ddd17d31b498d",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/artifact-manifest.json",
+      "prior_sha256": "627f30ca5727d5cb0b2d390730f8fdce7a7d9818bf19bbee4b047961e3bcad8f",
+      "current_sha256": "627f30ca5727d5cb0b2d390730f8fdce7a7d9818bf19bbee4b047961e3bcad8f",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/finalize-readonly.py.txt",
+      "prior_sha256": "9fad7b29f3348a45536615cfe0eeb842b4ca50084a2ae4cca5f41f60947f92e1",
+      "current_sha256": "9fad7b29f3348a45536615cfe0eeb842b4ca50084a2ae4cca5f41f60947f92e1",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/independent-review.md",
+      "prior_sha256": "9fd1e13010080b0a42079cc7917d80b4580038cf13ee74130836628c02082280",
+      "current_sha256": "9fd1e13010080b0a42079cc7917d80b4580038cf13ee74130836628c02082280",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/local-checks.json",
+      "prior_sha256": "dc940d1a54872b2ac346b14949e903b2e80c16943a828fc69211faaee990eaeb",
+      "current_sha256": "dc940d1a54872b2ac346b14949e903b2e80c16943a828fc69211faaee990eaeb",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/migration-source-manifest.json",
+      "prior_sha256": "c95fb9d1a198bb2b388481eb03a7bcf9eb5966307000157945d912d1d5dffe79",
+      "current_sha256": "c95fb9d1a198bb2b388481eb03a7bcf9eb5966307000157945d912d1d5dffe79",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/post-readonly-baseline.json",
+      "prior_sha256": "9d73bc2c0264aac9468eb7a2abf0637de3cbb05180bdee0e24d1e1bb15bc173c",
+      "current_sha256": "9d73bc2c0264aac9468eb7a2abf0637de3cbb05180bdee0e24d1e1bb15bc173c",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/preparation-plan.draft.json",
+      "prior_sha256": "46b3eb56174cb95378db0979b8d4541729419870d5f8c4120627e8a76e191cd8",
+      "current_sha256": "46b3eb56174cb95378db0979b8d4541729419870d5f8c4120627e8a76e191cd8",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/prepare-packet.py.txt",
+      "prior_sha256": "aa99769e0c9d61dde24fa7ba8b037bda5c013f6a7fe94c565edbabe8dfbf43e6",
+      "current_sha256": "aa99769e0c9d61dde24fa7ba8b037bda5c013f6a7fe94c565edbabe8dfbf43e6",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/preview-fixture-input.json",
+      "prior_sha256": "79b4ae0f5e0c42e58ab3e92c205d716c20775f3d637e79e5e68ec91b9a4103c6",
+      "current_sha256": "79b4ae0f5e0c42e58ab3e92c205d716c20775f3d637e79e5e68ec91b9a4103c6",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/preview-fixture-policy.json",
+      "prior_sha256": "f1aaedc6998630b4676589d973487a1432db940990225e91340416a6358a1432",
+      "current_sha256": "f1aaedc6998630b4676589d973487a1432db940990225e91340416a6358a1432",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/preview-results.json",
+      "prior_sha256": "0dcd89b2ce9c15e3843197bb67b72ebdb04a1e72983ef3b5e6c4eb418c81b422",
+      "current_sha256": "0dcd89b2ce9c15e3843197bb67b72ebdb04a1e72983ef3b5e6c4eb418c81b422",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/readonly-collector.py.txt",
+      "prior_sha256": "64168806e3b691fc9405b55c3ab29e27e65a865664e64a41fdd9e39b65750fa3",
+      "current_sha256": "64168806e3b691fc9405b55c3ab29e27e65a865664e64a41fdd9e39b65750fa3",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/readonly-command-inventory.initial.json",
+      "prior_sha256": "47fe1b014fa5195196cfb6b43d570316079c1656154f95e493fd514c4803f37b",
+      "current_sha256": "47fe1b014fa5195196cfb6b43d570316079c1656154f95e493fd514c4803f37b",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/readonly-command-inventory.json",
+      "prior_sha256": "47746870b41561601d8bacd2ac7676000595f2db2a50235f437c8bd13f68da7e",
+      "current_sha256": "47746870b41561601d8bacd2ac7676000595f2db2a50235f437c8bd13f68da7e",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/readonly-observations.initial.json",
+      "prior_sha256": "7fa5993629f79f331873adb54bac0c9035d3e57014b2d0817c6c4ff287a7ce32",
+      "current_sha256": "7fa5993629f79f331873adb54bac0c9035d3e57014b2d0817c6c4ff287a7ce32",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/readonly-observations.json",
+      "prior_sha256": "b1567f94925d011ff4d7c9a3ade7ef696f9567a341941f0c46a9f536aa771ff5",
+      "current_sha256": "b1567f94925d011ff4d7c9a3ade7ef696f9567a341941f0c46a9f536aa771ff5",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/schema-readonly.sql",
+      "prior_sha256": "6c1c3095c1614b928ee69e13495507e3b4655967cb1f385be5d0dd5c0f729e2f",
+      "current_sha256": "6c1c3095c1614b928ee69e13495507e3b4655967cb1f385be5d0dd5c0f729e2f",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/source-manifest.json",
+      "prior_sha256": "15b8c759571ff0c8dd6089445d0ec2d72741c455db83f1580f7e52204dfd9761",
+      "current_sha256": "15b8c759571ff0c8dd6089445d0ec2d72741c455db83f1580f7e52204dfd9761",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/ssot-reviewed.json",
+      "prior_sha256": "46deb0e58a3f5337be4cfd8712e8e875879268193fd703b8e3c392377b19e7c8",
+      "current_sha256": "46deb0e58a3f5337be4cfd8712e8e875879268193fd703b8e3c392377b19e7c8",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/static-validation.json",
+      "prior_sha256": "cc0eb372cd843083b2a77da756b69a32480d2c97377bc1675c3c634caaab78f2",
+      "current_sha256": "cc0eb372cd843083b2a77da756b69a32480d2c97377bc1675c3c634caaab78f2",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/supplemental-readonly-summary.json",
+      "prior_sha256": "a7b8b629196b84a0b6eb9e2797786b0a87cc2ef6d6c6b1e20e767148867a2219",
+      "current_sha256": "a7b8b629196b84a0b6eb9e2797786b0a87cc2ef6d6c6b1e20e767148867a2219",
+      "unchanged": true,
+      "intentional_document_followup": false
+    },
+    {
+      "path": "evidence/LBT-60/2026-11-23-pr196-trial-preparation/validation.json",
+      "prior_sha256": "d771fc3e73950f0e040d346683c255abd47f6423773b45970de3545b3a73a088",
+      "current_sha256": "d771fc3e73950f0e040d346683c255abd47f6423773b45970de3545b3a73a088",
+      "unchanged": true,
+      "intentional_document_followup": false
+    }
+  ],
+  "earlier_execution_evidence_not_rewritten": true
+}

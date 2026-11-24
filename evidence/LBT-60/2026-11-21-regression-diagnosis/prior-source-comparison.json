@@ -1,0 +1,14 @@
+[
+  {
+    "root": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-offline-20261121",
+    "historical_manifest": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-offline-20261121\\evidence\\LBT-60\\2026-11-21-stage3-offline\\source-manifest.json",
+    "file_count": 23,
+    "mismatches": []
+  },
+  {
+    "root": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-gitops-stage3-offline-20261121",
+    "historical_manifest": "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-gitops-stage3-offline-20261121\\environments\\aws-osaka\\recovery-candidate\\evidence\\20261121\\source-manifest.json",
+    "file_count": 3,
+    "mismatches": []
+  }
+]

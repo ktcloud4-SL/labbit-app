@@ -1,0 +1,25 @@
+from pathlib import Path
+import gzip,hashlib,json,re,tarfile
+R=Path(r'C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-stage3-live-prep-20261123');D=R/'.local/pr196-candidate-zlib14-20261123/artifact';E=R/'evidence/LBT-60/2026-11-23-candidate-publication/runtime-zlib14'
+inspect=json.loads((D/'image-inspect.json').read_text())[0];build=json.loads((D/'build-summary.json').read_text())
+with tarfile.open(D/'candidate.tar') as t:
+ m=json.load(t.extractfile('manifest.json'))
+ if len(m)!=1:raise RuntimeError('MANIFEST_COUNT')
+ raw=t.extractfile(m[0]['Config']).read();config=json.loads(raw);cfgsha='sha256:'+hashlib.sha256(raw).hexdigest()
+ if inspect['Id']!=build['image_id'] or inspect['Id']!=inspect['Descriptor']['digest']:raise RuntimeError('RUNNER_IMAGE_MISMATCH')
+ diffs=[]
+ for n in m[0]['Layers']:
+  raw=t.extractfile(n).read()
+  if raw.startswith(b'\x1f\x8b'):raw=gzip.decompress(raw)
+  diffs.append('sha256:'+hashlib.sha256(raw).hexdigest())
+ if diffs!=config['rootfs']['diff_ids'] or diffs!=inspect['RootFS']['Layers']:raise RuntimeError('LAYER_MISMATCH')
+local=json.loads((E/'image-local-verification.json').read_text());pub=json.loads((E/'image-publication-readback.json').read_text());old=json.loads((E.parent/'image-local-verification.json').read_text())
+if local['image_digest']!=pub['image_digest'] or local['binary_sha256']!=old['binary_sha256'] or local['migration_git_bytes']!=old['migration_git_bytes']:raise RuntimeError('CODE_OR_DIGEST_MISMATCH')
+log=(E/'github-build-job.txt').read_text()
+if cfgsha not in re.findall(r'exporting config (sha256:[a-f0-9]{64})',log) or inspect['Id'] not in re.findall(r'exporting manifest (sha256:[a-f0-9]{64})',log):raise RuntimeError('BUILD_LOG_MISMATCH')
+if config['config']['Labels'].get('labbit.trial.runtime-patch')!='zlib-minimum-1.4-r0':raise RuntimeError('PATCH_LABEL_MISMATCH')
+scan=json.loads((E/'ecr-scan-readback.json').read_text(encoding='utf-8-sig'))
+if scan['status']['status']!='COMPLETE' or scan['imageId']['imageDigest']!=pub['image_digest'] or scan.get('severities'):raise RuntimeError('SCAN_NOT_ACCEPTED')
+out=dict(source_sha=build['source_sha'],workflow_sha=build['workflow_sha'],run_id=build['run_id'],runtime_dockerfile_sha256=hashlib.sha256((D/'runtime.Dockerfile').read_bytes()).hexdigest(),runtime_patch_label='zlib-minimum-1.4-r0',package_receipt='zlib1.4-r0',config_sha256=cfgsha,buildkit_manifest=inspect['Id'],uncompressed_layer_diffids=diffs,exact_binary_and_15_migration_bytes_unchanged=True,published_registry_digest=pub['image_digest'],pinned_reference=pub['pinned_reference'],conversion='BuildKit OCI manifest is not the Docker archive converted schema2 manifest; identical config and layer bytes are compared before fixing final registry digest.',ecr_basic_scan_complete=True,ecr_basic_reported_findings=0,application_executed=False,execution_gate='HOLD')
+(E/'image-provenance-chain.json').write_text(json.dumps(out,indent=2)+'\n')
+print('Runner/archive/published digest chain verified; binaries and migrations unchanged; actual ECR Basic scan COMPLETE/0.')

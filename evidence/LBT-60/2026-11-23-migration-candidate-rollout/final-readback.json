@@ -1,0 +1,215 @@
+{
+  "at": "2026-11-23T05:15:38.252243+00:00",
+  "actor": {
+    "UserId": "AIDAULMDAKOI7AY6MJNYD",
+    "Account": "299311846289",
+    "Arn": "arn:aws:iam::299311846289:user/admin3"
+  },
+  "deployment_spec_matches_original": true,
+  "deployment_status": {
+    "availableReplicas": 2,
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-11-23T00:23:43Z",
+        "lastUpdateTime": "2026-11-23T00:23:43Z",
+        "message": "Deployment has minimum availability.",
+        "reason": "MinimumReplicasAvailable",
+        "status": "True",
+        "type": "Available"
+      },
+      {
+        "lastTransitionTime": "2026-11-23T00:23:33Z",
+        "lastUpdateTime": "2026-11-23T05:13:27Z",
+        "message": "ReplicaSet \"backend-77c594cb7b\" has successfully progressed.",
+        "reason": "NewReplicaSetAvailable",
+        "status": "True",
+        "type": "Progressing"
+      }
+    ],
+    "observedGeneration": 3,
+    "readyReplicas": 2,
+    "replicas": 2,
+    "terminatingReplicas": 0,
+    "updatedReplicas": 2
+  },
+  "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+  "original_app_specs_restored": true,
+  "applications": {
+    "root-app-seoul": {
+      "uid": "9da17971-0ea4-4149-a10d-d34c11539d62",
+      "spec": {
+        "destination": {
+          "namespace": "argocd",
+          "server": "https://kubernetes.default.svc"
+        },
+        "project": "default",
+        "sources": [
+          {
+            "directory": {
+              "jsonnet": {},
+              "recurse": true
+            },
+            "path": "apps/aws-seoul",
+            "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+            "targetRevision": "main"
+          }
+        ],
+        "syncPolicy": {
+          "automated": {
+            "prune": true,
+            "selfHeal": true
+          },
+          "syncOptions": [
+            "CreateNamespace=true"
+          ]
+        }
+      },
+      "health": {
+        "status": "Healthy"
+      },
+      "sync": {
+        "comparedTo": {
+          "destination": {
+            "namespace": "argocd",
+            "server": "https://kubernetes.default.svc"
+          },
+          "source": {
+            "repoURL": ""
+          },
+          "sources": [
+            {
+              "directory": {
+                "jsonnet": {},
+                "recurse": true
+              },
+              "path": "apps/aws-seoul",
+              "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+              "targetRevision": "main"
+            }
+          ]
+        },
+        "revisions": [
+          "ab830d7c9e046b0621477192aca39c6b269cbf30"
+        ],
+        "status": "Synced"
+      }
+    },
+    "backend": {
+      "uid": "1819925b-e530-4ae7-85b8-81fb13451753",
+      "spec": {
+        "destination": {
+          "namespace": "labbit",
+          "server": "https://kubernetes.default.svc"
+        },
+        "project": "default",
+        "source": {
+          "helm": {
+            "valueFiles": [
+              "../../environments/aws-seoul/apps/backend-values.yaml"
+            ]
+          },
+          "path": "charts/common-app",
+          "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+          "targetRevision": "main"
+        },
+        "syncPolicy": {
+          "automated": {
+            "prune": true,
+            "selfHeal": true
+          },
+          "retry": {
+            "backoff": {
+              "duration": "10s",
+              "factor": 2,
+              "maxDuration": "3m"
+            },
+            "limit": 5
+          },
+          "syncOptions": [
+            "CreateNamespace=true",
+            "SkipDryRunOnMissingResource=true"
+          ]
+        }
+      },
+      "health": {
+        "status": "Healthy"
+      },
+      "sync": {
+        "comparedTo": {
+          "destination": {
+            "namespace": "labbit",
+            "server": "https://kubernetes.default.svc"
+          },
+          "source": {
+            "helm": {
+              "valueFiles": [
+                "../../environments/aws-seoul/apps/backend-values.yaml"
+              ]
+            },
+            "path": "charts/common-app",
+            "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+            "targetRevision": "main"
+          }
+        },
+        "revision": "ab830d7c9e046b0621477192aca39c6b269cbf30",
+        "status": "Synced"
+      }
+    }
+  },
+  "trial_jobs_remaining": 0,
+  "trial_spcs_remaining": 0,
+  "trial_migration_pods_remaining": 0,
+  "original_migration_job_uid": "25cdcf79-1a0e-41ed-b275-b6e47fc35332",
+  "original_migration_job_preserved": true,
+  "manual_snapshot": {
+    "DBSnapshotArn": "arn:aws:rds:ap-northeast-2:299311846289:snapshot:labbit-seoul-pr196-before-v15-20261123-01",
+    "Status": "available",
+    "Encrypted": true,
+    "SnapshotCreateTime": "2026-11-23T05:03:55.881000+00:00"
+  },
+  "manual_snapshot_review_utc": "2026-11-30T05:03:55Z",
+  "manual_snapshot_automatic_expiration": false,
+  "database_migrations": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "control_rows": [
+    {
+      "rows": 0,
+      "table_name": "states"
+    },
+    {
+      "rows": 0,
+      "table_name": "changes"
+    },
+    {
+      "rows": 0,
+      "table_name": "boundaries"
+    },
+    {
+      "rows": 0,
+      "table_name": "resumes"
+    },
+    {
+      "rows": 0,
+      "table_name": "restrictions"
+    }
+  ],
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false,
+  "merged": false
+}

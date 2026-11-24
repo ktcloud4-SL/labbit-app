@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/protocol"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol"
 )
 
 var (
@@ -70,6 +71,9 @@ type Inbound struct {
 
 // RouterOptions는 Router 구성이다.
 type RouterOptions struct {
+	// WorkerControl guards operation/reconciliation sends, including direct calls.
+	// Production shares it with the Worker. nil preserves legacy ACTIVE behavior.
+	WorkerControl *workercontrol.Control
 	// Registry는 command를 보낼 protocol-ready route의 원본이다. Connector Control WSS handler와 같은 Registry여야 한다.
 	Registry *Registry
 	// Sink가 nil이면 event를 버린다.
@@ -99,12 +103,13 @@ type RouterOptions struct {
 // pending은 프로세스 안의 ephemeral routing 상태이며 durable Operation 상태(operations/operation_items)가 아니다.
 // timer, retry, lease를 두지 않으므로 더 이상 기다리지 않을 command는 호출자가 ForgetOperation/ForgetReconcile로 정리한다.
 type Router struct {
-	registry     *Registry
-	sink         EventSink
-	terminalSink TerminalSink
-	fileSink     FileSink
-	previewSink  PreviewSink
-	logger       *slog.Logger
+	workerControl *workercontrol.Control
+	registry      *Registry
+	sink          EventSink
+	terminalSink  TerminalSink
+	fileSink      FileSink
+	previewSink   PreviewSink
+	logger        *slog.Logger
 
 	mu         sync.Mutex
 	operations map[operationKey]pendingOperation
@@ -144,22 +149,26 @@ func NewRouter(opts RouterOptions) (*Router, error) {
 	if opts.Registry == nil {
 		return nil, errors.New("connector: Router에는 Registry가 필요합니다")
 	}
+	if opts.WorkerControl == nil {
+		opts.WorkerControl, _ = workercontrol.New(workercontrol.Active)
+	}
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
 	}
 	return &Router{
-		registry:     opts.Registry,
-		sink:         opts.Sink,
-		terminalSink: opts.TerminalSink,
-		fileSink:     opts.FileSink,
-		previewSink:  opts.PreviewSink,
-		logger:       logger,
-		operations:   make(map[operationKey]pendingOperation),
-		reconciles:   make(map[reconcileKey]pendingReconcile),
-		terminals:    make(map[terminalKey]pendingTerminalOpen),
-		files:        make(map[fileKey]pendingFileOpen),
-		previews:     make(map[previewKey]pendingPreviewOpen),
+		workerControl: opts.WorkerControl,
+		registry:      opts.Registry,
+		sink:          opts.Sink,
+		terminalSink:  opts.TerminalSink,
+		fileSink:      opts.FileSink,
+		previewSink:   opts.PreviewSink,
+		logger:        logger,
+		operations:    make(map[operationKey]pendingOperation),
+		reconciles:    make(map[reconcileKey]pendingReconcile),
+		terminals:     make(map[terminalKey]pendingTerminalOpen),
+		files:         make(map[fileKey]pendingFileOpen),
+		previews:      make(map[previewKey]pendingPreviewOpen),
 	}, nil
 }
 
@@ -169,12 +178,18 @@ func (r *Router) Registry() *Registry { return r.registry }
 // SendOperationCommand는 OPERATION_COMMAND 하나(LabInstance mutation 하나)를 Connector에 보낸다.
 //
 // ErrConnectorUnavailable(ErrNotConnected, ErrNotReady, ErrConnectionClosing)이면 아무것도 쓰지 않았고 pending도 없다.
-// ErrInvalidCommand, ErrDuplicateCorrelation도 아무것도 쓰지 않았다. ErrSendFailed는 전송 여부가 불명확하며 pending은 제거되었다.
+// ErrInvalidCommand, ErrDuplicateCorrelation 및 bare workercontrol.ErrPaused도 아무것도 쓰지 않았다.
+// ErrSendFailed는 전송 여부가 불명확하며 pending은 제거되었다.
 // ctx는 전송을 시작하기 전에만 확인한다. 전송이 시작되면 부분 write를 만들지 않도록 ctx로 중단하지 않는다.
 func (r *Router) SendOperationCommand(ctx context.Context, cmd OperationCommand) (SentMessage, error) {
 	if err := ctx.Err(); err != nil {
 		return SentMessage{}, err
 	}
+	release, err := r.workerControl.AcquireMutation(ctx)
+	if err != nil {
+		return SentMessage{}, err
+	}
+	defer release()
 	if err := validateOperationCommand(cmd); err != nil {
 		return SentMessage{}, err
 	}
@@ -230,6 +245,11 @@ func (r *Router) SendReconcileRequest(ctx context.Context, req ReconcileRequest)
 	if err := ctx.Err(); err != nil {
 		return SentMessage{}, err
 	}
+	release, err := r.workerControl.AcquireReconciliation(ctx)
+	if err != nil {
+		return SentMessage{}, err
+	}
+	defer release()
 	if err := validateReconcileRequest(req); err != nil {
 		return SentMessage{}, err
 	}

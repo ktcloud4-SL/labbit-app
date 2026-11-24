@@ -1,0 +1,50 @@
+import datetime, gzip, hashlib, json, re
+from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[1]
+OUT=ROOT/'evidence/LBT-60/2026-11-23-db-artifact-validation'
+def sha(b): return hashlib.sha256(b).hexdigest()
+def load(p): return json.loads(p.read_text(encoding='utf-8-sig'))
+def verify(folder, manifest):
+    rows=load(manifest)['files']
+    for row in rows:
+        p=(folder/row['path']).resolve()
+        if not p.is_relative_to(folder.resolve()): raise RuntimeError('OUT_OF_SCOPE')
+        b=p.read_bytes()
+        if len(b)!=row.get('size',row.get('bytes')) or sha(b)!=row['sha256']: raise RuntimeError('ARTIFACT_MISMATCH:'+row['path'])
+    return len(rows)
+
+sources=load(OUT/'source-manifest.json')['files']
+for row in sources:
+    b=(ROOT/row['path']).read_bytes()
+    if len(b)!=row['bytes'] or sha(b)!=row['sha256'] or sha(b.replace(b'\r\n',b'\n'))!=row['lf_sha256']: raise RuntimeError('SOURCE_MISMATCH:'+row['path'])
+prior=[]
+for row in load(OUT/'prior-packet-manifest-references.json'):
+    folder=OUT.parent/row['packet']; manifest=folder/'artifact-manifest.json'
+    if sha(manifest.read_bytes())!=row['manifest_sha256']: raise RuntimeError('PRIOR_MANIFEST_CHANGED')
+    old=load(manifest)
+    if old['files'] and any(r['path'].startswith('evidence/') for r in old['files']):
+        count=0; historical=[]
+        for r in old['files']:
+            if not r['path'].startswith('evidence/'):
+                historical.append(r['path']); continue
+            p=(ROOT/r['path']).resolve()
+            if not p.is_relative_to((ROOT/'evidence').resolve()): raise RuntimeError('OUT_OF_SCOPE')
+            b=p.read_bytes()
+            if len(b)!=r['size'] or sha(b)!=r['sha256']: raise RuntimeError('PRIOR_ARTIFACT_CHANGED:'+r['path'])
+            count+=1
+        prior.append({'packet':row['packet'],'files_verified':count,'historical_source_references_not_reinterpreted':historical,'manifest_sha256':row['manifest_sha256']})
+    else:
+        prior.append({'packet':row['packet'],'files_verified':verify(folder,manifest),'manifest_sha256':row['manifest_sha256']})
+for row in load(OUT/'log-compression.json'):
+    b=(OUT/row['compressed']).read_bytes(); raw=gzip.decompress(b)
+    if sha(b)!=row['compressed_sha256'] or sha(raw)!=row['original_sha256'] or len(raw)!=row['original_bytes']: raise RuntimeError('COMPRESSED_LOG_MISMATCH')
+for doc in ('README.md','AUDIT.md'):
+    for link in re.findall(r'\]\(([^)]+)\)',(OUT/doc).read_text(encoding='utf-8')):
+        if '://' not in link and not (OUT/link.split('#')[0]).exists(): raise RuntimeError('BROKEN_LINK:'+link)
+if load(OUT/'secret-scan.json')!=[]: raise RuntimeError('SECRET_SCAN_FINDINGS')
+if not (OUT/'independent-review.md').is_file(): raise RuntimeError('REVIEW_MISSING')
+rows=[{'path':p.relative_to(OUT).as_posix(),'size':p.stat().st_size,'sha256':sha(p.read_bytes())} for p in sorted(OUT.rglob('*')) if p.is_file() and p.name!='artifact-manifest.json']
+manifest={'schema':'labbit.dr196.db-artifact-validation.v1','created_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'root':'packet-directory','self_excluded':True,'source_files_verified':len(sources),'prior_packets_verified':prior,'execution_gate':'HOLD','recovery_authorized':False,'cloud_verified':False,'files':rows}
+(OUT/'artifact-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+print(json.dumps({'sealed_files':verify(OUT,OUT/'artifact-manifest.json'),'sources':len(sources),'prior_packets':prior,'manifest_sha256':sha((OUT/'artifact-manifest.json').read_bytes())}))

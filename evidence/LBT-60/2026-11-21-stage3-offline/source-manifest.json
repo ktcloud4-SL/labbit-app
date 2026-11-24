@@ -1,0 +1,125 @@
+{
+  "base_head": "c11b70a8e9fb81691e0fadb6b4114ee9a5f47fac",
+  "branch": "codex/feat/LBT-60-stage3-offline-20261121",
+  "uncommitted": true,
+  "created_at_utc": "2026-11-21T06:25:18.125657+00:00",
+  "files": [
+    {
+      "path": "Makefile",
+      "size": 4072,
+      "sha256": "5f1f0c59a990aa970627e72dba282c41dbad5b5e157a91b48f11b13bbc2cb2f7"
+    },
+    {
+      "path": "cmd/labbit-dr-control/main.go",
+      "size": 3687,
+      "sha256": "8f2f96c02db8a8a0ca123b00aa56f7ce81e2b56f60de0def68ebb4b53afacf8b"
+    },
+    {
+      "path": "cmd/labbit-dr-control/main_test.go",
+      "size": 2928,
+      "sha256": "37852466e9471f11fc7d5071ebf326ec15003f88f8920d34d572eba5c5ca7f4b"
+    },
+    {
+      "path": "docs/backend/dr-maintenance-integration.md",
+      "size": 12402,
+      "sha256": "02e2aeed5b003c3f99113c340254b5b37337df7d2673f5d722ee291f2e98513b"
+    },
+    {
+      "path": "docs/backend/dr-stage3-deployment.md",
+      "size": 3084,
+      "sha256": "8c9baab04d21de9a41e02512dd5fbe6215ba10ee89f57ef516a43df816e47a81"
+    },
+    {
+      "path": "docs/backend/dr-worker-control.md",
+      "size": 16006,
+      "sha256": "b41bd8b77f235c424943098a28c3988107dea17244a7e634829a65f5c8cdd6c6"
+    },
+    {
+      "path": "internal/drcontrol/awscli.go",
+      "size": 5444,
+      "sha256": "6af62fa59b9c12af8fdc43bb237c4a9b5b552cd103ec4b7a3b3e8c91f0ce1985"
+    },
+    {
+      "path": "internal/drcontrol/awscli_test.go",
+      "size": 4503,
+      "sha256": "661c644c6e689fce6b04d7bafff5e0777e67bd1c5bdd56f80b15bd0ab3cba5d2"
+    },
+    {
+      "path": "internal/drcontrol/contract.go",
+      "size": 9329,
+      "sha256": "cca698152b52ed2d788945b0b4407279c586c1812409e35dc5addbecdcca9b1c"
+    },
+    {
+      "path": "internal/drcontrol/database.go",
+      "size": 1480,
+      "sha256": "bed00bf1ad0f8be7e8129eb41292be176311c21eb143c4ec817aa2ba37f7b317"
+    },
+    {
+      "path": "internal/drcontrol/database_integration_test.go",
+      "size": 2990,
+      "sha256": "8aa161654f8709985f11b3cd62bcc90242fd0a74e059e6162fdc02c8ecb2fe59"
+    },
+    {
+      "path": "internal/drcontrol/verified.go",
+      "size": 5906,
+      "sha256": "fdfeb220350f237100a79748d29d6d77d71e7929a890290a5987c10b13607ef7"
+    },
+    {
+      "path": "internal/drcontrol/verified_test.go",
+      "size": 12333,
+      "sha256": "d1d9560c7b02c51fbd6a4a4b12ef25b5a26b30dcec51885dd66963df7192a8a6"
+    },
+    {
+      "path": "internal/server/app/admission_test.go",
+      "size": 4995,
+      "sha256": "bc1aebb392c133a1db0f570fc2d349df08a9e410c7bb5164e704c0f985744117"
+    },
+    {
+      "path": "internal/server/app/control_stack.go",
+      "size": 21764,
+      "sha256": "9452083f84beadd362b7173bb35b819f3327f9bb276b880f72309e13b8fa63af"
+    },
+    {
+      "path": "internal/server/app/dr_maintenance_integration_test.go",
+      "size": 21160,
+      "sha256": "3858d27d0a06c02e5c6881a1b41f6a516c3d7de97ee548a41ff2a35d7a06ca3c"
+    },
+    {
+      "path": "internal/server/maintenance/controlled_worker_test.go",
+      "size": 1501,
+      "sha256": "f76c82137460f7a277822a185e081059a671aa918c6b905638f4bd750f492f05"
+    },
+    {
+      "path": "internal/server/maintenance/gate.go",
+      "size": 4553,
+      "sha256": "256d5a2d98680020cee95ac466c4deda12cb1c99dae3d0b8d4fe2b4994ff7057"
+    },
+    {
+      "path": "internal/server/provision/controlled_maintenance_test.go",
+      "size": 2309,
+      "sha256": "28079383021d53bbe21947825966a8f47103199e83b30cc0f6940b1d19c6d981"
+    },
+    {
+      "path": "internal/server/workercontrol/settings.go",
+      "size": 1584,
+      "sha256": "681be46d51f6a87a808375d96a4401f0e3605e1a182dd69925c33c9d06155aa3"
+    },
+    {
+      "path": "internal/server/workercontrol/settings_admission_test.go",
+      "size": 1005,
+      "sha256": "2266593f5a8252c4dcd78030749d0f9b3fc3d37b3978c24c6bba0610f938b444"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "size": 72467,
+      "sha256": "fbc2b70dc2d5fbe262c9f4cb9bd02210bbb4a951ccb975619028879fb2aed42a"
+    },
+    {
+      "path": "runtime/dr-control.md",
+      "size": 6515,
+      "sha256": "cdc51ecfc385551ed053619eb6b2c5383a5ef6a4442affc445b03f0dfa89af0c"
+    }
+  ],
+  "scope_sha256": "f32648f17d7dd5b18a7d843676c3466b2f7eede4eb7cafe67cf8834003252d5d",
+  "evidence_excluded_from_source_scope": "evidence/LBT-60/2026-11-21-stage3-offline"
+}

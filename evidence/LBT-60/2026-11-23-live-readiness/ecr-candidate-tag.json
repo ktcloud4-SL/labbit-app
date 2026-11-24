@@ -1,0 +1,11 @@
+{
+  "observed_at_utc": "2026-11-23T01:13:30Z",
+  "timestamp_precision": "approximate; exact invocation time not persisted",
+  "profile": "labbit-admin3",
+  "region": "ap-northeast-2",
+  "repository": "backend",
+  "image_tag": "sha-94fe1f6",
+  "exit_code": 1,
+  "reason": "ImageNotFoundException",
+  "scope": "exact tag only; selected transcript result, not raw AWS response"
+}

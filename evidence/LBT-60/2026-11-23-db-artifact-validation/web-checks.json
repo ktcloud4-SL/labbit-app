@@ -1,0 +1,52 @@
+[
+  {
+    "name": "web-typecheck",
+    "args": [
+      "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+      "node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ],
+    "at": "2026-11-23T06:19:48.083948+00:00",
+    "exit": 0,
+    "log": "web-typecheck.log",
+    "scope": "local-no-AWS"
+  },
+  {
+    "name": "web-lint",
+    "args": [
+      "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+      "node_modules/eslint/bin/eslint.js",
+      ".",
+      "--max-warnings=0"
+    ],
+    "at": "2026-11-23T06:19:53.710075+00:00",
+    "exit": 0,
+    "log": "web-lint.log",
+    "scope": "local-no-AWS"
+  },
+  {
+    "name": "web-test",
+    "args": [
+      "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--maxWorkers=1"
+    ],
+    "at": "2026-11-23T06:19:59.894667+00:00",
+    "exit": 1,
+    "log": "web-test.log",
+    "scope": "local-no-AWS"
+  },
+  {
+    "name": "web-build",
+    "args": [
+      "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+      "node_modules/vite/bin/vite.js",
+      "build"
+    ],
+    "at": "2026-11-23T06:21:29.951909+00:00",
+    "exit": 0,
+    "log": "web-build.log",
+    "scope": "local-no-AWS"
+  }
+]

@@ -1,0 +1,38 @@
+{
+  "actor": "arn:aws:iam::299311846289:user/admin3",
+  "architecture": "amd64",
+  "binary_sha256": {
+    "app/labbit-migrate": "f80deb0f968b66157295e0a922fe67c01ee013b7cf4f86bd973b497be865f85d",
+    "app/labbit-server": "d068bd0ee5c48b913b0843f548fdef42df33d9b38c5742e498260654e0353369"
+  },
+  "cloud_verified": false,
+  "deployed": false,
+  "ecr_published": true,
+  "executed_application": false,
+  "execution_gate": "HOLD",
+  "image_digest": "sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469",
+  "migration_git_bytes": {
+    "app/db/migrations/000001_identity_and_class.sql": "0b8cb401fbdb207ac37b307c04609003486445e801c45ef409e233dcecfc8bee",
+    "app/db/migrations/000002_connector_and_provider.sql": "5a935031b9fc628dee93ff85ec218d149b687089fa824219633e8406a3a92caa",
+    "app/db/migrations/000003_lab_spec.sql": "3e896e71e2f6832771bf740e82b5caeeabdf52b3131f42cdb724dd4430bf45a0",
+    "app/db/migrations/000004_execution_operation_resource.sql": "c4aad8cfe251b197339bc1f11ed2c45530d58f8aa8dc6343d0e1b14f5c951b60",
+    "app/db/migrations/000005_realtime_sessions.sql": "04ce7a1ad056d9eacc44c173e80c21740427cf9d1b4adab5d0f22b805f74f6c9",
+    "app/db/migrations/000006_operation_trace_context.sql": "dee411aa1ef2a546965102bde2f052ad19c350935ea95c8c97fc628ccc88640f",
+    "app/db/migrations/000007_operation_updated_at.sql": "0e65408c679e85d3550593eedbf1f9558ed51dabf87519e2018f8840b638cf88",
+    "app/db/migrations/000008_operation_dispatch_deferral.sql": "7ce2fcc05b6a678f61e835466b955f69b506c7df509490ab45b0d1de60a28512",
+    "app/db/migrations/000009_mutation_previous_status.sql": "56471aa1d273c1b5c84b720cf914f11728e4be9a3d721ac3f298de4a39501d2e",
+    "app/db/migrations/000010_connector_enrollment_tokens.sql": "8be5cd16dc8c7df022b537c430177056b6c1af5de876f4b83fb77c514a8244d6",
+    "app/db/migrations/000011_failed_provision_recovery.sql": "b6ec9f3fc7e47d3216970f92bc28aaff7163f7adb29e7519572aa20d8a5ca47f",
+    "app/db/migrations/000012_worker_control.sql": "f87fff6b5dce4ae111ccf8f4e2d950700faf46d9190625e2929ae0ebc4e838bc",
+    "app/db/migrations/000013_worker_control_resume.sql": "df5cd776a5166be952211d36d8f063322bdf86994ab1c5a559f37a24c60faf4f",
+    "app/db/migrations/000014_worker_control_resume_applied_time.sql": "9ed3ad245e836e19569b7267b5ec6cdcb17531054423c83a75a41c3ec8d160ea",
+    "app/db/migrations/000015_worker_control_restrictions.sql": "ede35b2dc7af8c382edcec7384215cdd65bfc4a6395d4be25ca88b97600fcbf5"
+  },
+  "observed_at_utc": "2026-11-23T04:45:12.4645214Z",
+  "os": "linux",
+  "pinned_reference": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial@sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469",
+  "recovery_authorized": false,
+  "reference": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial:trial-pr196-be4d0ba-run45113446633-zlib14",
+  "source_sha": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "user": "appuser"
+}

@@ -1,0 +1,47 @@
+{
+  "apiVersion": "networking.k8s.io/v1",
+  "kind": "NetworkPolicy",
+  "metadata": {
+    "creationTimestamp": "2026-11-23T05:31:01Z",
+    "generation": 1,
+    "labels": {
+      "labbit.io/trial": "pr196-collector-20261123-01"
+    },
+    "name": "pr196-collector-proxy-20261123-01",
+    "namespace": "labbit",
+    "uid": "581baa00-ff19-4035-9040-6f57cecc64e0"
+  },
+  "spec": {
+    "ingress": [
+      {
+        "from": [
+          {
+            "ipBlock": {
+              "cidr": "10.0.21.58/32"
+            }
+          },
+          {
+            "ipBlock": {
+              "cidr": "10.0.46.149/32"
+            }
+          }
+        ],
+        "ports": [
+          {
+            "port": 9090,
+            "protocol": "TCP"
+          }
+        ]
+      }
+    ],
+    "podSelector": {
+      "matchLabels": {
+        "app.kubernetes.io/instance": "backend",
+        "app.kubernetes.io/name": "common-app"
+      }
+    },
+    "policyTypes": [
+      "Ingress"
+    ]
+  }
+}

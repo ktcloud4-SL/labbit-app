@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "C:\\Users\\user\\.codex\\tmp\\pr196-gitleaks-8.28-20261123\\gitleaks.exe",
+    "dir",
+    ".",
+    "--verbose",
+    "--redact",
+    "--report-format=json",
+    "--report-path=C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-dr-stage3-offline-20261121\\evidence\\LBT-60\\2026-11-23-pr196-ci-followup\\gitleaks-directory-final.json"
+  ],
+  "cwd": "C:\\Users\\user\\.codex\\tmp\\pr196-gitleaks-8.28-20261123\\clean-export",
+  "archive_source": "2dd4e591b19438d2a844e738fdb75a256b21481e",
+  "override_files": [
+    ".gitleaks.toml",
+    "evidence/LBT-60/2026-11-23-pr196-ci-followup"
+  ],
+  "exit_code": 0,
+  "excluded": "ignored dependencies/build outputs, same as fresh Actions checkout"
+}

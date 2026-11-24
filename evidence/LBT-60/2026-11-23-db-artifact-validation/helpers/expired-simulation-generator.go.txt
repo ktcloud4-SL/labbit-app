@@ -1,0 +1,43 @@
+// Public, expired SIMULATION samples. Random keys stay in RAM then are cleared.
+// Not an operator approval and not a LIVE_READBACK safety assertion.
+package main
+
+import (
+ "crypto/ed25519"
+ "crypto/rand"
+ "encoding/base64"
+ "encoding/json"
+ "os"
+ "path/filepath"
+ "strings"
+ "time"
+
+ "github.com/google/uuid"
+ "github.com/ktcloud4-SL/labbit-app/internal/drcontrol"
+ wc "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol"
+)
+
+func main(){
+ dir:=os.Args[1]
+ now:=time.Now().UTC().Truncate(time.Microsecond)
+ observed:=now.Add(-time.Hour)
+ apub,apriv,e:=ed25519.GenerateKey(rand.Reader);if e!=nil{panic("RANDOM_FAILED")};defer clear(apriv)
+ opub,opriv,e:=ed25519.GenerateKey(rand.Reader);if e!=nil{panic("RANDOM_FAILED")};defer clear(opriv)
+ request:=wc.ResumeRequest{CommandID:uuid.New(),Scope:wc.Scope{ID:"pr196-archive-simulation-only",Region:"ap-northeast-2",Cluster:"labbit-seoul-cluster"},ExpectedRevision:1,ExpectedEpoch:1,Desired:wc.Active,TrialID:"pr196-artifact-simulation-20261123",RunID:"not-an-executed-control-run",Phase:"prepare",Principal:"simulation-only",ApprovalRef:uuid.NewString(),PlanSHA256:strings.Repeat("a",64),RequestedAt:observed.Add(-time.Second),ValidUntil:observed.Add(20*time.Second)}
+ ob:=drcontrol.Observation{Version:drcontrol.Version,Source:"SIMULATION",Binding:drcontrol.Bind(request),ObservedAt:observed,ValidUntil:observed.Add(10*time.Second),AdmissionBlocked:"NOT_VERIFIED",SingleWriter:"NOT_VERIFIED",Fencing:"NOT_VERIFIED",WorkInventory:"NOT_VERIFIED",PodCoverage:"NOT_VERIFIED",WorkReconciled:"NOT_VERIFIED"}
+ sign:=func(payload any,kid,purpose string,key ed25519.PrivateKey)[]byte{
+  raw,e:=json.Marshal(payload);if e!=nil{panic("JSON_FAILED")}
+  sig:=ed25519.Sign(key,append([]byte(drcontrol.Version+"/"+purpose+"\n"),raw...))
+  if !ed25519.Verify(key.Public().(ed25519.PublicKey),append([]byte(drcontrol.Version+"/"+purpose+"\n"),raw...),sig){panic("SIGNATURE_FAILED")}
+  b,e:=json.Marshal(drcontrol.Signed{Version:drcontrol.Version,KeyID:kid,Payload:raw,Signature:base64.StdEncoding.EncodeToString(sig)});if e!=nil{panic("JSON_FAILED")};return b
+ }
+ obraw:=sign(ob,"simulation-observer","observation",opriv)
+ request.PreconditionsSHA256=drcontrol.Hash(obraw)
+ approval:=drcontrol.Approval{Version:drcontrol.Version,Action:"resume",RequestSHA256:request.SHA256(),Principal:request.Principal,ID:uuid.MustParse(request.ApprovalRef),NotBefore:request.RequestedAt,ExpiresAt:request.ValidUntil}
+ apraw:=sign(approval,"simulation-approver","approval",apriv)
+ for name,raw:=range map[string][]byte{"approval.expired-simulation.json":apraw,"observation.expired-simulation.json":obraw}{
+  f,e:=os.OpenFile(filepath.Join(dir,name),os.O_WRONLY|os.O_CREATE|os.O_EXCL,0600);if e!=nil{panic("EXCLUSIVE_FILE_FAILED")};_,e=f.Write(raw);if e!=nil{panic("WRITE_FAILED")};f.Close()
+ }
+ out:=map[string]any{"created_at":now,"request":request,"approval_public_key":base64.StdEncoding.EncodeToString(apub),"observation_public_key":base64.StdEncoding.EncodeToString(opub),"test_only":true,"expired":true,"observation_source":"SIMULATION","control_executed":false,"private_key_saved":false,"execution_gate":"HOLD"}
+ json.NewEncoder(os.Stdout).Encode(out)
+}

@@ -1,0 +1,18 @@
+{
+  "at": "2026-11-23T05:10:35.105880+00:00",
+  "action": "create-migration-spc",
+  "result": {
+    "uid": "a902eb36-7a6b-4204-a5f4-8660d3db6182",
+    "spec": {
+      "parameters": {
+        "objects": "[{\"objectName\": \"arn:aws:secretsmanager:ap-northeast-2:299311846289:secret:labbit/seoul/rds-dsn-o4Rgr7\", \"objectType\": \"secretsmanager\", \"objectAlias\": \"db-dsn\", \"objectVersion\": \"terraform-20261123001758077700000017\", \"filePermission\": \"0444\"}]",
+        "region": "ap-northeast-2",
+        "usePodIdentity": "true"
+      },
+      "provider": "aws"
+    }
+  },
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false
+}

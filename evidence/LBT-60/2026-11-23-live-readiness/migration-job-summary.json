@@ -1,0 +1,15 @@
+{
+  "observed_at_utc": "2026-11-23T01:17:03.0996146Z",
+  "exit_code": 0,
+  "source": "job/labbit-db-migration",
+  "raw_logs_saved": false,
+  "parsed_records": [
+    {
+      "time": null,
+      "level": "INFO",
+      "msg": null,
+      "applied_count": 11,
+      "latest_known_version": 11
+    }
+  ]
+}

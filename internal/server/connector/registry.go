@@ -108,6 +108,9 @@ type entry struct {
 	// 그 이후에는 이 Session이 fn을 시작하지 못한다.
 	mu      sync.Mutex
 	retired bool
+	// closeNotified is published before route sealing, and closed after the
+	// transport's close request callback returns. It does not wait for network I/O.
+	closeNotified chan struct{}
 
 	// routeMu는 route와 sealed를 보호한다. WithReadyRoute는 RLock을 잡은 채 fn(pending 등록과 write 포함)을 실행하고,
 	// retire는 Lock으로 진행 중인 fn이 끝나기를 기다린 뒤 route를 제거한다. 그래서 retire가 끝난 뒤에는 이 Session의
@@ -250,8 +253,15 @@ func (r *Registry) RevokeConnector(connectorID uuid.UUID) bool {
 // 종료 요청은 entry lock 밖에서 한다.
 func (e *entry) retire(reason CloseReason) {
 	e.mu.Lock()
+	if e.retired {
+		e.mu.Unlock()
+		return
+	}
 	e.retired = true
+	e.closeNotified = make(chan struct{})
+	done := e.closeNotified
 	e.mu.Unlock()
+	defer close(done)
 
 	// 진행 중인 command write가 끝난 뒤에 route를 닫는다. 이 뒤로는 이 Session에 새 write가 시작되지 않는다.
 	e.routeMu.Lock()
@@ -261,6 +271,19 @@ func (e *entry) retire(reason CloseReason) {
 
 	if e.closeFn != nil {
 		e.closeFn(reason)
+	}
+}
+
+// WaitCloseNotification waits for an already-published retire callback to
+// register its transport close request. A sealed route can be observed before
+// that callback runs. Call after Release, outside all Registry/transport locks;
+// this is not a fence against future retirement of an already-closed socket.
+func (g *Registration) WaitCloseNotification() {
+	g.entry.mu.Lock()
+	done := g.entry.closeNotified
+	g.entry.mu.Unlock()
+	if done != nil {
+		<-done
 	}
 }
 

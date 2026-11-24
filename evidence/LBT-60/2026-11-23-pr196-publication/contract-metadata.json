@@ -1,0 +1,7 @@
+{
+  "runtime_version": "0.1.13",
+  "migration_files": 14,
+  "duplicate_prefixes": false,
+  "openapi_connector_realtime_unchanged_from_prior_pr": true,
+  "full_contract_ci": "awaiting exact published commit CI"
+}

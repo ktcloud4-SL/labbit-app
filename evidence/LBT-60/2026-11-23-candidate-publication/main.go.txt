@@ -1,0 +1,295 @@
+package main
+
+import (
+	"archive/tar"
+	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path"
+	"strings"
+	"time"
+
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/google/go-containerregistry/pkg/name"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/mutate"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
+)
+
+const source = "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1"
+const registry = "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com"
+const repository = "backend-dr196-trial"
+const awsExe = `C:\Users\user\AppData\Local\Programs\Amazon\AWSCLIV2\aws.exe`
+
+type file struct {
+	Path    string `json:"path"`
+	GitSHA  string `json:"git_blob_sha256"`
+	GitSize int64  `json:"git_blob_size"`
+}
+type migrationManifest struct {
+	Source string `json:"source_head"`
+	Files  []file `json:"files"`
+}
+
+func aws(ctx context.Context, args ...string) ([]byte, error) {
+	if len(args) == 0 || (args[0] != "sts" && args[0] != "ecr") {
+		return nil, errors.New("AWS_SERVICE_DENIED")
+	}
+	endpoint := "https://api.ecr.ap-northeast-2.amazonaws.com"
+	if args[0] == "sts" {
+		endpoint = "https://sts.ap-northeast-2.amazonaws.com"
+	}
+	args = append(args, "--profile", "labbit-admin3", "--region", "ap-northeast-2", "--endpoint-url", endpoint, "--output", "json", "--no-cli-pager", "--no-cli-auto-prompt", "--cli-connect-timeout", "5", "--cli-read-timeout", "20")
+	cmd := exec.CommandContext(ctx, awsExe, args...)
+	cmd.Env = awsEnvironment(os.Environ())
+	return cmd.Output() // stderr/auth data never printed
+}
+func awsEnvironment(environ []string) []string {
+	out := []string{}
+	for _, v := range environ {
+		k, _, _ := strings.Cut(v, "=")
+		k = strings.ToUpper(k)
+		if strings.HasPrefix(k, "AWS_ENDPOINT_URL") || k == "AWS_PAGER" || k == "AWS_CLI_AUTO_PROMPT" || k == "AWS_MAX_ATTEMPTS" || k == "AWS_IGNORE_CONFIGURED_ENDPOINT_URLS" {
+			continue
+		}
+		out = append(out, v)
+	}
+	return append(out, "AWS_PAGER=", "AWS_CLI_AUTO_PROMPT=off", "AWS_MAX_ATTEMPTS=1", "AWS_IGNORE_CONFIGURED_ENDPOINT_URLS=true")
+}
+func verifyRepository(b []byte) error {
+	var x struct {
+		Repositories []struct {
+			RepositoryName, RepositoryUri, ImageTagMutability string
+			ImageTagMutabilityExclusionFilters                []json.RawMessage
+		}
+	}
+	if json.Unmarshal(b, &x) != nil || len(x.Repositories) != 1 {
+		return errors.New("REPOSITORY_NOT_VERIFIED")
+	}
+	r := x.Repositories[0]
+	if r.RepositoryName != repository || r.RepositoryUri != registry+"/"+repository || r.ImageTagMutability != "IMMUTABLE" || len(r.ImageTagMutabilityExclusionFilters) != 0 {
+		return errors.New("REPOSITORY_NOT_STRICTLY_IMMUTABLE")
+	}
+	return nil
+}
+func verifyConfig(c *v1.ConfigFile) error {
+	if c.OS != "linux" || c.Architecture != "amd64" || c.Config.User != "appuser" || len(c.Config.Entrypoint) != 1 || c.Config.Entrypoint[0] != "/app/labbit-server" || c.Config.Labels["org.opencontainers.image.revision"] != source {
+		return errors.New("IMAGE_CONFIG_MISMATCH")
+	}
+	return nil
+}
+func expected(m migrationManifest) (map[string]file, error) {
+	if m.Source != source || len(m.Files) != 15 {
+		return nil, errors.New("MIGRATION_MANIFEST_INVALID")
+	}
+	want := map[string]file{}
+	for _, f := range m.Files {
+		p := "app/" + f.Path
+		if !strings.HasPrefix(f.Path, "db/migrations/") || !strings.HasSuffix(f.Path, ".sql") || len(f.GitSHA) != 64 || f.GitSize <= 0 || path.Clean(p) != p {
+			return nil, errors.New("MIGRATION_PATH_INVALID")
+		}
+		if _, ok := want[p]; ok {
+			return nil, errors.New("DUPLICATE_MIGRATION")
+		}
+		want[p] = f
+	}
+	return want, nil
+}
+func verifyImage(img v1.Image, m migrationManifest) (map[string]any, error) {
+	c, e := img.ConfigFile()
+	if e != nil {
+		return nil, e
+	}
+	if e = verifyConfig(c); e != nil {
+		return nil, e
+	}
+	want, e := expected(m)
+	if e != nil {
+		return nil, e
+	}
+	rr := mutate.Extract(img)
+	defer rr.Close()
+	tr := tar.NewReader(rr)
+	found := map[string]string{}
+	bins := map[string]string{}
+	for {
+		h, e := tr.Next()
+		if e == io.EOF {
+			break
+		}
+		if e != nil {
+			return nil, e
+		}
+		p := strings.TrimPrefix(h.Name, "./")
+		if !h.FileInfo().Mode().IsRegular() {
+			continue
+		}
+		f, isMigration := want[p]
+		isBinary := p == "app/labbit-server" || p == "app/labbit-migrate"
+		if strings.HasPrefix(p, "app/db/migrations/") && strings.HasSuffix(p, ".sql") && !isMigration {
+			return nil, errors.New("UNEXPECTED_MIGRATION")
+		}
+		if !isMigration && !isBinary {
+			continue
+		}
+		b, e := io.ReadAll(io.LimitReader(tr, 100<<20))
+		if e != nil || int64(len(b)) != h.Size {
+			return nil, errors.New("IMAGE_FILE_TRUNCATED")
+		}
+		sum := sha256.Sum256(b)
+		s := hex.EncodeToString(sum[:])
+		if isMigration {
+			if s != f.GitSHA || h.Size != f.GitSize {
+				return nil, fmt.Errorf("MIGRATION_BYTES_MISMATCH:%s", p)
+			}
+			found[p] = s
+		}
+		if isBinary {
+			if len(b) < 5 || string(b[:4]) != "\x7fELF" || h.Mode&0111 == 0 {
+				return nil, errors.New("IMAGE_BINARY_INVALID")
+			}
+			bins[p] = s
+		}
+	}
+	if len(found) != 15 || len(bins) != 2 {
+		return nil, errors.New("IMAGE_FILES_MISSING")
+	}
+	d, e := img.Digest()
+	if e != nil {
+		return nil, e
+	}
+	return map[string]any{"source_sha": source, "image_digest": d.String(), "os": "linux", "architecture": "amd64", "user": "appuser", "migration_git_bytes": found, "binary_sha256": bins, "executed_application": false}, nil
+}
+func run() error {
+	archive := flag.String("archive", "", "Docker archive")
+	manifest := flag.String("migrations", "", "Git-byte migration manifest")
+	output := flag.String("output", "", "nonsecret result JSON")
+	tag := flag.String("tag", "", "unique candidate tag")
+	publish := flag.Bool("publish", false, "explicit ECR candidate publication")
+	flag.Parse()
+	if *archive == "" || *manifest == "" || *output == "" || flag.NArg() != 0 {
+		return errors.New("INPUT_INVALID")
+	}
+	b, e := os.ReadFile(*manifest)
+	if e != nil {
+		return e
+	}
+	var m migrationManifest
+	if e = json.Unmarshal(b, &m); e != nil {
+		return e
+	}
+	img, e := crane.Load(*archive)
+	if e != nil {
+		return e
+	}
+	result, e := verifyImage(img, m)
+	if e != nil {
+		return e
+	}
+	result["ecr_published"] = false
+	result["deployed"] = false
+	if *publish {
+		if !strings.HasPrefix(*tag, "trial-pr196-be4d0ba-") || strings.ContainsAny(*tag, "/:@ \t\r\n") || len(*tag) > 128 {
+			return errors.New("CANDIDATE_TAG_INVALID")
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
+		defer cancel()
+		b, e = aws(ctx, "sts", "get-caller-identity")
+		if e != nil {
+			return errors.New("IDENTITY_NOT_VERIFIED")
+		}
+		var ident struct{ Account, Arn string }
+		if json.Unmarshal(b, &ident) != nil || ident.Account != "299311846289" || ident.Arn != "arn:aws:iam::299311846289:user/admin3" {
+			return errors.New("IDENTITY_MISMATCH")
+		}
+		b, e = aws(ctx, "ecr", "describe-repositories", "--repository-names", repository)
+		if e != nil {
+			return errors.New("REPOSITORY_NOT_VERIFIED")
+		}
+		if e = verifyRepository(b); e != nil {
+			return e
+		}
+		_, e = aws(ctx, "ecr", "describe-images", "--repository-name", repository, "--image-ids", "imageTag="+*tag)
+		if e == nil {
+			return errors.New("TAG_ALREADY_EXISTS")
+		}
+		var ex *exec.ExitError
+		if !errors.As(e, &ex) || !strings.Contains(string(ex.Stderr), "ImageNotFoundException") {
+			return errors.New("TAG_ABSENCE_NOT_VERIFIED")
+		}
+		b, e = aws(ctx, "ecr", "get-authorization-token", "--registry-ids", "299311846289")
+		if e != nil {
+			return errors.New("REGISTRY_AUTH_FAILED")
+		}
+		var auth struct {
+			AuthorizationData []struct{ AuthorizationToken, ProxyEndpoint string }
+		}
+		if json.Unmarshal(b, &auth) != nil || len(auth.AuthorizationData) != 1 || auth.AuthorizationData[0].ProxyEndpoint != "https://"+registry {
+			return errors.New("AUTH_ENDPOINT_MISMATCH")
+		}
+		decoded, e := base64.StdEncoding.DecodeString(auth.AuthorizationData[0].AuthorizationToken)
+		if e != nil {
+			return errors.New("AUTH_INVALID")
+		}
+		parts := strings.SplitN(string(decoded), ":", 2)
+		if len(parts) != 2 || parts[0] != "AWS" || parts[1] == "" {
+			return errors.New("AUTH_INVALID")
+		}
+		ref, e := name.NewTag(registry + "/" + repository + ":" + *tag)
+		if e != nil {
+			return e
+		}
+		opts := []remote.Option{remote.WithContext(ctx), remote.WithAuth(authn.FromConfig(authn.AuthConfig{Username: parts[0], Password: parts[1]}))}
+		// New unique tag only. On any ambiguous write result stop; caller must read actual state before retrying.
+		if e = remote.Write(ref, img, opts...); e != nil {
+			return errors.New("PUBLICATION_UNKNOWN_REQUERY_BEFORE_RETRY")
+		}
+		desc, e := remote.Get(ref, opts...)
+		if e != nil {
+			return errors.New("PUBLISHED_READBACK_NOT_VERIFIED")
+		}
+		if desc.Digest.String() != result["image_digest"] {
+			return errors.New("PUBLISHED_DIGEST_MISMATCH")
+		}
+		remoteImage, e := desc.Image()
+		if e != nil {
+			return errors.New("REMOTE_IMAGE_INVALID")
+		}
+		config, e := remoteImage.ConfigFile()
+		if e != nil || verifyConfig(config) != nil {
+			return errors.New("REMOTE_CONFIG_NOT_VERIFIED")
+		}
+		result["ecr_published"] = true
+		result["reference"] = ref.Name()
+		result["pinned_reference"] = registry + "/" + repository + "@" + desc.Digest.String()
+		result["actor"] = ident.Arn
+	}
+	result["observed_at_utc"] = time.Now().UTC().Format(time.RFC3339Nano)
+	result["execution_gate"] = "HOLD"
+	result["recovery_authorized"] = false
+	result["cloud_verified"] = false
+	b, e = json.MarshalIndent(result, "", "  ")
+	if e != nil {
+		return e
+	}
+	if e = os.WriteFile(*output, append(b, '\n'), 0600); e != nil {
+		return e
+	}
+	fmt.Println("IMAGE_VERIFIED; ECR publication:", *publish, "; deployment: false")
+	return nil
+}
+func main() {
+	if e := run(); e != nil {
+		fmt.Fprintln(os.Stderr, "CANDIDATE_NOT_ACCEPTED:", e.Error())
+		os.Exit(2)
+	}
+}

@@ -1,0 +1,71 @@
+from pathlib import Path
+from datetime import datetime,timezone
+import hashlib,json,shutil,subprocess
+R=Path(r'C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-stage3-live-prep-20261123')
+E=R/'evidence/LBT-60/2026-11-23-pr196-trial-preparation'
+HEAD='be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1'
+def rawgit(ref,path):return subprocess.check_output(['git','-C',str(R),'show',ref+':'+path])
+def sha(b):return hashlib.sha256(b).hexdigest()
+def dump(p,x):p.write_text(json.dumps(x,ensure_ascii=False,indent=2,default=str)+'\n',encoding='utf8',newline='\n')
+o=json.loads((E/'readonly-observations.json').read_text(encoding='utf8'))
+v={k:x.get('value') for k,x in o['results'].items()}
+gates=dict(execution_gate='HOLD',recovery_authorized=False,cloud_verified=False,live_test_ready=False,replica_lag_policy='EXISTING_FAIL_PRESERVED',required_settings='NOT_VERIFIED',runtime_provenance='NOT_VERIFIED',service_functions='NOT_VERIFIED',single_writer='NOT_VERIFIED')
+backend=next(x for x in v['deployments'] if x['name']=='backend')
+targets=[x for x in v['pods'] if x['name'].startswith('backend-')]
+draft=dict(schema='labbit.dr196.trial-preparation-draft.v1',not_runtime_input=True,enable_execution=False,
+ source=dict(head=HEAD,base='753eecbff737409a4c9cc8c542f3c6baa6acf0da',draft=True,merged=False),
+ target=dict(account_id=v['sts']['Account'],operator_arn_observed=v['sts']['Arn'],region='ap-northeast-2',cluster=v['cluster'],cluster_uid=v['cluster_identity']['uid'],namespace='labbit',workload='backend',database=v['database']),
+ baseline=dict(backend=backend,backend_pods=targets,maintenance=v['maintenance'],applications=v['applications'],migration_job=v['jobs'],migration_log=v['migration_log']),
+ proposed_controls=dict(scope_id='labbit-dr196-seoul',scope_status='PROPOSED_NOT_INITIALIZED',authoritative_database='exact Seoul RDS Writer above, subject to SQL identity verification',approval_ttl_seconds_proposal=120,observation_ttl_seconds_proposal=60,operational_ttls_accepted=False,approval_and_observation_keys='different Ed25519 PKCS8 protected files; not generated',operator_principal_proposal='seobin-dr196',operator_actions_proposal=['init','pause','inspect-restriction','resume','inspect','collect']),
+ unresolved=dict(utc_work_window=None,independent_qa_window=None,backup_arn_before_migration=None,restore_test_evidence=None,candidate_image_digest=None,database_name_verified=None,database_user_verified=None,protected_dsn_path=None,approval_public_key=None,observation_public_key=None,artifact_bucket_prefix_region=None,fixed_s3_versions=None,current_control_row=None,provider_test_resources=None,total_provider_cost_cap=None,trusted_fencing_singlewriter_attestation=None,actual_all_writer_inventory=None),
+ actual_checks=['STS identity','EKS/Pod/deployment metadata','ConfigMap declaration','historical migration Job log','RDS backup/snapshot metadata','two exact candidate tags in actual ECR backend repository','current admin3 RBAC self reviews'],
+ actual_not_executed=['key/policy provisioning','secret value access','shared DB SQL','migration/backup restore','image publication/rollout','maintenance/Pause/Resume','provider mutation','S3 payload upload/readback','DR/DNS/fencing/Slack'],gates=gates)
+dump(E/'preparation-plan.draft.json',draft)
+rows=[]
+for p in sorted((R/'db/migrations').glob('*.sql')):
+ rel=p.relative_to(R).as_posix(); raw=rawgit(HEAD,rel); working=p.read_bytes(); base=None
+ if int(p.name.split('_')[0])<=11:
+  base=rawgit('753eecbff737409a4c9cc8c542f3c6baa6acf0da',rel);assert base==raw
+ rows.append(dict(path=rel,version=int(p.name.split('_')[0]),git_blob_sha256=sha(raw),git_blob_size=len(raw),working_copy_sha256=sha(working),working_copy_size=len(working),unchanged_from_base=(raw==base) if base is not None else None,actual_image_bytes_verified=False,actual_database_checksum_verified=False))
+dump(E/'migration-source-manifest.json',dict(source_head=HEAD,checksum_semantics='LoadMigrations hashes exact artifact file bytes; LF Git blob is expected source, not proof of image bytes.',all_base_1_through_11_identical=True,files=rows))
+(E/'schema-readonly.sql').write_text('''-- Preparation query ONLY; not executed on shared RDS in this packet.
+-- Run through reviewed exact-host/TLS/read-only credentials; never put DSN in argv/logs.
+BEGIN READ ONLY;
+SET LOCAL statement_timeout = '2s';
+SET LOCAL lock_timeout = '1s';
+SELECT clock_timestamp() AS observed_at_utc, current_database(), session_user, pg_is_in_recovery();
+SELECT version, name, checksum, applied_at FROM public.labbit_schema_migrations ORDER BY version;
+SELECT to_regclass('public.worker_control_states') AS states,
+       to_regclass('public.worker_control_changes') AS changes,
+       to_regclass('public.worker_control_boundaries') AS boundaries,
+       to_regclass('public.worker_control_resumes') AS resumes,
+       to_regclass('public.worker_control_restrictions') AS restrictions;
+ROLLBACK;
+''',encoding='utf8',newline='\n')
+shutil.copyfile(Path(r'C:/Users/user/.codex/tmp/pr196-live-preparation-readonly-20261123.py'),E/'readonly-collector.py.txt')
+
+# Clearly synthetic preview only. Preserve the invalid legacy inspect-mode attempt separately.
+p=json.loads((R/'evidence/LBT-60/2026-11-23-live-readiness/preview-only-policy.json').read_text(encoding='utf8'))
+i=json.loads((R/'evidence/LBT-60/2026-11-23-live-readiness/preview-only-input.json').read_text(encoding='utf8'))
+p['Actors'][0]['Actions']=['resume','collect'];p['EnableExecution']=False
+i['Action']='resume'
+i['Approval']=dict(Bucket='fixture',Key='control/approval',VersionID='fixture-version',SHA256='a'*64,Size=1)
+i['Evidence']=dict(Bucket='fixture',Key='control/observation',VersionID='fixture-version',SHA256='b'*64,Size=1)
+dump(E/'preview-fixture-policy.json',p);dump(E/'preview-fixture-input.json',i)
+exe=R/'.local/pr196-trial-preparation-20261123'
+results=[]
+for name in ['labbit-dr-control','labbit-dr-evidence']:
+ binary=exe/(name+'.exe')
+ for execute in [False,True]:
+  args=[str(binary),'--policy',str(E/'preview-fixture-policy.json'),'--input',str(E/'preview-fixture-input.json')]
+  if name=='labbit-dr-evidence':args+=['--mode','approve','--key-file',str(exe/'DOES-NOT-EXIST.key')]
+  if execute:args+=['--execute']
+  z=subprocess.run(args,capture_output=True,timeout=10)
+  val=json.loads(z.stdout)
+  assert val['ExecutionGate']=='HOLD' and not val['RecoveryAuthorized'] and not val['CloudVerified']
+  assert z.returncode==(2 if execute else 0),(name,z.returncode,val)
+  assert val['Status']==('NOT_VERIFIED' if execute else 'PREVIEW_ONLY')
+  if execute:assert val['Reason']=='EXECUTION_DISABLED'
+  results.append(dict(binary=name,binary_sha256=sha(binary.read_bytes()),enable_execution=False,execute_flag=execute,exit=z.returncode,result=val))
+dump(E/'preview-results.json',dict(source_head=HEAD,real_authorization=False,network_or_key_or_database_io=False,checks=results,initial_attempt=dict(control='legacy inspect input preview accepted',companion='legacy inspect action rejected as INPUT_NOT_VERIFIED before IO; approve mode requires resume/init/pause',product_changed=False)))
+print('Prepared draft plan, raw/git migration hashes, read-only SQL and 4 local binary preview/disabled checks; no live execution.')

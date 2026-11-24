@@ -1,0 +1,132 @@
+[
+  {
+    "file": "audit.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "aws-observation.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "cli-preview-results.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "commands.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "disabled-execute.stderr.txt",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "ecr-candidate-tag.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "independent-review.md",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "migration-job-summary.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "operator-offline-tests.jsonl",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "operator-offline-tests.stderr.txt",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "osaka-observation.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "preview-only-input.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "preview-only-policy.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "preview.stderr.txt",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "readiness.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "readonly-aws.go.txt",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "readonly-metadata-smoke-policy.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "readonly-metadata-smoke-receipt.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "readonly-metadata-smoke-result.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "readonly-metadata-smoke.stderr.txt",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "seoul-control-settings.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "seoul-maintenance-declaration.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "seoul-observation.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "seoul-rds.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "ssot-source.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  },
+  {
+    "file": "verification.json",
+    "sizeMatches": true,
+    "shaMatches": true
+  }
+]

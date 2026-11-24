@@ -1,0 +1,18 @@
+{
+  "at": "2026-11-23T05:10:23.683430+00:00",
+  "action": "freeze-root-app-seoul",
+  "detail": {
+    "uid": "9da17971-0ea4-4149-a10d-d34c11539d62",
+    "original_policy": {
+      "automated": {
+        "prune": true,
+        "selfHeal": true
+      },
+      "syncOptions": [
+        "CreateNamespace=true"
+      ]
+    }
+  },
+  "outcome": "INTENT",
+  "execution_gate": "HOLD"
+}

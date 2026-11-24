@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "C:\\Users\\user\\.codex\\tmp\\pr196-gitleaks-8.28-20261123\\gitleaks.exe",
+    "dir",
+    "C:\\Users\\user\\.codex\\tmp\\pr196-gitleaks-8.28-20261123\\negative-control",
+    "--config=C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-dr-stage3-offline-20261121\\.gitleaks.toml",
+    "--gitleaks-ignore-path=C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-dr-stage3-offline-20261121\\.gitleaksignore",
+    "--verbose",
+    "--redact",
+    "--report-format=json",
+    "--report-path=C:\\Users\\user\\Documents\\ChatGPT\\3\ucc28 2\\tmp\\labbit-dr-stage3-offline-20261121\\evidence\\LBT-60\\2026-11-23-pr196-ci-followup\\negative-control.json"
+  ],
+  "exit_code": 1,
+  "expected_exit_code": 1,
+  "synthetic": true,
+  "not_a_real_credential": true
+}

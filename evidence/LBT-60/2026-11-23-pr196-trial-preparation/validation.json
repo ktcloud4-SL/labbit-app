@@ -1,0 +1,25 @@
+{
+  "checked_at_utc": "2026-11-23T04:00:14.114644+00:00",
+  "scope": "Current preparation delta only; actual function test not ready",
+  "gitleaks": {
+    "version": "8.28",
+    "exit": 0,
+    "findings": 0,
+    "scope": "All changed docs and packet files existing at scan; excludes generated manifest/validation themselves",
+    "redacted": true
+  },
+  "json_ast": "PASS",
+  "git_diff_check": "PASS",
+  "source_manifest": "14 records raw SHA/size PASS",
+  "migration_git_manifest": "15 records raw SHA/size PASS; base1-11 checked in preparation",
+  "binary_preview_disabled": "4 PASS; see preview-results.json",
+  "targeted_go": "2 top-level PASS + 4 subtest PASS, 0 FAIL,0 SKIP; see local-checks.json",
+  "live_test_ready": false,
+  "actual_settings_changed": false,
+  "push_or_merge": false,
+  "limits": [
+    "Full prior PR source not reaudited/retested",
+    "SQL/migration/actual signing/functional AWS trial not executed",
+    "Read-only selected fields are not all-service functional health"
+  ]
+}

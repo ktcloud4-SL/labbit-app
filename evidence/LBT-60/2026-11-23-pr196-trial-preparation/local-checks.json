@@ -1,0 +1,58 @@
+{
+  "record_type": "summary_from_actual_tool_execution_not_raw_stdout",
+  "builds": [
+    {
+      "path": ".local/pr196-trial-preparation-20261123/labbit-dr-control.exe",
+      "size": 18715136,
+      "sha256": "7340fd426876a660569fc94b896aac700d2281c1727397c558ab23505744ef1b",
+      "command": [
+        "go",
+        "build",
+        "-o",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-live-prep-20261123\\.local\\pr196-trial-preparation-20261123\\labbit-dr-control.exe",
+        "./cmd/labbit-dr-control"
+      ],
+      "source_head": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+      "exit_code": 0,
+      "original_stdout_not_saved": true
+    },
+    {
+      "path": ".local/pr196-trial-preparation-20261123/labbit-dr-evidence.exe",
+      "size": 18520576,
+      "sha256": "82c5cbe6fd642e6f883a8d510f9221b9bd03dc4f9723f2500078ce04ebf86a09",
+      "command": [
+        "go",
+        "build",
+        "-o",
+        "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\tmp\\labbit-dr-stage3-live-prep-20261123\\.local\\pr196-trial-preparation-20261123\\labbit-dr-evidence.exe",
+        "./cmd/labbit-dr-evidence"
+      ],
+      "source_head": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+      "exit_code": 0,
+      "original_stdout_not_saved": true
+    }
+  ],
+  "go_version": "go1.27.1 windows/amd64",
+  "targeted_tests": {
+    "command": [
+      "go",
+      "test",
+      "-count=1",
+      "-run",
+      "^(TestPreviewAndDisabledExecutionMakeNoExternalCalls|TestEvidencePreviewAndDisabledExecutionNeverReadKeyOrConnect)$",
+      "-json",
+      "./cmd/labbit-dr-control",
+      "./cmd/labbit-dr-evidence"
+    ],
+    "tool_chunk_id": "145600",
+    "started_at": "2026-11-23T12:57:15.2367454+09:00",
+    "exit_code": 0,
+    "top_level_pass": 2,
+    "subtest_pass": 4,
+    "fail": 0,
+    "skip": 0,
+    "external_io": false,
+    "limit": "Two selected tests only; prior full/race/CI counts were not rerun."
+  },
+  "binary_checks": "preview-results.json"
+}

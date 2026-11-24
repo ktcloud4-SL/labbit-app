@@ -1,0 +1,135 @@
+{
+  "base": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "head": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "branch": "codex/feat/LBT-60-stage3-live-prep-20261123",
+  "uncommitted": true,
+  "hash_mode": "exact_bytes_and_canonical_LF",
+  "files": [
+    {
+      "path": ".github/workflows/go.yml",
+      "bytes": 2721,
+      "sha256": "af0f2f2c7706943c258ba890abac2d97550759cf6c685532a55a6757c17c51a9",
+      "lf_sha256": "831cc80e069353b9d5671a490df56b22a13d68fbdfcac6ef650bd44e838d3ea6"
+    },
+    {
+      "path": "Makefile",
+      "bytes": 4315,
+      "sha256": "d36ebdbb79a6b19c9e4db2a9cc126aa65e92a06afcd5df8f3215be690e5418dd",
+      "lf_sha256": "24ca9d949e1c58987e1a240424b77685dfa5f2e0df877b2a9efc33cf93dbbde8"
+    },
+    {
+      "path": "TESTING.md",
+      "bytes": 10075,
+      "sha256": "cd71db77b29f5519099518885b75995fb884ef89618ac33588367aa933f68b92",
+      "lf_sha256": "bae02943fcc11f19988edb9cdf4f35d824889d6700fa3d31cb6d8e98bc4d2c51"
+    },
+    {
+      "path": "docs/backend/dr-control-artifact-storage.md",
+      "bytes": 5591,
+      "sha256": "aeb55a811e5e023dfb2f8bc01fd42183913a3500857c39f197489c40c62fe488",
+      "lf_sha256": "aeb55a811e5e023dfb2f8bc01fd42183913a3500857c39f197489c40c62fe488"
+    },
+    {
+      "path": "docs/backend/dr-maintenance-integration.md",
+      "bytes": 13788,
+      "sha256": "1e6413b3e6b306f1421cda3dcbf3435e3adf9344da4afe0f85180d77656bfd93",
+      "lf_sha256": "cfef4fce294e51c1c2e4c9fa9cd33412c3d15ae0958c4e312d879f65b7d02a84"
+    },
+    {
+      "path": "docs/backend/dr-pr196-approved-control-trial.md",
+      "bytes": 8401,
+      "sha256": "2444529c35674a754030c91faa73e0f89edc79ea0f59880ce178c782a30f29e8",
+      "lf_sha256": "2444529c35674a754030c91faa73e0f89edc79ea0f59880ce178c782a30f29e8"
+    },
+    {
+      "path": "docs/backend/dr-pr196-trial-preparation.md",
+      "bytes": 15649,
+      "sha256": "af9948a62bd8b7eba23174f01197432f96c9099fcbb3389d1002cfb2b30b7343",
+      "lf_sha256": "af9948a62bd8b7eba23174f01197432f96c9099fcbb3389d1002cfb2b30b7343"
+    },
+    {
+      "path": "docs/backend/dr-stage3-deployment.md",
+      "bytes": 9686,
+      "sha256": "9ea8ca417a59cf2b5dddde571de8c897b50be1ac0784921fbd4c221f9f5c8bdb",
+      "lf_sha256": "587c2a68f3d6bd99554d95122b1c95e870317daf3dc1f3766b86e5165df43b83"
+    },
+    {
+      "path": "internal/drcontrol/awscli.go",
+      "bytes": 5510,
+      "sha256": "61e952c556e9651ac15f21cefc41f7594922d9359571d8b06b51e88b25f4f3fd",
+      "lf_sha256": "61e952c556e9651ac15f21cefc41f7594922d9359571d8b06b51e88b25f4f3fd"
+    },
+    {
+      "path": "internal/drcontrol/awscli_test.go",
+      "bytes": 9792,
+      "sha256": "08ed91c4ad2894288282e4ee59015c3dea1c9bebed6bccd660531741ddea4d59",
+      "lf_sha256": "08ed91c4ad2894288282e4ee59015c3dea1c9bebed6bccd660531741ddea4d59"
+    },
+    {
+      "path": "internal/drcontrol/contract.go",
+      "bytes": 9998,
+      "sha256": "02cc14dcac41674d90a5bcf18e90e661b28fc8b51a95d5d4589ab8003223d336",
+      "lf_sha256": "02cc14dcac41674d90a5bcf18e90e661b28fc8b51a95d5d4589ab8003223d336"
+    },
+    {
+      "path": "internal/drcontrol/database.go",
+      "bytes": 2244,
+      "sha256": "c3d3b92a53b1b94392438c6fc022e270fce7f2420a653cefa04ba3ec11a444a8",
+      "lf_sha256": "c3d3b92a53b1b94392438c6fc022e270fce7f2420a653cefa04ba3ec11a444a8"
+    },
+    {
+      "path": "internal/drcontrol/prepared.go",
+      "bytes": 1939,
+      "sha256": "c8ece5fc8c8478e3e45226df1c073c77e6c8662861e204ba5b4f114a0a026351",
+      "lf_sha256": "c8ece5fc8c8478e3e45226df1c073c77e6c8662861e204ba5b4f114a0a026351"
+    },
+    {
+      "path": "internal/drcontrol/prepared_test.go",
+      "bytes": 7691,
+      "sha256": "45c0ec904ec270df9444d810f7b9cc68eb149f71ee6a673c611c740b4d10d6f1",
+      "lf_sha256": "45c0ec904ec270df9444d810f7b9cc68eb149f71ee6a673c611c740b4d10d6f1"
+    },
+    {
+      "path": "internal/drcontrol/restrict.go",
+      "bytes": 3193,
+      "sha256": "e55b340385001f10332ce1b5915ff4417ffb6843051b107f448663c3185d387a",
+      "lf_sha256": "e55b340385001f10332ce1b5915ff4417ffb6843051b107f448663c3185d387a"
+    },
+    {
+      "path": "internal/drcontrol/verified.go",
+      "bytes": 6325,
+      "sha256": "ddead095fefddeac965346cffacd14588ef4533af6d9ce9417c204641c421719",
+      "lf_sha256": "ddead095fefddeac965346cffacd14588ef4533af6d9ce9417c204641c421719"
+    },
+    {
+      "path": "runtime/README.md",
+      "bytes": 36051,
+      "sha256": "0a646427ae77f285a1e2b4c74b5a74855e97fe90dd496d785606bc1f7c0fcdc1",
+      "lf_sha256": "c245ad4f62ac8a3681d6e8cce88cb29b426045ad8ddfeb46938463b1d1c03998"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "bytes": 76552,
+      "sha256": "eed6c2e7a6b70e6d060acc96a7774d1013cec0c64cbcbdc691657d5c5b63572c",
+      "lf_sha256": "24c7867e78a5f0e5dabd39ab328add51d260f813b83d3499591dcde355d962ab"
+    },
+    {
+      "path": "runtime/dr-control.md",
+      "bytes": 17470,
+      "sha256": "9864df58fdff3b3306171da2087a2ff46a394277d1587fdd5992e8af9f6ba53c",
+      "lf_sha256": "10fadb7d472d751fb4ba975f87a4b1f164bf40085905aa8cf458ed967546965e"
+    },
+    {
+      "path": "scripts/dr_control_artifact_store.py",
+      "bytes": 11617,
+      "sha256": "cf4dc72bf4c23dcb2a2aa672e367bf7233004e03209efe7b60cca0bbd81c6f17",
+      "lf_sha256": "cf4dc72bf4c23dcb2a2aa672e367bf7233004e03209efe7b60cca0bbd81c6f17"
+    },
+    {
+      "path": "scripts/dr_control_artifact_store_test.py",
+      "bytes": 9109,
+      "sha256": "8cee8dd0202bad184a6124dd3bbcd65cd67872351b1840e01d2942e0e88767df",
+      "lf_sha256": "8cee8dd0202bad184a6124dd3bbcd65cd67872351b1840e01d2942e0e88767df"
+    }
+  ]
+}

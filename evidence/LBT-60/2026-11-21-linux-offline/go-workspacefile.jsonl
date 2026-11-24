@@ -1,0 +1,7 @@
+{"Time":"2026-11-21T06:56:23.0182976Z","Action":"start","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile"}
+{"Time":"2026-11-21T06:56:23.3949789Z","Action":"run","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile","Test":"TestSymlinkRejectedAndExcludedFromTree"}
+{"Time":"2026-11-21T06:56:23.3958833Z","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile","Test":"TestSymlinkRejectedAndExcludedFromTree","Output":"=== RUN   TestSymlinkRejectedAndExcludedFromTree\n","OutputType":"frame"}
+{"Time":"2026-11-21T06:56:24.2228982Z","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile","Test":"TestSymlinkRejectedAndExcludedFromTree","Output":"--- PASS: TestSymlinkRejectedAndExcludedFromTree (0.83s)\n","OutputType":"frame"}
+{"Time":"2026-11-21T06:56:24.2279173Z","Action":"pass","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile","Test":"TestSymlinkRejectedAndExcludedFromTree","Elapsed":0.83}
+{"Time":"2026-11-21T06:56:24.2343906Z","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-21T06:56:24.2445074Z","Action":"pass","Package":"github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile","Elapsed":1.227}

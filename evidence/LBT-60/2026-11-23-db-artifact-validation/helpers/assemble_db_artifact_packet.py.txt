@@ -1,0 +1,83 @@
+import json,hashlib,gzip,shutil,subprocess,datetime,re
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+OUT=(ROOT/'evidence/LBT-60/2026-11-23-db-artifact-validation').resolve()
+if OUT.parent!=ROOT/'evidence/LBT-60':raise RuntimeError('PACKET_PATH_MISMATCH')
+def sha(b):return hashlib.sha256(b).hexdigest()
+def load(p):return json.loads(p.read_text(encoding='utf-8-sig'))
+def save(name,obj): (OUT/name).write_text(json.dumps(obj,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+def git(*args):return subprocess.check_output(['git',*args],cwd=ROOT).decode('utf-8').strip()
+
+# Compression preserves initial failures and all raw test bytes, not just summaries.
+compressions=load(OUT/'log-compression.json') if (OUT/'log-compression.json').exists() else []
+for p in sorted(OUT.glob('*.log')):
+ if p.stat().st_size>150000:
+  raw=p.read_bytes();target=p.with_suffix(p.suffix+'.gz')
+  target.write_bytes(gzip.compress(raw,mtime=0))
+  compressions.append({'original':p.name,'compressed':target.name,'original_bytes':len(raw),'original_sha256':sha(raw),'compressed_sha256':sha(target.read_bytes())})
+  p.unlink() # exact generated log under checked packet directory, no cloud delete.
+save('log-compression.json',compressions)
+for f in OUT.glob('*-checks.json'):
+ rows=load(f)
+ for r in rows:
+  if not (OUT/r['log']).exists() and (OUT/(r['log']+'.gz')).exists():r['log']+='.gz'
+ f.write_text(json.dumps(rows,indent=2)+'\n',encoding='utf-8')
+
+def countlog(name):
+ p=OUT/(name+'.log'); gz=p.with_suffix('.log.gz')
+ raw=gzip.decompress(gz.read_bytes()) if gz.exists() else p.read_bytes()
+ counts={'pass':0,'fail':0,'skip':0};packages={};skips=[]
+ for line in raw.decode('utf-8-sig').splitlines():
+  try:r=json.loads(line)
+  except ValueError:continue
+  action=r.get('Action')
+  if r.get('Test') and action in counts:
+   counts[action]+=1
+   if action=='skip':skips.append({'package':r['Package'],'test':r['Test']})
+  elif not r.get('Test') and action in ('pass','fail','skip'):packages[r['Package']]=action
+ return {'counts':counts,'packages':packages,'skips':skips,'log':gz.name if gz.exists() else p.name}
+
+helper_sources={
+ '.local/pr196-product-db-probe/main.go':'product-db-probe.go.txt',
+ '.local/pr196-deadline-probe/main.go':'deadline-probe.go.txt',
+ '.local/pr196-control-samples/main.go':'expired-simulation-generator.go.txt',
+ '.local/db_storage_metadata.py':'db_storage_metadata.py.txt',
+ '.local/run_control_store_trial.py':'run_control_store_trial.py.txt',
+ '.local/final_storage_readback.py':'final_storage_readback.py.txt',
+ '.local/db_artifact_final_baseline.py':'db_artifact_final_baseline.py.txt',
+ '.local/run_db_storage_checks.py':'run_db_storage_checks.py.txt',
+ '.local/validate_db_artifact_contracts.py':'validate_db_artifact_contracts.py.txt',
+ '.local/check_collector_format.go':'canonical-lf-format-check.go.txt',
+ '.local/prepare_product_db_probe.py':'prepare_product_db_probe.py.txt',
+ '.local/prepare_deadline_probe.py':'prepare_deadline_probe.py.txt',
+ '.local/pr196_rollout.py':'baseline-dependency-pr196_rollout.py.txt',
+ '.local/pr196_collector_path.py':'baseline-dependency-pr196_collector_path.py.txt',
+ '.local/pr196_collector_policy.py':'baseline-dependency-pr196_collector_policy.py.txt',
+ '.local/pr196_collector_network_window2.py':'baseline-dependency-pr196_collector_network_window2.py.txt',
+ '.local/assemble_db_artifact_packet.py':'assemble_db_artifact_packet.py.txt',
+}
+(OUT/'helpers').mkdir(exist_ok=True)
+for source,dest in helper_sources.items():shutil.copyfile(ROOT/source,OUT/'helpers'/dest)
+
+base=git('rev-parse','origin/main');head=git('rev-parse','HEAD')
+tracked=git('diff','--name-only','HEAD').splitlines()
+new=git('ls-files','--others','--exclude-standard').splitlines()
+generated=sorted({p for p in tracked+new if '__pycache__' in Path(p).parts or p.endswith(('.pyc','.pyo'))})
+source=sorted({p for p in tracked+new if not p.startswith('evidence/') and not p.startswith('.local/') and p not in generated})
+save('source-manifest.json',{'base':base,'head':head,'branch':git('branch','--show-current'),'uncommitted':True,'hash_mode':'exact_bytes_and_canonical_LF','files':[{'path':p,'bytes':(ROOT/p).stat().st_size,'sha256':sha((ROOT/p).read_bytes()),'lf_sha256':sha((ROOT/p).read_bytes().replace(b'\r\n',b'\n'))} for p in source]})
+save('working-change-inventory.json',{'base':base,'head':head,'tracked_changes':tracked,'untracked_files':new,'generated_excluded_from_source_manifest':generated,'prior_pr_diff_files':git('diff','--name-only','origin/main...HEAD').splitlines(),'purpose_by_group':{'internal/drcontrol':'transport and authenticated per-invocation byte preparation; product/tests','scripts':'separate public-byte publisher + offline fixtures','runtime':'owning contract/version0.1.15 and compatible operator semantics','workflow_make_testing':'offline fixture regression, no deployment or AWS permission','docs':'prior preparation + latest DB/storage/deadline runbook','evidence':'current scoped originals and previous unchanged sealed packets'}})
+anchors={'internal/drcontrol/database.go':['func DatabaseConfig','func VerifySQL'],'internal/drcontrol/prepared.go':['func PrepareArtifacts','func (p *PreparedArtifacts) Read','func (p *PreparedArtifacts) Clear'],'internal/drcontrol/verified.go':['func Execute','func (v *Verifier) AuthorizeResume','func (v *Verifier) RecheckResume'],'internal/drcontrol/restrict.go':['func ExecuteRestriction'],'scripts/dr_control_artifact_store.py':['def store','WINDOW_EXPIRED_BEFORE_PUT','FULL_OBJECT_METADATA_NOT_VERIFIED'],'runtime/contract.yaml':['version:','dr_worker_control:','dr_control_artifact_store:']}
+save('source-locations.json',[{'path':p,'anchor':anchor,'line':next(i for i,l in enumerate((ROOT/p).read_text(encoding='utf-8-sig').splitlines(),1) if anchor in l)} for p,aa in anchors.items() for anchor in aa])
+
+validation={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'base':base,'head':head,'tested_source':'uncommitted exact source-manifest; initial tests before gofmt-only prepared_test normalization are distinct from final3pkg race','go_race_initial':countlog('race'),'go_race_final':countlog('race-final'),'go_all':countlog('go-all'),'pg_initial_failed_fixture_role':countlog('pg-integration'),'pg_final_disposable16_15':countlog('pg-integration-final'),'web_first':{'pass':492,'fail':1,'reason':'Windows fixture rmSync EPERM; source unchanged'},'web_final':{'pass':493,'fail':0,'files':35},'python_final':{'normal':12,'optimized':12,'mock_only':True},'commands':{p.stem:load(p) for p in OUT.glob('*-checks.json')},'actual_scope':{'rds_readonly_product':True,'temporary_ssm_session_terminated':True,'s3_new_expired_public_objects':2,'s3_unchanged_known_versions_readback':True,'actual_negative_callbacks':True,'callback_extra_io':0,'actual_live_positive_resume':False,'actual_control_store_created':False,'seoul_service_settings_changed':False,'merge':False,'push':False},'not_run':['actual signed operational init/Pause/Resume and durable opt-in rollout','normal LIVE all-safety-condition callback latency','multiple Pod Worker drain/claim/dispatch in APPROVED_CONTROL','Provider/UNKNOWN reconciliation and actual writer fencing/SingleWriter','failover/failback and formal RTO/RPO','fresh GitHub CI of unpushed local source','Linux runtime-specific rerun (no new platform-specific syscall code)','independent Reader of new two expired samples'],'limitations':['CLI S3 RequestId not retained','source of initial PUT predates added Head gate; exact initial source hash not captured, final read-only gate revalidated separately','snapshot bytes/policy do not instantly re-query later access revocation/deletion','operator ACL and local durable storage are operational preconditions, no automatic ACL validation','manual retention review does not create Object Lock or automatic lifecycle controls'],'execution_gate':'HOLD','recovery_authorized':False,'cloud_verified':False}
+save('validation.json',validation)
+
+# Earlier sealed artifact bytes stay historical; source references may naturally
+# differ from current source and are not reinterpreted as a current test run.
+prior=[]
+for d in ['2026-11-23-pr196-trial-preparation','2026-11-23-candidate-publication','2026-11-23-migration-candidate-rollout','2026-11-23-collector-path-preparation']:
+ p=ROOT/'evidence/LBT-60'/d/'artifact-manifest.json'
+ if p.exists():prior.append({'packet':d,'manifest_sha256':sha(p.read_bytes())})
+save('prior-packet-manifest-references.json',prior)
+
+print(json.dumps({'sources':len(source),'prior_pr_diff_files':len(git('diff','--name-only','origin/main...HEAD').splitlines()),'race':validation['go_race_initial']['counts'],'race_final':validation['go_race_final']['counts'],'go_all':validation['go_all']['counts'],'pg_final':validation['pg_final_disposable16_15']['counts'],'compressed_logs':len(compressions)}))

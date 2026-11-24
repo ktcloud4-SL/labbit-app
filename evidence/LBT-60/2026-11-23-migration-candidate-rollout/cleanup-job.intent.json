@@ -1,0 +1,19 @@
+{
+  "at": "2026-11-23T05:14:31.156216+00:00",
+  "action": "cleanup-job",
+  "detail": {
+    "name": "pr196-migrate-v15-20261123-01",
+    "uid": "fd7b9dc6-59ca-49f6-a2a7-d3adee466f32",
+    "delete_options": {
+      "apiVersion": "v1",
+      "kind": "DeleteOptions",
+      "preconditions": {
+        "uid": "fd7b9dc6-59ca-49f6-a2a7-d3adee466f32",
+        "resourceVersion": "114973"
+      },
+      "propagationPolicy": "Foreground"
+    }
+  },
+  "outcome": "INTENT",
+  "execution_gate": "HOLD"
+}

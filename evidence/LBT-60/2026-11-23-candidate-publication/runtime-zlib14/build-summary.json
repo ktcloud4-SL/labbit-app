@@ -1,0 +1,9 @@
+{
+  "source_sha": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "workflow_sha": "01863ba088770113c401af1be3ed63d006ac745f",
+  "run_id": "45113446633",
+  "image_id": "sha256:e7a5938693c52d1913923e3107912dff0a7238792c27fb8644d33d47bf595db3",
+  "deployed": false,
+  "aws_credentials_used": false,
+  "gitops_changed": false
+}

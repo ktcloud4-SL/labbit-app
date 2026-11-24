@@ -1,0 +1,83 @@
+"""Bounded read-only preparation snapshot; no secret reads, exec, writes or deploy."""
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
+import hashlib, json, re, subprocess, sys
+
+ROOT=Path(r'C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-stage3-live-prep-20261123')
+OUT=ROOT/'evidence/LBT-60/2026-11-23-pr196-trial-preparation'
+OUT.mkdir(parents=True,exist_ok=True)
+AWS=r'C:/Users/user/AppData/Local/Programs/Amazon/AWSCLIV2/aws.exe'
+K=r'C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt60-ssm-preflight-tools/kubectl.exe'
+KC=r'C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt60-live-readiness-20261123/seoul.kubeconfig'
+PROFILE='labbit-admin3'
+def run(args):
+    at=datetime.now(timezone.utc).isoformat()
+    try:
+        p=subprocess.run(args,capture_output=True,timeout=35)
+        if p.returncode:
+            # Only generic error category is public. No raw stdout/stderr saved.
+            s=p.stderr.decode('utf8','replace')
+            reason=next((x for x in ['AccessDenied','Forbidden','ImageNotFoundException','RepositoryNotFoundException','NotFound','Unauthorized','ExpiredToken','could not resolve','Unable to connect'] if x.lower() in s.lower()),'QUERY_NOT_VERIFIED')
+            return dict(observed_at=at,exit_code=p.returncode,status='NOT_VERIFIED',reason=reason)
+        raw=p.stdout
+        try:v=json.loads(raw)
+        except ValueError:v=raw.decode('utf8','replace').strip()
+        return dict(observed_at=at,status='OBSERVED_READONLY',exit_code=0,raw_sha256=hashlib.sha256(raw).hexdigest(),value=v)
+    except subprocess.TimeoutExpired:return dict(observed_at=at,status='NOT_VERIFIED',reason='TIMEOUT')
+def aws(svc,op,*rest):return [AWS,svc,op,*rest,'--profile',PROFILE,'--region','ap-northeast-2','--output','json','--no-cli-pager']
+def kube(*rest):return [K,'--kubeconfig',KC,'--request-timeout=12s',*rest]
+def container(c):
+    allow={'LABBIT_RUNTIME_ROLES','LABBIT_WORKER_ADMISSION_POLICY','LABBIT_WORKER_CONTROL_BACKEND','LABBIT_WORKER_CONTROL_ID','LABBIT_WORKER_CONTROL_REGION','LABBIT_WORKER_CONTROL_CLUSTER','LABBIT_WORKER_CONTROL_MODE','LABBIT_WORKER_CONTROL_REVISION','LABBIT_WORKER_CONTROL_EPOCH','LABBIT_WORKER_CONTROL_POD_ID','LABBIT_MAINTENANCE_FILE'}
+    return dict(name=c.get('name'),image=c.get('image'),env=[dict(name=e['name'],**({'value':e['value']} if 'value' in e else {'valueFrom_present':True})) for e in c.get('env',[]) if e['name'] in allow],envFrom_present=bool(c.get('envFrom')),mounts=[dict(name=x['name'],mountPath=x['mountPath'],readOnly=x.get('readOnly')) for x in c.get('volumeMounts',[])])
+def project(name,v):
+    if name=='deployments':return [dict(name=x['metadata']['name'],uid=x['metadata']['uid'],generation=x['metadata'].get('generation'),status={k:x.get('status',{}).get(k) for k in ['replicas','readyReplicas','availableReplicas','updatedReplicas','observedGeneration']},serviceAccount=x['spec']['template']['spec'].get('serviceAccountName'),containers=[container(c) for c in x['spec']['template']['spec']['containers']]) for x in v['items']]
+    if name=='pods':return [dict(name=x['metadata']['name'],uid=x['metadata']['uid'],resourceVersion=x['metadata']['resourceVersion'],owners=x['metadata'].get('ownerReferences',[]),phase=x['status'].get('phase'),conditions=[dict(type=c['type'],status=c['status']) for c in x['status'].get('conditions',[])],containers=[dict(name=c['name'],image=c.get('image'),imageID=c.get('imageID'),ready=c.get('ready'),restartCount=c.get('restartCount')) for c in x['status'].get('containerStatuses',[])]) for x in v['items']]
+    if name=='maintenance':return dict(name=v['metadata']['name'],uid=v['metadata']['uid'],resourceVersion=v['metadata']['resourceVersion'],mode=v.get('data',{}).get('mode'),data_keys=sorted(v.get('data',{})))
+    if name=='jobs':return [dict(name=x['metadata']['name'],uid=x['metadata']['uid'],created=x['metadata'].get('creationTimestamp'),status={k:x.get('status',{}).get(k) for k in ['succeeded','failed','startTime','completionTime']},containers=[dict(name=c['name'],image=c.get('image')) for c in x['spec']['template']['spec']['containers']]) for x in v['items'] if 'migration' in x['metadata']['name']]
+    if name=='migration_log':
+        fields=[]
+        for line in str(v).splitlines():
+            try:x=json.loads(line)
+            except ValueError:continue
+            if any(k in x for k in ['applied_count','latest_known_version']):fields.append({k:x[k] for k in ['time','applied_count','latest_known_version'] if k in x})
+        return dict(parsed_fields=fields,meaning='selected historical Job log fields; not current SQL/schema/checksum verification')
+    if name=='applications':return [dict(name=x['metadata']['name'],uid=x['metadata']['uid'],source={k:x['spec'].get('source',{}).get(k) for k in ['repoURL','path','targetRevision']},syncPolicy=x['spec'].get('syncPolicy'),sync=x.get('status',{}).get('sync'),health=x.get('status',{}).get('health')) for x in v['items'] if 'backend' in x['metadata']['name'] or 'root' in x['metadata']['name']]
+    if name=='cluster_identity':return dict(name=v['metadata']['name'],uid=v['metadata']['uid'])
+    return v
+ops={
+ 'sts':aws('sts','get-caller-identity'),
+ 'cluster':aws('eks','describe-cluster','--name','labbit-seoul-cluster','--query','cluster.{name:name,arn:arn,status:status,endpoint:endpoint,version:version,createdAt:createdAt,auth:accessConfig.authenticationMode,public:resourcesVpcConfig.endpointPublicAccess,private:resourcesVpcConfig.endpointPrivateAccess}'),
+ 'database':aws('rds','describe-db-instances','--db-instance-identifier','labbit-seoul-rds','--query','DBInstances[0].{id:DBInstanceIdentifier,arn:DBInstanceArn,resourceId:DbiResourceId,status:DBInstanceStatus,engine:Engine,version:EngineVersion,host:Endpoint.Address,port:Endpoint.Port,backupDays:BackupRetentionPeriod,latestRestore:LatestRestorableTime,encrypted:StorageEncrypted,iamAuth:IAMDatabaseAuthenticationEnabled,pending:PendingModifiedValues}'),
+ 'snapshots':aws('rds','describe-db-snapshots','--db-instance-identifier','labbit-seoul-rds','--query','DBSnapshots[].{id:DBSnapshotIdentifier,type:SnapshotType,status:Status,created:SnapshotCreateTime,encrypted:Encrypted}'),
+ 'candidate_short_tag':aws('ecr','describe-images','--repository-name','backend','--image-ids','imageTag=sha-be4d0ba','--query','imageDetails[].{digest:imageDigest,tags:imageTags,pushed:imagePushedAt,size:imageSizeInBytes}'),
+ 'candidate_full_tag':aws('ecr','describe-images','--repository-name','backend','--image-ids','imageTag=sha-be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1','--query','imageDetails[].{digest:imageDigest,tags:imageTags,pushed:imagePushedAt,size:imageSizeInBytes}'),
+ 'deployments':kube('get','deployments','-n','labbit','-o','json'),
+ 'pods':kube('get','pods','-n','labbit','-o','json'),
+ 'maintenance':kube('get','configmap','backend-config','-n','labbit','-o','json'),
+ 'jobs':kube('get','jobs','-n','labbit','-o','json'),
+ 'migration_log':kube('logs','-n','labbit','job/labbit-db-migration','--tail=120'),
+ 'applications':kube('get','applications.argoproj.io','-n','argocd','-o','json'),
+ 'cluster_identity':kube('get','namespace','kube-system','-o','json'),
+ 'can_get_pods':kube('auth','can-i','get','pods','-n','labbit'),
+ 'can_proxy_pods':kube('auth','can-i','get','pods/proxy','-n','labbit'),
+ 'can_get_namespace':kube('auth','can-i','get','namespaces'),
+}
+def call(item):
+    name,args=item;r=run(args)
+    if 'value' in r:r['value']=project(name,r['value'])
+    return name,r
+if len(sys.argv)>1 and sys.argv[1]=='correct-metadata':
+    original=OUT/'readonly-observations.json'
+    initial=OUT/'readonly-observations.initial.json'
+    if not initial.exists():initial.write_bytes(original.read_bytes())
+    old_commands=OUT/'readonly-command-inventory.initial.json'
+    if not old_commands.exists():old_commands.write_bytes((OUT/'readonly-command-inventory.json').read_bytes())
+    result=json.loads(original.read_text(encoding='utf8'))['results']
+    result.update(dict(call((n,ops[n])) for n in ['candidate_short_tag','candidate_full_tag','deployments']))
+else:
+    with ThreadPoolExecutor(max_workers=4) as pool:result=dict(pool.map(call,ops.items()))
+out=dict(source_head='be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1',scope='READ_ONLY_PREPARATION_NOT_FUNCTIONAL_TRIAL',credentials_or_secret_values_read=False,service_settings_changed=False,results=result)
+(OUT/'readonly-observations.json').write_text(json.dumps(out,ensure_ascii=False,indent=2,default=str)+'\n',encoding='utf8',newline='\n')
+(OUT/'readonly-command-inventory.json').write_text(json.dumps(dict(commands=ops,notes=['SelfSubjectAccessReview is a transient permission query, not a RoleBinding/IAM change.','Responses are selected projections; raw specs/credentials/log content are not persisted.','Full raw response SHA describes bytes observed in memory, not an independently stored artifact.']),ensure_ascii=False,indent=2)+'\n',encoding='utf8',newline='\n')
+for name,r in result.items():print(name, r['status'],r.get('reason',''),json.dumps(r.get('value'),ensure_ascii=False,default=str)[:1500])

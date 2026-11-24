@@ -1,0 +1,18 @@
+[
+  {
+    "packet": "2026-11-23-pr196-trial-preparation",
+    "manifest_sha256": "627f30ca5727d5cb0b2d390730f8fdce7a7d9818bf19bbee4b047961e3bcad8f"
+  },
+  {
+    "packet": "2026-11-23-candidate-publication",
+    "manifest_sha256": "e8db0b187c906995d1786fe0047ed379157f2ac307c3914f33ec7455d0fda2a5"
+  },
+  {
+    "packet": "2026-11-23-migration-candidate-rollout",
+    "manifest_sha256": "6708bacfd3736d33c293cfcd858d50af107e0064cd608f6f5a2a767c86862ddc"
+  },
+  {
+    "packet": "2026-11-23-collector-path-preparation",
+    "manifest_sha256": "7f6ec10559a3a1d9a3785a0a549d842aa926f17d0d8abca669029940f87ff32f"
+  }
+]

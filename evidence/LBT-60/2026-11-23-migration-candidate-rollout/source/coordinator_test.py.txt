@@ -1,0 +1,53 @@
+import importlib.util
+import unittest
+from unittest.mock import patch
+from pathlib import Path
+import datetime as dt
+
+spec=importlib.util.spec_from_file_location('rollout',Path(__file__).with_name('pr196_rollout.py'))
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+
+
+class RolloutGuards(unittest.TestCase):
+    def evidence(self, version=15):
+        return {'status':'OBSERVED_READONLY','local_port_closed':True,'session_history_terminated':True,'session_active_absent':True,'identity':{'observed_at':dt.datetime.now(dt.timezone.utc).isoformat()},'secret_reference_version':m.SECRET_VERSION,'migration_startup_timeouts_verified':True,'migrations':[{'version':n,'name':'synthetic.sql','checksum':m.hashlib.sha256(b'synthetic').hexdigest()} for n in range(1,version+1)],'work_inventory':[dict.fromkeys(['unfinished_operations','unfinished_items','unresolved_provider_records','active_terminal_sessions','other_open_transactions'],0)],'control_table_counts':[{'rows':0} for _ in range(5)],'resume_constraints':[{'conname':'worker_control_resume_applied_time','convalidated':True}]}
+
+    def check(self,x,v=15):
+        with patch.object(m,'load',return_value=x),patch.object(m.subprocess,'check_output',return_value=b'synthetic'):
+            return m.check_db('synthetic',v)
+
+    def test_fresh_matching_ledger_and_unused_control_accepted(self):
+        self.check(self.evidence())
+
+    def test_unknown_session_prevents_progress(self):
+        for key in ('local_port_closed','session_history_terminated','session_active_absent','migration_startup_timeouts_verified'):
+            with self.subTest(key=key):
+                x=self.evidence();x[key]=False
+                with self.assertRaises(RuntimeError):self.check(x)
+
+    def test_stale_or_future_inventory_prevents_progress(self):
+        for seconds in (-301,30):
+            x=self.evidence();x['identity']['observed_at']=(dt.datetime.now(dt.timezone.utc)+dt.timedelta(seconds=seconds)).isoformat()
+            with self.assertRaises(RuntimeError):self.check(x)
+
+    def test_work_or_control_journal_use_prevents_legacy_rollback(self):
+        x=self.evidence();x['control_table_counts'][4]['rows']=1
+        with self.assertRaises(RuntimeError):self.check(x)
+        for key in self.evidence()['work_inventory'][0]:
+            x=self.evidence();x['work_inventory'][0][key]=1
+            with self.assertRaises(RuntimeError):self.check(x)
+
+    def test_checksum_version_secret_and_constraint_mismatch_rejected(self):
+        for change in (lambda x:x['migrations'][0].update(checksum='f'*64),lambda x:x['migrations'].pop(),lambda x:x.update(secret_reference_version='other'),lambda x:x['resume_constraints'][0].update(convalidated=False)):
+            x=self.evidence();change(x)
+            with self.assertRaises(RuntimeError):self.check(x)
+
+    def test_concurrent_deployment_change_never_patched(self):
+        original={'template':{'spec':{'containers':[{'image':m.OLD}]}},'replicas':2}
+        d={'spec':{'unexpected_concurrent_field':True},'metadata':{'uid':m.UID}}
+        with patch.object(m,'identity'),patch.object(m,'frozen'),patch.object(m,'check_db'),patch.object(m,'deployment',return_value=d),patch.object(m,'load',return_value={'spec':original}),patch.object(m,'patch') as mutate:
+            with self.assertRaises(RuntimeError):m.switch()
+            mutate.assert_not_called()
+
+
+if __name__=='__main__':unittest.main(verbosity=2)

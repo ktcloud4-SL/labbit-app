@@ -1,0 +1,38 @@
+{
+  "Version": "labbit-dr-control/v1",
+  "Action": "resume",
+  "Request": {
+    "ApprovalRef": "00000000-0000-4000-8000-000000000002",
+    "Principal": "fixture",
+    "PlanSHA256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "PreconditionsSHA256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "ValidUntil": "2026-11-23T01:20:08.804060Z",
+    "Scope": {
+      "ID": "fixture",
+      "Cluster": "fixture",
+      "Region": "ap-northeast-3"
+    },
+    "ExpectedRevision": 1,
+    "ExpectedEpoch": 1,
+    "CommandID": "00000000-0000-4000-8000-000000000001",
+    "TrialID": "preview-only",
+    "Phase": "activate",
+    "RequestedAt": "2026-11-23T01:19:08.789675Z",
+    "RunID": "preview-only",
+    "Desired": 0
+  },
+  "Approval": {
+    "Bucket": "fixture",
+    "Key": "control/approval",
+    "VersionID": "fixture-version",
+    "SHA256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "Size": 1
+  },
+  "Evidence": {
+    "Bucket": "fixture",
+    "Key": "control/observation",
+    "VersionID": "fixture-version",
+    "SHA256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "Size": 1
+  }
+}

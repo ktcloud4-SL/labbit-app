@@ -1,0 +1,26 @@
+{
+  "operator_source": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1 + source-manifest.json product delta",
+  "server_candidate_unchanged": true,
+  "files": [
+    {
+      "path": ".local/labbit-dr-control-prepared.exe",
+      "bytes": 18655744,
+      "sha256": "3888f27879ee16a7524c3573ca7e74c8d73706575e4da43aae7937a33b639579"
+    },
+    {
+      "path": ".local/labbit-dr-evidence-prepared.exe",
+      "bytes": 18462208,
+      "sha256": "1a43a38ce50524ae04ca55ec0f4371cd89f20bfb3dc8dc23843a03fb7019b541"
+    },
+    {
+      "path": ".local/pr196-artifact-read-probe-postfix.exe",
+      "bytes": 10999296,
+      "sha256": "6631dbc947a9d1062c9588baa027cf4328b93435690cd8c8df34d0a0d6ae1127"
+    },
+    {
+      "path": ".local/pr196-collector-route-probe.exe",
+      "bytes": 11069952,
+      "sha256": "e96a06809161a150b0f309f0e5a5c70447d3b5e5f913a84dd5abff09fafdaea5"
+    }
+  ]
+}

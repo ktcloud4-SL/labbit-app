@@ -1,0 +1,11 @@
+npm notice run @labbit/web@0.0.0 test
+npm notice run vitest run --run scripts/validate-installer-build-env.test.mjs
+
+ RUN  v5.0.5 C:/Users/user/Documents/ChatGPT/3차 2/tmp/labbit-dr-stage3-offline-20261121/web
+
+
+ Test Files  1 passed (1)
+      Tests  30 passed (30)
+   Start at  15:18:58
+   Duration  2.06s (environment 49%, tests 39%, setup 9%, transform 1%, import 1%)
+

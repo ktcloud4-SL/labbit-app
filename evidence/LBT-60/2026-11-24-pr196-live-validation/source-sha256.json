@@ -1,0 +1,149 @@
+{
+  "hash_scope": "original QA handoff ZIP member bytes",
+  "handoff_zip_sha256": "f7d99a1f4e73987fdf2eb896fc36547a7c294df4d284cfe05adccb84e6f13dd5",
+  "source_paths_by_alias": {
+    "aws-trial": "2026-11-24-pr196-xr-1faf7585a8",
+    "provider-trial": "2026-11-24-pr196-provider-drain-fc3d902d",
+    "seoul-fencing": "2026-11-24-pr196-seoul-fence-rule-drill",
+    "seoul-collector": "2026-11-23-linux-collector-live-133504Z",
+    "pod-integration": "2026-11-24-pr196-isolated-pod-controls-f301319a50"
+  },
+  "original_members": [
+    {
+      "source": "aws-trial/01-init-product-receipt.json",
+      "sha256": "2d304c4165964dc03b9d0aba1f4e7527f4dcc7416c5d497d3236343ac815df46"
+    },
+    {
+      "source": "aws-trial/02-resume-without-reconciliation-product-receipt.json",
+      "sha256": "f7084595e8d105984c03cedd70562f99ad209cb9aba1ada0945ba971db55f616"
+    },
+    {
+      "source": "aws-trial/03-live-resume-product-receipt.json",
+      "sha256": "912536550943cd9d850b42fabb702442be73a8738afa4b72b0f0e5a496e5486e"
+    },
+    {
+      "source": "aws-trial/04-live-pause-product-receipt.json",
+      "sha256": "753f03c0e74070fd8d84c8629973506406422278bddc9c358c267c50b626de49"
+    },
+    {
+      "source": "aws-trial/cleanup.json",
+      "sha256": "8c7fe3526e5db213009fcf356a68c3332db3d63ca79ffd02cff8730591a00fa6"
+    },
+    {
+      "source": "aws-trial/network-fenced-after-promote.json",
+      "sha256": "682bdfec623992e7e050b3e9ce5f9c52cc2a51b2f365c79ff8ce92f398b2a3c1"
+    },
+    {
+      "source": "aws-trial/network-fenced-before-promote.json",
+      "sha256": "dafd5ee5c1293fe9ea2da1658575bbd4267b1459e995f319f9ed5b34e35bc791"
+    },
+    {
+      "source": "aws-trial/operator-local-cleanup.json",
+      "sha256": "faf3534de2337761ee8f3ea4dc2ab1a0e47a6f59780fea4ebbe0e99f6b80d4d2"
+    },
+    {
+      "source": "aws-trial/osaka-final-replay.json",
+      "sha256": "6abf2c5b508c65087aacbc0487b85e7d0443bdcf4581d309989e5861b191ccaa"
+    },
+    {
+      "source": "aws-trial/promote-accepted.json",
+      "sha256": "ea27560a5e98fe704c2433d6c22e9d432d31eb5c0ed54bdff6eed032f4b824b6"
+    },
+    {
+      "source": "aws-trial/single-writer.json",
+      "sha256": "4d536d5c76f3eed6106c7bb64d6ebb2bf480b7df86bd5d996ca81d79d9dcb3a0"
+    },
+    {
+      "source": "aws-trial/source-session-fenced.json",
+      "sha256": "1239444e49a04445404ad5979f46f180022a52802d8bd470b03f95fa5f19eae0"
+    },
+    {
+      "source": "aws-trial/worker-artifact-independent-readback.json",
+      "sha256": "2672703c4e7421fa9fa071d98f65c74e21fb92d418ab7f3f0945e04c6570cfed"
+    },
+    {
+      "source": "aws-trial/worker-final-readback.json",
+      "sha256": "fd8e56c37175972c8674fccd8c0dc914dc732b7a6bcc1ce471b9d5a491d61e65"
+    },
+    {
+      "source": "aws-trial/worker-journal-independent-readback.json",
+      "sha256": "968b733c076bec752f67934a5d602c068bacaf881be03852409d3d9d23090761"
+    },
+    {
+      "source": "aws-trial/worker-kubernetes-cleanup.json",
+      "sha256": "1b84f22094d0faaf3c8375389ab5e84b57bbb9c34e59edd69316109ce740872c"
+    },
+    {
+      "source": "aws-trial/worker-live-result.json",
+      "sha256": "158496a0ea987435589a337174548d0bf8cf73aef43c9361576c1bf004c12c3c"
+    },
+    {
+      "source": "pod-integration/app-integration.log",
+      "sha256": "efb51cdd5cb07fd2cbeff427f3e12be83a2dce9c6ef3803aa40262587b999afe"
+    },
+    {
+      "source": "pod-integration/httpapi-integration.log",
+      "sha256": "8a3fd046d15b72d8e2ae7cd2b0fcd55ccba9393384fe8dc1357891bd3aeca176"
+    },
+    {
+      "source": "pod-integration/outcome.json",
+      "sha256": "8cc2a97fc46a83c1dacbae2b5621e0433108e97561d044803cc3c29240a4e4b7"
+    },
+    {
+      "source": "pod-integration/postgres-integration.log",
+      "sha256": "f8f088a01c76721e55092093019ecb742f6d26b99f0b564b90be9eaa6e4d6bdf"
+    },
+    {
+      "source": "provider-trial/executed-source.json",
+      "sha256": "85cf83adcaef1eb594a032fb4c320bec32e253a180c22e90ea297b516783c080"
+    },
+    {
+      "source": "provider-trial/kt-independent-readback.json",
+      "sha256": "efc4f8b9e9d29c9e999ff925de92fdf57a18d37ff1147b60900a75eb080b1aeb"
+    },
+    {
+      "source": "provider-trial/local-db-cleanup.json",
+      "sha256": "e529ba9adc80a5abe41bf3a83af36ce7fee9889f786a537d4d2cdc51a67e9055"
+    },
+    {
+      "source": "provider-trial/observations.jsonl",
+      "sha256": "c34f181aa8f44ce8c6b71bd5739dbba3cd510f3cab5a269a5ecd23c549cff52d"
+    },
+    {
+      "source": "provider-trial/shared-rds-readback.json",
+      "sha256": "939452d9faf0d44cc95ebed179d793963fbc5d1f3431be16baf4bdfeaf8d2377"
+    },
+    {
+      "source": "provider-trial/shared-seoul-readback.json",
+      "sha256": "d4bfa2a2013be15388bc1bbb6b29bc06b22d6e8b6ad163b64ee8ed4d54a386b0"
+    },
+    {
+      "source": "provider-trial/worker-result.log",
+      "sha256": "826c5c797e895fc2d5c86fcc280aff75550b8157a0d050da11757dbbf913a568"
+    },
+    {
+      "source": "seoul-collector/linux-diagnostic-result.json",
+      "sha256": "c22ef7adbe882aa245755076ad8591a0e1786089c88d67a69e94ccd396bbe569"
+    },
+    {
+      "source": "seoul-fencing/fenced-new-app-connect.json",
+      "sha256": "4884c59fbf45bd76246ea3cf9b0253c1c07188d46f807dd4a38b4cddc98111f3"
+    },
+    {
+      "source": "seoul-fencing/fenced-session-readback.json",
+      "sha256": "4ac94ce7bb43a46f1619153ce8e64802db904974ea729ccca61b5f98b9ec480f"
+    },
+    {
+      "source": "seoul-fencing/replica-replay-readback.json",
+      "sha256": "572835d283173a727fa83ed7c1eef5aac0ef5bd1d199523ba3377471bc09faaa"
+    },
+    {
+      "source": "seoul-fencing/result.json",
+      "sha256": "03974ef88b5afd49b3bb1e36df5ddbeb7336dc239da35487c0572ad87ba4b64b"
+    },
+    {
+      "source": "seoul-fencing/seoul-restored.json",
+      "sha256": "4c6604d17474d7526ed7f3d205cb77f4dfcd5b3da979968fb6eb37e16a50a5e1"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "aws_or_service_io": false,
+  "execution_gate": "HOLD",
+  "generated_at_utc": "2026-11-23T04:16:19.009982Z",
+  "keys": [
+    {
+      "key_id": "pr196-20261123-approval",
+      "pkcs8_parse_and_public_match": true,
+      "private_key_path": "C:\\Users\\user\\AppData\\Local\\LabbitDrControl\\pr196-20261123\\approval.pkcs8.pem",
+      "public_key_base64": "/AzLZr9wYURM7B9BHMiN+dOZUJ2bFKqWT5q+x20PW+0=",
+      "purpose": "approval",
+      "runtime_ReadProtected": "PASS"
+    },
+    {
+      "key_id": "pr196-20261123-observation",
+      "pkcs8_parse_and_public_match": true,
+      "private_key_path": "C:\\Users\\user\\AppData\\Local\\LabbitDrControl\\pr196-20261123\\observation.pkcs8.pem",
+      "public_key_base64": "sUajH33lMdTCMJu4CHeOjL/jmBRdgmIKuNXt5fqBoFM=",
+      "purpose": "observation",
+      "runtime_ReadProtected": "PASS"
+    }
+  ],
+  "operational_signing_acceptance": false,
+  "policy_enable_execution": false,
+  "private_values_in_evidence": false
+}

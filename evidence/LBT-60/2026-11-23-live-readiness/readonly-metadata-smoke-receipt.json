@@ -1,0 +1,9 @@
+{
+  "started_at_utc": "2026-11-23T01:24:05.7337860Z",
+  "finished_at_utc": "2026-11-23T01:24:08.2926185Z",
+  "exit_code": 0,
+  "source_commit": "94fe1f61d7e398761291a967fab9820bfb08bc3d",
+  "binary_sha256": "b31cb510b90e42095df7204f95d962132848cb7b8ad366c05e316f447bf63d56",
+  "source_sha256": "3fcd18335a9ccf0050eaeda45f0df920f9fe6a207f1a509c7d8775c04ee5038c",
+  "scope": "actual AWS read-only helper; synthetic policy trust fields; no control mutation"
+}

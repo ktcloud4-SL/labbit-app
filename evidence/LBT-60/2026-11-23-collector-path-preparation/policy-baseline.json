@@ -1,0 +1,1005 @@
+{
+  "at": "2026-11-23T05:30:59.105077+00:00",
+  "deployment_spec_sha256": "4daa23809fab2b3d87b0a38a828232dd888eca519118df21bf005b28a15732e0",
+  "applications": {
+    "root-app-seoul": {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"argoproj.io/v1alpha1\",\"kind\":\"Application\",\"metadata\":{\"annotations\":{},\"finalizers\":[\"resources-finalizer.argocd.argoproj.io\"],\"name\":\"root-app-seoul\",\"namespace\":\"argocd\"},\"spec\":{\"destination\":{\"namespace\":\"argocd\",\"server\":\"https://kubernetes.default.svc\"},\"project\":\"default\",\"sources\":[{\"directory\":{\"recurse\":true},\"path\":\"apps/aws-seoul\",\"repoURL\":\"git@github.com:ktcloud4-SL/labbit-gitops.git\",\"targetRevision\":\"main\"}],\"syncPolicy\":{\"automated\":{\"prune\":true,\"selfHeal\":true},\"syncOptions\":[\"CreateNamespace=true\"]}}}\n"
+        },
+        "creationTimestamp": "2026-11-23T00:18:01Z",
+        "finalizers": [
+          "resources-finalizer.argocd.argoproj.io"
+        ],
+        "generation": 120,
+        "name": "root-app-seoul",
+        "namespace": "argocd",
+        "resourceVersion": "121862",
+        "uid": "9da17971-0ea4-4149-a10d-d34c11539d62"
+      },
+      "spec": {
+        "destination": {
+          "namespace": "argocd",
+          "server": "https://kubernetes.default.svc"
+        },
+        "project": "default",
+        "sources": [
+          {
+            "directory": {
+              "jsonnet": {},
+              "recurse": true
+            },
+            "path": "apps/aws-seoul",
+            "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+            "targetRevision": "main"
+          }
+        ],
+        "syncPolicy": {
+          "automated": {
+            "prune": true,
+            "selfHeal": true
+          },
+          "syncOptions": [
+            "CreateNamespace=true"
+          ]
+        }
+      },
+      "status": {
+        "controllerNamespace": "argocd",
+        "health": {
+          "status": "Healthy"
+        },
+        "history": [
+          {
+            "deployStartedAt": "2026-11-23T00:18:13Z",
+            "deployedAt": "2026-11-23T00:18:19Z",
+            "id": 0,
+            "initiatedBy": {
+              "automated": true
+            },
+            "revisions": [
+              "ab830d7c9e046b0621477192aca39c6b269cbf30"
+            ],
+            "source": {
+              "repoURL": ""
+            },
+            "sources": [
+              {
+                "directory": {
+                  "jsonnet": {},
+                  "recurse": true
+                },
+                "path": "apps/aws-seoul",
+                "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+                "targetRevision": "main"
+              }
+            ]
+          }
+        ],
+        "operationState": {
+          "finishedAt": "2026-11-23T00:18:19Z",
+          "message": "successfully synced (all tasks run)",
+          "operation": {
+            "initiatedBy": {
+              "automated": true
+            },
+            "retry": {
+              "limit": 5
+            },
+            "sync": {
+              "prune": true,
+              "revisions": [
+                "ab830d7c9e046b0621477192aca39c6b269cbf30"
+              ],
+              "syncOptions": [
+                "CreateNamespace=true"
+              ]
+            }
+          },
+          "phase": "Succeeded",
+          "startedAt": "2026-11-23T00:18:13Z",
+          "syncResult": {
+            "resources": [
+              {
+                "group": "argoproj.io",
+                "hookPhase": "Succeeded",
+                "kind": "Application",
+                "message": "application.argoproj.io/platform-networking created",
+                "name": "platform-networking",
+                "namespace": "argocd",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1alpha1"
+              },
+              {
+                "group": "",
+                "hookPhase": "Succeeded",
+                "kind": "Namespace",
+                "message": "namespace/labbit configured. Warning: resource namespaces/labbit is missing the kubectl.kubernetes.io/last-applied-configuration annotation which is required by  apply.  apply should only be used on resources created declaratively by either  create --save-config or  apply. The missing annotation will be patched automatically.",
+                "name": "labbit",
+                "namespace": "argocd",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1"
+              },
+              {
+                "group": "argoproj.io",
+                "hookPhase": "Succeeded",
+                "kind": "Application",
+                "message": "application.argoproj.io/platform-observability created",
+                "name": "platform-observability",
+                "namespace": "argocd",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1alpha1"
+              },
+              {
+                "group": "argoproj.io",
+                "hookPhase": "Succeeded",
+                "kind": "Application",
+                "message": "application.argoproj.io/backend created",
+                "name": "backend",
+                "namespace": "argocd",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1alpha1"
+              },
+              {
+                "group": "argoproj.io",
+                "hookPhase": "Succeeded",
+                "kind": "Application",
+                "message": "application.argoproj.io/web created",
+                "name": "web",
+                "namespace": "argocd",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1alpha1"
+              },
+              {
+                "group": "argoproj.io",
+                "hookPhase": "Running",
+                "kind": "Application",
+                "message": "application.argoproj.io/platform-ops-access created",
+                "name": "platform-ops-access",
+                "namespace": "argocd",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1alpha1"
+              }
+            ],
+            "revision": "",
+            "revisions": [
+              "ab830d7c9e046b0621477192aca39c6b269cbf30"
+            ],
+            "source": {
+              "repoURL": ""
+            },
+            "sources": [
+              {
+                "directory": {
+                  "jsonnet": {},
+                  "recurse": true
+                },
+                "path": "apps/aws-seoul",
+                "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+                "targetRevision": "main"
+              }
+            ]
+          }
+        },
+        "reconciledAt": "2026-11-23T05:29:25Z",
+        "resources": [
+          {
+            "kind": "Namespace",
+            "name": "labbit",
+            "status": "Synced",
+            "version": "v1"
+          },
+          {
+            "group": "argoproj.io",
+            "kind": "Application",
+            "name": "backend",
+            "namespace": "argocd",
+            "status": "Synced",
+            "version": "v1alpha1"
+          },
+          {
+            "group": "argoproj.io",
+            "kind": "Application",
+            "name": "platform-networking",
+            "namespace": "argocd",
+            "status": "Synced",
+            "syncWave": -10,
+            "version": "v1alpha1"
+          },
+          {
+            "group": "argoproj.io",
+            "kind": "Application",
+            "name": "platform-observability",
+            "namespace": "argocd",
+            "status": "Synced",
+            "version": "v1alpha1"
+          },
+          {
+            "group": "argoproj.io",
+            "kind": "Application",
+            "name": "platform-ops-access",
+            "namespace": "argocd",
+            "status": "Synced",
+            "syncWave": 5,
+            "version": "v1alpha1"
+          },
+          {
+            "group": "argoproj.io",
+            "kind": "Application",
+            "name": "web",
+            "namespace": "argocd",
+            "status": "Synced",
+            "version": "v1alpha1"
+          }
+        ],
+        "sourceTypes": [
+          "Directory"
+        ],
+        "summary": {},
+        "sync": {
+          "comparedTo": {
+            "destination": {
+              "namespace": "argocd",
+              "server": "https://kubernetes.default.svc"
+            },
+            "source": {
+              "repoURL": ""
+            },
+            "sources": [
+              {
+                "directory": {
+                  "jsonnet": {},
+                  "recurse": true
+                },
+                "path": "apps/aws-seoul",
+                "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+                "targetRevision": "main"
+              }
+            ]
+          },
+          "revisions": [
+            "ab830d7c9e046b0621477192aca39c6b269cbf30"
+          ],
+          "status": "Synced"
+        }
+      }
+    },
+    "backend": {
+      "apiVersion": "argoproj.io/v1alpha1",
+      "kind": "Application",
+      "metadata": {
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"argoproj.io/v1alpha1\",\"kind\":\"Application\",\"metadata\":{\"annotations\":{},\"finalizers\":[\"resources-finalizer.argocd.argoproj.io\"],\"labels\":{\"argocd.argoproj.io/instance\":\"root-app-seoul\"},\"name\":\"backend\",\"namespace\":\"argocd\"},\"spec\":{\"destination\":{\"namespace\":\"labbit\",\"server\":\"https://kubernetes.default.svc\"},\"project\":\"default\",\"source\":{\"helm\":{\"valueFiles\":[\"../../environments/aws-seoul/apps/backend-values.yaml\"]},\"path\":\"charts/common-app\",\"repoURL\":\"git@github.com:ktcloud4-SL/labbit-gitops.git\",\"targetRevision\":\"main\"},\"syncPolicy\":{\"automated\":{\"prune\":true,\"selfHeal\":true},\"retry\":{\"backoff\":{\"duration\":\"10s\",\"factor\":2,\"maxDuration\":\"3m\"},\"limit\":5},\"syncOptions\":[\"CreateNamespace=true\",\"SkipDryRunOnMissingResource=true\"]}}}\n"
+        },
+        "creationTimestamp": "2026-11-23T00:18:16Z",
+        "finalizers": [
+          "resources-finalizer.argocd.argoproj.io"
+        ],
+        "generation": 150,
+        "labels": {
+          "argocd.argoproj.io/instance": "root-app-seoul"
+        },
+        "name": "backend",
+        "namespace": "argocd",
+        "resourceVersion": "121855",
+        "uid": "1819925b-e530-4ae7-85b8-81fb13451753"
+      },
+      "spec": {
+        "destination": {
+          "namespace": "labbit",
+          "server": "https://kubernetes.default.svc"
+        },
+        "project": "default",
+        "source": {
+          "helm": {
+            "valueFiles": [
+              "../../environments/aws-seoul/apps/backend-values.yaml"
+            ]
+          },
+          "path": "charts/common-app",
+          "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+          "targetRevision": "main"
+        },
+        "syncPolicy": {
+          "automated": {
+            "prune": true,
+            "selfHeal": true
+          },
+          "retry": {
+            "backoff": {
+              "duration": "10s",
+              "factor": 2,
+              "maxDuration": "3m"
+            },
+            "limit": 5
+          },
+          "syncOptions": [
+            "CreateNamespace=true",
+            "SkipDryRunOnMissingResource=true"
+          ]
+        }
+      },
+      "status": {
+        "controllerNamespace": "argocd",
+        "health": {
+          "status": "Healthy"
+        },
+        "history": [
+          {
+            "deployStartedAt": "2026-11-23T00:18:18Z",
+            "deployedAt": "2026-11-23T00:23:33Z",
+            "id": 0,
+            "initiatedBy": {
+              "automated": true
+            },
+            "revision": "ab830d7c9e046b0621477192aca39c6b269cbf30",
+            "source": {
+              "helm": {
+                "valueFiles": [
+                  "../../environments/aws-seoul/apps/backend-values.yaml"
+                ]
+              },
+              "path": "charts/common-app",
+              "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+              "targetRevision": "main"
+            }
+          }
+        ],
+        "operationState": {
+          "finishedAt": "2026-11-23T00:23:33Z",
+          "message": "successfully synced (all tasks run)",
+          "operation": {
+            "initiatedBy": {
+              "automated": true
+            },
+            "retry": {
+              "backoff": {
+                "duration": "10s",
+                "factor": 2,
+                "maxDuration": "3m"
+              },
+              "limit": 5
+            },
+            "sync": {
+              "prune": true,
+              "revision": "ab830d7c9e046b0621477192aca39c6b269cbf30",
+              "syncOptions": [
+                "CreateNamespace=true",
+                "SkipDryRunOnMissingResource=true"
+              ]
+            }
+          },
+          "phase": "Succeeded",
+          "retryCount": 4,
+          "startedAt": "2026-11-23T00:18:18Z",
+          "syncResult": {
+            "resources": [
+              {
+                "group": "secrets-store.csi.x-k8s.io",
+                "hookPhase": "Succeeded",
+                "hookType": "PreSync",
+                "kind": "SecretProviderClass",
+                "message": "labbit-db-secret-provider created",
+                "name": "labbit-db-secret-provider",
+                "namespace": "labbit",
+                "syncPhase": "PreSync",
+                "version": "v1"
+              },
+              {
+                "group": "batch",
+                "hookPhase": "Succeeded",
+                "hookType": "PreSync",
+                "kind": "Job",
+                "message": "Reached expected number of succeeded pods",
+                "name": "labbit-db-migration",
+                "namespace": "labbit",
+                "syncPhase": "PreSync",
+                "version": "v1"
+              },
+              {
+                "group": "networking.k8s.io",
+                "hookPhase": "Succeeded",
+                "kind": "NetworkPolicy",
+                "message": "networkpolicy.networking.k8s.io/backend-peer-ingress created",
+                "name": "backend-peer-ingress",
+                "namespace": "labbit",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1"
+              },
+              {
+                "group": "",
+                "hookPhase": "Succeeded",
+                "kind": "Service",
+                "message": "service/backend-peer created",
+                "name": "backend-peer",
+                "namespace": "labbit",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1"
+              },
+              {
+                "group": "security.istio.io",
+                "hookPhase": "Succeeded",
+                "kind": "PeerAuthentication",
+                "message": "peerauthentication.security.istio.io/backend-peer-mtls created",
+                "name": "backend-peer-mtls",
+                "namespace": "labbit",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1beta1"
+              },
+              {
+                "group": "secrets-store.csi.x-k8s.io",
+                "hookPhase": "Succeeded",
+                "kind": "SecretProviderClass",
+                "message": "secretproviderclass.secrets-store.csi.x-k8s.io/labbit-valkey-secret-provider created",
+                "name": "labbit-valkey-secret-provider",
+                "namespace": "labbit",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1"
+              },
+              {
+                "group": "",
+                "hookPhase": "Running",
+                "kind": "ConfigMap",
+                "message": "configmap/backend-config created",
+                "name": "backend-config",
+                "namespace": "labbit",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1"
+              },
+              {
+                "group": "",
+                "hookPhase": "Running",
+                "kind": "Service",
+                "message": "service/backend created",
+                "name": "backend",
+                "namespace": "labbit",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1"
+              },
+              {
+                "group": "",
+                "hookPhase": "Running",
+                "kind": "Service",
+                "message": "service/backend-metrics created",
+                "name": "backend-metrics",
+                "namespace": "labbit",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1"
+              },
+              {
+                "group": "apps",
+                "hookPhase": "Running",
+                "kind": "Deployment",
+                "message": "deployment.apps/backend created",
+                "name": "backend",
+                "namespace": "labbit",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1"
+              },
+              {
+                "group": "monitoring.coreos.com",
+                "hookPhase": "Running",
+                "kind": "ServiceMonitor",
+                "message": "servicemonitor.monitoring.coreos.com/backend created",
+                "name": "backend",
+                "namespace": "labbit",
+                "status": "Synced",
+                "syncPhase": "Sync",
+                "version": "v1"
+              }
+            ],
+            "revision": "ab830d7c9e046b0621477192aca39c6b269cbf30",
+            "source": {
+              "helm": {
+                "valueFiles": [
+                  "../../environments/aws-seoul/apps/backend-values.yaml"
+                ]
+              },
+              "path": "charts/common-app",
+              "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+              "targetRevision": "main"
+            }
+          }
+        },
+        "reconciledAt": "2026-11-23T05:29:25Z",
+        "resources": [
+          {
+            "kind": "ConfigMap",
+            "name": "backend-config",
+            "namespace": "labbit",
+            "status": "Synced",
+            "version": "v1"
+          },
+          {
+            "health": {
+              "status": "Healthy"
+            },
+            "kind": "Service",
+            "name": "backend",
+            "namespace": "labbit",
+            "status": "Synced",
+            "version": "v1"
+          },
+          {
+            "health": {
+              "status": "Healthy"
+            },
+            "kind": "Service",
+            "name": "backend-metrics",
+            "namespace": "labbit",
+            "status": "Synced",
+            "version": "v1"
+          },
+          {
+            "health": {
+              "status": "Healthy"
+            },
+            "kind": "Service",
+            "name": "backend-peer",
+            "namespace": "labbit",
+            "status": "Synced",
+            "syncWave": -1,
+            "version": "v1"
+          },
+          {
+            "group": "apps",
+            "health": {
+              "status": "Healthy"
+            },
+            "kind": "Deployment",
+            "name": "backend",
+            "namespace": "labbit",
+            "status": "Synced",
+            "version": "v1"
+          },
+          {
+            "group": "batch",
+            "hook": true,
+            "kind": "Job",
+            "name": "labbit-db-migration",
+            "namespace": "labbit",
+            "requiresPruning": true,
+            "version": "v1"
+          },
+          {
+            "group": "monitoring.coreos.com",
+            "kind": "ServiceMonitor",
+            "name": "backend",
+            "namespace": "labbit",
+            "status": "Synced",
+            "version": "v1"
+          },
+          {
+            "group": "networking.k8s.io",
+            "kind": "NetworkPolicy",
+            "name": "backend-peer-ingress",
+            "namespace": "labbit",
+            "status": "Synced",
+            "syncWave": -1,
+            "version": "v1"
+          },
+          {
+            "group": "secrets-store.csi.x-k8s.io",
+            "hook": true,
+            "kind": "SecretProviderClass",
+            "name": "labbit-db-secret-provider",
+            "namespace": "labbit",
+            "requiresPruning": true,
+            "version": "v1"
+          },
+          {
+            "group": "secrets-store.csi.x-k8s.io",
+            "kind": "SecretProviderClass",
+            "name": "labbit-valkey-secret-provider",
+            "namespace": "labbit",
+            "status": "Synced",
+            "syncWave": -1,
+            "version": "v1"
+          },
+          {
+            "group": "security.istio.io",
+            "kind": "PeerAuthentication",
+            "name": "backend-peer-mtls",
+            "namespace": "labbit",
+            "status": "Synced",
+            "syncWave": -1,
+            "version": "v1beta1"
+          }
+        ],
+        "sourceType": "Helm",
+        "summary": {
+          "images": [
+            "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+            "registry.istio.io/release/proxyv2:1.30.6"
+          ]
+        },
+        "sync": {
+          "comparedTo": {
+            "destination": {
+              "namespace": "labbit",
+              "server": "https://kubernetes.default.svc"
+            },
+            "source": {
+              "helm": {
+                "valueFiles": [
+                  "../../environments/aws-seoul/apps/backend-values.yaml"
+                ]
+              },
+              "path": "charts/common-app",
+              "repoURL": "git@github.com:ktcloud4-SL/labbit-gitops.git",
+              "targetRevision": "main"
+            }
+          },
+          "revision": "ab830d7c9e046b0621477192aca39c6b269cbf30",
+          "status": "Synced"
+        }
+      }
+    }
+  },
+  "networkpolicies": {
+    "apiVersion": "v1",
+    "items": [
+      {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "NetworkPolicy",
+        "metadata": {
+          "annotations": {
+            "argocd.argoproj.io/sync-wave": "-1",
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.k8s.io/v1\",\"kind\":\"NetworkPolicy\",\"metadata\":{\"annotations\":{\"argocd.argoproj.io/sync-wave\":\"-1\"},\"labels\":{\"argocd.argoproj.io/instance\":\"backend\"},\"name\":\"backend-peer-ingress\",\"namespace\":\"labbit\"},\"spec\":{\"ingress\":[{\"from\":[{\"namespaceSelector\":{\"matchLabels\":{\"kubernetes.io/metadata.name\":\"istio-system\"}},\"podSelector\":{\"matchLabels\":{\"istio\":\"ingressgateway\"}}},{\"podSelector\":{\"matchLabels\":{\"app.kubernetes.io/instance\":\"backend\",\"app.kubernetes.io/name\":\"common-app\"}}}],\"ports\":[{\"port\":8080,\"protocol\":\"TCP\"}]},{\"from\":[{\"podSelector\":{\"matchLabels\":{\"app.kubernetes.io/instance\":\"backend\",\"app.kubernetes.io/name\":\"common-app\"}}}],\"ports\":[{\"port\":8081,\"protocol\":\"TCP\"}]},{\"from\":[{\"namespaceSelector\":{\"matchLabels\":{\"kubernetes.io/metadata.name\":\"observability\"}},\"podSelector\":{\"matchLabels\":{\"app.kubernetes.io/name\":\"prometheus\"}}}],\"ports\":[{\"port\":9090,\"protocol\":\"TCP\"}]}],\"podSelector\":{\"matchLabels\":{\"app.kubernetes.io/instance\":\"backend\",\"app.kubernetes.io/name\":\"common-app\"}},\"policyTypes\":[\"Ingress\"]}}\n"
+          },
+          "creationTimestamp": "2026-11-23T00:23:30Z",
+          "finalizers": [
+            "networking.k8s.aws/resources"
+          ],
+          "generation": 1,
+          "labels": {
+            "argocd.argoproj.io/instance": "backend"
+          },
+          "name": "backend-peer-ingress",
+          "namespace": "labbit",
+          "resourceVersion": "12219",
+          "uid": "548284a9-5050-4803-8cc8-b8401a1c638e"
+        },
+        "spec": {
+          "ingress": [
+            {
+              "from": [
+                {
+                  "namespaceSelector": {
+                    "matchLabels": {
+                      "kubernetes.io/metadata.name": "istio-system"
+                    }
+                  },
+                  "podSelector": {
+                    "matchLabels": {
+                      "istio": "ingressgateway"
+                    }
+                  }
+                },
+                {
+                  "podSelector": {
+                    "matchLabels": {
+                      "app.kubernetes.io/instance": "backend",
+                      "app.kubernetes.io/name": "common-app"
+                    }
+                  }
+                }
+              ],
+              "ports": [
+                {
+                  "port": 8080,
+                  "protocol": "TCP"
+                }
+              ]
+            },
+            {
+              "from": [
+                {
+                  "podSelector": {
+                    "matchLabels": {
+                      "app.kubernetes.io/instance": "backend",
+                      "app.kubernetes.io/name": "common-app"
+                    }
+                  }
+                }
+              ],
+              "ports": [
+                {
+                  "port": 8081,
+                  "protocol": "TCP"
+                }
+              ]
+            },
+            {
+              "from": [
+                {
+                  "namespaceSelector": {
+                    "matchLabels": {
+                      "kubernetes.io/metadata.name": "observability"
+                    }
+                  },
+                  "podSelector": {
+                    "matchLabels": {
+                      "app.kubernetes.io/name": "prometheus"
+                    }
+                  }
+                }
+              ],
+              "ports": [
+                {
+                  "port": 9090,
+                  "protocol": "TCP"
+                }
+              ]
+            }
+          ],
+          "podSelector": {
+            "matchLabels": {
+              "app.kubernetes.io/instance": "backend",
+              "app.kubernetes.io/name": "common-app"
+            }
+          },
+          "policyTypes": [
+            "Ingress"
+          ]
+        }
+      }
+    ],
+    "kind": "List",
+    "metadata": {
+      "resourceVersion": ""
+    }
+  },
+  "source_ips": [
+    "10.0.21.58",
+    "10.0.46.149"
+  ],
+  "cluster": {
+    "name": "labbit-seoul-cluster",
+    "arn": "arn:aws:eks:ap-northeast-2:299311846289:cluster/labbit-seoul-cluster",
+    "createdAt": "2026-11-23T08:45:10.136000+09:00",
+    "version": "1.36",
+    "endpoint": "https://7EF29A2C0B0AE221F6BD9A8CAA189512.gr7.ap-northeast-2.eks.amazonaws.com",
+    "roleArn": "arn:aws:iam::299311846289:role/labbit-seoul-cluster-cluster-20261122234443205100000009",
+    "resourcesVpcConfig": {
+      "subnetIds": [
+        "subnet-0191996a7e5730b33",
+        "subnet-042a0d269986cace7"
+      ],
+      "securityGroupIds": [
+        "sg-064944824d49757ed"
+      ],
+      "clusterSecurityGroupId": "sg-03ab32c3419c38bc7",
+      "vpcId": "vpc-0f874c702b0364ff1",
+      "endpointPublicAccess": true,
+      "endpointPrivateAccess": true,
+      "publicAccessCidrs": [
+        "125.247.187.247/32",
+        "182.211.45.52/32",
+        "121.138.184.76/32",
+        "59.17.19.52/32",
+        "175.195.113.145/32",
+        "222.235.231.219/32",
+        "1.1.1.1/32",
+        "121.185.85.150/32"
+      ],
+      "controlPlaneEgressMode": "AWS_MANAGED"
+    },
+    "kubernetesNetworkConfig": {
+      "serviceIpv4Cidr": "172.20.0.0/16",
+      "ipFamily": "ipv4",
+      "elasticLoadBalancing": {
+        "enabled": false
+      }
+    },
+    "logging": {
+      "clusterLogging": [
+        {
+          "types": [
+            "api",
+            "audit",
+            "authenticator"
+          ],
+          "enabled": true
+        },
+        {
+          "types": [
+            "controllerManager",
+            "scheduler"
+          ],
+          "enabled": false
+        }
+      ]
+    },
+    "identity": {
+      "oidc": {
+        "issuer": "https://oidc.eks.ap-northeast-2.amazonaws.com/id/7EF29A2C0B0AE221F6BD9A8CAA189512"
+      }
+    },
+    "status": "ACTIVE",
+    "certificateAuthority": {
+      "data": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURNakNDQWhxZ0F3SUJBZ0lSQUlLVENnS3RIeVJXTWZHVllESFpJbjR3RFFZSktvWklodmNOQVFFTEJRQXcKSnpFUU1BNEdBMVVFQ2hNSFFWZFRJRVZMVXpFVE1CRUdBMVVFQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TmpFeApNakl5TXpRMU1UaGFGdzB6TVRFeE1qRXlNelExTVRoYU1DY3hFREFPQmdOVkJBb1RCMEZYVXlCRlMxTXhFekFSCkJnTlZCQU1UQ210MVltVnlibVYwWlhNd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUJEd0F3Z2dFS0FvSUIKQVFDcFpSZy9idXBRaUVYNHF2N3E2Qk4yR2Z4T3FoamFPUHRKMVZISFpjZFV2WHJLMExQNUVlYW1TUzJyb3QrNQo0dXppSWJpK1JTRkVrMDgzd0gzOFI1a3d5MXB5Z3ptUDF5MVl2ek96SzZLcnZWZDlIWG1uakx3cUtEMnp5K3lsClRCVWF0bGptd29KMFArWWJOYTNrZTcwVDFpbnZtM21sWjZzajlsZzlHTitkSkNuaVVzS0FRUXUyOUwxa2RsckEKRzBnZjdTVnpzQ05mREFDMnNYTjVyYmFvWFpsODhZQVd0cWZiR1VzRmlIM09kZyt6ZEZEdXA2L0dBKzA5R1UvegpaZmNwUUZLK0lJdVFEclFVR2ZVMllJWWtZNXQxcHl0ajB1V3BEcnBBcUNtSHZpUlB1R2x0b3N0c1RORDB1VU5zCnFNeHNyYmlCd2IvejNSMFNKT243em9McEFnTUJBQUdqV1RCWE1BNEdBMVVkRHdFQi93UUVBd0lDcERBUEJnTlYKSFJNQkFmOEVCVEFEQVFIL01CMEdBMVVkRGdRV0JCU1JISStXK0hyMFNwUDNyS0orME1qTXEwOFlkekFWQmdOVgpIUkVFRGpBTWdncHJkV0psY201bGRHVnpNQTBHQ1NxR1NJYjNEUUVCQ3dVQUE0SUJBUUNrVkxHTmZCVjM3VFRYCk5kbnI3MHVkSk41VmJNQWw4MEtZNXc3dTBoQmVRR1JMQzZjOGRaTmljK3NrN1dQOFkvcTdjdFQ0S0xBbGdmQXIKZ2tlQjNRNHVKY1kvOUhDSW9yNkttSVB6aVFsRW1zZVNCS0hsMUo3MUhnOU1tSDZCdUNRSzRIUkxHMk1qM0NiUwpOSlNaUEdjZCszYkx6ZHJzR2R1UGJwdU5Bb2pwSXZ1aHhibjJxT3I4RitndDc2dk1YWmp1MVhISEgyeTVWclRECllMVTAyQkN6djBFQTZuYmk1U3huMkVnWjV4ZFJjNkhtTll1dk9ZOUZHVDRha2dZeCtRT2dLYUV5MWlRVmRxd1cKOWY4K2hQdWtMblZzSllVeGZsdmpTWXRzZDdycFJzUGs2QmFoYXpUdEluUXVhZzJic3h4T1JGa2pqY3ZOQ2tQKwpLQTlpRk95SgotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
+      "active": {
+        "id": "fd09588f-5051-35b7-9f0a-de6629678064",
+        "activatedBy": "EKS"
+      }
+    },
+    "platformVersion": "eks.19",
+    "tags": {
+      "Project": "labbit",
+      "Environment": "seoul",
+      "terraform-aws-modules": "eks",
+      "ManagedBy": "Terraform"
+    },
+    "encryptionConfig": [
+      {
+        "resources": [
+          "secrets"
+        ],
+        "provider": {
+          "keyArn": "arn:aws:kms:ap-northeast-2:299311846289:key/50a7c34b-8370-40fd-a357-00fda283643f"
+        }
+      }
+    ],
+    "accessConfig": {
+      "authenticationMode": "API_AND_CONFIG_MAP"
+    },
+    "upgradePolicy": {
+      "supportType": "EXTENDED"
+    },
+    "deletionProtection": false,
+    "controlPlaneScalingConfig": {
+      "tier": "standard"
+    },
+    "kubeApiServerConfig": {
+      "eventTtl": "60m",
+      "serviceNodePortRange": {
+        "minPort": 30000,
+        "maxPort": 32767
+      }
+    },
+    "kubeSchedulerConfig": {
+      "nodeResourcesFit": {
+        "scoringStrategy": {
+          "type": "LeastAllocated",
+          "resources": [
+            {
+              "name": "cpu",
+              "weight": 1
+            },
+            {
+              "name": "memory",
+              "weight": 1
+            }
+          ]
+        }
+      }
+    },
+    "kubeControllerManagerConfig": {
+      "podGcControllerConfig": {
+        "terminatedPodGcThreshold": 12500
+      },
+      "horizontalPodAutoscalerControllerConfig": {
+        "horizontalPodAutoscalerSyncPeriod": "15s"
+      }
+    }
+  },
+  "source_enis": [
+    {
+      "Attachment": {
+        "AttachTime": "2026-11-23T01:54:45+00:00",
+        "AttachmentId": "eni-attach-09a39b8f6f63dfba5",
+        "DeleteOnTermination": true,
+        "DeviceIndex": 1,
+        "NetworkCardIndex": 0,
+        "InstanceOwnerId": "816069133605",
+        "Status": "attached"
+      },
+      "AvailabilityZone": "ap-northeast-2a",
+      "Description": "Amazon EKS labbit-seoul-cluster",
+      "Groups": [
+        {
+          "GroupId": "sg-03ab32c3419c38bc7",
+          "GroupName": "eks-cluster-sg-labbit-seoul-cluster-487376436"
+        },
+        {
+          "GroupId": "sg-064944824d49757ed",
+          "GroupName": "labbit-seoul-cluster-cluster-20261122234441625600000004"
+        }
+      ],
+      "InterfaceType": "interface",
+      "Ipv6Addresses": [],
+      "MacAddress": "02:ff:ce:bf:a0:87",
+      "NetworkInterfaceId": "eni-0a3fadba008a8e313",
+      "OwnerId": "299311846289",
+      "PrivateDnsName": "ip-10-0-21-58.ap-northeast-2.compute.internal",
+      "PublicDnsName": "",
+      "PrivateIpAddress": "10.0.21.58",
+      "PrivateIpAddresses": [
+        {
+          "Primary": true,
+          "PrivateDnsName": "ip-10-0-21-58.ap-northeast-2.compute.internal",
+          "PrivateIpAddress": "10.0.21.58"
+        }
+      ],
+      "RequesterId": "816069133605",
+      "RequesterManaged": true,
+      "SourceDestCheck": true,
+      "Status": "in-use",
+      "SubnetId": "subnet-0191996a7e5730b33",
+      "TagSet": [],
+      "VpcId": "vpc-0f874c702b0364ff1",
+      "Operator": {
+        "Managed": false,
+        "HiddenByDefault": false
+      },
+      "AvailabilityZoneId": "apne2-az1"
+    },
+    {
+      "Attachment": {
+        "AttachTime": "2026-11-23T01:54:48+00:00",
+        "AttachmentId": "eni-attach-0bf685e5f94400246",
+        "DeleteOnTermination": true,
+        "DeviceIndex": 1,
+        "NetworkCardIndex": 0,
+        "InstanceOwnerId": "816069133605",
+        "Status": "attached"
+      },
+      "AvailabilityZone": "ap-northeast-2c",
+      "Description": "Amazon EKS labbit-seoul-cluster",
+      "Groups": [
+        {
+          "GroupId": "sg-03ab32c3419c38bc7",
+          "GroupName": "eks-cluster-sg-labbit-seoul-cluster-487376436"
+        },
+        {
+          "GroupId": "sg-064944824d49757ed",
+          "GroupName": "labbit-seoul-cluster-cluster-20261122234441625600000004"
+        }
+      ],
+      "InterfaceType": "interface",
+      "Ipv6Addresses": [],
+      "MacAddress": "0a:ff:ce:3f:99:89",
+      "NetworkInterfaceId": "eni-0e9725c1ad80dbdaa",
+      "OwnerId": "299311846289",
+      "PrivateDnsName": "ip-10-0-46-149.ap-northeast-2.compute.internal",
+      "PublicDnsName": "",
+      "PrivateIpAddress": "10.0.46.149",
+      "PrivateIpAddresses": [
+        {
+          "Primary": true,
+          "PrivateDnsName": "ip-10-0-46-149.ap-northeast-2.compute.internal",
+          "PrivateIpAddress": "10.0.46.149"
+        }
+      ],
+      "RequesterId": "816069133605",
+      "RequesterManaged": true,
+      "SourceDestCheck": true,
+      "Status": "in-use",
+      "SubnetId": "subnet-042a0d269986cace7",
+      "TagSet": [],
+      "VpcId": "vpc-0f874c702b0364ff1",
+      "Operator": {
+        "Managed": false,
+        "HiddenByDefault": false
+      },
+      "AvailabilityZoneId": "apne2-az3"
+    }
+  ]
+}

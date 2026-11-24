@@ -1,0 +1,24 @@
+title = "PR196 exact public checksums and reviewer phrase only"
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Exact public Go module h1 checksum, not a credential"
+condition = "AND"
+paths = ['''(^|/)go\.sum\.txt$''']
+regexTarget = "match"
+regexes = ['''docker-credential-helpers v0\.9\.3 h1:gAm/VtF9wgqJMoxzT3Gj5p4AqIjCBS4wrsOh9yRqcz8=''']
+
+[[allowlists]]
+description = "Exact SHA256 of immutable Git migration bytes, independently compared"
+condition = "AND"
+paths = ['''(^|/)image-(local-verification|publication-readback)\.json$''']
+regexTarget = "match"
+regexes = ['''000010_connector_enrollment_tokens\.sql": "8be5cd16dc8c7df022b537c430177056b6c1af5de876f4b83fb77c514a8244d6"''']
+
+[[allowlists]]
+description = "Exact independent review sentence listing absent tools, not a token value"
+condition = "AND"
+paths = ['''(^|/)independent-review\.md$''']
+regexTarget = "match"
+regexes = ['''token, kubectl[/]SSM[/]DB ''']

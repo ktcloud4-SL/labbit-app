@@ -1,0 +1,58 @@
+package main
+
+import (
+	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"strings"
+	"testing"
+)
+
+func TestAWSRemoteEndpointOverrideRemoved(t *testing.T) {
+	got := awsEnvironment([]string{"Path=C:/Windows", "AWS_ENDPOINT_URL=https://bad.invalid", "aws_endpoint_url_ecr=https://bad.invalid", "AWS_IGNORE_CONFIGURED_ENDPOINT_URLS=false", "AWS_MAX_ATTEMPTS=9", "AWS_CLI_AUTO_PROMPT=on", "AWS_PAGER=unsafe"})
+	s := strings.Join(got, "\n")
+	if strings.Contains(s, "bad.invalid") || strings.Contains(s, "unsafe") || strings.Contains(s, "ATTEMPTS=9") || !strings.Contains(s, "AWS_IGNORE_CONFIGURED_ENDPOINT_URLS=true") || !strings.Contains(s, "Path=C:/Windows") {
+		t.Fatal("endpoint override environment not constrained")
+	}
+}
+func TestMutableOrExcludedRepositoryRejected(t *testing.T) {
+	good := `{"repositories":[{"repositoryName":"backend-dr196-trial","repositoryUri":"299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial","imageTagMutability":"IMMUTABLE"}]}`
+	if verifyRepository([]byte(good)) != nil {
+		t.Fatal("immutable repository rejected")
+	}
+	for _, bad := range []string{strings.Replace(good, "IMMUTABLE", "MUTABLE", 1), strings.Replace(good, `"imageTagMutability":"IMMUTABLE"`, `"imageTagMutability":"IMMUTABLE","imageTagMutabilityExclusionFilters":[{"filter":"*"}]`, 1), strings.ReplaceAll(good, "backend-dr196-trial", "backend")} {
+		if verifyRepository([]byte(bad)) == nil {
+			t.Fatal("unsafe repository accepted")
+		}
+	}
+}
+
+func TestRejectWrongConfigBeforeRegistryAccess(t *testing.T) {
+	c := v1.ConfigFile{OS: "linux", Architecture: "amd64", Config: v1.Config{User: "appuser", Entrypoint: []string{"/app/labbit-server"}, Labels: map[string]string{"org.opencontainers.image.revision": source}}}
+	if verifyConfig(&c) != nil {
+		t.Fatal("valid configuration rejected")
+	}
+	c.Config.Labels["org.opencontainers.image.revision"] = "main"
+	if verifyConfig(&c) == nil {
+		t.Fatal("floating source accepted")
+	}
+	c.Config.Labels["org.opencontainers.image.revision"] = source
+	c.Config.User = "root"
+	if verifyConfig(&c) == nil {
+		t.Fatal("root accepted")
+	}
+}
+func TestRejectIncompleteAndDuplicateMigrationManifest(t *testing.T) {
+	if _, e := expected(migrationManifest{Source: source}); e == nil {
+		t.Fatal("missing migrations accepted")
+	}
+	m := migrationManifest{Source: source, Files: make([]file, 15)}
+	for i := range m.Files {
+		m.Files[i] = file{Path: "db/migrations/000001.sql", GitSHA: source + "000000000000000000000000", GitSize: 1}
+	}
+	if _, e := expected(m); e == nil {
+		t.Fatal("duplicate migrations accepted")
+	}
+	m.Files[0].Path = "db/migrations/../../outside.sql"
+	if _, e := expected(m); e == nil {
+		t.Fatal("escaping path accepted")
+	}
+}

@@ -1,0 +1,8 @@
+{
+  "product_exit": 0,
+  "whole_index_exit": 2,
+  "whole_index_output_sha256": "304115b201608df9c9715e65bb3a3c9538428c1703c4c562e3256691052d9140",
+  "whole_index_output_lines": 341,
+  "whole_index_scope": "raw historical command outputs and diff snapshots intentionally preserve whitespace and EOF; not normalized",
+  "evidence_preserved": true
+}

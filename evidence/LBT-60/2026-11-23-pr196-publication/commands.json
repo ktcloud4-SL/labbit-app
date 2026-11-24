@@ -1,0 +1,329 @@
+[
+  {
+    "log": "web-typecheck.log",
+    "argv": [
+      "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+      "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\workspace-bootstrap-20261022\\npm-runtime\\package\\bin\\npm-cli.js",
+      "run",
+      "typecheck"
+    ],
+    "started_at_utc": "2026-11-23T00:15:24.768469+00:00",
+    "ended_at_utc": "2026-11-23T00:15:31.136709+00:00",
+    "exit_code": 0
+  },
+  {
+    "log": "web-lint.log",
+    "argv": [
+      "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+      "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\workspace-bootstrap-20261022\\npm-runtime\\package\\bin\\npm-cli.js",
+      "run",
+      "lint"
+    ],
+    "started_at_utc": "2026-11-23T00:15:31.137295+00:00",
+    "ended_at_utc": "2026-11-23T00:15:45.177725+00:00",
+    "exit_code": 0
+  },
+  {
+    "log": "go-all.jsonl",
+    "argv": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "test",
+      "-json",
+      "-count=1",
+      "-timeout=10m",
+      "./..."
+    ],
+    "started_at_utc": "2026-11-23T00:15:24.768469+00:00",
+    "ended_at_utc": "2026-11-23T00:16:01.040858+00:00",
+    "exit_code": 0
+  },
+  {
+    "log": "web-test.log",
+    "argv": [
+      "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+      "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\workspace-bootstrap-20261022\\npm-runtime\\package\\bin\\npm-cli.js",
+      "run",
+      "test"
+    ],
+    "started_at_utc": "2026-11-23T00:15:45.181115+00:00",
+    "ended_at_utc": "2026-11-23T00:16:02.091247+00:00",
+    "exit_code": 0
+  },
+  {
+    "log": "web-build.log",
+    "argv": [
+      "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+      "C:\\Users\\user\\Documents\\ChatGPT\\3차 2\\outputs\\workspace-bootstrap-20261022\\npm-runtime\\package\\bin\\npm-cli.js",
+      "run",
+      "build"
+    ],
+    "started_at_utc": "2026-11-23T00:16:02.092348+00:00",
+    "ended_at_utc": "2026-11-23T00:16:02.976876+00:00",
+    "exit_code": 0
+  },
+  {
+    "log": "go-vet.log",
+    "argv": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "vet",
+      "./..."
+    ],
+    "started_at_utc": "2026-11-23T00:16:01.040858+00:00",
+    "ended_at_utc": "2026-11-23T00:16:04.783339+00:00",
+    "exit_code": 0
+  },
+  {
+    "log": "go-build.log",
+    "argv": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "build",
+      "./..."
+    ],
+    "started_at_utc": "2026-11-23T00:16:04.783339+00:00",
+    "ended_at_utc": "2026-11-23T00:16:08.925920+00:00",
+    "exit_code": 0
+  },
+  {
+    "log": "go-control-race.jsonl",
+    "argv": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "test",
+      "-race",
+      "-json",
+      "-count=1",
+      "./internal/drcontrol",
+      "./cmd/labbit-dr-control",
+      "./internal/server/maintenance",
+      "./internal/server/workercontrol",
+      "./internal/server/provision",
+      "./internal/server/app",
+      "./internal/server/connector",
+      "./internal/server/connectorwss"
+    ],
+    "started_at_utc": "2026-11-23T00:16:08.926921+00:00",
+    "ended_at_utc": "2026-11-23T00:16:35.283237+00:00",
+    "exit_code": 0
+  },
+  {
+    "log": "pg-init.log",
+    "argv": [
+      "C:\\Users\\user\\.codex\\tmp\\lbt57-pg16-20261103\\bin\\initdb.exe",
+      "-D",
+      "C:\\Users\\user\\.codex\\tmp\\pr196-final-20261123\\pgdata",
+      "-U",
+      "postgres",
+      "-A",
+      "trust",
+      "--encoding=UTF8",
+      "--locale=C"
+    ],
+    "started_at_utc": "2026-11-23T00:16:37.336424+00:00",
+    "ended_at_utc": "2026-11-23T00:16:44.903973+00:00",
+    "exit_code": 0
+  },
+  {
+    "log": "pg-start.log",
+    "argv": [
+      "C:\\Users\\user\\.codex\\tmp\\lbt57-pg16-20261103\\bin\\pg_ctl.exe",
+      "-D",
+      "C:\\Users\\user\\.codex\\tmp\\pr196-final-20261123\\pgdata",
+      "-l",
+      "C:\\Users\\user\\.codex\\tmp\\pr196-final-20261123\\pg-server.log",
+      "-o",
+      "-p 55439 -h 127.0.0.1 -c max_connections=200",
+      "-w",
+      "start"
+    ],
+    "started_at_utc": "2026-11-23T00:16:44.903973+00:00",
+    "ended_at_utc": "2026-11-23T00:16:45.236960+00:00",
+    "exit_code": 0
+  },
+  {
+    "log": "integration-vet.log",
+    "argv": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "vet",
+      "-tags",
+      "integration",
+      "./internal/postgres",
+      "./internal/postgres/postgrestest",
+      "./internal/server/app",
+      "./internal/server/auth",
+      "./internal/server/httpapi",
+      "./internal/drcontrol"
+    ],
+    "started_at_utc": "2026-11-23T00:16:45.238001+00:00",
+    "ended_at_utc": "2026-11-23T00:16:46.688178+00:00",
+    "exit_code": 0
+  },
+  {
+    "log": "integration-all.jsonl",
+    "argv": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "test",
+      "-race",
+      "-json",
+      "-tags",
+      "integration",
+      "-count=1",
+      "-timeout=10m",
+      "./internal/postgres",
+      "./internal/postgres/postgrestest",
+      "./internal/server/app",
+      "./internal/server/auth",
+      "./internal/server/httpapi",
+      "./internal/drcontrol"
+    ],
+    "started_at_utc": "2026-11-23T00:16:46.689168+00:00",
+    "ended_at_utc": "2026-11-23T00:21:39.306905+00:00",
+    "exit_code": 1
+  },
+  {
+    "log": "pg-databases.log",
+    "argv": [
+      "C:\\Users\\user\\.codex\\tmp\\lbt57-pg16-20261103\\bin\\psql.exe",
+      "-h",
+      "127.0.0.1",
+      "-p",
+      "55439",
+      "-U",
+      "postgres",
+      "-d",
+      "postgres",
+      "-Atc",
+      "SELECT datname FROM pg_database WHERE datname LIKE 'labbit_it_%'"
+    ],
+    "started_at_utc": "2026-11-23T00:21:39.306905+00:00",
+    "ended_at_utc": "2026-11-23T00:21:39.412615+00:00",
+    "exit_code": 0
+  },
+  {
+    "log": "pg-stop.log",
+    "argv": [
+      "C:\\Users\\user\\.codex\\tmp\\lbt57-pg16-20261103\\bin\\pg_ctl.exe",
+      "-D",
+      "C:\\Users\\user\\.codex\\tmp\\pr196-final-20261123\\pgdata",
+      "-m",
+      "fast",
+      "-w",
+      "stop"
+    ],
+    "started_at_utc": "2026-11-23T00:21:39.412615+00:00",
+    "ended_at_utc": "2026-11-23T00:21:39.543189+00:00",
+    "exit_code": 0
+  },
+  {
+    "log": "pg-init-final.log",
+    "argv": [
+      "C:\\Users\\user\\.codex\\tmp\\lbt57-pg16-20261103\\bin\\initdb.exe",
+      "-D",
+      "C:\\Users\\user\\.codex\\tmp\\pr196-final-localretry-20261123\\pgdata",
+      "-U",
+      "postgres",
+      "-A",
+      "trust",
+      "--encoding=UTF8",
+      "--locale=C"
+    ],
+    "started_at_utc": "2026-11-23T00:25:24.551462+00:00",
+    "ended_at_utc": "2026-11-23T00:25:30.886425+00:00",
+    "exit_code": 0,
+    "ci_environment": "unset"
+  },
+  {
+    "log": "pg-start-final.log",
+    "argv": [
+      "C:\\Users\\user\\.codex\\tmp\\lbt57-pg16-20261103\\bin\\pg_ctl.exe",
+      "-D",
+      "C:\\Users\\user\\.codex\\tmp\\pr196-final-localretry-20261123\\pgdata",
+      "-l",
+      "C:\\Users\\user\\.codex\\tmp\\pr196-final-localretry-20261123\\pg-server.log",
+      "-o",
+      "-p 55439 -h 127.0.0.1 -c max_connections=200",
+      "-w",
+      "start"
+    ],
+    "started_at_utc": "2026-11-23T00:25:30.887427+00:00",
+    "ended_at_utc": "2026-11-23T00:25:31.289034+00:00",
+    "exit_code": 0,
+    "ci_environment": "unset"
+  },
+  {
+    "log": "integration-vet-final.log",
+    "argv": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "vet",
+      "-tags",
+      "integration",
+      "./internal/postgres",
+      "./internal/postgres/postgrestest",
+      "./internal/server/app",
+      "./internal/server/auth",
+      "./internal/server/httpapi",
+      "./internal/drcontrol"
+    ],
+    "started_at_utc": "2026-11-23T00:25:31.289034+00:00",
+    "ended_at_utc": "2026-11-23T00:25:31.917128+00:00",
+    "exit_code": 0,
+    "ci_environment": "unset"
+  },
+  {
+    "log": "integration-all-final.jsonl",
+    "argv": [
+      "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+      "test",
+      "-race",
+      "-json",
+      "-tags",
+      "integration",
+      "-count=1",
+      "-timeout=10m",
+      "./internal/postgres",
+      "./internal/postgres/postgrestest",
+      "./internal/server/app",
+      "./internal/server/auth",
+      "./internal/server/httpapi",
+      "./internal/drcontrol"
+    ],
+    "started_at_utc": "2026-11-23T00:25:31.918126+00:00",
+    "ended_at_utc": "2026-11-23T00:30:46.779232+00:00",
+    "exit_code": 0,
+    "ci_environment": "unset"
+  },
+  {
+    "log": "pg-databases-final.log",
+    "argv": [
+      "C:\\Users\\user\\.codex\\tmp\\lbt57-pg16-20261103\\bin\\psql.exe",
+      "-h",
+      "127.0.0.1",
+      "-p",
+      "55439",
+      "-U",
+      "postgres",
+      "-d",
+      "postgres",
+      "-Atc",
+      "SELECT datname FROM pg_database WHERE datname LIKE 'labbit_it_%'"
+    ],
+    "started_at_utc": "2026-11-23T00:30:46.780233+00:00",
+    "ended_at_utc": "2026-11-23T00:30:46.835567+00:00",
+    "exit_code": 0,
+    "ci_environment": "unset"
+  },
+  {
+    "log": "pg-stop-final.log",
+    "argv": [
+      "C:\\Users\\user\\.codex\\tmp\\lbt57-pg16-20261103\\bin\\pg_ctl.exe",
+      "-D",
+      "C:\\Users\\user\\.codex\\tmp\\pr196-final-localretry-20261123\\pgdata",
+      "-m",
+      "fast",
+      "-w",
+      "stop"
+    ],
+    "started_at_utc": "2026-11-23T00:30:46.835567+00:00",
+    "ended_at_utc": "2026-11-23T00:30:46.975052+00:00",
+    "exit_code": 0,
+    "ci_environment": "unset"
+  }
+]

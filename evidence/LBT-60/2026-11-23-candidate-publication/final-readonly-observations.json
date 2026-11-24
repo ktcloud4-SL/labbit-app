@@ -1,0 +1,344 @@
+{
+  "results": {
+    "management_role_policy_metadata": {
+      "observed_at_utc": "2026-11-23T04:46:09.134787+00:00",
+      "exit_code": 0,
+      "status": "OBSERVED_READONLY",
+      "value": {
+        "AttachedPolicies": [
+          {
+            "PolicyName": "AmazonSSMManagedInstanceCore",
+            "PolicyArn": "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+          }
+        ]
+      }
+    },
+    "management_role_inline_metadata": {
+      "observed_at_utc": "2026-11-23T04:46:09.113896+00:00",
+      "exit_code": 0,
+      "status": "OBSERVED_READONLY",
+      "value": {
+        "PolicyNames": []
+      }
+    },
+    "management_secret_policy_simulation": {
+      "observed_at_utc": "2026-11-23T04:46:09.179136+00:00",
+      "exit_code": 0,
+      "status": "OBSERVED_READONLY",
+      "value": [
+        {
+          "action": "secretsmanager:GetSecretValue",
+          "decision": "implicitDeny",
+          "missingContext": []
+        }
+      ]
+    },
+    "candidate_scan": {
+      "observed_at_utc": "2026-11-23T04:46:08.630599+00:00",
+      "exit_code": 0,
+      "status": "OBSERVED_READONLY",
+      "value": {
+        "status": {
+          "status": "COMPLETE",
+          "description": "The scan was completed successfully."
+        },
+        "completed": "2026-11-23T13:12:54+09:00",
+        "severities": {
+          "CRITICAL": 1
+        }
+      }
+    },
+    "backend_deployment": {
+      "observed_at_utc": "2026-11-23T04:46:09.474912+00:00",
+      "exit_code": 0,
+      "status": "OBSERVED_READONLY",
+      "value": {
+        "uid": "88a17177-492f-41db-b097-a80a6a18a475",
+        "generation": 1,
+        "status": {
+          "replicas": 2,
+          "readyReplicas": 2,
+          "updatedReplicas": 2,
+          "availableReplicas": 2
+        },
+        "images": [
+          "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb"
+        ]
+      }
+    },
+    "backend_pods": {
+      "observed_at_utc": "2026-11-23T04:46:10.007459+00:00",
+      "exit_code": 0,
+      "status": "OBSERVED_READONLY",
+      "value": [
+        {
+          "name": "backend-77c594cb7b-4fxjn",
+          "uid": "f04aae83-4cac-443a-9ef9-efd5064b90e7",
+          "owners": [
+            {
+              "apiVersion": "apps/v1",
+              "blockOwnerDeletion": true,
+              "controller": true,
+              "kind": "ReplicaSet",
+              "name": "backend-77c594cb7b",
+              "uid": "b6b8f2c8-e04c-4e94-ba41-de478b2e451d"
+            }
+          ],
+          "phase": "Running",
+          "containers": [
+            {
+              "name": "common-app",
+              "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+              "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419",
+              "ready": true,
+              "restartCount": 0
+            }
+          ]
+        },
+        {
+          "name": "backend-77c594cb7b-j7knn",
+          "uid": "5431ae96-2706-48ab-ab1f-21596baa5f87",
+          "owners": [
+            {
+              "apiVersion": "apps/v1",
+              "blockOwnerDeletion": true,
+              "controller": true,
+              "kind": "ReplicaSet",
+              "name": "backend-77c594cb7b",
+              "uid": "b6b8f2c8-e04c-4e94-ba41-de478b2e451d"
+            }
+          ],
+          "phase": "Running",
+          "containers": [
+            {
+              "name": "common-app",
+              "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend:sha-753eecb",
+              "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend@sha256:bab1869ef211ddc0f1a559e4c9d543d5add1d59269e5db85aad2e384bed42419",
+              "ready": true,
+              "restartCount": 0
+            }
+          ]
+        }
+      ]
+    },
+    "backend_replicasets": {
+      "observed_at_utc": "2026-11-23T04:46:09.983938+00:00",
+      "exit_code": 0,
+      "status": "OBSERVED_READONLY",
+      "value": [
+        {
+          "name": "backend-77c594cb7b",
+          "uid": "b6b8f2c8-e04c-4e94-ba41-de478b2e451d",
+          "owners": [
+            {
+              "apiVersion": "apps/v1",
+              "blockOwnerDeletion": true,
+              "controller": true,
+              "kind": "Deployment",
+              "name": "backend",
+              "uid": "88a17177-492f-41db-b097-a80a6a18a475"
+            }
+          ]
+        }
+      ]
+    },
+    "maintenance": {
+      "observed_at_utc": "2026-11-23T04:46:09.997294+00:00",
+      "exit_code": 0,
+      "status": "OBSERVED_READONLY",
+      "value": {
+        "uid": "c152c064-3c25-4b2b-a7d7-f3a351108868",
+        "resourceVersion": "12249",
+        "mode": "open"
+      }
+    },
+    "session_history": {
+      "observed_at_utc": "2026-11-23T04:46:10.516998+00:00",
+      "exit_code": 0,
+      "status": "OBSERVED_READONLY",
+      "value": [
+        {
+          "SessionId": "admin3-8j89n6ezjjl5vuz3cc698atlde",
+          "Status": "Terminated",
+          "Owner": "arn:aws:iam::299311846289:user/admin3",
+          "Target": "i-0945680e04ad938cf",
+          "StartDate": "2026-11-23T13:34:12.680000+09:00",
+          "EndDate": "2026-11-23T13:34:44.175000+09:00"
+        }
+      ]
+    },
+    "session_active": {
+      "observed_at_utc": "2026-11-23T04:46:10.712085+00:00",
+      "exit_code": 0,
+      "status": "OBSERVED_READONLY",
+      "value": []
+    }
+  },
+  "commands": {
+    "management_role_policy_metadata": [
+      "C:/Users/user/AppData/Local/Programs/Amazon/AWSCLIV2/aws.exe",
+      "iam",
+      "list-attached-role-policies",
+      "--role-name",
+      "labbit-seoul-db-management",
+      "--profile",
+      "labbit-admin3",
+      "--region",
+      "us-east-1",
+      "--endpoint-url",
+      "https://iam.amazonaws.com",
+      "--output",
+      "json",
+      "--no-cli-pager"
+    ],
+    "management_role_inline_metadata": [
+      "C:/Users/user/AppData/Local/Programs/Amazon/AWSCLIV2/aws.exe",
+      "iam",
+      "list-role-policies",
+      "--role-name",
+      "labbit-seoul-db-management",
+      "--profile",
+      "labbit-admin3",
+      "--region",
+      "us-east-1",
+      "--endpoint-url",
+      "https://iam.amazonaws.com",
+      "--output",
+      "json",
+      "--no-cli-pager"
+    ],
+    "management_secret_policy_simulation": [
+      "C:/Users/user/AppData/Local/Programs/Amazon/AWSCLIV2/aws.exe",
+      "iam",
+      "simulate-principal-policy",
+      "--policy-source-arn",
+      "arn:aws:iam::299311846289:role/labbit-seoul-db-management",
+      "--action-names",
+      "secretsmanager:GetSecretValue",
+      "--resource-arns",
+      "arn:aws:secretsmanager:ap-northeast-2:299311846289:secret:labbit/seoul/rds-dsn-o4Rgr7",
+      "--query",
+      "EvaluationResults[].{action:EvalActionName,decision:EvalDecision,missingContext:MissingContextValues}",
+      "--profile",
+      "labbit-admin3",
+      "--region",
+      "us-east-1",
+      "--endpoint-url",
+      "https://iam.amazonaws.com",
+      "--output",
+      "json",
+      "--no-cli-pager"
+    ],
+    "candidate_scan": [
+      "C:/Users/user/AppData/Local/Programs/Amazon/AWSCLIV2/aws.exe",
+      "ecr",
+      "describe-image-scan-findings",
+      "--repository-name",
+      "backend-dr196-trial",
+      "--image-id",
+      "imageDigest=sha256:9dc273e94c1b22427059b2b246e3757b5a6f44d31a0abaa2ef858f62ccec6fac",
+      "--query",
+      "{status:imageScanStatus,completed:imageScanFindings.imageScanCompletedAt,severities:imageScanFindings.findingSeverityCounts}",
+      "--profile",
+      "labbit-admin3",
+      "--region",
+      "ap-northeast-2",
+      "--endpoint-url",
+      "https://ecr.ap-northeast-2.amazonaws.com",
+      "--output",
+      "json",
+      "--no-cli-pager"
+    ],
+    "backend_deployment": [
+      "C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt60-ssm-preflight-tools/kubectl.exe",
+      "--kubeconfig",
+      "C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt60-live-readiness-20261123/seoul.kubeconfig",
+      "--request-timeout=10s",
+      "get",
+      "deployment",
+      "backend",
+      "-n",
+      "labbit",
+      "-o",
+      "json"
+    ],
+    "backend_pods": [
+      "C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt60-ssm-preflight-tools/kubectl.exe",
+      "--kubeconfig",
+      "C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt60-live-readiness-20261123/seoul.kubeconfig",
+      "--request-timeout=10s",
+      "get",
+      "pods",
+      "-n",
+      "labbit",
+      "-o",
+      "json"
+    ],
+    "backend_replicasets": [
+      "C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt60-ssm-preflight-tools/kubectl.exe",
+      "--kubeconfig",
+      "C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt60-live-readiness-20261123/seoul.kubeconfig",
+      "--request-timeout=10s",
+      "get",
+      "replicasets",
+      "-n",
+      "labbit",
+      "-o",
+      "json"
+    ],
+    "maintenance": [
+      "C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt60-ssm-preflight-tools/kubectl.exe",
+      "--kubeconfig",
+      "C:/Users/user/Documents/ChatGPT/3차 2/tmp/lbt60-live-readiness-20261123/seoul.kubeconfig",
+      "--request-timeout=10s",
+      "get",
+      "configmap",
+      "backend-config",
+      "-n",
+      "labbit",
+      "-o",
+      "json"
+    ],
+    "session_history": [
+      "C:/Users/user/AppData/Local/Programs/Amazon/AWSCLIV2/aws.exe",
+      "ssm",
+      "describe-sessions",
+      "--state",
+      "History",
+      "--filters",
+      "key=Target,value=i-0945680e04ad938cf",
+      "--query",
+      "Sessions[?SessionId=='admin3-8j89n6ezjjl5vuz3cc698atlde'].{SessionId:SessionId,Status:Status,Owner:Owner,Target:Target,StartDate:StartDate,EndDate:EndDate}",
+      "--profile",
+      "labbit-admin3",
+      "--region",
+      "ap-northeast-2",
+      "--endpoint-url",
+      "https://ssm.ap-northeast-2.amazonaws.com",
+      "--output",
+      "json",
+      "--no-cli-pager"
+    ],
+    "session_active": [
+      "C:/Users/user/AppData/Local/Programs/Amazon/AWSCLIV2/aws.exe",
+      "ssm",
+      "describe-sessions",
+      "--state",
+      "Active",
+      "--filters",
+      "key=Target,value=i-0945680e04ad938cf",
+      "--query",
+      "Sessions[?SessionId=='admin3-8j89n6ezjjl5vuz3cc698atlde'].{SessionId:SessionId,Status:Status}",
+      "--profile",
+      "labbit-admin3",
+      "--region",
+      "ap-northeast-2",
+      "--endpoint-url",
+      "https://ssm.ap-northeast-2.amazonaws.com",
+      "--output",
+      "json",
+      "--no-cli-pager"
+    ]
+  },
+  "scope": "Metadata and exact own session readback; no Secret values or mutation"
+}

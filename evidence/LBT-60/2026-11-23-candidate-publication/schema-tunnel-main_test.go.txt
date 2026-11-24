@@ -1,0 +1,40 @@
+package main
+
+import (
+	"crypto/tls"
+	"crypto/x509"
+	"strings"
+	"testing"
+)
+
+func TestTargetAndRoutingFailClosed(t *testing.T) {
+	root := x509.NewCertPool()
+	good := "host=" + host + " port=5432 dbname=labbit_db user=labbit_user password=synthetic-only"
+	for _, bad := range []string{strings.Replace(good, host, "other.invalid", 1), strings.Replace(good, "5432", "5433", 1), strings.Replace(good, "labbit_db", "wrong", 1), strings.Replace(good, "labbit_user", "wrong", 1), strings.Replace(good, "synthetic-only", "", 1)} {
+		if _, e := config(bad, root); e == nil {
+			t.Fatal("mismatching target accepted")
+		}
+	}
+	cfg, e := config(good+" sslmode=disable application_name=evil options='-c default_transaction_read_only=off'", root)
+	if e != nil {
+		t.Fatal("valid target rejected")
+	}
+	if cfg.TLSConfig == nil || cfg.TLSConfig.InsecureSkipVerify || cfg.TLSConfig.ServerName != host || cfg.TLSConfig.MinVersion < tls.VersionTLS12 || len(cfg.Fallbacks) != 0 {
+		t.Fatal("TLS/routing guard missing")
+	}
+	if cfg.RuntimeParams["default_transaction_read_only"] != "on" || cfg.RuntimeParams["application_name"] != "labbit-pr196-schema-readonly" || cfg.RuntimeParams["options"] != "" {
+		t.Fatal("untrusted DSN session option survived")
+	}
+}
+func TestHostileEnvironmentRemoved(t *testing.T) {
+	t.Setenv("PGHOSTADDR", "203.0.113.1")
+	t.Setenv("PGSERVICE", "untrusted")
+	t.Setenv("AWS_ENDPOINT_URL_SSM", "https://example.invalid")
+	t.Setenv("AWS_PROFILE", "wrong")
+	for _, v := range cleanEnv() {
+		key, _, _ := strings.Cut(v, "=")
+		if strings.HasPrefix(strings.ToUpper(key), "PG") || strings.HasPrefix(strings.ToUpper(key), "AWS_ENDPOINT_URL") || v == "AWS_PROFILE=wrong" {
+			t.Fatal("hostile environment retained")
+		}
+	}
+}

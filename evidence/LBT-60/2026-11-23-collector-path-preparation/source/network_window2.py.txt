@@ -1,0 +1,97 @@
+"""Second, explicitly noticed one-window SG+NetworkPolicy route experiment."""
+import importlib.util
+import ipaddress
+import json
+from pathlib import Path
+import sys
+
+ROOT=Path(__file__).resolve().parents[1]
+sp=importlib.util.spec_from_file_location('policy',ROOT/'.local/pr196_collector_policy.py')
+m=importlib.util.module_from_spec(sp);sp.loader.exec_module(m)
+r=m.r
+BASE=m.OUT
+m.OUT=BASE/'network-window-02'
+m.LOCAL=ROOT/'.local/pr196-collector-network-window2-20261123'
+m.NAME='pr196-collector-proxy-20261123-02'
+m.LABEL='pr196-collector-20261123-02'
+GROUP='sg-0f2892420ca41dd8b'
+VPC='vpc-0f874c702b0364ff1'
+DESCRIPTION='PR196 temporary collector route 20261123 window02'
+
+def permission(ips):
+    if len(ips)!=2 or len(set(ips))!=2 or any(ipaddress.ip_address(x).version!=4 or not ipaddress.ip_address(x).is_private for x in ips):
+        raise RuntimeError('TWO_PRIVATE_CONTROL_PLANE_IPS_REQUIRED')
+    return [{'IpProtocol':'tcp','FromPort':9090,'ToPort':9090,'IpRanges':[{'CidrIp':x+'/32','Description':DESCRIPTION} for x in ips]}]
+
+def group():
+    x=r.aws('ec2','describe-security-groups','--group-ids',GROUP)['SecurityGroups']
+    if len(x)!=1 or x[0]['OwnerId']!='299311846289' or x[0]['VpcId']!=VPC:
+        raise RuntimeError('NODE_SECURITY_GROUP_MISMATCH')
+    return x[0]
+
+def prepare():
+    m.prepare()
+    baseline=r.load(m.LOCAL,'baseline.json')
+    x=group()
+    for rule in x['IpPermissions']:
+        if rule['IpProtocol'] in ('-1','tcp') and (rule['IpProtocol']=='-1' or rule.get('FromPort',0)<=9090<=rule.get('ToPort',0)):
+            if any(v['CidrIp'] in [ip+'/32' for ip in baseline['source_ips']] for v in rule.get('IpRanges',[])):
+                raise RuntimeError('SOURCE_RULE_ALREADY_PRESENT_NO_REUSE')
+    r.save(m.LOCAL,'sg-before.json',x)
+    r.save(m.OUT,'sg-before.json',x)
+    r.save(m.LOCAL,'ip-permissions.json',permission(baseline['source_ips']))
+    r.save(m.OUT,'ip-permissions.plan.json',permission(baseline['source_ips']))
+    print('SG_RULES_PREPARED_NO_AUTHORIZATION_YET')
+
+def sg_create():
+    baseline,_=m.baseline()
+    if group()['IpPermissions']!=r.load(m.LOCAL,'sg-before.json')['IpPermissions']:
+        raise RuntimeError('SECURITY_GROUP_DRIFT')
+    cluster=r.aws('eks','describe-cluster','--name','labbit-seoul-cluster')['cluster']
+    enis=r.aws('ec2','describe-network-interfaces','--filters','Name=group-id,Values='+cluster['resourcesVpcConfig']['clusterSecurityGroupId'])['NetworkInterfaces']
+    if m.control_plane_ips(cluster,enis)!=baseline['source_ips']:
+        raise RuntimeError('CONTROL_PLANE_SOURCE_CHANGED')
+    if r.load(m.LOCAL,'ip-permissions.json')!=permission(baseline['source_ips']):
+        raise RuntimeError('PERMISSION_FILE_CHANGED')
+    r.save(m.OUT,'sg-create.intent.json',{'at':r.now(),'group':GROUP,'permissions':permission(baseline['source_ips'])})
+    result=r.aws('ec2','authorize-security-group-ingress','--group-id',GROUP,'--ip-permissions','file://'+str(m.LOCAL/'ip-permissions.json'))
+    rules=result.get('SecurityGroupRules',[])
+    if not result.get('Return') or len(rules)!=2:
+        raise RuntimeError('CREATE_RESULT_UNKNOWN_DO_NOT_RETRY')
+    for rule in rules: verify_rule(rule,baseline['source_ips'])
+    r.save(m.OUT,'sg-create.receipt.json',{'at':r.now(),'result':result})
+    print('TWO_TEMPORARY_SOURCE32_NODE9090_RULES_CREATED')
+
+def verify_rule(rule,ips):
+    if rule.get('GroupId')!=GROUP or rule.get('GroupOwnerId')!='299311846289' or rule.get('IsEgress') is not False or rule.get('IpProtocol')!='tcp' or rule.get('FromPort')!=9090 or rule.get('ToPort')!=9090 or rule.get('CidrIpv4') not in [x+'/32' for x in ips] or rule.get('Description')!=DESCRIPTION or not rule.get('SecurityGroupRuleId','').startswith('sgr-'):
+        raise RuntimeError('OWN_RULE_NOT_VERIFIED')
+
+def sg_cleanup():
+    r.identity()
+    old=r.load(m.OUT,'sg-create.receipt.json')['result']['SecurityGroupRules']
+    ids=[v['SecurityGroupRuleId'] for v in old]
+    actual=r.aws('ec2','describe-security-group-rules','--security-group-rule-ids',*ids)['SecurityGroupRules']
+    ips=r.load(m.LOCAL,'baseline.json')['source_ips']
+    if len(ids)!=2 or len(set(ids))!=2 or {v['SecurityGroupRuleId'] for v in actual}!=set(ids):
+        raise RuntimeError('OWN_RULE_SET_MISMATCH')
+    for rule in actual: verify_rule(rule,ips)
+    r.save(m.OUT,'sg-delete.intent.json',{'at':r.now(),'group':GROUP,'rule_ids':ids})
+    result=r.aws('ec2','revoke-security-group-ingress','--group-id',GROUP,'--security-group-rule-ids',*ids)
+    r.save(m.OUT,'sg-delete.receipt.json',{'at':r.now(),'result':result})
+    if result.get('Return') is not True:
+        raise RuntimeError('REVOKE_NOT_CONFIRMED_HOLD_READBACK_REQUIRED')
+    print('ONLY_OWN_TWO_SECURITY_GROUP_RULE_IDS_REVOKED')
+
+def final():
+    m.final()
+    current=group()
+    before=r.load(m.LOCAL,'sg-before.json')
+    if current['IpPermissions']!=before['IpPermissions'] or current['IpPermissionsEgress']!=before['IpPermissionsEgress']:
+        raise RuntimeError('SECURITY_GROUP_NOT_RESTORED')
+    r.save(m.OUT,'sg-final-readback.json',{'at':r.now(),'group':current,'original_inbound_and_outbound_restored':True})
+    print('NODE_SECURITY_GROUP_FULL_RULESET_RESTORED')
+
+if __name__=='__main__':
+    actions={'prepare':prepare,'sg-create':sg_create,'policy-create':m.create,'policy-cleanup':m.cleanup,'sg-cleanup':sg_cleanup,'final':final}
+    if len(sys.argv)!=2 or sys.argv[1] not in actions: raise SystemExit('EXPLICIT_ACTION_REQUIRED')
+    actions[sys.argv[1]]()

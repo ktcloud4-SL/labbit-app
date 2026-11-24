@@ -1,0 +1,6 @@
+{"ImportPath":"github.com/ktcloud4-SL/labbit-app/internal/server/app [github.com/ktcloud4-SL/labbit-app/internal/server/app.test]","Action":"build-output","Output":"# github.com/ktcloud4-SL/labbit-app/internal/server/app [github.com/ktcloud4-SL/labbit-app/internal/server/app.test]\n"}
+{"ImportPath":"github.com/ktcloud4-SL/labbit-app/internal/server/app [github.com/ktcloud4-SL/labbit-app/internal/server/app.test]","Action":"build-output","Output":"internal\\server\\app\\dr_maintenance_integration_test.go:529:67: undefined: connector\n"}
+{"ImportPath":"github.com/ktcloud4-SL/labbit-app/internal/server/app [github.com/ktcloud4-SL/labbit-app/internal/server/app.test]","Action":"build-fail"}
+{"Time":"2026-11-21T15:16:07.804205+09:00","Action":"start","Package":"github.com/ktcloud4-SL/labbit-app/internal/server/app"}
+{"Time":"2026-11-21T15:16:07.804205+09:00","Action":"output","Package":"github.com/ktcloud4-SL/labbit-app/internal/server/app","Output":"FAIL\tgithub.com/ktcloud4-SL/labbit-app/internal/server/app [build failed]\n","OutputType":"frame"}
+{"Time":"2026-11-21T15:16:07.804205+09:00","Action":"fail","Package":"github.com/ktcloud4-SL/labbit-app/internal/server/app","Elapsed":0,"FailedBuild":"github.com/ktcloud4-SL/labbit-app/internal/server/app [github.com/ktcloud4-SL/labbit-app/internal/server/app.test]"}

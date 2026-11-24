@@ -1,0 +1,331 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "annotations": {
+                    "sidecar.istio.io/inject": "false"
+                },
+                "creationTimestamp": "2026-11-23T05:10:48Z",
+                "generateName": "pr196-migrate-v15-20261123-01-",
+                "generation": 1,
+                "labels": {
+                    "app.kubernetes.io/name": "pr196-migration",
+                    "batch.kubernetes.io/controller-uid": "fd7b9dc6-59ca-49f6-a2a7-d3adee466f32",
+                    "batch.kubernetes.io/job-name": "pr196-migrate-v15-20261123-01",
+                    "controller-uid": "fd7b9dc6-59ca-49f6-a2a7-d3adee466f32",
+                    "eks.amazonaws.com/pod-identity": "enabled",
+                    "job-name": "pr196-migrate-v15-20261123-01",
+                    "labbit.io/trial": "pr196-20261123",
+                    "topology.kubernetes.io/region": "ap-northeast-2",
+                    "topology.kubernetes.io/zone": "ap-northeast-2c"
+                },
+                "name": "pr196-migrate-v15-20261123-01-d5phm",
+                "namespace": "labbit",
+                "ownerReferences": [
+                    {
+                        "apiVersion": "batch/v1",
+                        "blockOwnerDeletion": true,
+                        "controller": true,
+                        "kind": "Job",
+                        "name": "pr196-migrate-v15-20261123-01",
+                        "uid": "fd7b9dc6-59ca-49f6-a2a7-d3adee466f32"
+                    }
+                ],
+                "resourceVersion": "114972",
+                "uid": "112ce5a8-10f0-4913-8cdb-1f8c6225ec41"
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "command": [
+                            "/app/labbit-migrate",
+                            "up"
+                        ],
+                        "env": [
+                            {
+                                "name": "LABBIT_ENVIRONMENT",
+                                "value": "production"
+                            },
+                            {
+                                "name": "LABBIT_DATABASE_DSN_FILE",
+                                "value": "/var/secrets/labbit/db-dsn"
+                            },
+                            {
+                                "name": "PGOPTIONS",
+                                "value": "-c lock_timeout=3000 -c statement_timeout=30000 -c idle_in_transaction_session_timeout=30000"
+                            },
+                            {
+                                "name": "AWS_STS_REGIONAL_ENDPOINTS",
+                                "value": "regional"
+                            },
+                            {
+                                "name": "AWS_DEFAULT_REGION",
+                                "value": "ap-northeast-2"
+                            },
+                            {
+                                "name": "AWS_REGION",
+                                "value": "ap-northeast-2"
+                            },
+                            {
+                                "name": "AWS_CONTAINER_CREDENTIALS_FULL_URI",
+                                "value": "http://169.254.170.23/v1/credentials"
+                            },
+                            {
+                                "name": "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE",
+                                "value": "/var/run/secrets/pods.eks.amazonaws.com/serviceaccount/eks-pod-identity-token"
+                            }
+                        ],
+                        "image": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial@sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "migrate",
+                        "resources": {},
+                        "securityContext": {
+                            "allowPrivilegeEscalation": false,
+                            "capabilities": {
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "runAsGroup": 101,
+                            "runAsUser": 100
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/var/secrets/labbit",
+                                "name": "db-dsn-volume",
+                                "readOnly": true
+                            },
+                            {
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                                "name": "kube-api-access-l5l2x",
+                                "readOnly": true
+                            },
+                            {
+                                "mountPath": "/var/run/secrets/pods.eks.amazonaws.com/serviceaccount",
+                                "name": "eks-pod-identity-token",
+                                "readOnly": true
+                            }
+                        ]
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "enableServiceLinks": true,
+                "nodeName": "ip-10-0-45-35.ap-northeast-2.compute.internal",
+                "nodeSelector": {
+                    "labbit.io/node-role": "service"
+                },
+                "preemptionPolicy": "PreemptLowerPriority",
+                "priority": 0,
+                "restartPolicy": "Never",
+                "schedulerName": "default-scheduler",
+                "securityContext": {
+                    "runAsNonRoot": true,
+                    "seccompProfile": {
+                        "type": "RuntimeDefault"
+                    }
+                },
+                "serviceAccount": "backend",
+                "serviceAccountName": "backend",
+                "terminationGracePeriodSeconds": 30,
+                "tolerations": [
+                    {
+                        "effect": "NoExecute",
+                        "key": "node.kubernetes.io/not-ready",
+                        "operator": "Exists",
+                        "tolerationSeconds": 300
+                    },
+                    {
+                        "effect": "NoExecute",
+                        "key": "node.kubernetes.io/unreachable",
+                        "operator": "Exists",
+                        "tolerationSeconds": 300
+                    }
+                ],
+                "volumes": [
+                    {
+                        "name": "eks-pod-identity-token",
+                        "projected": {
+                            "defaultMode": 420,
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "audience": "pods.eks.amazonaws.com",
+                                        "expirationSeconds": 82489,
+                                        "path": "eks-pod-identity-token"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "csi": {
+                            "driver": "secrets-store.csi.k8s.io",
+                            "readOnly": true,
+                            "volumeAttributes": {
+                                "secretProviderClass": "pr196-migration-dsn-20261123-01"
+                            }
+                        },
+                        "name": "db-dsn-volume"
+                    },
+                    {
+                        "name": "kube-api-access-l5l2x",
+                        "projected": {
+                            "defaultMode": 420,
+                            "sources": [
+                                {
+                                    "serviceAccountToken": {
+                                        "expirationSeconds": 3607,
+                                        "path": "token"
+                                    }
+                                },
+                                {
+                                    "configMap": {
+                                        "items": [
+                                            {
+                                                "key": "ca.crt",
+                                                "path": "ca.crt"
+                                            }
+                                        ],
+                                        "name": "kube-root-ca.crt"
+                                    }
+                                },
+                                {
+                                    "downwardAPI": {
+                                        "items": [
+                                            {
+                                                "fieldRef": {
+                                                    "apiVersion": "v1",
+                                                    "fieldPath": "metadata.namespace"
+                                                },
+                                                "path": "namespace"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "status": {
+                "conditions": [
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-11-23T05:10:52Z",
+                        "observedGeneration": 1,
+                        "status": "False",
+                        "type": "PodReadyToStartContainers"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-11-23T05:10:48Z",
+                        "observedGeneration": 1,
+                        "reason": "PodCompleted",
+                        "status": "True",
+                        "type": "Initialized"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-11-23T05:10:51Z",
+                        "observedGeneration": 1,
+                        "reason": "PodCompleted",
+                        "status": "False",
+                        "type": "Ready"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-11-23T05:10:51Z",
+                        "observedGeneration": 1,
+                        "reason": "PodCompleted",
+                        "status": "False",
+                        "type": "ContainersReady"
+                    },
+                    {
+                        "lastProbeTime": null,
+                        "lastTransitionTime": "2026-11-23T05:10:48Z",
+                        "observedGeneration": 1,
+                        "status": "True",
+                        "type": "PodScheduled"
+                    }
+                ],
+                "containerStatuses": [
+                    {
+                        "containerID": "containerd://5bac92b9de9fcb7a7d244709c8dc9446dca704466bf61aa43833a6539b9b630c",
+                        "image": "sha256:95df936db51b9936392e600bfe7dd6cb7bf054b26b1fa58560c52d5025398813",
+                        "imageID": "299311846289.dkr.ecr.ap-northeast-2.amazonaws.com/backend-dr196-trial@sha256:f3aa162b6cd5b28028c1681fb1daadffc73351b5e2785f0c7fb8ebd5a25b9469",
+                        "lastState": {},
+                        "name": "migrate",
+                        "ready": false,
+                        "resources": {},
+                        "restartCount": 0,
+                        "started": false,
+                        "state": {
+                            "terminated": {
+                                "containerID": "containerd://5bac92b9de9fcb7a7d244709c8dc9446dca704466bf61aa43833a6539b9b630c",
+                                "exitCode": 0,
+                                "finishedAt": "2026-11-23T05:10:50Z",
+                                "reason": "Completed",
+                                "startedAt": "2026-11-23T05:10:50Z"
+                            }
+                        },
+                        "user": {
+                            "linux": {
+                                "gid": 101,
+                                "supplementalGroups": [
+                                    101
+                                ],
+                                "uid": 100
+                            }
+                        },
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/var/secrets/labbit",
+                                "name": "db-dsn-volume",
+                                "readOnly": true,
+                                "recursiveReadOnly": "Disabled"
+                            },
+                            {
+                                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                                "name": "kube-api-access-l5l2x",
+                                "readOnly": true,
+                                "recursiveReadOnly": "Disabled"
+                            },
+                            {
+                                "mountPath": "/var/run/secrets/pods.eks.amazonaws.com/serviceaccount",
+                                "name": "eks-pod-identity-token",
+                                "readOnly": true,
+                                "recursiveReadOnly": "Disabled"
+                            }
+                        ]
+                    }
+                ],
+                "hostIP": "10.0.45.35",
+                "hostIPs": [
+                    {
+                        "ip": "10.0.45.35"
+                    }
+                ],
+                "observedGeneration": 1,
+                "phase": "Succeeded",
+                "podIP": "10.0.44.104",
+                "podIPs": [
+                    {
+                        "ip": "10.0.44.104"
+                    }
+                ],
+                "qosClass": "BestEffort",
+                "resources": {},
+                "startTime": "2026-11-23T05:10:48Z"
+            }
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

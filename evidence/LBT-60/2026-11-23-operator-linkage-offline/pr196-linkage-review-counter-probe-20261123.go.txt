@@ -1,0 +1,9 @@
+package drcontrol
+import("testing";"time")
+func TestIndependentReviewMissingCounterIsNotVerified(t *testing.T){
+ f,p,k,w:=collectorFixture(t)
+ delete(k.process.Active,"reconciliation")
+ v,e:=Collect(t.Context(),f.p,f.i,p,k,w,f.art,nil,func()time.Time{return f.now})
+ if e!=nil{t.Fatal(e)}
+ if v.Observation.AdmissionBlocked!="NOT_VERIFIED"{t.Fatalf("missing counter classified %s instead of NOT_VERIFIED",v.Observation.AdmissionBlocked)}
+}

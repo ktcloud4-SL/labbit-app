@@ -1,0 +1,31 @@
+import datetime as dt
+import importlib.util,json,hashlib,os,subprocess,sys
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+OUT=ROOT/'evidence/LBT-60/2026-11-23-db-artifact-validation'
+JOURNAL=Path(r'C:\Users\user\.codex\tmp\pr196-control-artifact-journal-20261123')
+spec=importlib.util.spec_from_file_location('store',ROOT/'scripts/dr_control_artifact_store.py')
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+def main():
+ if not JOURNAL.is_dir():raise RuntimeError('OPERATOR_DACL_DIRECTORY_NOT_PREPARED')
+ start=dt.datetime.now(dt.timezone.utc)
+ def utc(t):return t.isoformat(timespec='microseconds').replace('+00:00','Z')
+ plans=[];results=[]
+ for kind in ('observation','approval'):
+  source=(OUT/f'{kind}.expired-simulation.json').resolve();raw=source.read_bytes()
+  prefix='dr-precheck/storage-trial/s2b-20261113-01/control-originals/pr196-20261123-0615'
+  p={'version':'dr-control-artifact-store/v1','account':'299311846289','actor':'arn:aws:iam::299311846289:user/admin3','profile':'labbit-admin3','aws':r'C:\Users\user\AppData\Local\Programs\Amazon\AWSCLIV2\aws.exe','region':'ap-northeast-3','bucket':'labbit-osaka-dr-evidence-299311846289-trial01','prefix':prefix,'key':prefix+'/'+source.name,'sha256':hashlib.sha256(raw).hexdigest(),'size':len(raw),'not_before':utc(start-dt.timedelta(seconds=10)),'valid_until':utc(start+dt.timedelta(minutes=15)),'retain_until':utc(start+dt.timedelta(days=31)),'owner':'Seobin / LBT-60, manual review, no automatic delete','enable_upload':True}
+  pp=OUT/f'storage-plan.{kind}.json'
+  if pp.exists():p=json.loads(pp.read_bytes())
+  else:pp.write_text(json.dumps(p,indent=2)+'\n',encoding='utf-8')
+  receipt=JOURNAL/f'{kind}.receipt.json'
+  preview=m.store(p,source,receipt,False)
+  result=m.store(p,source,receipt,True)
+  repeated=m.store(p,source,receipt,True) # fixed-version readback ONLY, zero repeat PUT.
+  r={'kind':kind,'source':source.name,'preview':preview,'result':result,'repeat_readback':repeated,'repeat_put_executed':False,'scope':'EXPIRED_SIMULATION_PUBLIC_BYTES_ONLY','retention':'manual review; no automatic delete; not Object Lock'}
+  (OUT/f'storage-result.{kind}.json').write_text(json.dumps(r,indent=2)+'\n',encoding='utf-8')
+  results.append(r)
+ print(json.dumps({'at':utc(dt.datetime.now(dt.timezone.utc)),'results':results,'new_objects':2,'seoul_mutations':0,'iam_or_bucket_policy_changes':0,'control_executed':False,'execution_gate':'HOLD'}))
+if __name__=='__main__':
+ try:main()
+ except Exception:print('STORE_TRIAL_HOLD_INSPECT_DURABLE_RECEIPTS_NO_REPEAT_PUT');sys.exit(2)

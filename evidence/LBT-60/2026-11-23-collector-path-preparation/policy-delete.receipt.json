@@ -1,0 +1,93 @@
+{
+  "at": "2026-11-23T05:34:52.576624+00:00",
+  "result": {
+    "kind": "NetworkPolicy",
+    "apiVersion": "networking.k8s.io/v1",
+    "metadata": {
+      "name": "pr196-collector-proxy-20261123-01",
+      "namespace": "labbit",
+      "uid": "3e7896b7-05e5-4588-9b0a-b9b714304ee5",
+      "resourceVersion": "123770",
+      "generation": 2,
+      "creationTimestamp": "2026-11-23T05:33:58Z",
+      "deletionTimestamp": "2026-11-23T05:34:52Z",
+      "deletionGracePeriodSeconds": 0,
+      "labels": {
+        "labbit.io/trial": "pr196-collector-20261123-01"
+      },
+      "finalizers": [
+        "networking.k8s.aws/resources"
+      ],
+      "managedFields": [
+        {
+          "manager": "controller",
+          "operation": "Update",
+          "apiVersion": "networking.k8s.io/v1",
+          "time": "2026-11-23T05:33:58Z",
+          "fieldsType": "FieldsV1",
+          "fieldsV1": {
+            "f:metadata": {
+              "f:finalizers": {
+                ".": {},
+                "v:\"networking.k8s.aws/resources\"": {}
+              }
+            }
+          }
+        },
+        {
+          "manager": "kubectl-create",
+          "operation": "Update",
+          "apiVersion": "networking.k8s.io/v1",
+          "time": "2026-11-23T05:33:58Z",
+          "fieldsType": "FieldsV1",
+          "fieldsV1": {
+            "f:metadata": {
+              "f:labels": {
+                ".": {},
+                "f:labbit.io/trial": {}
+              }
+            },
+            "f:spec": {
+              "f:ingress": {},
+              "f:podSelector": {},
+              "f:policyTypes": {}
+            }
+          }
+        }
+      ]
+    },
+    "spec": {
+      "podSelector": {
+        "matchLabels": {
+          "app.kubernetes.io/instance": "backend",
+          "app.kubernetes.io/name": "common-app"
+        }
+      },
+      "ingress": [
+        {
+          "ports": [
+            {
+              "protocol": "TCP",
+              "port": 9090
+            }
+          ],
+          "from": [
+            {
+              "ipBlock": {
+                "cidr": "10.0.21.58/32"
+              }
+            },
+            {
+              "ipBlock": {
+                "cidr": "10.0.46.149/32"
+              }
+            }
+          ]
+        }
+      ],
+      "policyTypes": [
+        "Ingress"
+      ]
+    }
+  }
+}

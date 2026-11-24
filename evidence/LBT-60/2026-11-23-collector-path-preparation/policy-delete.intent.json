@@ -1,0 +1,11 @@
+{
+  "at": "2026-11-23T05:34:51.707907+00:00",
+  "delete_options": {
+    "apiVersion": "v1",
+    "kind": "DeleteOptions",
+    "preconditions": {
+      "uid": "3e7896b7-05e5-4588-9b0a-b9b714304ee5",
+      "resourceVersion": "123450"
+    }
+  }
+}

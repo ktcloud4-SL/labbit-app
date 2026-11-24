@@ -1,0 +1,17 @@
+test_conflicting_plan_never_reuploads (__main__.StoreTests.test_conflicting_plan_never_reuploads) ... ok
+test_exact_original_version_and_repeat_read_only (__main__.StoreTests.test_exact_original_version_and_repeat_read_only) ... ok
+test_existing_intent_or_lock_blocks_put (__main__.StoreTests.test_existing_intent_or_lock_blocks_put) ... ok
+test_invalid_inputs_make_no_requests (__main__.StoreTests.test_invalid_inputs_make_no_requests) ... ok
+test_larger_object_cannot_pass_range_readback (__main__.StoreTests.test_larger_object_cannot_pass_range_readback) ... ok
+test_non_public_or_duplicate_json_rejected (__main__.StoreTests.test_non_public_or_duplicate_json_rejected) ... ok
+test_preview_no_identity_no_s3_no_journal (__main__.StoreTests.test_preview_no_identity_no_s3_no_journal) ... ok
+test_read_failure_preserves_version_and_can_only_read_again (__main__.StoreTests.test_read_failure_preserves_version_and_can_only_read_again) ... ok
+test_uncertain_put_keeps_unknown_and_never_retries (__main__.StoreTests.test_uncertain_put_keeps_unknown_and_never_retries) ... ok
+test_unknown_put_metadata_not_accepted (__main__.StoreTests.test_unknown_put_metadata_not_accepted) ... ok
+test_window_rechecked_after_durable_intent_before_put (__main__.StoreTests.test_window_rechecked_after_durable_intent_before_put) ... ok
+test_wrong_identity_or_unversioned_bucket_prevents_intent (__main__.StoreTests.test_wrong_identity_or_unversioned_bucket_prevents_intent) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.321s
+
+OK

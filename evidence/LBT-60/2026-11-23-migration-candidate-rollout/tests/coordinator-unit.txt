@@ -1,0 +1,11 @@
+test_checksum_version_secret_and_constraint_mismatch_rejected (__main__.RolloutGuards.test_checksum_version_secret_and_constraint_mismatch_rejected) ... ok
+test_concurrent_deployment_change_never_patched (__main__.RolloutGuards.test_concurrent_deployment_change_never_patched) ... ok
+test_fresh_matching_ledger_and_unused_control_accepted (__main__.RolloutGuards.test_fresh_matching_ledger_and_unused_control_accepted) ... ok
+test_stale_or_future_inventory_prevents_progress (__main__.RolloutGuards.test_stale_or_future_inventory_prevents_progress) ... ok
+test_unknown_session_prevents_progress (__main__.RolloutGuards.test_unknown_session_prevents_progress) ... ok
+test_work_or_control_journal_use_prevents_legacy_rollback (__main__.RolloutGuards.test_work_or_control_journal_use_prevents_legacy_rollback) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 1.075s
+
+OK

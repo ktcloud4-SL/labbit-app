@@ -1,0 +1,30 @@
+{
+  "head": "f5413c91282888115ad2b497d5c2183ab58f2e70",
+  "uncommitted": true,
+  "files": [
+    {
+      "path": "internal/drcontrol/collector.go",
+      "size": 11375,
+      "sha256": "2431048c1cf7ca6a2990067eecfd1ed1eb32d95b1170ee96f4178e8eedd4e3e5",
+      "canonical_lf_sha256": "2431048c1cf7ca6a2990067eecfd1ed1eb32d95b1170ee96f4178e8eedd4e3e5"
+    },
+    {
+      "path": "internal/drcontrol/collector_adapters_test.go",
+      "size": 11997,
+      "sha256": "ad8a5c97badaa71289189265ddaffbe58a81d7005823ca859ac9da61a670d3bc",
+      "canonical_lf_sha256": "ad8a5c97badaa71289189265ddaffbe58a81d7005823ca859ac9da61a670d3bc"
+    },
+    {
+      "path": "internal/drcontrol/verified_test.go",
+      "size": 12420,
+      "sha256": "9f20586ad9e83cb90f83f279318faba463af0acf8ccf9ddc4ffc23467250a835",
+      "canonical_lf_sha256": "9f20586ad9e83cb90f83f279318faba463af0acf8ccf9ddc4ffc23467250a835"
+    },
+    {
+      "path": "runtime/dr-control.md",
+      "size": 13010,
+      "sha256": "8e4d5cf0f80c78e0c827198cdce8b5973dd1e1bd0a19c8ee70714ccfa5024045",
+      "canonical_lf_sha256": "2883aad940dc3e02aaf109abc62cca1ec37690aac414ac201d96ea29d85dbb1c"
+    }
+  ]
+}

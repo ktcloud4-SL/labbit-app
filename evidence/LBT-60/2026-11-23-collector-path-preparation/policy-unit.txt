@@ -1,0 +1,10 @@
+test_cleanup_wrong_uid_label_or_spec_never_deletes (__main__.PolicySafety.test_cleanup_wrong_uid_label_or_spec_never_deletes) ... ok
+test_managed_node_same_security_group_not_selected (__main__.PolicySafety.test_managed_node_same_security_group_not_selected) ... ok
+test_matching_description_requires_all_ownership_checks (__main__.PolicySafety.test_matching_description_requires_all_ownership_checks) ... ok
+test_missing_duplicate_or_extra_sources_rejected (__main__.PolicySafety.test_missing_duplicate_or_extra_sources_rejected) ... ok
+test_policy_exact_sources_backend_and_admin_port_only (__main__.PolicySafety.test_policy_exact_sources_backend_and_admin_port_only) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.002s
+
+OK

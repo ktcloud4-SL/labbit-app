@@ -1,0 +1,13 @@
+{
+  "json_parse": "PASS",
+  "collector_python_ast": "PASS",
+  "read_only_sql_not_run": true,
+  "preview_disabled_checks": 4,
+  "baseline_checks": {
+    "pod_uid_image_restart_unchanged": true,
+    "deployment_uid_images_readiness_unchanged": true,
+    "configmap_uid_resourceversion_mode_unchanged": true
+  },
+  "new_unit_or_integration_tests": "not added: documents/preparation only; exact source binaries built and exercised preview/disabled",
+  "actual_settings_changed": false
+}

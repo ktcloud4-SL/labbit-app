@@ -1,0 +1,55 @@
+{
+  "Version": "labbit-dr-control/v1",
+  "AccountID": "299311846289",
+  "Region": "ap-northeast-2",
+  "AWSExecutable": "C:\\Users\\user\\AppData\\Local\\Programs\\Amazon\\AWSCLIV2\\aws.exe",
+  "AWSProfile": "labbit-admin3",
+  "Target": {
+    "ID": "fixture",
+    "Cluster": "fixture",
+    "Region": "ap-northeast-2"
+  },
+  "Actors": [
+    {
+      "Principal": "fixture",
+      "ARN": "arn:aws:iam::299311846289:user/admin3",
+      "Actions": [
+        "inspect"
+      ]
+    }
+  ],
+  "ApprovalKeys": [
+    {
+      "ID": "approval",
+      "PublicKey": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
+      "Principal": "fixture",
+      "Phases": [
+        "activate"
+      ]
+    }
+  ],
+  "ObservationKeys": [
+    {
+      "ID": "observation",
+      "PublicKey": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=",
+      "Principal": "fixture",
+      "Phases": [
+        "activate"
+      ]
+    }
+  ],
+  "ArtifactBucket": "fixture",
+  "ArtifactPrefix": "control",
+  "ApprovalMaxSeconds": 60,
+  "EvidenceMaxSeconds": 30,
+  "Database": {
+    "Port": 5432,
+    "Name": "fixture",
+    "User": "fixture",
+    "Region": "ap-northeast-2",
+    "ARN": "arn:aws:rds:ap-northeast-2:299311846289:db:labbit-seoul-rds",
+    "Host": "labbit-seoul-rds.c1664mmc0jot.ap-northeast-2.rds.amazonaws.com",
+    "ResourceID": "db-KWJO4NMALL7V77AC3LWW2EGH2Y"
+  },
+  "EnableExecution": false
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "original": "go-all.log",
+    "compressed": "go-all.log.gz",
+    "original_bytes": 5306972,
+    "original_sha256": "ec84874440ca51adfa8b3fa312d2ce21d1114ef9acd7589f96ad9e42b5c3b4e9",
+    "compressed_sha256": "6d2b209009b20f1306e0158a30c76f89715c2a845c69ea97fed2aaa7a3c5f88c"
+  },
+  {
+    "original": "pg-integration-final.log",
+    "compressed": "pg-integration-final.log.gz",
+    "original_bytes": 740264,
+    "original_sha256": "bbc07eaea4de0276a19de79dd88f24c5d41cfa2f4462a577e5ee92ebe856bfcf",
+    "compressed_sha256": "89a93541283ccc7ea88c49716198f3912e94643605889aa5e0fd85e22f56fb9a"
+  },
+  {
+    "original": "pg-integration.log",
+    "compressed": "pg-integration.log.gz",
+    "original_bytes": 724201,
+    "original_sha256": "4bceea717b624913a58aa5ef6fac312b29d1ff72ecafd8cdc122b9ae2d5fcd37",
+    "compressed_sha256": "0d5bb8e594518947709e6732f1be55c97f909768b2a25d1865b6a9f38683e972"
+  },
+  {
+    "original": "race-final.log",
+    "compressed": "race-final.log.gz",
+    "original_bytes": 215614,
+    "original_sha256": "0e95231c9c8e283dcd98c90b194fea828aa8a22699f7bc8ca7c7027e7e1071e5",
+    "compressed_sha256": "b42138d7fc76065e15f6e25c437bfbe8781ec10dcd9f424c5e553163affaf640"
+  },
+  {
+    "original": "race.log",
+    "compressed": "race.log.gz",
+    "original_bytes": 324812,
+    "original_sha256": "2be8ff5a70fba0f1cacf369f038b646d5b1ad6423b87f866866bd6a0df75fe3d",
+    "compressed_sha256": "f3c632aeb4c1fba6a5ea009105a53e3fa89d66d8e42161edeb2c8a97fa6ad4e7"
+  }
+]

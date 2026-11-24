@@ -1,0 +1,756 @@
+{
+  "at": "2026-11-23T06:41:02.677717+00:00",
+  "base": "753eecbff737409a4c9cc8c542f3c6baa6acf0da",
+  "head": "be4d0ba5fe5a71f8edfd20b4f4a56112f4e3a8d1",
+  "tested_source": "uncommitted exact source-manifest; initial tests before gofmt-only prepared_test normalization are distinct from final3pkg race",
+  "go_race_initial": {
+    "counts": {
+      "pass": 310,
+      "fail": 0,
+      "skip": 0
+    },
+    "packages": {
+      "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol": "pass",
+      "github.com/ktcloud4-SL/labbit-app/cmd/labbit-dr-control": "pass",
+      "github.com/ktcloud4-SL/labbit-app/cmd/labbit-dr-evidence": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/drcontrol": "pass"
+    },
+    "skips": [],
+    "log": "race.log.gz"
+  },
+  "go_race_final": {
+    "counts": {
+      "pass": 210,
+      "fail": 0,
+      "skip": 0
+    },
+    "packages": {
+      "github.com/ktcloud4-SL/labbit-app/cmd/labbit-dr-control": "pass",
+      "github.com/ktcloud4-SL/labbit-app/cmd/labbit-dr-evidence": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/drcontrol": "pass"
+    },
+    "skips": [],
+    "log": "race-final.log.gz"
+  },
+  "go_all": {
+    "counts": {
+      "pass": 4684,
+      "fail": 0,
+      "skip": 88
+    },
+    "packages": {
+      "github.com/ktcloud4-SL/labbit-app/cmd/labbit-connector": "skip",
+      "github.com/ktcloud4-SL/labbit-app/cmd/labbit-dr-control": "pass",
+      "github.com/ktcloud4-SL/labbit-app/cmd/labbit-migrate": "skip",
+      "github.com/ktcloud4-SL/labbit-app/cmd/labbit-recovery-evidence": "skip",
+      "github.com/ktcloud4-SL/labbit-app/cmd/labbit-server": "skip",
+      "github.com/ktcloud4-SL/labbit-app/cmd/labbit-workspace-sftp": "skip",
+      "github.com/ktcloud4-SL/labbit-app/db/migrations": "skip",
+      "github.com/ktcloud4-SL/labbit-app/cmd/labbit-dr-evidence": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/heartbeat": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/version": "skip",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/provider": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/installer": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/protocol": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/observability/spanattr": "skip",
+      "github.com/ktcloud4-SL/labbit-app/cmd/labbit-recover-failed-provision": "pass",
+      "github.com/ktcloud4-SL/labbit-app/cmd/k3d-e2e-verifier": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/jsonnum": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/mock": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/postgres": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/app": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/observability/tracing": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/bootstrap": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/preview": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/filetransport": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport/filetest": "skip",
+      "github.com/ktcloud4-SL/labbit-app/internal/observability": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/class": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution/labexecutiontest": "skip",
+      "github.com/ktcloud4-SL/labbit-app/internal/operationrecovery": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/jsonnum": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/auth": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/httpapi": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/filetransport": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/labspec": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/connector": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/livesession": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/realtime/realtimetest": "skip",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/operation": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/vmaccess": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/preview/previewtest": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/app": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/provision": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/terminal/terminaltest": "skip",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/repository": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/wss": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/labexecution": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/testsupport/workercontrolfake": "skip",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/tracecontext": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/preview": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/previewsession": "pass",
+      "github.com/ktcloud4-SL/labbit-app/web/node_modules/flatted/golang/pkg/flatted": "skip",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/maintenance": "pass",
+      "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/workspacefile": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/terminal": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/drcontrol": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/workercontrol": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack": "pass",
+      "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-op02-bootstrap": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefs": "pass",
+      "github.com/ktcloud4-SL/labbit-app/tools/ktcloud-d1-acceptance": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/realtime": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/server/connectorwss": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/connector/terminal": "pass"
+    },
+    "skips": [
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudProvisionAcceptsLateActiveAfterFiveMinutes"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/installer",
+        "test": "TestInstallerScript_ShellSyntaxAndBehavioralSuite/behavior"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM2ControlWSSIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestFailedRecoveryEvidenceRequiresBoundCompleteOwnedTopology"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackFileTransportIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM1Integration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM2ProvisionIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackM3LifecycleIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackInternetPolicyIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupReturnRestartAndDelayedCommands"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/unknown_create"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/legacy_intent"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/crashed_completion"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/server_without_root"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_occupied"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/inventory_failure"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPreservesUncertainReservations/unlisted_live_resource"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupAllGenerationsAndStaleCleanup"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/tombstone_before_removal"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupInterruptedReleaseAndExclusiveLock/lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupPartialDeleteKeepsReservation"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRCleanupSerializesWithAllocation"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudHeldCIDRAllowsDifferentInstanceWithoutReleasingOldOwner"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPublicLifecycleReturnsCompleteTopology"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/invalid_config"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/missing_directory"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/exhausted"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/foreign_lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/same_instance_lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_invalid_config"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/prior_intent_foreign_lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_pool"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_intent"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/orphan_intent"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPreflightRejectionDoesNotHidePriorUncertainty/corrupt_lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/invalid_config"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRResetScopeRejectionPreservesPreviousGeneration/foreign_lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolIsolationResetAndRestart"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/skip_shared"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/all_overlap"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/unknown_CIDR"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory/pending_unmapped_Tier"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolSharedOverlapAndUncertainInventory"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolConcurrentAndUnknownMutation"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/overlap"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/noncanonical"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/public"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/partial"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/pool_changed"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/symlink"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/corrupt_slot"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolConfigurationAndCorruptionFailClosed/stale_lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolManagementAddressUsesAssignment"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolResetCreditsOnlyExactPreviousInstance/foreign=false"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolResetCreditsOnlyExactPreviousInstance/foreign=true"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolTierCreateAndCleanupIsolation"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolPublicProvisionLostCreateCannotRepeat"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudCIDRPoolResetPreflightRejectsUnmappedInventory"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/symlink"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTFixtureLedgerRejectsSymlinkAndReplacement/replacement"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudD1ReadOnlyIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTCloudD1DisposableNetworkIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/workspacefile",
+        "test": "TestSymlinkRejectedAndExcludedFromTree"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestKTManagementRouteGateRequiredWithoutUserStartup"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackPreviewForwardingIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/tools/dev-auth-class-fixture",
+        "test": "TestInstallCredentialFile/새_credential_file을_만들고_성공_메시지에는_path만_남긴다/POSIX_permission_0600"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackPTYCC02Integration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestReadinessFailuresKeepClassificationResourcesAndSafeDiagnostics"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+        "test": "TestLocator_Lifecycle"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+        "test": "TestLocator_AtomicGenerationAndOwnerLossCallback"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+        "test": "TestLocator_TerminalOwner"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+        "test": "TestLocator_TerminalOwnerHeartbeatRenewal"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+        "test": "TestLocator_PreviewOwner"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner",
+        "test": "TestLocator_LookupRetiresLocalStaleLeaseImmediately"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackTerminalC2Integration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackVMAccessIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestWorkspaceArtifactFailurePrecedesCIDRReservation/missing"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestWorkspaceArtifactFailurePrecedesCIDRReservation/hash_mismatch"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=false/intent"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=false/own_lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=false/corrupt_slot"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=true/intent"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=true/own_lock"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=true/corrupt_slot"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=true/missing_assignment"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestWorkspaceArtifactFailurePreservesCIDRUnknown/reset=true/missing_previous_intent"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackWorkspaceFileIntegration"
+      },
+      {
+        "package": "github.com/ktcloud4-SL/labbit-app/internal/connector/provider/openstack",
+        "test": "TestOpenStackPreviewTransportIntegration"
+      }
+    ],
+    "log": "go-all.log.gz"
+  },
+  "pg_initial_failed_fixture_role": {
+    "counts": {
+      "pass": 336,
+      "fail": 261,
+      "skip": 0
+    },
+    "packages": {
+      "github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest": "fail",
+      "github.com/ktcloud4-SL/labbit-app/internal/drcontrol": "fail",
+      "github.com/ktcloud4-SL/labbit-app/internal/postgres": "fail"
+    },
+    "skips": [],
+    "log": "pg-integration.log.gz"
+  },
+  "pg_final_disposable16_15": {
+    "counts": {
+      "pass": 703,
+      "fail": 0,
+      "skip": 0
+    },
+    "packages": {
+      "github.com/ktcloud4-SL/labbit-app/internal/postgres/postgrestest": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/drcontrol": "pass",
+      "github.com/ktcloud4-SL/labbit-app/internal/postgres": "pass"
+    },
+    "skips": [],
+    "log": "pg-integration-final.log.gz"
+  },
+  "web_first": {
+    "pass": 492,
+    "fail": 1,
+    "reason": "Windows fixture rmSync EPERM; source unchanged"
+  },
+  "web_final": {
+    "pass": 493,
+    "fail": 0,
+    "files": 35
+  },
+  "python_final": {
+    "normal": 12,
+    "optimized": 12,
+    "mock_only": true
+  },
+  "commands": {
+    "go-checks": [
+      {
+        "name": "race",
+        "args": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+          "test",
+          "-count=1",
+          "-race",
+          "-json",
+          "./internal/drcontrol",
+          "./internal/server/workercontrol",
+          "./cmd/labbit-dr-control",
+          "./cmd/labbit-dr-evidence"
+        ],
+        "at": "2026-11-23T06:19:48.072382+00:00",
+        "exit": 0,
+        "log": "race.log.gz",
+        "scope": "local-no-AWS"
+      },
+      {
+        "name": "go-all",
+        "args": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+          "test",
+          "-count=1",
+          "-json",
+          "./..."
+        ],
+        "at": "2026-11-23T06:20:01.965953+00:00",
+        "exit": 0,
+        "log": "go-all.log.gz",
+        "scope": "local-no-AWS"
+      },
+      {
+        "name": "vet",
+        "args": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+          "vet",
+          "./..."
+        ],
+        "at": "2026-11-23T06:20:29.762265+00:00",
+        "exit": 0,
+        "log": "vet.log",
+        "scope": "local-no-AWS"
+      },
+      {
+        "name": "build",
+        "args": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+          "build",
+          "./..."
+        ],
+        "at": "2026-11-23T06:20:32.977902+00:00",
+        "exit": 0,
+        "log": "build.log",
+        "scope": "local-no-AWS"
+      },
+      {
+        "name": "format",
+        "args": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+          "run",
+          "./.local/check_collector_format.go"
+        ],
+        "at": "2026-11-23T06:20:38.145453+00:00",
+        "exit": 0,
+        "log": "format.log",
+        "scope": "local-no-AWS"
+      }
+    ],
+    "pg-checks": [
+      {
+        "name": "pg-integration",
+        "args": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+          "test",
+          "-count=1",
+          "-race",
+          "-tags=integration",
+          "-json",
+          "./internal/drcontrol",
+          "./internal/postgres",
+          "./internal/postgres/postgrestest"
+        ],
+        "at": "2026-11-23T06:19:48.100854+00:00",
+        "exit": 1,
+        "log": "pg-integration.log.gz",
+        "scope": "disposable-loopback-PG16"
+      }
+    ],
+    "pg-final-checks": [
+      {
+        "name": "pg-integration-final",
+        "args": [
+          "C:\\Users\\user\\AppData\\Local\\Programs\\Go-1.27.1\\go\\bin\\go.exe",
+          "test",
+          "-count=1",
+          "-race",
+          "-tags=integration",
+          "-json",
+          "./internal/drcontrol",
+          "./internal/postgres",
+          "./internal/postgres/postgrestest"
+        ],
+        "at": "2026-11-23T06:21:42.793580+00:00",
+        "exit": 0,
+        "log": "pg-integration-final.log.gz",
+        "scope": "disposable-loopback-PG16"
+      }
+    ],
+    "python-checks": [
+      {
+        "name": "store-python",
+        "args": [
+          "C:\\Program Files (x86)\\Google\\Cloud SDK\\google-cloud-sdk\\platform\\bundledpython\\python.exe",
+          "-I",
+          "-X",
+          "utf8",
+          "-S",
+          "scripts/dr_control_artifact_store_test.py",
+          "-v"
+        ],
+        "at": "2026-11-23T06:23:13.943894+00:00",
+        "exit": 0,
+        "log": "store-python.log",
+        "scope": "local-no-AWS"
+      },
+      {
+        "name": "store-python-optimized",
+        "args": [
+          "C:\\Program Files (x86)\\Google\\Cloud SDK\\google-cloud-sdk\\platform\\bundledpython\\python.exe",
+          "-I",
+          "-X",
+          "utf8",
+          "-O",
+          "-S",
+          "scripts/dr_control_artifact_store_test.py",
+          "-v"
+        ],
+        "at": "2026-11-23T06:23:14.516169+00:00",
+        "exit": 0,
+        "log": "store-python-optimized.log",
+        "scope": "local-no-AWS"
+      }
+    ],
+    "web-checks": [
+      {
+        "name": "web-typecheck",
+        "args": [
+          "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+          "node_modules/typescript/bin/tsc",
+          "--noEmit"
+        ],
+        "at": "2026-11-23T06:19:48.083948+00:00",
+        "exit": 0,
+        "log": "web-typecheck.log",
+        "scope": "local-no-AWS"
+      },
+      {
+        "name": "web-lint",
+        "args": [
+          "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+          "node_modules/eslint/bin/eslint.js",
+          ".",
+          "--max-warnings=0"
+        ],
+        "at": "2026-11-23T06:19:53.710075+00:00",
+        "exit": 0,
+        "log": "web-lint.log",
+        "scope": "local-no-AWS"
+      },
+      {
+        "name": "web-test",
+        "args": [
+          "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+          "node_modules/vitest/vitest.mjs",
+          "run",
+          "--maxWorkers=1"
+        ],
+        "at": "2026-11-23T06:19:59.894667+00:00",
+        "exit": 1,
+        "log": "web-test.log",
+        "scope": "local-no-AWS"
+      },
+      {
+        "name": "web-build",
+        "args": [
+          "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+          "node_modules/vite/bin/vite.js",
+          "build"
+        ],
+        "at": "2026-11-23T06:21:29.951909+00:00",
+        "exit": 0,
+        "log": "web-build.log",
+        "scope": "local-no-AWS"
+      }
+    ],
+    "web-retry-checks": [
+      {
+        "name": "web-test-final",
+        "args": [
+          "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+          "node_modules/vitest/vitest.mjs",
+          "run",
+          "--maxWorkers=1"
+        ],
+        "at": "2026-11-23T06:27:35.169707+00:00",
+        "exit": 0,
+        "log": "web-test-final.log",
+        "scope": "local-no-AWS"
+      }
+    ]
+  },
+  "actual_scope": {
+    "rds_readonly_product": true,
+    "temporary_ssm_session_terminated": true,
+    "s3_new_expired_public_objects": 2,
+    "s3_unchanged_known_versions_readback": true,
+    "actual_negative_callbacks": true,
+    "callback_extra_io": 0,
+    "actual_live_positive_resume": false,
+    "actual_control_store_created": false,
+    "seoul_service_settings_changed": false,
+    "merge": false,
+    "push": false
+  },
+  "not_run": [
+    "actual signed operational init/Pause/Resume and durable opt-in rollout",
+    "normal LIVE all-safety-condition callback latency",
+    "multiple Pod Worker drain/claim/dispatch in APPROVED_CONTROL",
+    "Provider/UNKNOWN reconciliation and actual writer fencing/SingleWriter",
+    "failover/failback and formal RTO/RPO",
+    "fresh GitHub CI of unpushed local source",
+    "Linux runtime-specific rerun (no new platform-specific syscall code)",
+    "independent Reader of new two expired samples"
+  ],
+  "limitations": [
+    "CLI S3 RequestId not retained",
+    "source of initial PUT predates added Head gate; exact initial source hash not captured, final read-only gate revalidated separately",
+    "snapshot bytes/policy do not instantly re-query later access revocation/deletion",
+    "operator ACL and local durable storage are operational preconditions, no automatic ACL validation",
+    "manual retention review does not create Object Lock or automatic lifecycle controls"
+  ],
+  "execution_gate": "HOLD",
+  "recovery_authorized": false,
+  "cloud_verified": false
+}

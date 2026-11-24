@@ -1,0 +1,11 @@
+{
+  "at": "2026-11-23T05:03:49.092426+00:00",
+  "action": "snapshot",
+  "detail": {
+    "id": "labbit-seoul-pr196-before-v15-20261123-01",
+    "retention_review_days": 7,
+    "automatic_delete": false
+  },
+  "outcome": "INTENT",
+  "execution_gate": "HOLD"
+}

@@ -1,0 +1,525 @@
+{
+  "head": "c11b70a8e9fb81691e0fadb6b4114ee9a5f47fac",
+  "uncommitted": true,
+  "source": [
+    {
+      "path": "internal/connector/installer/installer_test.go",
+      "size": 10194,
+      "sha256": "fdba7b9b327009bd11db8ddd3ef23d9f7ddb83f5dc89d5ea73cd8cd6b225024f"
+    },
+    {
+      "path": "internal/connector/provider/openstack/active_readiness_test.go",
+      "size": 10129,
+      "sha256": "8424591ed3e8c2587fb7e0bac02b5c7917911d14327a621dbdcb88ae26c0cc29"
+    },
+    {
+      "path": "internal/connector/provider/openstack/client.go",
+      "size": 15105,
+      "sha256": "41dfdda2424a6d4ae120a348872116a0b40d340b6bf044d44d75d65d8e163a92"
+    },
+    {
+      "path": "internal/connector/provider/openstack/client_test.go",
+      "size": 4715,
+      "sha256": "2bc013a80657d09c922ea478d48c03f24a744f02bb744903d2ca3b068d4eb4b6"
+    },
+    {
+      "path": "internal/connector/provider/openstack/connection_validation_test.go",
+      "size": 7826,
+      "sha256": "45416b8962dcc028d0c69ea9be21e6e7142c703f92fe448dae856461afc77357"
+    },
+    {
+      "path": "internal/connector/provider/openstack/control_wss_cleanup_test.go",
+      "size": 6206,
+      "sha256": "eb963da4b218b7d18780fe4f20067fcfffac167c4036047569b19e51c5480266"
+    },
+    {
+      "path": "internal/connector/provider/openstack/control_wss_integration_test.go",
+      "size": 16063,
+      "sha256": "2fb91ac6d2e8b6fd8dd17e5ebeb1e34eba56a027ea001272fd72bef6c0f51751"
+    },
+    {
+      "path": "internal/connector/provider/openstack/failed_recovery.go",
+      "size": 7120,
+      "sha256": "868ea2f5993bacef0288cb1803e4a7b6bd65135087d9a1f3f357c20607ca0928"
+    },
+    {
+      "path": "internal/connector/provider/openstack/failed_recovery_linux.go",
+      "size": 406,
+      "sha256": "e569fa244f63be40f9712429d96e87afb6fa9e544b7098346573ec4ae0a45c2a"
+    },
+    {
+      "path": "internal/connector/provider/openstack/failed_recovery_other.go",
+      "size": 138,
+      "sha256": "4b0d6f83e2381b8a023ff57cc56b3ffa9fce46212e871f14d0139b2490c33516"
+    },
+    {
+      "path": "internal/connector/provider/openstack/failed_recovery_test.go",
+      "size": 7078,
+      "sha256": "f793d23591d7bfd5f89179f9dd8092f952d0ef7b77ab2823bdbc12055ab1ed49"
+    },
+    {
+      "path": "internal/connector/provider/openstack/file_transport_integration_test.go",
+      "size": 18504,
+      "sha256": "831a5aa0035962952cc98d32775b2fdd4594d7f37b22fdbc0f73c6a7b977570a"
+    },
+    {
+      "path": "internal/connector/provider/openstack/integration_cleanup_test.go",
+      "size": 1582,
+      "sha256": "da1fb25a726c5e521689fb19f39a489647f65f9c134b37831dbd9149059b4b80"
+    },
+    {
+      "path": "internal/connector/provider/openstack/integration_diagnostic_test.go",
+      "size": 2898,
+      "sha256": "130cf8aceef3de4f3c32731c78a278b316e8336edda09884b089c5f7cf8c8861"
+    },
+    {
+      "path": "internal/connector/provider/openstack/integration_test.go",
+      "size": 34801,
+      "sha256": "f851ac8eefd73a24c7837062fb1ea1645d350a858164e5d03279028f236823b2"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_cidr.go",
+      "size": 16081,
+      "sha256": "876043cb6d098b02df23fc6068e4430913ad8e69cf2aa74eb409e11c36fd7f6a"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_cidr_cleanup.go",
+      "size": 8807,
+      "sha256": "1552b06e808cdcdfbe2905cbfdf47e3ef20faf00f07f51444dfc16a7894ae189"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_cidr_cleanup_test.go",
+      "size": 11497,
+      "sha256": "8fdb40692070107aec055d93c9b6bb90369032daea40e450d8e8837506da2cf2"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_cidr_lifecycle_test.go",
+      "size": 8335,
+      "sha256": "6d4cbf1ff3daec832033c6494787b30f3f96e4b33fcc5c8a63578b3676265bfc"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_cidr_rejection_test.go",
+      "size": 5904,
+      "sha256": "b9e137598103b03295457c692f0dc51987e13e519e4a67d2bf49efc4c0b3882d"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_cidr_test.go",
+      "size": 26701,
+      "sha256": "a547e9016ff650d579a389edf0a9cf7a0963cc5b5d5753930dd42f47ebe6197a"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_client.go",
+      "size": 4337,
+      "sha256": "3dfad052ffa1e2743d8d8579d65d3aa5e595d200eea2cfeeb610386c0ba98c96"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_client_test.go",
+      "size": 7923,
+      "sha256": "28409ac8a7827f73bc1de4252802a385fa3c8be3422ce0d5e597ce8c4dcc2899"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_compute.go",
+      "size": 2710,
+      "sha256": "c2c8df87bb8e895032f9f404c197aecef3fe476b2cb156bdf39d8a783707c507"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_delete.go",
+      "size": 4646,
+      "sha256": "115a579bcd866c48643ec26a8091021566f6cf9dc94871637ab572c83e4db532"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_delete_receipt_test.go",
+      "size": 4114,
+      "sha256": "bd2519e91ec4fc1106a3f680751dbf797d2b09bf9ef189cd9a63aec233edff7c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_fixture_ledger_test.go",
+      "size": 12832,
+      "sha256": "7ec9909b4e06bca55ba33903fe5827d42274bdce7fdf79ebe4be934aa2270e1c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_integration_test.go",
+      "size": 1448,
+      "sha256": "a8402308804eaf370b5e98ea3797407f0e5a29faae13c3224e8d3f40acbd8393"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_lifecycle.go",
+      "size": 4650,
+      "sha256": "c67752815aaf7837f3f86d4a48e7032771f14b4f52aa2e65e84d09c3aa58ce8c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_management_shared_test.go",
+      "size": 6290,
+      "sha256": "2cafa6236902ae14a0fc53d63a32c21f12b95222fef839d73209495a2aaacc70"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_names.go",
+      "size": 2399,
+      "sha256": "827f39bd4c85d0755f59386278ba5ed806a7d0b0a3aa53647024c8946c6c5ae2"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_names_test.go",
+      "size": 12725,
+      "sha256": "6d3d791813ce9ef912bb38afdde0fb9b7ea423856f693e818226eff624c42349"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_network.go",
+      "size": 10152,
+      "sha256": "493020470281be6bc548a8efc27dc1f4edbff0c049959816f4b08e40a13f0ad7"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_network_integration_test.go",
+      "size": 8853,
+      "sha256": "9c26510972bad871a312d13038a6fd40016012004dbfb2d0f43ad4abcd25b7dd"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_network_test.go",
+      "size": 9528,
+      "sha256": "c9c09c9a755585d1ff5abc023ea04622035f2978008bd7c1e10d947fb897c959"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_policy_ownership_test.go",
+      "size": 5100,
+      "sha256": "9f0a9b507bbc6ee3e0cd1dd9057fe89a6aab185285724d2e219122c4102f88c8"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_root_ownership_test.go",
+      "size": 4670,
+      "sha256": "b854cb4e5927ed7bc887b7faf184426c1b1b732eac44e179a1363bef4c8556ae"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_tier_ownership_test.go",
+      "size": 8040,
+      "sha256": "9b5c66acdc6fdd1d3917a34c6bf8502865b110687a38d9df524b0cf58241eeed"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_topology.go",
+      "size": 16366,
+      "sha256": "b94cc5276eff757ef7bda5c18eabe715978cf2c3d89f11eaa481e1a343b203ec"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_topology_test.go",
+      "size": 18548,
+      "sha256": "e7e833b0067822abec4d684b34a0cbfe0326f392578747c3fea3b7f5dbe9112c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_d1_volume_deleting_test.go",
+      "size": 4829,
+      "sha256": "7ff991088febe6db592da67bb407b496d24657e2265eb0af847dc388516dc069"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_management_route.go",
+      "size": 4784,
+      "sha256": "5aed02d70287db1496570c87fa62611cdaaad3a5370c678f97f9aea9775023ae"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_management_route.py",
+      "size": 1983,
+      "sha256": "374df6998fb045f2bb822ab0dd58d18d8981bfaa8ed836b78a95d714ba961f8a"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_management_route_guest_test.py",
+      "size": 7462,
+      "sha256": "fd994f9e48ef347ab2bcf5ce73734cc9e995ca0d23b4ca14243b35a488ce5518"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_management_route_test.go",
+      "size": 6005,
+      "sha256": "6d76b14d3dad457cadae262584f787347ba400c757d85669f7691619d554a105"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_management_route_verify.py",
+      "size": 1086,
+      "sha256": "b8860d3580cd6a19aed767d02cb85d0fa2229138d062f19a746dfe41b036a132"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ktcloud_userdata_test.go",
+      "size": 9722,
+      "sha256": "41cd069544e70fc31a28e74b5129fd01173a3ef1d46fc3c7a369ec64b8e8b005"
+    },
+    {
+      "path": "internal/connector/provider/openstack/lifecycle.go",
+      "size": 15635,
+      "sha256": "b532bec896bda581bef22f190d26143cfe336f30fc9f6fe6c1d57d4ecb31debe"
+    },
+    {
+      "path": "internal/connector/provider/openstack/lifecycle_test.go",
+      "size": 24418,
+      "sha256": "1e138eec83c3d9139c58f09d08878e653809c793dcdbfc706876d2fbd9ee0f7d"
+    },
+    {
+      "path": "internal/connector/provider/openstack/logical_name_lifecycle_test.go",
+      "size": 5687,
+      "sha256": "e90a1711708e99a08c22cfc95b6c601acac7c9e8b0789c798fe49daf8962a9be"
+    },
+    {
+      "path": "internal/connector/provider/openstack/management_classless_test.go",
+      "size": 10185,
+      "sha256": "ca98e47d764c494d38cc964c1ab381cf3f20583ffc2a1a22bc0199bda103666f"
+    },
+    {
+      "path": "internal/connector/provider/openstack/management_network.go",
+      "size": 5725,
+      "sha256": "614658793e89e6cb42cfbe3eba2bf7072c5a1e7f9614b323d362f9fbf03075ab"
+    },
+    {
+      "path": "internal/connector/provider/openstack/management_network_test.go",
+      "size": 11684,
+      "sha256": "0cf30fe9d2f22691c26c1edbd48a4e29b8b83ffbe4a58a6177fc01980368064a"
+    },
+    {
+      "path": "internal/connector/provider/openstack/management_subnet_affinity_test.go",
+      "size": 3072,
+      "sha256": "fdcfcad876bcd9f1fce598085cd3537774bf1ba7f27d41a0668027b10fcef961"
+    },
+    {
+      "path": "internal/connector/provider/openstack/multi_vm_readiness_test.go",
+      "size": 4147,
+      "sha256": "016e021b06288f4ad19d89e7a0644f8dce536a922f0e19dacded59ecf75b5e9c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/network.go",
+      "size": 12773,
+      "sha256": "a281f885940a8f15e462b6033490c071ed4ae0e04d3d2e0aa77c97f83dfe178c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/network_test.go",
+      "size": 9910,
+      "sha256": "0ffc8a323331d631b8f603b19e8e2ca61d4800497a496f44568c69cfaccd8c23"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ownership_test.go",
+      "size": 2898,
+      "sha256": "e353a3362b3553e768b78d4467f55d11a1ddf6ce010be45624496f9d0335ccd3"
+    },
+    {
+      "path": "internal/connector/provider/openstack/port.go",
+      "size": 5618,
+      "sha256": "df976c672ef3ad81f9d6b8ac7f3117e412d2895b18ac50d5172dff2417f7b27b"
+    },
+    {
+      "path": "internal/connector/provider/openstack/preview_forwarding_integration_test.go",
+      "size": 9116,
+      "sha256": "a4847cff6a0ea4567f964c0863c0b717321c0992183b2e178243513991f81df3"
+    },
+    {
+      "path": "internal/connector/provider/openstack/preview_transport_export_test.go",
+      "size": 4049,
+      "sha256": "3c1c123021654c64bfe33cbffb1b8d666404dcaa330ee1f540572b939b19c6e9"
+    },
+    {
+      "path": "internal/connector/provider/openstack/preview_transport_integration_test.go",
+      "size": 17878,
+      "sha256": "1f5ecc9941373e34ffd809b8eba2404f9dadb1f77e6c3c936b7c57f182456d92"
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision.go",
+      "size": 18063,
+      "sha256": "176c8c83825a6c23cea5195eb7efbe11c2a147618abd4abe6e407d87e9343754"
+    },
+    {
+      "path": "internal/connector/provider/openstack/provision_test.go",
+      "size": 40239,
+      "sha256": "528b79263cfed1e26e7ad4c011e366a0c091243136d36e229fdf837069ffde2e"
+    },
+    {
+      "path": "internal/connector/provider/openstack/pty_cc02_integration_test.go",
+      "size": 15195,
+      "sha256": "cddba7067310cc1a48f691bf0b94d5e4101de810c4ccbd757472c18397a351f6"
+    },
+    {
+      "path": "internal/connector/provider/openstack/query.go",
+      "size": 6750,
+      "sha256": "181f8203ae4e41730cf3e35e18d3d569b629f172d6b819100ce87412e30d5c78"
+    },
+    {
+      "path": "internal/connector/provider/openstack/query_test.go",
+      "size": 4655,
+      "sha256": "30c7f099b70de5fb839412d6253e1d50a95a76411ae69f8b8c55f379fcfaee5c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/quota.go",
+      "size": 7565,
+      "sha256": "28e1b6827f180740423e7422aaf95f79a759ffee1c221880c415205701baa57a"
+    },
+    {
+      "path": "internal/connector/provider/openstack/quota_test.go",
+      "size": 4063,
+      "sha256": "cf132a42b72fcb4c5564edff351962d347abc6baf482a57f2ba956bbbfd6b228"
+    },
+    {
+      "path": "internal/connector/provider/openstack/readiness.go",
+      "size": 2058,
+      "sha256": "a3ff070091f162efe279cab425be60d4e7838c053da6d06378e2109e909f12cd"
+    },
+    {
+      "path": "internal/connector/provider/openstack/readiness_diagnostic.go",
+      "size": 2813,
+      "sha256": "26ca6c8a4af885bd38fa211384d788ab03578cab2f667eb374c8352ac26ae367"
+    },
+    {
+      "path": "internal/connector/provider/openstack/readiness_diagnostic_test.go",
+      "size": 6548,
+      "sha256": "379ccbcdf5d216aaf2e14d965bf7174558b156d6ecb860c63e5d187a89c60956"
+    },
+    {
+      "path": "internal/connector/provider/openstack/readiness_test.go",
+      "size": 6190,
+      "sha256": "e48195079ec18c34abfa3c373c945e923b19c9bfe5a791cb3f502103c6833a9a"
+    },
+    {
+      "path": "internal/connector/provider/openstack/reauth_test.go",
+      "size": 11514,
+      "sha256": "c88f4a79c8a2c5bfa9e5fbb6dae27a1a916e3b3c55bc62eaca2739674690c2ce"
+    },
+    {
+      "path": "internal/connector/provider/openstack/reconciliation.go",
+      "size": 12773,
+      "sha256": "6d6df13511da9ea765a41648840f78b58631df51ade1fa4948ecd2238bc6bc5c"
+    },
+    {
+      "path": "internal/connector/provider/openstack/reconciliation_test.go",
+      "size": 8300,
+      "sha256": "2a02ad832ae1b41ff9eca54b6b5d9eea883d9be233dbca1c1a42dc3dc958c2ec"
+    },
+    {
+      "path": "internal/connector/provider/openstack/router.go",
+      "size": 4252,
+      "sha256": "40de2fc22492094d052ba135fb9f439d7e75c1e9cdead42284c52d87db594b21"
+    },
+    {
+      "path": "internal/connector/provider/openstack/server.go",
+      "size": 9303,
+      "sha256": "44d032c332ccb27d7950b1b6a76c3cf51c6ad9d51574318334daa9627e409867"
+    },
+    {
+      "path": "internal/connector/provider/openstack/server_test.go",
+      "size": 2154,
+      "sha256": "5c861b75f0d8c994d72157506126fb8cc2f79fab12842f1885f206ad1f32b980"
+    },
+    {
+      "path": "internal/connector/provider/openstack/ssh_cancellation_test.go",
+      "size": 8156,
+      "sha256": "c936fcf4ad834f1acfc0ae65b8d119a8111cd338d80c9d9fee3e85453234042d"
+    },
+    {
+      "path": "internal/connector/provider/openstack/startup.go",
+      "size": 6161,
+      "sha256": "71928ac2ca2082429eb2ec25dcbaf8064864c200bdf3dec4c98f10c3891b0b21"
+    },
+    {
+      "path": "internal/connector/provider/openstack/startup_test.go",
+      "size": 4283,
+      "sha256": "acfd4a04efde022539d6a47f9828d291b601190b7604eb322ad5bd212dcd3fd0"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_c2_integration_test.go",
+      "size": 41556,
+      "sha256": "de65253b7f343e2f5dd4c70adbe794f488ea8c9598edbcec541def04e6a156cc"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_error_test.go",
+      "size": 6229,
+      "sha256": "3fccaeb83fa727568d048cff411f0a482584c5c4c285ed1bdb49d319717d0240"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target.go",
+      "size": 7500,
+      "sha256": "587256bb3f110ceaef6e9731b05924799bdf90fe5741cef6849098e7acd23721"
+    },
+    {
+      "path": "internal/connector/provider/openstack/terminal_target_test.go",
+      "size": 11143,
+      "sha256": "5144aa2ae3e1a843b01b463e3cc8ad4dccf23d58635f01a7d47e028bedd0a430"
+    },
+    {
+      "path": "internal/connector/provider/openstack/test_helpers_test.go",
+      "size": 1187,
+      "sha256": "3df4a02bda123e47d8d00c039ccae2123347423a9e76c593e55253e6656af82f"
+    },
+    {
+      "path": "internal/connector/provider/openstack/topology.go",
+      "size": 9215,
+      "sha256": "284c0831367c94a6523c4138a9fd1fb8865c1e207c5cdf2e03906dae695623de"
+    },
+    {
+      "path": "internal/connector/provider/openstack/vm_access_integration_test.go",
+      "size": 9901,
+      "sha256": "d377914c32c8f70edc5284c53bd1862a0c407cbdcc97aa421b0ba9885e47f77f"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_bootstrap.go",
+      "size": 4007,
+      "sha256": "a139b553fcf1bc63df9b679f0667966b893dde03d7a39467ad3d80c9316fa3dc"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_bootstrap.py",
+      "size": 7372,
+      "sha256": "aab5db69748f8a618f918e4d737d7bb212236674b63f8d8551d4d7c6d8a961da"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_bootstrap_guest_test.py",
+      "size": 6908,
+      "sha256": "99e00109fcce282322f2ff5301cc35bd0b100e1619aeee7534635395c63c60f0"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_bootstrap_test.go",
+      "size": 10948,
+      "sha256": "367b3ae0b5758632a8df0333ed93ab30480cd1fd07088607db264c3f1d55ae0b"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_file_fixture_test.go",
+      "size": 7409,
+      "sha256": "1b7d739679a8b96fd2ea8d275a9f40bc8945720e3d199f8c418aa886e5fedc5f"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_file_integration_gate_test.go",
+      "size": 869,
+      "sha256": "d3c26f2740aebdab2816a8bbade9e6bd96d30ec3a4272853f3101a9f5425e389"
+    },
+    {
+      "path": "internal/connector/provider/openstack/workspace_file_integration_test.go",
+      "size": 17706,
+      "sha256": "0cb738b56f32636e868b69844a03622e6f10806516f84303b2dd46b6dc861bbd"
+    },
+    {
+      "path": "runtime/contract.yaml",
+      "size": 72467,
+      "sha256": "fbc2b70dc2d5fbe262c9f4cb9bd02210bbb4a951ccb975619028879fb2aed42a"
+    },
+    {
+      "path": "scripts/installer/install.sh",
+      "size": 21991,
+      "sha256": "e5f51cc3c8e45182e7a6384175ff62cfd907d93c18097b6309ee601794d9f4bf"
+    },
+    {
+      "path": "scripts/installer/install_test.sh",
+      "size": 41362,
+      "sha256": "4bdafc51572afa1250e1fc4bbe9b0b6d42b53c650aa7280182924a97814f138d"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "openstack.test",
+      "size": 22992848,
+      "sha256": "3684d3d83fa74fb5c564152308851f71ca4cf3e3a9b99fb23a83f2460fae1683"
+    },
+    {
+      "path": "installer.test",
+      "size": 4854592,
+      "sha256": "29fe774fe5f71ace297943250e3949519f59157143398163d2c7939d698af6e4"
+    },
+    {
+      "path": "test2json",
+      "size": 4572000,
+      "sha256": "79d51465b365181dbec5b6f01810cc56a2f3c1d40551a1f24d3b3dcc78150e8b"
+    }
+  ],
+  "build": {
+    "go": "1.27.1",
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "CGO_ENABLED": "0",
+    "race": false
+  }
+}

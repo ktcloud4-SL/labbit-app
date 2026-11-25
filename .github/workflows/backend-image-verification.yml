@@ -17,7 +17,6 @@ jobs:
     env:
       LOCAL_IMAGE: labbit-backend:pr-verify
       PR_HEAD: ${{ github.event.pull_request.head.sha }}
-      EVIDENCE_DIR: ${{ runner.temp }}/backend-image-verification
     steps:
       - name: Checkout PR source
         uses: actions/checkout@v4
@@ -29,6 +28,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          EVIDENCE_DIR="$RUNNER_TEMP/backend-image-verification"
+          echo "EVIDENCE_DIR=$EVIDENCE_DIR" >> "$GITHUB_ENV"
           mkdir -p "$EVIDENCE_DIR"
           checkout_sha="$(git rev-parse HEAD)"
           test "$checkout_sha" = "$PR_HEAD"

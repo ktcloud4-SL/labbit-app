@@ -22,7 +22,7 @@ RUN go build -ldflags="-s -w" -o /out/labbit-server ./cmd/labbit-server && \
 FROM alpine:3.21 AS runner
 
 # SSL 인증서 및 타임존 설치
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add --upgrade ca-certificates tzdata 'zlib>=1.4-r0'
 
 WORKDIR /app
 

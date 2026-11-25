@@ -1,0 +1,144 @@
+name: Backend Image Verification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - .github/workflows/backend-image-verification.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LOCAL_IMAGE: labbit-backend:pr-verify
+      PR_HEAD: ${{ github.event.pull_request.head.sha }}
+      EVIDENCE_DIR: ${{ runner.temp }}/backend-image-verification
+    steps:
+      - name: Checkout PR source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Record source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE_DIR"
+          checkout_sha="$(git rev-parse HEAD)"
+          test "$checkout_sha" = "$PR_HEAD"
+          printf 'pr_head=%s\ncheckout_sha=%s\ndockerfile_blob=%s\n' \
+            "$PR_HEAD" "$checkout_sha" "$(git rev-parse HEAD:Dockerfile)" \
+            | tee "$EVIDENCE_DIR/source.txt"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and load local image (no push)
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: labbit-backend:pr-verify
+
+      - name: Basic offline image smoke
+        id: smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            docker image inspect "$LOCAL_IMAGE" --format 'image_id={{.Id}} platform={{.Os}}/{{.Architecture}} user={{.Config.User}}'
+            test "$(docker image inspect "$LOCAL_IMAGE" --format '{{.Os}}/{{.Architecture}}')" = linux/amd64
+            mapfile -t sql_files < <(git ls-files db | grep -E '\.sql$')
+            test "${#sql_files[@]}" -gt 0
+            docker run --rm --pull never --network none --entrypoint sh "$LOCAL_IMAGE" -ec '
+              cat /etc/alpine-release
+              apk list -I zlib
+              version="$(apk info -v zlib)"
+              version="${version#zlib-}"
+              test -n "$version"
+              comparison="$(apk version -t "$version" 1.4-r0)"
+              test "$comparison" = "=" || test "$comparison" = ">"
+              id
+              test "$(id -u)" -ne 0
+              test -x /app/labbit-server
+              test -x /app/labbit-migrate
+              for sql in "$@"; do
+                test -r "/app/$sql"
+                test -s "/app/$sql"
+              done
+              printf "SQL files verified: %s\n" "$#"
+            ' sh "${sql_files[@]}"
+            # Negative startup/usage smoke only: no database, provider or network.
+            set +e
+            server_output="$(timeout 20s docker run --rm --pull never --network none \
+              -e LABBIT_ENVIRONMENT= "$LOCAL_IMAGE" 2>&1)"
+            server_rc=$?
+            migrate_output="$(timeout 20s docker run --rm --pull never --network none \
+              --entrypoint /app/labbit-migrate "$LOCAL_IMAGE" 2>&1)"
+            migrate_rc=$?
+            set -e
+            printf 'server exit=%s\n%s\nmigrate exit=%s\n%s\n' \
+              "$server_rc" "$server_output" "$migrate_rc" "$migrate_output"
+            test "$server_rc" -eq 1
+            grep -Fq 'LABBIT_ENVIRONMENT' <<< "$server_output"
+            test "$migrate_rc" -eq 2
+            grep -Fq 'labbit-migrate up' <<< "$migrate_output"
+            echo 'Offline smoke: PASS (not service readiness)'
+          } | tee "$EVIDENCE_DIR/smoke.txt"
+
+      - name: Scan the same local Docker image
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        id: scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: labbit-backend:pr-verify
+          scanners: vuln
+          vuln-type: os,library
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+          format: json
+          output: ${{ runner.temp }}/backend-image-verification/trivy-image.json
+          exit-code: '0'
+        env:
+          TRIVY_IMAGE_SRC: docker
+
+      - name: Evaluate existing High/Critical criteria
+        if: ${{ !cancelled() && steps.scan.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$EVIDENCE_DIR/trivy-image.json"
+          image_id="$(docker image inspect "$LOCAL_IMAGE" --format '{{.Id}}')"
+          # A missing/invalid report or a different image cannot pass.
+          jq -e --arg id "$image_id" '
+            .ArtifactType == "container_image" and
+            .Metadata.ImageID == $id and
+            (.Results | type == "array") and
+            any(.Results[]; .Class == "os-pkgs")
+          ' "$report" >/dev/null
+          jq '{
+            critical: ([.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length),
+            high: ([.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length),
+            target_cve: ([.Results[]?.Vulnerabilities[]? | select(.VulnerabilityID == "CVE-2026-4738")] | length),
+            findings: [.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL" or .Severity == "HIGH" or .VulnerabilityID == "CVE-2026-4738") | {VulnerabilityID, Severity, PkgName, InstalledVersion, FixedVersion}]
+          }' "$report" | tee "$EVIDENCE_DIR/scan-summary.json"
+          jq -e '.critical == 0 and .high == 0 and .target_cve == 0' "$EVIDENCE_DIR/scan-summary.json"
+
+      - name: Preserve verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-image-verification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/backend-image-verification/
+          if-no-files-found: warn
+          retention-days: 14

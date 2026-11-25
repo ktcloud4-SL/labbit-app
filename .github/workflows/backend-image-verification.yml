@@ -62,11 +62,12 @@ jobs:
             test "${#sql_files[@]}" -gt 0
             docker run --rm --pull never --network none --entrypoint sh "$LOCAL_IMAGE" -ec '
               cat /etc/alpine-release
-              apk list -I zlib
-              version="$(apk info -v zlib)"
-              version="${version#zlib-}"
+              installed="$(apk list -I zlib)"
+              printf "%s\n" "$installed"
+              version="$(printf "%s\n" "$installed" | awk "/^zlib-/ {sub(/^zlib-/, \"\", \$1); print \$1}")"
               test -n "$version"
               comparison="$(apk version -t "$version" 1.4-r0)"
+              printf "zlib_version=%s comparison=%s\n" "$version" "$comparison"
               test "$comparison" = "=" || test "$comparison" = ">"
               id
               test "$(id -u)" -ne 0

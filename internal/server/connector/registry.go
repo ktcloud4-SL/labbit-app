@@ -54,6 +54,7 @@ type Session struct {
 	ID           uuid.UUID
 	ConnectorID  uuid.UUID
 	CredentialID uuid.UUID
+	OwnerEpoch   int64 // Set only on the copy passed to a ready route.
 }
 
 // RevokeObserver는 Registry가 처리한 revoke를 Control 밖의 connection에도 알리는 경계다. Terminal Data WSS가 대표적이다.
@@ -116,9 +117,10 @@ type entry struct {
 	// retire는 Lock으로 진행 중인 fn이 끝나기를 기다린 뒤 route를 제거한다. 그래서 retire가 끝난 뒤에는 이 Session의
 	// connection에 새 write가 시작되지 않는다. IfCurrent의 mu와 분리해 heartbeat 기록이 command 전송을 막지 않고,
 	// IfCurrent 안(event sink)에서 전송을 시작해도 self-deadlock이 없다.
-	routeMu sync.RWMutex
-	route   Route
-	sealed  bool
+	routeMu    sync.RWMutex
+	route      Route
+	ownerEpoch int64
+	sealed     bool
 	// capabilities는 이 Session의 HELLO가 선언한 선택 기능이다. route와 같은 routeMu로 보호한다. MarkReady 전에 정한다.
 	capabilities map[string]struct{}
 }
@@ -322,15 +324,25 @@ func (g *Registration) SetCapabilities(capabilities []string) {
 // MarkReady는 이 Session이 protocol-ready(HELLO_ACK 전송 완료)가 되었음을 알리고 이 Session의 control writer를 등록한다.
 // 이미 교체·revoke된 Session이면 등록하지 않고 false를 반환한다. 성공하면 WithReadyRoute가 이 Session의 route를 사용할 수 있다.
 func (g *Registration) MarkReady(route Route) bool {
+	return g.markReady(route, 0)
+}
+
+// MarkReadyWithOwnerEpoch binds the Valkey epoch returned by registration to this protocol-ready Session.
+func (g *Registration) MarkReadyWithOwnerEpoch(route Route, epoch int64) bool {
+	return epoch > 0 && g.markReady(route, epoch)
+}
+
+func (g *Registration) markReady(route Route, epoch int64) bool {
 	if route == nil {
 		return false
 	}
 	e := g.entry
 	e.routeMu.Lock()
 	defer e.routeMu.Unlock()
-	if e.sealed {
+	if e.sealed || (e.route != nil && (e.ownerEpoch > 0 || epoch > 0)) {
 		return false
 	}
+	e.ownerEpoch = epoch
 	e.route = route
 	return true
 }
@@ -400,5 +412,7 @@ func (r *Registry) withReadyRoute(connectorID uuid.UUID, capability string, fn f
 			return ErrCapabilityUnsupported
 		}
 	}
-	return fn(e.session, e.route)
+	session := e.session
+	session.OwnerEpoch = e.ownerEpoch
+	return fn(session, e.route)
 }

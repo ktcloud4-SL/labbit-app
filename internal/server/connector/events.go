@@ -83,6 +83,8 @@ const (
 	ReasonReplyMismatch UnmatchedReason = "reply_mismatch"
 	// ReasonCorrelationMismatch는 replyToMessageId의 pending RECONCILE_REQUEST와 operationId/labInstanceId/generation이 다름이다.
 	ReasonCorrelationMismatch UnmatchedReason = "correlation_mismatch"
+	// ReasonSessionMismatch applies only to same-session DR readbacks.
+	ReasonSessionMismatch UnmatchedReason = "session_mismatch"
 	// ReasonUnrepresentable은 schema-valid이지만 값이 int64를 넘어 SaaS의 typed model로 표현할 수 없음이다.
 	ReasonUnrepresentable UnmatchedReason = "unrepresentable"
 )

@@ -163,6 +163,35 @@ SingleWriter/Fencing/Provider 정산에는 별도의 trusted collector가 발행
 기존 ReplicaLag FAIL·네 가지 NOT_VERIFIED·execution_gate=HOLD·recovery_authorized=false·
 cloud_verified=false는 모든 CLI 결과에서 유지한다. 이 도구의 APPLIED와 전체 DR GO는 별개다.
 
+## 오사카 Connector 정산 수집기
+
+`LABBIT_DR_RECONCILIATION_TLS_DIR`가 설정되면 별도의 오사카 Pod private IP TCP 9443
+listener에만 `/dr-control/reconciliation` 및 `/dr-control/reconciliation/owner`가 열린다. 기본값에서는 listener가 없다.
+폴더에는 고정 DNS SAN `dr-backend.osaka.labbit.internal`을 가진 `tls.crt`, `tls.key`, 수집자 전용 `runner-ca.crt`,
+그리고 허용 Connector UUID·Provider 프로젝트 ID·연결 UUID를 담은 `scope.json`이 필요하다.
+CA 신뢰와 정확한 인증서 DNS SAN `dr-runner.osaka.labbit.internal`을 모두 검사한다.
+Pod는 클라이언트 인증서의 DNS SAN을 검사한다. 수집자는 확인된 소유 Pod IP로 연결하고,
+서버 인증서의 고정 DNS SAN을 별도로 검증한다. 공개 HTTPS·Peer·admin probe에는 이 경로를 추가하지 않는다.
+
+오사카 `local / PAUSE_NEW / MAINTENANCE` 대기 프로필에서 전송 연결을 확인할 때는
+`LABBIT_DR_RECONCILIATION_MODE=standby-probe`를 명시한다. 지정 Pod IP 대역과
+닫힌 접수 설정을 확인하고, 같은 mTLS 경계에서 HEAD만 허용한다. 두 정산 POST는
+409로 거부된다. 대기 상태에서 Valkey 소유권이나 DB 정산을 발행하지 않는다.
+
+HEAD는 mTLS 연결 확인에 사용한다. POST는 접수가 명시적으로 닫혀 있고 이미 진행 중인 HTTP
+작업이 0인 상태에서만, 지정 RUN·요청 SHA·Connector 세션과 정확한 Worker binding에 대한
+읽기 전용 WSS 정산 근거를 요청한다. `RECONCILE_ONLY`와 Valkey 소유권·세션 검사를 유지한다.
+승인·Single Writer·DB 원장 범위는 보호된 상위 수집 단계가 확인하며 응답은 조회된 목록의 증거다.
+전환 실행기와 분리된 수집자 신원은 Pod에서 원본을 직접 받고, 만료·누락 시 진행을 보류한다.
+명시적 빈 `operations: []` 요청은 현재 HELLO_ACK 세션과 전후 Valkey 소유권,
+영속 Worker binding만 읽는다. Connector로 작업별 RECONCILE_REQUEST를 보내지 않으며
+`coverage_complete=false`를 반환한다. 누락 또는 null은 유효한 작업 목록이 아니다.
+빈 목록의 소유권 관측만으로 DB·Connector·Provider 작업 정산을 통과 처리할 수 없다.
+세션 ID를 모르면 `POST /dr-control/reconciliation/owner`에 동일한 `scope`,
+확인된 Pod의 `binding`, `valid_until_utc`만 전달한다. 응답은 빈 인벤토리 형식이며
+현재 세션과 소유권을 확인한 근거만 담는다. 이후 작업 목록 조회 시 동일 세션을
+다시 검증하며, 변경이나 만료 시 수집을 중단한다.
+
 ## 승인 원본 보관용 별도 운영 도구
 
 `scripts/dr_control_artifact_store.py --plan <JSON> --source <absolute-public-signed.json>

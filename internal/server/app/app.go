@@ -70,14 +70,16 @@ type Config struct {
 	Tracing tracing.Config
 
 	// Valkey owner locator configuration for multi-pod topologies (LBT-198)
-	ValkeyAddr          string
-	ValkeyUsername      string
-	ValkeyPassword      string
-	ValkeyTLS           bool
-	ValkeyTLSServerName string
-	PodID               string
-	PodAddr             string
-	PeerSecret          string
+	ValkeyAddr             string
+	ValkeyUsername         string
+	ValkeyPassword         string
+	ValkeyTLS              bool
+	ValkeyTLSServerName    string
+	PodID                  string
+	PodAddr                string
+	PeerSecret             string
+	DRReconciliationTLSDir string
+	DRReconciliationMode   string
 }
 
 // LoadConfig는 현재 구현된 role에 필요한 Runtime Contract 항목만 읽는다.
@@ -199,27 +201,29 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
-		Environment:           environment,
-		Roles:                 roles,
-		HTTPAddr:              envOrDefault("LABBIT_HTTP_ADDR", defaultHTTPAddr),
-		AdminAddr:             envOrDefault("LABBIT_ADMIN_ADDR", defaultAdminAddr),
-		PeerAddr:              peerAddr,
-		LogLevel:              envOrDefault("LABBIT_LOG_LEVEL", "info"),
-		ShutdownGrace:         grace,
-		DatabaseDSN:           databaseDSN,
-		PublicOrigin:          publicOrigin,
-		MaintenanceFile:       os.Getenv("LABBIT_MAINTENANCE_FILE"),
-		WorkerControlMode:     workerMode,
-		WorkerControlSettings: workerSettings,
-		Tracing:               tracing.ConfigFromEnv(os.Getenv),
-		ValkeyAddr:            valkeyAddr,
-		ValkeyUsername:        valkeyUsername,
-		ValkeyPassword:        valkeyPassword,
-		ValkeyTLS:             valkeyTLS,
-		ValkeyTLSServerName:   valkeyTLSServerName,
-		PodID:                 podID,
-		PodAddr:               podAddr,
-		PeerSecret:            peerSecret,
+		Environment:            environment,
+		Roles:                  roles,
+		HTTPAddr:               envOrDefault("LABBIT_HTTP_ADDR", defaultHTTPAddr),
+		AdminAddr:              envOrDefault("LABBIT_ADMIN_ADDR", defaultAdminAddr),
+		PeerAddr:               peerAddr,
+		LogLevel:               envOrDefault("LABBIT_LOG_LEVEL", "info"),
+		ShutdownGrace:          grace,
+		DatabaseDSN:            databaseDSN,
+		PublicOrigin:           publicOrigin,
+		MaintenanceFile:        os.Getenv("LABBIT_MAINTENANCE_FILE"),
+		WorkerControlMode:      workerMode,
+		WorkerControlSettings:  workerSettings,
+		Tracing:                tracing.ConfigFromEnv(os.Getenv),
+		ValkeyAddr:             valkeyAddr,
+		ValkeyUsername:         valkeyUsername,
+		ValkeyPassword:         valkeyPassword,
+		ValkeyTLS:              valkeyTLS,
+		ValkeyTLSServerName:    valkeyTLSServerName,
+		PodID:                  podID,
+		PodAddr:                podAddr,
+		PeerSecret:             peerSecret,
+		DRReconciliationTLSDir: os.Getenv("LABBIT_DR_RECONCILIATION_TLS_DIR"),
+		DRReconciliationMode:   os.Getenv("LABBIT_DR_RECONCILIATION_MODE"),
 	}
 
 	// preview role이 enabled되면 허용 port, TTL, Origin template이 모두 명시되어야 한다. 하나라도 없거나 올바르지 않으면 startup에 실패한다.
@@ -324,6 +328,7 @@ func Run(ctx context.Context, cfg Config) error {
 		stack  *controlStack
 	)
 	harness := newRouterHarness()
+	var ownerLocator *valkeyowner.Locator
 	if cfg.DatabaseDSN != "" {
 		pool, err := postgres.OpenPool(ctx, cfg.DatabaseDSN)
 		if err != nil {
@@ -347,7 +352,6 @@ func Run(ctx context.Context, cfg Config) error {
 			// api role이 Auth/Class HTTP와 Connector Control WSS를 소유한다. realtime role이 같은 process에서 함께 enabled되면
 			// 같은 Connector Registry/Router 위에 Terminal Relay와 TerminalSession 생성/종료를 조립한다.
 			// PROVISION uses this process's Router; the tagged C1 harness remains an optional observer.
-			var ownerLocator *valkeyowner.Locator
 			var peerProxy *valkeyowner.Proxy
 			if cfg.ValkeyAddr != "" {
 				locator, err := valkeyowner.NewLocator(valkeyowner.Config{
@@ -457,12 +461,26 @@ func Run(ctx context.Context, cfg Config) error {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	errCh := make(chan error, 3)
+	reconciliationServer, reconciliationSocket, err := reconciliationListener(cfg, stack, gate, ownerLocator)
+	if err != nil {
+		return err
+	}
+	if reconciliationServer != nil {
+		defer reconciliationServer.Close()
+	}
+	errCh := make(chan error, 4)
 	go serve(logger, "application", applicationServer, errCh)
 	if peerServer != nil {
 		go serve(logger, "peer", peerServer, errCh)
 	}
 	go serve(logger, "admin", adminServer, errCh)
+	if reconciliationServer != nil {
+		go func() {
+			if err := reconciliationServer.Serve(reconciliationSocket); !errors.Is(err, http.ErrServerClosed) {
+				errCh <- errors.New("Osaka reconciliation listener failed")
+			}
+		}()
+	}
 
 	// 세 listener의 Serve goroutine을 시작한 뒤 startup 완료로 전환한다.
 	// DB가 필요한 role의 PostgreSQL/schema 조건은 /readyz 요청마다 별도로 확인한다.
@@ -520,6 +538,9 @@ func Run(ctx context.Context, cfg Config) error {
 	defer cancel()
 
 	applicationErr := applicationServer.Shutdown(shutdownCtx)
+	if reconciliationServer != nil {
+		applicationErr = errors.Join(applicationErr, reconciliationServer.Shutdown(shutdownCtx))
+	}
 	if peerServer != nil {
 		if peerErr := peerServer.Shutdown(shutdownCtx); peerErr != nil {
 			applicationErr = errors.Join(applicationErr, peerErr)

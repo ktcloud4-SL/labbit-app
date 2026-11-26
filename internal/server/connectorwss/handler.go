@@ -421,7 +421,13 @@ func (h *Handler) serve(conn *websocket.Conn, principal connector.Principal, cre
 		registeredEpoch = epoch
 	}
 
-	if !registration.MarkReady(cc.route) {
+	markReady := registration.MarkReady
+	if registeredEpoch > 0 {
+		markReady = func(route connector.Route) bool {
+			return registration.MarkReadyWithOwnerEpoch(route, registeredEpoch)
+		}
+	}
+	if !markReady(cc.route) {
 		log.Info("Connector Control connection이 ready 전에 교체·revoke됨")
 		if h.ownerLocator != nil && registeredEpoch > 0 {
 			_ = h.ownerLocator.ReleaseConnector(context.Background(), principal.ConnectorID, registeredEpoch)
@@ -569,7 +575,7 @@ func (h *Handler) routeInbound(cc *controlConn, registration *connector.Registra
 
 	var route func()
 	if status == decodeOK {
-		route, status = h.decodeInbound(kind, principal.ConnectorID, in, payload)
+		route, status = h.decodeInbound(kind, registration.Session(), in, payload)
 	}
 	switch status {
 	case decodeInvalid:
@@ -590,7 +596,8 @@ func (h *Handler) routeInbound(cc *controlConn, registration *connector.Registra
 }
 
 // decodeInbound는 payload를 kind의 typed model로 decode하고, 성공하면 Router로 넘기는 함수를 돌려준다.
-func (h *Handler) decodeInbound(kind string, connectorID uuid.UUID, in connector.Inbound, payload map[string]json.RawMessage) (func(), decodeStatus) {
+func (h *Handler) decodeInbound(kind string, session connector.Session, in connector.Inbound, payload map[string]json.RawMessage) (func(), decodeStatus) {
+	connectorID := session.ConnectorID
 	switch kind {
 	case protocol.MessageTypeOperationAck:
 		decoded, status := decodeOperationAck(payload)
@@ -603,7 +610,7 @@ func (h *Handler) decodeInbound(kind string, connectorID uuid.UUID, in connector
 		return func() { h.router.RouteOperationResult(connectorID, in, decoded) }, status
 	default: // protocol.MessageTypeReconcileResult
 		decoded, status := decodeReconcileResult(payload)
-		return func() { h.router.RouteReconcileResult(connectorID, in, decoded) }, status
+		return func() { h.router.RouteReconcileResultFromSession(session, in, decoded) }, status
 	}
 }
 

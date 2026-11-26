@@ -1389,13 +1389,12 @@ func TestOwnerLocator_StalePodRejectsNewWritesAfterObservedOwnerLoss(t *testing.
 
 	_ = h.waitRegistered()
 
-	// 1. Before lease loss: route is ready
-	err := h.registry.WithReadyRoute(h.principal.ConnectorID, func(s connector.Session, r connector.Route) error {
-		return nil
+	// The peer can receive HELLO_ACK before MarkReadyWithOwnerEpoch finishes.
+	waitFor(t, "route ready before lease loss", func() bool {
+		return h.registry.WithReadyRoute(h.principal.ConnectorID, func(connector.Session, connector.Route) error {
+			return nil
+		}) == nil
 	})
-	if err != nil {
-		t.Fatalf("expected route ready, got %v", err)
-	}
 
 	// 2. Simulate observed lease loss
 	registrar.mu.Lock()

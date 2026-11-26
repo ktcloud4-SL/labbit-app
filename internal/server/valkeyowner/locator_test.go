@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	valkey "github.com/valkey-io/valkey-go"
 )
 
 func TestLocator_Lifecycle(t *testing.T) {
@@ -714,5 +715,40 @@ func TestLocator_LookupRetiresLocalStaleLeaseImmediately(t *testing.T) {
 	case <-lostA:
 	case <-time.After(200 * time.Millisecond):
 		t.Fatal("expected LookupConnector on Pod A to immediately invoke onLost callback upon observing newer owner")
+	}
+}
+
+type missingOwnerClient struct {
+	valkey.Client
+	commands [][]string
+}
+
+func (c *missingOwnerClient) B() valkey.Builder { return valkey.Builder{} }
+
+func (c *missingOwnerClient) Do(_ context.Context, command valkey.Completed) valkey.ValkeyResult {
+	c.commands = append(c.commands, append([]string(nil), command.Commands()...))
+	return valkey.NewErrorResult(valkey.Nil)
+}
+
+func TestObserveConnectorOwnerDoesNotRetireLocalSession(t *testing.T) {
+	client := &missingOwnerClient{}
+	// The fake command builder uses slot zero. Use a connector key in that slot.
+	connectorID := uuid.MustParse("00000000-0000-0000-0000-00000000590e")
+	lost := false
+	lease := &connectorLease{epoch: 1, cancel: func() {}, onLost: func() { lost = true }}
+	loc := &Locator{client: client, heartbeat: map[uuid.UUID]*connectorLease{connectorID: lease}}
+	if _, err := loc.ObserveConnectorOwner(t.Context(), connectorID); !errors.Is(err, ErrNoOwner) {
+		t.Fatalf("nil owner GET returned %v", err)
+	}
+	if lost || loc.heartbeat[connectorID] != lease {
+		t.Fatal("read-only observation retired a local lease")
+	}
+	if len(client.commands) != 1 || len(client.commands[0]) != 2 || client.commands[0][0] != "GET" ||
+		client.commands[0][1] != connectorKey(connectorID) {
+		t.Fatalf("unexpected commands: %v", client.commands)
+	}
+	if _, err := loc.LookupConnector(t.Context(), connectorID); !errors.Is(err, ErrNoOwner) ||
+		!lost || loc.heartbeat[connectorID] != nil {
+		t.Fatalf("ordinary route lookup no longer retires a stale lease: %v", err)
 	}
 }

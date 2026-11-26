@@ -15,6 +15,7 @@ import (
 	"github.com/ktcloud4-SL/labbit-app/internal/connector/provider"
 	connectorwss "github.com/ktcloud4-SL/labbit-app/internal/connector/wss"
 	"github.com/ktcloud4-SL/labbit-app/internal/server/connector"
+	"github.com/ktcloud4-SL/labbit-app/internal/server/valkeyowner"
 )
 
 // 이 file은 Backend Router와 Connector 쪽 실제 구현(wss.Supervisor + wss.Handler + provider.MockProvider)을 실제 WebSocket으로 연결한다.
@@ -271,8 +272,20 @@ func TestActualConnectorResetAndCleanupCommands(t *testing.T) {
 
 // Backend의 RECONCILE_REQUEST → 실제 Connector Handler + MockProvider → RECONCILE_RESULT → 정확한 pending reconcile request.
 // discoverCandidates는 생략하면 true, 명시적 false는 그대로 Provider에 전달된다. Reconciliation은 mutation을 실행하지 않는다.
+type observedTestRegistrar struct{ fakeRegistrar }
+
+func (*observedTestRegistrar) PodID() string { return "osaka-pod" }
+
+func (f *observedTestRegistrar) ObserveConnectorOwner(_ context.Context, id uuid.UUID) (*valkeyowner.ConnectorOwnerRecord, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return &valkeyowner.ConnectorOwnerRecord{ConnectorID: id, PodID: f.PodID(),
+		Epoch: f.registered[id], ExpiresAt: time.Now().Add(time.Minute)}, nil
+}
+
 func TestActualConnectorReconcileRoundTrip(t *testing.T) {
-	h := newRoutedHarness(t, realConnectorHeartbeat)
+	owner := &observedTestRegistrar{}
+	h := newRoutedHarness(t, realConnectorHeartbeat, func(o *Options) { o.OwnerLocator = owner })
 	var mu sync.Mutex
 	var requests []provider.ReconcileRequest
 	var mutations atomic.Int32
@@ -327,6 +340,22 @@ func TestActualConnectorReconcileRoundTrip(t *testing.T) {
 			t.Fatalf("request %s의 event = %+v", sent.MessageID, e)
 		}
 	}
+	session, ok := h.router.Registry().Current(h.principal.ConnectorID)
+	if !ok {
+		t.Fatal("missing authenticated Connector session")
+	}
+	readback := base
+	readback.SessionID = session.ID
+	readback.RequestID = "dr-test-run-1"
+	readback.Payload.DiscoverCandidates = &explicitFalse
+	result, err := h.router.ReadReconciliation(context.Background(), readback, owner)
+	if err != nil || result.SessionID != session.ID || result.RequestID != readback.RequestID ||
+		result.Correlation != c || result.RequestMessageID == "" || result.ResultMessageID == "" ||
+		result.ObservedAt.Before(result.StartedAt) || len(result.Payload.Observations) != 2 ||
+		result.OwnerBefore.PodID != owner.PodID() || result.OwnerBefore.Epoch <= 0 ||
+		result.OwnerAfter.SessionID != session.ID || result.OwnerAfter.Epoch != result.OwnerBefore.Epoch {
+		t.Fatalf("session-bound readback = %+v, err = %v", result, err)
+	}
 	if _, recs := h.router.PendingCount(h.principal.ConnectorID); recs != 0 {
 		t.Fatalf("reconcile pending = %d", recs)
 	}
@@ -340,8 +369,8 @@ func TestActualConnectorReconcileRoundTrip(t *testing.T) {
 			t.Fatalf("Provider가 받은 reconcile = %+v", r)
 		}
 	}
-	if len(requests) != 2 || discover[true] != 1 || discover[false] != 1 {
-		t.Fatalf("Provider reconcile 요청 = %+v, want discoverCandidates 생략→true, false→false 각 1번", requests)
+	if len(requests) != 3 || discover[true] != 1 || discover[false] != 2 {
+		t.Fatalf("Provider reconcile 요청 = %+v, want discoverCandidates 생략→true 1회, false→false 2회", requests)
 	}
 	if mutations.Load() != 0 {
 		t.Fatal("RECONCILE이 Provider mutation을 실행함")

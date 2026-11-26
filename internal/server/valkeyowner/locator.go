@@ -634,30 +634,27 @@ func (l *Locator) ReleaseConnector(ctx context.Context, connectorID uuid.UUID, e
 	return nil
 }
 
-// LookupConnector는 Connector의 현재 소유 Pod 메타데이터를 조회한다.
-// 만약 이 Pod에 이전 epoch의 로컬 lease가 남아 있다면, heartbeat 주기를 기다리지 않고 즉시 퇴역(onLost)시킨다.
-func (l *Locator) LookupConnector(ctx context.Context, connectorID uuid.UUID) (*ConnectorOwnerRecord, error) {
+// ObserveConnectorOwner reads the authoritative lease without changing local routing or heartbeat state.
+func (l *Locator) ObserveConnectorOwner(ctx context.Context, connectorID uuid.UUID) (*ConnectorOwnerRecord, error) {
+	record, err := l.readConnectorOwner(ctx, connectorID)
+	if err != nil {
+		return nil, err
+	}
+	if record.ConnectorID != connectorID || record.Epoch <= 0 || !time.Now().Before(record.ExpiresAt) {
+		return nil, ErrNoOwner
+	}
+	return record, nil
+}
+
+func (l *Locator) readConnectorOwner(ctx context.Context, connectorID uuid.UUID) (*ConnectorOwnerRecord, error) {
 	if l == nil || l.client == nil {
 		return nil, ErrLocatorUnavailable
 	}
 	cmd := l.client.B().Get().Key(connectorKey(connectorID)).Build()
 	res := l.client.Do(ctx, cmd)
-	if res.Error() != nil {
-		if valkey.IsValkeyNil(res.Error()) {
-			l.mu.Lock()
-			stale := l.heartbeat[connectorID]
-			if stale != nil {
-				delete(l.heartbeat, connectorID)
-			}
-			l.mu.Unlock()
-			if stale != nil {
-				stale.triggerLost()
-			}
-			return nil, ErrNoOwner
-		}
-		return nil, ErrLocatorUnavailable
+	if valkey.IsValkeyNil(res.Error()) {
+		return nil, ErrNoOwner
 	}
-
 	val, err := res.ToString()
 	if err != nil {
 		return nil, ErrLocatorUnavailable
@@ -669,11 +666,21 @@ func (l *Locator) LookupConnector(ctx context.Context, connectorID uuid.UUID) (*
 	if record.PodID == "" || ValidateTargetAddr(record.PodAddr, "") != nil {
 		return nil, ErrLocatorUnavailable
 	}
+	return &record, nil
+}
+
+// LookupConnector는 Connector의 현재 소유 Pod 메타데이터를 조회한다.
+// 만약 이 Pod에 이전 epoch의 로컬 lease가 남아 있다면, heartbeat 주기를 기다리지 않고 즉시 퇴역(onLost)시킨다.
+func (l *Locator) LookupConnector(ctx context.Context, connectorID uuid.UUID) (*ConnectorOwnerRecord, error) {
+	record, err := l.readConnectorOwner(ctx, connectorID)
+	if err != nil && !errors.Is(err, ErrNoOwner) {
+		return nil, err
+	}
 
 	l.mu.Lock()
 	var stale *connectorLease
 	if current, exists := l.heartbeat[connectorID]; exists {
-		if record.PodID != l.podID || record.Epoch > current.epoch {
+		if record == nil || record.PodID != l.podID || record.Epoch > current.epoch {
 			stale = current
 			delete(l.heartbeat, connectorID)
 		}
@@ -683,7 +690,7 @@ func (l *Locator) LookupConnector(ctx context.Context, connectorID uuid.UUID) (*
 		stale.triggerLost()
 	}
 
-	return &record, nil
+	return record, err
 }
 
 // RegisterTerminal은 TerminalSession 소유자를 등록하고 백그라운드 heartbeat를 시작한다.

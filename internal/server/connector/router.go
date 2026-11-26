@@ -142,6 +142,8 @@ type reconcileKey struct {
 type pendingReconcile struct {
 	correlation Correlation
 	requestID   string
+	sessionID   uuid.UUID
+	readback    chan ReconciliationReadback
 }
 
 // NewRouter는 Router를 만든다.
@@ -242,6 +244,10 @@ func (r *Router) SendOperationCommand(ctx context.Context, cmd OperationCommand)
 // SendReconcileRequest는 RECONCILE_REQUEST를 Connector에 보낸다. Reconciliation은 Provider mutation 재실행이 아니다.
 // 반환과 오류의 의미는 SendOperationCommand와 같다. RECONCILE_RESULT는 replyToMessageId로 이 request에 연결한다.
 func (r *Router) SendReconcileRequest(ctx context.Context, req ReconcileRequest) (SentMessage, error) {
+	return r.sendReconcileRequest(ctx, req, nil, 0)
+}
+
+func (r *Router) sendReconcileRequest(ctx context.Context, req ReconcileRequest, readback chan ReconciliationReadback, ownerEpoch int64) (SentMessage, error) {
 	if err := ctx.Err(); err != nil {
 		return SentMessage{}, err
 	}
@@ -276,11 +282,16 @@ func (r *Router) SendReconcileRequest(ctx context.Context, req ReconcileRequest)
 		"message_type", protocol.MessageTypeReconcileRequest,
 	)
 	err = r.registry.WithReadyRoute(req.ConnectorID, func(session Session, route Route) error {
-		if req.SessionID != uuid.Nil && req.SessionID != session.ID {
+		if (req.SessionID != uuid.Nil && req.SessionID != session.ID) || (ownerEpoch > 0 && ownerEpoch != session.OwnerEpoch) {
 			return ErrNotReady
 		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		r.mu.Lock()
-		r.reconciles[key] = pendingReconcile{correlation: req.Correlation, requestID: req.RequestID}
+		r.reconciles[key] = pendingReconcile{
+			correlation: req.Correlation, requestID: req.RequestID, sessionID: session.ID, readback: readback,
+		}
 		r.mu.Unlock()
 
 		return r.write(route, data, func() { r.removeReconcile(key) })
@@ -401,10 +412,28 @@ func (r *Router) RouteOperationResult(connectorID uuid.UUID, in Inbound, payload
 // RouteReconcileResult는 RECONCILE_RESULT를 replyToMessageId의 pending RECONCILE_REQUEST에 연결하고 그 request를 끝낸다.
 // 연결했으면 true다. operationId/labInstanceId/generation도 원본 request와 같아야 한다.
 func (r *Router) RouteReconcileResult(connectorID uuid.UUID, in Inbound, payload protocol.ReconcileResultPayload) bool {
-	routed, reason, ok := r.matchReconcile(connectorID, in)
-	if !ok {
-		r.unmatched(connectorID, protocol.MessageTypeReconcileResult, in, reason)
+	return r.routeReconcileResult(Session{ConnectorID: connectorID}, in, payload)
+}
+
+// RouteReconcileResultFromSession is called by the authenticated Control WSS
+// handler while the supplied Session is still current.
+func (r *Router) RouteReconcileResultFromSession(session Session, in Inbound, payload protocol.ReconcileResultPayload) bool {
+	return r.routeReconcileResult(session, in, payload)
+}
+
+func (r *Router) routeReconcileResult(session Session, in Inbound, payload protocol.ReconcileResultPayload) bool {
+	routed, readback, reason := r.matchReconcile(session, in)
+	if reason != "" {
+		r.unmatched(session.ConnectorID, protocol.MessageTypeReconcileResult, in, reason)
 		return false
+	}
+	if readback != nil {
+		readback <- ReconciliationReadback{
+			ConnectorID: session.ConnectorID, SessionID: session.ID, RequestID: routed.RequestID,
+			RequestMessageID: routed.RequestMessageID, ResultMessageID: routed.MessageID,
+			Correlation: routed.Correlation, ObservedAt: time.Now().UTC(), Payload: payload,
+		}
+		return true
 	}
 	r.emit(ReconcileResultEvent{Routed: routed, Payload: payload})
 	return true
@@ -446,9 +475,10 @@ func (r *Router) matchOperation(connectorID uuid.UUID, in Inbound, requireReply,
 	}, "", true
 }
 
-func (r *Router) matchReconcile(connectorID uuid.UUID, in Inbound) (Routed, UnmatchedReason, bool) {
+func (r *Router) matchReconcile(session Session, in Inbound) (Routed, chan ReconciliationReadback, UnmatchedReason) {
+	connectorID := session.ConnectorID
 	if in.ReplyToMessageID == "" {
-		return Routed{}, ReasonNoPending, false
+		return Routed{}, nil, ReasonNoPending
 	}
 	key := reconcileKey{connectorID: connectorID, messageID: in.ReplyToMessageID}
 	got := Correlation{OperationID: in.OperationID, LabInstanceID: in.LabInstanceID, Generation: in.Generation}
@@ -457,10 +487,13 @@ func (r *Router) matchReconcile(connectorID uuid.UUID, in Inbound) (Routed, Unma
 	defer r.mu.Unlock()
 	pending, ok := r.reconciles[key]
 	if !ok {
-		return Routed{}, ReasonNoPending, false
+		return Routed{}, nil, ReasonNoPending
 	}
 	if pending.correlation != got {
-		return Routed{}, ReasonCorrelationMismatch, false
+		return Routed{}, nil, ReasonCorrelationMismatch
+	}
+	if pending.readback != nil && pending.sessionID != session.ID {
+		return Routed{}, nil, ReasonSessionMismatch
 	}
 	delete(r.reconciles, key)
 	return Routed{
@@ -470,7 +503,7 @@ func (r *Router) matchReconcile(connectorID uuid.UUID, in Inbound) (Routed, Unma
 		MessageID:        in.MessageID,
 		RequestID:        pending.requestID,
 		Trace:            in.Trace,
-	}, "", true
+	}, pending.readback, ""
 }
 
 func (r *Router) emit(e Event) {

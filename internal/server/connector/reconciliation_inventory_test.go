@@ -36,6 +36,11 @@ func TestReconciliationInventoryRetainsOnlyBoundObservations(t *testing.T) {
 		{name: "missing operations", wantError: true},
 		{name: "explicit empty"},
 		{name: "discover owner"},
+		{name: "discover paused owner"},
+		{name: "discover paused stale boot", wantError: true},
+		{name: "discover paused unresolved boundary", wantError: true},
+		{name: "discover paused session replaced", wantError: true},
+		{name: "discover paused final report unavailable", wantError: true},
 		{name: "discover stale binding", wantError: true},
 		{name: "discover session replaced", wantError: true},
 		{name: "empty stale binding", wantError: true},
@@ -63,7 +68,7 @@ func TestReconciliationInventoryRetainsOnlyBoundObservations(t *testing.T) {
 			if scenario.name == "active" {
 				mode = workercontrol.Active
 			}
-			if scenario.name == "paused" {
+			if scenario.name == "paused" || strings.HasPrefix(scenario.name, "discover paused ") {
 				mode = workercontrol.PauseNew
 			}
 			binding := workercontrol.Binding{
@@ -85,7 +90,10 @@ func TestReconciliationInventoryRetainsOnlyBoundObservations(t *testing.T) {
 				if scenario.name == "empty owner changes" && ownerReads == 2 {
 					pod = "another-pod"
 				}
-				if (scenario.name == "empty session replaced" || scenario.name == "discover session replaced") && ownerReads == 2 {
+				if scenario.name == "discover paused final report unavailable" && ownerReads == 2 {
+					store.SetFaults(workercontrolfake.Faults{Report: true})
+				}
+				if (scenario.name == "empty session replaced" || strings.HasSuffix(scenario.name, "session replaced")) && ownerReads == 2 {
 					replacement := f.registry.Register(p, nil)
 					if !replacement.MarkReadyWithOwnerEpoch(func([]byte) error { return nil }, 4) {
 						t.Fatal("could not make replacement ready")
@@ -180,10 +188,28 @@ func TestReconciliationInventoryRetainsOnlyBoundObservations(t *testing.T) {
 				operations = []ReconciliationInventoryOperation{}
 			}
 			switch scenario.name {
-			case "empty stale binding", "discover stale binding":
+			case "empty stale binding", "discover stale binding", "discover paused stale boot":
 				expected.BootID = uuid.New()
 			case "empty durable report unavailable":
 				store.SetFaults(workercontrolfake.Faults{Report: true})
+			case "discover paused unresolved boundary":
+				// Preserve a scope-wide intent left by the previous incarnation.
+				previous := binding
+				previous.Mode = workercontrol.ReconcileOnly
+				store = workercontrolfake.New(workercontrol.State{Scope: binding.Scope, Epoch: 1, Revision: 1, Mode: previous.Mode})
+				ticket := workercontrol.Ticket{Binding: previous, ID: uuid.New(), Kind: workercontrol.ReconciliationBoundary, Phase: workercontrol.ReconciliationClaim}
+				if err := store.Enter(ctx, ticket); err != nil {
+					t.Fatal(err)
+				}
+				if err := store.Pause(ctx, previous, uuid.New()); err != nil {
+					t.Fatal(err)
+				}
+				binding.Revision++
+				expected = binding
+				f.router.workerControl, err = workercontrol.NewDurable(binding, store)
+				if err != nil {
+					t.Fatal(err)
+				}
 			}
 			var out ReconciliationInventory
 			if strings.HasPrefix(scenario.name, "discover ") {
@@ -203,7 +229,7 @@ func TestReconciliationInventoryRetainsOnlyBoundObservations(t *testing.T) {
 				}
 				return
 			}
-			if scenario.name == "explicit empty" || scenario.name == "discover owner" {
+			if scenario.name == "explicit empty" || strings.HasPrefix(scenario.name, "discover ") {
 				if err != nil || ownerReads != 2 || out.Schema != reconciliationInventorySchema || out.Scope != scope ||
 					out.SessionID != reg.Session().ID || out.Complete || out.Operations == nil || len(out.Operations) != 0 ||
 					out.OwnerBefore.PodID != binding.PodID || out.OwnerAfter.PodID != binding.PodID ||

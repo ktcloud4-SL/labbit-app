@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,6 +23,8 @@ import (
 
 const reconciliationPath = "/dr-control/reconciliation"
 const reconciliationOwnerPath = reconciliationPath + "/owner"
+const reconciliationStatusPath = reconciliationPath + "/status"
+const standbyStatusPath = reconciliationPath + "/standby-status"
 const reconciliationClient = "dr-runner.osaka.labbit.internal"
 const reconciliationMaxBody = 128 * 1024
 
@@ -51,18 +52,51 @@ type reconciliationOwnerRequest struct {
 
 type inventoryReader func(context.Context, reconciliationRequest) (connector.ReconciliationInventory, error)
 
-func reconciliationHandler(identity reconciliationIdentity, closed func() bool, read inventoryReader) http.Handler {
+func reconciliationHandler(identity reconciliationIdentity, closed func() bool, read inventoryReader,
+	status func(context.Context) (workercontrol.ProcessReadback, bool), standby http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if (r.URL.Path != reconciliationPath && r.URL.Path != reconciliationOwnerPath) || r.URL.RawQuery != "" {
+		if (r.URL.Path != reconciliationPath && r.URL.Path != reconciliationOwnerPath &&
+			r.URL.Path != reconciliationStatusPath && r.URL.Path != standbyStatusPath) || r.URL.RawQuery != "" {
 			http.NotFound(w, r)
 			return
 		}
-		if r.TLS == nil || len(r.TLS.VerifiedChains) == 0 || len(r.TLS.VerifiedChains[0]) == 0 ||
-			!slices.Contains(r.TLS.VerifiedChains[0][0].DNSNames, reconciliationClient) {
+		if !isReconciliationClient(r) {
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
 		w.Header().Set("Cache-Control", "no-store")
+		if r.URL.Path == standbyStatusPath {
+			if r.Method != http.MethodGet {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				return
+			}
+			if standby == nil {
+				http.NotFound(w, r)
+				return
+			}
+			standby.ServeHTTP(w, r)
+			return
+		}
+		if r.URL.Path == reconciliationStatusPath {
+			if r.Method != http.MethodGet {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				return
+			}
+			if status == nil {
+				w.WriteHeader(http.StatusConflict)
+				return
+			}
+			snapshot, ok := status(r.Context())
+			if !ok || !snapshot.AdmissionClosed || snapshot.Control.Unverified ||
+				(snapshot.Binding.Mode != workercontrol.PauseNew && snapshot.Binding.Mode != workercontrol.ReconcileOnly &&
+					snapshot.Binding.Mode != workercontrol.Active) {
+				w.WriteHeader(http.StatusConflict)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(snapshot)
+			return
+		}
 		if r.Method == http.MethodHead && r.URL.Path == reconciliationPath {
 			if read == nil && closed != nil && !closed() {
 				w.WriteHeader(http.StatusConflict)
@@ -95,7 +129,9 @@ func reconciliationHandler(identity reconciliationIdentity, closed func() bool, 
 		}
 		if input.Decode(new(any)) != io.EOF ||
 			req.Binding.Validate() != nil || req.Binding.Scope.Region != "ap-northeast-3" ||
-			req.Binding.Mode != workercontrol.ReconcileOnly || req.Scope.Region != req.Binding.Scope.Region ||
+			(req.Binding.Mode != workercontrol.ReconcileOnly &&
+				!(req.Binding.Mode == workercontrol.PauseNew && r.URL.Path == reconciliationOwnerPath)) ||
+			req.Scope.Region != req.Binding.Scope.Region ||
 			req.Scope.ConnectorID != identity.ConnectorID || req.Scope.ProjectID != identity.ProjectID ||
 			req.Scope.ConnectionID != identity.ConnectionID {
 			w.WriteHeader(http.StatusBadRequest)
@@ -120,7 +156,7 @@ func reconciliationHandler(identity reconciliationIdentity, closed func() bool, 
 
 // Only the dedicated TLS listener exposes the Collector. It is never mounted
 // on the application, peer or health/metrics listener.
-func reconciliationListener(cfg Config, stack *controlStack, gate *maintenance.Gate, locator *valkeyowner.Locator) (*http.Server, net.Listener, error) {
+func reconciliationListener(cfg Config, stack *controlStack, gate *maintenance.Gate, locator *valkeyowner.Locator, api http.Handler) (*http.Server, net.Listener, error) {
 	if cfg.DRReconciliationTLSDir == "" && cfg.DRReconciliationMode == "" {
 		return nil, nil, nil
 	}
@@ -132,6 +168,8 @@ func reconciliationListener(cfg Config, stack *controlStack, gate *maintenance.G
 	dir := cfg.DRReconciliationTLSDir
 	var identity reconciliationIdentity
 	var read inventoryReader
+	var status func(context.Context) (workercontrol.ProcessReadback, bool)
+	var standby http.HandlerFunc
 	if cfg.DRReconciliationMode != "standby-probe" {
 		data, err := os.ReadFile(filepath.Join(dir, "scope.json"))
 		if err != nil || len(data) > 1024 || json.Unmarshal(data, &identity) != nil ||
@@ -145,6 +183,13 @@ func reconciliationListener(cfg Config, stack *controlStack, gate *maintenance.G
 			}
 			return stack.Router.CollectReconciliationInventory(ctx, req.Scope, req.Binding, req.SessionID, req.Operations, locator)
 		}
+		status = func(ctx context.Context) (workercontrol.ProcessReadback, bool) {
+			return durableStatus(ctx, stack.WorkerControl, gate)
+		}
+	} else {
+		standby = func(w http.ResponseWriter, _ *http.Request) {
+			writeStandbyStatus(w, stack.WorkerControl, gate)
+		}
 	}
 	tlsConfig, err := reconciliationTLS(dir)
 	if err != nil {
@@ -157,7 +202,13 @@ func reconciliationListener(cfg Config, stack *controlStack, gate *maintenance.G
 	handler := reconciliationHandler(identity, func() bool {
 		mode, active := gate.Readback()
 		return mode == "closed" && active["http"] == 0
-	}, read)
+	}, read, status, standby)
+	standbyOnly := cfg.DRReconciliationMode == "standby-probe"
+	handler = withOsakaAdmissionProbe(handler, api, func() string {
+		state, _ := gate.Readback()
+		return state
+	}, standbyOnly)
+	handler = withMutationGuardReadback(handler, stack.WorkerControl, gate, standbyOnly)
 	return &http.Server{Handler: handler, ReadHeaderTimeout: 3 * time.Second,
 			ReadTimeout: 4 * time.Second, WriteTimeout: 29 * time.Second, IdleTimeout: 3 * time.Second},
 		tls.NewListener(listener, tlsConfig), nil

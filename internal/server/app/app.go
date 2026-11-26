@@ -461,7 +461,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	reconciliationServer, reconciliationSocket, err := reconciliationListener(cfg, stack, gate, ownerLocator)
+	reconciliationServer, reconciliationSocket, err := reconciliationListener(cfg, stack, gate, ownerLocator, applicationServer.Handler)
 	if err != nil {
 		return err
 	}

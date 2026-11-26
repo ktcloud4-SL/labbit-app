@@ -89,8 +89,10 @@ func (r *Router) CollectReconciliationInventory(ctx context.Context, scope Recon
 	locator ReconciliationOwnerLocator) (ReconciliationInventory, error) {
 	process, ok := r.workerControl.ProcessBinding()
 	requests, err := inventoryRequests(scope, sessionID, operations)
+	pausedOwnerRead := process.Mode == workercontrol.PauseNew && len(requests) == 0
 	if err != nil || !ok || process != expected || process.Scope.Region != scope.Region ||
-		process.Mode != workercontrol.ReconcileOnly || locator == nil || locator.PodID() != process.PodID {
+		(process.Mode != workercontrol.ReconcileOnly && !pausedOwnerRead) ||
+		locator == nil || locator.PodID() != process.PodID {
 		return ReconciliationInventory{}, ErrReconciliationReadback
 	}
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
@@ -153,24 +155,22 @@ func (r *Router) CollectReconciliationInventory(ctx context.Context, scope Recon
 		evidence.Complete = evidence.Complete && complete
 		evidence.Operations = append(evidence.Operations, row)
 	}
-	// Dispatch releases its durable ticket before the WSS result arrives. Observe
-	// the same authoritative control state again before exporting results.
-	report, err := r.workerControl.DurableReport(ctx)
-	local := r.workerControl.Snapshot()
-	if err != nil || !report.State.Matches(process) || local.Unverified ||
-		local.Mode != workercontrol.ReconcileOnly || ctx.Err() != nil {
-		return ReconciliationInventory{}, ErrReconciliationReadback
-	}
 	after, err := observeLease(ctx, locator, leaseRequest, evidence.OwnerAfter.Epoch)
 	if err != nil || after.PodID != process.PodID || after.ObservedAt.Before(evidence.OwnerAfter.ObservedAt) {
 		return ReconciliationInventory{}, ErrReconciliationReadback
 	}
 	evidence.OwnerAfter = after
+	// Observe authoritative control after the potentially blocking final lease
+	// read. A durable change while waiting on Valkey invalidates the readback.
+	report, err := r.workerControl.DurableReport(ctx)
+	if err != nil || !report.State.Matches(process) || (pausedOwnerRead && !report.Drained()) || ctx.Err() != nil {
+		return ReconciliationInventory{}, ErrReconciliationReadback
+	}
 	err = r.registry.WithReadyRoute(scope.ConnectorID, func(current Session, _ Route) error {
 		evidence.ObservedAt = time.Now().UTC()
 		local := r.workerControl.Snapshot()
 		if current.ID != sessionID || current.OwnerEpoch != after.Epoch ||
-			local.Unverified || local.Mode != workercontrol.ReconcileOnly ||
+			local.Unverified || local.Mode != process.Mode ||
 			(len(requests) == 0 && !evidence.ObservedAt.Before(evidence.OwnerBefore.ExpiresAt)) ||
 			!evidence.ObservedAt.Before(after.ExpiresAt) {
 			return ErrReconciliationReadback

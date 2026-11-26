@@ -93,11 +93,29 @@ func NewService(store Store, admission ...func(string) (func(), bool)) *Service 
 
 var ErrMaintenance = errors.New("labexecution: maintenance admission closed")
 
-func (s *Service) enter() (func(), bool) {
-	if s.admission == nil {
-		return func() {}, true
+var ErrAdmissionProbeOpen = errors.New("labexecution: admission probe reached an open gate")
+
+type admissionProbeKey struct{}
+
+// WithAdmissionProbe lets the internal mTLS listener measure normal admission
+// while guaranteeing the request cannot enter a mutation transaction.
+func WithAdmissionProbe(ctx context.Context) context.Context {
+	return context.WithValue(ctx, admissionProbeKey{}, true)
+}
+
+func (s *Service) enter(ctx context.Context) (func(), error) {
+	release, ok := func() {}, true
+	if s.admission != nil {
+		release, ok = s.admission("http")
 	}
-	return s.admission("http")
+	if !ok {
+		return nil, ErrMaintenance
+	}
+	if ctx.Value(admissionProbeKey{}) == true {
+		release()
+		return nil, ErrAdmissionProbeOpen
+	}
+	return release, nil
 }
 
 // ProvisionInput은 Provision 요청이다. ID는 Browser가 보낸 opaque 문자열 그대로다.
@@ -152,9 +170,9 @@ func (s *Service) Provision(ctx context.Context, user repository.User, in Provis
 		return accepted, err
 	}
 
-	release, ok := s.enter()
-	if !ok {
-		return Accepted{}, ErrMaintenance
+	release, err := s.enter(ctx)
+	if err != nil {
+		return Accepted{}, err
 	}
 	defer release()
 

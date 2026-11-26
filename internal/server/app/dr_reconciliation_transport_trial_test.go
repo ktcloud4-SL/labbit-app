@@ -29,7 +29,7 @@ func TestReconciliationTransportTrial(t *testing.T) {
 		t.Fatal("could not open dedicated listener")
 	}
 	server := &http.Server{
-		Handler:           reconciliationHandler(reconciliationIdentity{}, func() bool { return false }, nil),
+		Handler:           reconciliationHandler(reconciliationIdentity{}, func() bool { return false }, nil, nil, nil),
 		ReadHeaderTimeout: 3 * time.Second,
 		ReadTimeout:       4 * time.Second,
 		WriteTimeout:      6 * time.Second,

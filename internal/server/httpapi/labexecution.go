@@ -217,6 +217,8 @@ func (a *api) labExecutionError(w http.ResponseWriter, r *http.Request, op strin
 	switch {
 	case errors.Is(err, labexecution.ErrMaintenance):
 		writeProblem(w, r, http.StatusServiceUnavailable, "maintenance", "현재 새 작업을 접수할 수 없습니다.")
+	case errors.Is(err, labexecution.ErrAdmissionProbeOpen):
+		writeProblem(w, r, http.StatusConflict, "dr_probe_gate_open", "사전점검 도중 작업 접수가 열렸습니다.")
 	case errors.Is(err, labexecution.ErrInvalidRequest):
 		writeProblem(w, r, http.StatusBadRequest, codeInvalidRequest, "요청 형식이 올바르지 않습니다.")
 	case errors.Is(err, labexecution.ErrNotFound):

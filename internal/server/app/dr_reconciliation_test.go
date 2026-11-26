@@ -60,7 +60,7 @@ func TestStandbyReconciliationIsProbeOnly(t *testing.T) {
 		t.Fatal("full reconciliation started on local mode")
 	}
 
-	handler := reconciliationHandler(reconciliationIdentity{}, gate.LocalResumeReady, nil)
+	handler := reconciliationHandler(reconciliationIdentity{}, gate.LocalResumeReady, nil, nil, nil)
 	for _, tc := range []struct {
 		method, path, file string
 		trusted            bool
@@ -87,11 +87,11 @@ func TestStandbyReconciliationIsProbeOnly(t *testing.T) {
 }
 
 func TestReconciliationListenerIsOptIn(t *testing.T) {
-	server, listener, err := reconciliationListener(Config{}, nil, nil, nil)
+	server, listener, err := reconciliationListener(Config{}, nil, nil, nil, nil)
 	if err != nil || server != nil || listener != nil {
 		t.Fatal("disabled collector has a listener")
 	}
-	_, _, err = reconciliationListener(Config{DRReconciliationTLSDir: t.TempDir()}, nil, nil, nil)
+	_, _, err = reconciliationListener(Config{DRReconciliationTLSDir: t.TempDir()}, nil, nil, nil, nil)
 	if err == nil {
 		t.Fatal("enabled collector without persistent Osaka control was accepted")
 	}
@@ -115,7 +115,14 @@ func TestReconciliationProbeRequiresVerifiedClientCertificate(t *testing.T) {
 	}
 	ca := x509.NewCertPool()
 	ca.AddCert(leaf)
-	srv := httptest.NewUnstartedServer(reconciliationHandler(reconciliationIdentity{}, nil, nil))
+	boot := uuid.New()
+	status := func(context.Context) (workercontrol.ProcessReadback, bool) {
+		return workercontrol.ProcessReadback{
+			Binding:         workercontrol.Binding{Mode: workercontrol.PauseNew, BootID: boot},
+			AdmissionClosed: true,
+		}, true
+	}
+	srv := httptest.NewUnstartedServer(reconciliationHandler(reconciliationIdentity{}, nil, nil, status, nil))
 	srv.TLS = &tls.Config{MinVersion: tls.VersionTLS13, ClientAuth: tls.RequireAndVerifyClientCert, ClientCAs: ca}
 	srv.StartTLS()
 	defer srv.Close()
@@ -135,6 +142,20 @@ func TestReconciliationProbeRequiresVerifiedClientCertificate(t *testing.T) {
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusNoContent {
 		t.Fatalf("authenticated HEAD returned %d", res.StatusCode)
+	}
+	if res, err := srv.Client().Get(srv.URL + reconciliationStatusPath); err == nil {
+		res.Body.Close()
+		t.Fatal("anonymous client reached the status endpoint")
+	}
+	readback, err := client.Get(srv.URL + reconciliationStatusPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer readback.Body.Close()
+	var observed workercontrol.ProcessReadback
+	if readback.StatusCode != http.StatusOK ||
+		json.NewDecoder(readback.Body).Decode(&observed) != nil || observed.Binding.BootID != boot {
+		t.Fatal("authenticated GET did not return the current process boot ID")
 	}
 }
 
@@ -175,6 +196,12 @@ func TestReconciliationHandler(t *testing.T) {
 			r.Deadline = time.Now().Add(time.Minute)
 		}},
 		{name: "owner lookup", method: "POST", principal: reconciliationClient, ownerLookup: true, status: 200, calls: 1},
+		{name: "paused owner lookup", method: "POST", principal: reconciliationClient, ownerLookup: true, status: 200, calls: 1, change: func(r *reconciliationRequest) {
+			r.Binding.Mode = workercontrol.PauseNew
+		}},
+		{name: "paused inventory rejected", method: "POST", principal: reconciliationClient, status: 400, change: func(r *reconciliationRequest) {
+			r.Binding.Mode = workercontrol.PauseNew
+		}},
 		{name: "owner lookup without mTLS", method: "POST", ownerLookup: true, status: 403},
 		{name: "owner lookup while open", method: "POST", principal: reconciliationClient, ownerLookup: true, open: true, status: 409},
 		{name: "owner lookup gate changes", method: "POST", principal: reconciliationClient, ownerLookup: true, opensDuringRead: true, status: 409, calls: 1},
@@ -221,9 +248,55 @@ func TestReconciliationHandler(t *testing.T) {
 					}
 					open = tc.opensDuringRead
 					return connector.ReconciliationInventory{Scope: request.Scope}, nil
-				}).ServeHTTP(w, r)
+				}, nil, nil).ServeHTTP(w, r)
 			if w.Code != tc.status || calls != tc.calls || (w.Code != http.StatusOK && w.Body.Len() != 0) {
 				t.Fatalf("status=%d calls=%d", w.Code, calls)
+			}
+		})
+	}
+}
+
+func TestPrivateReconciliationStatus(t *testing.T) {
+	id := uuid.New()
+	for _, tc := range []struct {
+		name, principal, method string
+		mode                    workercontrol.Mode
+		closed, tracked         bool
+		want                    int
+	}{
+		{"paused replacement", reconciliationClient, "GET", workercontrol.PauseNew, true, true, 200},
+		{"reconcile replacement", reconciliationClient, "GET", workercontrol.ReconcileOnly, true, true, 200},
+		{"standby", reconciliationClient, "GET", workercontrol.PauseNew, true, false, 409},
+		{"active, admission closed", reconciliationClient, "GET", workercontrol.Active, true, true, 200},
+		{"active, admission open", reconciliationClient, "GET", workercontrol.Active, false, true, 409},
+		{"open", reconciliationClient, "GET", workercontrol.PauseNew, false, true, 409},
+		{"wrong principal", "unrelated", "GET", workercontrol.PauseNew, true, true, 403},
+		{"mutation unsupported", reconciliationClient, "POST", workercontrol.PauseNew, true, true, 405},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := httptest.NewRequest(tc.method, reconciliationStatusPath, nil)
+			r.TLS = &tls.ConnectionState{VerifiedChains: [][]*x509.Certificate{{{DNSNames: []string{tc.principal}}}}}
+			var status func(context.Context) (workercontrol.ProcessReadback, bool)
+			if tc.tracked {
+				status = func(context.Context) (workercontrol.ProcessReadback, bool) {
+					return workercontrol.ProcessReadback{
+						Binding:         workercontrol.Binding{Mode: tc.mode, BootID: id},
+						AdmissionClosed: tc.closed,
+					}, true
+				}
+			}
+			w := httptest.NewRecorder()
+			reconciliationHandler(reconciliationIdentity{}, nil, nil, status, nil).ServeHTTP(w, r)
+			if w.Code != tc.want {
+				t.Fatalf("status=%d want=%d", w.Code, tc.want)
+			}
+			if tc.want == 200 {
+				var result workercontrol.ProcessReadback
+				if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil || result.Binding.BootID != id {
+					t.Fatal("missing replacement BootID")
+				}
+			} else if w.Body.Len() > 0 {
+				t.Fatal("denial disclosed status")
 			}
 		})
 	}

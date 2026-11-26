@@ -166,7 +166,8 @@ cloud_verified=false는 모든 CLI 결과에서 유지한다. 이 도구의 APPL
 ## 오사카 Connector 정산 수집기
 
 `LABBIT_DR_RECONCILIATION_TLS_DIR`가 설정되면 별도의 오사카 Pod private IP TCP 9443
-listener에만 `/dr-control/reconciliation` 및 `/dr-control/reconciliation/owner`가 열린다. 기본값에서는 listener가 없다.
+listener에만 `/dr-control/reconciliation`, `/dr-control/reconciliation/owner`,
+`/dr-control/reconciliation/status`가 열린다. 기본값에서는 listener가 없다.
 폴더에는 고정 DNS SAN `dr-backend.osaka.labbit.internal`을 가진 `tls.crt`, `tls.key`, 수집자 전용 `runner-ca.crt`,
 그리고 허용 Connector UUID·Provider 프로젝트 ID·연결 UUID를 담은 `scope.json`이 필요하다.
 CA 신뢰와 정확한 인증서 DNS SAN `dr-runner.osaka.labbit.internal`을 모두 검사한다.
@@ -175,8 +176,11 @@ Pod는 클라이언트 인증서의 DNS SAN을 검사한다. 수집자는 확인
 
 오사카 `local / PAUSE_NEW / MAINTENANCE` 대기 프로필에서 전송 연결을 확인할 때는
 `LABBIT_DR_RECONCILIATION_MODE=standby-probe`를 명시한다. 지정 Pod IP 대역과
-닫힌 접수 설정을 확인하고, 같은 mTLS 경계에서 HEAD만 허용한다. 두 정산 POST는
-409로 거부된다. 대기 상태에서 Valkey 소유권이나 DB 정산을 발행하지 않는다.
+닫힌 접수 설정을 확인하고, 같은 mTLS 경계에서 HEAD만 허용한다. 정산 POST와 영속 상태 GET은 409로 거부된다. 동일한 mTLS 인증이 필요한
+GET /dr-control/reconciliation/standby-status는 현재 로컬 Worker 모드와 접수 상태를
+scope=STANDBY_PROCESS_ONLY, durable=false로 반환한다. 대기 상태에서 Valkey 소유권이나 DB 정산을
+발행하지 않는다. 영속 상태 GET은 현재 PostgreSQL 제어 행과 Pod의 scope, revision, epoch,
+mode가 일치해야 응답한다.
 
 HEAD는 mTLS 연결 확인에 사용한다. POST는 접수가 명시적으로 닫혀 있고 이미 진행 중인 HTTP
 작업이 0인 상태에서만, 지정 RUN·요청 SHA·Connector 세션과 정확한 Worker binding에 대한
@@ -191,6 +195,16 @@ HEAD는 mTLS 연결 확인에 사용한다. POST는 접수가 명시적으로 �
 확인된 Pod의 `binding`, `valid_until_utc`만 전달한다. 응답은 빈 인벤토리 형식이며
 현재 세션과 소유권을 확인한 근거만 담는다. 이후 작업 목록 조회 시 동일 세션을
 다시 검증하며, 변경이나 만료 시 수집을 중단한다.
+교체된 영속 `PAUSE_NEW` Pod에서는 `/owner`만 허용한다. 정확한 Pod·Boot ID, 영속
+제어 상태와 미해결 경계 0건, 앞뒤의 Valkey 소유권을 확인한다. 이 요청은 Connector
+프레임을 보내지 않으며 `coverage_complete=false`로 유지한다. 작업별 정산 근거는
+`RECONCILE_ONLY`에서 수집한다.
+
+`GET /dr-control/reconciliation/status`는 동일 mTLS 클라이언트에 정확한 프로세스의
+Worker binding과 접수 상태를 반환한다. 접수가 닫힌 영속 `PAUSE_NEW` 또는
+`RECONCILE_ONLY`에서만 사용할 수 있다. 수집기는 정산 전후 Boot ID와
+revision·epoch를 대조하고, 실행기는 Kubernetes에서 같은 Pod UID와 컨테이너가
+유지됐는지 확인한다.
 
 ## 승인 원본 보관용 별도 운영 도구
 

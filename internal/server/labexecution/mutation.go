@@ -101,9 +101,9 @@ func (s *Service) Reset(ctx context.Context, user repository.User, in ResetInput
 		return accepted, err
 	}
 
-	release, admitted := s.enter()
-	if !admitted {
-		return MutationAccepted{}, ErrMaintenance
+	release, err := s.enter(ctx)
+	if err != nil {
+		return MutationAccepted{}, err
 	}
 	defer release()
 
@@ -182,9 +182,9 @@ func (s *Service) Cleanup(ctx context.Context, user repository.User, in CleanupI
 		return accepted, err
 	}
 
-	release, admitted := s.enter()
-	if !admitted {
-		return MutationAccepted{}, ErrMaintenance
+	release, err := s.enter(ctx)
+	if err != nil {
+		return MutationAccepted{}, err
 	}
 	defer release()
 
